@@ -10,15 +10,17 @@
              mapname()
              checkdir()
              close_outfile()
+             set_direc_attribs()
              stamp_file()
              version()
              scanBeOSexfield()
-             isBeOSexfield()
              set_file_attrs()
              setBeOSexfield()
              printBeOSexfield()
+             assign_MIME()
 
   ---------------------------------------------------------------------------*/
+
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
@@ -33,7 +35,16 @@
 
 /* For the new post-DR8 file attributes */
 #include <kernel/fs_attr.h>
-int set_file_attrs( const char *, const unsigned char *, const off_t );
+#include <support/byteorder.h>
+#include <storage/Mime.h>
+
+static uch *scanBeOSexfield  OF((const uch *ef_ptr, unsigned ef_len));
+static int  set_file_attrs( const char *, const unsigned char *, const off_t );
+static void setBeOSexfield   OF((const char *path, uch *extra_field));
+static void printBeOSexfield OF((int isdir, uch *extra_field));
+#ifdef BEOS_ASSIGN_FILETYPE
+static void assign_MIME( const char * );
+#endif
 
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
@@ -60,6 +71,13 @@ char *do_wild(__G__ wildspec)
      */
     if (firstcall) {        /* first call:  must initialize everything */
         firstcall = FALSE;
+
+        if (!iswild(wildspec)) {
+            strcpy(matchname, wildspec);
+            have_dirname = FALSE;
+            dir = NULL;
+            return matchname;
+        }
 
         /* break the wildspec into a directory part and a wildcard filename */
         if ((wildname = strrchr(wildspec, '/')) == (char *)NULL) {
@@ -117,7 +135,9 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL)
+    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        if (file->d_name[0] == '.' && wildname[0] != '.')
+            continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
@@ -126,6 +146,7 @@ char *do_wild(__G__ wildspec)
                 strcpy(matchname, file->d_name);
             return matchname;
         }
+    }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = (DIR *)NULL;
@@ -152,18 +173,70 @@ int mapattr(__G)
     ulg tmp = G.crec.external_file_attributes;
 
     switch (G.pInfo->hostnum) {
+        case AMIGA_:
+            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
+            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
+            break;
         case UNIX_:
         case VMS_:
         case ACORN_:
         case ATARI_:
         case BEOS_:
         case QDOS_:
+        case TANDEM_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
-            return 0;
-        case AMIGA_:
-            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
-            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
-            break;
+            if (G.pInfo->file_attr != 0 || !G.extra_field) {
+                return 0;
+            } else {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                   VMS (and probably others ??) leave 0 in the upper 16-bit
+                   part of the external_file_attributes field. Instead, they
+                   store file permission attributes in some extra field.
+                   As a work-around, we search for the presence of one of
+                   these extra fields and fall back to the MSDOS compatible
+                   part of external_file_attributes if one of the known
+                   e.f. types has been detected.
+                   Later, we might implement extraction of the permission
+                   bits from the VMS extra field. But for now, the work-around
+                   should be sufficient to provide "readable" extracted files.
+                   (For ASI Unix e.f., an experimental remap of the e.f.
+                   mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
+                int r = FALSE;
+
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            G.pInfo->file_attr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+                if (!r)
+                    return 0;
+            }
+            /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
         case FS_HPFS_:
@@ -196,12 +269,12 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
     int renamed;             /*  or 10 if out of memory (skip file) */
 {                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
-    char pathcomp[FILNAMSIZ];    /* path-component buffer */
-    char *pp, *cp=(char *)NULL;  /* character pointers */
-    char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;           /* flags */
+    char pathcomp[FILNAMSIZ];      /* path-component buffer */
+    char *pp, *cp=(char *)NULL;    /* character pointers */
+    char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
+    int quote = FALSE;             /* flags */
     int error = 0;
-    register unsigned workch;    /* hold the character being tested */
+    register unsigned workch;      /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
@@ -209,10 +282,10 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
+        return IZ_VOL_LABEL;    /* can't set disk volume labels in BeOS */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -224,7 +297,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == (char *)NULL)     /* no '/' or not junking dirs */
         cp = G.filename;        /* point to internal zipfile-member pathname */
@@ -270,7 +343,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -291,13 +364,28 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 Info(slide, 0, ((char *)slide, "   creating: %s\n",
                   G.filename));
             }
-            {   /* Handle the BeOS extra field if present. */
+
+#ifndef NO_CHMOD
+            /* set approx. dir perms (make sure can still read/write in dir) */
+            if (chmod(G.filename, (0xffff & G.pInfo->file_attr) | 0700))
+                perror("chmod (directory attributes) error");
+#endif
+
+            if (!uO.J_flag) {   /* Handle the BeOS extra field if present. */
                 void *ptr = scanBeOSexfield( G.extra_field,
                                              G.lrec.extra_field_length );
-                if( ptr ) {
+                if (ptr) {
                     setBeOSexfield( G.filename, ptr );
+                } else {
+#ifdef BEOS_ASSIGN_FILETYPE
+                    /* Otherwise, ask the system to assign a MIME type. */
+                    assign_MIME( G.filename );
+#else
+                    ; /* optimise me away baby */
+#endif
                 }
             }
+
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         /* TODO: should we re-write the BeOS extra field data in case it's */
@@ -500,7 +588,7 @@ int checkdir(__G__ pathcomp, flag)
                 pathcomp[--rootlen] = '\0';
             }
             if (rootlen > 0 && (stat(pathcomp, &G.statbuf) ||
-                !S_ISDIR(G.statbuf.st_mode)))        /* path does not exist */
+                !S_ISDIR(G.statbuf.st_mode)))       /* path does not exist */
             {
                 if (!G.create_dirs /* || iswild(pathcomp) */ ) {
                     rootlen = 0;
@@ -594,18 +682,21 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         if (symlink(linktarget, G.filename))  /* create the real link */
             perror("symlink error");
 
-/* See beos.h; there's currently no way to save/restore a symbolic link's */
-/* attributes from C, and I'm loathe to introduce any C++. [cjh]          */
-#  ifndef BE_NO_SYMLINK_ATTRS
-        {
-            /* Symlinkcs can have attributes, too. */
+        if (!uO.J_flag) {
+            /* Symlinks can have attributes, too. */
             void *ptr = scanBeOSexfield( G.extra_field,
                                          G.lrec.extra_field_length );
-            if( ptr ) {
+            if (ptr) {
                 setBeOSexfield( G.filename, ptr );
+            } else {
+                /* Otherwise, ask the system to try assigning a MIME type. */
+#ifdef BEOS_ASSIGN_FILETYPE
+                assign_MIME( G.filename );
+#else
+                ; /* optimise me away, baby */
+#endif
             }
         }
-#  endif
 
         free(linktarget);
         return;                             /* can't set time on symlinks */
@@ -634,14 +725,18 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
   ---------------------------------------------------------------------------*/
 
     eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
-                   G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
-                   &zt, z_uidgid) : 0);
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
+#ifdef IZ_CHECK_TZ
+                   (G.tz_is_valid ? &zt : NULL),
+#else
+                   &zt,
+#endif
+                   z_uidgid) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
           zt.mtime));
     } else {
-        zt.mtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                    G.lrec.last_mod_file_time);
+        zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
     if (eb_izux_flg & EB_UT_FL_ATIME) {
         TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
@@ -653,11 +748,11 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     }
 
     /* if -X option was specified and we have UID/GID info, restore it */
-    if (G.X_flag && eb_izux_flg & EB_UX2_VALID) {
+    if (uO.X_flag && eb_izux_flg & EB_UX2_VALID) {
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
         if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
         {
-            if (G.qflag)
+            if (uO.qflag)
                 Info(slide, 0x201, ((char *)slide,
                   "warning:  cannot set UID %d and/or GID %d for %s\n",
                   z_uidgid[0], z_uidgid[1], G.filename));
@@ -665,13 +760,12 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
                 Info(slide, 0x201, ((char *)slide,
                   " (warning) cannot set UID %d and/or GID %d",
                   z_uidgid[0], z_uidgid[1]));
-/* GRR: change return type to int and set up to return warning after utime() */
         }
     }
 
     /* set the file's access and modification times */
     if (utime(G.filename, (struct utimbuf *)&zt)) {
-        if (G.qflag)
+        if (uO.qflag)
             Info(slide, 0x201, ((char *)slide,
               "warning:  cannot set time for %s\n", G.filename));
         else
@@ -680,16 +774,73 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     }
 
     /* handle the BeOS extra field if present */
-    {
+    if (!uO.J_flag) {
         void *ptr = scanBeOSexfield( G.extra_field,
                                      G.lrec.extra_field_length );
 
-        if( ptr ) {
+        if (ptr) {
             setBeOSexfield( G.filename, ptr );
+        } else {
+#ifdef BEOS_ASSIGN_FILETYPE
+            /* Otherwise, ask the system to try assigning a MIME type. */
+            assign_MIME( G.filename );
+#else
+            ; /* optimise me away baby */
+#endif
         }
     }
 
 } /* end function close_outfile() */
+
+
+
+
+#ifdef SET_DIR_ATTRIB
+/* messages of code for setting directory attributes */
+static char Far DirlistUidGidFailed[] =
+  "warning:  cannot set UID %d and/or GID %d for %s\n";
+static char Far DirlistUtimeFailed[] =
+  "warning:  cannot set modification, access times for %s\n";
+#  ifndef NO_CHMOD
+  static char Far DirlistChmodFailed[] =
+    "warning:  cannot set permissions for %s\n";
+#  endif
+
+
+int set_direc_attribs(__G__ d)
+    __GDEF
+    dirtime *d;
+{
+    int errval = PK_OK;
+
+    if (d->have_uidgid &&
+        chown(d->fn, (uid_t)d->uidgid[0], (gid_t)d->uidgid[1]))
+    {
+        Info(slide, 0x201, ((char *)slide,
+          LoadFarString(DirlistUidGidFailed),
+          d->uidgid[0], d->uidgid[1], d->fn));
+        if (!errval)
+            errval = PK_WARN;
+    }
+    if (utime(d->fn, (const struct utimbuf *)&d->u.t2)) {
+        Info(slide, 0x201, ((char *)slide,
+          LoadFarString(DirlistUtimeFailed), d->fn));
+        if (!errval)
+            errval = PK_WARN;
+    }
+#ifndef NO_CHMOD
+    if (chmod(d->fn, 0xffff & d->perms)) {
+        Info(slide, 0x201, ((char *)slide,
+          LoadFarString(DirlistChmodFailed), d->fn));
+        /* perror("chmod (file attributes) error"); */
+        if (!errval)
+            errval = PK_WARN;
+    }
+#endif /* !NO_CHMOD */
+    return errval;
+} /* end function set_directory_attributes() */
+
+#endif /* SET_DIR_ATTRIB */
 
 
 
@@ -736,7 +887,11 @@ void version(__G)
 #ifdef __POWERPC__
       "(PowerPC)",
 #else
+# ifdef __INTEL__
+      "(x86)",
+# else
       "(unknown)",   /* someday we may have other architectures... */
+# endif
 #endif
 
 #ifdef __DATE__
@@ -752,6 +907,8 @@ void version(__G)
 
 #endif /* !SFX */
 
+
+
 /******************************/
 /* Extra field functions      */
 /******************************/
@@ -760,45 +917,28 @@ void version(__G)
 ** Scan the extra fields in extra_field, and look for a BeOS EF; return a
 ** pointer to that EF, or NULL if it's not there.
 */
-uch *scanBeOSexfield( uch *extra_field, unsigned ef_len )
+static uch *scanBeOSexfield( const uch *ef_ptr, unsigned ef_len )
 {
-    uch *ptr = extra_field;
+    while( ef_ptr != NULL && ef_len >= EB_HEADSIZE ) {
+        unsigned eb_id  = makeword(EB_ID + ef_ptr);
+        unsigned eb_len = makeword(EB_LEN + ef_ptr);
 
-    while( ptr < extra_field + ef_len ) {
-        if( isBeOSexfield( ptr ) ) {
-            return ptr;
-        } else {
-            ush  size;
-
-            ptr += 2;                   /* skip over the ID         */
-            size = makeword( ptr );     /* find the size of this EF */
-            ptr += 2;
-
-            ptr += size;                /* skip this EF */
+        if (eb_len > (ef_len - EB_HEADSIZE)) {
+            Trace((stderr,
+              "scanBeOSexfield: block length %u > rest ef_size %u\n", eb_len,
+              ef_len - EB_HEADSIZE));
+            break;
         }
+
+        if( eb_id == EF_BEOS && eb_len >= EB_BEOS_HLEN ) {
+            return (uch *)ef_ptr;
+        }
+
+        ef_ptr += (eb_len + EB_HEADSIZE);
+        ef_len -= (eb_len + EB_HEADSIZE);
     }
 
     return NULL;
-}
-
-int isBeOSexfield( uch *extra_field )
-{
-    if( extra_field != NULL ) {
-        uch *ptr  = extra_field;
-        ush  id   = 0;
-        ush  size = 0;
-
-        id   = makeword( ptr );
-        ptr += 2;
-        size = makeword( ptr );
-        ptr += 2;
-
-        if( id == EF_BE_ID && size >= EF_BE_SIZE ) {
-            return TRUE;
-        }
-    }
-
-    return FALSE;
 }
 
 /* Used by setBeOSexfield():
@@ -812,9 +952,9 @@ If set_file_attrs() fails, an error will be returned:
 (other values will be whatever the failed function returned; no docs
 yet, or I'd list a few)
 */
-int set_file_attrs( const char *name,
-                    const unsigned char *attr_buff,
-                    const off_t attr_size )
+static int set_file_attrs( const char *name,
+                           const unsigned char *attr_buff,
+                           const off_t attr_size )
 {
     int                  retval = EOK;
     unsigned char       *ptr;
@@ -824,7 +964,7 @@ int set_file_attrs( const char *name,
     ptr   = (unsigned char *)attr_buff;
     guard = ptr + attr_size;
 
-    fd = open( name, O_RDWR );
+    fd = open( name, O_RDWR | O_NOTRAVERSE );
     if( fd < 0 ) {
         return errno; /* should it be -fd ? */
     }
@@ -833,13 +973,24 @@ int set_file_attrs( const char *name,
         ssize_t              wrote_bytes;
         struct attr_info     fa_info;
         const char          *attr_name;
-        const unsigned char *attr_data;
+        unsigned char       *attr_data;
 
         attr_name  = (char *)&(ptr[0]);
         ptr       += strlen( attr_name ) + 1;
 
+        /* The attr_info data is stored in big-endian format because the */
+        /* PowerPC port was here first.                                  */
         memcpy( &fa_info, ptr, sizeof( struct attr_info ) );
+        fa_info.type = (uint32)B_BENDIAN_TO_HOST_INT32( fa_info.type );
+        fa_info.size = (off_t)B_BENDIAN_TO_HOST_INT64( fa_info.size );
         ptr     += sizeof( struct attr_info );
+
+        if( fa_info.size < 0LL ) {
+            Info(slide, 0x201, ((char *)slide,
+                 "warning: skipping attribute with invalid length (%Ld)\n",
+                 fa_info.size));
+            break;
+        }
 
         attr_data  = ptr;
         ptr       += fa_info.size;
@@ -851,11 +1002,16 @@ int set_file_attrs( const char *name,
             break;
         }
 
+        /* Wave the magic wand... this will swap Be-known types properly. */
+        (void)swap_data( fa_info.type, attr_data, fa_info.size,
+                         B_SWAP_BENDIAN_TO_HOST );
+
         wrote_bytes = fs_write_attr( fd, attr_name, fa_info.type, 0,
                                      attr_data, fa_info.size );
         if( wrote_bytes != fa_info.size ) {
             Info(slide, 0x201, ((char *)slide,
-                 "warning: wrote %ld attribute bytes of %ld\n",(unsigned long)wrote_bytes,(unsigned long)fa_info.size));
+                 "warning: wrote %ld attribute bytes of %ld\n",
+                 (unsigned long)wrote_bytes,(unsigned long)fa_info.size));
         }
     }
 
@@ -864,7 +1020,7 @@ int set_file_attrs( const char *name,
     return retval;
 }
 
-void setBeOSexfield( char *path, uch *extra_field )
+static void setBeOSexfield( const char *path, uch *extra_field )
 {
     uch *ptr       = extra_field;
     ush  id        = 0;
@@ -885,29 +1041,29 @@ void setBeOSexfield( char *path, uch *extra_field )
     flags     = *ptr;               ptr++;
 
     /* Do a little sanity checking. */
-    if( flags & EF_BE_FL_BADBITS ) {
+    if( flags & EB_BE_FL_BADBITS ) {
         /* corrupted or unsupported */
         Info(slide, 0x201, ((char *)slide,
              "Unsupported flags set for this BeOS extra field, skipping.\n"));
         return;
     }
-    if( size <= EF_BE_SIZE ) {
+    if( size <= EB_BEOS_HLEN ) {
         /* corrupted, unsupported, or truncated */
         Info(slide, 0x201, ((char *)slide,
              "BeOS extra field is %d bytes, should be at least %d.\n", size,
-             EF_BE_SIZE));
+             EB_BEOS_HLEN));
         return;
     }
-    if( full_size < ( size - EF_BE_SIZE ) ) {
+    if( full_size < ( size - EB_BEOS_HLEN ) ) {
         /* possible old archive? will this screw up on valid archives? */
         Info(slide, 0x201, ((char *)slide,
              "Skipping attributes: BeOS extra field is %d bytes, "
-             "data size is %ld.\n", size - EF_BE_SIZE, full_size));
+             "data size is %ld.\n", size - EB_BEOS_HLEN, full_size));
         return;
     }
 
     /* Find the BeOS file attribute data. */
-    if( flags & EF_BE_FL_NATURAL ) {
+    if( flags & EB_BE_FL_UNCMPR ) {
         /* Uncompressed data */
         attrbuff = ptr;
     } else {
@@ -921,7 +1077,7 @@ void setBeOSexfield( char *path, uch *extra_field )
         }
 
         retval = memextract( __G__ attrbuff, full_size,
-                             ptr, size - EF_BE_SIZE );
+                             ptr, size - EB_BEOS_HLEN );
         if( retval != PK_OK ) {
             /* error uncompressing attributes */
             Info(slide, 0x201, ((char *)slide,
@@ -952,7 +1108,7 @@ void setBeOSexfield( char *path, uch *extra_field )
     return;
 }
 
-void printBeOSexfield( int isdir, uch *extra_field )
+static void printBeOSexfield( int isdir, uch *extra_field )
 {
     uch *ptr       = extra_field;
     ush  id        = 0;
@@ -973,34 +1129,54 @@ void printBeOSexfield( int isdir, uch *extra_field )
     full_size = makelong( ptr );    ptr += 4;
     flags     = *ptr;               ptr++;
 
-    if( id != EF_BE_ID ) {
+    if( id != EF_BEOS ) {
         /* not a 'Be' field */
-        printf( "\t*** Unknown field type (0x%04x, '%c%c')\n", id,
-                (char)(id >> 8), (char)id );
+        printf("\t*** Unknown field type (0x%04x, '%c%c')\n", id,
+               (char)(id >> 8), (char)id);
     }
 
-    if( flags & EF_BE_FL_BADBITS ) {
+    if( flags & EB_BE_FL_BADBITS ) {
         /* corrupted or unsupported */
-        printf( "\t*** Corrupted BeOS extra field:\n" );
-        printf( "\t*** unknown bits set in the flags\n" );
-        printf( "\t*** (Possibly created by an old version of zip for BeOS.\n" );
+        printf("\t*** Corrupted BeOS extra field:\n");
+        printf("\t*** unknown bits set in the flags\n");
+        printf("\t*** (Possibly created by an old version of zip for BeOS.\n");
     }
 
-    if( size <= EF_BE_SIZE ) {
+    if( size <= EB_BEOS_HLEN ) {
         /* corrupted, unsupported, or truncated */
-        printf( "\t*** Corrupted BeOS extra field:\n" );
-        printf( "\t*** size is %d, should be larger than %d\n", size,
-                EF_BE_SIZE );
+        printf("\t*** Corrupted BeOS extra field:\n");
+        printf("\t*** size is %d, should be larger than %d\n", size,
+               EB_BEOS_HLEN );
     }
 
-    if( flags & EF_BE_FL_NATURAL ) {
+    if( flags & EB_BE_FL_UNCMPR ) {
         /* Uncompressed data */
-        printf( "\tBeOS extra field data (uncompressed):\n" );
-        printf( "\t\t%ld data bytes\n", full_size );
+        printf("\tBeOS extra field data (uncompressed):\n");
+        printf("\t\t%ld data bytes\n", full_size);
     } else {
         /* Compressed data */
-        printf( "\tBeOS extra field data (compressed):\n" );
-        printf( "\t\t%d compressed bytes\n", size - EF_BE_SIZE );
-        printf( "\t\t%ld uncompressed bytes\n", full_size );
+        printf("\tBeOS extra field data (compressed):\n");
+        printf("\t\t%d compressed bytes\n", size - EB_BEOS_HLEN);
+        printf("\t\t%ld uncompressed bytes\n", full_size);
     }
 }
+
+#ifdef BEOS_ASSIGN_FILETYPE
+/* Note: This will no longer be necessary in BeOS PR4; update_mime_info()    */
+/* will be updated to build its own absolute pathname if it's not given one. */
+static void assign_MIME( const char *file )
+{
+    char *fullname;
+    char buff[PATH_MAX], cwd_buff[PATH_MAX];
+    int retval;
+
+    if( file[0] == '/' ) {
+        fullname = (char *)file;
+    } else {
+        sprintf( buff, "%s/%s", getcwd( cwd_buff, PATH_MAX ), file );
+        fullname = buff;
+    }
+
+    retval = update_mime_info( fullname, FALSE, TRUE, TRUE );
+}
+#endif

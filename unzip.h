@@ -13,18 +13,9 @@
 #ifndef __unzip_h   /* prevent multiple inclusions */
 #define __unzip_h
 
-
 /*---------------------------------------------------------------------------
     Predefined, machine-specific macros.
   ---------------------------------------------------------------------------*/
-
-#ifdef POCKET_UNZIP             /* WinCE port */
-#  include "wince/punzip.h"     /* must appear before windows.h */
-#endif
-
-#ifdef WINDLL
-#  include <windows.h>
-#endif
 
 #ifdef __GO32__                 /* MS-DOS extender:  NOT Unix */
 #  ifdef unix
@@ -74,7 +65,10 @@
 #  define VMS
 #endif
 
-#if (defined(__WIN32__) && !defined(WIN32))
+#if ((defined(__WIN32__) || defined(_WIN32)) && !defined(WIN32))
+#  define WIN32
+#endif
+#if ((defined(__WINNT__) || defined(__WINNT)) && !defined(WIN32))
 #  define WIN32
 #endif
 
@@ -103,6 +97,15 @@
 
 #if (defined(__MSDOS__) && !defined(MSDOS))   /* just to make sure */
 #  define MSDOS
+#endif
+
+/* RSXNTDJ (at least up to v1.3) compiles for WIN32 (RSXNT) using a derivate
+   of the EMX environment, but defines MSDOS and __GO32__. ARG !!! */
+#if (defined(MSDOS) && defined(WIN32))
+#  undef MSDOS                  /* WIN32 is >>>not<<< MSDOS */
+#endif
+#if (defined(__GO32__) && defined(__EMX__) && defined(__RSXNT__))
+#  undef __GO32__
 #endif
 
 #if (defined(linux) && !defined(LINUX))
@@ -165,9 +168,6 @@
 #    define MODERN
 #  endif
 #endif
-#if defined(__BEOS__) && defined(__GNUC__)  /* brain damage for our GCC port */
-#  define __USE_FIXED_PROTOTYPES__
-#endif
 
 /* turn off prototypes if requested */
 #if (defined(NOPROTO) && defined(PROTO))
@@ -192,141 +192,19 @@
 #  define ZCONST
 #endif
 
-/* bad or (occasionally?) missing stddef.h: */
-#if (defined(M_XENIX) || defined(DNIX))
-#  define NO_STDDEF_H
-#endif
-
-#if (defined(M_XENIX) && !defined(M_UNIX))   /* SCO Xenix only, not SCO Unix */
-#  define SCO_XENIX
-#  define NO_LIMITS_H        /* no limits.h, but MODERN defined */
-#  define NO_UID_GID         /* no uid_t/gid_t */
-#  define size_t int
-#endif
-
-#ifdef realix   /* Modcomp Real/IX, real-time SysV.3 variant */
-#  define SYSV
-#  define NO_UID_GID         /* no uid_t/gid_t */
-#endif
-
-#if (defined(_AIX) && !defined(_ALL_SOURCE))
-#  define _ALL_SOURCE
-#endif
-
-#if defined(apollo)          /* defines __STDC__ */
-#    define NO_STDLIB_H
-#endif
-
-#ifdef DNIX
-#  define SYSV
-#  define SHORT_NAMES         /* 14-char limitation on path components */
-/* #  define FILENAME_MAX  14 */
-#  define FILENAME_MAX  NAME_MAX    /* GRR:  experiment */
-#endif
-
-#if (defined(SYSTEM_FIVE) || defined(__SYSTEM_FIVE))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* SYSTEM_FIVE || __SYSTEM_FIVE */
-#if (defined(M_SYSV) || defined(M_SYS5))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* M_SYSV || M_SYS5 */
-/* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
-#if (defined(__SVR4) || defined(__svr4__) || defined(sgi) || defined(__hpux))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* __SVR4 || __svr4__ || sgi || __hpux */
-#if (defined(LINUX) || defined(__QNX__))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* LINUX || __QNX__ */
-
-#if (defined(ultrix) || defined(__ultrix) || defined(bsd4_2))
-#  if (!defined(BSD) && !defined(SYSV))
-#    define BSD
-#  endif
-#endif /* ultrix || __ultrix || bsd4_2 */
-#if (defined(sun) || defined(pyr) || defined(CONVEX))
-#  if (!defined(BSD) && !defined(SYSV))
-#    define BSD
-#  endif
-#endif /* sun || pyr || CONVEX */
-
-#ifdef pyr  /* Pyramid:  has BSD and AT&T "universes" */
-#  ifdef BSD
-#    define pyr_bsd
-#    define USE_STRINGS_H  /* instead of more common string.h */
-#    define ZMEM           /* ZMEM now uses bcopy/bzero: not in AT&T universe */
-#  endif                   /* (AT&T memcpy claimed to be very slow, though) */
-#  define DECLARE_ERRNO
-#endif /* pyr */
-
-/* stat() bug for Borland, VAX C (also GNU?), and Atari ST MiNT on TOS
- * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
- * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
- * included on this list; it would be good to know what version the problem
- * was fixed at, if it did exist.  Watcom 10.6 has a separate stat() problem:
- * it fails on "." when the current directory is a root.  This is covered by
- * giving it a separate definition of SSTAT in OS-specific header files. */
-#if (defined(__TURBOC__) || defined(VMS) || defined(__MINT__))
-#  define WILD_STAT_BUG
-#endif
-
-#ifdef WILD_STAT_BUG
-#  define SSTAT(path,pbuf) (iswild(path) || stat(path,pbuf))
-#else
-#  define SSTAT stat
-#endif
-
-#ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
-#  define stat(p,s) zstat(p,s)
-#endif
-
-#define STRNICMP zstrnicmp
-
-#define UzpMatch match
-
 
 /*---------------------------------------------------------------------------
-    OS-dependent includes
+    Grab system-specific public include headers.
   ---------------------------------------------------------------------------*/
 
-#ifdef EFT
-#  define LONGINT off_t  /* Amdahl UTS nonsense ("extended file types") */
-#else
-#  define LONGINT long
+#ifdef POCKET_UNZIP             /* WinCE port */
+#  include "wince/punzip.h"     /* must appear before windows.h */
 #endif
 
-#ifdef MODERN
-#  ifndef NO_STDDEF_H
-#    include <stddef.h>
-#  endif
-#  ifndef NO_STDLIB_H
-#    include <stdlib.h>  /* standard library prototypes, malloc(), etc. */
-#  endif
-   typedef size_t extent;
-   typedef void zvoid;
-#else /* !MODERN */
-#  ifndef AOS_VS         /* mostly modern? */
-#    ifndef CMS_MVS
-       LONGINT lseek();
-#    endif
-#    ifdef VAXC          /* not fully modern, but does have stdlib.h and void */
-#      include <stdlib.h>
-#    else
-       char *malloc();
-#      define void int
-#    endif /* ?VAXC */
-#  endif /* !AOS_VS */
-   typedef unsigned int extent;
-   typedef char zvoid;
-#endif /* ?MODERN */
-
+#ifdef WINDLL
+#  include <windows.h>
+#  include "windll/structs.h"
+#endif
 
 /*---------------------------------------------------------------------------
     Grab system-dependent definition of EXPENTRY for prototypes below.
@@ -353,7 +231,7 @@
 #endif /* 0 */
 
 #if (defined(OS2) && !defined(FUNZIP))
-#  if defined(__IBMC__) || defined(__WATCOMC__)
+#  if (defined(__IBMC__) || defined(__WATCOMC__))
 #    define UZ_EXP  _System    /* compiler keyword */
 #  else
 #    define UZ_EXP
@@ -377,9 +255,22 @@
     Public typedefs.
   ---------------------------------------------------------------------------*/
 
+#ifndef _IZ_TYPES_DEFINED
+#ifdef MODERN
+   typedef void zvoid;
+#else /* !MODERN */
+#  ifndef AOS_VS         /* mostly modern? */
+#    ifndef VAXC         /* not fully modern, but has knows 'void' */
+#      define void int
+#    endif /* !VAXC */
+#  endif /* !AOS_VS */
+   typedef char zvoid;
+#endif /* ?MODERN */
 typedef unsigned char   uch;    /* code assumes unsigned bytes; these type-  */
 typedef unsigned short  ush;    /*  defs replace byte/UWORD/ULONG (which are */
 typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
+#define _IZ_TYPES_DEFINED
+#endif /* !_IZ_TYPES_DEFINED */
 
 /* InputFn is not yet used and is likely to change: */
 #ifdef PROTO
@@ -389,19 +280,16 @@ typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
    typedef int   (UZ_EXP PasswdFn)  (zvoid *pG, int *rcnt, char *pwbuf,
                                      int size, ZCONST char *zfn,
                                      ZCONST char *efn);
-#ifdef WINDLL
-   typedef int   (WINAPI ReplaceFn) (char *);
-   typedef void  (WINAPI SoundFn)   (void);
-#endif
+   typedef int   (UZ_EXP StatCBFn)  (zvoid *pG, int fnflag, ZCONST char *zfn,
+                                     ZCONST char *efn, ZCONST zvoid *details);
+   typedef void  (UZ_EXP UsrIniFn)  (void);
 #else /* !PROTO */
    typedef int   (UZ_EXP MsgFn)     ();
    typedef int   (UZ_EXP InputFn)   ();
    typedef void  (UZ_EXP PauseFn)   ();
    typedef int   (UZ_EXP PasswdFn)  ();
-#ifdef WINDLL
-   typedef int   (WINAPI ReplaceFn) ();
-   typedef void  (WINAPI SoundFn)   ();
-#endif
+   typedef int   (UZ_EXP StatCBFn)  ();
+   typedef void  (UZ_EXP UsrIniFn)  ();
 #endif /* ?PROTO */
 
 typedef struct _UzpBuffer {    /* rxstr */
@@ -417,8 +305,7 @@ typedef struct _UzpInit {
     MsgFn *msgfn;
     InputFn *inputfn;
     PauseFn *pausefn;
-
-    void (* UZ_EXP userfn)();  /* user init function to be called after */
+    UsrIniFn *userfn;          /* user init function to be called after */
                                /*  globals constructed and initialized */
 
     /* pointer to program's environment area or something? */
@@ -426,6 +313,81 @@ typedef struct _UzpInit {
     /* hooks for extra unzip -v output? (detect CPU or other hardware?) */
     /* anything else?  let me (Greg) know... */
 } UzpInit;
+
+typedef struct _UzpCB {
+    ulg structlen;             /* length of the struct being passed */
+    /* GRR: can we assume that each of these is a 32-bit pointer?  if not,
+     * does it matter? add "far" keyword to make sure? */
+    MsgFn *msgfn;
+    InputFn *inputfn;
+    PauseFn *pausefn;
+    PasswdFn *passwdfn;
+    StatCBFn *statrepfn;
+} UzpCB;
+
+/* the collection of general UnZip option flags and option arguments */
+typedef struct _UzpOpts {
+#ifndef FUNZIP
+    char *exdir;        /* pointer to extraction root directory (-d option) */
+    char *pwdarg;       /* pointer to command-line password (-P option) */
+    int zipinfo_mode;   /* behave like ZipInfo or like normal UnZip? */
+    int aflag;          /* -a: do ASCII-EBCDIC and/or end-of-line translation */
+#ifdef VMS
+    int bflag;          /* -b: force fixed record format for binary files */
+#endif
+#ifdef UNIXBACKUP
+    int B_flag;         /* -B: back up existing files by renaming to *~ first */
+#endif
+    int cflag;          /* -c: output to stdout */
+    int C_flag;         /* -C: match filenames case-insensitively */
+#ifdef MACOS
+    int E_flag;         /* -E: [MacOS] show Mac extra field during restoring */
+#endif
+    int fflag;          /* -f: "freshen" (extract only newer files) */
+#if (defined(RISCOS) || defined(ACORN_FTYPE_NFS))
+    int acorn_nfs_ext;  /* -F: RISC OS types & NFS filetype extensions */
+#endif
+    int hflag;          /* -h: header line (zipinfo) */
+#ifdef MACOS
+    int i_flag;         /* -i: [MacOS] ignore filenames stored in Mac e.f. */
+#endif
+#ifdef RISCOS
+    int scanimage;      /* -I: scan image files */
+#endif
+    int jflag;          /* -j: junk pathnames (unzip) */
+#if (defined(__BEOS__) || defined(MACOS))
+    int J_flag;         /* -J: ignore BeOS/MacOS extra field info (unzip) */
+#endif
+    int lflag;          /* -12slmv: listing format (zipinfo) */
+    int L_flag;         /* -L: convert filenames from some OSes to lowercase */
+    int overwrite_none; /* -n: never overwrite files (no prompting) */
+#ifdef AMIGA
+    int N_flag;         /* -N: restore comments as AmigaDOS filenotes */
+#endif
+    int overwrite_all;  /* -o: OK to overwrite files without prompting */
+#endif /* !FUNZIP */
+    int qflag;          /* -q: produce a lot less output */
+#ifndef FUNZIP
+#if (defined(MSDOS) || defined(FLEXOS) || defined(OS2) || defined(WIN32))
+    int sflag;          /* -s: convert spaces in filenames to underscores */
+#endif
+#if (defined(MSDOS) || defined(OS2) || defined(WIN32))
+    int volflag;        /* -$: extract volume labels */
+#endif
+    int tflag;          /* -t: test (unzip) or totals line (zipinfo) */
+    int T_flag;         /* -T: timestamps (unzip) or dec. time fmt (zipinfo) */
+    int uflag;          /* -u: "update" (extract only newer/brand-new files) */
+    int vflag;          /* -v: (verbosely) list directory */
+    int V_flag;         /* -V: don't strip VMS version numbers */
+#if (defined(TANDEM) || defined(UNIX) || defined(VMS) || defined(__BEOS__))
+    int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
+#endif
+#if (defined(OS2) || defined(WIN32))
+    int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
+#endif
+    int zflag;          /* -z: display the zipfile comment (only, for unzip) */
+#endif /* !FUNZIP */
+} UzpOpts;
 
 /* intended to be a private struct: */
 typedef struct _ver {
@@ -465,8 +427,7 @@ typedef struct central_directory_file_header { /* CENTRAL */
     uch version_needed_to_extract[2];
     ush general_purpose_bit_flag;
     ush compression_method;
-    ush last_mod_file_time;
-    ush last_mod_file_date;
+    ulg last_mod_dos_datetime;
     ulg crc32;
     ulg csize;
     ulg ucsize;
@@ -523,25 +484,41 @@ typedef struct central_directory_file_header { /* CENTRAL */
 #define IZ_PW_CANCELALL   -2   /* no password, skip any further pwd. request */
 #define IZ_PW_ERROR        5   /* = PK_MEM2 : failure (no mem, no tty, ...) */
 
+/* flag values for status callback function */
+#define UZ_ST_START_EXTRACT     1
+#define UZ_ST_IN_PROGRESS       2
+#define UZ_ST_FINISH_MEMBER     3
+
+/* return values of status callback function */
+#define UZ_ST_CONTINUE          0
+#define UZ_ST_BREAK             1
+
 
 /*---------------------------------------------------------------------------
     Prototypes for public UnZip API (DLL) functions.
   ---------------------------------------------------------------------------*/
 
+#define  UzpMatch match
+
 int      UZ_EXP UzpMain            OF((int argc, char **argv));
 int      UZ_EXP UzpAltMain         OF((int argc, char **argv, UzpInit *init));
 UzpVer * UZ_EXP UzpVersion         OF((void));
-int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file,
-                                       UzpBuffer *retstr));
+void     UZ_EXP UzpFreeMemBuffer   OF((UzpBuffer *retstr));
+#ifndef WINDLL
+int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file, UzpOpts *optflgs,
+                                       UzpCB *UsrFunc, UzpBuffer *retstr));
+#endif
+#ifndef WINDLL
+   int   UZ_EXP UzpGrep            OF((char *archive, char *file,
+                                       char *pattern, int cmd, int SkipBin,
+                                       UzpCB *UsrFunc));
+#endif
+#ifdef OS2
 int      UZ_EXP UzpFileTree        OF((char *name, cbList(callBack),
                                        char *cpInclude[], char *cpExclude[]));
-
-#ifdef WINDLL
-   void  UZ_EXP UzpNoPrinting      OF((int));   /* turns all messages on/off */
 #endif
+
 void     UZ_EXP UzpVersion2        OF((UzpVer2 *version));
-int      UZ_EXP UzpGrep            OF((char *archive, char *file,
-                                       char *pattern, int cmd, int SkipBin));
 int      UZ_EXP UzpValidate        OF((char *archive, int AllCodes));
 
 

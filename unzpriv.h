@@ -48,6 +48,138 @@
 #  endif
 #endif
 
+/*---------------------------------------------------------------------------
+    OS-dependent configuration for UnZip internals
+  ---------------------------------------------------------------------------*/
+
+/* bad or (occasionally?) missing stddef.h: */
+#if (defined(M_XENIX) || defined(DNIX))
+#  define NO_STDDEF_H
+#endif
+
+#if (defined(M_XENIX) && !defined(M_UNIX))   /* SCO Xenix only, not SCO Unix */
+#  define SCO_XENIX
+#  define NO_LIMITS_H        /* no limits.h, but MODERN defined */
+#  define NO_UID_GID         /* no uid_t/gid_t */
+#  define size_t int
+#endif
+
+#ifdef realix   /* Modcomp Real/IX, real-time SysV.3 variant */
+#  define SYSV
+#  define NO_UID_GID         /* no uid_t/gid_t */
+#endif
+
+#if (defined(_AIX) && !defined(_ALL_SOURCE))
+#  define _ALL_SOURCE
+#endif
+
+#if defined(apollo)          /* defines __STDC__ */
+#    define NO_STDLIB_H
+#endif
+
+#ifdef DNIX
+#  define SYSV
+#  define SHORT_NAMES         /* 14-char limitation on path components */
+/* #  define FILENAME_MAX  14 */
+#  define FILENAME_MAX  NAME_MAX    /* GRR:  experiment */
+#endif
+
+#if (defined(SYSTEM_FIVE) || defined(__SYSTEM_FIVE))
+#  ifndef SYSV
+#    define SYSV
+#  endif
+#endif /* SYSTEM_FIVE || __SYSTEM_FIVE */
+#if (defined(M_SYSV) || defined(M_SYS5))
+#  ifndef SYSV
+#    define SYSV
+#  endif
+#endif /* M_SYSV || M_SYS5 */
+/* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
+#if (defined(__SVR4) || defined(__svr4__) || defined(sgi) || defined(__hpux))
+#  ifndef SYSV
+#    define SYSV
+#  endif
+#endif /* __SVR4 || __svr4__ || sgi || __hpux */
+#if (defined(LINUX) || defined(__QNX__))
+#  ifndef SYSV
+#    define SYSV
+#  endif
+#endif /* LINUX || __QNX__ */
+
+#if (defined(ultrix) || defined(__ultrix) || defined(bsd4_2))
+#  if (!defined(BSD) && !defined(SYSV))
+#    define BSD
+#  endif
+#endif /* ultrix || __ultrix || bsd4_2 */
+#if (defined(sun) || defined(pyr) || defined(CONVEX))
+#  if (!defined(BSD) && !defined(SYSV))
+#    define BSD
+#  endif
+#endif /* sun || pyr || CONVEX */
+
+#ifdef pyr  /* Pyramid:  has BSD and AT&T "universes" */
+#  ifdef BSD
+#    define pyr_bsd
+#    define USE_STRINGS_H  /* instead of more common string.h */
+#    define ZMEM           /* ZMEM now uses bcopy/bzero: not in AT&T universe */
+#  endif                   /* (AT&T memcpy claimed to be very slow, though) */
+#  define DECLARE_ERRNO
+#endif /* pyr */
+
+/* stat() bug for Borland, VAX C (also GNU?), and Atari ST MiNT on TOS
+ * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
+ * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
+ * included on this list; it would be good to know what version the problem
+ * was fixed at, if it did exist.  Watcom 10.6 has a separate stat() problem:
+ * it fails on "." when the current directory is a root.  This is covered by
+ * giving it a separate definition of SSTAT in OS-specific header files. */
+#if (defined(__TURBOC__) || defined(VMS) || defined(__MINT__))
+#  define WILD_STAT_BUG
+#endif
+
+#ifdef WILD_STAT_BUG
+#  define SSTAT(path,pbuf) (iswild(path) || stat(path,pbuf))
+#else
+#  define SSTAT stat
+#endif
+
+#ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
+#  define stat(p,s) zstat((p),(s))
+#endif
+
+#define STRNICMP zstrnicmp
+
+/*---------------------------------------------------------------------------
+    OS-dependent includes
+  ---------------------------------------------------------------------------*/
+
+#ifdef EFT
+#  define LONGINT off_t  /* Amdahl UTS nonsense ("extended file types") */
+#else
+#  define LONGINT long
+#endif
+
+#ifdef MODERN
+#  ifndef NO_STDDEF_H
+#    include <stddef.h>
+#  endif
+#  ifndef NO_STDLIB_H
+#    include <stdlib.h>  /* standard library prototypes, malloc(), etc. */
+#  endif
+   typedef size_t extent;
+#else /* !MODERN */
+#  ifndef AOS_VS         /* mostly modern? */
+     LONGINT lseek();
+#    ifdef VAXC          /* not fully modern, but does have stdlib.h and void */
+#      include <stdlib.h>
+#    else
+       char *malloc();
+#    endif /* ?VAXC */
+#  endif /* !AOS_VS */
+   typedef unsigned int extent;
+#endif /* ?MODERN */
+
+
 #ifndef MINIX            /* Minix needs it after all the other includes (?) */
 #  include <stdio.h>
 #endif
@@ -80,11 +212,7 @@
 #  else
 #    define REDIRECTC(c)
 #    define REDIRECTPRINT(buf,size)  0
-#    ifdef WINDLL
-#      define FINISH_REDIRECT()      FLUSH(G.outcnt)
-#    else
-#      define FINISH_REDIRECT()
-#    endif
+#    define FINISH_REDIRECT()        close_redirect(__G)
 #  endif
 #endif
 
@@ -159,19 +287,15 @@
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
 #  define USE_EF_UT_TIME
+#  define SET_DIR_ATTRIB
 #  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #    define TIMESTAMP
 #  endif
+#  define RESTORE_UIDGID
 #  define NO_GMTIME               /* maybe DR10 will have timezones... */
 #  define INT_SPRINTF
 #  define SYMLINKS
-#  ifdef __GNUC__
-     /* Not only does it have screwed up unistd.h and stdlib.h (see unzip.h
-      * for that fix: #define __USE_FIXED_PROTOTYPES__), GeekGadgets' unistd.h
-      * leaves out at least two functions supported by BeOS: */
-     extern int ioctl(int fd, int op, ...);
-     extern int symlink(const char *from, const char *to);
-#  endif
+#  define MAIN main_stub          /* now that we're using a wrapper... */
 #endif
 
 /*---------------------------------------------------------------------------
@@ -198,147 +322,8 @@
     Mac section:
   ---------------------------------------------------------------------------*/
 
-#if defined(__MWERKS__) && defined(macintosh)
-#  include <OSUtils.h>
-
-#  define AddResMenu    AppendResMenu
-#  define Date2Secs     DateToSeconds
-#  define DisposDialog  DisposeDialog
-#  define GetDItem      GetDialogItem
-#  define GetItem       GetMenuItemText
-#  define GetIText      GetDialogItemText
-#  define GetMHandle    GetMenuHandle
-
-   typedef unsigned long mode_t;
-#  define _STAT
-
-#  define CREATOR  'R*ch'
-#  define MAIN     _dummy_main
-#endif
-
-#ifdef THINK_C
-#  ifndef __STDC__            /* if Think C hasn't defined __STDC__ ... */
-#    define __STDC__ 1        /*   make sure it's defined: it needs it */
-#  else
-#    if !__STDC__             /* sometimes __STDC__ is defined as 0; */
-#      undef __STDC__         /*   it needs to be 1 or required header */
-#      define __STDC__ 1      /*   files are not properly included. */
-#    endif /* !__STDC__ */
-#  endif
-#  define IOCompletionUPP   ProcPtr
-#  define CREATOR  'KAHL'
-#  define MAIN     _dummy_main
-#endif /* THINK_C */
-
-#ifdef MPW
-#  include <Errors.h>
-#  include <Files.h>
-#  include <Memory.h>
-#  include <Quickdraw.h>
-#  include <ToolUtils.h>
-#  ifdef fileno
-#    undef fileno
-#  endif
-#  ifdef MCH_MACINTOSH
-#    define CREATOR     'Manx'
-#  else
-#    define CREATOR     'MPS '
-#  endif
-#endif /* MPW */
-
 #ifdef MACOS
-#  include <fcntl.h>            /* O_BINARY for open() w/o CR/LF translation */
-#  define fileno(x)     ((x) == stdout ? 1 : ((x) == stderr ? 2 : (short)(x)))
-#  define open(x,y)     macopen((x), (y), G.gnVRefNum, G.glDirID)
-#  define fopen(x,y)    macfopen((x), (y), G.gnVRefNum, G.glDirID)
-#  define close         macclose
-#  define fclose(x)     macclose(fileno((x)))
-#  define read          macread
-#  define write         macwrite
-#  define lseek         maclseek
-#  define creat(x,y) \
-               maccreat((x), G.gnVRefNum, G.glDirID, G.gostCreator, G.gostType)
-#  define stat(x,y)     macstat((x), (y), G.gnVRefNum, G.glDirID)
-#  define dup
-#  ifndef MCH_MACINTOSH
-#    define NO_STRNICMP
-#  endif
-#  define DIR_END ':'
-#  ifndef DATE_FORMAT
-#    define DATE_FORMAT DF_MDY
-#  endif
-#  define lenEOL        1
-#  define PutNativeEOL  *q++ = native(CR);
-#  define MALLOC_WORK
-#  define INT_SPRINTF
-#  define USE_EF_UT_TIME
-#  define NO_GMTIME
-#  undef DYNAMIC_CRC_TABLE
-  /*
-   * ARGH.  Mac times are based on 1904 Jan 1 00:00, not 1970 Jan 1 00:00.
-   *  So we have to diddle time_t's appropriately:  add or subtract 66 years'
-   *  worth of seconds == number of days times 86400 == (66*365 regular days +
-   *  17 leap days) * 86400 == (24090 + 17) * 86400 == 2082844800 seconds.  We
-   *  hope time_t is an unsigned long (ulg) on the Macintosh...
-   */
-#  define TIMET_TO_NATIVE(x)  (x) += (ulg)2082844800L;
-#  define NATIVE_TO_TIMET(x)  (x) -= (ulg)2082844800L;
-
-#  ifndef MPW
-#    define fgets       wfgets
-#    define fflush(f)
-#    define fprintf     wfprintf
-#    define fputs(s,f)  wfprintf((f), "%s", (s))
-#    define isatty(f)   (((f) >= 0) || ((f) <= 2))
-#    define printf      wprintf
-#    ifdef putc
-#      undef putc
-#    endif
-#    define putc(c,f)   wfprintf((f), "%c", (c))
-#    define getenv      macgetenv
-#  endif
-
-#  ifndef isascii
-#    define isascii(c)  ((unsigned char)(c) <= 0x3F)
-#  endif
-
-#  include "macstat.h"
-#  include "macdir.h"
-
-#  ifdef CR
-#    undef  CR
-#  endif
-
-   typedef struct _ZipExtraHdr {
-       ush header;               /*    2 bytes */
-       ush data;                 /*    2 bytes */
-   } ZIP_EXTRA_HEADER;
-
-   typedef struct _MacInfoMin {
-       ush header;               /*    2 bytes */
-       ush data;                 /*    2 bytes */
-       ulg signature;            /*    4 bytes */
-       FInfo finfo;              /*   16 bytes */
-       ulg lCrDat;               /*    4 bytes */
-       ulg lMdDat;               /*    4 bytes */
-       ulg flags ;               /*    4 bytes */
-       ulg lDirID;               /*    4 bytes */
-                                 /*------------*/
-   } MACINFOMIN;                 /* = 40 bytes for size of data */
-
-   typedef struct _MacInfo {
-       ush header;               /*    2 bytes */
-       ush data;                 /*    2 bytes */
-       ulg signature;            /*    4 bytes */
-       FInfo finfo;              /*   16 bytes */
-       ulg lCrDat;               /*    4 bytes */
-       ulg lMdDat;               /*    4 bytes */
-       ulg flags ;               /*    4 bytes */
-       ulg lDirID;               /*    4 bytes */
-       char rguchVolName[28];    /*   28 bytes */
-                                 /*------------*/
-   } MACINFO;                    /* = 68 bytes for size of data */
-
+#  include "maccfg.h"
 #endif /* MACOS */
 
 /*---------------------------------------------------------------------------
@@ -396,7 +381,8 @@
 #  if (defined(__GO32__) || defined(FLEXOS))
 #    define DIR_END       '/'
 #  else
-#    define DIR_END       '\\'
+#    define DIR_END       '\\'  /* OS uses '\\' as directory separator */
+#    define DIR_END2      '/'   /* also check for '/' (RTL may convert) */
 #  endif
 #  ifndef WIN32
 #    ifdef DATE_FORMAT
@@ -469,6 +455,11 @@
    /* use a single LF delimiter so that writes to 101 text files work */
 #  define PutNativeEOL  *q++ = native(LF);
 #  define lenEOL        1
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT  DF_DMY
+#  endif
+#  define USE_EF_UT_TIME
+#  define RESTORE_UIDGID
 #endif
 
 /*---------------------------------------------------------------------------
@@ -582,12 +573,18 @@
 #    define DATE_FORMAT DF_MDY    /* GRR:  customize with locale.h somehow? */
 #  endif
 #  define lenEOL        1
-#  define PutNativeEOL  *q++ = native(LF);
+#  ifdef EBCDIC
+#    define PutNativeEOL  *q++ = '\n';
+#  else
+#    define PutNativeEOL  *q++ = native(LF);
+#  endif
 #  define SCREENLINES   screenlines()
 #  define USE_EF_UT_TIME
+#  define SET_DIR_ATTRIB
 #  if (!defined(TIMESTAMP) && !defined(NOTIMESTAMP))   /* GRR 970513 */
 #    define TIMESTAMP
 #  endif
+#  define RESTORE_UIDGID
 #endif /* UNIX */
 
 /*---------------------------------------------------------------------------
@@ -619,7 +616,7 @@
 #    define EXIT        return_VMS
 #  endif
 #  ifdef VMSCLI
-#    define USAGE(ret)  VMSCLI_usage(__G__ (ret));
+#    define USAGE(ret)  VMSCLI_usage(__G__ (ret))
 #  endif
 #  define DIR_BEG       '['
 #  define DIR_END       ']'
@@ -630,7 +627,13 @@
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
-#  if ((!defined(__VMS_VER)) || (__VMS_VER < 70000000))
+#  if (defined(__VMS_VERSION) && !defined(VMS_VERSION))
+#    define VMS_VERSION __VMS_VERSION
+#  endif
+#  if (defined(__VMS_VER) && !defined(__CRTL_VER))
+#    define __CRTL_VER __VMS_VER
+#  endif
+#  if ((!defined(__CRTL_VER)) || (__CRTL_VER < 70000000))
 #    define NO_GMTIME           /* gmtime() of earlier VMS C RTLs is broken */
 #  else
 #    if (!defined(NO_EF_UT_TIME) && !defined(USE_EF_UT_TIME))
@@ -640,6 +643,7 @@
 #  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #    define TIMESTAMP
 #  endif
+#  define RESTORE_UIDGID
 #endif /* VMS */
 
 /*---------------------------------------------------------------------------
@@ -715,7 +719,7 @@
 #  define EXIT          exit
 #endif
 #ifndef USAGE
-#  define USAGE(ret)    usage(__G__ (ret));   /* used in unzip.c, zipinfo.c */
+#  define USAGE(ret)    usage(__G__ (ret))    /* used in unzip.c, zipinfo.c */
 #endif
 #ifndef TIMET_TO_NATIVE         /* everybody but MSC 7.0 and Macintosh */
 #  define TIMET_TO_NATIVE(x)
@@ -778,7 +782,7 @@
 #define MSG_FN(f)      (f & 0x0010)   /* bit 4:  1 = print filename */
 #define MSG_LNEWLN(f)  (f & 0x0020)   /* bit 5:  1 = leading newline if !SOL */
 #define MSG_TNEWLN(f)  (f & 0x0040)   /* bit 6:  1 = trailing newline if !SOL */
-#define MSG_MNEWLN(f)  (f & 0x0080)   /* bit 7:  1 = trailing newline if MPW */
+#define MSG_MNEWLN(f)  (f & 0x0080)   /* bit 7:  1 = trailing NL for prompts */
 /* the following are subject to change */
 #define MSG_NO_WGUI(f) (f & 0x0100)   /* bit 8:  1 = skip if Windows GUI */
 #define MSG_NO_AGUI(f) (f & 0x0200)   /* bit 9:  1 = skip if Acorn GUI */
@@ -811,9 +815,13 @@
 #ifndef __16BIT__
 #  define nearmalloc  malloc
 #  define nearfree    free
-#  ifndef __IBMC__
-#    define near
-#    define far
+#  if (!defined(__IBMC__) || !defined(OS2))
+#    ifndef near
+#      define near
+#    endif
+#    ifndef far
+#      define far
+#    endif
 #  endif
 #endif
 
@@ -934,7 +942,10 @@
 
 #ifdef CMS_MVS
 /* Binary files must be RECFM=F,LRECL=1 for ftell() to get correct pos */
-#  define FOPW "wb,recfm=f,lrecl=1"
+/* ...unless byteseek is used.  Let's try that for a while.            */
+#  define FOPR "rb,byteseek"
+#  define FOPM "r+b,byteseek"
+#  define FOPW "wb,recfm=v,lrecl=32760"
 #  ifdef MVS
 #    define FOPWT "w,lrecl=133"
 #  else
@@ -1035,14 +1046,14 @@
 #ifndef U_TIME_T_MAX            /* max value of unsigned (>= 32-bit) time_t */
 #  define U_TIME_T_MAX  ((time_t)(ulg)0xffffffffL)
 #endif
-#ifdef DOSDATE_MINIMUM          /* min DOSDATE value (1980-01-01) */
-#  undef DOSDATE_MINIMUM
+#ifdef DOSTIME_MINIMUM          /* min DOSTIME value (1980-01-01) */
+#  undef DOSTIME_MINIMUM
 #endif
-#define DOSDATE_MINIMUM ((ush)0x0021)
-#ifdef DOSDATE_2038_01_18       /* approximate DOSDATE equivalent of */
-#  undef DOSDATE_2038_01_18     /*  the signed-32-bit time_t limit */
+#define DOSTIME_MINIMUM ((ulg)0x00210000L)
+#ifdef DOSTIME_2038_01_18       /* approximate DOSTIME equivalent of */
+#  undef DOSTIME_2038_01_18     /*  the signed-32-bit time_t limit */
 #endif
-#define DOSDATE_2038_01_18 ((ush)0x7432)
+#define DOSTIME_2038_01_18 ((ulg)0x74320000L)
 
 #ifdef QDOS
 #  define ZSUFX         "_zip"
@@ -1092,7 +1103,7 @@
 #define VM_CMS_           4
 #define ATARI_            5    /* what if it's a minix filesystem? [cjh] */
 #define FS_HPFS_          6    /* filesystem used by OS/2 (and NT 3.x) */
-#define MAC_              7
+#define MAC_              7    /* HFS filesystem used by MacOS */
 #define Z_SYSTEM_         8
 #define CPM_              9
 #define TOPS20_           10
@@ -1132,14 +1143,17 @@
 /* extra-field ID values, all little-endian: */
 #define EF_AV        0x0007    /* PKWARE's authenticity verification */
 #define EF_OS2       0x0009    /* OS/2 extended attributes */
+#define EF_PKW32     0x000a    /* PKWARE's Win95/98/WinNT filetimes */
 #define EF_PKVMS     0x000c    /* PKWARE's VMS */
 #define EF_PKUNIX    0x000d    /* PKWARE's Unix */
 #define EF_IZVMS     0x4d49    /* Info-ZIP's VMS ("IM") */
 #define EF_IZUNIX    0x5855    /* Info-ZIP's old Unix[1] ("UX") */
 #define EF_IZUNIX2   0x7855    /* Info-ZIP's new Unix[2] ("Ux") */
 #define EF_TIME      0x5455    /* universal timestamp ("UT") */
+#define EF_MAC3      0x334d    /* Info-ZIP's new Macintosh (= "M3") */
 #define EF_JLMAC     0x07c8    /* Johnny Lee's old Macintosh (= 1992) */
 #define EF_ZIPIT     0x2605    /* Thomas Brown's Macintosh (ZipIt) */
+#define EF_ZIPIT2    0x2705    /* T. Brown's Mac (ZipIt) v 1.3.8 and newer ? */
 #define EF_VMCMS     0x4704    /* Info-ZIP's VM/CMS ("\004G") */
 #define EF_MVS       0x470f    /* Info-ZIP's MVS ("\017G") */
 #define EF_ACL       0x4c41    /* (OS/2) access control list ("AL") */
@@ -1176,12 +1190,24 @@
 #define EB_UT_FL_ATIME    (1 << 1)      /* atime present */
 #define EB_UT_FL_CTIME    (1 << 2)      /* ctime present */
 
-#define EB_OS2_CHEAD      4    /* offset of OS2/ACL compressed data header */
+#define EB_FLGS_OFFS      4    /* offset of flags area in generic compressed
+                                  extra field blocks (OS2, NT, and others) */
+#define EB_OS2_HLEN       4    /* size of OS2/ACL compressed data header */
+#define EB_BEOS_HLEN      5    /* length of BeOS e.f attribute header */
+#define EB_BE_FL_UNCMPR   0x01 /* "BeOS attributes uncompressed" bit flag */
+#define EB_MAC3_HLEN      14   /* length of Mac3 attribute block header */
+#define EB_M3_FL_DATFRK   0x01 /* "this entry is data fork" flag */
+#define EB_M3_FL_UNCMPR   0x04 /* "Mac3 attributes uncompressed" bit flag */
+#define EB_M3_FL_TIME64   0x08 /* "Mac3 time fields are 64 bit wide" flag */
+#define EB_M3_FL_NOUTC    0x10 /* "Mac3 timezone offset fields missing" flag */
 
 #define EB_NTSD_C_LEN     4    /* length of central NT security data */
 #define EB_NTSD_L_LEN     5    /* length of minimal local NT security data */
 #define EB_NTSD_VERSION   4    /* offset of NTSD version byte */
 #define EB_NTSD_MAX_VER   (0)  /* maximum version # we know how to handle */
+
+#define EB_ASI_CRC32      0    /* offset of ASI Unix field's crc32 checksum */
+#define EB_ASI_MODE       4    /* offset of ASI Unix permission mode field */
 
 /*---------------------------------------------------------------------------
     True sizes of the various headers, as defined by PKWARE--so it is not
@@ -1203,6 +1229,7 @@
 #  define foreign(c)    ascii[(uch)(c)]
 #  define native(c)     ebcdic[(uch)(c)]
 #  define NATIVE        "EBCDIC"
+#  define NOANSIFILT
 #endif
 
 #if (defined(CRAY) && defined(ZMEM))
@@ -1211,6 +1238,7 @@
 
 #ifdef ZMEM
 #  undef ZMEM
+#  define memcmp(b1,b2,len)      bcmp(b2,b1,len)
 #  define memcpy(dest,src,len)   bcopy(src,dest,len)
 #  define memzero                bzero
 #else
@@ -1238,15 +1266,15 @@
 #endif
 
 #ifdef QQ                         /* Newtware version:  no file */
-#  define QCOND     (!G.qflag)   /*  comments with -vq or -vqq */
+#  define QCOND     (!uO.qflag)   /*  comments with -vq or -vqq */
 #else                             /* Bill Davidsen version:  no way to */
-#  define QCOND     (which_hdr)   /*  kill file comments when listing */
+#  define QCOND     (longhdr)     /*  kill file comments when listing */
 #endif
 
 #ifdef OLD_QQ
-#  define QCOND2    (G.qflag < 2)
+#  define QCOND2    (uO.qflag < 2)
 #else
-#  define QCOND2    (!G.qflag)
+#  define QCOND2    (!uO.qflag)
 #endif
 
 #ifndef TRUE
@@ -1314,9 +1342,10 @@ typedef struct iztimes {
    time_t ctime;             /* used for creation time; NOT same as st_ctime */
 } iztimes;
 
-#ifdef UNIX
+#ifdef SET_DIR_ATTRIB
    typedef struct dirtime {  /* temporary struct for holding directory info */
-       char *fn;             /*  until can be sorted and set at end */
+       struct dirtime *next; /*  until can be sorted and set at end */
+       char *fn;             /* filename of directory */
        union {
            iztimes t3;       /* mtime, atime, ctime */
            ztimbuf t2;       /* modtime, actime */
@@ -1325,12 +1354,13 @@ typedef struct iztimes {
        int have_uidgid;      /* flag */
        ush uidgid[2];
    } dirtime;
-#endif /* UNIX */
+#endif /* SET_DIR_ATTRIB */
 
 typedef struct min_info {
     long offset;
-    ulg compr_size;          /* compressed size (needed if extended header) */
     ulg crc;                 /* crc (needed if extended header) */
+    ulg compr_size;          /* compressed size (needed if extended header) */
+    ulg uncompr_size;        /* uncompressed size (needed if extended header) */
     int hostnum;
     unsigned file_attr;      /* local flavor, as used by creat(), chmod()... */
     unsigned encrypted : 1;  /* file encrypted: decrypt before uncompressing */
@@ -1372,8 +1402,8 @@ typedef struct VMStimbuf {
 
 #define slide  G.area.Slide
 
-#ifdef DLL
-#  define redirSlide G.redirect_pointer
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+#  define redirSlide G.redirect_sldptr
 #else
 #  define redirSlide G.area.Slide
 #endif
@@ -1388,8 +1418,7 @@ typedef struct VMStimbuf {
 #      define L_VERSION_NEEDED_TO_EXTRACT_1     1
 #      define L_GENERAL_PURPOSE_BIT_FLAG        2
 #      define L_COMPRESSION_METHOD              4
-#      define L_LAST_MOD_FILE_TIME              6
-#      define L_LAST_MOD_FILE_DATE              8
+#      define L_LAST_MOD_DOS_DATETIME           6
 #      define L_CRC32                           10
 #      define L_COMPRESSED_SIZE                 14
 #      define L_UNCOMPRESSED_SIZE               18
@@ -1403,8 +1432,7 @@ typedef struct VMStimbuf {
 #      define C_VERSION_NEEDED_TO_EXTRACT_1     3
 #      define C_GENERAL_PURPOSE_BIT_FLAG        4
 #      define C_COMPRESSION_METHOD              6
-#      define C_LAST_MOD_FILE_TIME              8
-#      define C_LAST_MOD_FILE_DATE              10
+#      define C_LAST_MOD_DOS_DATETIME           8
 #      define C_CRC32                           12
 #      define C_COMPRESSED_SIZE                 16
 #      define C_UNCOMPRESSED_SIZE               20
@@ -1431,8 +1459,7 @@ typedef struct VMStimbuf {
        uch version_needed_to_extract[2];
        ush general_purpose_bit_flag;
        ush compression_method;
-       ush last_mod_file_time;
-       ush last_mod_file_date;
+       ulg last_mod_dos_datetime;
        ulg crc32;
        ulg csize;
        ulg ucsize;
@@ -1446,8 +1473,7 @@ typedef struct VMStimbuf {
        uch version_needed_to_extract[2];
        ush general_purpose_bit_flag;
        ush compression_method;
-       ush last_mod_file_time;
-       ush last_mod_file_date;
+       ulg last_mod_dos_datetime;
        ulg crc32;
        ulg csize;
        ulg ucsize;
@@ -1540,7 +1566,7 @@ int      process_cdir_file_hdr   OF((__GPRO));
 int      get_cdir_ent            OF((__GPRO));
 int      process_local_file_hdr  OF((__GPRO));
 unsigned ef_scan_for_izux        OF((uch *ef_buf, unsigned ef_len, int ef_is_c,
-                                     unsigned dos_mdate,
+                                     ulg dos_mdatetime,
                                      iztimes *z_utim, ush *z_uidgid));
 
 #ifndef SFX
@@ -1557,8 +1583,7 @@ int      zi_end_central          OF((__GPRO));
 int      zipinfo                 OF((__GPRO));
 /* static int      zi_long       OF((__GPRO__ ulg *pEndprev)); */
 /* static int      zi_short      OF((__GPRO)); */
-/* static char    *zi_time       OF((__GPRO__
-                                     ZCONST ush *datez, ZCONST ush *timez,
+/* static char    *zi_time       OF((__GPRO__ ZCONST ulg *datetimez,
                                      ZCONST time_t *modtimez, char *d_t_str));*/
 #endif /* !NO_ZIPINFO */
 
@@ -1594,11 +1619,11 @@ int      fillinbuf            OF((__GPRO));
 #endif
 /* static int  disk_error     OF((__GPRO)); */
 void     handler              OF((int signal));
-time_t   dos_to_unix_time     OF((unsigned ddate, unsigned dtime));
+time_t   dos_to_unix_time     OF((ulg dos_datetime));
 int      check_for_newer      OF((__GPRO__ char *filename)); /* os2,vmcms,vms */
 int      do_string            OF((__GPRO__ unsigned int len, int option));
-ush      makeword             OF((uch *b));
-ulg      makelong             OF((uch *sig));
+ush      makeword             OF((ZCONST uch *b));
+ulg      makelong             OF((ZCONST uch *sig));
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
    char *str2iso              OF((char *dst, ZCONST char *src));
 #endif
@@ -1613,6 +1638,8 @@ int      zstrnicmp            OF((register ZCONST char *s1,
 #endif
 #ifdef ZMEM   /* MUST be ifdef'd because of conflicts with the standard def. */
    zvoid *memset OF((register zvoid *, register int, register unsigned int));
+   int    memcmp OF((register ZCONST zvoid*, register ZCONST zvoid *,
+                     register unsigned int));
    zvoid *memcpy OF((register zvoid *, register ZCONST zvoid *,
                      register unsigned int));
 #endif
@@ -1639,7 +1666,7 @@ int    extract_or_test_files     OF((__GPRO));
 int    memextract                OF((__GPRO__ uch *tgt, ulg tgtsize,
                                      uch *src, ulg srcsize));
 int    memflush                  OF((__GPRO__ uch *rawbuf, ulg size));
-char  *fnfilter                  OF((char *raw, uch *space));
+char  *fnfilter                  OF((ZCONST char *raw, uch *space));
 
 /*---------------------------------------------------------------------------
     Decompression functions:
@@ -1649,12 +1676,12 @@ char  *fnfilter                  OF((char *raw, uch *space));
 int    explode                   OF((__GPRO));                  /* explode.c */
 #endif
 int    huft_free                 OF((struct huft *t));          /* inflate.c */
-int    huft_build                OF((__GPRO__ unsigned *b, unsigned n,
-                                     unsigned s, ush *d, ush *e,
+int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
+                                     unsigned s, ZCONST ush *d, ZCONST ush *e,
                                      struct huft **t, int *m));
 #ifdef USE_ZLIB
    int    UZinflate              OF((__GPRO));                  /* inflate.c */
-#  define inflate_free(x)        inflateEnd(&((struct Globals *)(&G))->dstrm)
+#  define inflate_free(x)        inflateEnd(&((Uz_Globs *)(&G))->dstrm)
 #else
    int    inflate                OF((__GPRO));                  /* inflate.c */
    int    inflate_free           OF((__GPRO));                  /* inflate.c */
@@ -1677,6 +1704,7 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
                                       UzpBuffer *retstr));          /* api.c */
    int      redirect_outfile      OF((__GPRO));                     /* api.c */
    int      writeToMemory         OF((__GPRO__ uch *rawbuf, ulg size));
+   int      close_redirect        OF((__GPRO));                     /* api.c */
    /* this obsolescent entry point kept for compatibility: */
    int      UzpUnzip              OF((int argc, char **argv));/* use UzpMain */
 #ifdef OS2DLL
@@ -1700,17 +1728,6 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 #endif
 
 /*---------------------------------------------------------------------------
-    BeOS-only functions:
-  ---------------------------------------------------------------------------*/
-
-#ifdef __BEOS__
-   uch  *scanBeOSexfield     OF((uch *extra_field, unsigned ef_len));
-   int   isBeOSexfield       OF((uch *extra_field));               /* beos.c */
-   void  setBeOSexfield      OF((char *path, uch *extra_field));   /* beos.c */
-   void  printBeOSexfield    OF((int isdir, uch *extra_field));    /* beos.c */
-#endif
-
-/*---------------------------------------------------------------------------
     Human68K-only functions:
   ---------------------------------------------------------------------------*/
 
@@ -1728,33 +1745,29 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
    void    screenDump        OF((char *, long));              /* macscreen.c */
    void    screenUpdate      OF((WindowPtr));                 /* macscreen.c */
    void    screenClose       OF((void));                      /* macscreen.c */
+   int     macgetch          OF((void));                      /* macscreen.c */
 
-   void    MacFSTest  OF((int));                                    /* mac.c */
-   int     macmkdir   OF((char *, short, long));                    /* mac.c */
-   void    ResolveMacVol OF((short, short *, long *, StringPtr));   /* mac.c */
-   short   macopen    OF((char *, short, short, long));             /* mac.c */
-   FILE   *macfopen   OF((char *, char *, short, long));            /* mac.c */
-   short   maccreat   OF((char *, short, long, OSType, OSType));    /* mac.c */
-   short   macread    OF((short, char *, unsigned));                /* mac.c */
-   long    macwrite   OF((short, char *, unsigned));                /* mac.c */
-   short   macclose   OF((short));                                  /* mac.c */
-   long    maclseek   OF((short, long, short));                     /* mac.c */
-   int     macgetch   OF((void));                                   /* mac.c */
-   char   *macgetenv  OF((char *));                                 /* mac.c */
-   char   *wfgets     OF((char *, int, FILE *));                    /* mac.c */
-   void    wfprintf   OF((FILE *, char *, ...));                    /* mac.c */
-   void    wprintf    OF((char *, ...));                            /* mac.c */
+   int     macmkdir     OF((char *));                               /* mac.c */
+   short   macopen      OF((char *, short));                        /* mac.c */
+   short   maccreat     OF((char *));                               /* mac.c */
+   short   macread      OF((short, char *, unsigned));              /* mac.c */
+   long    macwrite     OF((short, char *, unsigned));              /* mac.c */
+   short   macclose     OF((short));                                /* mac.c */
+   long    maclseek     OF((short, long, short));                   /* mac.c */
+   char   *macfgets     OF((char *, int, FILE *));                  /* mac.c */
+   int     macfprintf   OF((FILE *, char *, ...));                  /* mac.c */
+   int     macprintf    OF((char *, ...));                          /* mac.c */
 #endif
 
 /*---------------------------------------------------------------------------
     MSDOS-only functions:
   ---------------------------------------------------------------------------*/
 
-#if (defined(__GO32__) || (defined(MSDOS) && defined(__EMX__)))
+#if (defined(MSDOS) && (defined(__GO32__) || defined(__EMX__)))
    unsigned _dos_getcountryinfo(void *);                          /* msdos.c */
 #if (!defined(__DJGPP__) || (__DJGPP__ < 2))
    unsigned _dos_setftime(int, unsigned short, unsigned short);   /* msdos.c */
-   void _dos_setfileattr(char *, int);                            /* msdos.c */
+   unsigned _dos_setfileattr(char *, unsigned);                   /* msdos.c */
    unsigned _dos_creat(char *, unsigned, int *);                  /* msdos.c */
    void _dos_getdrive(unsigned *);                                /* msdos.c */
    unsigned _dos_close(int);                                      /* msdos.c */
@@ -1814,7 +1827,7 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 #ifdef CMS_MVS
    extent getVMMVSexfield     OF((char *type, uch *ef_block, unsigned datalen));
    FILE  *vmmvs_open_infile   OF((__GPRO));                       /* vmmvs.c */
-   void   close_infile        OF((__GPRO__));                     /* vmmvs.c */
+   void   close_infile        OF((__GPRO));                       /* vmmvs.c */
 #endif
 
 /*---------------------------------------------------------------------------
@@ -1849,26 +1862,32 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
                             uch *eb_ucptr, ulg eb_ucsize));       /* win32.c */
 #  define TEST_NTSD     test_NTSD
 #endif
+#ifdef W32_STAT_BANDAID
+   int   zstat_win32    OF((__W32STAT_GLOBALS__
+                            const char *path, struct stat *buf)); /* win32.c */
+#endif
 #endif
 
 /*---------------------------------------------------------------------------
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
 
-struct Globals *globalsCtor   OF((void));                       /* globals.c */
+Uz_Globs *globalsCtor    OF((void));                            /* globals.c */
 
 void     envargs         OF((__GPRO__ int *Pargc, char ***Pargv,
-                             char *envstr, char *envstr2));     /* envargs.c */
+                             ZCONST char *envstr, ZCONST char *envstr2));
+                                                                /* envargs.c */
 void     mksargs         OF((int *argcp, char ***argvp));       /* envargs.c */
 
-int      match           OF((char *s, char *p, int ic));          /* match.c */
-int      iswild          OF((char *p));                           /* match.c */
+int      match           OF((ZCONST char *s, ZCONST char *p,
+                             int ic));                            /* match.c */
+int      iswild          OF((ZCONST char *p));                    /* match.c */
 
 #ifdef DYNALLOC_CRCTAB
    void     free_crc_table  OF((void));                          /* crctab.c */
 #endif
 #ifndef USE_ZLIB
-   ulg near *get_crc_table  OF((void));                /* funzip.c, crctab.c */
+   ZCONST ulg near *get_crc_table  OF((void));         /* funzip.c, crctab.c */
    ulg      crc32           OF((ulg crc, ZCONST uch *buf, extent len));
 #endif /* !USE_ZLIB */                        /* assembler source or crc32.c */
 
@@ -1887,8 +1906,16 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #ifndef MTS /* macro in MTS */
    void  close_outfile   OF((__GPRO));                              /* local */
 #endif
+#ifdef SET_DIR_ATTRIB
+   int   set_direc_attribs  OF((__GPRO__ dirtime *d));              /* local */
+#endif
 #ifdef TIMESTAMP
+# ifdef WIN32
+   int   stamp_file      OF((__GPRO__
+                             ZCONST char *fname, time_t modtime));  /* local */
+# else
    int   stamp_file      OF((ZCONST char *fname, time_t modtime));  /* local */
+# endif
 #endif
 #ifdef SYSTEM_SPECIFIC_CTOR
    void  SYSTEM_SPECIFIC_CTOR   OF((__GPRO));                       /* local */
@@ -2089,7 +2116,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 
 
 #define READBITS(nbits,zdest) {if(nbits>G.bits_left) {int temp; G.zipeof=1;\
-  while (G.bits_left<=8*(sizeof(G.bitbuf)-1) && (temp=NEXTBYTE)!=EOF) {\
+  while (G.bits_left<=8*(int)(sizeof(G.bitbuf)-1) && (temp=NEXTBYTE)!=EOF) {\
   G.bitbuf|=(ulg)temp<<G.bits_left; G.bits_left+=8; G.zipeof=0;}}\
   zdest=(shrint)((ush)G.bitbuf&mask_bits[nbits]);G.bitbuf>>=nbits;\
   G.bits_left-=nbits;}
@@ -2101,7 +2128,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  *          int temp;
  *
  *          G.zipeof = 1;
- *          while (G.bits_left <= 8*(sizeof(G.bitbuf)-1) &&
+ *          while (G.bits_left <= 8*(int)(sizeof(G.bitbuf)-1) &&
  *                 (temp = NEXTBYTE) != EOF) {
  *              G.bitbuf |= (ulg)temp << G.bits_left;
  *              G.bits_left += 8;
@@ -2316,7 +2343,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 /**********************/
 
    extern ZCONST ush near  mask_bits[];
-   extern char     *fnames[2];
+   extern ZCONST char *fnames[2];
 
 #ifdef EBCDIC
    extern ZCONST uch ebcdic[];
@@ -2328,15 +2355,16 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
    extern ZCONST uch Far oem2iso[];
 #endif
 
-   extern char Far  CentSigMsg[];
-   extern char Far  EndSigMsg[];
-   extern char Far  SeekMsg[];
-   extern char Far  FilenameNotMatched[];
-   extern char Far  ExclFilenameNotMatched[];
-   extern char Far  ReportMsg[];
+   extern ZCONST char Far  VersionDate[];
+   extern ZCONST char Far  CentSigMsg[];
+   extern ZCONST char Far  EndSigMsg[];
+   extern ZCONST char Far  SeekMsg[];
+   extern ZCONST char Far  FilenameNotMatched[];
+   extern ZCONST char Far  ExclFilenameNotMatched[];
+   extern ZCONST char Far  ReportMsg[];
 
 #ifndef SFX
-   extern char Far  CompiledWith[];
+   extern ZCONST char Far  CompiledWith[];
 #endif /* !SFX */
 
 
@@ -2346,7 +2374,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 /***********************************/
 
 #ifdef DECLARE_ERRNO
-   extern int       errno;
+   extern int             errno;
 #endif
 
 

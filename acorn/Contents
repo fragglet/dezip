@@ -9,7 +9,7 @@ Contents of the "acorn" subdirectory for UnZip 5.3 and later:
   acorn.RunMe1st    Obey file to move files into suitable place for compilation
                     on RISC OS machines
   acorn.s.swiven    SWI veneers
-  acorn.srcrename   small executable that converts files from Unix style to 
+  acorn.srcrename   small executable that converts files from Unix style to
                     RISC OS style, used by RunMe1st
 
 Notes:

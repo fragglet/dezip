@@ -4,65 +4,89 @@ For UnZip 6.0/6.1/who knows:
 
    o add multi-part zipfile handling
 
-	top of the list for 6.0!
+        top of the list for 6.0!
 
    o add new low-level, binary API; rewrite "normal" (command-line) UnZip
      to use it
 
-	very soon (maybe 6.1)
+        very soon (maybe 6.1)
 
    o use (simple!) configure script in combination with Unix Makefile
 
-	very soon (6.0 or 6.1)
+        very soon (6.0 or 6.1)
+
+   o MSDOS/WIN32/others: detection of "reserved" names (= names of character
+     devices, or system extensions that look like a characters device driver);
+     with the goal of emitting "meaningful" error messages and/or rename
+     queries.
+     (Currently, these reserved names are catched as "non-deletable files".)
+
+   o redesign "file exists -- is newer/older -- overwrite/skip/rename"
+     logic in extract.c and the corresponding system specific mapname()
+     services; to prevent superfluous decryption key prompts for entry
+     that will be skipped, later.
 
    o rewrite to use fread/fseek/etc.  [eventually: test
      write(bytes) vs. fwrite(words), especially on Crays/Alphas]
 
-	soon (probably in conjunction with multi-part handling)
+        soon (probably in conjunction with multi-part handling)
 
    o incorporate new backfill version of inflate()
 
-	wait for zlib version
+        wait for zlib version
 
    o check NEXTBYTE for EOF in crypt.c, funzip.c and explode.c, too
 
-	whenever
+        whenever
 
    o add option to force completely non-interactive operation (no queries
      for overwrite/rename, password, etc.); also allow some sort of non-
      interactive password provision?  (file? command-line? env. variable?)
 
-	someday?
+        someday?
 
    o add testing of extra fields (if have CRC)
 
-	later
+        later
 
    o rewrite to allow use as a filter
 
-	way, way later...
+        way, way later...
 
    o add Unix hard-link support?
 
-	way, way later...
+        way, way later...
 
    o add option to search zipfile contents for a string and print the
      results? ("zipgrep" option--e.g., unzip -g or unzip -S) (easy for
      fixed strings, hard for wildcards/true regex's)
 
-	way, way later, if at all...probably use libregex
+        way, way later, if at all...probably use libregex
 
    o add -y "display symlinks" option to zipinfo?  various sorting options?
      (-St date/time, -Sn name)?
 
-	who knows
+        who knows
 
    o add "in-depth" option to zipinfo? (check local headers against
      central, etc.)--make it a better debugging tool (or just create
      zipfix)
 
-	who knows (zip -F, -FF already exist)
+        who knows (zip -F, -FF already exist)
 
+Some maintance or OS specific topics for 6.0 release:
+
+   * add "unix-style-path -> partitioned-dataset filename" conversion to MVS port
+
+   * should we add support for (null) entry names (empty entry name field), to
+     conform to the PKWARE specification?
+
+
+=======================================
+
+Requested features:
+
+ - extract or exclude on basis of UID [Armin Bub, Armin.Bub@bk.bosch.de, 970904]
 
 =======================================
 

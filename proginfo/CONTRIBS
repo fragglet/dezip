@@ -25,6 +25,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   John Bush              first full Amiga port; FileDate; Amiga fixes; etc.
   Christian Carey        Unix makefile bugfix for install target (create dirs)
   Valter Cavecchia       Unix makefile entry
+  Rudolf Cejka           Unix UID/GID extraction bugfix
   Peter Chang            optional UNIXBACKUP option (-B)
   Andrey Chernov         BSD 4.4 utime fix
   Brad Clarke            Win32 XX_flag bugfix; Borland debug code removal
@@ -53,6 +54,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Scott Field            Windows NT security-descriptor support; CRC opts
   Greg Flint             Unix makefile entry
   Carl Forde             VM/CMS port debugging (with Christian Spieler)
+  Craig Forbes           "UnZipToMem with no ucsize in local header" bugfix
   Joe Foster             Unix makefile bugfix
   Gordon Fox             Unix makefile bugfix for apollo target
   Jeffrey Foy            OS/2 stuff(?); [CP/M]
@@ -67,8 +69,10 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Filip Gieszczykiewicz  Unix makefile entry
   Paul Gilmartin         work-around for systems with broken catman/makewhatis
   Hunter Goatley         VMSCLI interface; VMS help/RUNOFF; list maintainer
+  Ian E. Gorman          VM/CMS & MVS support
   Bill Gould             MVS file-format fixes
   Michael Graff          Unix makefile entry
+  Giuseppe Guerrini      LynxOS variant of Unix port
   Richard H. Gumpertz    Unix makefile entry
   Walter Haidinger       Amiga SAS/C fixes
   Steve Hanna            Macintosh stuff
@@ -96,13 +100,16 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Bob Kemp               NOTINT16 rewrite; Unix makefile entry
   J. Kercheval           filmatch.c, on which second match.c was based
   Paul Kienitz           continuing general Amiga porting; Aztec C support; ASM
+  Raymond L. King        WINDLL VB example maintance
   Mike Kincer            AIX "ps2" bugfix
   David Kirschbaum       mapname port; general-purpose meddling; Python jokes
   Paul Klahr             Regulus port
   Jim Knoble             Turbo C++ makefile fix
   Alvin Koh              Borland C++ bugfixes
+  D. Krumbholz           Acorn filetime conversion bug
   Karel Kubat            Linux strncasecmp bugfix
   Bo Kullmar             -z code; umask, do_string, BSD time, echo fixes; etc.
+  Peter Kunath           DLL bugfixes, MSVC __asm support
   Russell Lang           OS/2 DLL calling-convention bugfix
   Michael Lawler         Borland version() info; process.c string fix; DOS fixes
   Johnny Lee             Macintosh port; Win3.1 port; far strings; fixes; etc.
@@ -171,6 +178,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Kai Uwe Rommel         "real" OS/2 port; many new compilers; bugfixes; etc.
   Paul Roub              first self-extracting code
   Steve Salisbury        Win32 fixes; dual-mode SFX instruct.; variable INBUFSIZ
+  Darren Salt            Acorn filetype <-> "Acorn NFS filetype" translation
   Georg Sassen           Amiga DICE compiler support
   Jon Saxton             date formats, OS/2 fixes
   Tom Schmidt            Unix makefile entry; Xenix and SunOS 3 target bugfixes
@@ -185,13 +193,13 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Jim Seymour            Borland OS/2 fixes
   Mark Shadley           Unix -X, FGETCH, DESTROYGLOBALS & Unix makefile fixes
   Timur Shaporev         inflate optimizations
-  Dave D. Smith          Tandem/NSK port
+  Dave Smith             Tandem/NSK port
   Fred Smith             Coherent 4.0 fixes
   Nick Smith             return code for user abort (control-C)
   Samuel H. Smith        original unzip code (Pascal and C) for MS-DOS
   Tuomo Soini            file-not-matched bugfix
   Jim Spath              zipinfo -T century bugfix
-  Christian Spieler      VMS, DOS, WIN32, VM/CMS, portability & performance 
+  Christian Spieler      VMS, DOS, WIN32, VM/CMS, portability & performance
   Cliff Stanford         fileio.c umask bug
   Jack Stansbury         DEC Alpha NT makefile fix
   Dan Statkus            OS/2, MS-DOS mapname() ASCII 255 bugfix
@@ -202,6 +210,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Mike Strock            Win32 MSVC 5.0 "build file"; typo fixes
   E-Yen Tan              djgpp1/GNUmake 3.71 bug work-around; DOS makefile.emx
   Brian Tillman          "WHERE" file VMS fix; make_unz.com portability bugfix
+  Cosmin Truta           Cygnus Win32 support, Borland C & ASM fixes
   Onno van der Linden    many fixes, esp. Intel Unix and 386 DOS
   Jim Van Zandt          one of original man pages
   Geraldo Veiga          Pyramid strrchr/rindex

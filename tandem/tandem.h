@@ -1,6 +1,6 @@
 /*
 
- Copyright (C) 1990-1996 Mark Adler, Richard B. Wales, Jean-loup Gailly,
+ Copyright (C) 1990-1998 Mark Adler, Richard B. Wales, Jean-loup Gailly,
  Kai Uwe Rommel, Onno van der Linden, George Petrov and Igor Mandrichenko.
  Permission is granted to any individual or institution to use, copy, or
  redistribute this software so long as all of the original files are included,
@@ -12,6 +12,8 @@
 #define __tandem_h
 
 #define TANDEM       /* better than __TANDEM */
+
+#define LICENSED     /* object needs FUP LICENSE to allow timestamp update */
 
 #define NO_UNISTD_H
 
@@ -31,6 +33,7 @@
 #define PASSWD_FROM_STDIN
                   /* Kludge until we know how to open a non-echo tty channel */
 
+#define TANDEM_BLOCKSIZE 4096
 #define MAXFILEPARTLEN 8
 #define MAXPATHLEN 128
 #define EXTENSION_MAX 3
@@ -44,11 +47,6 @@
 /* #define REALLY_SHORT_SYMS   */
 /* #define PATH_MAX 128        */
 #endif /* UNZIP */
-
-char *last OF((char *, int));
-char *msname OF((char *));
-
-#define to_up(c)    ((c) >= 'a' && (c) <= 'z' ? (c)-'a'+'A' : (c))
 
 #define EXIT zexit     /*  To stop creation of Abend files */
 #define RETURN zexit   /*  To stop creation of Abend files */
@@ -78,7 +76,7 @@ FILE *
                       /* For Guardian we choose a multiple of 4K       */
 
 #define ZBSZ 0x10000  /* This is used in call to setvbuf, 64K seems to work  */
-                      /* in all memory models. Again it is anunsigned long   */
+                      /* in all memory models. Again it is an unsigned long  */
                       /* For Guardian we choose a multiple of 4K             */
 
 #ifndef __INT32
@@ -117,8 +115,11 @@ char *         readd(DIR *dirp);
 #define TTRLEN      3
 #define RECLEN      254
 
-#define DISK_DEVICE        3
-#define SET_FILE_SECURITY  1
+#define DISK_DEVICE         3
+#define SET_FILE_SECURITY   1
+#define SET_FILE_OWNER      2
+#define SET_FILE_BUFFERED   90
+#define SET_FILE_BUFFERSIZE 93
 
 #define DOS_EXTENSION      '.'
 #define TANDEM_EXTENSION   ' '

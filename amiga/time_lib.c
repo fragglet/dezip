@@ -1,3 +1,5 @@
+#define __amiga_time_lib_c
+
 /* -----------------------------------------------------------------------------
 This source is copyrighted by Norbert Pueschel <pueschel@imsdd.meb.uni-bonn.de>
 From 'clockdaemon.readme':
@@ -9,9 +11,9 @@ functions for them."
 The time.lib library consists of three parts (time.c, timezone.c and version.c),
 all included here. [time.lib 1.2 (1997-04-02)]
 Permission is granted to the Info-ZIP group to redistribute the time.lib source.
-The use of time.lib functions in own, noncommerical programs is permitted.
+The use of time.lib functions in own, noncommercial programs is permitted.
 It is only required to add the timezone.doc to such a distribution.
-Using the time.lib library in commerical software (including Shareware) is only
+Using the time.lib library in commercial software (including Shareware) is only
 permitted after prior consultation of the author.
 ------------------------------------------------------------------------------*/
 /* History */
@@ -27,36 +29,38 @@ permitted after prior consultation of the author.
 /*              (n.b. __stdoffset and __dstoffset now have to be long ints)   */
 /* 25 Oct 1997, Paul Kienitz, cleanup, make tzset() not redo work needlessly  */
 /* 29 Oct 1997, Chr. Spieler, initialized globals _TZ, real_timezone_is_set   */
+/* 31 Dec 1997, Haidinger Walter, created z-time.h to overcome sas/c header   */
+/*              dependencies. TZ_ENVVAR macro added. Happy New Year!          */
+/* 25 Apr 1998, Chr. Spieler, __timezone must always contain __stdoffset      */
+/* 28 Apr 1998, Chr. Spieler, P. Kienitz, changed __daylight to standard usage */
 
 #ifdef __SASC
 #  include <proto/dos.h>
 #  include <proto/locale.h>
 #  include <proto/exec.h>
+   /* this setenv() is in amiga/filedate.c */
+   extern int setenv(const char *var, const char *value, int overwrite);
 #else
 #  include <clib/dos_protos.h>
 #  include <clib/locale_protos.h>
 #  include <clib/exec_protos.h>
-#  ifdef AZTEC_C
-#    include <pragmas/exec_lib.h>
-#    include <pragmas/dos_lib.h>
-#    include <pragmas/locale_lib.h>
-     int setenv(const char *var, const char *value, int overwrite);
-#  endif
+#  include <pragmas/exec_lib.h>
+#  include <pragmas/dos_lib.h>
+#  include <pragmas/locale_lib.h>
+/* Info-ZIP accesses these by their standard names: */
+#  define __timezone timezone
+#  define __daylight daylight
+#  define __tzset    tzset
 #endif
+#define NO_TIME_H
+#include "amiga/z-time.h"
 #include <exec/execbase.h>
 #include <clib/alib_stdio_protos.h>
 #include <string.h>
 #include <stdlib.h>
 
-/* Info-ZIP accesses these by their standard names: */
-#define __timezone timezone
-#define __daylight daylight
-#define __tzset    tzset
-
 extern struct ExecBase *SysBase;
-/* externals from C library */
 extern char *getenv(const char *var);
-/* extern int timer(unsigned int *); */
 
 typedef unsigned long time_t;
 struct tm {
@@ -80,29 +84,38 @@ struct dstdate {
 static struct dstdate __dststart;
 static struct dstdate __dstend;
 
-#define isleapyear(y)   (((y)%4==0&&(!((y)%100==0)||((y)%400==0)))?1:0)
-#define yearlen(y)      (isleapyear(y)?366:365)
-#define weekday(d)      (((d)+4)%7)
-#define jan1ofyear(y)   (((y)-70)*365+((y)-69)/4-((y)-1)/100+((y)+299)/400)
-#define wdayofyear(y)   weekday(jan1ofyear(y))
-#define sgn(y)          ((y)<0?-1:((y)>0?1:0))
-#define MAXTIMEZONELEN  16
-#define AMIGA2UNIX      252460800 /* seconds between 1.1.1970 and 1.1.1978 */
-#define CHECK           300       /* min. time between checks of IXGMTOFFSET */
-#define GETVAR_REQVERS  36L       /* required OS version for GetVar() */
-#define AVAIL_GETVAR    ((SysBase->LibNode.lib_Version >= GETVAR_REQVERS) ? 1:0)
+#define isleapyear(y)    (((y)%4==0&&(!((y)%100==0)||((y)%400==0)))?1:0)
+#define yearlen(y)       (isleapyear(y)?366:365)
+#define weekday(d)       (((d)+4)%7)
+#define jan1ofyear(y)    (((y)-70)*365+((y)-69)/4-((y)-1)/100+((y)+299)/400)
+#define wdayofyear(y)    weekday(jan1ofyear(y))
+#define AMIGA2UNIX       252460800 /* seconds between 1.1.1970 and 1.1.1978 */
+#define CHECK            300       /* min. time between checks of IXGMTOFFSET */
+#define GETVAR_REQVERS   36L       /* required OS version for GetVar() */
+#define AVAIL_GETVAR     (SysBase->LibNode.lib_Version >= GETVAR_REQVERS)
+#ifndef TZ_ENVVAR
+#  define TZ_ENVVAR      "TZ"      /* environment variable to parse */
+#endif
 
-char *envvarstr;        /* ptr to environment string (used if !AVAIL_GETVAR) */
-int __daylight;
-long __timezone;
-char *__tzname[2];
+#ifdef __SASC
+  extern int  __daylight;
+  extern long __timezone;
+  extern char *__tzname[2];
+  extern char *_TZ;
+#else
+  int __daylight;
+  long __timezone;
+  char *__tzname[2];
+  char *_TZ = NULL;
+#endif
+int real_timezone_is_set = FALSE;   /* globally visible TZ_is_valid signal */
 char __tzstn[MAXTIMEZONELEN];
 char __tzdtn[MAXTIMEZONELEN];
-char *_TZ = NULL;
-int __nextdstchange;
+/* the following 4 variables are only used internally; make them static ? */
+int __isdst;
+time_t __nextdstchange;
 long __stdoffset;
 long __dstoffset;
-int real_timezone_is_set = FALSE;
 #define TZLEN 64
 static char TZ[TZLEN];
 static struct tm TM;
@@ -126,7 +139,10 @@ static void normalize(int *i,int *j,int norm);
 #endif
 static long gettime(char **s);
 static void getdstdate(char **s,struct dstdate *dst);
+#ifdef __SASC
 void set_TZ(long time_zone, int day_light);
+#endif
+
 /* prototypes for sc.lib replacement functions */
 struct tm *gmtime(const time_t *t);
 struct tm *localtime(const time_t *t);
@@ -136,6 +152,7 @@ time_t mktime(struct tm *tm);
 #endif
 time_t time(time_t *tm);
 void __tzset(void);
+
 
 static time_t dst2time(int year,struct dstdate *dst)
 {
@@ -356,13 +373,12 @@ void __tzset(void)
   __dststart.dd_day = __dstend.dd_day = 0; /* sunday */
   _TZ = NULL;
   if (AVAIL_GETVAR) {                /* GetVar() available? */
-    if(GetVar("TZ",TZ,TZLEN,GVF_GLOBAL_ONLY) > 0)
+    if(GetVar(TZ_ENVVAR,TZ,TZLEN,GVF_GLOBAL_ONLY) > 0)
       _TZ = TZ;
   } else
-      _TZ = getenv("TZ");
+      _TZ = getenv(TZ_ENVVAR);
   if (_TZ == NULL || !_TZ[0]) {
-    static char gmt[MAXTIMEZONELEN] = "EST5EDT";
-                                        /* US east coast is usual default */
+    static char gmt[MAXTIMEZONELEN] = DEFAULT_TZ_STR;
     LocaleBase = OpenLibrary("locale.library",0);
     if(LocaleBase) {
       loc = OpenLocale(0);  /* cannot return null */
@@ -439,17 +455,20 @@ void __tzset(void)
     __dstoffset = __stdoffset;
   }
   time2tm(time(&tm));
-  __daylight = checkdst(tm);
-  __timezone = __daylight ? __dstoffset : __stdoffset;
-  __nextdstchange = dst2time(TM.tm_year, __daylight ? &__dstend : &__dststart);
+  __isdst = checkdst(tm);
+  __daylight = (__dstoffset != __stdoffset);
+  __timezone = __stdoffset;
+  __nextdstchange = dst2time(TM.tm_year, __isdst ? &__dstend : &__dststart);
   if(tm >= __nextdstchange) {
     __nextdstchange = dst2time(TM.tm_year+1,
-                               __daylight ? &__dstend : &__dststart);
+                               __isdst ? &__dstend : &__dststart);
   }
   __tzname[0] = __tzstn;
   __tzname[1] = __tzdtn;
+#ifdef __SASC
   if (loc)         /* store TZ envvar if data read from locale */
-    set_TZ(__timezone, __dstoffset != __stdoffset);
+    set_TZ(__timezone, __daylight);
+#endif
 }
 
 time_t time(time_t *tm)
@@ -460,6 +479,7 @@ time_t time(time_t *tm)
     UBYTE DST;
     UBYTE Null;
   } ixgmtoffset;
+  static char *envvarstr; /* ptr to environm. string (used if !AVAIL_GETVAR) */
   struct DateStamp ds;
   time_t now;
   DateStamp(&ds);
@@ -471,13 +491,13 @@ time_t time(time_t *tm)
       if(GetVar("IXGMTOFFSET",(STRPTR)&ixgmtoffset,6,
                 GVF_BINARY_VAR|GVF_GLOBAL_ONLY) == -1) {
         __tzset();
-        ixgmtoffset.Offset = __timezone;
+        ixgmtoffset.Offset = __isdst ? __dstoffset : __stdoffset;
       }
     else
       if (envvarstr=getenv("IXGMTOFFSET")) {
         ixgmtoffset = *((struct _ixgmtoffset *)envvarstr);  /* copy to struct */
         __tzset();
-        ixgmtoffset.Offset = __timezone;
+        ixgmtoffset.Offset = __isdst ? __dstoffset : __stdoffset;
       }
   }
   now += AMIGA2UNIX;
@@ -486,22 +506,24 @@ time_t time(time_t *tm)
   return(now);
 }
 
+#ifdef __SASC
+
 /* Stores data from timezone and daylight to ENV:TZ.                  */
 /* ENV:TZ is required to exist by some other SAS/C library functions, */
 /* like stat() or fstat().                                            */
 void set_TZ(long time_zone, int day_light)
 {
-  char put_tz[20];  /* string for putenv: "TZ=aaabbb:bb:bbccc" */
+  char put_tz[MAXTIMEZONELEN];  /* string for putenv: "TZ=aaabbb:bb:bbccc" */
   int offset;
   void *exists;     /* dummy ptr to see if global envvar TZ already exists */
   if (AVAIL_GETVAR)
-     exists = (void *)FindVar("TZ",GVF_GLOBAL_ONLY);  /* OS V36+ */
+     exists = (void *)FindVar(TZ_ENVVAR,GVF_GLOBAL_ONLY);  /* OS V36+ */
   else
-     exists = (void *)getenv("TZ");
-  /* see if there is already an envvar "TZ". If not, create it */
+     exists = (void *)getenv(TZ_ENVVAR);
+  /* see if there is already an envvar TZ_ENVVAR. If not, create it */
   if (exists == NULL) {
     /* create TZ string by pieces: */
-    sprintf(put_tz, "TZ=GMT%+ld", time_zone / 3600L);
+    sprintf(put_tz, "GMT%+ld", time_zone / 3600L);
     if (time_zone % 3600L) {
       offset = (int) labs(time_zone % 3600L);
       sprintf(put_tz + strlen(put_tz), ":%02d", offset / 60);
@@ -511,9 +533,9 @@ void set_TZ(long time_zone, int day_light)
     if (day_light)
       strcat(put_tz,"DST");
     if (AVAIL_GETVAR)       /* store TZ to ENV:TZ. */
-       SetVar("TZ",&put_tz[3],-1,GVF_GLOBAL_ONLY);     /* OS V36+ */
+       SetVar(TZ_ENVVAR,put_tz,-1,GVF_GLOBAL_ONLY);     /* OS V36+ */
     else
-       setenv("TZ", &put_tz[3], 1);
-       /* putenv(put_tz); */
+       setenv(TZ_ENVVAR,put_tz, 1);
   }
 }
+#endif /* __SASC */

@@ -1,7 +1,6 @@
 /* crc_i386.c -- Microsoft 32-bit C/C++ adaptation of crc_i386.asm
  * Created by Rodney Brown from crc_i386.asm, modified by Chr. Spieler.
- * publis
- * Last revised 12 Oct 97
+ * Last revised: 22-Mai-1998
  *
  * Original coded (in crc_i386.asm) and put into the public domain
  * by Paul Kienitz and Christian Spieler.
@@ -34,6 +33,15 @@
  *   by default. (This default is based on the assumption that most users
  *   do not yet work on a Pentium Pro or Pentium II machine ...)
  *
+ * Revised 16-Nov-97, Chr. Spieler: Made code compatible with Borland C++
+ *   32-bit, removed unneeded kludge for potentially unknown movzx mnemonic,
+ *   confirmed correct working with MS VC++ (32-bit).
+ *
+ * Revised 22-Mai-98, Peter Kunath, Chr. Spieler : The 16-Nov-97 revision broke
+ *   MSVC 5.0. Inside preprocessor macros, each instruction is enclosed in its
+ *   own __asm {...} construct.  For MSVC, a "#pragma warning" was added to
+ *   shut up the "no return value" warning message.
+ *
  * FLAT memory model assumed.
  *
  * The loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
@@ -49,9 +57,21 @@
 #  define ZCONST const
 #endif
 
+/* Select wether the following inline-assember code is supported. */
 #if (defined(_MSC_VER) && _MSC_VER >= 700)
 #if (defined(_M_IX86) && _M_IX86 >= 300)
-/* This code is intended for Microsoft C/C++ (32-bit compiler). */
+#  define MSC_INLINE_ASM_32BIT_SUPPORT
+   /* Disable warning for no return value, typical of asm functions */
+#  pragma warning( disable : 4035 )
+#endif
+#endif
+
+#if (defined(__BORLANDC__) && __BORLANDC__ >= 452)
+#  define MSC_INLINE_ASM_32BIT_SUPPORT
+#endif
+
+#ifdef MSC_INLINE_ASM_32BIT_SUPPORT
+/* This code is intended for Microsoft C/C++ (32-bit) compatible compilers. */
 
 /*
  * These two (three) macros make up the loop body of the CRC32 cruncher.
@@ -65,35 +85,30 @@
  *          (requires upper three bytes = 0 when __686 is undefined)
  */
 #ifndef __686
-#define Do_CRC \
-  __asm mov     bl, al \
-  __asm shr     eax, 8 \
-  __asm xor     eax, [edi+ebx*4]
+#define Do_CRC { \
+  __asm { mov   bl, al }; \
+  __asm { shr   eax, 8 }; \
+  __asm { xor   eax, [edi+ebx*4] }; }
 #else /* __686 */
-#ifdef NO_MOVZX_SUPPORT
-#define movzx__ebx__al  __asm _emit 0x0F __asm _emit 0xB6 __asm _emit 0xD8
-#else
-#define movzx__ebx__al  __asm movzx   ebx, al
-#endif
-#define Do_CRC \
-  movzx__ebx__al \
-  __asm shr     eax, 8 \
-  __asm xor     eax, [edi+ebx*4]
+#define Do_CRC { \
+  __asm { movzx ebx, al }; \
+  __asm { shr   eax, 8  }; \
+  __asm { xor   eax, [edi+ebx*4] }; }
 #endif /* ?__686 */
 
-#define Do_CRC_byte \
-  __asm xor     al, byte ptr [esi] \
-  __asm inc     esi \
-  Do_CRC
+#define Do_CRC_byte { \
+  __asm { xor   al, byte ptr [esi] }; \
+  __asm { inc   esi }; \
+  Do_CRC; }
 
 #ifndef NO_32_BIT_LOADS
-#define Do_CRC_dword \
-  __asm xor     eax, dword ptr [esi] \
-  __asm add     esi, 4 \
-  Do_CRC \
-  Do_CRC \
-  Do_CRC \
-  Do_CRC
+#define Do_CRC_dword { \
+  __asm { xor   eax, dword ptr [esi] }; \
+  __asm { add   esi, 4 }; \
+  Do_CRC; \
+  Do_CRC; \
+  Do_CRC; \
+  Do_CRC; }
 #endif /* !NO_32_BIT_LOADS */
 
 /* ========================================================================= */
@@ -109,52 +124,56 @@ ulg crc32(crc, buf, len)
                 push    edx
                 push    ecx
 
-                mov     esi,buf              ; 2nd arg: uch *buf
-                sub     eax,eax              ;> if (!buf)
-                test    esi,esi              ;>   return 0;
-                jz      fine                 ;> else {
+                mov     esi,buf         ;/* 2nd arg: uch *buf              */
+                sub     eax,eax         ;/*> if (!buf)                     */
+                test    esi,esi         ;/*>   return 0;                   */
+                jz      fine            ;/*> else {                        */
 
                 call    get_crc_table
                 mov     edi,eax
-                mov     eax,crc              ; 1st arg: ulg crc
+                mov     eax,crc         ;/* 1st arg: ulg crc               */
 #ifndef __686
-                sub     ebx,ebx              ; ebx=0; make bl usable as a dword
+                sub     ebx,ebx         ;/* ebx=0; => bl usable as a dword */
 #endif
-                mov     ecx,len              ; 3rd arg: extent len
-                not     eax                  ;>   c = ~crc;
+                mov     ecx,len         ;/* 3rd arg: extent len            */
+                not     eax             ;/*>   c = ~crc;                   */
 
 #ifndef NO_UNROLLED_LOOPS
 #  ifndef NO_32_BIT_LOADS
                 test    ecx,ecx
                 je      bail
 align_loop:
-                test    esi,3                ; align buf pointer on next
-                jz      aligned_now          ;  dword boundary
-                Do_CRC_byte
+                test    esi,3           ;/* align buf pointer on next      */
+                jz      aligned_now     ;/*  dword boundary                */
+    }
+                Do_CRC_byte             ;
+    __asm {
                 dec     ecx
                 jnz     align_loop
 aligned_now:
 #  endif /* !NO_32_BIT_LOADS */
-                mov     edx,ecx              ; save len in edx
-                and     edx,000000007H       ; edx = len % 8
-                shr     ecx,3                ; ecx = len / 8
+                mov     edx,ecx         ;/* save len in edx  */
+                and     edx,000000007H  ;/* edx = len % 8    */
+                shr     ecx,3           ;/* ecx = len / 8    */
                 jz      No_Eights
 ; align loop head at start of 486 internal cache line !!
                 align   16
 Next_Eight:
+    }
 #  ifndef NO_32_BIT_LOADS
-                Do_CRC_dword
-                Do_CRC_dword
+                Do_CRC_dword ;
+                Do_CRC_dword ;
 #  else /* NO_32_BIT_LOADS */
-                Do_CRC_byte
-                Do_CRC_byte
-                Do_CRC_byte
-                Do_CRC_byte
-                Do_CRC_byte
-                Do_CRC_byte
-                Do_CRC_byte
-                Do_CRC_byte
+                Do_CRC_byte ;
+                Do_CRC_byte ;
+                Do_CRC_byte ;
+                Do_CRC_byte ;
+                Do_CRC_byte ;
+                Do_CRC_byte ;
+                Do_CRC_byte ;
+                Do_CRC_byte ;
 #  endif /* ?NO_32_BIT_LOADS */
+    __asm {
                 dec     ecx
                 jnz     Next_Eight
 No_Eights:
@@ -162,25 +181,35 @@ No_Eights:
 
 #endif /* NO_UNROLLED_LOOPS */
 #ifndef NO_JECXZ_SUPPORT
-                jecxz   bail                 ;>   if (len)
+                jecxz   bail            ;/*>  if (len)                     */
 #else
-                test    ecx,ecx              ;>   if (len)
+                test    ecx,ecx         ;/*>  if (len)                     */
                 jz      bail
 #endif
 ; align loop head at start of 486 internal cache line !!
                 align   16
-loupe:                                       ;>     do {
-                Do_CRC_byte                  ;        c = CRC32(c, *buf++);
-                dec     ecx                  ;>     } while (--len);
+loupe:                                  ;/*>    do { */
+    }
+                Do_CRC_byte             ;/*       c = CRC32(c, *buf++);    */
+    __asm {
+                dec     ecx             ;/*>    } while (--len);           */
                 jnz     loupe
 
-bail:                                        ;> }
-                not     eax                  ;> return ~c;
+bail:                                   ;/*> }                             */
+                not     eax             ;/*> return ~c;                    */
 fine:
                 pop     ecx
                 pop     edx
     }
+#ifdef NEED_RETURN
+    return _EAX;
+#endif
 }
-#endif /* _M_IX86 >= 300 */
-#endif /* _MSC_VER >= 700*/
+#endif /* MSC_INLINE_ASM_32BIT_SUPPORT */
+#if (defined(_MSC_VER) && _MSC_VER >= 700)
+#if (defined(_M_IX86) && _M_IX86 >= 300)
+   /* Reenable missing return value warning */
+#  pragma warning( default : 4035 )
+#endif
+#endif
 #endif /* !USE_ZLIB */

@@ -94,18 +94,19 @@
 
 #if 0                /* GRR:  add this to unzip.h someday... */
 #if !(defined(MSDOS) && defined(DOSWILD))
-#define match(s,p,ic)   (recmatch((uch *)p,(uch *)s,ic) == 1)
-int recmatch OF((uch *pattern, uch *string, int ignore_case));
+#define match(s,p,ic)   (recmatch((ZCONST uch *)p,(ZCONST uch *)s,ic) == 1)
+int recmatch OF((ZCONST uch *pattern, ZCONST uch *string, int ignore_case));
 #endif
 #endif /* 0 */
-static int recmatch OF((uch *pattern, uch *string, int ignore_case));
+static int recmatch OF((ZCONST uch *pattern, ZCONST uch *string,
+                        int ignore_case));
 
 
 
 /* match() is a shell to recmatch() to return only Boolean values. */
 
 int match(string, pattern, ignore_case)
-    char *string, *pattern;
+    ZCONST char *string, *pattern;
     int ignore_case;
 {
 #if (defined(MSDOS) && defined(DOSWILD))
@@ -146,8 +147,8 @@ int match(string, pattern, ignore_case)
 
 
 static int recmatch(p, s, ic)
-    uch *p;               /* sh pattern to match */
-    uch *s;               /* string to which to match it */
+    ZCONST uch *p;        /* sh pattern to match */
+    ZCONST uch *s;        /* string to which to match it */
     int ic;               /* true for case insensitivity */
 /* Recursively compare the sh pattern p with the string s and return 1 if
  * they match, and 0 or 2 if they don't or if there is a syntax error in the
@@ -184,7 +185,7 @@ static int recmatch(p, s, ic)
     /* Parse and process the list of characters and ranges in brackets */
     if (c == BEG_RANGE) {
         int e;          /* flag true if next char to be taken literally */
-        uch *q;         /* pointer to end of [-] group */
+        ZCONST uch *q;  /* pointer to end of [-] group */
         int r;          /* flag true to match anything but the range */
 
         if (*s == 0)                           /* need a character to match */
@@ -236,7 +237,7 @@ static int recmatch(p, s, ic)
 
 
 int iswild(p)        /* originally only used for stat()-bug workaround in */
-    char *p;         /*  VAX C, Turbo/Borland C, Watcom C, Atari MiNT libs; */
+    ZCONST char *p;  /*  VAX C, Turbo/Borland C, Watcom C, Atari MiNT libs; */
 {                    /*  now used in process_zipfiles() as well */
     for (; *p; ++p)
         if (*p == '\\' && *(p+1))

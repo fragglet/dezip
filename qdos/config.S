@@ -14,16 +14,16 @@
 *                12345678901234567890
         ds.w    0
         dc.w    3
-        dc.b    '2.1'
-        ds.w    0 
+        dc.b    '?.?'
+        ds.w    0
 #else
         dc.w    10
 	dc.b    'Info-UNZIP'
 *                12345678901234567890
         ds.w    0
-        dc.w    4
-        dc.b    '5.2b'
-        ds.w    0 
+        dc.w    3
+        dc.b    '?.?'
+        ds.w    0
 #endif
         dc.b    10
         dc.b    0
@@ -48,7 +48,7 @@ d_6:    dc.w    dxx-d_6
 l5:
         dc.w    list1-l5
         dc.w    0
-l5a:	
+l5a:
         dc.w    Postit-l5a		; post proc
 l6:
         dc.w    apt-l6
@@ -60,14 +60,14 @@ l7:
 l8:
         dc.w    list2-l8
         dc.w    0
-l8a:	
+l8a:
 	dc.w    Postit-l8a		; post proc
 l9:
         dc.w    bpt-l9
 la:
         dc.w    bxx-la
 * -------------------------------------
-#endif	
+#endif
 	dc.w    -1                          ; end
 
 _qlflag:
@@ -76,7 +76,7 @@ _qlwait:
         dc.w    250
 _dtype:
 	dc.w	255
-	
+
 hpt:    dc.w    10
         dc.b    'Exit Delay'
 *                12345678901234567890
@@ -116,7 +116,7 @@ axx:    dc.b    0
 .even
 	dc.w    -1
 .even
-bpt:    
+bpt:
         dc.w    12
         dc.b    'Listing Mode'
 *                12345678901234567890
@@ -141,8 +141,6 @@ Postit:
 	or.b	d0,(a0)
 	moveq	#0,d0
 	rts
-#endif	
+#endif
 	end
-
-
 

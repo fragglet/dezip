@@ -3,7 +3,7 @@
   consts.h
 
   This file contains global, initialized variables that never change.  It is
-  included by unzip.c and windll/dllsetup.c.
+  included by unzip.c and windll/windll.c.
 
   ---------------------------------------------------------------------------*/
 
@@ -15,32 +15,32 @@ ZCONST ush near mask_bits[] = {
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
 
-char Far VersionDate[] = VERSION_DATE;   /* now defined in version.h */
+ZCONST char Far VersionDate[] = VERSION_DATE;   /* now defined in version.h */
 
 #ifndef SFX
-   char Far EndSigMsg[] = 
+   ZCONST char Far EndSigMsg[] = 
    "\nnote:  didn't find end-of-central-dir signature at end of central dir.\n";
 #endif
 
-char Far CentSigMsg[] =
+ZCONST char Far CentSigMsg[] =
   "error:  expected central file header signature not found (file #%u).\n";
-char Far SeekMsg[] =
+ZCONST char Far SeekMsg[] =
   "error [%s]:  attempt to seek before beginning of zipfile\n%s";
-char Far FilenameNotMatched[] = "caution: filename not matched:  %s\n";
-char Far ExclFilenameNotMatched[] =
+ZCONST char Far FilenameNotMatched[] = "caution: filename not matched:  %s\n";
+ZCONST char Far ExclFilenameNotMatched[] =
   "caution: excluded filename not matched:  %s\n";
 
 #ifdef VMS
-  char Far ReportMsg[] = "\
+  ZCONST char Far ReportMsg[] = "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode--this includes ftp, Kermit, AND unzip'd zipfiles)\n";
 #else
-  char Far ReportMsg[] = "\
+  ZCONST char Far ReportMsg[] = "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode and that you have compiled UnZip properly)\n";
 #endif
 
 #ifndef SFX
-  char Far Zipnfo[] = "zipinfo";
-  char Far CompiledWith[] = "Compiled with %s%s for %s%s%s%s.\n\n";
+  ZCONST char Far Zipnfo[] = "zipinfo";
+  ZCONST char Far CompiledWith[] = "Compiled with %s%s for %s%s%s%s.\n\n";
 #endif

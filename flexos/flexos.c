@@ -72,6 +72,7 @@ char *do_wild(__G__ wildspec)
     static DIR *dir = (DIR *)NULL;
     static char *dirname, *wildname, matchname[FILNAMSIZ];
     static int firstcall=TRUE, have_dirname, dirnamelen;
+    char *fnamestart;
     struct dirent *file;
 
 
@@ -114,15 +115,24 @@ char *do_wild(__G__ wildspec)
         Trace((stderr, "do_wild:  dirname = [%s]\n", dirname));
 
         if ((dir = opendir(dirname)) != (DIR *)NULL) {
+            if (have_dirname) {
+                strcpy(matchname, dirname);
+                fnamestart = matchname + dirnamelen;
+            } else
+                fnamestart = matchname;
             while ((file = readdir(dir)) != (struct dirent *)NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
-                if (match(file->d_name, wildname, 1)) {  /* 1 == ignore case */
+                strcpy(fnamestart, file->d_name);
+                if (strrchr(fnamestart, '.') == (char *)NULL)
+                    strcat(fnamestart, ".");
+                if (match(fnamestart, wildname, 1) &&  /* 1 == ignore case */
+                    /* skip "." and ".." directory entries */
+                    strcmp(fnamestart, ".") && strcmp(fnamestart, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
-                    if (have_dirname) {
-                        strcpy(matchname, dirname);
-                        strcpy(matchname+dirnamelen, file->d_name);
-                    } else
-                        strcpy(matchname, file->d_name);
+                    /* remove trailing dot */
+                    fnamestart += strlen(fnamestart) - 1;
+                    if (*fnamestart == '.')
+                        *fnamestart = '\0';
                     return matchname;
                 }
             }
@@ -130,7 +140,11 @@ char *do_wild(__G__ wildspec)
             closedir(dir);
             dir = (DIR *)NULL;
         }
-        Trace((stderr, "do_wild:  opendir(%s) returns NULL\n", dirname));
+#ifdef DEBUG
+        else {
+            Trace((stderr, "do_wild:  opendir(%s) returns NULL\n", dirname));
+        }
+#endif /* DEBUG */
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
@@ -150,15 +164,25 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL)
-        if (match(file->d_name, wildname, 1)) {   /* 1 == ignore case */
-            if (have_dirname) {
-                /* strcpy(matchname, dirname); */
-                strcpy(matchname+dirnamelen, file->d_name);
-            } else
-                strcpy(matchname, file->d_name);
+    if (have_dirname) {
+        /* strcpy(matchname, dirname); */
+        fnamestart = matchname + dirnamelen;
+    } else
+        fnamestart = matchname;
+    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        strcpy(fnamestart, file->d_name);
+        if (strrchr(fnamestart, '.') == (char *)NULL)
+            strcat(fnamestart, ".");
+        if (match(fnamestart, wildname, 1)) {   /* 1 == ignore case */
+            Trace((stderr, "do_wild:  match() succeeds\n"));
+            /* remove trailing dot */
+            fnamestart += strlen(fnamestart) - 1;
+            if (*fnamestart == '.')
+                *fnamestart = '\0';
             return matchname;
         }
+    }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = (DIR *)NULL;
@@ -171,6 +195,8 @@ char *do_wild(__G__ wildspec)
 
 #endif /* !SFX */
 
+
+
 /**********************/
 /* Function mapattr() */
 /**********************/
@@ -182,6 +208,8 @@ int mapattr(__G)
     G.pInfo->file_attr = (unsigned)(G.crec.external_file_attributes & 7) | 32;
     return 0;
 }
+
+
 
 /************************/
 /*  Function mapname()  */
@@ -202,14 +230,14 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* Don't want to set disk volume labels in FlexOS */
+        return IZ_VOL_LABEL;    /* Cannot set disk volume labels in FlexOS */
 
 /*---------------------------------------------------------------------------
     Initialize various pointers and counters and stuff.
   ---------------------------------------------------------------------------*/
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
     renamed_fullpath = FALSE;
@@ -244,7 +272,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
     if (!renamed) {             /* cp already set if renamed */
-        if (G.jflag)            /* junking directories */
+        if (uO.jflag)           /* junking directories */
             cp = (char *)strrchr(G.filename, '/');
         if (cp == (char *)NULL) /* no '/' or not junking dirs */
             cp = G.filename;    /* point to internal zipfile-member pathname */
@@ -319,7 +347,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 break;
 
             case ' ':                      /* change spaces to underscores */
-                if (G.sflag)               /*  only if requested */
+                if (uO.sflag)              /*  only if requested */
                     *pp++ = '_';
                 else
                     *pp++ = (char)workch;
@@ -336,7 +364,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi;            /* semi-colon was omitted:  expect all #'s */
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -376,6 +404,8 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     return error;
 
 } /* end function mapname() */
+
+
 
 /**********************/
 /* Function map2fat() */
@@ -431,6 +461,8 @@ static void map2fat(pathcomp, last_dot)
         /* else filename is fine as is:  no change */
     }
 } /* end function map2fat() */
+
+
 
 /***********************/
 /* Function checkdir() */
@@ -698,6 +730,7 @@ void close_outfile(__G)
 
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
+    struct tm *t;
 #endif /* ?USE_EF_UT_TIME */
 
     fclose(G.outfile);
@@ -723,14 +756,18 @@ void close_outfile(__G)
 
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-         G.lrec.last_mod_file_time, &z_utime, NULL) & EB_UT_FL_MTIME))
+         G.lrec.last_mod_dos_datetime, &z_utime, NULL) & EB_UT_FL_MTIME))
     {
-        struct tm *t;
-
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
           z_utime.mtime));
         t = localtime(&(z_utime.mtime));
+    } else
+        t = (struct tm *)NULL;
+    if (t != (struct tm *)NULL) {
         if (t->tm_year < 80) {
             df.df_modyear = 1980;
             df.df_modmonth = 1;
@@ -749,8 +786,8 @@ void close_outfile(__G)
     } else
 #endif /* ?USE_EF_UX_TIME */
     {
-        zt._t.ztime = G.lrec.last_mod_file_time;
-        zt._d.zdate = G.lrec.last_mod_file_date;
+        zt._t.ztime = (ush)(G.lrec.last_mod_dos_datetime) & 0xffff;
+        zt._d.zdate = (ush)(G.lrec.last_mod_dos_datetime >> 16);
 
         df.df_modyear = 1980 + zt._d._df.zd_yr;
         df.df_modmonth = zt._d._df.zd_mo;

@@ -1,4 +1,4 @@
-Contents of the "amiga" directory for UnZip 5.32 and later:
+Contents of the "amiga" directory for UnZip 5.4 and later:
 
   Contents      this file
   amiga.c       Amiga-specific file I/O routines
@@ -12,6 +12,7 @@ Contents of the "amiga" directory for UnZip 5.32 and later:
   makefile.azt  Aztec C makefile for UnZip, fUnZip, and UnZipSFX
   stat.c        stat() emulation for Aztec, along with opendir()/readdir()/etc
   z-stat.h      replacement stat.h header file for use with stat.c
+  z-time.h      replacement time.h header file for use with time_lib.c
   crc_68.a      assembler version of crc32.c
   flate.a       assembler version of inflate_codes() (define ASM_INFLATECODES)
 

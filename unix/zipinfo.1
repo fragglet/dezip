@@ -31,7 +31,7 @@
 .fi
 ..
 .\" =========================================================================
-.TH ZIPINFO 1L "3 November 1997 (v2.22)" "Info-ZIP"
+.TH ZIPINFO 1L "28 November 1998 (v2.3)" "Info-ZIP"
 .SH NAME
 zipinfo \- list detailed information about a ZIP archive
 .PD
@@ -48,14 +48,14 @@ zipinfo \- list detailed information about a ZIP archive
 commonly found on MS-DOS systems.  Such information includes file access
 permissions, encryption status, type of compression, version and operating
 system or file system of compressing program, and the like.  The default
-behavior (with no options) is 
+behavior (with no options) is
 to list single-line entries for each file in the archive, with header and
 trailer lines providing summary information for the entire archive.  The
 format is a cross between Unix ``\fCls \-l\fR'' and ``\fCunzip \-v\fR''
 output.  See
 .B "DETAILED DESCRIPTION"
 below.  Note that \fIzipinfo\fP is the same program as \fIunzip\fP (under
-Unix, a link to it); on some systems, however, \fIzipinfo\fP support may 
+Unix, a link to it); on some systems, however, \fIzipinfo\fP support may
 have been omitted when \fIunzip\fP was compiled.
 .PD
 .\" =========================================================================
@@ -75,15 +75,15 @@ matches exactly 1 character
 .IP [.\|.\|.]
 matches any single character found inside the brackets; ranges are specified
 by a beginning character, a hyphen, and an ending character.  If an exclamation
-point or a caret (`!' or `^') follows the left bracket, then the range of 
+point or a caret (`!' or `^') follows the left bracket, then the range of
 characters within the brackets is complemented (that is, anything \fIexcept\fP
 the characters inside the brackets is considered a match).
 .RE
 .IP
 (Be sure to quote any character that might otherwise be interpreted or
 modified by the operating system, particularly under Unix and VMS.)  If no
-matches are found, the specification is assumed to be a literal filename; 
-and if that also fails, the suffix \fC.zip\fR is appended.  Note that 
+matches are found, the specification is assumed to be a literal filename;
+and if that also fails, the suffix \fC.zip\fR is appended.  Note that
 self-extracting ZIP files are supported; just specify the \fC.exe\fR suffix
 (if any) explicitly.
 .IP [\fIfile(s)\fP]
@@ -116,8 +116,8 @@ list zipfile info in medium Unix ``\fCls \-l\fR'' format.  Identical to the
 percentage, is also listed.
 .TP
 .B \-l
-list zipfile info in long Unix ``\fCls \-l\fR'' format.  As with \fB\-m\fP 
-except that the compressed size (in bytes) is printed instead of the 
+list zipfile info in long Unix ``\fCls \-l\fR'' format.  As with \fB\-m\fP
+except that the compressed size (in bytes) is printed instead of the
 compression ratio.
 .TP
 .B \-v
@@ -128,16 +128,16 @@ list header line.  The archive name, actual size (in bytes) and total number
 of files is printed.
 .TP
 .B \-M
-pipe all output through an internal pager similar to the Unix \fImore\fP(1) 
+pipe all output through an internal pager similar to the Unix \fImore\fP(1)
 command.  At the end of a screenful of output, \fIzipinfo\fP pauses with a
 ``\-\-More\-\-'' prompt; the next screenful may be viewed by pressing the
-Enter (Return) key or the space bar.  \fIzipinfo\fP can be terminated by 
+Enter (Return) key or the space bar.  \fIzipinfo\fP can be terminated by
 pressing the ``q'' key and, on some systems, the Enter/Return key.  Unlike
 Unix \fImore\fP(1), there is no forward-searching or editing capability.
-Also, \fIzipinfo\fP doesn't notice if long lines wrap at the edge of the 
-screen, effectively resulting in the printing of two or more lines and the 
-likelihood that some text will scroll off the top of the screen before being 
-viewed.  On some systems the number of available lines on the screen is not 
+Also, \fIzipinfo\fP doesn't notice if long lines wrap at the edge of the
+screen, effectively resulting in the printing of two or more lines and the
+likelihood that some text will scroll off the top of the screen before being
+viewed.  On some systems the number of available lines on the screen is not
 detected, in which case \fIzipinfo\fP assumes the height is 24 lines.
 .TP
 .B \-t
@@ -183,20 +183,20 @@ but if the file is encrypted, \fIzipinfo\fP
 notes this fact by capitalizing the character (`T' or `B').  The second
 character may also take on four values, depending on whether there is
 an extended local header and/or an ``extra field'' associated with the
-file (fully explained in PKWare's APPNOTE.TXT, but basically analogous to 
-pragmas in ANSI C--i.e., they provide a standard way to include non-standard 
+file (fully explained in PKWare's APPNOTE.TXT, but basically analogous to
+pragmas in ANSI C--i.e., they provide a standard way to include non-standard
 information in the archive).  If neither exists, the character
 will be a hyphen (`\-'); if there is an extended local header but no extra
 field, `l'; if the reverse, `x'; and if both exist, `X'.  Thus the
 file in this example is (probably) a text file, is not encrypted, and
 has neither an extra field nor an extended local header associated with it.
-The example below, on the other hand, is an encrypted binary file with an 
+The example below, on the other hand, is an encrypted binary file with an
 extra field:
 .PP
 .X "RWD,R,R     0.9 vms     168 Bx shrk  9-Aug-91 19:15 perms.0644"
 .PP
 Extra fields are used for various purposes (see discussion of the \fB\-v\fP
-option below) including the storage of VMS file attributes, which is 
+option below) including the storage of VMS file attributes, which is
 presumably the case here.  Note that the file attributes are listed in
 VMS format.  Some other possibilities for the host operating system (which
 is actually a misnomer--host file system is more correct) include
@@ -210,26 +210,26 @@ denoted as follows:
 .PP
 File attributes in the first two cases are indicated in a Unix-like format,
 where the seven subfields indicate whether the file:  (1) is a directory,
-(2) is readable (always true), (3) is writable, (4) is executable (guessed 
+(2) is readable (always true), (3) is writable, (4) is executable (guessed
 on the basis of the extension--\fI.exe\fP, \fI.com\fP, \fI.bat\fP, \fI.cmd\fP
-and \fI.btm\fP files are assumed to be so), (5) has its archive bit set, 
-(6) is hidden, and (7) is a system file.  Interpretation of Macintosh file 
+and \fI.btm\fP files are assumed to be so), (5) has its archive bit set,
+(6) is hidden, and (7) is a system file.  Interpretation of Macintosh file
 attributes is unreliable because some Macintosh archivers don't store any
 attributes in the archive.
 .PP
 Finally, the sixth field indicates
 the compression method and possible sub-method used.  There are six methods
 known at present:  storing (no compression), reducing, shrinking, imploding,
-tokenizing (never publicly released), and deflating.  In addition, there are 
-four levels of reducing (1 through 4); four types of imploding (4K or 8K 
-sliding dictionary, and 2 or 3 Shannon-Fano trees); and four levels of 
+tokenizing (never publicly released), and deflating.  In addition, there are
+four levels of reducing (1 through 4); four types of imploding (4K or 8K
+sliding dictionary, and 2 or 3 Shannon-Fano trees); and four levels of
 deflating (superfast, fast, normal, maximum compression).  \fIzipinfo\fP
 represents these methods and their sub-methods as follows:  \fIstor\fP;
 \fIre:1\fP, \fIre:2\fP, etc.; \fIshrk\fP; \fIi4:2\fP, \fIi8:3\fP, etc.;
 \fItokn\fP; and \fIdefS\fP, \fIdefF\fP, \fIdefN\fP, and \fIdefX\fP.
 .PP
-The medium and long listings are almost identical to the short format except 
-that they add information on the file's compression.  The medium format lists 
+The medium and long listings are almost identical to the short format except
+that they add information on the file's compression.  The medium format lists
 the file's compression factor as a percentage indicating the amount of space
 that has been ``removed'':
 .PP
@@ -248,7 +248,7 @@ format:
 .PP
 Note that because of limitations in the MS-DOS format used to store file
 times, the seconds field is always rounded to the nearest even second.
-For Unix files this is expected to change in the next major releases of 
+For Unix files this is expected to change in the next major releases of
 \fIzip\fP(1L) and \fIunzip\fP.
 .PP
 In addition to individual file information, a default zipfile listing
@@ -265,10 +265,10 @@ also includes header and trailer lines:
 The header line gives the name of the archive, its total size, and the
 total number of files; the trailer gives the number of files listed,
 their total uncompressed size, and their total compressed size (not
-including any of \fIzip\fP's internal overhead).  If, however, one or 
+including any of \fIzip\fP's internal overhead).  If, however, one or
 more \fIfile(s)\fP are provided, the header and trailer lines are
 not listed.  This behavior is also similar to that of Unix's ``\fCls \-l\fR'';
-it may be overridden by specifying the \fB\-h\fP and \fB\-t\fP options 
+it may be overridden by specifying the \fB\-h\fP and \fB\-t\fP options
 explicitly.
 In such a case the listing format must also be specified explicitly,
 since \fB\-h\fP or \fB\-t\fP (or both) in the absence of other options implies
@@ -277,15 +277,15 @@ that ONLY the header or trailer line (or both) is listed.  See the
 nonsense.
 .PP
 The verbose listing is mostly self-explanatory.  It also lists file
-comments and the zipfile comment, if any, and the type and number of bytes 
-in any stored extra fields.  Currently known types of extra fields include 
-PKWARE's authentication (``AV'') info; OS/2 extended attributes; VMS 
+comments and the zipfile comment, if any, and the type and number of bytes
+in any stored extra fields.  Currently known types of extra fields include
+PKWARE's authentication (``AV'') info; OS/2 extended attributes; VMS
 filesystem info, both PKWARE and Info-ZIP versions; Macintosh resource
 forks; Acorn/Archimedes SparkFS info; and so on.  (Note
 that in the case of OS/2 extended attributes--perhaps the most common
 use of zipfile extra fields--the size of the stored EAs as reported by
 \fIzipinfo\fP may not match the number given by OS/2's \fIdir\fP command:
-OS/2 always reports the number of bytes required in 16-bit format, whereas 
+OS/2 always reports the number of bytes required in 16-bit format, whereas
 \fIzipinfo\fP always reports the 32-bit storage.)
 .PD
 .\" =========================================================================
@@ -293,11 +293,11 @@ OS/2 always reports the number of bytes required in 16-bit format, whereas
 Modifying \fIzipinfo\fP's default behavior via options placed in
 an environment variable can be a bit complicated to explain, due to
 \fIzipinfo\fP's attempts to handle various defaults in an intuitive,
-yet Unix-like, manner.  (Try not to laugh.)  Nevertheless, there is some 
-underlying logic.  In brief, 
+yet Unix-like, manner.  (Try not to laugh.)  Nevertheless, there is some
+underlying logic.  In brief,
 there are three ``priority levels'' of options:  the default options;
-environment options, which can override or add to the defaults; and 
-explicit options given by the user, which can override or add to 
+environment options, which can override or add to the defaults; and
+explicit options given by the user, which can override or add to
 either of the above.
 .PP
 The default listing format, as noted above, corresponds roughly
@@ -323,9 +323,9 @@ If, in addition, the user dislikes the trailer line, \fIzipinfo\fP's
 concept of ``negative options'' may be used to override the default
 inclusion of the line.  This is accomplished by preceding the undesired
 option with one or more minuses:  e.g., ``\fC\-l\-t\fR'' or ``\fC\-\-tl\fR'',
-in this example.  The first hyphen is the regular switch character, but the 
-one before the `t' is a minus sign.  The dual use of hyphens may seem a 
-little awkward, but it's reasonably intuitive nonetheless:  simply ignore 
+in this example.  The first hyphen is the regular switch character, but the
+one before the `t' is a minus sign.  The dual use of hyphens may seem a
+little awkward, but it's reasonably intuitive nonetheless:  simply ignore
 the first hyphen and go from there.  It is also consistent with the behavior
 of the Unix command \fInice\fP(1).
 .PP
@@ -340,7 +340,7 @@ of all four possible \fIunzip\fP and \fIzipinfo\fP environment variables.
 .PD
 .\" =========================================================================
 .SH EXAMPLES
-To get a basic, short-format listing of the complete contents of a ZIP 
+To get a basic, short-format listing of the complete contents of a ZIP
 archive \fIstorage.zip\fP, with both header and totals lines, use only
 the archive name as an argument to zipinfo:
 .PP
@@ -352,7 +352,7 @@ totals lines, use \fB\-l\fP:
 .Y "zipinfo \-l storage"
 .PP
 To list the complete contents of the archive without header and totals
-lines, either negate the \fB\-h\fP and \fB\-t\fP options or else specify the 
+lines, either negate the \fB\-h\fP and \fB\-t\fP options or else specify the
 contents explicitly:
 .PP
 .PD 0
@@ -382,15 +382,15 @@ option by itself implies that ONLY the footer line is to be printed:
 .PD
 .PP
 The \fB\-s\fP option, like \fB\-m\fP and \fB\-l\fP, includes headers and
-footers by default, unless otherwise specified.  Since the environment 
-variable specified no footers and that has a higher precedence than the 
-default behavior of \fB\-s\fP, an explicit \fB\-t\fP option was necessary 
-to produce the full listing.  Nothing was indicated about the header, 
-however, so the \fB\-s\fP option was sufficient.  Note that both the 
+footers by default, unless otherwise specified.  Since the environment
+variable specified no footers and that has a higher precedence than the
+default behavior of \fB\-s\fP, an explicit \fB\-t\fP option was necessary
+to produce the full listing.  Nothing was indicated about the header,
+however, so the \fB\-s\fP option was sufficient.  Note that both the
 \fB\-h\fP and \fB\-t\fP options, when used by themselves or with
 each other, override any default listing of member files; only the header
 and/or footer are printed.  This behavior is useful when \fIzipinfo\fP is
-used with a wildcard zipfile specification; the contents of all zipfiles 
+used with a wildcard zipfile specification; the contents of all zipfiles
 are then summarized with a single command.
 .PP
 To list information on a single file within the archive, in medium format,
@@ -407,8 +407,8 @@ size; in such cases \fB\-t\fP may be specified explicitly:
 .PP
 .Y "zipinfo \-mt storage ""*.[ch]"" Mak\e*"
 .PP
-To get maximal information about the ZIP archive, use the verbose 
-option.  It is usually wise to pipe the output into a filter such as 
+To get maximal information about the ZIP archive, use the verbose
+option.  It is usually wise to pipe the output into a filter such as
 Unix \fImore\fP(1) if the operating system allows it:
 .PP
 .Y "zipinfo \-v storage | more"
@@ -423,7 +423,7 @@ The \fB\-n\fP option to \fIsort\fP(1) tells it to sort numerically
 rather than in ASCII order, and the \fB\+6\fP option tells it to sort
 on the sixth field after the first one (i.e., the seventh field).  This
 assumes the default short-listing format; if \fB\-m\fP or \fB\-l\fP is
-used, the proper \fIsort\fP(1) option would be \fB\+7\fP.  The \fItail\fP(1) 
+used, the proper \fIsort\fP(1) option would be \fB\+7\fP.  The \fItail\fP(1)
 command filters out all but the last 15 lines of the listing.  Future
 releases of \fIzipinfo\fP may incorporate date/time and filename sorting
 as built-in options.
@@ -433,8 +433,8 @@ as built-in options.
 The author finds it convenient to define an alias \fIii\fP for \fIzipinfo\fP
 on systems that allow aliases (or, on other systems, copy/rename the
 executable, create a link or create a command file with the name \fIii\fP).
-The \fIii\fP usage parallels the common \fIll\fP alias for long listings in 
-Unix, and the similarity between the outputs of the two commands was 
+The \fIii\fP usage parallels the common \fIll\fP alias for long listings in
+Unix, and the similarity between the outputs of the two commands was
 intentional.
 .PD
 .\" =========================================================================
@@ -443,8 +443,8 @@ As with \fIunzip\fP, \fIzipinfo\fP's \fB\-M\fP (``more'') option is overly
 simplistic in its handling of screen output; as noted above, it fails to detect
 the wrapping of long lines and may thereby cause lines at the top of the screen
 to be scrolled off before being read.  \fIzipinfo\fP should detect and treat
-each occurrence of line-wrap as one additional line printed.  This requires 
-knowledge of the screen's width as well as its height.  In addition, 
+each occurrence of line-wrap as one additional line printed.  This requires
+knowledge of the screen's width as well as its height.  In addition,
 \fIzipinfo\fP should detect the true screen geometry on all systems.
 .PP
 \fIzipinfo\fP's listing-format behavior is unnecessarily complex and should
@@ -461,6 +461,6 @@ The Info-ZIP home page is currently at \fChttp://www.cdrom.com/pub/infozip/\fR .
 .PD
 .\" =========================================================================
 .SH AUTHOR
-Greg ``Cave Newt'' Roelofs.  ZipInfo contains pattern-matching code 
-by Mark Adler and fixes/improvements by many others.  Please refer to the 
+Greg ``Cave Newt'' Roelofs.  ZipInfo contains pattern-matching code
+by Mark Adler and fixes/improvements by many others.  Please refer to the
 CONTRIBS file in the UnZip source distribution for a more complete list.

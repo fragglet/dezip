@@ -2,7 +2,8 @@
 /* does not support an st_mode field, which we need... also a chmod().  */
 
 /* This stat() is by Paul Wells, modified by Paul Kienitz. */
-/* for use with Aztec C >= 5.0 and Lattice C <= 4.01  */
+/* Originally for use with Aztec C >= 5.0 and Lattice C <= 4.01  */
+/* Adapted for SAS/C 6.5x by Haidinger Walter */
 
 /* POLICY DECISION: We will not attempt to remove global variables from */
 /* this source file for Aztec C.  These routines are essentially just   */
@@ -13,32 +14,24 @@
 #ifndef __amiga_stat_c
 #define __amiga_stat_c
 
+#include <exec/types.h>
+#include <exec/memory.h>
+#include "amiga/z-stat.h"             /* fake version of stat.h */
+#include <string.h>
+
 #ifdef AZTEC_C
-#  include <exec/types.h>
-#  include <exec/memory.h>
 #  include <libraries/dos.h>
 #  include <libraries/dosextens.h>
 #  include <clib/exec_protos.h>
 #  include <clib/dos_protos.h>
 #  include <pragmas/exec_lib.h>
 #  include <pragmas/dos_lib.h>
-#  include "amiga/z-stat.h"             /* fake version of stat.h */
-#  include <string.h>
-#else /* __SASC */
-/* Uncomment define of USE_REPLACEMENTS to use the directory functions below */
-/* #define USE_REPLACEMENTS */
-#  include <sys/stat.h>
-#  ifndef USE_REPLACEMENTS
-#     include <sys/dir.h>               /* SAS/C dir function prototypes */
-#     include <dos.h>
-#  else
-#     include <exec/types.h>
-#     include <exec/memory.h>
-#     include <sys/types.h>
-#     include <proto/exec.h>
-#     include <proto/dos.h>
-#     include <string.h>
-#  endif
+#endif
+#ifdef __SASC
+#  include <sys/dir.h>               /* SAS/C dir function prototypes */
+#  include <sys/types.h>
+#  include <proto/exec.h>
+#  include <proto/dos.h>
 #endif
 
 #ifndef SUCCESS
@@ -58,7 +51,6 @@ void close_leftover_open_dirs(void)
         closedir(dir_cleanup_list);
 }
 
-#if defined(AZTEC_C) || defined(USE_REPLACEMENTS)
 
 unsigned short disk_not_mounted;
 
@@ -72,7 +64,6 @@ struct stat *buf;
         struct FileInfoBlock *inf;
         BPTR lock;
         time_t ftime;
-        void tzset(void);
         struct tm local_tm;
 
         if( (lock = Lock(file,SHARED_LOCK))==0 )
@@ -147,7 +138,7 @@ int fstat(int handle, struct stat *buf)
 }
 
 
-/* opendir(), readdir(), closedir() and rmdir() by Paul Kienitz. */
+/* opendir(), readdir(), closedir(), rmdir(), and chmod() by Paul Kienitz. */
 
 DIR *opendir(char *path)
 {
@@ -190,11 +181,12 @@ struct dirent *readdir(DIR *dd)
 }
 
 
+#ifdef AZTEC_C
+
 int rmdir(char *path)
 {
     return (DeleteFile(path) ? 0 : IoErr());
 }
-
 
 int chmod(char *filename, int bits)     /* bits are as for st_mode */
 {
@@ -202,9 +194,6 @@ int chmod(char *filename, int bits)     /* bits are as for st_mode */
     return !SetProtection(filename, protmask);
 }
 
-#endif /* AZTEC_C || USE_REPLACEMENTS */
-
-#ifdef AZTEC_C
 
 /* This here removes unnecessary bulk from the executable with Aztec: */
 void _wb_parse(void)  { }
@@ -292,8 +281,5 @@ void _cli_parse(struct Process *pp, long alen, register UBYTE *aptr)
 }
 
 #endif /* AZTEC_C */
-/* remove local define */
-#ifdef USE_REPLACEMENTS
-#   undef USE_REPLACEMENTS
-#endif
+
 #endif /* __amiga_stat_c */

@@ -64,10 +64,10 @@ Where:
               **CLARIFICATION**  Neither <n> nor <m> may have a
               leading zero.  <d> must be a single digit.
               **CLARIFICATION**  The default <start> and <end> values
-	      are from the first Sunday in April until the last Sunday
-	      in October.  This allows United States users to leave out
-	      the <start> and <end> parts, as most are accustomed to
-	      doing.
+              are from the first Sunday in April until the last Sunday
+              in October.  This allows United States users to leave out
+              the <start> and <end> parts, as most are accustomed to
+              doing.
       <time> has the same format as <offset> except that no leading
       sign (`-' or `+') is allowed.  The default, if <time> is not
       given is 02:00:00.
@@ -75,9 +75,9 @@ Where:
       to 167, to allow encoding of rules such as `00:00hrs on the
       Sunday after the second Friday in September'
 
-Example (for Germany):
-----------------------
-MET-1MEST,M3.5.0,M9.5.0/03
+Example (for Central Europe):
+-----------------------------
+MET-1MEST,M3.5.0,M10.5.0/03
 
 Another example, for the US East Coast:
 ---------------------------------------

@@ -7,11 +7,11 @@ opt=""
 while test $# -ne 0; do
   case "$1" in
   -e | -f) opt="$opt $1"; shift; pat="$1";;
-  -*)	   opt="$opt $1";;
+  -*)      opt="$opt $1";;
    *)      if test -z "$pat"; then
-	     pat="$1"
-	   else
-	     break;
+             pat="$1"
+           else
+             break;
            fi;;
   esac
   shift

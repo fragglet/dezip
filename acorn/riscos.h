@@ -52,29 +52,28 @@ struct dirent {
 };
 
 typedef struct {
-  int load_addr;
-  int exec_addr;
+  unsigned int load_addr;
+  unsigned int exec_addr;
   int lenght;
   int attrib;
   int objtype;
   char name[13];
 } riscos_direntry;
 
-#define SPARKID   0x4341        /* = "AC" */
 #define SPARKID_2 0x30435241    /* = "ARC0" */
 
 typedef struct {
-  short ID;
-  short size;
-  int   ID_2;
-  int   loadaddr;
-  int   execaddr;
-  int   attr;
-  int   zero;
+  short         ID;
+  short         size;
+  int           ID_2;
+  unsigned int  loadaddr;
+  unsigned int  execaddr;
+  int           attr;
+  int           zero;
 } extra_block;
 
 
-#define S_IFMT 0770000
+#define S_IFMT  0770000
 
 #define S_IFDIR 0040000
 #define S_IFREG 0100000  /* 0200000 in UnixLib !?!?!?!? */
@@ -125,4 +124,4 @@ void set_prefix(void);
 struct tm *riscos_localtime(const time_t *timer);
 struct tm *riscos_gmtime(const time_t *timer);
 
-#endif
+#endif /* !__riscos_h */

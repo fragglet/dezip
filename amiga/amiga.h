@@ -11,25 +11,25 @@
 
 #ifndef __amiga_amiga_h
 #define __amiga_amiga_h
-#include <time.h>
+
+#include "amiga/z-stat.h"     /* substitute for <stat.h> and <direct.h> */
+#include "amiga/z-time.h"                    /* substitute for <time.h> */
+#include <limits.h>
 #ifndef NO_FCNTL_H
 #  include <fcntl.h>
 #else
    int mkdir(const char *_name);
 #endif
-#include <limits.h>
 
 #ifdef AZTEC_C                       /* Manx Aztec C, 5.0 or newer only */
 #  include <clib/dos_protos.h>
 #  include <pragmas/dos_lib.h>           /* do inline dos.library calls */
 #  define O_BINARY 0
-#  include "amiga/z-stat.h"   /* substitute for <stat.h> and <direct.h> */
 #  define direct dirent
 
 #  define DECLARE_TIMEZONE
 #  define ASM_INFLATECODES
 #  define ASM_CRC
-#  define USE_TIME_LIB
 
 /* Note that defining REENTRANT will not eliminate all global/static */
 /* variables.  The functions we use from c.lib, including stdio, are */
@@ -44,7 +44,6 @@
 #ifdef __SASC
 /* includes */
 #  include <sys/types.h>
-#  include <sys/stat.h>
 #  include <sys/dir.h>
 #  include <dos.h>
 #  include <exec/memory.h>
@@ -57,49 +56,27 @@
 #  include <proto/dos.h>
 #  include <proto/locale.h>
 
-#  define USE_TIME_LIB
-
 #  ifdef DEBUG
 #    include <sprof.h>      /* profiler header file */
 #  endif
-
 #  if ( (!defined(O_BINARY)) && defined(O_RAW))
 #    define O_BINARY O_RAW
 #  endif
-
 #  if (defined(_SHORTINT) && !defined(USE_FWRITE))
 #    define USE_FWRITE      /* define if write() returns 16-bit int */
 #  endif
-
 #  if (!defined(REENTRANT) && !defined(FUNZIP))
 #    define REENTRANT      /* define if unzip is going to be pure */
 #  endif
-
 #  if defined(REENTRANT) && defined(DYNALLOC_CRCTAB)
 #    undef DYNALLOC_CRCTAB
 #  endif
-
 #  ifdef MWDEBUG
 #    include <stdio.h>      /* both stdio.h and stdlib.h must be included */
 #    include <stdlib.h>     /* before memwatch.h                          */
 #    include "memwatch.h"
 #    undef getenv
 #  endif /* MWDEBUG */
-
-#if 0   /* disabled for now - we don't have alloc_remember() yet */
-/* SAS/C built-in getenv() calls malloc to store the envvar string.       */
-/* Therefore we need to remember the allocation in order to free it later */
-#  include <stdlib.h>       /* getenv() prototype in stdlib.h */
-#  ifdef getenv
-#    undef getenv           /* remove previously preprocessor symbol */
-#  endif
-#  ifndef MWDEBUG
-/* #    define getenv(name)    ((char *)remember_alloc((zvoid *)getenv(name))) */
-#  else                     /* MWGetEnv() ripped from memlib's memwatch.h */
-#    define getenv(name)    ((char *)remember_alloc((zvoid *)MWGetEnv(name, __FILE__, __LINE__)))
-#  endif
-#endif /* 0 */
-
 #endif /* SASC */
 
 
@@ -107,6 +84,11 @@
 #define USE_EF_UT_TIME
 #if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #  define TIMESTAMP
+#endif
+
+/* check that TZ environment variable is defined before using UTC times */
+#if (!defined(NO_IZ_CHECK_TZ) && !defined(IZ_CHECK_TZ))
+#  define IZ_CHECK_TZ
 #endif
 
 #define AMIGA_FILENOTELEN 80
@@ -123,17 +105,22 @@
 
 /* Funkshine Prough Toe Taipes */
 
+int Agetch (void);              /* getch() like function, in amiga/filedate.c */
 LONG FileDate (char *, time_t[]);
-void tzset(void);
 int windowheight (BPTR fh);
 void _abort(void);              /* ctrl-C trap */
 
 #define SCREENLINES windowheight(Output())
 
+#ifdef USE_TIME_LIB
+   extern int real_timezone_is_set;
+#  define VALID_TIMEZONE(tempvar) (tzset(), real_timezone_is_set)
+#else
+#  define VALID_TIMEZONE(tempvar) ((tempvar = getenv("TZ")) && tempvar[0])
+#endif
 
-/* Static variables that we have to add to struct Globals: */
+/* Static variables that we have to add to Uz_Globs: */
 #define SYSTEM_SPECIFIC_GLOBALS \
-    int N_flag;\
     int filenote_slot;\
     char *(filenotes[DIR_BLKSIZ]);\
     int created_dir, renamed_fullpath, rootlen;\
@@ -142,8 +129,8 @@ void _abort(void);              /* ctrl-C trap */
     char *dirname, *wildname, matchname[FILNAMSIZ];\
     int dirnamelen, notfirstcall;
 
-/* N_flag, filenotes[], and filenote_slot are for the -N option that      */
-/*    restores zipfile comments as AmigaDOS filenotes.  The others        */
+/* filenotes[] and filenote_slot are for the -N option that restores      */
+/*    comments of Zip archive entries as AmigaDOS filenotes.  The others  */
 /*    are used by functions in amiga/amiga.c only.                        */
 /* created_dir and renamed_fullpath are used by mapname() and checkdir(). */
 /* rootlen, rootpath, buildpath, and build_end are used by checkdir().    */

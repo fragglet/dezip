@@ -1,13 +1,11 @@
 ?tacl routine
 #FRAME
-load /keep 1/ $DATA9.DAVESZIP.commacs
+load /keep 1/ commacs
 
 #PUSH file prev options OK model unzip accel
 #PUSH #DEFAULTS
 
-load /keep 1/ $DATA9.DAVESZIP.macros
-VOLUME $DATA9.DAVESZIP
-
+load /keep 1/ macros
 
 #SET OK -1
 
@@ -23,7 +21,7 @@ VOLUME $DATA9.DAVESZIP
   #SET model LARGE
   #SET unzip UNZIPL
 ]
-#SET accel $DATA9.DAVES.UNZIP
+#SET accel UNZIP
 
 #OUTPUT Making UNZIP using [model] memory model
 

@@ -1,4 +1,4 @@
-Contents of the "windll" subdirectory for UnZip 5.32 and later:
+Contents of the "windll" subdirectory for UnZip 5.4 and later:
 
   Contents       this file
   windll16.def   definition file for 16-bit UnZip DLL
@@ -18,8 +18,16 @@ Contents of the "windll" subdirectory for UnZip 5.32 and later:
                  a call into it
   example.h      header file for example.c
 
-  borland\dll\   directory with DLL makefiles for Borland C++
-  borland\lib\   directory with LIB makefiles for Borland C++
+  guisfx\        directory with GUI frontend for SFX stub
+    dialog.h       interface declarations to dialog definition
+    sfxw.ico       icon graphic (binary file!)
+    sfxwiz.c       main source module for SFX stub
+    sfxwiz.dlg     dialog window definitions
+    sfxwiz.rc      resourses for GUISFX stub
+    sfxwiz16.mak   makefile for 16-bit GUISFX stub (Borland C++ 4.52)
+    SFXWiz32.dsp   MS Visual C++ 6.0 project file for 32-bit GUISFX stub
+    unzip32sfx.dsp MS Visual C++ 6.0 project for 32-bit sfxunzip static lib
+    unzsfx16.def   linker definition file for 16-bit unzipsfx static library
 
   visualc\dll\   directory with DLL project and makefile for Visual C++ 5.0
   visualc\lib\   directory with LIB project and makefile for Visual C++ 5.0

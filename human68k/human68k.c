@@ -53,6 +53,13 @@ char *do_wild(__G__ wildspec)
     if (firstcall) {        /* first call:  must initialize everything */
         firstcall = FALSE;
 
+        if (!iswild(wildspec)) {
+            strcpy(matchname, wildspec);
+            have_dirname = FALSE;
+            dir = NULL;
+            return matchname;
+        }
+
         /* break the wildspec into a directory part and a wildcard filename */
         if ((wildname = strrchr(wildspec, '/')) == NULL) {
             dirname = ".";
@@ -75,9 +82,13 @@ char *do_wild(__G__ wildspec)
 
         if ((dir = opendir(dirname)) != NULL) {
             while ((file = readdir(dir)) != NULL) {
+                Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
-                if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
+                if (match(file->d_name, wildname, 0) &&  /* 0 == case sens. */
+                    /* skip "." and ".." directory entries */
+                    strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
+                    Trace((stderr, "do_wild:  match() succeeds\n"));
                     if (have_dirname) {
                         strcpy(matchname, dirname);
                         strcpy(matchname+dirnamelen, file->d_name);
@@ -90,6 +101,11 @@ char *do_wild(__G__ wildspec)
             closedir(dir);
             dir = NULL;
         }
+#ifdef DEBUG
+        else {
+            Trace((stderr, "do_wild:  Opendir(%s) returns NULL\n", dirname));
+        }
+#endif /* DEBUG */
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
@@ -109,8 +125,12 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != NULL)
+    while ((file = readdir(dir)) != NULL) {
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        if (file->d_name[0] == '.' && wildname[0] != '.')
+            continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
+            Trace((stderr, "do_wild:  match() succeeds\n"));
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
                 strcpy(matchname+dirnamelen, file->d_name);
@@ -118,6 +138,7 @@ char *do_wild(__G__ wildspec)
                 strcpy(matchname, file->d_name);
             return matchname;
         }
+    }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = NULL;
@@ -186,10 +207,10 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
+        return IZ_VOL_LABEL;    /* can't set disk volume labels on Human68k */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -201,7 +222,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == NULL)             /* no '/' or not junking dirs */
         cp = G.filename;        /* point to internal zipfile-member pathname */
@@ -253,7 +274,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -532,6 +553,7 @@ void close_outfile(__G)
 {
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
+    struct tm *t;
 
     /* The following DOS date/time structure is machine-dependent as it
      * assumes "little-endian" byte order.  For MSDOS-specific code, which
@@ -561,26 +583,31 @@ void close_outfile(__G)
     } dos_dt;
 #endif /* USE_EF_UT_TIME */
 
-    if (G.cflag) {
+    if (uO.cflag) {
         fclose(G.outfile);
         return;
     }
 
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_file_date, &z_utime, NULL)
+                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))
     {
-        struct tm *t;
-
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
           z_utime.mtime));
         /* round up (down if "up" overflows) to even seconds */
         if (z_utime.mtime & 1)
-            z_utime.mtime = (z_utime.mtime + 1 > z.utime.mtime) ?
+            z_utime.mtime = (z_utime.mtime + 1 > z_utime.mtime) ?
                              z_utime.mtime + 1 : z_utime.mtime - 1;
+        TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
         t = localtime(&(z_utime.mtime));
+    } else
+        t = (struct tm *)NULL;
+    if (t != (struct tm *)NULL) {
         if (t->tm_year < 80) {
             dos_dt.zt._t._tf.zt_se = 0;
             dos_dt.zt._t._tf.zt_mi = 0;
@@ -597,13 +624,11 @@ void close_outfile(__G)
             dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
         }
     } else {
-        dos_dt.zt._t.ztime = G.lrec.last_mod_file_time;
-        dos_dt.zt._d.zdate = G.lrec.last_mod_file_date;
+        dos_dt.z_dostime = G.lrec.last_mod_dos_datetime;
     }
     _dos_filedate(fileno(G.outfile), dos_dt.z_dostime);
 #else /* !USE_EF_UT_TIME */
-    _dos_filedate(fileno(G.outfile),
-      (ulg)G.lrec.last_mod_file_date << 16 | G.lrec.last_mod_file_time);
+    _dos_filedate(fileno(G.outfile), G.lrec.last_mod_dos_datetime);
 #endif /* ?USE_EF_UT_TIME */
 
     fclose(G.outfile);
@@ -655,6 +680,8 @@ int stamp_file(fname, modtime)
     t_even = ((modtime + 1 > modtime) ? modtime + 1 : modtime) & (~1);
     TIMET_TO_NATIVE(t_even)             /* NOP unless MSC 7.0 or Macintosh */
     t = localtime(&t_even);
+    if (t == (struct tm *)NULL)
+        return -1;                      /* time conversion error */
     if (t->tm_year < 80) {
         dos_dt.zt._t._tf.zt_se = 0;
         dos_dt.zt._t._tf.zt_mi = 0;
@@ -670,9 +697,13 @@ int stamp_file(fname, modtime)
         dos_dt.zt._d._df.zd_mo = t->tm_mon + 1;
         dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
     }
-    if (((fd = open(fname, 0)) == -1) ||
+    if (((fd = open((char *)fname, 0)) == -1) ||
         (_dos_filedate(fileno(G.outfile), dos_dt.z_dostime)))
+    {
+        if (fd != -1)
+            close(fd);
         return -1;
+    }
     close(fd);
     return 0;
 

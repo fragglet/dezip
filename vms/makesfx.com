@@ -27,4 +27,6 @@ $! $ name = f$extract(12,2,f$time()) + f$extract(15,2,f$time()) + -
 $!   f$extract(18,2,f$time()) + f$extract(21,1,f$time())
 $!
 $ copy 'usfx','finf' 'file'.exe
+$ if zip .nes. "" then
+$     zip -"A" 'file'.exe
 $ exit

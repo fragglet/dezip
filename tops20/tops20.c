@@ -88,15 +88,22 @@ void close_outfile(__G)
     unsigned tad;
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
+    struct tm *t;
 
 
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_file_date, &z_utime, NULL)
+                          G.lrec.last_mod_dos_date, &z_utime, NULL)
          & EB_UT_FL_MTIME))
-    {
-        struct tm *t = localtime(&(z_utime.mtime));
+        t = localtime(&(z_utime.mtime));
+    else
+        t = (struct tm *)NULL;
 
+    if (t != (struct tm *)NULL)
+    {
         yr = t->tm_year + 1900;
         mo = t->tm_mon;
         dy = t->tm_mday;
@@ -107,26 +114,26 @@ void close_outfile(__G)
     else
     {
         /* dissect the date */
-        yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
-        mo = ((G.lrec.last_mod_file_date >> 5) & 0x0f) - 1;
-        dy = (G.lrec.last_mod_file_date & 0x1f);
+        yr = ((G.lrec.last_mod_dos_date >> 9) & 0x7f) + 1980;
+        mo = ((G.lrec.last_mod_dos_date >> 5) & 0x0f) - 1;
+        dy = (G.lrec.last_mod_dos_date & 0x1f);
 
         /* dissect the time */
-        hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
-        mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
-        ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
+        hh = (G.lrec.last_mod_dos_time >> 11) & 0x1f;
+        mm = (G.lrec.last_mod_dos_time >> 5) & 0x3f;
+        ss = (G.lrec.last_mod_dos_time & 0x1f) * 2;
     }
 #else /* !USE_EF_UT_TIME */
 
     /* dissect the date */
-    yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
-    mo = (G.lrec.last_mod_file_date >> 5) & 0x0f;
-    dy = G.lrec.last_mod_file_date & 0x1f;
+    yr = ((G.lrec.last_mod_dos_datetime >> 25) & 0x7f) + (1980 - YRBASE);
+    mo = (G.lrec.last_mod_dos_datetime >> 21) & 0x0f;
+    dy = (G.lrec.last_mod_dos_datetime >> 16) & 0x1f;
 
     /* dissect the time */
-    hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
-    mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
-    ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
+    hh = (G.lrec.last_mod_dos_datetime >> 11) & 0x1f;
+    mm = (G.lrec.last_mod_dos_datetime >> 5) & 0x3f;
+    ss = (G.lrec.last_mod_dos_datetime << 1) & 0x1f;
 #endif /* ?USE_EF_UT_TIME */
 
     sprintf(temp, "%02d/%02d/%02d %02d:%02d:%02d", mo, dy, yr, hh, mm, ss);

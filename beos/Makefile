@@ -1,67 +1,60 @@
-#==============================================================================
-# Makefile for UnZip, UnZipSFX and fUnZip:  BeOS
-# Version:  5.32                                               2 September 1997
-#==============================================================================
-
-# INSTRUCTIONS (such as they are):
+######################################################################
 #
-# "make list" - lists all supported compilers (targets)
-# "make foo"  - makes UnZip in current directory using the foo compiler
+# Makefile for Info-ZIP's unzip, unzipsfx, and funzip on BeOS
 #
-# CF are flags for the C compiler.  LF are flags for the loader.  LF2 are more
-# flags for the loader, if they need to be at the end of the line instead of at
-# the beginning (for example, some libraries).  FL and FL2 are the corre-
-# sponding flags for fUnZip.  LOCAL_UNZIP is an environment variable that can
-# be used to add default C flags to your compile without editing the Makefile
-# (e.g., -DDEBUG_STRUC, or -FPi87 on PCs using Microsoft C).
+# Copyright (c) 1998 Info-ZIP
+#             Chris Herborth (chrish@qnx.com)
 #
-# Be sure to test your new UnZip (and UnZipSFX and fUnZip); successful compila-
-# tion does not always imply a working program.
+# This is the new New and Improved Makefile for BeOS; it will:
 #
-# You might want to go down to the "installation" section and set the prefix
-# to something else; not everyone is as strange as me, and you might not want
-# to put your Info-ZIP executables in /boot/usr/local/bin.  [cjh]
+# 1) automatically detect your platform (PowerPC or x86) if none is
+#    specified; the default compiler is CodeWarrior for PowerPC, or
+#    gcc for x86
+#
+# 2) let you cross-compile for the other platform (PowerPC or x86), in
+#    theory
+#
+# 3) let you use Metrowerks CodeWarrior (default) or GNU C to build with
+#    for either platfor, in theory
+#
+# To choose a specific architecture, define the ARCH environment
+# variable on the make command-line:
+#
+# ARCH=what make -f beos/Makefile
+#
+# where "what" can be "powerpc" or "x86".
+#
+# To choose a specific compiler, define the CC environment variable on
+# the make command-line:
+#
+# CC=compiler make -f beos/Makefile
+#
+# where "compiler" can be "mwcc" or "x86".
+#
+# Of course, you can combine these two:
+#
+# ARCH=powerpc CC=mwcc make -f beos/Makefile
+#
+# or:
+#
+# CC=gcc ARCH=x86 make -f beos/Makefile
+#
+# To automatically install the fresh new unzip, use the "install" target:
+#
+# make -f beos/Makefile install
 
-all:
-	@echo ''
-	@echo 'Make what?  You must say what compiler you want to use -- '
-	@echo 'for example, "make -f beos/Makefile foo".'
-	@echo ''
-	@echo 'The supported compilers are:'
-	@echo ''
-	@echo '     gcc     GNU C'
-	@echo '     mwcc    Metrowerks CodeWarrior'
-	@echo ''
+######################################################################
+# Things that don't change:
 
-list: all
+SHELL = /bin/sh
 
-#####################
-# MACRO DEFINITIONS #
-#####################
+# Punish those of you not running on SMP hardware...
+MAKE  = make -j 4 -f beos/Makefile
 
-MAKE = make -f beos/Makefile
+LOC=$(LOCAL_UNZIP) -DPASSWD_FROM_STDIN
+AF=$(LOC)
 
-# Defaults most systems use (use LOCAL_UNZIP in environment to add flags,
-# such as -DDOSWILD).
-
-# UnZip flags
-MW_CC  = mwcc
-GNU_CC = gcc
-
-LD = $(CC)
-LOC = $(LOCAL_UNZIP) -DPASSWD_FROM_STDIN
-AF = $(LOC)
-
-# -ansi strict doesn't work with the AADR9 stdio.h... d'oh!
-MW_CF = -w9 -ansi strict -O7 -rostr -I. $(LOC)
-MW_LF = -o unzip
-MW_LF2 =
-
-GNU_CF = -Wall -ansi -mcpu=604 -O3 -I. -I/boot/develop/headers/be/support $(LOC)
-GNU_LF = -o unzip
-GNU_LF2 =
-
-# UnZipSFX flags
+# UnZipSfx flags
 SL = -o unzipsfx
 SL2 = $(LF2)
 
@@ -76,7 +69,6 @@ LN = ln -sf
 E =
 O = .o
 M = beos
-SHELL = /bin/sh
 
 # defaults for crc32 stuff and system-dependent headers
 CRC32 = crc32
@@ -86,11 +78,11 @@ OSDEP_H = beos/beos.h
 OBJS1 = unzip$O $(CRC32)$O crctab$O crypt$O envargs$O explode$O
 OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
 OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
-OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
+OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O $(BEOS_MAIN)
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS) api$O
 OBJX = unzipsfx$O $(CRC32)$O crctab$O crypt$O extract_$O fileio$O globals$O \
-	inflate$O match$O process_$O ttyio$O $M_$O
+	inflate$O match$O process_$O ttyio$O $M_$O $(BEOS_MAIN)
 LOBJX = $(OBJX)
 OBJF = funzip$O $(CRC32)$O crypt_$O globals_$O inflate_$O ttyio_$O
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
@@ -112,9 +104,106 @@ UNZIPS = unzip$E funzip$E unzipsfx$E zipinfo$E
 MANS = unix/unzip.1 unix/unzipsfx.1 unix/zipinfo.1 unix/funzip.1
 DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc
 
-###############################################
-# BASIC COMPILE INSTRUCTIONS AND DEPENDENCIES #
-###############################################
+######################################################################
+# Things that change:
+
+# Select an architecture:
+ifndef ARCH
+MACHINE=$(shell uname -m)
+ifeq "$(MACHINE)" "BePC"
+ARCH=x86
+CC=gcc
+else
+ARCH=powerpc
+CC=mwcc
+endif
+endif
+
+# Now select compiler flags and whatnot based on the ARCH and CC:
+WHAT=$(ARCH)-$(CC)
+
+ifeq "$(WHAT)" "powerpc-mwcc"
+CC=mwccppc
+LD=mwccppc
+CF=-w9 -O7 -opt schedule604 -rostr -I. $(LOC)
+LF=-o unzip
+LF2=-warn -L/boot/develop/lib/ppc -lbe -lroot
+BEOS_MAIN=beosmain$O
+TARGET=$(UNZIPS)
+endif
+
+ifeq "$(WHAT)" "powerpc-gcc"
+CC=gcc
+LD=gcc
+CF=-O3 -mcpu=604 -Wall -ansi -I. -I/boot/develop/headers/be/support \
+   -I/boot/develop/headers/be/storage $(LOC)
+LF=-o unzip
+LF2=-L/boot/develop/lib/ppc -lbe -lroot
+BEOS_MAIN=beosmain$O
+TARGET=$(UNZIPS)
+endif
+
+# This isn't likely to happen for R4 or later...
+ifeq "$(WHAT)" "x86-mwcc"
+CC=mwccx86
+LD=mwccx86
+CF=-O2 -w9 -I. $(LOC)
+LF=-o unzip
+LF2=-warn -L/boot/develop/lib/x86 -lbe -lroot
+BEOS_MAIN=beosmain$O
+TARGET=$(UNZIPS)
+endif
+
+ifeq "$(WHAT)" "x86-gcc"
+CC=gcc
+LD=gcc
+CF=-O3 -mcpu=i586 -Wall -ansi -I. -I/boot/develop/headers/be/support \
+   -I/boot/develop/headers/be/storage $(LOC)
+LF=-o unzip
+LF2=-L/boot/develop/lib/x86 -lbe -lroot
+BEOS_MAIN=beosmain$O
+TARGET=$(UNZIPS)
+endif
+
+ifndef TARGET
+TARGET=help
+endif
+
+######################################################################
+# Helpful targets
+all:
+	@echo 'TARGET = $(TARGET)'
+	@echo 'ARCH   = $(ARCH)'
+	@echo 'CC     = $(CC)'
+	if [ -n "$(TARGET)" ] ; then \
+		$(MAKE) CC=$(CC) CF="$(CF)" LD="$(LD)" \
+			LF="$(LF)" LF2="$(LF2)" CCPP="$(CC)" CPPF="$(CF)" \
+			OBJS="$(OBJS)" LOBJS="$(LOBJS)" OBJX="$(OBJX)" \
+			LOBJX="$(LOBJX)" $(TARGET) ; \
+	else \
+		$(MAKE) help ; \
+	fi
+
+help:
+	@echo ''
+	@echo "This Makefile lets you build Info-ZIP's zip."
+	@echo ''
+	@echo 'To build zip for this computer using the default compiler, just do:'
+	@echo ''
+	@echo '	make -f beos/Makefile'
+	@echo ''
+	@echo 'To build zip for a specific architecture using a specific'
+	@echo 'compiler, do:'
+	@echo ''
+	@echo '	ARCH=cpu CC=compiler make -f beos/Makefile'
+	@echo ''
+	@echo 'Where:'
+	@echo '	cpu is either "powerpc" or "x86"'
+	@echo '	compiler is either "mwcc" or "gcc"'
+	@echo ''
+
+######################################################################
+# Basic compile instructions and dependencies
 
 # this is for GNU make; comment out and notify zip-bugs if it causes errors
 .SUFFIXES:	.c .o
@@ -132,14 +221,21 @@ unzipsman:	unzips docs
 unzipsdocs:	unzips docs
 
 
-unzip$E:	$(OBJS)
+unzip$E:	$(OBJS) beos/unzip.rsc
 	$(LD) $(LF) $(LOBJS) $(LF2)
+	chmod +x unzip$E
+	xres -o unzip$E beos/unzip.rsc
+	mimeset -f -all unzip$E
 
-unzipsfx$E:	$(OBJX)
+unzipsfx$E:	$(OBJX) beos/unzipsfx.rsc
 	$(LD) $(SL) $(LOBJX) $(SL2)
+	chmod +x unzipsfx$E
+	xres -o unzipsfx$E beos/unzipsfx.rsc
+	mimeset -f -all unzipsfx
 
 funzip$E:	$(OBJF)
 	$(LD) $(FL) $(OBJF) $(FL2)
+	chmod +x funzip$E
 
 zipinfo$E:	unzip$E
 	$(LN) unzip$E zipinfo$E
@@ -197,11 +293,19 @@ process_$O:	process.c $(UNZIP_H)				# unzipsfx only
 beos$O:		beos/beos.c $(UNZIP_H) version.h		# BeOS only
 	$(CC) -c $(CF) beos/beos.c
 
+beosmain$O:	beos/beosmain.cpp $(UNZIP_H) version.h	# BeOS only
+	$(CCPP) -c $(CPPF) beos/beosmain.cpp
+
 # version() not used by unzipsfx, so no version.h dependency
 beos_$O:		beos/beos.c $(UNZIP_H)				# unzipsfx only
 	$(CP) beos/beos.c beos_.c
 	$(CC) -c $(CF) -Ibeos -DSFX beos_.c
 	$(RM) beos_.c
+
+beosmain_$O:	beos/beosmain.cpp $(UNZIP_H)
+	$(CP) beos/beosmain.cpp beosmain_.cpp
+	$(CCPP) -c $(CPPF) -Ibeos -DSFX beosmain_.cpp
+	$(RM) beosmain_.cpp
 
 unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
 	$(CP) unzip.c unzipsfx.c
@@ -212,10 +316,12 @@ unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
 # this really only works for Unix targets, unless E and O specified on cmd line
 clean:
 	-rm -f $(UNZIPS) $(OBJS) $(OBJF) $(OBJX) api$O apihelp$O crc_gcc$O \
-	  unzipstb$O
+	  unzipstb$O beosmain.o beosmain_.o
 
-install:	$(UNZIPS) $(MANS)
+install:	all
 	$(INSTALL) -m 755 $(UNZIPS) $(BINDIR)
+	mimeset -f -all $(BINDIR)/unzip
+	mimeset -f -all $(BINDIR)/unzipsfx
 	$(RM) $(BINDIR)/zipinfo$E
 	$(LN) unzip$E $(BINDIR)/zipinfo$E
 	$(RM) $(BINDIR)/zipgrep$E
@@ -273,26 +379,3 @@ check:	unzips
 	rmdir testun
 #
 	echo '  testing complete.'
-
-######################################################################
-# Make rules for the supported compilers
-
-gnu: gcc
-
-gnuc: gcc
-
-gcc:
-	@echo 'Making with GNU C...'
-	@echo ''
-	$(MAKE) $(UNZIPS) CC=$(GNU_CC) CF="$(GNU_CF)" LF="$(GNU_LF)" \
-			LF2="$(GNU_LF2)"
-
-mwcc:
-	@echo 'Making with Metrowerks CodeWarrior...'
-	@echo ''
-	$(MAKE) $(UNZIPS) CC=$(MW_CC) CF="$(MW_CF)" LF="$(MW_LF)" \
-			LF2="$(MW_LF2)"
-
-foo: list
-	@echo 'I was kidding about the "foo" compiler.'
-	@echo ''

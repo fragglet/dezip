@@ -1,5 +1,5 @@
 /* inflate.c -- put in the public domain by Mark Adler
-   version c15c, 28 March 1997 */
+   version c16b, 29 March 1998 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -92,6 +92,7 @@
    c15c  28 Mar 97  G. Roelofs      changed USE_ZLIB fatal exit code from
                                     PK_MEM2 to PK_MEM3
     c16  20 Apr 97  J. Altman       added memzero(v[]) in huft_build()
+   c16b  29 Mar 98  C. Spieler      modified DLL code for slide redirection
  */
 
 
@@ -222,8 +223,8 @@
 #  define WSIZE 0x8000  /* window size--must be a power of two, and at least */
 #endif                  /* 32K for zip's deflate method */
 
-#ifdef DLL
-#  define wsize G._wsize   /* wsize is a variable */
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+#  define wsize G._wsize    /* wsize is a variable */
 #else
 #  define wsize WSIZE       /* wsize is a constant */
 #endif
@@ -255,8 +256,6 @@
 /*---------------------------------------------------------------------------*/
 #ifdef USE_ZLIB
 
-#include "zlib.h"
-
 
 /*
    GRR:  return values for both original inflate() and UZinflate()
@@ -273,21 +272,14 @@
 int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
     __GDEF
 {
-    int i, windowBits, err=Z_OK;
+    int err=Z_OK;
 
-
-#ifdef DLL
-    if (G.redirect_data)
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+    if (G.redirect_slide)
         wsize = G.redirect_size, redirSlide = G.redirect_buffer;
     else
         wsize = WSIZE, redirSlide = slide;
 #endif
-    /* GRR:  "U" may not be compatible with K&R compilers */
-    if (wsize < 256U)   /* window sizes 2^8 .. 2^15 allowed currently */
-        return 2;
-
-    /* windowBits = log2(wsize) */
-    for (i = wsize, windowBits = 0;  !(i & 1);  i >>= 1, ++windowBits);
 
     G.dstrm.next_out = redirSlide;
     G.dstrm.avail_out = wsize;
@@ -296,6 +288,9 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
     G.dstrm.avail_in = G.incnt;
 
     if (!G.inflInit) {
+        unsigned i;
+        int windowBits;
+
         /* only need to test this stuff once */
         if (zlib_version[0] != ZLIB_VERSION[0]) {
             Info(slide, 0x21, ((char *)slide,
@@ -306,6 +301,14 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
             Info(slide, 0x21, ((char *)slide,
               "warning:  different zlib version (expected %s, using %s)\n",
               ZLIB_VERSION, zlib_version));
+
+        /* windowBits = log2(wsize) */
+        for (i = ((unsigned)wsize * 2 - 1), windowBits = 0;
+             !(i & 1);  i >>= 1, ++windowBits);
+        if ((unsigned)windowBits > (unsigned)15)
+            windowBits = 15;
+        else if (windowBits < 8)
+            windowBits = 8;
 
         G.dstrm.zalloc = (alloc_func)Z_NULL;
         G.dstrm.zfree = (free_func)Z_NULL;
@@ -387,7 +390,7 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
     Trace((stderr, "total in = %ld, total out = %ld\n", G.dstrm.total_in,
       G.dstrm.total_out));
 
-    G.inptr = G.dstrm.next_in;
+    G.inptr = (uch *)G.dstrm.next_in;
     G.incnt = (G.inbuf + INBUFSIZ) - G.inptr;  /* reset for other routines */
 
     err = inflateReset(&G.dstrm);
@@ -432,20 +435,20 @@ static int inflate_block OF((__GPRO__ int *e));
 
 
 /* Tables for deflate from PKZIP's appnote.txt. */
-static unsigned border[] = {    /* Order of the bit length code lengths */
+static ZCONST unsigned border[] = { /* Order of the bit length code lengths */
         16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
-static ush cplens[] = {         /* Copy lengths for literal codes 257..285 */
+static ZCONST ush cplens[] = {  /* Copy lengths for literal codes 257..285 */
         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
         /* note: see note #13 above about the 258 in this list. */
-static ush cplext[] = {         /* Extra bits for literal codes 257..285 */
+static ZCONST ush cplext[] = {  /* Extra bits for literal codes 257..285 */
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
         3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99}; /* 99==invalid */
-static ush cpdist[] = {         /* Copy offsets for distance codes 0..29 */
+static ZCONST ush cpdist[] = {  /* Copy offsets for distance codes 0..29 */
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
         8193, 12289, 16385, 24577};
-static ush cpdext[] = {         /* Extra bits for distance codes */
+static ZCONST ush cpdext[] = {  /* Extra bits for distance codes */
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
         12, 12, 13, 13};
@@ -535,8 +538,8 @@ unsigned bk;                    /* bits in bit buffer */
  */
 
 
-static int lbits = 9;           /* bits in base literal/length lookup table */
-static int dbits = 6;           /* bits in base distance lookup table */
+static ZCONST int lbits = 9;    /* bits in base literal/length lookup table */
+static ZCONST int dbits = 6;    /* bits in base distance lookup table */
 
 
 #ifndef ASM_INFLATECODES
@@ -615,9 +618,12 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
 
       /* do the copy */
       do {
-#ifdef DLL
-        if (G.redirect_data)  /* &= w/ wsize unnecessary & wrong if redirect */
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+        if (G.redirect_slide) {/* &= w/ wsize unnecessary & wrong if redirect */
+          if (d >= wsize)
+            return 1;           /* invalid compressed data */
           n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+        }
         else
 #endif
           n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
@@ -906,7 +912,7 @@ static int inflate_dynamic(__G)
   if (i)
   {
     if (i == 1) {
-      if (!G.qflag)
+      if (!uO.qflag)
         MESSAGE((uch *)"(incomplete l-tree)  ", 21L, 1);
       huft_free(tl);
     }
@@ -916,7 +922,7 @@ static int inflate_dynamic(__G)
   i = huft_build(__G__ ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
   if (bd == 0 && nl > 257)    /* lengths but no distances */
   {
-    if (!G.qflag)
+    if (!uO.qflag)
       MESSAGE((uch *)"(incomplete d-tree)  ", 21L, 1);
     huft_free(tl);
     return 1;
@@ -925,7 +931,7 @@ static int inflate_dynamic(__G)
 #ifdef PKZIP_BUG_WORKAROUND
     i = 0;
 #else
-    if (!G.qflag)
+    if (!uO.qflag)
       MESSAGE((uch *)"(incomplete d-tree)  ", 21L, 1);
     huft_free(td);
 #endif
@@ -1003,10 +1009,12 @@ int inflate(__G)
 {
   int e;                /* last block flag */
   int r;                /* result code */
-  unsigned h;           /* maximum struct huft's malloc'ed */
+#ifdef DEBUG
+  unsigned h = 0;       /* maximum struct huft's malloc'ed */
+#endif
 
-#ifdef DLL
-  if (G.redirect_data)
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+  if (G.redirect_slide)
     wsize = G.redirect_size, redirSlide = G.redirect_buffer;
   else
     wsize = WSIZE, redirSlide = slide;   /* how they're #defined if !DLL */
@@ -1019,13 +1027,16 @@ int inflate(__G)
 
 
   /* decompress until the last block */
-  h = 0;
   do {
+#ifdef DEBUG
     G.hufts = 0;
+#endif
     if ((r = inflate_block(__G__ &e)) != 0)
       return r;
+#ifdef DEBUG
     if (G.hufts > h)
       h = G.hufts;
+#endif
   } while (!e);
 
 
@@ -1068,14 +1079,14 @@ int inflate_free(__G)
 
 
 int huft_build(__G__ b, n, s, d, e, t, m)
-     __GDEF
-unsigned *b;            /* code lengths in bits (all assumed <= BMAX) */
-unsigned n;             /* number of codes (assumed <= N_MAX) */
-unsigned s;             /* number of simple-valued codes (0..s-1) */
-ush *d;                 /* list of base values for non-simple codes */
-ush *e;                 /* list of extra bits for non-simple codes */
-struct huft **t;        /* result: starting table */
-int *m;                 /* maximum lookup bits, returns actual */
+  __GDEF
+  ZCONST unsigned *b;   /* code lengths in bits (all assumed <= BMAX) */
+  unsigned n;           /* number of codes (assumed <= N_MAX) */
+  unsigned s;           /* number of simple-valued codes (0..s-1) */
+  ZCONST ush *d;        /* list of base values for non-simple codes */
+  ZCONST ush *e;        /* list of extra bits for non-simple codes */
+  struct huft **t;      /* result: starting table */
+  int *m;               /* maximum lookup bits, returns actual */
 /* Given a list of code lengths and a maximum table size, make a set of
    tables to decode that set of codes.  Return zero on success, one if
    the given code set is incomplete (the tables are still built in this
@@ -1111,7 +1122,7 @@ int *m;                 /* maximum lookup bits, returns actual */
   /* Generate counts for each bit length */
   el = n > 256 ? b[256] : BMAX; /* set length of EOB code, if any */
   memzero((char *)c, sizeof(c));
-  p = b;  i = n;
+  p = (unsigned *)b;  i = n;
   do {
     c[*p]++; p++;               /* assume all entries <= BMAX */
   } while (--i);
@@ -1157,7 +1168,7 @@ int *m;                 /* maximum lookup bits, returns actual */
 
   /* Make a table of values in order of bit lengths */
   memzero((char *)v, sizeof(v));
-  p = b;  i = 0;
+  p = (unsigned *)b;  i = 0;
   do {
     if ((j = *p++) != 0)
       v[x[j]++] = i;
@@ -1212,7 +1223,9 @@ int *m;                 /* maximum lookup bits, returns actual */
             huft_free(u[0]);
           return 3;             /* not enough memory */
         }
+#ifdef DEBUG
         G.hufts += z + 1;         /* track memory usage */
+#endif
         *t = q + 1;             /* link to list for huft_free() */
         *(t = &(q->v.t)) = (struct huft *)NULL;
         u[h] = ++q;             /* table starts after link */

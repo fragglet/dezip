@@ -51,7 +51,7 @@
 #include "unzip.h"
 #include "os2acl.h"
 
-extern char Far TruncEAs[];
+extern ZCONST char Far TruncEAs[];
 
 /* local prototypes */
 
@@ -261,7 +261,7 @@ long GetFileTime(ZCONST char *name)
 #endif
   USHORT nDate, nTime;
 
-  if ( DosQueryPathInfo(name, 1, (PBYTE) &fs, sizeof(fs)) )
+  if ( DosQueryPathInfo((PSZ) name, 1, (PBYTE) &fs, sizeof(fs)) )
     return -1;
 
   nDate = * (USHORT *) &fs.fdateLastWrite;
@@ -278,7 +278,7 @@ static int SetFileTime(ZCONST char *name, ulg stamp)   /* swiped from Zip */
   FILESTATUS fs;
   USHORT fd, ft;
 
-  if (DosQueryPathInfo(name, FIL_STANDARD, (PBYTE) &fs, sizeof(fs)))
+  if (DosQueryPathInfo((PSZ) name, FIL_STANDARD, (PBYTE) &fs, sizeof(fs)))
     return -1;
 
   fd = (USHORT) (stamp >> 16);
@@ -286,7 +286,7 @@ static int SetFileTime(ZCONST char *name, ulg stamp)   /* swiped from Zip */
   fs.fdateLastWrite = fs.fdateCreation = * (FDATE *) &fd;
   fs.ftimeLastWrite = fs.ftimeCreation = * (FTIME *) &ft;
 
-  if (DosSetPathInfo(name, FIL_STANDARD, (PBYTE) &fs, sizeof(fs), 0))
+  if (DosSetPathInfo((PSZ) name, FIL_STANDARD, (PBYTE) &fs, sizeof(fs), 0))
     return -1;
 
   return 0;
@@ -331,10 +331,16 @@ static ulg Utime2DosDateTime(uxtime)
 
     /* round up to even seconds */
     /* round up (down if "up" overflows) to even seconds */
-    if (uxtime & 1)
+    if (((ulg)uxtime) & 1)
         uxtime = (uxtime + 1 > uxtime) ? uxtime + 1 : uxtime - 1;
 
     t = localtime(&(uxtime));
+    if (t == (struct tm *)NULL) {
+        /* time conversion error; use current time instead, hoping
+           that localtime() does not reject it as well! */
+        time_t now = time(NULL);
+        t = localtime(&now);
+    }
     if (t->tm_year < 80) {
         dosfiletime._fdt.ft.twosecs = 0;
         dosfiletime._fdt.ft.minutes = 0;
@@ -368,8 +374,11 @@ static int getOS2filetimes(__GPRO__ ulg *pM_dt, ulg *pA_dt, ulg *pC_dt)
     /* return a flag indicating which time stamps are available.    */
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         ((eb_izux_flg = ef_scan_for_izux(G.extra_field,
-          G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
+          G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
           &z_utime, NULL)) & EB_UT_FL_MTIME))
     {
         TTrace((stderr, "getOS2filetimes: UT e.f. modif. time = %lu\n",
@@ -392,8 +401,7 @@ static int getOS2filetimes(__GPRO__ ulg *pM_dt, ulg *pA_dt, ulg *pC_dt)
         return (int)eb_izux_flg;
     }
 #endif /* USE_EF_UT_TIME */
-    *pC_dt = *pM_dt = ((ulg)G.lrec.last_mod_file_date) << 16 |
-                      G.lrec.last_mod_file_time;
+    *pC_dt = *pM_dt = G.lrec.last_mod_dos_datetime;
     TTrace((stderr, "\ngetOS2filetimes: DOS dir modific./creation time = %lu\n",
             *pM_dt));
     return (EB_UT_FL_MTIME | EB_UT_FL_CTIME);
@@ -553,7 +561,7 @@ static int SetEAs(__GPRO__ const char *path, void *ef_block)
   eaop.oError = 0;
   DosSetPathInfo(szName, FIL_QUERYEASIZE, (PBYTE) &eaop, sizeof(eaop), 0);
 
-  if (!G.tflag && (G.qflag < 2))
+  if (!uO.tflag && QCOND2)
     Info(slide, 0, ((char *)slide, " (%ld bytes EAs)", pFEA2list -> cbList));
 
   free(pFEA2list);
@@ -584,7 +592,7 @@ static int SetACL(__GPRO__ const char *path, void *ef_block)
   }
 
   if (acl_set(NULL, path, szACL) == 0)
-    if (!G.tflag && (G.qflag < 2))
+    if (!uO.tflag && QCOND2)
       Info(slide, 0, ((char *)slide, " (%ld bytes ACL)", strlen(szACL)));
 
   free(szACL);
@@ -805,7 +813,7 @@ static char *getdirent(__GPRO__ ZCONST char *dir)
   {                                    /* get first entry */
     G.os2.hdir = HDIR_SYSTEM;
     G.os2.count = 1;
-    done = DosFindFirst(dir, &G.os2.hdir, attributes,
+    done = DosFindFirst((PSZ) dir, &G.os2.hdir, attributes,
                         &G.os2.find, sizeof(G.os2.find), &G.os2.count);
     G.os2.lower = IsFileSystemFAT(__G__ dir);
   }
@@ -890,6 +898,7 @@ char *do_wild(__G__ wildspec)
   static char *dirname, *wildname, matchname[FILNAMSIZ];
   static int firstcall=TRUE, have_dirname, dirnamelen;
 #endif
+    char *fnamestart;
     struct direct *file;
 
 
@@ -899,6 +908,13 @@ char *do_wild(__G__ wildspec)
      */
     if (G.os2.firstcall) {        /* first call:  must initialize everything */
         G.os2.firstcall = FALSE;
+
+        if (!iswild(wildspec)) {
+            strcpy(G.os2.matchname, wildspec);
+            G.os2.have_dirname = FALSE;
+            G.os2.dir = NULL;
+            return G.os2.matchname;
+        }
 
         /* break the wildspec into a directory part and a wildcard filename */
         if ((G.os2.wildname = strrchr(wildspec, '/')) == NULL &&
@@ -923,15 +939,24 @@ char *do_wild(__G__ wildspec)
         Trace((stderr, "do_wild:  dirname = [%s]\n", G.os2.dirname));
 
         if ((G.os2.dir = opendir(__G__ G.os2.dirname)) != NULL) {
+            if (G.os2.have_dirname) {
+                strcpy(G.os2.matchname, G.os2.dirname);
+                fnamestart = G.os2.matchname + G.os2.dirnamelen;
+            } else
+                fnamestart = G.os2.matchname;
             while ((file = readdir(__G__ G.os2.dir)) != NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
-                if (match(file->d_name, G.os2.wildname, 1)) {  /* 1 == ignore case */
+                strcpy(fnamestart, file->d_name);
+                if (strrchr(fnamestart, '.') == (char *)NULL)
+                    strcat(fnamestart, ".");
+                if (match(fnamestart, G.os2.wildname, 1) &&  /* 1 == ignore case */
+                    /* skip "." and ".." directory entries */
+                    strcmp(fnamestart, ".") && strcmp(fnamestart, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
-                    if (G.os2.have_dirname) {
-                        strcpy(G.os2.matchname, G.os2.dirname);
-                        strcpy(G.os2.matchname+G.os2.dirnamelen, file->d_name);
-                    } else
-                        strcpy(G.os2.matchname, file->d_name);
+                    /* remove trailing dot */
+                    fnamestart += strlen(fnamestart) - 1;
+                    if (*fnamestart == '.')
+                        *fnamestart = '\0';
                     return G.os2.matchname;
                 }
             }
@@ -939,7 +964,11 @@ char *do_wild(__G__ wildspec)
             closedir(G.os2.dir);
             G.os2.dir = NULL;
         }
-        Trace((stderr, "do_wild:  opendir(%s) returns NULL\n", G.os2.dirname));
+#ifdef DEBUG
+        else {
+            Trace((stderr, "do_wild:  opendir(%s) returns NULL\n", G.os2.dirname));
+        }
+#endif /* DEBUG */
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
@@ -959,15 +988,25 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(__G__ G.os2.dir)) != NULL)
-        if (match(file->d_name, G.os2.wildname, 1)) {   /* 1 == ignore case */
-            if (G.os2.have_dirname) {
-                /* strcpy(G.os2.matchname, G.os2.dirname); */
-                strcpy(G.os2.matchname+G.os2.dirnamelen, file->d_name);
-            } else
-                strcpy(G.os2.matchname, file->d_name);
+    if (G.os2.have_dirname) {
+        /* strcpy(G.os2.matchname, G.os2.dirname); */
+        fnamestart = G.os2.matchname + G.os2.dirnamelen;
+    } else
+        fnamestart = G.os2.matchname;
+    while ((file = readdir(__G__ G.os2.dir)) != NULL) {
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        strcpy(fnamestart, file->d_name);
+        if (strrchr(fnamestart, '.') == (char *)NULL)
+            strcat(fnamestart, ".");
+        if (match(fnamestart, G.os2.wildname, 1)) {     /* 1 == ignore case */
+            Trace((stderr, "do_wild:  match() succeeds\n"));
+            /* remove trailing dot */
+            fnamestart += strlen(fnamestart) - 1;
+            if (*fnamestart == '.')
+                *fnamestart = '\0';
             return G.os2.matchname;
         }
+    }
 
     closedir(G.os2.dir);     /* have read at least one dir entry; nothing left */
     G.os2.dir = NULL;
@@ -1003,10 +1042,11 @@ static int EvalExtraFields(__GPRO__ const char *path,
       rc = SetEAs(__G__ path, ef_ptr);
       break;
     case EF_ACL:
-      rc = (G.X_flag) ? SetACL(__G__ path, ef_ptr) : PK_OK;
+      rc = (uO.X_flag) ? SetACL(__G__ path, ef_ptr) : PK_OK;
       break;
 #if 0
     case EF_IZUNIX:
+    case EF_PKUNIX:
       /* handled elsewhere */
       break;
 #endif
@@ -1089,7 +1129,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     G.os2.created_dir = FALSE;  /* not yet */
     G.os2.renamed_fullpath = FALSE;
@@ -1126,7 +1166,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
     if (!renamed) {             /* cp already set if renamed */
-        if (G.jflag)            /* junking directories */
+        if (uO.jflag)           /* junking directories */
 /* GRR:  watch out for VMS version... */
             cp = (char *)strrchr(G.filename, '/');
         if (cp == (char *)NULL) /* no '/' or not junking dirs */
@@ -1168,7 +1208,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 break;
 
             case ' ':             /* keep spaces unless specifically */
-                if (G.sflag)      /*  requested to change to underscore */
+                if (uO.sflag)     /*  requested to change to underscore */
                     *pp++ = '_';
                 else
                     *pp++ = ' ';
@@ -1185,7 +1225,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended "###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;        /* semi-colon was kept:  expect #s after */
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -1202,7 +1242,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     if (G.filename[G.os2.fnlen-1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
         if (G.os2.created_dir) {
-            if (!G.qflag)
+            if (!uO.qflag)
                 Info(slide, 0, ((char *)slide, LoadFarString(Creating),
                   G.filename));
             if (G.extra_field) { /* zipfile extra field has extended attribs */
@@ -1210,21 +1250,21 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                                           G.lrec.extra_field_length);
 
                 if (err == IZ_EF_TRUNC) {
-                    if (G.qflag)
+                    if (uO.qflag)
                         Info(slide, 1, ((char *)slide, "%-22s ", G.filename));
                     Info(slide, 1, ((char *)slide, LoadFarString(TruncEAs),
                       makeword(G.extra_field+2)-10, "\n"));
-                } else if (!G.qflag)
+                } else if (!uO.qflag)
                     (*G.message)((zvoid *)&G, (uch *)"\n", 1L, 0);
-            } else if (!G.qflag)
+            } else if (!uO.qflag)
                 (*G.message)((zvoid *)&G, (uch *)"\n", 1L, 0);
 
             /* set date/time stamps */
-            SetPathAttrTimes(__G__ -1, 1);
+            SetPathAttrTimes(__G__ G.pInfo->file_attr & ~A_ARCHIVE, 1);
 
             return IZ_CREATED_DIR;   /* dir time already set */
 
-        } else if (G.extra_field && G.overwrite_all) {
+        } else if (G.extra_field && uO.overwrite_all) {
             /* overwrite EAs of existing directory since user requested it */
             int err = EvalExtraFields(__G__ G.filename, G.extra_field,
                                       G.lrec.extra_field_length);
@@ -1236,7 +1276,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
             }
 
             /* set date/time stamps (dirs only have creation times) */
-            SetPathAttrTimes(__G__ -1, 1);
+            SetPathAttrTimes(__G__ G.pInfo->file_attr & ~A_ARCHIVE, 1);
         }
         return 2;   /* dir existed already; don't look for data to extract */
     }
@@ -1259,7 +1299,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         strcpy(FSInfoBuf.szVolLabel, G.filename);
         FSInfoBuf.cch = (BYTE)strlen(FSInfoBuf.szVolLabel);
 
-        if (!G.qflag)
+        if (!uO.qflag)
             Info(slide, 0, ((char *)slide, LoadFarString(Labelling),
               (char)(G.os2.nLabelDrive + 'a' - 1), G.filename));
         if (DosSetFSInfo(G.os2.nLabelDrive, FSIL_VOLSER, (PBYTE)&FSInfoBuf,
@@ -1492,9 +1532,9 @@ int checkdir(__G__ pathcomp, flag)
                 DosQueryCurrentDisk(&G.os2.nLabelDrive, &lMap);
                 *G.os2.buildpathHPFS = (char)(G.os2.nLabelDrive - 1 + 'a');
             }
-            G.os2.nLabelDrive = *G.os2.buildpathHPFS - 'a' + 1;     /* save for mapname() */
-            if (G.volflag == 0 || *G.os2.buildpathHPFS < 'a' ||   /* no labels/bogus? */
-                (G.volflag == 1 && !isfloppy(G.os2.nLabelDrive))) {  /* -$:  no fixed */
+            G.os2.nLabelDrive = *G.os2.buildpathHPFS - 'a' + 1; /* save for mapname() */
+            if (uO.volflag == 0 || *G.os2.buildpathHPFS < 'a' ||  /* no labels/bogus? */
+                (uO.volflag == 1 && !isfloppy(G.os2.nLabelDrive))) { /* -$:  no fixed */
                 free(G.os2.buildpathHPFS);
                 free(G.os2.buildpathFAT);
                 return IZ_VOL_LABEL;   /* skipping with message */
@@ -1666,7 +1706,7 @@ static int IsFileNameValid(const char *name)
   USHORT uAction;
 #endif
 
-  switch( DosOpen(name, &hf, &uAction, 0, 0, FILE_OPEN,
+  switch( DosOpen((PSZ) name, &hf, &uAction, 0, 0, FILE_OPEN,
                   OPEN_ACCESS_READONLY | OPEN_SHARE_DENYNONE, 0) )
   {
   case ERROR_INVALID_NAME:
@@ -1846,10 +1886,10 @@ void close_outfile(__G)   /* only for extracted files, not directories */
                                   G.lrec.extra_field_length);
 
         if (err == IZ_EF_TRUNC) {
-            if (G.qflag)
+            if (uO.qflag)
                 Info(slide, 1, ((char *)slide, "%-22s ", G.filename));
             Info(slide, 1, ((char *)slide, LoadFarString(TruncEAs),
-              makeword(G.extra_field+2)-10, G.qflag? "\n" : ""));
+              makeword(G.extra_field+2)-10, uO.qflag? "\n" : ""));
         }
     }
 
@@ -1889,19 +1929,20 @@ int check_for_newer(__G__ filename)   /* return 1 if existing file newer or equa
 
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_file_date, &z_utime, NULL)
+                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))
     {
         TTrace((stderr, "check_for_newer:  using Unix extra field mtime\n"));
         archive = Utime2DosDateTime(z_utime.mtime);
     } else {
-        archive = ((ulg) G.lrec.last_mod_file_date) << 16 |
-                  G.lrec.last_mod_file_time;
+        archive = G.lrec.last_mod_dos_datetime;
     }
 #else /* !USE_EF_UT_TIME */
-    archive = ((ulg) G.lrec.last_mod_file_date) << 16 |
-              G.lrec.last_mod_file_time;
+    archive = G.lrec.last_mod_dos_datetime;
 #endif /* ?USE_EF_UT_TIME */
 
     return (existing >= archive);

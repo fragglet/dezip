@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file COPYING (for UnZip), last updated 5 Oct 97.
+  This is the Info-ZIP file COPYING (for UnZip), last updated 26 Nov 98.
 __________________________________________________________________________
 
    There are currently six explicit copyrights on portions of UnZip
@@ -121,9 +121,9 @@ __________________________________________________________________________
      * do not work correctly. The supplied link library time.lib contains
      * replacement functions for them."
      * Permission is granted to the Info-ZIP group to redistribute the
-     * time.lib source.  The use of time.lib functions in own, noncommerical
+     * time.lib source.  The use of time.lib functions in own, noncommercial
      * programs is permitted.  It is only required to add the timezone.doc
-     * to such a distribution.  Using the time.lib library in commerical
+     * to such a distribution.  Using the time.lib library in commercial
      * software (including shareware) is only permitted after prior
      * consultation of the author.
 
@@ -191,7 +191,7 @@ __________________________________________________________________________
       pointer to the original, free compression sources; and a statement
       making it clear that there are no extra or hidden charges resulting
       from the use of our compression code in your product (see below for
-      an example).  The acknowledgment should appear in at least one piece 
+      an example).  The acknowledgment should appear in at least one piece
       of human-readable documentation (e.g., a README file or man page),
       although additionally putting it in the executable(s) is OK, too.
       In other words, you are allowed to sell only your own work, not ours,

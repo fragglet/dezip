@@ -1,7 +1,7 @@
 # Makefile for UnZip(SFX) and fUnZip for Borland C++ 2.x-4.x and Turbo C++ 1.0
 # Version: 5.20 and later        Alvin Koh, Jim Knoble, Christian Spieler, etc.
 #
-# Last revised:  8 Apr 96
+# Last revised:  16 Apr 98
 #
 # To compile with Turbo C++ 1.0, set the macro CC_REV to 1 at the command line
 # (make -fmsdos/makefile.bc -DCC_REV=1).
@@ -68,14 +68,17 @@ CC_CPUFLG = -$(CPU_TYP)
 !endif
 ASFLAGS = -ml -m2 -w0 -D$(ASCPUFLAG) $(LOC)
 !if $(CC_REV) == 1
-CFLAGS = -O -G -Z -a -d $(CC_CPUFLG) -ff- -k- -P-.C -I. $(ASMFLG) $(LOC)
+# Bug: TC ++ 1.0 ignores "far" on "const" strings, so const is disabled!
+CCOPTIM = -O -G -Z -a -d -DZCONST
 LDFLAGS = -lxncd		# for tcc
 !else
-CFLAGS = -O2 $(CC_CPUFLG) -ff- -k- -P-.C -I. $(ASMFLG) $(LOC)
+CCOPTIM = -O2
 LDFLAGS = -lxncd -l-P		# for bcc
 !endif
+CFLAGS  = $(CCOPTIM) $(CC_CPUFLG) -ff- -k- -P-.C -I. $(ASMFLG) $(LOC)
 UNFLAGS = -m$(UNMODEL) $(CFLAGS)
 FUFLAGS = -m$(FUMODEL) $(CFLAGS) -K -d
+SXFLAGS = -m$(UNMODEL) $(CFLAGS)
 
 # implicit rules
 
@@ -87,50 +90,17 @@ FUFLAGS = -m$(FUMODEL) $(CFLAGS) -K -d
 
 # list macros
 
-unzip_dependencies = \
-	unzip.obj \
-	crc32.obj \
-	crctab.obj \
-	crypt.obj \
-	envargs.obj \
-	explode.obj \
-	extract.obj \
-	fileio.obj \
-	globals.obj \
-	inflate.obj \
-	list.obj \
-	match.obj \
-	process.obj \
-	ttyio.obj \
-	unreduce.obj \
-	unshrink.obj \
-	zipinfo.obj \
-	msdos.obj \
-	$(ASMOBJS)
-
-funzip_dependencies = \
-	funzip.obj \
-	crc32_.obj \
-	crypt_.obj \
-	globals_.obj \
-	inflate_.obj \
-	ttyio_.obj \
-	$(ASMOBJF)
-
-unzipsfx_dependencies = \
-	unzipsfx.obj \
-	crc32.obj \
-	crctab.obj \
-	crypt.obj \
-	extract_.obj \
-	fileio.obj \
-	globals.obj \
-	inflate.obj \
-	match.obj \
-	process_.obj \
-	ttyio.obj \
-	msdos_.obj \
-	$(ASMOBJS)
+OBJU1 = unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj explode.obj
+OBJU2 = extract.obj fileio.obj globals.obj inflate.obj list.obj match.obj
+OBJU3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj
+OBJUS = msdos.obj $(ASMOBJS)
+OBJU  = $(OBJU1) $(OBJU2) $(OBJU3) $(OBJUS)
+OBJF  = funzip.obj crc32f.obj cryptf.obj globalsf.obj inflatef.obj \
+	ttyiof.obj $(ASMOBJF)
+OBJX1 = unzipsfx.obj crc32.obj crctab.obj crypt.obj extractx.obj fileio.obj
+OBJX2 = globals.obj inflate.obj match.obj processx.obj ttyio.obj
+OBJXS = msdosx.obj $(ASMOBJS)
+OBJX  = $(OBJX1) $(OBJX2) $(OBJXS)
 
 UNZIP_H = unzip.h unzpriv.h globals.h msdos/doscfg.h
 
@@ -138,57 +108,21 @@ UNZIP_H = unzip.h unzpriv.h globals.h msdos/doscfg.h
 
 all:    unzip.exe funzip.exe unzipsfx.exe
 
-unzip.exe:      $(unzip_dependencies)
+unzip.exe:      $(OBJU)
 	$(CC) -m$(UNMODEL) $(LDFLAGS) -eunzip.exe @&&|
-unzip.obj
-crc32.obj
-crctab.obj
-crypt.obj
-envargs.obj
-explode.obj
-extract.obj
-fileio.obj
-$(ASMOBJS)
-globals.obj
-inflate.obj
-list.obj
-match.obj
-process.obj
-ttyio.obj
-unreduce.obj
-unshrink.obj
-zipinfo.obj
-msdos.obj
+$(OBJU)
 |
 	$(STRIP) unzip.exe
 
-funzip.exe:     $(funzip_dependencies)
+funzip.exe:     $(OBJF)
 	$(CC) -m$(FUMODEL) $(LDFLAGS) -efunzip.exe @&&|
-funzip.obj
-$(ASMOBJF)
-crc32_.obj
-crypt_.obj
-globals_.obj
-inflate_.obj
-ttyio_.obj
+$(OBJF)
 |
 	$(STRIP) funzip.exe
 
-unzipsfx.exe:   $(unzipsfx_dependencies)
+unzipsfx.exe:   $(OBJX)
 	$(CC) -m$(UNMODEL) $(LDFLAGS) -eunzipsfx.exe @&&|
-unzipsfx.obj
-crc32.obj
-crctab.obj
-crypt.obj
-extract_.obj
-fileio.obj
-$(ASMOBJS)
-globals.obj
-inflate.obj
-match.obj
-process_.obj
-ttyio.obj
-msdos_.obj
+$(OBJX)
 |
 	$(STRIP) unzipsfx.exe
 
@@ -231,29 +165,29 @@ msdos.obj:      msdos/msdos.c $(UNZIP_H)
 funzip.obj:     funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
 	$(CC) -c $(FUFLAGS) funzip.c
 
-crc32_.obj:     crc32.c $(UNZIP_H) zip.h
-	$(CC) -c $(FUFLAGS) -DFUNZIP -ocrc32_.obj crc32.c
+crc32f.obj:     crc32.c $(UNZIP_H) zip.h
+	$(CC) -c $(FUFLAGS) -DFUNZIP -ocrc32f.obj crc32.c
 
-crypt_.obj:     crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) -c $(FUFLAGS) -DFUNZIP -ocrypt_.obj crypt.c
+cryptf.obj:     crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(FUFLAGS) -DFUNZIP -ocryptf.obj crypt.c
 
-globals_.obj:   globals.c $(UNZIP_H)
-	$(CC) -c $(FUFLAGS) -DFUNZIP -oglobals_.obj globals.c
+globalsf.obj:   globals.c $(UNZIP_H)
+	$(CC) -c $(FUFLAGS) -DFUNZIP -oglobalsf.obj globals.c
 
-inflate_.obj:   inflate.c inflate.h $(UNZIP_H) crypt.h
-	$(CC) -c $(FUFLAGS) -DFUNZIP -oinflate_.obj inflate.c
+inflatef.obj:   inflate.c inflate.h $(UNZIP_H) crypt.h
+	$(CC) -c $(FUFLAGS) -DFUNZIP -oinflatef.obj inflate.c
+
+ttyiof.obj:     ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(FUFLAGS) -DFUNZIP -ottyiof.obj ttyio.c
 
 unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h version.h consts.h
-	$(CC) -c $(UNFLAGS) -DSFX -ounzipsfx.obj unzip.c
+	$(CC) -c $(SXFLAGS) -DSFX -ounzipsfx.obj unzip.c
 
-extract_.obj:   extract.c $(UNZIP_H) crypt.h
-	$(CC) -c $(UNFLAGS) -DSFX -oextract_.obj extract.c
+extractx.obj:   extract.c $(UNZIP_H) crypt.h
+	$(CC) -c $(SXFLAGS) -DSFX -oextractx.obj extract.c
 
-process_.obj:   process.c $(UNZIP_H)
-	$(CC) -c $(UNFLAGS) -DSFX -oprocess_.obj process.c
+processx.obj:   process.c $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -oprocessx.obj process.c
 
-ttyio_.obj:     ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) -c $(FUFLAGS) -DFUNZIP -ottyio_.obj ttyio.c
-
-msdos_.obj:     msdos/msdos.c $(UNZIP_H)
-	$(CC) -c $(UNFLAGS) -DSFX -omsdos_.obj msdos/msdos.c
+msdosx.obj:     msdos/msdos.c $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -omsdosx.obj msdos/msdos.c

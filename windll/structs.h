@@ -1,5 +1,5 @@
-#ifndef _STRUCTS_H
-#define _STRUCTS_H
+#ifndef __structs_h
+#define __structs_h
 
 #ifndef Far
 #  define Far far
@@ -19,21 +19,21 @@
 #endif
 
 #ifndef PATH_MAX
-#  define PATH_MAX 128            /* max total file or directory name path */
+#  define PATH_MAX 260            /* max total file or directory name path */
 #endif
 
 #ifndef DEFINED_ONCE
 #define DEFINED_ONCE
-#ifndef ush
-typedef unsigned short  ush;
-#endif
+
 typedef int (WINAPI DLLPRNT) (LPSTR, unsigned long);
-typedef int (WINAPI DLLPASSWORD) (LPSTR, int, const LPSTR, const LPSTR);
+typedef int (WINAPI DLLPASSWORD) (LPSTR, int, LPCSTR, LPCSTR);
+typedef int (WINAPI DLLSERVICE) (LPCSTR, unsigned long);
 #endif
 typedef void (WINAPI DLLSND) (void);
 typedef int (WINAPI DLLREPLACE)(LPSTR);
-typedef void (WINAPI DLLMESSAGE)(unsigned long,unsigned long,
-   ush, ush, ush, ush, ush, ush, char, LPSTR, LPSTR, unsigned long, char);
+typedef void (WINAPI DLLMESSAGE)(unsigned long, unsigned long, unsigned,
+   unsigned, unsigned, unsigned, unsigned, unsigned,
+   char, LPSTR, LPSTR, unsigned long, char);
 
 typedef struct {
 DLLPRNT *print;
@@ -41,11 +41,12 @@ DLLSND *sound;
 DLLREPLACE *replace;
 DLLPASSWORD *password;
 DLLMESSAGE *SendApplicationMessage;
-WORD cchComment;
+DLLSERVICE *ServCallBk;
 unsigned long TotalSizeComp;
 unsigned long TotalSize;
 int CompFactor;
 unsigned int NumMembers;
+WORD cchComment;
 } USERFUNCTIONS, far * LPUSERFUNCTIONS;
 
 typedef struct {
@@ -66,6 +67,6 @@ int C_flag;
 int fPrivilege;
 LPSTR lpszZipFN;
 LPSTR lpszExtractDir;
-} DCL, _far *LPDCL;
+} DCL, far * LPDCL;
 
-#endif /* _STRUCTS_H */
+#endif /* __structs_h */

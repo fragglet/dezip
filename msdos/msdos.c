@@ -12,6 +12,7 @@
              map2fat()
              checkdir()
              isfloppy()
+             z_dos_chmod()
              volumelabel()                  (non-djgpp, non-emx)
              close_outfile()
              stamp_file()                   (TIMESTAMP only)
@@ -26,8 +27,9 @@
              _dos_close()                   (djgpp 1.x, emx)
              volumelabel()                  (djgpp, emx)
              _dos_getcountryinfo()          (djgpp 2.x)
+             _is_executable()               (djgpp 2.x)
              __crt0_glob_function()         (djgpp 2.x)
-             __crt_load_environment_file()  (djgpp 2.x)
+             __crt0_load_environment_file() (djgpp 2.x)
              screenlines()                  (emx)
              screencolumns()                (emx)
              int86x_realmode()              (Watcom 32-bit)
@@ -44,6 +46,7 @@
    static void map2fat OF((char *pathcomp, char *last_dot));
 #endif
 static int isfloppy OF((int nDrive));
+static int z_dos_chmod OF((__GPRO__ ZCONST char *fname, int attributes));
 static int volumelabel OF((char *newlabel));
 
 static int created_dir;        /* used by mapname(), checkdir() */
@@ -57,30 +60,30 @@ static unsigned nLabelDrive;   /* ditto, plus volumelabel() */
 /*****************************/
 
 #ifndef SFX
-  static char Far CantAllocateWildcard[] =
+  static ZCONST char Far CantAllocateWildcard[] =
     "warning:  cannot allocate wildcard buffers\n";
 #endif
-static char Far Creating[] = "   creating: %s\n";
-static char Far ConversionFailed[] = "mapname:  conversion of %s failed\n";
-static char Far Labelling[] = "labelling %c: %-22s\n";
-static char Far ErrSetVolLabel[] = "mapname:  error setting volume label\n";
-static char Far PathTooLong[] = "checkdir error:  path too long: %s\n";
-static char Far CantCreateDir[] = "checkdir error:  cannot create %s\n\
+static ZCONST char Far Creating[] = "   creating: %s\n";
+static ZCONST char Far ConversionFailed[] =
+  "mapname:  conversion of %s failed\n";
+static ZCONST char Far Labelling[] = "labelling %c: %-22s\n";
+static ZCONST char Far ErrSetVolLabel[] =
+  "mapname:  error setting volume label\n";
+static ZCONST char Far PathTooLong[] = "checkdir error:  path too long: %s\n";
+static ZCONST char Far CantCreateDir[] = "checkdir error:  cannot create %s\n\
                  unable to process %s.\n";
-static char Far DirIsntDirectory[] =
+static ZCONST char Far DirIsntDirectory[] =
   "checkdir error:  %s exists but is not directory\n\
                  unable to process %s.\n";
-static char Far PathTooLongTrunc[] =
+static ZCONST char Far PathTooLongTrunc[] =
   "checkdir warning:  path too long; truncating\n                   %s\n\
                 -> %s\n";
 #if (!defined(SFX) || defined(SFX_EXDIR))
-   static char Far CantCreateExtractDir[] =
+   static ZCONST char Far CantCreateExtractDir[] =
      "checkdir:  cannot create extraction directory: %s\n";
 #endif
-#ifdef __TURBOC__
-   static char Far AttribsMayBeWrong[] =
-     "\nwarning:  file attributes may not be correct\n";
-#endif
+static ZCONST char Far AttribsMayBeWrong[] =
+  "\nwarning:  file attributes may not be correct\n";
 
 
 
@@ -115,11 +118,30 @@ static char Far PathTooLongTrunc[] =
 #  else
 #    define GETDRIVE(d)      _dos_getdrive(&d)
 #  endif
+#  if defined(_A_SUBDIR)     /* MSC dos.h and compatibles */
+#    define FSUBDIR          _A_SUBDIR
+#  elif defined(FA_DIREC)    /* Borland dos.h and compatible variants */
+#    define FSUBDIR          FA_DIREC
+#  elif defined(A_DIR)       /* EMX dir.h (and dirent.h) */
+#    define FSUBDIR          A_DIR
+#  else                      /* fallback definition */
+#    define FSUBDIR          0x10
+#  endif
+#  if defined(_A_VOLID)      /* MSC dos.h and compatibles */
+#    define FVOLID           _A_VOLID
+#  elif defined(FA_LABEL)    /* Borland dos.h and compatible variants */
+#    define FVOLID           FA_LABEL
+#  elif defined(A_LABEL)     /* EMX dir.h (and dirent.h) */
+#    define FVOLID           A_LABEL
+#  else
+#    define FVOLID           0x08
+#  endif
 #else /* !(__GO32__ || __EMX__) */
 #  define MKDIR(path,mode)   mkdir(path)
 #  ifdef __TURBOC__
 #    define FATTR            FA_HIDDEN+FA_SYSTEM+FA_DIREC
-#    define FVOLID           FA_VOLID
+#    define FVOLID           FA_LABEL
+#    define FSUBDIR          FA_DIREC
 #    define FFIRST(n,d,a)    findfirst(n,(struct ffblk *)d,a)
 #    define FNEXT(d)         findnext((struct ffblk *)d)
 #    define GETDRIVE(d)      d=getdisk()+1
@@ -127,6 +149,7 @@ static char Far PathTooLongTrunc[] =
 #  else /* !__TURBOC__ */
 #    define FATTR            _A_HIDDEN+_A_SYSTEM+_A_SUBDIR
 #    define FVOLID           _A_VOLID
+#    define FSUBDIR          _A_SUBDIR
 #    define FFIRST(n,d,a)    _dos_findfirst(n,a,(struct find_t *)d)
 #    define FNEXT(d)         _dos_findnext((struct find_t *)d)
 #    define GETDRIVE(d)      _dos_getdrive(&d)
@@ -151,11 +174,11 @@ static char Far PathTooLongTrunc[] =
 /**********************/   /*  so use ours regardless */
 
 zDIR *Opendir(name)
-    const char *name;        /* name of directory to open */
+    const char *name;           /* name of directory to open */
 {
-    zDIR *dirp;              /* malloc'd return value */
-    char *nbuf;              /* malloc'd temporary string */
-    int len = strlen(name);  /* path length to avoid strlens and strcats */
+    zDIR *dirp;                 /* malloc'd return value */
+    char *nbuf;                 /* malloc'd temporary string */
+    extent len = strlen(name);  /* path length to avoid strlens and strcats */
 
 
     if ((dirp = (zDIR *)malloc(sizeof(zDIR))) == (zDIR *)NULL)
@@ -165,10 +188,12 @@ zDIR *Opendir(name)
         return (zDIR *)NULL;
     }
     strcpy(nbuf, name);
-    if (nbuf[len-1] == ':') {
-        nbuf[len++] = '.';
-    } else if (nbuf[len-1] == '/' || nbuf[len-1] == '\\')
-        --len;
+    if (len > 0) {
+        if (nbuf[len-1] == ':') {
+            nbuf[len++] = '.';
+        } else if (nbuf[len-1] == '/' || nbuf[len-1] == '\\')
+            --len;
+    }
     strcpy(nbuf+len, "/*.*");
     Trace((stderr, "Opendir:  nbuf = [%s]\n", nbuf));
 
@@ -222,6 +247,7 @@ char *do_wild(__G__ wildspec)
     static zDIR *dir = (zDIR *)NULL;
     static char *dirname, *wildname, matchname[FILNAMSIZ];
     static int firstcall=TRUE, have_dirname, dirnamelen;
+    char *fnamestart;
     struct zdirent *file;
 
 
@@ -264,15 +290,24 @@ char *do_wild(__G__ wildspec)
         Trace((stderr, "do_wild:  dirname = [%s]\n", dirname));
 
         if ((dir = Opendir(dirname)) != (zDIR *)NULL) {
+            if (have_dirname) {
+                strcpy(matchname, dirname);
+                fnamestart = matchname + dirnamelen;
+            } else
+                fnamestart = matchname;
             while ((file = Readdir(dir)) != (struct zdirent *)NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
-                if (match(file->d_name, wildname, 1)) {  /* 1 == ignore case */
+                strcpy(fnamestart, file->d_name);
+                if (strrchr(fnamestart, '.') == (char *)NULL)
+                    strcat(fnamestart, ".");
+                if (match(fnamestart, wildname, 1) &&  /* 1 == ignore case */
+                    /* skip "." and ".." directory entries */
+                    strcmp(fnamestart, ".") && strcmp(fnamestart, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
-                    if (have_dirname) {
-                        strcpy(matchname, dirname);
-                        strcpy(matchname+dirnamelen, file->d_name);
-                    } else
-                        strcpy(matchname, file->d_name);
+                    /* remove trailing dot */
+                    fnamestart += strlen(fnamestart) - 1;
+                    if (*fnamestart == '.')
+                        *fnamestart = '\0';
                     return matchname;
                 }
             }
@@ -280,7 +315,11 @@ char *do_wild(__G__ wildspec)
             Closedir(dir);
             dir = (zDIR *)NULL;
         }
-        Trace((stderr, "do_wild:  Opendir(%s) returns NULL\n", dirname));
+#ifdef DEBUG
+        else {
+            Trace((stderr, "do_wild:  Opendir(%s) returns NULL\n", dirname));
+        }
+#endif /* DEBUG */
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
@@ -300,15 +339,25 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = Readdir(dir)) != (struct zdirent *)NULL)
-        if (match(file->d_name, wildname, 1)) {   /* 1 == ignore case */
-            if (have_dirname) {
-                /* strcpy(matchname, dirname); */
-                strcpy(matchname+dirnamelen, file->d_name);
-            } else
-                strcpy(matchname, file->d_name);
+    if (have_dirname) {
+        /* strcpy(matchname, dirname); */
+        fnamestart = matchname + dirnamelen;
+    } else
+        fnamestart = matchname;
+    while ((file = Readdir(dir)) != (struct zdirent *)NULL) {
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        strcpy(fnamestart, file->d_name);
+        if (strrchr(fnamestart, '.') == (char *)NULL)
+            strcat(fnamestart, ".");
+        if (match(fnamestart, wildname, 1)) {   /* 1 == ignore case */
+            Trace((stderr, "do_wild:  match() succeeds\n"));
+            /* remove trailing dot */
+            fnamestart += strlen(fnamestart) - 1;
+            if (*fnamestart == '.')
+                *fnamestart = '\0';
             return matchname;
         }
+    }
 
     Closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = (zDIR *)NULL;
@@ -324,7 +373,6 @@ char *do_wild(__G__ wildspec)
 
 
 
-
 /**********************/
 /* Function mapattr() */
 /**********************/
@@ -332,9 +380,9 @@ char *do_wild(__G__ wildspec)
 int mapattr(__G)
     __GDEF
 {
-    /* set archive bit (file is not backed up): */
-    G.pInfo->file_attr = (unsigned)(G.crec.external_file_attributes | 32) &
-      0xff;
+    /* set archive bit for file entries (file is not backed up): */
+    G.pInfo->file_attr = ((unsigned)G.crec.external_file_attributes |
+      (G.crec.external_file_attributes & FSUBDIR ? 0 : 32)) & 0xff;
     return 0;
 
 } /* end function mapattr() */
@@ -370,7 +418,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
     renamed_fullpath = FALSE;
@@ -405,7 +453,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
     if (!renamed) {             /* cp already set if renamed */
-        if (G.jflag)            /* junking directories */
+        if (uO.jflag)           /* junking directories */
             cp = (char *)strrchr(G.filename, '/');
         if (cp == (char *)NULL) /* no '/' or not junking dirs */
             cp = G.filename;    /* point to internal zipfile-member pathname */
@@ -514,9 +562,9 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 #ifdef MAYBE_PLAIN_FAT
             case ' ':                      /* change spaces to underscores */
 # ifdef USE_LFN
-                if (!use_lfn && G.sflag)   /*  only if requested and NO lfn! */
+                if (!use_lfn && uO.sflag)  /*  only if requested and NO lfn! */
 # else
-                if (G.sflag)               /*  only if requested */
+                if (uO.sflag)              /*  only if requested */
 # endif
                     *pp++ = '_';
                 else
@@ -535,7 +583,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
 #ifndef MAYBE_PLAIN_FAT
         pp = lastsemi + 1;
 #else
@@ -581,7 +629,16 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 Info(slide, 0, ((char *)slide, LoadFarString(Creating),
                   FnFilter1(G.filename)));
             }
+
+            /* set file attributes: */
+            z_dos_chmod(__G__ G.filename, G.pInfo->file_attr);
+
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
+        } else if (uO.overwrite_all) {
+            /* overwrite attributes of existing directory on user's request */
+
+            /* set file attributes: */
+            z_dos_chmod(__G__ G.filename, G.pInfo->file_attr);
         }
         return 2;   /* dir existed already; don't look for data to extract */
     }
@@ -839,8 +896,8 @@ int checkdir(__G__ pathcomp, flag)
                 *buildpath = (char)(nLabelDrive - 1 + 'a');
             }
             nLabelDrive = *buildpath - 'a' + 1;        /* save for mapname() */
-            if (G.volflag == 0 || *buildpath < 'a' ||  /* no label/bogus disk */
-               (G.volflag == 1 && !isfloppy(nLabelDrive)))  /* -$:  no fixed */
+            if (uO.volflag == 0 || *buildpath < 'a' || /* no label/bogus disk */
+               (uO.volflag == 1 && !isfloppy(nLabelDrive))) /* -$:  no fixed */
             {
                 free(buildpath);
                 return IZ_VOL_LABEL;     /* skipping with message */
@@ -988,6 +1045,58 @@ static int isfloppy(nDrive)  /* more precisely, is it removable? */
 
 
 
+/**************************/
+/* Function z_dos_chmod() */
+/**************************/
+
+static int z_dos_chmod(__G__ fname, attributes)
+    __GDEF
+    ZCONST char *fname;
+    int attributes;
+{
+    char *name;
+    unsigned fnamelength;
+    int errv;
+
+    /* set file attributes:
+       The DOS `chmod' system call requires to mask out the
+       directory and volume_label attribute bits.
+       And, a trailing '/' has to be removed from the directory name,
+       the DOS `chmod' system call does not accept it. */
+    fnamelength = strlen(fname);
+    if (fnamelength > 1 && fname[fnamelength-1] == '/' &&
+        fname[fnamelength-2] != ':' &&
+        (name = (char *)malloc(fnamelength)) != (char *)NULL) {
+        strncpy(name, fname, fnamelength-1);
+        name[fnamelength-1] = '\0';
+    } else {
+        name = (char *)fname;
+        fnamelength = 0;
+    }
+
+#if defined(__TURBOC__) || (defined(__DJGPP__) && (__DJGPP__ >= 2))
+#   if (defined(__BORLANDC__) && (__BORLANDC__ >= 0x0452))
+#     define Chmod  _rtl_chmod
+#   else
+#     define Chmod  _chmod
+#   endif
+    errv = (Chmod(name, 1, attributes & (~FSUBDIR & ~FVOLID)) !=
+            (attributes & (~FSUBDIR & ~FVOLID)));
+#   undef Chmod
+#else /* !(__TURBOC__ || (__DJGPP__ && __DJGPP__ >= 2)) */
+    errv = (_dos_setfileattr(name, attributes & (~FSUBDIR & ~FVOLID)) != 0);
+#endif /* ?(__TURBOC__ || (__DJGPP__ && __DJGPP__ >= 2)) */
+    if (errv)
+        Info(slide, 1, ((char *)slide, LoadFarString(AttribsMayBeWrong)));
+
+    if (fnamelength > 0)
+        free(name);
+    return errv;
+} /* end function z_dos_chmod() */
+
+
+
+
 #if (!defined(__GO32__) && !defined(__EMX__))
 
 typedef struct dosfcb {
@@ -1126,12 +1235,6 @@ static int volumelabel(newlabel)
 #ifdef WATCOMC_386
     _fstrncpy((char far *)&pfcb->vn, "???????????", 11);
 #else
-# if 0  /* THIS STRNCPY FAILS (MSC bug?): */
-    strncpy(pfcb->vn, "???????????", 11);   /* i.e., "*.*" */
-    Trace((stderr, "pfcb->vn = %lx\n", (ulg)pfcb->vn));
-    Trace((stderr, "flag = %x, drive = %d, vattr = %x, vn = %s = %s.\n",
-      fcb.flag, fcb.drive, fcb.vattr, fcb.vn, pfcb->vn));
-# endif
     strncpy((char *)fcb.vn, "???????????", 11);   /* i.e., "*.*" */
 #endif /* ?WATCOMC_386 */
     Trace((stderr, "fcb.vn = %lx\n", (ulg)fcb.vn));
@@ -1223,6 +1326,33 @@ static int volumelabel(newlabel)
 
 
 
+#if defined(USE_EF_UT_TIME) || defined(TIMESTAMP)
+/* The following DOS date/time structure is machine-dependent as it
+ * assumes "little-endian" byte order.  For MSDOS-specific code, which
+ * is run on x86 CPUs (or emulators), this assumption is valid; but
+ * care should be taken when using this code as template for other ports.
+ */
+typedef union {
+    ulg z_dostime;
+# ifdef __TURBOC__
+    struct ftime ft;            /* system file time record */
+# endif
+    struct {                    /* date and time words */
+        ush ztime;              /* DOS file modification time word */
+        ush zdate;              /* DOS file modification date word */
+    } zft;
+    struct {                    /* DOS date/time components bitfield */
+        unsigned zt_se : 5;
+        unsigned zt_mi : 6;
+        unsigned zt_hr : 5;
+        unsigned zd_dy : 5;
+        unsigned zd_mo : 4;
+        unsigned zd_yr : 7;
+    } z_dtf;
+} dos_fdatetime;
+#endif /* USE_EF_UT_TIME || TIMESTAMP */
+
+
 /****************************/
 /* Function close_outfile() */
 /****************************/
@@ -1239,48 +1369,10 @@ void close_outfile(__G)
   */
 {
 #ifdef USE_EF_UT_TIME
+    dos_fdatetime dos_dt;
     iztimes z_utime;
-
-    /* The following DOS date/time structure is machine-dependent as it
-     * assumes "little-endian" byte order.  For MSDOS-specific code, which
-     * is run on x86 CPUs (or emulators), this assumption is valid; but
-     * care should be taken when using this code as template for other ports.
-     */
-    union {
-        ulg z_dostime;
-# ifdef __TURBOC__
-        struct ftime ft;        /* system file time record */
-# endif
-        struct {                /* date and time words */
-            union {             /* DOS file modification time word */
-                ush ztime;
-                struct {
-                    unsigned zt_se : 5;
-                    unsigned zt_mi : 6;
-                    unsigned zt_hr : 5;
-                } _tf;
-            } _t;
-            union {             /* DOS file modification date word */
-                ush zdate;
-                struct {
-                    unsigned zd_dy : 5;
-                    unsigned zd_mo : 4;
-                    unsigned zd_yr : 7;
-                } _df;
-            } _d;
-        } zt;
-    } dos_dt;
-#else /* !USE_EF_UT_TIME */
-# ifdef __TURBOC__
-    union {
-        struct ftime ft;        /* system file time record */
-        struct {
-            ush ztime;          /* date and time words */
-            ush zdate;          /* .. same format as in .ZIP file */
-        } zt;
-    } dos_dt;
-# endif
-#endif /* ?USE_EF_UT_TIME */
+    struct tm *t;
+#endif /* USE_EF_UT_TIME */
 
 
 /*---------------------------------------------------------------------------
@@ -1298,12 +1390,13 @@ void close_outfile(__G)
 
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_file_date, &z_utime, NULL)
+                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))
     {
-        struct tm *t;
-
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
           z_utime.mtime));
         /* round up (down if "up" overflows) to even seconds */
@@ -1312,38 +1405,39 @@ void close_outfile(__G)
                              z_utime.mtime + 1 : z_utime.mtime - 1;
         TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
         t = localtime(&(z_utime.mtime));
+    } else
+        t = (struct tm *)NULL;
+    if (t != (struct tm *)NULL) {
         if (t->tm_year < 80) {
-            dos_dt.zt._t._tf.zt_se = 0;
-            dos_dt.zt._t._tf.zt_mi = 0;
-            dos_dt.zt._t._tf.zt_hr = 0;
-            dos_dt.zt._d._df.zd_dy = 1;
-            dos_dt.zt._d._df.zd_mo = 1;
-            dos_dt.zt._d._df.zd_yr = 0;
+            dos_dt.z_dtf.zt_se = 0;
+            dos_dt.z_dtf.zt_mi = 0;
+            dos_dt.z_dtf.zt_hr = 0;
+            dos_dt.z_dtf.zd_dy = 1;
+            dos_dt.z_dtf.zd_mo = 1;
+            dos_dt.z_dtf.zd_yr = 0;
         } else {
-            dos_dt.zt._t._tf.zt_se = t->tm_sec >> 1;
-            dos_dt.zt._t._tf.zt_mi = t->tm_min;
-            dos_dt.zt._t._tf.zt_hr = t->tm_hour;
-            dos_dt.zt._d._df.zd_dy = t->tm_mday;
-            dos_dt.zt._d._df.zd_mo = t->tm_mon + 1;
-            dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
+            dos_dt.z_dtf.zt_se = t->tm_sec >> 1;
+            dos_dt.z_dtf.zt_mi = t->tm_min;
+            dos_dt.z_dtf.zt_hr = t->tm_hour;
+            dos_dt.z_dtf.zd_dy = t->tm_mday;
+            dos_dt.z_dtf.zd_mo = t->tm_mon + 1;
+            dos_dt.z_dtf.zd_yr = t->tm_year - 80;
         }
     } else {
-        dos_dt.zt._t.ztime = G.lrec.last_mod_file_time;
-        dos_dt.zt._d.zdate = G.lrec.last_mod_file_date;
+        dos_dt.z_dostime = G.lrec.last_mod_dos_datetime;
     }
 # ifdef __TURBOC__
     setftime(fileno(G.outfile), &dos_dt.ft);
 # else
-    _dos_setftime(fileno(G.outfile), dos_dt.zt._d.zdate, dos_dt.zt._t.ztime);
+    _dos_setftime(fileno(G.outfile), dos_dt.zft.zdate, dos_dt.zft.ztime);
 # endif
 #else /* !USE_EF_UT_TIME */
 # ifdef __TURBOC__
-    dos_dt.zt.ztime = G.lrec.last_mod_file_time;
-    dos_dt.zt.zdate = G.lrec.last_mod_file_date;
-    setftime(fileno(G.outfile), &dos_dt.ft);
+    setftime(fileno(G.outfile),
+             (struct ftime *)(&(G.lrec.last_mod_dos_datetime)));
 # else
-    _dos_setftime(fileno(G.outfile), G.lrec.last_mod_file_date,
-                                     G.lrec.last_mod_file_time);
+    _dos_setftime(fileno(G.outfile), (ush)(G.lrec.last_mod_dos_datetime >> 16),
+                                     (ush)(G.lrec.last_mod_dos_datetime));
 # endif
 #endif /* ?USE_EF_UT_TIME */
 
@@ -1355,17 +1449,7 @@ void close_outfile(__G)
 
     fclose(G.outfile);
 
-#ifdef __TURBOC__
-#   if (defined(__BORLANDC__) && (__BORLANDC__ >= 0x0452))
-#     define Chmod  _rtl_chmod
-#   else
-#     define Chmod  _chmod
-#   endif
-    if (Chmod(G.filename, 1, G.pInfo->file_attr) != G.pInfo->file_attr)
-        Info(slide, 1, ((char *)slide, LoadFarString(AttribsMayBeWrong)));
-#else /* !__TURBOC__ */
-    _dos_setfileattr(G.filename, G.pInfo->file_attr);
-#endif /* ?__TURBOC__ */
+    z_dos_chmod(__G__ G.filename, G.pInfo->file_attr);
 
 } /* end function close_outfile() */
 
@@ -1383,30 +1467,7 @@ int stamp_file(fname, modtime)
     ZCONST char *fname;
     time_t modtime;
 {
-    union {
-        ulg z_dostime;
-# ifdef __TURBOC__
-        struct ftime ft;        /* system file time record */
-# endif
-        struct {                /* date and time words */
-            union {             /* DOS file modification time word */
-                ush ztime;
-                struct {
-                    unsigned zt_se : 5;
-                    unsigned zt_mi : 6;
-                    unsigned zt_hr : 5;
-                } _tf;
-            } _t;
-            union {             /* DOS file modification date word */
-                ush zdate;
-                struct {
-                    unsigned zd_dy : 5;
-                    unsigned zd_mo : 4;
-                    unsigned zd_yr : 7;
-                } _df;
-            } _d;
-        } zt;
-    } dos_dt;
+    dos_fdatetime dos_dt;
     time_t t_even;
     struct tm *t;
     int fd;                             /* file handle */
@@ -1415,28 +1476,34 @@ int stamp_file(fname, modtime)
     t_even = ((modtime + 1 > modtime) ? modtime + 1 : modtime) & (~1);
     TIMET_TO_NATIVE(t_even)             /* NOP unless MSC 7.0 or Macintosh */
     t = localtime(&t_even);
+    if (t == (struct tm *)NULL)
+        return -1;                      /* time conversion error */
     if (t->tm_year < 80) {
-        dos_dt.zt._t._tf.zt_se = 0;
-        dos_dt.zt._t._tf.zt_mi = 0;
-        dos_dt.zt._t._tf.zt_hr = 0;
-        dos_dt.zt._d._df.zd_dy = 1;
-        dos_dt.zt._d._df.zd_mo = 1;
-        dos_dt.zt._d._df.zd_yr = 0;
+        dos_dt.z_dtf.zt_se = 0;
+        dos_dt.z_dtf.zt_mi = 0;
+        dos_dt.z_dtf.zt_hr = 0;
+        dos_dt.z_dtf.zd_dy = 1;
+        dos_dt.z_dtf.zd_mo = 1;
+        dos_dt.z_dtf.zd_yr = 0;
     } else {
-        dos_dt.zt._t._tf.zt_se = t->tm_sec >> 1;
-        dos_dt.zt._t._tf.zt_mi = t->tm_min;
-        dos_dt.zt._t._tf.zt_hr = t->tm_hour;
-        dos_dt.zt._d._df.zd_dy = t->tm_mday;
-        dos_dt.zt._d._df.zd_mo = t->tm_mon + 1;
-        dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
+        dos_dt.z_dtf.zt_se = t->tm_sec >> 1;
+        dos_dt.z_dtf.zt_mi = t->tm_min;
+        dos_dt.z_dtf.zt_hr = t->tm_hour;
+        dos_dt.z_dtf.zd_dy = t->tm_mday;
+        dos_dt.z_dtf.zd_mo = t->tm_mon + 1;
+        dos_dt.z_dtf.zd_yr = t->tm_year - 80;
     }
-    if (((fd = open(fname, 0)) == -1) ||
+    if (((fd = open((char *)fname, 0)) == -1) ||
 # ifdef __TURBOC__
         (setftime(fd, &dos_dt.ft)))
 # else
-        (_dos_setftime(fd, dos_dt.zt._d.zdate, dos_dt.zt._t.ztime)))
+        (_dos_setftime(fd, dos_dt.zft.zdate, dos_dt.zft.ztime)))
 # endif
+    {
+        if (fd != -1)
+            close(fd);
         return -1;
+    }
     close(fd);
     return 0;
 
@@ -1607,15 +1674,21 @@ void version(__G)
 #    endif
 #  endif
 #elif defined(MSC)
-      "Microsoft C ",
-#  ifdef _MSC_VER
-#    if (_MSC_VER == 800)
-        "8.0/8.0c (Visual C++ 1.0/1.5)",
-#    else
-        (sprintf(buf, "%d.%02d", _MSC_VER/100, _MSC_VER%100), buf),
-#    endif
+#  if defined(_QC) && !defined(_MSC_VER)
+      "MS Quick C ", "2.0 or earlier",      /* _QC is defined as 1 */
+#  elif defined(_QC) && (_MSC_VER == 600)
+      "MS Quick C ", "2.5 (MSC 6.00)",
 #  else
+      "Microsoft C ",
+#    ifdef _MSC_VER
+#      if (_MSC_VER == 800)
+        "8.0/8.0c (Visual C++ 1.0/1.5)",
+#      else
+        (sprintf(buf, "%d.%02d", _MSC_VER/100, _MSC_VER%100), buf),
+#      endif
+#    else
       "5.1 or earlier",
+#    endif
 #  endif
 #else
       "unknown compiler", "",
@@ -1688,7 +1761,10 @@ void version(__G)
 
 #if (defined(__GO32__) || defined(__EMX__))
 
-unsigned volatile _doserrno;
+#if (!defined(__DJGPP__) || (__DJGPP__ < 2) || \
+     ((__DJGPP__ == 2) && (__DJGPP_MINOR__ < 2)))
+int volatile _doserrno;
+#endif /* not "djgpp v2.02 or newer" */
 
 #if (!defined(__DJGPP__) || (__DJGPP__ < 2))
 
@@ -1701,7 +1777,7 @@ unsigned _dos_getcountryinfo(void *countrybuffer)
     asm("jnc 1f");
     asm("movl %%eax, %0": "=m" (_doserrno));
     asm("1:");
-    return _doserrno;
+    return (unsigned)_doserrno;
 }
 
 unsigned _dos_setftime(int fd, ush dosdate, ush dostime)
@@ -1716,15 +1792,39 @@ unsigned _dos_setftime(int fd, ush dosdate, ush dostime)
     asm("movl %%eax, %0": "=m" (_doserrno));
     errno = EBADF;
     asm("1:");
-    return _doserrno;
+    return (unsigned)_doserrno;
 }
 
-void _dos_setfileattr(char *name, int attr)
+unsigned _dos_setfileattr(char *name, unsigned attr)
 {
+#if 0   /* stripping of trailing '/' is not needed for unzip-internal use */
+    unsigned namlen = strlen(name);
+    char *i_name = alloca(namlen + 1);
+
+    strcpy(i_name, name);
+    if (namlen > 1 && i_name[namlen-1] == '/' && i_name[namlen-2] != ':')
+        i_name[namlen-1] = '\0';
+    asm("movl %0, %%edx": : "g" (i_name));
+#else
     asm("movl %0, %%edx": : "g" (name));
+#endif
     asm("movl %0, %%ecx": : "g" (attr));
     asm("movl $0x4301, %eax");
     asm("int $0x21": : : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi");
+    _doserrno = 0;
+    asm("jnc 1f");
+    asm("movl %%eax, %0": "=m" (_doserrno));
+    switch (_doserrno) {
+    case 2:
+    case 3:
+           errno = ENOENT;
+           break;
+    case 5:
+           errno = EACCES;
+           break;
+    }
+    asm("1:");
+    return (unsigned)_doserrno;
 }
 
 void _dos_getdrive(unsigned *d)
@@ -1758,7 +1858,7 @@ unsigned _dos_creat(char *path, unsigned attr, int *fd)
            break;
     }
     asm("1:");
-    return _doserrno;
+    return (unsigned)_doserrno;
 }
 
 unsigned _dos_close(int fd)
@@ -1773,7 +1873,7 @@ unsigned _dos_close(int fd)
           errno = EBADF;
     }
     asm("1:");
-    return _doserrno;
+    return (unsigned)_doserrno;
 }
 
 #endif /* !__DJGPP__ || (__DJGPP__ < 2) */
@@ -1787,7 +1887,7 @@ static int volumelabel(char *name)
 }
 
 
-#if (defined(__DJGPP__) && (__DJGPP__ > 1))
+#if (defined(__DJGPP__) && (__DJGPP__ >= 2))
 
 #include <dpmi.h>               /* These includes for the country info */
 #include <go32.h>
@@ -1808,26 +1908,32 @@ unsigned _dos_getcountryinfo(void *countrybuffer)
 
    *(ush*)countrybuffer = _farpeekw(_dos_ds, __tb & 0xfffff);
 
-   return _doserrno;
+   return (unsigned)_doserrno;
 }
 
+
+/* Disable determination of "x" bit in st_mode field for [f]stat() calls. */
+int _is_executable (const char *path, int fhandle, const char *ext)
+{
+    return 0;
+}
 
 /* Prevent globbing of filenames.  This gives the same functionality as
  * "stubedit <program> globbing=no" did with DJGPP v1.
  */
-int __crt0_glob_function(void)
+char **__crt0_glob_function(char *_arg)
 {
-    return 0;
+    return NULL;
 }
 
 /* Reduce the size of the executable and remove the functionality to read
  * the program's environment from whatever $DJGPP points to.
  */
-void __crt_load_environment_file(void)
+void __crt0_load_environment_file(char *_app_name)
 {
 }
 
-#endif /* __DJGPP__ > 1 */
+#endif /* __DJGPP__ >= 2 */
 #endif /* __GO32__ || __EMX__ */
 
 
@@ -1928,7 +2034,7 @@ static int int86x_realmode(int inter_no, union REGS *in,
 
 
 
-#ifdef __WATCOMC__
+#ifdef DOS_STAT_BANDAID
 
 /* This papers over a bug in Watcom 10.6's standard library...sigh.
  * Apparently it applies to both the DOS and Win32 stat()s. */
@@ -1947,4 +2053,4 @@ int stat_bandaid(const char *path, struct stat *buf)
         return -1;
 }
 
-#endif /* __WATCOMC__ */
+#endif /* DOS_STAT_BANDAID */

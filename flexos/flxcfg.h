@@ -13,9 +13,6 @@
 #  define nearmalloc malloc
 #  define nearfree free
 #endif
-#if defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB)
-#  define USE_OWN_CRCTAB
-#endif
 
 #define CRTL_CP_IS_OEM
 

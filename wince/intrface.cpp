@@ -6,7 +6,7 @@
 //              our Windows code in WINMAIN.CPP.  We expose the needed
 //              functions to query a file list, test file(s), extract file(s),
 //              and display a zip file comment.  The windows code is never
-//              bothered with understanding the Globals structure.
+//              bothered with understanding the Globals structure "Uz_Globs".
 //
 //              This module also catches all the callbacks from the Info-ZIP
 //              code, cleans up the data provided in the callback, and then
@@ -96,7 +96,7 @@
 //    USE_EF_UT_TIME
 //    NO_ZIPINFO
 //    NO_STDDEF_H
-//    NO_NTSD_WITH_RSXNT
+//    NO_NTSD_EAS
 //
 //    USE_SMITH_CODE       (optional - See COPYING document)
 //    USE_UNSHRINK         (optional - See COPYING document)
@@ -114,32 +114,13 @@
 // been modified in any way.
 //
 
-struct Globals {
-   int            zipinfo_mode;         // behave like ZipInfo or like normal UnZip?
-   int            aflag;                // -a: do ASCII-EBCDIC and/or end-of-line translation
-   int            cflag;                // -c: output to stdout
-   int            C_flag;               // -C: match filenames case-insensitively
-   int            dflag;                // -d: all args are files/dirs to be extracted
-   int            fflag;                // -f: "freshen" (extract only newer files)
-   int            hflag;                // -h: header line (zipinfo)
-   int            jflag;                // -j: junk pathnames (unzip)
-   int            lflag;                // -12slmv: listing format (zipinfo)
-   int            L_flag;               // -L: convert filenames from some OSes to lowercase
-   int            overwrite_none;       // -n: never overwrite files (no prompting)
-   int            overwrite_all;        // -o: OK to overwrite files without prompting
-   int            P_flag;               // -P: give password on command line (ARGH!)
-   int            qflag;                // -q: produce a lot less output
-   int            sflag;                // -s: convert spaces in filenames to underscores
-   int            volflag;              // -$: extract volume labels
-   int            tflag;                // -t: test (unzip) or totals line (zipinfo)
-   int            T_flag;               // -T: timestamps (unzip) or dec. time fmt (zipinfo)
-   int            uflag;                // -u: "update" (extract only newer/brand-new files)
-   int            vflag;                // -v: (verbosely) list directory
-   int            V_flag;               // -V: don't strip VMS version numbers
-   int            X_flag;               // -X: restore owner/protection or UID/GID or ACLs
-   int            zflag;                // -z: display the zipfile comment (only, for unzip)
-   int            filespecs;            // number of real file specifications to be matched
-   int            xfilespecs;           // number of excluded filespecs to be matched
+typedef struct Globals {
+   zvoid         *callerglobs;          // points to pass-through global vars
+   UzpOpts        UzO;                  // command options structure
+   int            prompt_always;        // prompt to overwrite if TRUE
+   int            noargs;               // did true command line have *any* arguments?
+   unsigned       filespecs;            // number of real file specifications to be matched
+   unsigned       xfilespecs;           // number of excluded filespecs to be matched
    int            process_all_files;
    int            create_dirs;          // used by main(), mapname(), checkdir()
    int            extract_flag;
@@ -149,23 +130,24 @@ struct Globals {
    long           csize;                // used by decompr. (NEXTBYTE): must be signed
    long           ucsize;               // used by unReduce(), explode()
    long           used_csize;           // used by extract_or_test_member(), explode()
+   int            fValidate;            // true if only validating an archive
    int            filenotfound;
    int            redirect_data;        // redirect data to memory buffer
    int            redirect_text;        // redirect text output to buffer
+   int            redirect_slide;       // redirect decompression area to mem buffer
    unsigned       _wsize;
-   int            stem_len;
-   int            putchar_idx;
-   uch           *redirect_pointer;
-   uch           *redirect_buffer;
    unsigned       redirect_size;
+   uch           *redirect_buffer;
+   uch           *redirect_pointer;
+   uch           *redirect_sldptr;      // head of decompression slide buffer
    char         **pfnames;
    char         **pxnames;
-   char           sig[5];
+   char           sig[4];
    char           answerbuf[10];
    min_info       info[DIR_BLKSIZ];
    min_info      *pInfo;
    union work     area;                 // see unzpriv.h for definition of work
-   ulg near      *crc_32_tab;
+   ZCONST ulg near *crc_32_tab;
    ulg            crc32val;             // CRC shift reg. (was static in funzip)
    uch           *inbuf;                // input buffer (any size is OK)
    uch           *inptr;                // pointer into input buffer
@@ -182,9 +164,6 @@ struct Globals {
    LONGINT        extra_bytes;          // used in unzip.c, misc.c
    uch           *extra_field;          // Unix, VMS, Mac, OS/2, Acorn, ...
    uch           *hold;
-   char           local_hdr_sig[5];     // initialize sigs at runtime so unzip
-   char           central_hdr_sig[5];   //  executable won't look like a zipfile
-   char           end_central_sig[5];
 
    local_file_hdr lrec;                 // used in unzip.c, extract.c
    cdir_file_hdr  crec;                 // used in unzip.c, extract.c, misc.c
@@ -209,12 +188,11 @@ struct Globals {
    uch           *outbuf2;              //  main() (never changes); else malloc'd
    uch           *outptr;
    ulg            outcnt;               // number of chars stored in outbuf
-   char          *filename;
+   char           filename[FILNAMSIZ];
 
-   char          *pwdarg;               // pointer to command-line password (-P option)
+   char          *key;                  // crypt static: decryption password or NULL
    int            nopwd;                // crypt static
    ulg            keys[3];              // crypt static: keys defining pseudo-random sequence
-   char          *key;                  // crypt static: decryption password or NULL
 
    unsigned       hufts;                // track memory usage
 
@@ -229,8 +207,8 @@ struct Globals {
    InputFn       *input;
    PauseFn       *mpause;
    PasswdFn      *decr_passwd;
-   ReplaceFn     *replace;
-   SoundFn       *sound;
+   StatCBFn      *statreportcb;
+   LPUSERFUNCTIONS lpUserFunctions;
 
    int            incnt_leftover;       // so improved NEXTBYTE does not waste input
    uch           *inptr_leftover;
@@ -240,7 +218,7 @@ struct Globals {
    int            notfirstcall;         // used by do_wild()
    char          *zipfnPtr;
    char          *wildzipfnPtr;
-};
+} Uz_Globs;
 
 #endif // #if 0 - This struct is here just for reference
 
@@ -268,7 +246,6 @@ extern "C" {
 //******************************************************************************
 
 static USERFUNCTIONS  g_uf;
-static DCL            g_dcl;
 static EXTRACT_INFO  *g_pExtractInfo = NULL;
 static FILE_NODE     *g_pFileLast    = NULL;
 static CHAR           g_szExtractToDirectory[_MAX_PATH];
@@ -287,10 +264,10 @@ BOOL DoGetComment(LPCSTR szFile);
 BOOL SetExtractToDirectory(LPTSTR szDirectory);
 
 // Internal functions.
-struct Globals* InitGlobals(LPCSTR szZipFile);
-void FreeGlobals(Globals *pG);
+Uz_Globs* InitGlobals(LPCSTR szZipFile);
+void FreeGlobals(Uz_Globs *pG);
 int IsFileOrDirectory(LPCTSTR szPath);
-BOOL SmartCreateDirectory(struct Globals *pG, LPCSTR szDirectory);
+BOOL SmartCreateDirectory(Uz_Globs *pG, LPCSTR szDirectory);
 
 #ifdef _WIN32_WCE
 DWORD WINAPI ExtractOrTestFilesThread(LPVOID lpv);
@@ -298,8 +275,8 @@ DWORD WINAPI ExtractOrTestFilesThread(LPVOID lpv);
 unsigned __stdcall ExtractOrTestFilesThread(void *lpv);
 #endif
 
-void CheckForAbort(struct Globals *pG);
-void SetCurrentFile(struct Globals *pG);
+void CheckForAbort(Uz_Globs *pG);
+void SetCurrentFile(Uz_Globs *pG);
 
 // Callbacks from Info-ZIP code.
 int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag);
@@ -316,14 +293,14 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer);
 
 // Functions that Info-ZIP expects the port to write and export.
 void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem);
-int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
+int GetFileTimes(Uz_Globs *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
                  FILETIME *pftModified);
-int mapattr(struct Globals *pG);
-void close_outfile(struct Globals *pG);
-char* do_wild(struct Globals *pG, char *wildspec);
-int mapname(struct Globals *pG, int renamed);
-int test_NT(struct Globals *pG, uch *eb, unsigned eb_size);
-int checkdir(struct Globals *pG, char *pathcomp, int flag);
+int mapattr(Uz_Globs *pG);
+void close_outfile(Uz_Globs *pG);
+char* do_wild(Uz_Globs *pG, char *wildspec);
+int mapname(Uz_Globs *pG, int renamed);
+int test_NT(Uz_Globs *pG, uch *eb, unsigned eb_size);
+int checkdir(Uz_Globs *pG, char *pathcomp, int flag);
 
 // Check for FAT, VFAT, HPFS, etc.
 BOOL IsOldFileSystem(char *szPath);
@@ -340,12 +317,12 @@ int DoListFiles(LPCSTR szZipFile) {
    int result;
 
    // Create our Globals struct and fill it in whith some default values.
-   struct Globals *pG = InitGlobals(szZipFile);
+   Uz_Globs *pG = InitGlobals(szZipFile);
    if (!pG) {
       return PK_MEM;
    }
 
-   pG->vflag = 1; // verbosely: list directory (for WIN32 it is 0 or 1)
+   pG->UzO.vflag = 1; // verbosely: list directory (for WIN32 it is 0 or 1)
    pG->process_all_files = TRUE; // improves speed
 
    g_pFileLast = NULL;
@@ -400,7 +377,7 @@ BOOL DoExtractOrTestFiles(LPCSTR szZipFile, EXTRACT_INFO *pei) {
    // occurs when the dialog receives the message.
 
    // Create our globals so we can store the file name.
-   struct Globals *pG = InitGlobals(szZipFile);
+   Uz_Globs *pG = InitGlobals(szZipFile);
    if (!pG) {
       pei->result = PK_MEM;
       SendMessage(g_hDlgProgress, WM_PRIVATE, MSG_OPERATION_COMPLETE, (LPARAM)pei);
@@ -459,12 +436,12 @@ int DoGetComment(LPCSTR szFile) {
    int result;
 
    // Create our Globals struct and fill it in whith some default values.
-   struct Globals *pG = InitGlobals(szFile);
+   Uz_Globs *pG = InitGlobals(szFile);
    if (!pG) {
       return PK_MEM;
    }
 
-   pG->zflag = TRUE; // display the zipfile comment
+   pG->UzO.zflag = TRUE; // display the zipfile comment
 
    // We wrap some exception handling around the entire Info-ZIP engine to be
    // safe.  Since we are running on a device with tight memory configurations,
@@ -544,21 +521,7 @@ BOOL SetExtractToDirectory(LPTSTR szDirectory) {
 //***** Internal functions
 //******************************************************************************
 
-struct Globals* InitGlobals(LPCSTR szZipFile) {
-
-   // Store a global pointer to our USERFUNCTIONS structure so that LIST.C,
-   // PROCESS.C, and WINMAIN can access it.
-   lpUserFunctions = &g_uf;
-
-   // Clear our USERFUNCTIONS structure and assign our SendAppMsg() function.
-   ZeroMemory(&g_uf, sizeof(g_uf));
-   g_uf.SendApplicationMessage = SendAppMsg;
-
-   // Store a global pointer to our DCL structure so that EXTRACT.C can access it.
-   lpDCL = &g_dcl;
-
-   // Clear our DCL structure.
-   ZeroMemory(&g_dcl, sizeof(g_dcl));
+Uz_Globs* InitGlobals(LPCSTR szZipFile) {
 
    // Create our global structure - pG
    CONSTRUCTGLOBALS();
@@ -568,12 +531,20 @@ struct Globals* InitGlobals(LPCSTR szZipFile) {
       return NULL;
    }
 
+   // Store a global pointer to our USERFUNCTIONS structure so that LIST.C,
+   // PROCESS.C, and WINMAIN can access it.
+   pG->lpUserFunctions = &g_uf;
+
+   // Clear our USERFUNCTIONS structure and assign our SendAppMsg() function.
+   ZeroMemory(&g_uf, sizeof(g_uf));
+   g_uf.SendApplicationMessage = SendAppMsg;
+
    // Fill in all our callback functions.
    pG->message     = UzpMessagePrnt2;
    pG->input       = UzpInput2;
    pG->mpause      = UzpMorePause;
-   pG->replace     = UzpReplace;
-   pG->sound       = UzpSound;
+   pG->lpUserFunctions->replace     = UzpReplace;
+   pG->lpUserFunctions->sound       = UzpSound;
 
 #if CRYPT
    pG->decr_passwd = UzpPassword;
@@ -581,7 +552,7 @@ struct Globals* InitGlobals(LPCSTR szZipFile) {
 
    // Match filenames case-sensitively.  We can do this since we can guarentee
    // exact case because the user can only select files via our UI.
-   pG->C_flag = FALSE;
+   pG->UzO.C_flag = FALSE;
 
    // Allocate and store the ZIP file name in pG->zipfn
    if (!(pG->zipfnPtr = new char[FILNAMSIZ])) {
@@ -605,7 +576,7 @@ struct Globals* InitGlobals(LPCSTR szZipFile) {
 }
 
 //******************************************************************************
-void FreeGlobals(Globals *pG) {
+void FreeGlobals(Uz_Globs *pG) {
 
    // Free our ZIP file name
    if (pG->zipfnPtr) {
@@ -639,7 +610,7 @@ int IsFileOrDirectory(LPCTSTR szPath) {
 }
 
 //******************************************************************************
-BOOL SmartCreateDirectory(struct Globals *pG, LPCSTR szDirectory) {
+BOOL SmartCreateDirectory(Uz_Globs *pG, LPCSTR szDirectory) {
 
    // Copy path to a UNICODE buffer.
    TCHAR szBuffer[_MAX_PATH];
@@ -679,7 +650,7 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
 
 #endif
 
-   struct Globals *pG = (struct Globals*)lpv;
+   Uz_Globs *pG = (Uz_Globs*)lpv;
 
    if (g_pExtractInfo->fExtract) {
 
@@ -687,28 +658,28 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
 
       switch (g_pExtractInfo->overwriteMode) {
 
-         case OM_NEWER:
-            pG->uflag = TRUE; // Update (extract only newer/brand-new files)
+         case OM_NEWER:         // Update (extract only newer/brand-new files)
+            pG->UzO.uflag = TRUE;
             break;
 
-         case OM_ALWAYS:
-            pG->overwrite_all = TRUE; // OK to overwrite files without prompting
+         case OM_ALWAYS:        // OK to overwrite files without prompting
+            pG->UzO.overwrite_all = TRUE;
             break;
 
-         case OM_NEVER:
-            pG->overwrite_none = TRUE; // Never overwrite files (no prompting)
+         case OM_NEVER:         // Never overwrite files (no prompting)
+            pG->UzO.overwrite_none = TRUE;
             break;
 
-         default:
-            g_dcl.PromptToOverwrite = TRUE; // Force a prompt
+         default:               // Force a prompt
+            pG->prompt_always = TRUE;
             break;
       }
 
       // Throw away paths if requested.
-      pG->jflag = !g_pExtractInfo->fRestorePaths;
+      pG->UzO.jflag = !g_pExtractInfo->fRestorePaths;
 
    } else {
-      pG->tflag = TRUE;
+      pG->UzO.tflag = TRUE;
    }
 
    if (g_pExtractInfo->szFileList) {
@@ -718,9 +689,6 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
       // Improves performance if all files are being extracted.
       pG->process_all_files = TRUE;
    }
-
-   // All args are files/dirs to be extracted.
-   pG->dflag = TRUE;
 
    // Invalidate our file offset to show that we are starting a new operation.
    g_pExtractInfo->dwFileOffset = 0xFFFFFFFF;
@@ -774,7 +742,7 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
 }
 
 //******************************************************************************
-void CheckForAbort(struct Globals *pG) {
+void CheckForAbort(Uz_Globs *pG) {
    if (g_pExtractInfo->fAbort) {
 
       // Add a newline to our log if we are in the middle of a line of text.
@@ -809,7 +777,7 @@ void CheckForAbort(struct Globals *pG) {
 }
 
 //******************************************************************************
-void SetCurrentFile(struct Globals *pG) {
+void SetCurrentFile(Uz_Globs *pG) {
 
    // Reset all our counters as we about to process a new file.
    g_pExtractInfo->dwFileOffset = (DWORD)pG->pInfo->offset;
@@ -850,8 +818,8 @@ int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag) {
    // When extracting, mapname() will get called for every file which in turn
    // will call SetCurrentFile().  For testing though, mapname() never gets
    // called so we need to be on the lookout for a new file.
-   if (g_pExtractInfo->dwFileOffset != (DWORD)((struct Globals*)pG)->pInfo->offset) {
-      SetCurrentFile((struct Globals*)pG);
+   if (g_pExtractInfo->dwFileOffset != (DWORD)((Uz_Globs*)pG)->pInfo->offset) {
+      SetCurrentFile((Uz_Globs*)pG);
    }
 
    // Make sure this message was inteded for us to display.
@@ -1121,7 +1089,7 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
 //***** Some of this code was stolen from the WIN32 port and highly modified.
 //******************************************************************************
 
-int mapattr(struct Globals *pG) {
+int mapattr(Uz_Globs *pG) {
 
    // Check to see if we are extracting this file for viewing.  Currently, we do
    // this by checking the szMappedPath member of our extract info stucture
@@ -1211,7 +1179,7 @@ void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem) {
 }
 
 //******************************************************************************
-int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
+int GetFileTimes(Uz_Globs *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
                  FILETIME *pftModified)
 {
    // We need to check to see if this file system is limited.  This includes
@@ -1222,7 +1190,11 @@ int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed
 
 #ifdef USE_EF_UT_TIME  // Always true for WinCE build
 
+#ifdef IZ_CHECK_TZ
+   if (pG->extra_field && pG->tz_is_valid) {
+#else
    if (pG->extra_field) {
+#endif
 
       // Structure for Unix style actime, modtime, creatime
       iztimes z_utime;
@@ -1267,7 +1239,7 @@ int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed
 }
 
 //******************************************************************************
-void close_outfile(struct Globals *pG) {
+void close_outfile(Uz_Globs *pG) {
 
    // Get the 3 time stamps for the file.
    FILETIME ftCreated, ftAccessed, ftModified;
@@ -1337,7 +1309,7 @@ void close_outfile(struct Globals *pG) {
 
 //******************************************************************************
 // Called by PROCESS.C
-char* do_wild(struct Globals *pG, char *wildspec) {
+char* do_wild(Uz_Globs *pG, char *wildspec) {
 
    // This is a very slimmed down version of do_wild() taken from WIN32.C.
    // Since we don't support wildcards, we basically just return the wildspec
@@ -1368,7 +1340,7 @@ char* do_wild(struct Globals *pG, char *wildspec) {
 // IZ_VOL_LABEL   - Path was a volume label, skip it.
 // IZ_CREATED_DIR - Created a directory.
 //
-int mapname(struct Globals *pG, int renamed) {
+int mapname(Uz_Globs *pG, int renamed) {
 
    // mapname() is a great place to reset all our status counters for the next
    // file to be processed since it is called for every zip file member before
@@ -1388,7 +1360,7 @@ int mapname(struct Globals *pG, int renamed) {
 
    // Point pIn to beginning of our internal pathname.
    // If we are junking paths, then locate the file portion of the path.
-   pIn = (pG->jflag) ? (CHAR*)GetFileFromPath(pG->filename) : pG->filename;
+   pIn = (pG->UzO.jflag) ? (CHAR*)GetFileFromPath(pG->filename) : pG->filename;
 
    // Begin main loop through characters in filename.
    for ( ; *pIn; pIn++) {
@@ -1473,7 +1445,7 @@ int mapname(struct Globals *pG, int renamed) {
 
 //******************************************************************************
 // Called from EXTRACT.C
-int test_NT(struct Globals *pG, uch *eb, unsigned eb_size) {
+int test_NT(Uz_Globs *pG, uch *eb, unsigned eb_size) {
    // This function is called when an NT security descriptor is found in the
    // extra field.  We have nothing to do, so we just return success.
    return PK_OK;
@@ -1481,7 +1453,7 @@ int test_NT(struct Globals *pG, uch *eb, unsigned eb_size) {
 
 //******************************************************************************
 // Called from PROCESS.C
-int checkdir(struct Globals *pG, char *pathcomp, int flag) {
+int checkdir(Uz_Globs *pG, char *pathcomp, int flag) {
    // This function is only called by free_G_buffers() from PROCESS.C with the
    // flag set to END.  We have nothing to do, so we just return success.
    return PK_OK;

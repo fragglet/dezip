@@ -54,7 +54,7 @@ ARGUMENTS
               archive; just specify  the  .exe  suffix  (if  any)
               explicitly.
 
-Info-ZIP             3 November 1997 (v5.32)                    1
+Info-ZIP             28 November 1998 (v5.4)                    1
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -113,7 +113,7 @@ OPTIONS
        -A     [OS/2,  Unix DLL] print extended help for the DLL's
               programming interface (API).
 
-Info-ZIP             3 November 1997 (v5.32)                    2
+Info-ZIP             28 November 1998 (v5.4)                    2
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -172,7 +172,7 @@ UNZIP(1L)                                               UNZIP(1L)
               sponds to zip's -go option except that  it  can  be
               used   on   wildcard  zipfiles  (e.g.,  ``unzip  -T
 
-Info-ZIP             3 November 1997 (v5.32)                    3
+Info-ZIP             28 November 1998 (v5.4)                    3
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -231,7 +231,7 @@ MODIFIERS
               set,  and  NT  supports  Unicode.)  Note that zip's
               identification  of  text  files  is  by  no   means
 
-Info-ZIP             3 November 1997 (v5.32)                    4
+Info-ZIP             28 November 1998 (v5.4)                    4
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -280,20 +280,48 @@ UNZIP(1L)                                               UNZIP(1L)
               affects  files in both the normal file list and the
               excluded-file list (xlist).
 
+       -E     [MacOS only] display contents of MacOS extra  field
+              during restore operation.
+
+       -F     [Acorn  only]  suppress  removal  of  NFS  filetype
+              extension from stored filenames.
+
+       -F     [Unix   only,   and   only   if    compiled    with
+              ACORN_FTYPE_NFS  defined] translate filetype infor-
+              mation from ACORN RISC OS extra field blocks into a
+
+Info-ZIP             28 November 1998 (v5.4)                    5
+
+UNZIP(1L)                                               UNZIP(1L)
+
+              NFS  filetype  extension and append it to the names
+              of the extracted files.  (When the stored  filename
+              appears  to  already  have an appended NFS filetype
+              extension, it is replaced  by  the  info  from  the
+              extra field.)
+
+       -i     [MacOS only] ignore filenames stored in MacOS extra
+              fields.  Instead,  the  most  compatible   filename
+              stored in the generic part of the entry's header is
+              used.
+
        -j     junk paths.  The archive's directory  structure  is
               not  recreated;  all  files  are  deposited  in the
               extraction directory (by default, the current one).
+
+       -J     [BeOS  only] junk file attributes.  The file's BeOS
+              file attributes are not restored, just  the  file's
+              data.
+
+       -J     [MacOS only] ignore MacOS extra fields.  All Macin-
+              tosh  specific  info  is  skipped.  Data-fork   and
+              resource-fork are restored as separate files.
 
        -L     convert to lowercase any filename originating on an
               uppercase-only operating  system  or  file  system.
               (This  was  unzip's  default  behavior  in releases
               prior to 5.11; the new default behavior is  identi-
               cal  to  the old behavior with the -U option, which
-
-Info-ZIP             3 November 1997 (v5.32)                    5
-
-UNZIP(1L)                                               UNZIP(1L)
-
               is now obsolete and will be  removed  in  a  future
               release.)    Depending   on   the  archiver,  files
               archived under single-case file systems  (VMS,  old
@@ -320,6 +348,11 @@ UNZIP(1L)                                               UNZIP(1L)
               the screen, effectively resulting in  the  printing
               of  two  or more lines and the likelihood that some
               text will scroll off the top of the  screen  before
+
+Info-ZIP             28 November 1998 (v5.4)                    6
+
+UNZIP(1L)                                               UNZIP(1L)
+
               being viewed.  On some systems the number of avail-
               able lines on the screen is not detected, in  which
               case unzip assumes the height is 24 lines.
@@ -347,11 +380,6 @@ UNZIP(1L)                                               UNZIP(1L)
               use password to decrypt encrypted  zipfile  entries
               (if any).  THIS IS INSECURE!  Many multi-user oper-
               ating systems provide ways for any user to see  the
-
-Info-ZIP             3 November 1997 (v5.32)                    6
-
-UNZIP(1L)                                               UNZIP(1L)
-
               current  command  line  of  any other user; even on
               stand-alone systems there is always the  threat  of
               over-the-shoulder  peeking.   Storing the plaintext
@@ -378,6 +406,11 @@ UNZIP(1L)                                               UNZIP(1L)
               ``EA DATA. SF'').  This can  be  awkward,  however,
               since MS-DOS in particular does not gracefully sup-
               port spaces in filenames.  Conversion of spaces  to
+
+Info-ZIP             28 November 1998 (v5.4)                    7
+
+UNZIP(1L)                                               UNZIP(1L)
+
               underscores  can  eliminate the awkwardness in some
               cases.
 
@@ -406,11 +439,6 @@ UNZIP(1L)                                               UNZIP(1L)
               for extraction; but under Unix, for example, a user
               who  belongs  to  several  groups can restore files
               owned by any of those groups, as long as  the  user
-
-Info-ZIP             3 November 1997 (v5.32)                    7
-
-UNZIP(1L)                                               UNZIP(1L)
-
               IDs  match his or her own.  Note that ordinary file
               attributes are always restored--this option applies
               only to optional, extra ownership info available on
@@ -437,6 +465,11 @@ ENVIRONMENT OPTIONS
        insensitively,  make  it  quieter, or make it always over-
        write or never overwrite files as it extracts  them.   For
        example,  to  make  unzip act as quietly as possible, only
+
+Info-ZIP             28 November 1998 (v5.4)                    8
+
+UNZIP(1L)                                               UNZIP(1L)
+
        reporting errors, one would use one of the following  com-
        mands:
 
@@ -465,11 +498,6 @@ ENVIRONMENT OPTIONS
 
        (the two are equivalent).  This may seem awkward  or  con-
        fusing,  but  it is reasonably intuitive:  just ignore the
-
-Info-ZIP             3 November 1997 (v5.32)                    8
-
-UNZIP(1L)                                               UNZIP(1L)
-
        first hyphen and go from there.   It  is  also  consistent
        with the behavior of Unix nice(1).
 
@@ -496,6 +524,11 @@ UNZIP(1L)                                               UNZIP(1L)
 DECRYPTION
        Encrypted  archives  are fully supported by Info-ZIP soft-
        ware, but due to United States  export  restrictions,  the
+
+Info-ZIP             28 November 1998 (v5.4)                    9
+
+UNZIP(1L)                                               UNZIP(1L)
+
        encryption  and  decryption  sources are not packaged with
        the regular unzip and zip distributions.  Since the  crypt
        sources  were  written  by  Europeans,  however,  they are
@@ -523,13 +556,8 @@ DECRYPTION
        PKWARE   zipfile  format;  it  helps  prevent  brute-force
        attacks that might otherwise gain a large speed  advantage
        by  testing  only the header.)  In the case that an incor-
-       rect password is given  but  it  passes  the  header  test
-
-Info-ZIP             3 November 1997 (v5.32)                    9
-
-UNZIP(1L)                                               UNZIP(1L)
-
-       anyway,  either an incorrect CRC will be generated for the
+       rect password is given but it passes the header test  any-
+       way,  either  an  incorrect  CRC will be generated for the
        extracted data or else unzip will fail during the  extrac-
        tion  because  the ``decrypted'' bytes do not constitute a
        valid compressed data stream.
@@ -555,6 +583,11 @@ UNZIP(1L)                                               UNZIP(1L)
        page; Windows PKZIP 2.50 uses Latin-1  (and  is  therefore
        incompatible  with  DOS PKZIP); Info-ZIP uses the OEM code
        page on DOS, OS/2 and Win3.x ports but Latin-1  everywhere
+
+Info-ZIP             28 November 1998 (v5.4)                   10
+
+UNZIP(1L)                                               UNZIP(1L)
+
        else; and Nico Mak's WinZip 6.x does not allow 8-bit pass-
        words at all.  UnZip 5.3 attempts to use the default char-
        acter set first (e.g., Latin-1), followed by the alternate
@@ -583,11 +616,6 @@ EXAMPLES
            unzip -tq letters
 
        To  test  all  zipfiles in the current directory, printing
-
-Info-ZIP             3 November 1997 (v5.32)                   10
-
-UNZIP(1L)                                               UNZIP(1L)
-
        only the summaries:
 
            unzip -tq \*.zip
@@ -614,6 +642,11 @@ UNZIP(1L)                                               UNZIP(1L)
 
        (the double quotes are necessary only in Unix and only  if
        globbing  is  turned  on).   To  extract all FORTRAN and C
+
+Info-ZIP             28 November 1998 (v5.4)                   11
+
+UNZIP(1L)                                               UNZIP(1L)
+
        source files, regardless of case (e.g., both *.c and  *.C,
        and any makefile, Makefile, MAKEFILE or similar):
 
@@ -642,11 +675,6 @@ UNZIP(1L)                                               UNZIP(1L)
            unzip -uo sources
 
        To  display  a  diagnostic  screen showing which unzip and
-
-Info-ZIP             3 November 1997 (v5.32)                   11
-
-UNZIP(1L)                                               UNZIP(1L)
-
        zipinfo  options  are  stored  in  environment  variables,
        whether  decryption  support was compiled in, the compiler
        with which unzip was compiled, etc.:
@@ -673,6 +701,11 @@ UNZIP(1L)                                               UNZIP(1L)
 
 TIPS
        The current maintainer, being a lazy sort, finds  it  very
+
+Info-ZIP             28 November 1998 (v5.4)                   12
+
+UNZIP(1L)                                               UNZIP(1L)
+
        useful  to define a pair of aliases:  tt for ``unzip -tq''
        and ii for ``unzip -Z'' (or ``zipinfo'').   One  may  then
        simply  type  ``tt zipfile'' to test an archive, something
@@ -701,11 +734,6 @@ DIAGNOSTICS
 
               2      a generic error in the  zipfile  format  was
                      detected.   Processing  may  have  completed
-
-Info-ZIP             3 November 1997 (v5.32)                   12
-
-UNZIP(1L)                                               UNZIP(1L)
-
                      successfully anyway;  some  broken  zipfiles
                      created by other archivers have simple work-
                      arounds.
@@ -731,6 +759,10 @@ UNZIP(1L)                                               UNZIP(1L)
               8      [currently not used]
 
               9      the specified zipfiles were not found.
+
+Info-ZIP             28 November 1998 (v5.4)                   13
+
+UNZIP(1L)                                               UNZIP(1L)
 
               10     invalid options were specified on  the  com-
                      mand line.
@@ -760,11 +792,6 @@ UNZIP(1L)                                               UNZIP(1L)
        follows:   1 (success) for  normal  exit,  0x7fff0001  for
        warning     errors,     and    (0x7fff000?    +    16*nor-
        mal_unzip_exit_status) for all other errors, where the `?'
-
-Info-ZIP             3 November 1997 (v5.32)                   13
-
-UNZIP(1L)                                               UNZIP(1L)
-
        is  2  (error)  for  unzip values 2, 9-11 and 80-82, and 4
        (fatal error) for the remaining ones (3-8,  50,  51).   In
        addition,  there  is  a  compilation option to expand upon
@@ -791,6 +818,11 @@ BUGS
        handling  of  screen  output;  as noted above, it fails to
        detect the wrapping of long lines and  may  thereby  cause
        lines  at  the top of the screen to be scrolled off before
+
+Info-ZIP             28 November 1998 (v5.4)                   14
+
+UNZIP(1L)                                               UNZIP(1L)
+
        being read.  unzip should detect and treat each occurrence
        of   line-wrap  as  one  additional  line  printed.   This
        requires knowledge of the screen's width as  well  as  its
@@ -819,11 +851,6 @@ BUGS
        restored  even if they are somehow represented in the zip-
        file, nor are hard-linked files relinked.   Basically  the
        only  file  types  restored  by  unzip  are regular files,
-
-Info-ZIP             3 November 1997 (v5.32)                   14
-
-UNZIP(1L)                                               UNZIP(1L)
-
        directories and symbolic (soft) links.
 
        [OS/2] Extended attributes for  existing  directories  are
@@ -849,6 +876,10 @@ UNZIP(1L)                                               UNZIP(1L)
        choice does create a new version; the old version  is  not
        overwritten or deleted.
 
+Info-ZIP             28 November 1998 (v5.4)                   15
+
+UNZIP(1L)                                               UNZIP(1L)
+
 SEE ALSO
        funzip(1L),   zip(1L),   zipcloak(1L),  zipgrep(1L),  zip-
        info(1L), zipnote(1L), zipsplit(1L)
@@ -862,29 +893,24 @@ AUTHORS
        of  the  Zip-Bugs  workgroup)  are:   Greg  ``Cave  Newt''
        Roelofs  (UnZip);  Onno  van  der  Linden (Zip); Jean-loup
        Gailly (compression); Mark Adler (decompression,  fUnZip);
-       Christian  Spieler  (VMS,  MS-DOS,  Windows 95, NT, shared
-       code, general Zip and UnZip integration and optimization);
-       Mike  White  (Windows  GUI,  Windows DLLs); Kai Uwe Rommel
-       (OS/2); Paul Kienitz (Amiga, Windows 95);  Chris  Herborth
-       (BeOS,  QNX,  Atari);  Jonathan  Hudson (SMS/QDOS); Sergio
-       Monesi (Acorn RISC OS); Harald Denker (Atari,  MVS);  John
-       Bush  (Solaris, Amiga); Hunter Goatley (VMS); Steve Salis-
-       bury (Windows 95, NT);  Steve  Miller  (Windows  CE  GUI),
-       Johnny  Lee (MS-DOS, Windows 95, NT); and Dave Smith (Tan-
-       dem NSK).  The author of  the  original  unzip  code  upon
-       which  Info-ZIP's  was based is Samuel H. Smith; Carl Mas-
-       cott did the first Unix port;  and  David  P.   Kirschbaum
-       organized  and  led  Info-ZIP in its early days with Keith
-       Petersen hosting the original mailing  list  at  WSMR-Sim-
-       Tel20.   The  full list of contributors to UnZip has grown
-       quite large; please refer to  the  CONTRIBS  file  in  the
-
-Info-ZIP             3 November 1997 (v5.32)                   15
-
-UNZIP(1L)                                               UNZIP(1L)
-
-       UnZip  source  distribution for a relatively complete ver-
-       sion.
+       Christian  Spieler (UnZip maintance coordination, VMS, MS-
+       DOS, Windows 95, NT, shared code, general  Zip  and  UnZip
+       integration  and  optimization);  Mike White (Windows GUI,
+       Windows DLLs); Kai Uwe Rommel (OS/2); Paul Kienitz (Amiga,
+       Windows  95);  Chris Herborth (BeOS, QNX, Atari); Jonathan
+       Hudson (SMS/QDOS); Sergio Monesi (Acorn RISC  OS);  Harald
+       Denker  (Atari,  MVS);  John Bush (Solaris, Amiga); Hunter
+       Goatley (VMS); Steve Salisbury  (Windows  95,  NT);  Steve
+       Miller  (Windows  CE GUI), Johnny Lee (MS-DOS, Windows 95,
+       NT); and Dave Smith (Tandem NSK).  The author of the orig-
+       inal  unzip code upon which Info-ZIP's was based is Samuel
+       H. Smith; Carl Mascott did the first Unix port; and  David
+       P.   Kirschbaum  organized  and  led Info-ZIP in its early
+       days with Keith Petersen hosting the original mailing list
+       at  WSMR-SimTel20.  The full list of contributors to UnZip
+       has grown quite large; please refer to the  CONTRIBS  file
+       in the UnZip source distribution for a relatively complete
+       version.
 
 VERSIONS
        v1.2   15 Mar 89   Samuel H. Smith
@@ -904,6 +930,7 @@ VERSIONS
        v5.3   22 Apr 97   Info-ZIP (Zip-Bugs subgroup, GRR)
        v5.31  31 May 97   Info-ZIP (Zip-Bugs subgroup, GRR)
        v5.32   3 Nov 97   Info-ZIP (Zip-Bugs subgroup, GRR)
+       v5.4   28 Nov 98   Info-ZIP (Zip-Bugs subgroup, SPC)
 
-Info-ZIP             3 November 1997 (v5.32)                   16
+Info-ZIP             28 November 1998 (v5.4)                   16
 

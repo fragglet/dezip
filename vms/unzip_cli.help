@@ -1,41 +1,41 @@
 .!
-.!  File:	UNZIP_CLI.HELP
+.!  File:       UNZIP_CLI.HELP
 .!
-.!  Author:	Hunter Goatley
+.!  Author:     Hunter Goatley
 .!
-.!  Date:	12 Jul 94 (orig. UNZIP.RNH, 23 Oct 91)
+.!  Date:       12 Jul 94 (orig. UNZIP.RNH, 23 Oct 91)
 .!
 .!  Description:
 .!
-.!	TPU-processable source file to produce VMS on-line help for
-.!	portable UnZip.  Adapted from UNZIP.RNH, originally based on
-.!	UNZIP.MAN (now UNZIP.DOC).
+.!      TPU-processable source file to produce VMS on-line help for
+.!      portable UnZip.  Adapted from UNZIP.RNH, originally based on
+.!      UNZIP.MAN (now UNZIP.DOC).
 .!
-.!	To build:
-.!	    $ EDIT /TPU/NOSECTION/NODISPLAY/COMMAND=CVTHELP.TPU UNZIP_CLI.HELP
-.!	    $ RUNOFF /OUT=UNZIP.HLP UNZIP_CLI.RNH
-.!	    $ LIBR /HELP/INSERT libr UNZIP
+.!      To build:
+.!          $ EDIT /TPU/NOSECTION/NODISPLAY/COMMAND=CVTHELP.TPU UNZIP_CLI.HELP
+.!          $ RUNOFF /OUT=UNZIP.HLP UNZIP_CLI.RNH
+.!          $ LIBR /HELP/INSERT libr UNZIP
 .!
 .!  Modification history:
 .!
-.!	02-001		Hunter Goatley		12-JUL-1994 16:59
-.!		Genesis.
-.!	02-002		Cave Newt		14-JUL-1994 11:36
-.!		Fixed /*TEXT options and added/removed various options.
-.!	02-003		Cave Newt		28-JUL-1994 08:54
-.!		Removed semicolons from comments and moved /ZIPINFO.
-.!	02-004		Christian Spieler	06-OCT-1995 02:02
-.!		Changed to conform to revised .CLD definition.
-.!	02-005		Christian Spieler	06-FEB-1996 02:20
-.!		Added description of /HELP qualifier.
-.!	02-006		Christian Spieler	12-MAY-1996 00:50
-.!		Some clarifications/cleanups.
-.!	02-007		Christian Spieler	04-MAR-1997 22:25
-.!		Added /[NO]CASE_INSENSITIVE to ZipInfo mode;
-.!		documented the new /PASSWORD="decryption_key" option.
-.!	02-007		Christian Spieler	22-JUL-1997 22:37
-.!		Formatting changes (prevent line wraps); added "Exit_Codes"
-.!		subtopic (no version number change).
+.!      02-001          Hunter Goatley          12-JUL-1994 16:59
+.!              Genesis.
+.!      02-002          Cave Newt               14-JUL-1994 11:36
+.!              Fixed /*TEXT options and added/removed various options.
+.!      02-003          Cave Newt               28-JUL-1994 08:54
+.!              Removed semicolons from comments and moved /ZIPINFO.
+.!      02-004          Christian Spieler       06-OCT-1995 02:02
+.!              Changed to conform to revised .CLD definition.
+.!      02-005          Christian Spieler       06-FEB-1996 02:20
+.!              Added description of /HELP qualifier.
+.!      02-006          Christian Spieler       12-MAY-1996 00:50
+.!              Some clarifications/cleanups.
+.!      02-007          Christian Spieler       04-MAR-1997 22:25
+.!              Added /[NO]CASE_INSENSITIVE to ZipInfo mode;
+.!              documented the new /PASSWORD="decryption_key" option.
+.!      02-007          Christian Spieler       22-JUL-1997 22:37
+.!              Formatting changes (prevent line wraps); added "Exit_Codes"
+.!              subtopic (no version number change).
 .!
 <INIT>
 <MAIN>

@@ -1,10 +1,10 @@
-First information about the binary distribution of VMS UnZip 5.32
------------------------------------------------------------------
+First information about the binary distribution of VMS UnZip 5.4
+----------------------------------------------------------------
 This archive comes in different variations:
 
- "unz532x-vms-<cpu-compiler>-{obj|exe}.exe",
+ "unz540x-vms-<cpu-compiler>-{obj|exe}.exe",
  and
- "unz532x-vms-<cpu-compiler>-obj.bck",
+ "unz540x-vms-<cpu-compiler>-obj.bck",
 
  where <cpu-compiler> is "axp", "vax-decc", or "vax-vaxc", depending on
  the environment used for creating the binaries.
@@ -34,7 +34,7 @@ This archive comes in different variations:
  corresponding ...-obj.exe archives.
 
 Contents of the "vms" executables self extracting archives
-for UnZip 5.32:
+for UnZip 5.4:
 
 a) common files (documentation etc.):
   00binary.vms         this file
@@ -113,4 +113,4 @@ The binary files of the distribution have been archived with "saving all VMS
 attributes" enabled. Please do not repack the binary part of the archives on
 a non-VMS system, to prevent corruption of the files.
 
-23 October 1997, Christian Spieler
+04 December 1997, Christian Spieler

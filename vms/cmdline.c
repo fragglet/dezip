@@ -16,6 +16,12 @@
 **
 **  Modified by:
 **
+**      02-007          Onno van der Linden     02-Jul-1998 19:07
+**              Modified to support GNU CC 2.8 on Alpha; version unchanged.
+**      02-007          Johnny Lee              25-Jun-1998 07:38
+**              Fixed typo (superfluous ';'); no version num change.
+**      02-007          Hunter Goatley          11-NOV-1997 10:38
+**              Fixed "zip" vs. "unzip" typo; no version num change.
 **      02-007          Christian Spieler       14-SEP-1997 22:43
 **              Cosmetic mods to stay in sync with Zip; no version num change.
 **      02-007          Christian Spieler       12-JUL-1997 02:05
@@ -45,7 +51,7 @@
 */
 
 
-#ifdef __DECC
+#if defined(__DECC) || defined(__GNUC__)
 #pragma module module_name module_ident
 #else
 #module module_name module_ident
@@ -154,7 +160,7 @@ $DESCRIPTOR(unzip_command,      "unzip ");
 
 static int show_VMSCLI_usage;
 
-#ifdef __DECC
+#if defined(__DECC) || defined(__GNUC__)
 extern void *vms_unzip_cld;
 #else
 globalref void *vms_unzip_cld;
@@ -269,7 +275,7 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
         return (SS$_INSFMEM);
 
     strcpy(the_cmd_line, "unzip");
-    cmdl_len = sizeof("zip");
+    cmdl_len = sizeof("unzip");
 
     /*
     **  First, check to see if any of the regular options were specified.
@@ -593,7 +599,7 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
     **/
     if (output_directory.dsc$w_length != 0) {
         x = cmdl_len;
-        cmdl_len += password_arg.dsc$w_length + 4;
+        cmdl_len += output_directory.dsc$w_length + 4;
         CHECK_BUFFER_ALLOCATION(the_cmd_line, cmdl_size, cmdl_len)
         strcpy(&the_cmd_line[x], "-d");
         strncpy(&the_cmd_line[x+3], output_directory.dsc$a_pointer,
@@ -717,7 +723,7 @@ get_list (struct dsc$descriptor_s *qual, struct dsc$descriptor_d *rawtail,
         */
         if (*p_str == NULL) {
             *p_size = ARGBSIZE_UNIT;
-            if ((*p_str = (char *) malloc(*p_size)) == NULL);
+            if ((*p_str = (char *) malloc(*p_size)) == NULL)
                 return (SS$_INSFMEM);
             len = 0;
         } else {
@@ -855,7 +861,7 @@ int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
     Print either ZipInfo usage or UnZip usage, depending on incantation.
   ---------------------------------------------------------------------------*/
 
-    if (G.zipinfo_mode) {
+    if (uO.zipinfo_mode) {
 
 #ifndef NO_ZIPINFO
 

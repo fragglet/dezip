@@ -13,11 +13,12 @@ os_error *SWI_OS_GBPB_9(char *dirname, void *buf, int *number,
                         int *offset, int size, char *match);
 /* read dir */
 
-os_error *SWI_OS_File_1(char *filename, int loadaddr, int execaddr, int attrib);
+os_error *SWI_OS_File_1(char *filename, unsigned int loadaddr,
+                        unsigned int execaddr, int attrib);
 /* write file attributes */
 
-os_error *SWI_OS_File_5(char *filename, int *objtype, int *loadaddr,
-                        int *execaddr, int *length, int *attrib);
+os_error *SWI_OS_File_5(char *filename, int *objtype, unsigned int *loadaddr,
+                        unsigned int *execaddr, int *length, int *attrib);
 /* read file info */
 
 os_error *SWI_OS_File_6(char *filename);
@@ -28,6 +29,9 @@ os_error *SWI_OS_File_7(char *filename, int loadaddr, int execaddr, int size);
 
 os_error *SWI_OS_File_8(char *dirname);
 /* create a directory */
+
+os_error *SWI_OS_File_18(char *filename, int filetype);
+/* set a file's type */
 
 os_error *SWI_OS_CLI(char *cmd);
 /* execute a command */
@@ -50,4 +54,4 @@ os_error *SWI_DDEUtils_Prefix(char *dir);
 int SWI_Read_Timezone(void);
 /* returns the timezone offset (centiseconds) */
 
-#endif
+#endif /* !__swiven_h */

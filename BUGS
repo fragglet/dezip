@@ -44,6 +44,7 @@ Bugs (real and/or imagined):
     [Kevin Fritz 931102]
  - still NT/W95 bug with "unzip -v d:*.zip" not matching properly? [Steve S
     940527]
+    980427: bug no longer exists, Opendir() must have been corrected by someone
 
  - when ^Z received in no-echo mode, echo is not restored (works OK if
     resume, however)
@@ -74,5 +75,6 @@ Bugs (real and/or imagined):
  - OS/2:  directory EAs not restored if directory exists [Kai Uwe, KG27515@uark]
     (subsequent note:  no way to determine which EAs are newer ==> cannot 
     restore without user input)
+    (update: as of UnZip 5.30, option -o forces restoring of directory EAs)
  - MS-DOS:  Borland executables don't allow other than 80-column, 25/43/50-line
     screen modes (Borland bug) [Michael Stillwell]

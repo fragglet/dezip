@@ -5,7 +5,7 @@
 ;   int inflate_codes(__GPRO__ struct huft *tl, struct huft *td,
 ;                     int bl, int bd);
 ;
-; Where __GPRO__ expands to "struct Globals *G," if REENTRANT is defined,
+; Where __GPRO__ expands to "Uz_Globs *G," if REENTRANT is defined,
 ; otherwise to nothing.  In the latter case G is a global variable.
 ;
 ; Define the symbol FUNZIP if this is for fUnZip.  It overrides REENTRANT.
@@ -58,7 +58,7 @@ h_t             equ     2
 SIZEOF_HUFT     equ     6
 
 ; The following include file is generated from globals.h, and gives us equates
-; that give the offsets in struct Globals of the fields we use, which are:
+; that give the offsets in Uz_Globs of the fields we use, which are:
 ;       ulg bb
 ;       unsigned int bk, wp
 ;       (either array of or pointer to unsigned char) slide
@@ -90,7 +90,7 @@ G_PUSH           MACRO          ; this macro passes "__G__" to functions
         move.l          G,-(sp)
                  ENDM
                 ELSE
-        xref    _G              ; struct Globals
+        xref    _G              ; Uz_Globs
 G_SIZE  equ     0
 G_PUSH           MACRO
         ds.b            0       ; does nothing; the assembler dislikes MACRO ENDM
@@ -126,7 +126,7 @@ d       equr    d7              ; unsigned int
 
 t       equr    a2              ; struct huft *
 mask    equr    a3              ; ush *
-G       equr    a6              ; struct Globals *
+G       equr    a6              ; Uz_Globs *
 
 ; Couple other items we need:
 

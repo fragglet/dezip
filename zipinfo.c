@@ -71,14 +71,13 @@
 #define AMI_IEXECUTE   00002       /* executable image, a loadable runfile */
 #define AMI_IDELETE    00001       /* can be deleted */
 
-#define BE_UNCOMPRESSED 0x01       /* file attributes are not compressed */
-#define BE_BADBITS      0xfe       /* undefined bits */
-
 #define LFLAG  3   /* short "ls -l" type listing */
 
 static int   zi_long   OF((__GPRO__ ulg *pEndprev));
 static int   zi_short  OF((__GPRO));
-static char *zi_time   OF((__GPRO__ ZCONST ush *datez, ZCONST ush *timez,
+static void  zi_showMacTypeCreator
+                       OF((__GPRO__ uch *ebfield));
+static char *zi_time   OF((__GPRO__ ZCONST ulg *datetimez,
                            ZCONST time_t *modtimez, char *d_t_str));
 
 
@@ -88,239 +87,256 @@ static char *zi_time   OF((__GPRO__ ZCONST ush *datez, ZCONST ush *timez,
 
 static char nullStr[] = "";
 
-static char Far LongHeader[] = "Archive:  %s   %ld bytes   %d file%s\n";
-static char Far ShortHeader[] = "Archive:  %s   %ld   %d\n";
-static char Far EndCentDirRec[] = "\nEnd-of-central-directory record:\n";
-static char Far LineSeparators[] = "-------------------------------\n\n";
-static char Far ActOffsetCentDir[] = "\
+static ZCONST char Far LongHeader[] = "Archive:  %s   %ld bytes   %d file%s\n";
+static ZCONST char Far ShortHeader[] = "Archive:  %s   %ld   %d\n";
+static ZCONST char Far EndCentDirRec[] = "\nEnd-of-central-directory record:\n";
+static ZCONST char Far LineSeparators[] = "-------------------------------\n\n";
+static ZCONST char Far ActOffsetCentDir[] = "\
   Actual offset of end-of-central-dir record:   %9ld (%.8lXh)\n\
   Expected offset of end-of-central-dir record: %9ld (%.8lXh)\n\
   (based on the length of the central directory and its expected offset)\n\n";
-static char Far SinglePartArchive1[] = "\
+static ZCONST char Far SinglePartArchive1[] = "\
   This zipfile constitutes the sole disk of a single-part archive; its\n\
   central directory contains %u %s.  The central directory is %lu\n\
   (%.8lXh) bytes long, and its (expected) offset in bytes from the\n";
-static char Far SinglePartArchive2[] = "\
+static ZCONST char Far SinglePartArchive2[] = "\
   beginning of the zipfile is %lu (%.8lXh).\n\n";
-static char Far MultiPartArchive1[] = "\
+static ZCONST char Far MultiPartArchive1[] = "\
   This zipfile constitutes disk %u of a multi-part archive.  The central\n\
   directory starts on disk %u; %u of its entries %s contained within\n";
-static char Far MultiPartArchive2[] = "\
+static ZCONST char Far MultiPartArchive2[] = "\
   this zipfile, out of a total of %u %s.  The entire central\n\
   directory is %lu (%.8lXh) bytes long, and its offset in bytes from\n";
-static char Far MultiPartArchive3[] = "\
+static ZCONST char Far MultiPartArchive3[] = "\
   the beginning of the zipfile in which it begins is %lu (%.8lXh).\n\n";
-static char Far NoZipfileComment[] = "  There is no zipfile comment.\n";
-static char Far ZipfileCommentDesc[] =
+static ZCONST char Far NoZipfileComment[] = "  There is no zipfile comment.\n";
+static ZCONST char Far ZipfileCommentDesc[] =
   "  The zipfile comment is %u bytes long and contains the following text:\n\n";
-static char Far ZipfileCommBegin[] =
+static ZCONST char Far ZipfileCommBegin[] =
  "======================== zipfile comment begins ==========================\n";
-static char Far ZipfileCommEnd[] =
+static ZCONST char Far ZipfileCommEnd[] =
  "========================= zipfile comment ends ===========================\n";
-static char Far ZipfileCommTrunc2[] = "\n  The zipfile comment is truncated.\n";
-static char Far ZipfileCommTruncMsg[] =
+static ZCONST char Far ZipfileCommTrunc2[] = "\n  The zipfile comment is truncated.\n";
+static ZCONST char Far ZipfileCommTruncMsg[] =
   "\ncaution:  zipfile comment truncated\n";
 
-static char Far CentralDirEntry[] =
+static ZCONST char Far CentralDirEntry[] =
   "\nCentral directory entry #%d:\n---------------------------\n\n";
-static char Far ZipfileStats[] =
+static ZCONST char Far ZipfileStats[] =
   "%d file%s, %lu bytes uncompressed, %lu bytes compressed:  %s%d.%d%%\n";
 
 /* zi_long() strings */
-static char Far OS_FAT[] = "MS-DOS, OS/2 or NT FAT";
-static char Far OS_Amiga[] = "Amiga";
-static char Far OS_VMS[] = "VMS";
-static char Far OS_Unix[] = "Unix";
-static char Far OS_VMCMS[] = "VM/CMS";
-static char Far OS_AtariST[] = "Atari ST";
-static char Far OS_HPFS[] = "OS/2 or NT HPFS";
-static char Far OS_Macintosh[] = "Macintosh";
-static char Far OS_ZSystem[] = "Z-System";
-static char Far OS_CPM[] = "CP/M";
-static char Far OS_TOPS20[] = "TOPS-20";
-static char Far OS_NTFS[] = "NTFS";
-static char Far OS_QDOS[] = "SMS/QDOS";
-static char Far OS_Acorn[] = "Acorn RISC OS";
-static char Far OS_MVS[] = "MVS";
-static char Far OS_VFAT[] = "Win32 VFAT";
-static char Far OS_BeOS[] = "BeOS";
-static char Far OS_Tandem[] = "Tandem NSK";
+static ZCONST char Far OS_FAT[] = "MS-DOS, OS/2 or NT FAT";
+static ZCONST char Far OS_Amiga[] = "Amiga";
+static ZCONST char Far OS_VMS[] = "VMS";
+static ZCONST char Far OS_Unix[] = "Unix";
+static ZCONST char Far OS_VMCMS[] = "VM/CMS";
+static ZCONST char Far OS_AtariST[] = "Atari ST";
+static ZCONST char Far OS_HPFS[] = "OS/2 or NT HPFS";
+static ZCONST char Far OS_Macintosh[] = "Macintosh HFS";
+static ZCONST char Far OS_ZSystem[] = "Z-System";
+static ZCONST char Far OS_CPM[] = "CP/M";
+static ZCONST char Far OS_TOPS20[] = "TOPS-20";
+static ZCONST char Far OS_NTFS[] = "NTFS";
+static ZCONST char Far OS_QDOS[] = "SMS/QDOS";
+static ZCONST char Far OS_Acorn[] = "Acorn RISC OS";
+static ZCONST char Far OS_MVS[] = "MVS";
+static ZCONST char Far OS_VFAT[] = "Win32 VFAT";
+static ZCONST char Far OS_BeOS[] = "BeOS";
+static ZCONST char Far OS_Tandem[] = "Tandem NSK";
 
-static char Far MthdNone[] = "none (stored)";
-static char Far MthdShrunk[] = "shrunk";
-static char Far MthdRedF1[] = "reduced (factor 1)";
-static char Far MthdRedF2[] = "reduced (factor 2)";
-static char Far MthdRedF3[] = "reduced (factor 3)";
-static char Far MthdRedF4[] = "reduced (factor 4)";
-static char Far MthdImplode[] = "imploded";
-static char Far MthdToken[] = "tokenized";
-static char Far MthdDeflate[] = "deflated";
-static char Far MthdEnDeflate[] = "deflated (enhanced)";
-static char Far MthdDCLImplode[] = "imploded (PK DCL)";
+static ZCONST char Far MthdNone[] = "none (stored)";
+static ZCONST char Far MthdShrunk[] = "shrunk";
+static ZCONST char Far MthdRedF1[] = "reduced (factor 1)";
+static ZCONST char Far MthdRedF2[] = "reduced (factor 2)";
+static ZCONST char Far MthdRedF3[] = "reduced (factor 3)";
+static ZCONST char Far MthdRedF4[] = "reduced (factor 4)";
+static ZCONST char Far MthdImplode[] = "imploded";
+static ZCONST char Far MthdToken[] = "tokenized";
+static ZCONST char Far MthdDeflate[] = "deflated";
+static ZCONST char Far MthdEnDeflate[] = "deflated (enhanced)";
+static ZCONST char Far MthdDCLImplode[] = "imploded (PK DCL)";
 
-static char Far DeflNorm[] = "normal";
-static char Far DeflMax[] = "maximum";
-static char Far DeflFast[] = "fast";
-static char Far DeflSFast[] = "superfast";
+static ZCONST char Far DeflNorm[] = "normal";
+static ZCONST char Far DeflMax[] = "maximum";
+static ZCONST char Far DeflFast[] = "fast";
+static ZCONST char Far DeflSFast[] = "superfast";
 
-static char Far ExtraBytesPreceding[] =
+static ZCONST char Far ExtraBytesPreceding[] =
   "  There are an extra %ld bytes preceding this file.\n\n";
 
-static char Far Unknown[] = "unknown (%d)";
+static ZCONST char Far UnknownNo[] = "unknown (%d)";
 
-static char Far LocalHeaderOffset[] =
+static ZCONST char Far LocalHeaderOffset[] =
   "\n  offset of local header from start of archive:     %lu (%.8lXh) bytes\n";
-static char Far HostOS[] =
+static ZCONST char Far HostOS[] =
   "  file system or operating system of origin:        %s\n";
-static char Far EncodeSWVer[] =
+static ZCONST char Far EncodeSWVer[] =
   "  version of encoding software:                     %d.%d\n";
-static char Far MinOSCompReq[] =
+static ZCONST char Far MinOSCompReq[] =
   "  minimum file system compatibility required:       %s\n";
-static char Far MinSWVerReq[] =
+static ZCONST char Far MinSWVerReq[] =
   "  minimum software version required to extract:     %d.%d\n";
-static char Far CompressMethod[] =
+static ZCONST char Far CompressMethod[] =
   "  compression method:                               %s\n";
-static char Far SlideWindowSizeImplode[] =
+static ZCONST char Far SlideWindowSizeImplode[] =
   "  size of sliding dictionary (implosion):           %cK\n";
-static char Far ShannonFanoTrees[] =
+static ZCONST char Far ShannonFanoTrees[] =
   "  number of Shannon-Fano trees (implosion):         %c\n";
-static char Far CompressSubtype[] =
+static ZCONST char Far CompressSubtype[] =
   "  compression sub-type (deflation):                 %s\n";
-static char Far FileSecurity[] =
+static ZCONST char Far FileSecurity[] =
   "  file security status:                             %sencrypted\n";
-static char Far ExtendedLocalHdr[] =
+static ZCONST char Far ExtendedLocalHdr[] =
   "  extended local header:                            %s\n";
-static char Far FileModDate[] =
+static ZCONST char Far FileModDate[] =
   "  file last modified on (DOS date/time):            %s\n";
 #ifdef USE_EF_UT_TIME
-  static char Far UT_FileModDate[] =
+  static ZCONST char Far UT_FileModDate[] =
     "  file last modified on (UT extra field modtime):   %s %s\n";
-  static char Far LocalTime[] = "local";
+  static ZCONST char Far LocalTime[] = "local";
 #ifndef NO_GMTIME
-  static char Far GMTime[] = "UTC";
+  static ZCONST char Far GMTime[] = "UTC";
 #endif
 #endif /* USE_EF_UT_TIME */
-static char Far CRC32Value[] =
+static ZCONST char Far CRC32Value[] =
   "  32-bit CRC value (hex):                           %.8lx\n";
-static char Far CompressedFileSize[] =
+static ZCONST char Far CompressedFileSize[] =
   "  compressed size:                                  %lu bytes\n";
-static char Far UncompressedFileSize[] =
+static ZCONST char Far UncompressedFileSize[] =
   "  uncompressed size:                                %lu bytes\n";
-static char Far FilenameLength[] =
+static ZCONST char Far FilenameLength[] =
   "  length of filename:                               %u characters\n";
-static char Far ExtraFieldLength[] =
+static ZCONST char Far ExtraFieldLength[] =
   "  length of extra field:                            %u bytes\n";
-static char Far FileCommentLength[] =
+static ZCONST char Far FileCommentLength[] =
   "  length of file comment:                           %u characters\n";
-static char Far FileDiskNum[] =
+static ZCONST char Far FileDiskNum[] =
   "  disk number on which file begins:                 disk %u\n";
-static char Far ApparentFileType[] =
+static ZCONST char Far ApparentFileType[] =
   "  apparent file type:                               %s\n";
-static char Far VMSFileAttributes[] =
+static ZCONST char Far VMSFileAttributes[] =
   "  VMS file attributes (%06o octal):               %s\n";
-static char Far AmigaFileAttributes[] =
+static ZCONST char Far AmigaFileAttributes[] =
   "  Amiga file attributes (%06o octal):             %s\n";
-static char Far UnixFileAttributes[] =
+static ZCONST char Far UnixFileAttributes[] =
   "  Unix file attributes (%06o octal):              %s\n";
-static char Far NonMSDOSFileAttributes[] =
+static ZCONST char Far NonMSDOSFileAttributes[] =
   "  non-MSDOS external file attributes:               %06lX hex\n";
-static char Far MSDOSFileAttributes[] =
+static ZCONST char Far MSDOSFileAttributes[] =
   "  MS-DOS file attributes (%02X hex):                  none\n";
-static char Far MSDOSFileAttributesRO[] =
+static ZCONST char Far MSDOSFileAttributesRO[] =
   "  MS-DOS file attributes (%02X hex):                  read-only\n";
-static char Far MSDOSFileAttributesAlpha[] =
+static ZCONST char Far MSDOSFileAttributesAlpha[] =
   "  MS-DOS file attributes (%02X hex):                  %s%s%s%s%s%s\n";
 
 
-static char Far ExtraFieldTrunc[] = "\n\
+static ZCONST char Far ExtraFieldTrunc[] = "\n\
   error: EF data block (type 0x%04x) size %u exceeds remaining extra field\n\
          space %u; block length has been truncated.\n";
-static char Far ExtraFields[] = "\n\
+static ZCONST char Far ExtraFields[] = "\n\
   The central-directory extra field contains:";
-static char Far ExtraFieldType[] = "\n\
+static ZCONST char Far ExtraFieldType[] = "\n\
   - A subfield with ID 0x%04x (%s) and %u data bytes";
-static char Far efAV[] = "PKWARE AV";
-static char Far efOS2[] = "OS/2";
-static char Far efPKVMS[] = "PKWARE VMS";
-static char Far efPKUnix[] = "PKWARE Unix";
-static char Far efIZVMS[] = "Info-ZIP VMS";
-static char Far efIZUnix[] = "old Info-ZIP Unix/OS2/NT";
-static char Far efIZUnix2[] = "Unix UID/GID";
-static char Far efTime[] = "universal time";
-static char Far efJLMac[] = "old Info-ZIP Macintosh";
-static char Far efZipIt[] = "ZipIt Macintosh";
-static char Far efVMCMS[] = "VM/CMS";
-static char Far efMVS[] = "MVS";
-static char Far efACL[] = "OS/2 ACL";
-static char Far efNTSD[] = "Security Descriptor";
-static char Far efBeOS[] = "BeOS";
-static char Far efQDOS[] = "SMS/QDOS";
-static char Far efAOSVS[] = "AOS/VS";
-static char Far efSpark[] = "Acorn SparkFS";
-static char Far efMD5[] = "Fred Kantor MD5";
-static char Far efASiUnix[] = "ASi Unix";
-static char Far efUnknown[] = "unknown";
+static ZCONST char Far efAV[] = "PKWARE AV";
+static ZCONST char Far efOS2[] = "OS/2";
+static ZCONST char Far efPKVMS[] = "PKWARE VMS";
+static ZCONST char Far efPKWin32[] = "PKWARE Win32";
+static ZCONST char Far efPKUnix[] = "PKWARE Unix";
+static ZCONST char Far efIZVMS[] = "Info-ZIP VMS";
+static ZCONST char Far efIZUnix[] = "old Info-ZIP Unix/OS2/NT";
+static ZCONST char Far efIZUnix2[] = "Unix UID/GID";
+static ZCONST char Far efTime[] = "universal time";
+static ZCONST char Far efJLMac[] = "old Info-ZIP Macintosh";
+static ZCONST char Far efMac3[] = "new Info-ZIP Macintosh";
+static ZCONST char Far efZipIt[] = "ZipIt Macintosh";
+static ZCONST char Far efZipIt2[] = "ZipIt Macintosh (short)";
+static ZCONST char Far efVMCMS[] = "VM/CMS";
+static ZCONST char Far efMVS[] = "MVS";
+static ZCONST char Far efACL[] = "OS/2 ACL";
+static ZCONST char Far efNTSD[] = "Security Descriptor";
+static ZCONST char Far efBeOS[] = "BeOS";
+static ZCONST char Far efQDOS[] = "SMS/QDOS";
+static ZCONST char Far efAOSVS[] = "AOS/VS";
+static ZCONST char Far efSpark[] = "Acorn SparkFS";
+static ZCONST char Far efMD5[] = "Fred Kantor MD5";
+static ZCONST char Far efASiUnix[] = "ASi Unix";
+static ZCONST char Far efUnknown[] = "unknown";
 
-static char Far OS2EAs[] = ".\n\
+static ZCONST char Far OS2EAs[] = ".\n\
     The local extra field has %lu bytes of OS/2 extended attributes.\n\
     (May not match OS/2 \"dir\" amount due to storage method)";
-static char Far izVMSdata[] = ".  The extra\n\
+static ZCONST char Far izVMSdata[] = ".  The extra\n\
     field is %s and has %lu bytes of VMS %s information%s";
-static char Far izVMSstored[] = "stored";
-static char Far izVMSrleenc[] = "run-length encoded";
-static char Far izVMSdeflat[] = "deflated";
-static char Far izVMScunknw[] = "compressed(?)";
-static char Far *izVMScomp[4] =
+static ZCONST char Far izVMSstored[] = "stored";
+static ZCONST char Far izVMSrleenc[] = "run-length encoded";
+static ZCONST char Far izVMSdeflat[] = "deflated";
+static ZCONST char Far izVMScunknw[] = "compressed(?)";
+static ZCONST char Far *izVMScomp[4] =
   {izVMSstored, izVMSrleenc, izVMSdeflat, izVMScunknw};
-static char Far ACLdata[] = ".\n\
+static ZCONST char Far ACLdata[] = ".\n\
     The local extra field has %lu bytes of access control list information";
-static char Far NTSDData[] = ".\n\
+static ZCONST char Far NTSDData[] = ".\n\
     The local extra field has %lu bytes of NT security descriptor data";
-static char Far UTdata[] = ".\n\
+static ZCONST char Far UTdata[] = ".\n\
     The local extra field has UTC/GMT %s time%s";
-static char Far UTmodification[] = "modification";
-static char Far UTaccess[] = "access";
-static char Far UTcreation[] = "creation";
-static char Far ZipItData[] = ".\n\
-    The Mac long filename is %s; its type code is `%c%c%c%c';\n\
-    and its creator code is `%c%c%c%c'";
-static char Far BeOSdata[] = ".\n\
+static ZCONST char Far UTmodification[] = "modification";
+static ZCONST char Far UTaccess[] = "access";
+static ZCONST char Far UTcreation[] = "creation";
+static ZCONST char Far ZipItFname[] = ".\n\
+    The Mac long filename is %s.\n";
+static ZCONST char Far Mac3data[] = ".\n\
+    The local extra field has %lu bytes of %scompressed Macintosh\n\
+    finder attributes";
+ /* MacOSdata[] is used by EF_MAC3, EF_ZIPIT, EF_ZIPIT2 and EF_JLEE e. f. */
+static ZCONST char Far MacOSdata[] = ".\n\
+    The associated file has type code `%c%c%c%c' and creator code `%c%c%c%c'";
+static ZCONST char Far MacOSdata1[] = ".\n\
+    The associated file has type code `0x%lx' and creator code `0x%lx'";
+static ZCONST char Far MacOSJLEEflags[] = "\n    File is marked as %s";
+static ZCONST char Far MacOS_RF[] = "Resource-fork";
+static ZCONST char Far MacOS_DF[] = "Data-fork";
+static ZCONST char Far MacOSMAC3flags[] = ".\n\
+    File is marked as %s, File Dates are in %d Bit";
+static ZCONST char Far BeOSdata[] = ".\n\
     The local extra field has %lu bytes of %scompressed BeOS file attributes";
  /* The associated file has type code `%c%c%c%c' and creator code `%c%c%c%c'" */
-static char Far QDOSdata[] = ".\n\
+static ZCONST char Far QDOSdata[] = ".\n\
     The QDOS extra field subtype is `%c%c%c%c'";
-static char Far AOSVSdata[] = ".\n\
+static ZCONST char Far AOSVSdata[] = ".\n\
     The AOS/VS extra field revision is %d.%d";
-static char Far MD5data[] = ".\n\
+static ZCONST char Far MD5data[] = ".\n\
     The 128-bit MD5 signature is %s";
 #ifdef CMS_MVS
-   static char Far VmMvsExtraField[] = ".\n\
+   static ZCONST char Far VmMvsExtraField[] = ".\n\
     The stored file open mode (FLDATA TYPE) is \"%s\"";
-   static char Far VmMvsInvalid[] = "[invalid]";
+   static ZCONST char Far VmMvsInvalid[] = "[invalid]";
 #endif /* CMS_MVS */
 
-static char Far First20[] = ".  The first\n    20 are:  ";
-static char Far ColonIndent[] = ":\n   ";
-static char Far efFormat[] = " %02x";
+static ZCONST char Far First20[] = ".  The first\n    20 are:  ";
+static ZCONST char Far ColonIndent[] = ":\n   ";
+static ZCONST char Far efFormat[] = " %02x";
 
-static char Far lExtraFieldType[] = "\n\
+static ZCONST char Far lExtraFieldType[] = "\n\
   There %s a local extra field with ID 0x%04x (%s) and\n\
   %u data bytes (%s).\n";
-static char Far efIZuid[] = "GMT modification/access times and Unix UID/GID";
-static char Far efIZnouid[] = "GMT modification/access times only";
+static ZCONST char Far efIZuid[] =
+  "GMT modification/access times and Unix UID/GID";
+static ZCONST char Far efIZnouid[] = "GMT modification/access times only";
 
 
-static char Far NoFileComment[] = "\n  There is no file comment.\n";
-static char Far FileCommBegin[] = "\n\
+static ZCONST char Far NoFileComment[] = "\n  There is no file comment.\n";
+static ZCONST char Far FileCommBegin[] = "\n\
 ------------------------- file comment begins ----------------------------\n";
-static char Far FileCommEnd[] = "\
+static ZCONST char Far FileCommEnd[] = "\
 -------------------------- file comment ends -----------------------------\n";
 
 /* zi_time() strings */
-static char Far BogusFmt[] = "%03d";
-static char Far DMYHMTime[] = "%2u-%s-%02u %02u:%02u";
-static char Far YMDHMSTime[] = "%u %s %u %02u:%02u:%02u";
-static char Far DecimalTime[] = "%04u%02u%02u.%02u%02u%02u";
+static ZCONST char Far BogusFmt[] = "%03d";
+static ZCONST char Far DMYHMTime[] = "%2u-%s-%02u %02u:%02u";
+static ZCONST char Far YMDHMSTime[] = "%u %s %u %02u:%02u:%02u";
+static ZCONST char Far DecimalTime[] = "%04u%02u%02u.%02u%02u%02u";
+static ZCONST char Far YMDHMSTimeError[] = "???? ??? ?? ??:??:??";
 
 
 
@@ -345,7 +361,7 @@ int zi_opts(__G__ pargc, pargv)
 
 
 #ifdef MACOS
-    G.lflag = LFLAG;          /* reset default on each call */
+    uO.lflag = LFLAG;         /* reset default on each call */
 #endif
     G.extract_flag = FALSE;   /* zipinfo does not extract to disk */
     argc = *pargc;
@@ -360,22 +376,22 @@ int zi_opts(__G__ pargc, pargv)
                     break;
                 case '1':      /* shortest listing:  JUST filenames */
                     if (negative)
-                        G.lflag = -2, negative = 0;
+                        uO.lflag = -2, negative = 0;
                     else
-                        G.lflag = 1;
+                        uO.lflag = 1;
                     break;
                 case '2':      /* just filenames, plus headers if specified */
                     if (negative)
-                        G.lflag = -2, negative = 0;
+                        uO.lflag = -2, negative = 0;
                     else
-                        G.lflag = 2;
+                        uO.lflag = 2;
                     break;
 #ifndef CMS_MVS
                 case ('C'):    /* -C:  match filenames case-insensitively */
                     if (negative)
-                        G.C_flag = FALSE, negative = 0;
+                        uO.C_flag = FALSE, negative = 0;
                     else
-                        G.C_flag = TRUE;
+                        uO.C_flag = TRUE;
                     break;
 #endif /* !CMS_MVS */
                 case 'h':      /* header line */
@@ -383,21 +399,21 @@ int zi_opts(__G__ pargc, pargv)
                         hflag_2 = hflag_slmv = FALSE, negative = 0;
                     else {
                         hflag_2 = hflag_slmv = explicit_h = TRUE;
-                        if (G.lflag == -1)
-                            G.lflag = 0;
+                        if (uO.lflag == -1)
+                            uO.lflag = 0;
                     }
                     break;
                 case 'l':      /* longer form of "ls -l" type listing */
                     if (negative)
-                        G.lflag = -2, negative = 0;
+                        uO.lflag = -2, negative = 0;
                     else
-                        G.lflag = 5;
+                        uO.lflag = 5;
                     break;
                 case 'm':      /* medium form of "ls -l" type listing */
                     if (negative)
-                        G.lflag = -2, negative = 0;
+                        uO.lflag = -2, negative = 0;
                     else
-                        G.lflag = 4;
+                        uO.lflag = 4;
                     break;
 #ifdef MORE
                 case 'M':      /* send output through built-in "more" */
@@ -409,36 +425,36 @@ int zi_opts(__G__ pargc, pargv)
 #endif
                 case 's':      /* default:  shorter "ls -l" type listing */
                     if (negative)
-                        G.lflag = -2, negative = 0;
+                        uO.lflag = -2, negative = 0;
                     else
-                        G.lflag = 3;
+                        uO.lflag = 3;
                     break;
                 case 't':      /* totals line */
                     if (negative)
                         tflag_2v = tflag_slm = FALSE, negative = 0;
                     else {
                         tflag_2v = tflag_slm = explicit_t = TRUE;
-                        if (G.lflag == -1)
-                            G.lflag = 0;
+                        if (uO.lflag == -1)
+                            uO.lflag = 0;
                     }
                     break;
                 case ('T'):    /* use (sortable) decimal time format */
                     if (negative)
-                        G.T_flag = FALSE, negative = 0;
+                        uO.T_flag = FALSE, negative = 0;
                     else
-                        G.T_flag = TRUE;
+                        uO.T_flag = TRUE;
                     break;
                 case 'v':      /* turbo-verbose listing */
                     if (negative)
-                        G.lflag = -2, negative = 0;
+                        uO.lflag = -2, negative = 0;
                     else
-                        G.lflag = 10;
+                        uO.lflag = 10;
                     break;
                 case 'z':      /* print zipfile comment */
                     if (negative)
-                        G.zflag = negative = 0;
+                        uO.zflag = negative = 0;
                     else
-                        G.zflag = 1;
+                        uO.zflag = 1;
                     break;
                 case 'Z':      /* ZipInfo mode:  ignore */
                     break;
@@ -461,30 +477,30 @@ int zi_opts(__G__ pargc, pargv)
 
     /* if no listing options given (or all negated), or if only -h/-t given
      * with individual files specified, use default listing format */
-    if ((G.lflag < 0) || ((argc > 0) && (G.lflag == 0)))
-        G.lflag = LFLAG;
+    if ((uO.lflag < 0) || ((argc > 0) && (uO.lflag == 0)))
+        uO.lflag = LFLAG;
 
     /* set header and totals flags to default or specified values */
-    switch (G.lflag) {
+    switch (uO.lflag) {
         case 0:   /* 0:  can only occur if either -t or -h explicitly given; */
         case 2:   /*  therefore set both flags equal to normally false value */
-            G.hflag = hflag_2;
-            G.tflag = tflag_2v;
+            uO.hflag = hflag_2;
+            uO.tflag = tflag_2v;
             break;
         case 1:   /* only filenames, *always* */
-            G.hflag = FALSE;
-            G.tflag = FALSE;
-            G.zflag = FALSE;
+            uO.hflag = FALSE;
+            uO.tflag = FALSE;
+            uO.zflag = FALSE;
             break;
         case 3:
         case 4:
         case 5:
-            G.hflag = ((argc > 0) && !explicit_h)? FALSE : hflag_slmv;
-            G.tflag = ((argc > 0) && !explicit_t)? FALSE : tflag_slm;
+            uO.hflag = ((argc > 0) && !explicit_h)? FALSE : hflag_slmv;
+            uO.tflag = ((argc > 0) && !explicit_t)? FALSE : tflag_slm;
             break;
         case 10:
-            G.hflag = hflag_slmv;
-            G.tflag = tflag_2v;
+            uO.hflag = hflag_slmv;
+            uO.tflag = tflag_2v;
             break;
     }
 
@@ -515,7 +531,7 @@ int zi_end_central(__G)   /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     /* header fits on one line, for anything up to 10GB and 10000 files: */
-    if (G.hflag)
+    if (uO.hflag)
         Info(slide, 0, ((char *)slide, ((int)strlen(G.zipfn) < 39)?
           LoadFarString(LongHeader) : LoadFarString(ShortHeader), G.zipfn,
           (long)G.ziplen, G.ecrec.total_entries_central_dir,
@@ -523,7 +539,7 @@ int zi_end_central(__G)   /* return PK-type error code */
           nullStr : "s"));
 
     /* verbose format */
-    if (G.lflag > 9) {
+    if (uO.lflag > 9) {
         Info(slide, 0, ((char *)slide, LoadFarString(EndCentDirRec)));
         Info(slide, 0, ((char *)slide, LoadFarString(LineSeparators)));
 
@@ -577,7 +593,7 @@ int zi_end_central(__G)   /* return PK-type error code */
         } /* endif (comment exists) */
 
     /* non-verbose mode:  print zipfile comment only if requested */
-    } else if (G.zflag && G.ecrec.zipfile_comment_length) {
+    } else if (uO.zflag && G.ecrec.zipfile_comment_length) {
         if (do_string(__G__ G.ecrec.zipfile_comment_length, DISPLAY)) {
             Info(slide, 0x401, ((char *)slide,
               LoadFarString(ZipfileCommTruncMsg)));
@@ -600,9 +616,9 @@ int zi_end_central(__G)   /* return PK-type error code */
 int zipinfo(__G)   /* return PK-type error code */
     __GDEF
 {
-    int j, do_this_file=FALSE, error, error_in_archive=PK_COOL;
+    int do_this_file=FALSE, error, error_in_archive=PK_COOL;
     int *fn_matched=NULL, *xn_matched=NULL;
-    ush members=0;
+    unsigned j, members=0;
     ulg tot_csize=0L, tot_ucsize=0L;
     ulg endprev;   /* buffers end of previous entry for zi_long()'s check
                     *  of extra bytes */
@@ -624,22 +640,6 @@ int zipinfo(__G)   /* return PK-type error code */
             xn_matched[j] = FALSE;
 
 /*---------------------------------------------------------------------------
-    Make sure timezone info is set correctly; localtime() returns GMT on
-    some OSes (e.g., Solaris 2.x) if this isn't done first.  The ifdefs are
-    copied from dos_to_unix_time() in fileio.c and are probably too strict;
-    any listed OS that supplies tzset(), regardless of whether the function
-    does anything, should be removed from the ifdefs.
-  ---------------------------------------------------------------------------*/
-
-#if (!defined(T20_VMS) && !defined(MACOS) && !defined(RISCOS) && !defined(QDOS))
-#if (!defined(BSD) && !defined(MTS) && !defined(__GO32__) && !defined(WIN32))
-#if (!defined(CMS_MVS) && !defined(TANDEM))
-    tzset();
-#endif
-#endif
-#endif
-
-/*---------------------------------------------------------------------------
     Set file pointer to start of central directory, then loop through cen-
     tral directory entries.  Check that directory-entry signature bytes are
     actually there (just a precaution), then process the entry.  We know
@@ -651,7 +651,7 @@ int zipinfo(__G)   /* return PK-type error code */
     multi-disk support.
   ---------------------------------------------------------------------------*/
 
-    G.L_flag = FALSE;       /* zipinfo mode: never convert name to lowercase */
+    uO.L_flag = FALSE;      /* zipinfo mode: never convert name to lowercase */
     G.pInfo = G.info;       /* (re-)initialize, (just to make sure) */
     G.pInfo->textmode = 0;  /* so one can read on screen (is this ever used?) */
 
@@ -659,16 +659,16 @@ int zipinfo(__G)   /* return PK-type error code */
     endprev = (G.crec.relative_offset_local_header == 4L)? 4L : 0L;
 
 
-    for (j = 0;  j < (int)G.ecrec.total_entries_central_dir;  ++j) {
+    for (j = 0; j++ < (unsigned)G.ecrec.total_entries_central_dir;) {
         if (readbuf(__G__ G.sig, 4) == 0)
             return PK_EOF;
-        if (strncmp(G.sig, G.central_hdr_sig, 4)) {  /* just to make sure */
+        if (strncmp(G.sig, central_hdr_sig, 4)) {  /* just to make sure */
             Info(slide, 0x401, ((char *)slide, LoadFarString(CentSigMsg), j));
             return PK_BADERR;   /* sig not found */
         }
-        /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag, ... */
+        /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag, ...: */
         if ((error = process_cdir_file_hdr(__G)) != PK_COOL)
-             return error;       /* only PK_EOF defined */
+            return error;       /* only PK_EOF defined */
 
         if ((error = do_string(__G__ G.crec.filename_length, DS_FN)) !=
              PK_COOL)
@@ -678,25 +678,23 @@ int zipinfo(__G)   /* return PK-type error code */
               return error;
         }
 
-        if (!G.process_all_files) {    /* check if specified on command line */
-            char  **pfn = G.pfnames-1;
+        if (!G.process_all_files) {   /* check if specified on command line */
+            unsigned i;
 
             do_this_file = FALSE;
-            while (*++pfn)
-                if (match(G.filename, *pfn, G.C_flag)) {
+            for (i = 0; i < G.filespecs; i++)
+                if (match(G.filename, G.pfnames[i], uO.C_flag)) {
                     do_this_file = TRUE;
                     if (fn_matched)
-                        fn_matched[(int)(pfn-G.pfnames)] = TRUE;
+                        fn_matched[i] = TRUE;
                     break;       /* found match, so stop looping */
                 }
             if (do_this_file) {  /* check if this is an excluded file */
-                char  **pxn = G.pxnames-1;
-
-                while (*++pxn)
-                    if (match(G.filename, *pxn, G.C_flag)) {
-                        do_this_file = FALSE;
+                for (i = 0; i < G.xfilespecs; i++)
+                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                        do_this_file = FALSE;  /* ^-- ignore case in match */
                         if (xn_matched)
-                            xn_matched[(int)(pxn-G.pxnames)] = TRUE;
+                            xn_matched[i] = TRUE;
                         break;
                     }
             }
@@ -710,7 +708,7 @@ int zipinfo(__G)   /* return PK-type error code */
 
         if (G.process_all_files || do_this_file) {
 
-            switch (G.lflag) {
+            switch (uO.lflag) {
                 case 1:
                 case 2:
                     fnprint(__G);
@@ -751,7 +749,22 @@ int zipinfo(__G)   /* return PK-type error code */
                 tot_csize -= 12;   /* don't count encryption header */
             ++members;
 
-        } else {   /* not listing */
+#ifdef DLL
+            if ((G.statreportcb != NULL) &&
+                (*G.statreportcb)(__G__ UZ_ST_FINISH_MEMBER, G.zipfn,
+                                  G.filename, NULL)) {
+                if (fn_matched)
+                    free((zvoid *)fn_matched);
+                if (xn_matched)
+                    free((zvoid *)xn_matched);
+                return IZ_CTRLC;        /* cancel operation by user request */
+            }
+#endif
+#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
+            UserStop();
+#endif
+
+        } else {        /* not listing this file */
             SKIP_(G.crec.extra_field_length)
             SKIP_(G.crec.file_comment_length)
 
@@ -760,21 +773,10 @@ int zipinfo(__G)   /* return PK-type error code */
     } /* end for-loop (j: member files) */
 
 /*---------------------------------------------------------------------------
-    Double check that we're back at the end-of-central-directory record.
-  ---------------------------------------------------------------------------*/
-
-    if (readbuf(__G__ G.sig, 4) == 0)  /* disk error? */
-        return PK_EOF;
-    if (strncmp(G.sig, G.end_central_sig, 4)) {   /* just to make sure again */
-        Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
-        error_in_archive = PK_WARN;   /* didn't find sig */
-    }
-
-/*---------------------------------------------------------------------------
     Check that we actually found requested files; if so, print totals.
   ---------------------------------------------------------------------------*/
 
-    if (G.tflag) {
+    if (uO.tflag) {
         char *sgn = "";
         int cfactor = ratio(tot_ucsize, tot_csize);
 
@@ -806,8 +808,22 @@ int zipinfo(__G)   /* return PK-type error code */
                   LoadFarString(ExclFilenameNotMatched), G.pxnames[j]));
         free((zvoid *)xn_matched);
     }
+
+/*---------------------------------------------------------------------------
+    Double check that we're back at the end-of-central-directory record.
+  ---------------------------------------------------------------------------*/
+
+    if (readbuf(__G__ G.sig, 4) == 0)  /* disk error? */
+        return PK_EOF;
+    if (strncmp(G.sig, end_central_sig, 4)) {   /* just to make sure again */
+        Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
+        error_in_archive = PK_WARN;   /* didn't find sig */
+    }
     if (members == 0 && error_in_archive <= PK_WARN)
         error_in_archive = PK_FIND;
+
+    if (uO.lflag >= 10)
+        (*G.message)((zvoid *)&G, (uch *)"\n", 1L, 0);
 
     return error_in_archive;
 
@@ -831,18 +847,18 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     int  error, error_in_archive=PK_COOL;
     ush  hostnum, hostver, extnum, extver, methnum, xattr;
     char workspace[12], attribs[22];
-    char *varmsg_str;
+    ZCONST char *varmsg_str;
     char unkn[16];
-    static char Far *os[NUM_HOSTS] = {
+    static ZCONST char Far *os[NUM_HOSTS] = {
         OS_FAT, OS_Amiga, OS_VMS, OS_Unix, OS_VMCMS, OS_AtariST, OS_HPFS,
         OS_Macintosh, OS_ZSystem, OS_CPM, OS_TOPS20, OS_NTFS, OS_QDOS,
         OS_Acorn, OS_VFAT, OS_MVS, OS_BeOS, OS_Tandem
     };
-    static char Far *method[NUM_METHODS] = {
+    static ZCONST char Far *method[NUM_METHODS] = {
         MthdNone, MthdShrunk, MthdRedF1, MthdRedF2, MthdRedF3, MthdRedF4,
         MthdImplode, MthdToken, MthdDeflate, MthdEnDeflate, MthdDCLImplode
     };
-    static char Far *dtype[4] = {
+    static ZCONST char Far *dtypelng[4] = {
         DeflNorm, DeflMax, DeflFast, DeflSFast
     };
 
@@ -904,7 +920,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
       G.crec.relative_offset_local_header));
 
     if (hostnum >= NUM_HOSTS) {
-        sprintf(unkn, LoadFarString(Unknown),
+        sprintf(unkn, LoadFarString(UnknownNo),
                 (int)G.crec.version_made_by[1]);
         varmsg_str = unkn;
     } else {
@@ -915,7 +931,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
       hostver%10));
 
     if (extnum >= NUM_HOSTS) {
-        sprintf(unkn, LoadFarString(Unknown),
+        sprintf(unkn, LoadFarString(UnknownNo),
                 (int)G.crec.version_needed_to_extract[1]);
         varmsg_str = unkn;
     } else {
@@ -926,7 +942,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
       extver%10));
 
     if (methnum >= NUM_METHODS) {
-        sprintf(unkn, LoadFarString(Unknown), G.crec.compression_method);
+        sprintf(unkn, LoadFarString(UnknownNo), G.crec.compression_method);
         varmsg_str = unkn;
     } else {
         varmsg_str = LoadFarStringSmall(method[methnum]);
@@ -941,7 +957,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
         ush  dnum=(ush)((G.crec.general_purpose_bit_flag>>1) & 3);
 
         Info(slide, 0, ((char *)slide, LoadFarString(CompressSubtype),
-          LoadFarStringSmall(dtype[dnum])));
+          LoadFarStringSmall(dtypelng[dnum])));
     }
 
     Info(slide, 0, ((char *)slide, LoadFarString(FileSecurity),
@@ -956,25 +972,25 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
      */
 #   define d_t_buf attribs
 
-    zi_time(__G__ &G.crec.last_mod_file_date, &G.crec.last_mod_file_time,
-      NULL, d_t_buf);
+    zi_time(__G__ &G.crec.last_mod_dos_datetime, NULL, d_t_buf);
     Info(slide, 0, ((char *)slide, LoadFarString(FileModDate), d_t_buf));
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field  &&
+    if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
-                          G.crec.last_mod_file_date, &z_utime, NULL)
+                          G.crec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))
     {
         TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
         d_t_buf[0] = (char)0;               /* signal "show local time" */
-        zi_time(__G__ &G.crec.last_mod_file_date, &G.crec.last_mod_file_time,
-          &(z_utime.mtime), d_t_buf);
+        zi_time(__G__ &G.crec.last_mod_dos_datetime, &(z_utime.mtime), d_t_buf);
         Info(slide, 0, ((char *)slide, LoadFarString(UT_FileModDate),
           d_t_buf, LoadFarStringSmall(LocalTime)));
 #ifndef NO_GMTIME
         d_t_buf[0] = (char)1;           /* signal "show UTC (GMT) time" */
-        zi_time(__G__ &G.crec.last_mod_file_date, &G.crec.last_mod_file_time,
-          &(z_utime.mtime), d_t_buf);
+        zi_time(__G__ &G.crec.last_mod_dos_datetime, &(z_utime.mtime), d_t_buf);
         Info(slide, 0, ((char *)slide, LoadFarString(UT_FileModDate),
           d_t_buf, LoadFarStringSmall(GMTime)));
 #endif /* !NO_GMTIME */
@@ -1072,14 +1088,14 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                (hostnum != ACORN_) &&
                (hostnum != VM_CMS_) && (hostnum != MVS_))
     {                                 /* assume Unix-like */
-        switch (xattr & UNX_IFMT) {
-            case UNX_IFDIR:   attribs[0] = 'd';  break;
-            case UNX_IFREG:   attribs[0] = '-';  break;
-            case UNX_IFLNK:   attribs[0] = 'l';  break;
-            case UNX_IFBLK:   attribs[0] = 'b';  break;
-            case UNX_IFCHR:   attribs[0] = 'c';  break;
-            case UNX_IFIFO:   attribs[0] = 'p';  break;
-            case UNX_IFSOCK:  attribs[0] = 's';  break;
+        switch ((unsigned)(xattr & UNX_IFMT)) {
+            case (unsigned)UNX_IFDIR:   attribs[0] = 'd';  break;
+            case (unsigned)UNX_IFREG:   attribs[0] = '-';  break;
+            case (unsigned)UNX_IFLNK:   attribs[0] = 'l';  break;
+            case (unsigned)UNX_IFBLK:   attribs[0] = 'b';  break;
+            case (unsigned)UNX_IFCHR:   attribs[0] = 'c';  break;
+            case (unsigned)UNX_IFIFO:   attribs[0] = 'p';  break;
+            case (unsigned)UNX_IFSOCK:  attribs[0] = 's';  break;
             default:          attribs[0] = '?';  break;
         }
         attribs[1] = (xattr & UNX_IRUSR)? 'r' : '-';
@@ -1138,7 +1154,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
         uch *ef_ptr = G.extra_field;
         ush ef_len = G.crec.extra_field_length;
         ush eb_id, eb_datalen;
-        char far *ef_fieldname;
+        ZCONST char Far *ef_fieldname;
 
         if (error_in_archive > PK_WARN)   /* fatal:  can't continue */
             /* delayed "fatal error" return from extra field reading */
@@ -1179,26 +1195,36 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                 case EF_IZVMS:
                     ef_fieldname = efIZVMS;
                     break;
+                case EF_PKW32:
+                    ef_fieldname = efPKWin32;
+                    break;
                 case EF_PKUNIX:
                     ef_fieldname = efPKUnix;
                     break;
                 case EF_IZUNIX:
                     ef_fieldname = efIZUnix;
-                    if (G.crec.version_made_by[1] == UNIX_)
+                    if (G.crec.version_made_by[1] == UNIX_ && *pEndprev > 0L)
                         *pEndprev += 4L;  /* also have UID/GID in local copy */
                     break;
                 case EF_IZUNIX2:
                     ef_fieldname = efIZUnix2;
-                    *pEndprev += 4L;      /* 4 byte UID/GID in local copy */
+                    if (*pEndprev > 0L)
+                        *pEndprev += 4L;  /* 4 byte UID/GID in local copy */
                     break;
                 case EF_TIME:
                     ef_fieldname = efTime;
+                    break;
+                case EF_MAC3:
+                    ef_fieldname = efMac3;
                     break;
                 case EF_JLMAC:
                     ef_fieldname = efJLMac;
                     break;
                 case EF_ZIPIT:
                     ef_fieldname = efZipIt;
+                    break;
+                case EF_ZIPIT2:
+                    ef_fieldname = efZipIt2;
                     break;
                 case EF_VMCMS:
                     ef_fieldname = efVMCMS;
@@ -1235,7 +1261,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
             switch (eb_id) {
                 case EF_OS2:
                 case EF_ACL:
-                    if (eb_datalen >= 4) {
+                    if (eb_datalen >= EB_OS2_HLEN) {
                         if (eb_id == EF_OS2)
                             ef_fieldname = OS2EAs;
                         else
@@ -1246,7 +1272,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     }
                     break;
                 case EF_NTSD:
-                    if (eb_datalen >= 4) {
+                    if (eb_datalen >= EB_NTSD_C_LEN) {
                         Info(slide, 0, ((char *)slide, LoadFarString(NTSDData),
                           makelong(ef_ptr)));
                         *pEndprev = 0L;   /* no clue about csize of local */
@@ -1306,7 +1332,8 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                                 types[len++] = '/';
                             strcpy(types+len, LoadFarString(UTaccess));
                             ++num;
-                            *pEndprev += 4L;
+                            if (*pEndprev > 0L)
+                                *pEndprev += 4L;
                         }
                         if (*ef_ptr & 4) {
                             len = strlen(types);
@@ -1314,7 +1341,8 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                                 types[len++] = '/';
                             strcpy(types+len, LoadFarString(UTcreation));
                             ++num;
-                            *pEndprev += 4L;
+                            if (*pEndprev > 0L)
+                                *pEndprev += 4L;
                         }
                         if (num > 0)
                             Info(slide, 0, ((char *)slide,
@@ -1322,24 +1350,64 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                               num == 1? nullStr : "s"));
                     }
                     break;
+                case EF_MAC3:
+                    if (eb_datalen >= EB_MAC3_HLEN) {
+                        ulg eb_uc = makelong(ef_ptr);
+                        unsigned mac3_flgs = makeword(ef_ptr+EB_FLGS_OFFS);
+                        unsigned eb_is_uc = mac3_flgs & EB_M3_FL_UNCMPR;
+
+                        Info(slide, 0, ((char *)slide, LoadFarString(Mac3data),
+                          eb_uc, eb_is_uc ? "un" : nullStr));
+                        if (eb_is_uc) {
+                            if (*pEndprev > 0L)
+                                *pEndprev += makelong(ef_ptr);
+                        } else {
+                            *pEndprev = 0L; /* no clue about csize of local */
+                        }
+
+                        Info(slide, 0, ((char *)slide,
+                          LoadFarString(MacOSMAC3flags),
+                          LoadFarStringSmall(mac3_flgs & EB_M3_FL_DATFRK ?
+                                             MacOS_DF : MacOS_RF),
+                          (mac3_flgs & EB_M3_FL_TIME64 ? 64 : 32)));
+                        zi_showMacTypeCreator(__G__ &ef_ptr[6]);
+                    }
+                    break;
+                case EF_ZIPIT2:
+                    if (eb_datalen >= 5 &&
+                        strncmp((char *)ef_ptr, "ZPIT", 4) == 0) {
+
+                        if (eb_datalen >= 12) {
+                            zi_showMacTypeCreator(__G__ &ef_ptr[4]);
+                        }
+                    }
+
                 case EF_ZIPIT:
                     if (eb_datalen >= 5 &&
-                        strncmp((char *)ef_ptr, "ZPIT", 4) == 0)
-                    {
-                        int fnlen = ef_ptr[4];
+                        strncmp((char *)ef_ptr, "ZPIT", 4) == 0) {
+                        unsigned fnlen = ef_ptr[4];
 
-                        if (eb_datalen >= 5 + fnlen + 8) {
-                            char nullchar = ef_ptr[5+fnlen];
+                        if (eb_datalen >= fnlen + (5 + 8)) {
+                            uch nullchar = ef_ptr[fnlen+5];
 
-                            ef_ptr[5+fnlen] = 0;  /* terminate filename */
+                            ef_ptr[fnlen+5] = '\0'; /* terminate filename */
                             Info(slide, 0, ((char *)slide,
-                              LoadFarString(ZipItData), ef_ptr+5, nullchar,
-                              ef_ptr[5+fnlen+1], ef_ptr[5+fnlen+2],
-                              ef_ptr[5+fnlen+3], ef_ptr[5+fnlen+4],
-                              ef_ptr[5+fnlen+5], ef_ptr[5+fnlen+6],
-                              ef_ptr[5+fnlen+7]));
-                            ef_ptr[5+fnlen] = nullchar; /* restore for later? */
+                              LoadFarString(ZipItFname), (char *)ef_ptr+5));
+                            ef_ptr[fnlen+5] = nullchar;
+                            zi_showMacTypeCreator(__G__ &ef_ptr[fnlen+5]);
                         }
+                    }
+                    break;
+                case EF_JLMAC:
+                    if (eb_datalen >= 40 &&
+                        strncmp((char *)ef_ptr, "JLEE", 4) == 0)
+                    {
+                        zi_showMacTypeCreator(__G__ &ef_ptr[4]);
+
+                        Info(slide, 0, ((char *)slide,
+                          LoadFarString(MacOSJLEEflags),
+                          LoadFarStringSmall(ef_ptr[31] & 1 ?
+                                             MacOS_DF : MacOS_RF)));
                     }
                     break;
 #ifdef CMS_MVS
@@ -1357,12 +1425,19 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
 #endif /* CMS_MVS */
                 case EF_BEOS:
-                    if (eb_datalen >= 5) {
+                    if (eb_datalen >= EB_BEOS_HLEN) {
+                        ulg eb_uc = makelong(ef_ptr);
+                        unsigned eb_is_uc =
+                          *(ef_ptr+EB_FLGS_OFFS) & EB_BE_FL_UNCMPR;
+
                         Info(slide, 0, ((char *)slide, LoadFarString(BeOSdata),
-                          makelong(ef_ptr), (ef_ptr[4] & BE_UNCOMPRESSED)?
-                          "un" : nullStr));
-                        if (!(ef_ptr[4] & BE_UNCOMPRESSED))
+                          eb_uc, eb_is_uc ? "un" : nullStr));
+                        if (eb_is_uc) {
+                            if (*pEndprev > 0L)
+                                *pEndprev += makelong(ef_ptr);
+                        } else {
                             *pEndprev = 0L; /* no clue about csize of local */
+                        }
                     }
                     break;
                 case EF_QDOS:
@@ -1418,17 +1493,20 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
 
     /* high bit == Unix/OS2/NT GMT times (mtime, atime); next bit == UID/GID */
     if ((xattr = (ush)((G.crec.external_file_attributes & 0xC000) >> 12)) & 8)
+    {
         if (hostnum == UNIX_ || hostnum == FS_HPFS_ || hostnum == FS_NTFS_)
         {
             Info(slide, 0, ((char *)slide, LoadFarString(lExtraFieldType),
               "is", EF_IZUNIX, LoadFarStringSmall(efIZUnix),
               (unsigned)(xattr&12), (xattr&4)? efIZuid : efIZnouid));
-            *pEndprev += (ulg)(xattr&12);
+            if (*pEndprev > 0L)
+                *pEndprev += (ulg)(xattr&12);
         }
         else if (hostnum == FS_FAT_ && !(xattr&4))
             Info(slide, 0, ((char *)slide, LoadFarString(lExtraFieldType),
               "may be", EF_IZUNIX, LoadFarStringSmall(efIZUnix), 8,
               efIZnouid));
+    }
 
     if (!G.crec.file_comment_length)
         Info(slide, 0, ((char *)slide, LoadFarString(NoFileComment)));
@@ -1467,13 +1545,13 @@ static int zi_short(__G)   /* return PK-type error code */
     ush         methnum, hostnum, hostver, xattr;
     char        *p, workspace[12], attribs[16];
     char        methbuf[5];
-    static char dtype[5]="NXFS";  /* normal, maximum, fast, superfast */
-    static char Far os[NUM_HOSTS+1][4] = {
+    static ZCONST char dtype[5]="NXFS"; /* normal, maximum, fast, superfast */
+    static ZCONST char Far os[NUM_HOSTS+1][4] = {
         "fat", "ami", "vms", "unx", "cms", "atr", "hpf", "mac", "zzz",
         "cpm", "t20", "ntf", "qds", "aco", "vft", "mvs", "be ", "nsk",
         "???"
     };
-    static char Far method[NUM_METHODS+1][5] = {
+    static ZCONST char Far method[NUM_METHODS+1][5] = {
         "stor", "shrk", "re:1", "re:2", "re:3", "re:4", "i#:#", "tokn",
         "def#", "edef", "dcli", "u###"
     };
@@ -1598,14 +1676,14 @@ static int zi_short(__G)   /* return PK-type error code */
             break;
 
         default:   /* assume Unix-like */
-            switch (xattr & UNX_IFMT) {
-                case UNX_IFDIR:   attribs[0] = 'd';  break;
-                case UNX_IFREG:   attribs[0] = '-';  break;
-                case UNX_IFLNK:   attribs[0] = 'l';  break;
-                case UNX_IFBLK:   attribs[0] = 'b';  break;
-                case UNX_IFCHR:   attribs[0] = 'c';  break;
-                case UNX_IFIFO:   attribs[0] = 'p';  break;
-                case UNX_IFSOCK:  attribs[0] = 's';  break;
+            switch ((unsigned)(xattr & UNX_IFMT)) {
+                case (unsigned)UNX_IFDIR:   attribs[0] = 'd';  break;
+                case (unsigned)UNX_IFREG:   attribs[0] = '-';  break;
+                case (unsigned)UNX_IFLNK:   attribs[0] = 'l';  break;
+                case (unsigned)UNX_IFBLK:   attribs[0] = 'b';  break;
+                case (unsigned)UNX_IFCHR:   attribs[0] = 'c';  break;
+                case (unsigned)UNX_IFIFO:   attribs[0] = 'p';  break;
+                case (unsigned)UNX_IFSOCK:  attribs[0] = 's';  break;
                 default:          attribs[0] = '?';  break;
             }
             attribs[1] = (xattr & UNX_IRUSR)? 'r' : '-';
@@ -1634,7 +1712,7 @@ static int zi_short(__G)   /* return PK-type error code */
 
     } /* end switch (hostnum: external attributes format) */
 
-    Info(slide, 0, ((char *)slide, "%s %s %7lu ", attribs,
+    Info(slide, 0, ((char *)slide, "%s %s %8lu ", attribs,
       LoadFarStringSmall(os[hostnum]), G.crec.ucsize));
     Info(slide, 0, ((char *)slide, "%c",
       (G.crec.general_purpose_bit_flag & 1)?
@@ -1649,15 +1727,15 @@ static int zi_short(__G)   /* return PK-type error code */
       ((G.crec.general_purpose_bit_flag & 8)? 'l' : '-'))); /* no extra field */
       /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ extended local header or not */
 
-    if (G.lflag == 4) {
+    if (uO.lflag == 4) {
         ulg csiz = G.crec.csize;
 
         if (G.crec.general_purpose_bit_flag & 1)
             csiz -= 12;    /* if encrypted, don't count encryption header */
         Info(slide, 0, ((char *)slide, "%3d%%",
           (ratio(G.crec.ucsize,csiz)+5)/10));
-    } else if (G.lflag == 5)
-        Info(slide, 0, ((char *)slide, " %7lu", G.crec.csize));
+    } else if (uO.lflag == 5)
+        Info(slide, 0, ((char *)slide, " %8lu", G.crec.csize));
 
     /* Read the extra field, if any.  The extra field info may be used
      * in the file modification time section, below.
@@ -1682,8 +1760,11 @@ static int zi_short(__G)   /* return PK-type error code */
 #   define d_t_buf attribs
 #ifdef USE_EF_UT_TIME
     z_modtim = G.extra_field &&
+#ifdef IZ_CHECK_TZ
+               G.tz_is_valid &&
+#endif
                (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
-                                 G.crec.last_mod_file_date, &z_utime, NULL)
+                                 G.crec.last_mod_dos_datetime, &z_utime, NULL)
                 & EB_UT_FL_MTIME)
               ? &z_utime.mtime : NULL;
     TIMET_TO_NATIVE(z_utime.mtime)     /* NOP unless MSC 7.0 or Macintosh */
@@ -1692,8 +1773,7 @@ static int zi_short(__G)   /* return PK-type error code */
 #   define z_modtim NULL
 #endif
     Info(slide, 0, ((char *)slide, " %s %s ", methbuf,
-      zi_time(__G__ &G.crec.last_mod_file_date, &G.crec.last_mod_file_time,
-      z_modtim, d_t_buf)));
+      zi_time(__G__ &G.crec.last_mod_dos_datetime, z_modtim, d_t_buf)));
     fnprint(__G);
 
 /*---------------------------------------------------------------------------
@@ -1711,23 +1791,59 @@ static int zi_short(__G)   /* return PK-type error code */
 
 
 
+/**************************************/
+/*  Function zi_showMacTypeCreator()  */
+/**************************************/
+
+static void zi_showMacTypeCreator(__G__ ebfield)
+    __GDEF
+    uch *ebfield;
+{
+    /* not every Type / Creator character is printable */
+    if (isprint(ebfield[0]) && isprint(ebfield[1]) &&
+        isprint(ebfield[2]) && isprint(ebfield[3]) &&
+        isprint(ebfield[4]) && isprint(ebfield[5]) &&
+        isprint(ebfield[6]) && isprint(ebfield[7])) {
+       Info(slide, 0, ((char *)slide, LoadFarString(MacOSdata),
+            ebfield[0], ebfield[1], ebfield[2], ebfield[3],
+            ebfield[4], ebfield[5], ebfield[6], ebfield[7]));
+    } else {
+       Info(slide, 0, ((char *)slide, LoadFarString(MacOSdata1),
+            (((ulg)ebfield[0]) << 24) +
+            (((ulg)ebfield[1]) << 16) +
+            (((ulg)ebfield[2]) << 8)  +
+            ((ulg)ebfield[3]),
+            (((ulg)ebfield[4]) << 24) +
+            (((ulg)ebfield[5]) << 16) +
+            (((ulg)ebfield[6]) << 8)  +
+            ((ulg)ebfield[7])));
+    }
+} /* end function zi_showMacTypeCreator() */
+
+
+
+
+
 /************************/
 /*  Function zi_time()  */
 /************************/
 
-static char *zi_time(__G__ datez, timez, modtimez, d_t_str)
+static char *zi_time(__G__ datetimez, modtimez, d_t_str)
     __GDEF
-    ZCONST ush *datez, *timez;
+    ZCONST ulg *datetimez;
     ZCONST time_t *modtimez;
     char *d_t_str;
 {
-    ush yr, mo, dy, hh, mm, ss;
+    unsigned yr, mo, dy, hh, mm, ss;
     char monthbuf[4];
-    char *monthstr;
-    static char Far month[12][4] = {
+    ZCONST char *monthstr;
+    static ZCONST char Far month[12][4] = {
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };
+#ifdef USE_EF_UT_TIME
+    struct tm *t;
+#endif
 
 
 
@@ -1740,31 +1856,37 @@ static char *zi_time(__G__ datez, timez, modtimez, d_t_str)
 
 #ifdef USE_EF_UT_TIME
     if (modtimez != NULL) {
-        struct tm *t;
-
 #ifndef NO_GMTIME
         /* check for our secret message from above... */
         t = (d_t_str[0] == (char)1)? gmtime(modtimez) : localtime(modtimez);
 #else
         t = localtime(modtimez);
 #endif
-        mo = (ush)(t->tm_mon + 1);
-        dy = (ush)(t->tm_mday);
-        yr = (ush)(t->tm_year);
+        if (uO.lflag > 9 && t == (struct tm *)NULL)
+            /* time conversion error in verbose listing format,
+             * return string with '?' instead of data
+             */
+            return (strcpy(d_t_str, LoadFarString(YMDHMSTimeError)));
+    } else
+        t = (struct tm *)NULL;
+    if (t != (struct tm *)NULL) {
+        mo = (unsigned)(t->tm_mon + 1);
+        dy = (unsigned)(t->tm_mday);
+        yr = (unsigned)(t->tm_year);
 
-        hh = (ush)(t->tm_hour);
-        mm = (ush)(t->tm_min);
-        ss = (ush)(t->tm_sec);
+        hh = (unsigned)(t->tm_hour);
+        mm = (unsigned)(t->tm_min);
+        ss = (unsigned)(t->tm_sec);
     } else
 #endif /* USE_EF_UT_TIME */
     {
-        yr = (ush)(((*datez >> 9) & 0x7f) + 80);
-        mo = (ush)((*datez >> 5) & 0x0f);
-        dy = (ush)(*datez & 0x1f);
+        yr = ((unsigned)(*datetimez >> 25) & 0x7f) + 80;
+        mo = ((unsigned)(*datetimez >> 21) & 0x0f);
+        dy = ((unsigned)(*datetimez >> 16) & 0x1f);
 
-        hh = (ush)((*timez >> 11) & 0x1f);
-        mm = (ush)((*timez >> 5) & 0x3f);
-        ss = (ush)((*timez & 0x1f) * 2);
+        hh = (((unsigned)*datetimez >> 11) & 0x1f);
+        mm = (((unsigned)*datetimez >> 5) & 0x3f);
+        ss = (((unsigned)*datetimez << 1) & 0x3e);
     }
 
     if (mo == 0 || mo > 12) {
@@ -1773,13 +1895,13 @@ static char *zi_time(__G__ datez, timez, modtimez, d_t_str)
     } else
         monthstr = LoadFarStringSmall(month[mo-1]);
 
-    if (G.lflag > 9)  /* verbose listing format */
+    if (uO.lflag > 9)   /* verbose listing format */
         sprintf(d_t_str, LoadFarString(YMDHMSTime), yr+1900, monthstr, dy, hh,
           mm, ss);
-    else if (G.T_flag)
+    else if (uO.T_flag)
         sprintf(d_t_str, LoadFarString(DecimalTime), yr+1900, mo, dy, hh, mm,
           ss);
-    else   /* was:  if ((lflag >= 3) && (lflag <= 5)) */
+    else   /* was:  if ((uO.lflag >= 3) && (uO.lflag <= 5)) */
         sprintf(d_t_str, LoadFarString(DMYHMTime), dy, monthstr, yr%100, hh,
           mm);
 

@@ -64,6 +64,15 @@ static P_CTIM         zztimeblock;          /* time block for file creation */
 static ZVSCREATE_STRU zzcreatepacket;       /* packet for sys_create(), any
 
 
+/***************************/
+/* Strings used in aosvs.c */
+/***************************/
+
+static ZCONST char Far CannotDeleteOldFile[] =
+  "error:  cannot delete old %s\n";
+static ZCONST char Far CannotCreateFile[] = "error:  cannot create %s\n";
+
+
 #ifndef SFX
 #ifdef NO_DIR                  /* for AT&T 3B1 */
 
@@ -115,6 +124,13 @@ char *do_wild(__G__ wildspec)
     if (firstcall) {        /* first call:  must initialize everything */
         firstcall = FALSE;
 
+        if (!iswild(wildspec)) {
+            strcpy(matchname, wildspec);
+            have_dirname = FALSE;
+            dir = NULL;
+            return matchname;
+        }
+
         /* break the wildspec into a directory part and a wildcard filename */
         if ((wildname = strrchr(wildspec, '/')) == (char *)NULL) {
             dirname = ".";
@@ -125,7 +141,7 @@ char *do_wild(__G__ wildspec)
             ++wildname;     /* point at character after '/' */
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
-                Info(slide, 1, ((char *)slide,
+                Info(slide, 0x201, ((char *)slide,
                   "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
@@ -137,9 +153,13 @@ char *do_wild(__G__ wildspec)
 
         if ((dir = opendir(dirname)) != (DIR *)NULL) {
             while ((file = readdir(dir)) != (struct dirent *)NULL) {
+                Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
-                if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
+                if (match(file->d_name, wildname, 0) &&  /* 0 == case sens. */
+                    /* skip "." and ".." directory entries */
+                    strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
+                    Trace((stderr, "do_wild:  match() succeeds\n"));
                     if (have_dirname) {
                         strcpy(matchname, dirname);
                         strcpy(matchname+dirnamelen, file->d_name);
@@ -171,8 +191,12 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL)
+    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        if (file->d_name[0] == '.' && wildname[0] != '.')
+            continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
+            Trace((stderr, "do_wild:  match() succeeds\n"));
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
                 strcpy(matchname+dirnamelen, file->d_name);
@@ -180,6 +204,7 @@ char *do_wild(__G__ wildspec)
                 strcpy(matchname, file->d_name);
             return matchname;
         }
+    }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = (DIR *)NULL;
@@ -294,12 +319,12 @@ int open_outfile(__G)         /* return 1 if fail */
 
     /* do it the hard way if no AOS/VS info was stored or if we had problems */
     if (errc) {
-        dmm = (G.lrec.last_mod_file_date >> 5) & 0x0f;
-        ddd = G.lrec.last_mod_file_date & 0x1f;
-        dyy = (G.lrec.last_mod_file_date >> 9) + 1980;
-        dhh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
-        dmin = (G.lrec.last_mod_file_time >> 5) & 0x3f;
-        dss = (G.lrec.last_mod_file_time & 0x1f) * 2;
+        dyy = (G.lrec.last_mod_dos_datetime >> 25) + 1980;
+        dmm = (G.lrec.last_mod_dos_datetime >> 21) & 0x0f;
+        ddd = (G.lrec.last_mod_dos_datetime >> 16) & 0x1f;
+        dhh = (G.lrec.last_mod_dos_datetime >> 11) & 0x1f;
+        dmin = (G.lrec.last_mod_dos_datetime >> 5) & 0x3f;
+        dss = (G.lrec.last_mod_dos_datetime << 1) & 0x3e;
 
         if (zvs_create(G.filename, (((ulg)dgdate(dmm, ddd, dyy)) << 16) |
             (dhh*1800L + dmin*30L + dss/2L), -1L, -1L, (char *) -1, -1, -1, -1))
@@ -404,7 +429,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -416,7 +441,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == (char *)NULL)     /* no '/' or not junking dirs */
         cp = G.filename;        /* point to internal zipfile-member pathname */
@@ -468,7 +493,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -1100,8 +1125,8 @@ void version(__G)
  *
  */
 
-int zvs_create(char *fname, long cretim, long modtim, long acctim, char *pacl,
-               int ftyp, int eltsize, int maxindlev)
+int zvs_create(ZCONST char *fname, long cretim, long modtim, long acctim,
+               char *pacl, int ftyp, int eltsize, int maxindlev)
 {
     P_CREATE    pcr_stru;
     P_CTIM      pct_stru;
@@ -1150,7 +1175,9 @@ int zvs_create(char *fname, long cretim, long modtim, long acctim, char *pacl,
  *
  */
 
-int zvs_credir(char *dname, long cretim, long modtim, long acctim, char *pacl, int ftyp, long maxblocks, int hashfsize, int maxindlev)
+int zvs_credir(ZCONST char *dname, long cretim, long modtim, long acctim,
+               char *pacl, int ftyp, long maxblocks, int hashfsize,
+               int maxindlev)
 {
     P_CREATE_DIR    pcr_stru;
     P_CTIM          pct_stru;
@@ -1198,9 +1225,9 @@ int zvs_credir(char *dname, long cretim, long modtim, long acctim, char *pacl, i
  *           31-may-94 dbl
  *
  */
-char *ux_to_vs_name(char *outname, char *inname)
+char *ux_to_vs_name(char *outname, ZCONST char *inname)
 {
-    char *ip=inname, *op=outname;
+    ZCONST char *ip=inname, *op=outname;
 
 
     if (ip[0] == '.') {

@@ -1,10 +1,10 @@
-# Makefile for UnZip 5.3 using QDOS/xtc68 and GNU make
+# Makefile for UnZip 5.4 using QDOS/xtc68 and GNU make
 #
 #      This makefile is a makefile for the xtc68 cross-compiler on Linux;
 #      conversion to a native c68 makefile should be trivial. This builds
 #      native QDOS binaries.
 #
-# Last modified:  4 Feb 97
+# Last modified:  18 Nov 98
 
 include /etc/ql.mak
 CFLAGS = -O -I. -I./qdos/
@@ -18,12 +18,12 @@ FOBJS = funzip.o ttyio.o crypt.fo inflate.fo globals.fo config.o crc32.o qdos.fo
 XOBJS = unzip.xo process.xo crypt.o extract.xo fileio.o \
         ttyio.o inflate.o match.o globals.o crctab.o qdos.xo config.o crc32.o
 
-all : unzip unzipsfx funzip makesfx
+all : unzip unzipsfx funzip makesfx callstub
 
 # xtc68/cc is brain dead !!
 
 %.xo : %.c
-	qcpp -DSFX -I. -I./qdos/ $*.c $*.i
+	qcpp -DSFX -DSFX_EXDIR -I. -I./qdos/ $*.c $*.i
 	c68 -O $*.i $*.s
 	as68 $*.s $*.xo
 	rm -f $*.s $*.i
@@ -55,6 +55,11 @@ makesfx : qdos/makesfx.c
 	cp qdos/makesfx.c .
 	$(CC) $(CFLAGS) -o makesfx makesfx.c
 	rm -f makesfx.c
+
+callstub : qdos/callstub.c
+	cp qdos/callstub.c .
+	$(CC) -screspr.o $(CFLAGS) -o callstub callstub.c
+	rm -f callstub.c
 
 clean :
 	rm *.o *.xo *.fo
@@ -95,7 +100,7 @@ config.o: qdos/config.S
 
 qdos.xo: qdos/qdos.c
 	cp qdos/qdos.c .
-	qcpp -DSFX -I. -I./qdos/ qdos.c qdos.i
+	qcpp -DSFX -DSFX_EXDIR -I. -I./qdos/ qdos.c qdos.i
 	c68 qdos.i qdos.s
 	as68 qdos.s qdos.xo
 	rm -f qdos.s qdos.i
@@ -108,3 +113,10 @@ qdos.fo: qdos/qdos.c
 	as68 qdos.s qdos.fo
 	rm -f qdos.s qdos.i
 	rm -f qdos.c
+
+install:  unzip unzipsfx funzip makesfx callstub
+	qcp unzip /ql/exe/
+	qcp unzipsfx /ql/exe/
+	qcp funzip /ql/exe/
+	qcp makesfx /ql/exe/
+	cp callstub /ql/exe/

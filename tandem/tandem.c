@@ -6,15 +6,24 @@
 #include "unzip.h"
 
 #include <tal.h>
+#include "$system.zsysdefs.zsysc" nolist
 #include <cextdecs(FILE_GETINFOLISTBYNAME_, \
                    FILENAME_SCAN_,          \
-                   INTERPRETTIMESTAMP       \
+                   INTERPRETTIMESTAMP,      \
+                   CONVERTTIMESTAMP         \
                   )>
 #include <cextdecs(FILENAME_FINDSTART_, \
                    FILENAME_FINDNEXT_,  \
                    FILENAME_FINDFINISH_ \
                   )>
 #include <cextdecs(SETMODE)>
+#ifdef LICENSED
+#include <cextdecs(COMPUTETIMESTAMP,     \
+                   PROCESS_GETINFO_,     \
+                   PROCESS_GETINFOLIST_, \
+                   PROCESSHANDLE_NULLIT_ \
+                  )>
+#endif /* LICENSED */
 
 char *in2ex OF((char *));
 
@@ -35,11 +44,16 @@ FILE *zipopen(fname, opt)
   const char *fname;
   const char *opt;
 {
-  int fdesc;
+  int fdesc, fnum, err;
 
   if (strcmp(opt,FOPW) == 0)
-    if ((fdesc = creat(fname,,100,500)) != -1)
-      close(fdesc);
+    if ((fdesc = creat(fname,,100,500)) != -1) {
+      fnum = fdtogfn(fdesc);
+      err = SETMODE(fnum, SET_FILE_BUFFERSIZE, TANDEM_BLOCKSIZE);
+      err = SETMODE(fnum, SET_FILE_BUFFERED, 0, 0);
+      err = SETMODE(fnum, SET_FILE_BUFFERED, 0, 1);
+      err = close(fdesc);
+    }
 
   return fopen(fname,opt);
 }
@@ -62,13 +76,120 @@ int zputc(ch, fptr)
 #define putc zputc
 
 
-int utime OF((char *, ztimbuf *));
+#ifdef LICENSED
+_tal _priv short FILE_CHANGELABEL_ (
+ short,          /* IN */
+ short,          /* IN */
+ short _far *    /* IN */
+ );
+
+_c _callable int changelabel OF((short, const short *, const short *));
+
+_c _callable int changelabel(fnum, modtime, actime)
+  short fnum;
+  const short *modtime;
+  const short *actime;
+{
+  int err;
+
+  err = FILE_CHANGELABEL_(fnum, 16, modtime);
+  if (!err)
+    err = FILE_CHANGELABEL_(fnum, 17, actime);
+  return err;
+}
+
+int islicensed OF((void));
+
+int islicensed(void)
+{
+  #define plist_items 1
+  #define plist_size 10
+
+  short myphandle[ZSYS_VAL_PHANDLE_WLEN];
+  short licensetag[plist_items] = {37};
+  short licensed[plist_size];
+  short maxlen = plist_size;
+  short items = plist_items;
+  short resultlen[1], err;
+
+  err = PROCESSHANDLE_NULLIT_(myphandle);
+
+  if (!err)
+    err = PROCESS_GETINFO_(myphandle);
+
+  if (!err)
+    err = PROCESS_GETINFOLIST_(/*cpu*/,
+                               /*pin*/,
+                               /*nodename*/,
+                               /*nodenamelen*/,
+                               myphandle,
+                               licensetag,
+                               items,
+                               licensed,
+                               maxlen,
+                               resultlen
+                              );
+
+  if (err != 0)
+    return 0;
+  else
+    return licensed[0];
+}
+#endif /* LICENSED */
+
+
+int utime OF((const char *, const ztimbuf *));
 
 int utime(file, time)
-  char *file;
-  ztimbuf *time;
+  const char *file;
+  const ztimbuf *time;
 {
-  return 0;
+#ifdef LICENSED
+  int fdesc, result, err;
+  union timestamp_ov {
+    long long fulltime;
+    short wordtime[4];
+  };
+  union timestamp_ov lasttime, opentime;
+  struct tm *modt, *opent;
+  short datetime[8], errormask[1], fnum;
+
+  if (islicensed() ) {
+    /* Attempt to update file label */
+    modt = gmtime( &time->modtime );
+
+    datetime[0] = modt->tm_year + 1900;
+    datetime[1] = modt->tm_mon + 1;
+    datetime[2] = modt->tm_mday;
+    datetime[3] = modt->tm_hour;
+    datetime[4] = modt->tm_min;
+    datetime[5] = modt->tm_sec;
+    datetime[6] = datetime[7] = 0;
+    errormask[0] = 0;
+    lasttime.fulltime = COMPUTETIMESTAMP (datetime, errormask);
+
+    opent = gmtime( &time->actime );
+
+    datetime[0] = opent->tm_year + 1900;
+    datetime[1] = opent->tm_mon + 1;
+    datetime[2] = opent->tm_mday;
+    datetime[3] = opent->tm_hour;
+    datetime[4] = opent->tm_min;
+    datetime[5] = opent->tm_sec;
+    datetime[6] = datetime[7] = 0;
+    errormask[0] = 0;
+    opentime.fulltime = COMPUTETIMESTAMP (datetime, errormask);
+
+    fdesc = open(file, O_WRONLY);
+    fnum = fdtogfn(fdesc);
+    result = changelabel(fnum,lasttime.wordtime,opentime.wordtime);
+    err = close(fdesc);
+    return result;
+  }
+  return -1;
+#else  /* !LICENSED */
+  return 0;             /* "no error", to suppress annoying failure messages */
+#endif  /* ?LICENSED */
 }
 
 
@@ -102,8 +223,6 @@ int chmod(file, unix_sec)
 
   /*  4="N", 5="C", 6="U", 7="-"   */
 
-  err = unix_sec & S_IROTH;
-
   if (unix_sec & S_IROTH) nsk_sec.bit_ov.read = 4;
   else if (unix_sec & S_IRGRP) nsk_sec.bit_ov.read = 5;
   else if (unix_sec & S_IRUSR) nsk_sec.bit_ov.read = 6;
@@ -123,11 +242,45 @@ int chmod(file, unix_sec)
 
   nsk_sec_int = nsk_sec.int_ov;
 
-  fdes = open(file, (O_EXCLUSIVE | O_RDONLY));
-  fnum = fdtogfn (fdes);
-  err = SETMODE (fnum, SET_FILE_SECURITY, nsk_sec_int);
-  err = close(fdes);
+  if ((fdes = open(file, (O_EXCLUSIVE | O_RDONLY))) == -1)
+    return -1;
+  fnum = fdtogfn(fdes);
+  err = SETMODE(fnum, SET_FILE_SECURITY, nsk_sec_int);
+  close(fdes);
+  return (err != 0 ? -1 : 0);
+}
 
+
+/* TANDEM version of chown() function */
+
+int chown(file, uid, gid)
+  const char *file;
+  uid_t uid;
+  gid_t gid;
+{
+  FILE *stream;
+  struct nsk_own_type {
+    unsigned group  : 8;
+    unsigned user   : 8;
+  };
+  union nsk_own_ov {
+    struct nsk_own_type bit_ov;
+    short int_ov;
+  };
+  union nsk_own_ov nsk_own;
+  short fnum, fdes, err, nsk_own_int;
+
+  nsk_own.bit_ov.group = gid;
+  nsk_own.bit_ov.user  = uid;
+
+  nsk_own_int = nsk_own.int_ov;
+
+  if ((fdes = open(file, (O_EXCLUSIVE | O_RDONLY))) == -1)
+    return -1;
+  fnum = fdtogfn(fdes);
+  err = SETMODE(fnum, SET_FILE_OWNER, nsk_own_int);
+  close(fdes);
+  return (err != 0 ? -1 : 0);
 }
 
 
@@ -138,11 +291,27 @@ time_t gmt_to_time_t (long long *);
 time_t gmt_to_time_t (gmt)
   long long *gmt;
 {
+  #define GMT_TO_LCT 0;
+  #define GMT_TO_LST 1;
+
   struct tm temp_tm;
   short  date_time[8];
   long   julian_dayno;
+  long long lct, lst, itime;
+  short  err[1], type;
 
-  julian_dayno = INTERPRETTIMESTAMP (*gmt, date_time);
+  type = GMT_TO_LCT;
+  lct = CONVERTTIMESTAMP(*gmt, type,, err);
+
+  if (!err[0]) {
+    type = GMT_TO_LST;
+    lst = CONVERTTIMESTAMP(*gmt, type,, err);
+  }
+
+  itime = (err[0] ? *gmt : lct);
+  temp_tm.tm_isdst = (err[0] ? -1 : ((lct == lst) ? 0 : 1));
+
+  julian_dayno = INTERPRETTIMESTAMP (itime, date_time);
 
   temp_tm.tm_sec   = date_time[5];
   temp_tm.tm_min   = date_time[4];
@@ -150,7 +319,6 @@ time_t gmt_to_time_t (gmt)
   temp_tm.tm_mday  = date_time[2];
   temp_tm.tm_mon   = date_time[1] - 1;     /* C's so sad */
   temp_tm.tm_year  = date_time[0] - 1900;  /* it's almost funny */
-  temp_tm.tm_isdst = -1;  /* don't know */
 
   return (mktime(&temp_tm));
 }
@@ -196,18 +364,19 @@ int stat(n, s)
 const char *n;
 struct stat *s;
 {
-  #define list_items 14
-  #define rlist_size 200
+  #define flist_items 14
+  #define flist_size 200
 
   short err, i, extension;
   char fname[FILENAME_MAX + 1];
   short fnamelen;
   char ext[EXTENSION_MAX + 1];
-                        /* #0  #1  #2  #3 #4 #5 #6 #7 #8 #9 #10 #11 #12 #13 */
-  short ilist[list_items]={62,117,145,142,58,41,42,30,31,75, 78, 79, 60,119};
-  short ilen[list_items] ={ 2,  4,  4,  2, 1, 1, 1, 1, 1, 1,  1,  1,  1,  4};
-  short ioff[list_items];
-  short rlist[rlist_size];
+                         /* #0  #1  #2  #3 #4 #5 #6 #7 #8 #9 #10 #11 #12 #13 */
+/*short ilist[flist_items]={62,117,145,142,58,41,42,30,31,75, 78, 79, 60,119}*/
+  short ilist[flist_items]={62, 56,144,142,58,41,42,30,31,75, 78, 79, 60, 54};
+  short ilen[flist_items] ={ 2,  4,  4,  2, 1, 1, 1, 1, 1, 1,  1,  1,  1,  4};
+  short ioff[flist_items];
+  short flist[flist_size];
   short extra[2];
   short *rlen=&extra[0];
   short *err_item=&extra[1];
@@ -242,9 +411,10 @@ struct stat *s;
                         options
                       );
 
-  if (err != 0 || kind == 2) return -1;
+  /* allow kind == 2 (DEFINE names) */
+  if (err != 0) return -1;
 
-  if (kind == 1 || level < 2) {
+  if (kind == 1 || (kind == 0 && level < 2)) {
     /* Pattern, Subvol Name or One part Filename - lets see if it exists */
     err = FILENAME_FINDSTART_ ( &searchid,
                                 fname,
@@ -280,9 +450,9 @@ struct stat *s;
   err = FILE_GETINFOLISTBYNAME_( fname,
                                  fnamelen,
                                  ilist,
-                                 list_items,
-                                 rlist,
-                                 rlist_size,
+                                 flist_items,
+                                 flist,
+                                 flist_size,
                                  rlen,
                                  err_item
                                );
@@ -292,24 +462,24 @@ struct stat *s;
   ioff[0] = 0;
 
   /*  Build up table of offets into result list */
-  for (i=1; i < list_items; i++)
+  for (i=1; i < flist_items; i++)
     ioff[i] = ioff[i-1] + ilen[i-1];
 
 
   /* Setup timestamps */
-  s->st_atime = gmt_to_time_t ((long long *)&rlist[ioff[1]]);
-  s->st_mtime = s->st_ctime = gmt_to_time_t ((long long *)&rlist[ioff[2]]);
-  s->st_reserved[0] = (int64_t) gmt_to_time_t ((long long *)&rlist[ioff[13]]);
+  s->st_atime = gmt_to_time_t ((long long *)&flist[ioff[1]]);
+  s->st_mtime = s->st_ctime = gmt_to_time_t ((long long *)&flist[ioff[2]]);
+  s->st_reserved[0] = (int64_t) gmt_to_time_t ((long long *)&flist[ioff[13]]);
 
-  s->st_size = *(off_t *)&rlist[ioff[3]];
+  s->st_size = *(off_t *)&flist[ioff[3]];
 
-  fowner = (unsigned short *)&rlist[ioff[4]];
+  fowner = (unsigned short *)&flist[ioff[4]];
   s->st_uid = *fowner & 0x00ff;
   s->st_gid = *fowner >> 8;
 
   /* Note that Purge security (fsec[3]) in NSK has no relevance to stat() */
-  fsec = (char *)&rlist[ioff[0]];
-  fprogid = (unsigned short *)&rlist[ioff[12]];
+  fsec = (char *)&flist[ioff[0]];
+  fprogid = (unsigned short *)&flist[ioff[12]];
 
   s->st_mode = S_IFREG |  /* Regular File */
   /*  Parse Read Flag */
@@ -333,7 +503,6 @@ struct stat *s;
 
 
 /* TANDEM Directory processing */
-
 
 DIR *opendir(const char *dirname)
 {
@@ -416,7 +585,7 @@ DIR *opendir(const char *dirname)
 
    end = FILENAME_FINDFINISH_(searchid);
 
-   if (err = 1) {  /*  Should return EOF at end of search */
+   if (err == 1) {  /*  Should return EOF at end of search */
      dirp->D_curpos = dirp->D_list;        /* Set current pos to start */
      return dirp;
    } else
@@ -477,6 +646,13 @@ char *do_wild(__G__ wildspec)
     if (firstcall) {        /* first call:  must initialize everything */
         firstcall = FALSE;
 
+        if (!iswild(wildspec)) {
+            strcpy(matchname, wildspec);
+            have_dirname = FALSE;
+            dir = NULL;
+            return matchname;
+        }
+
         dirnamelen = strlen(wildspec);
 
         if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
@@ -491,9 +667,13 @@ char *do_wild(__G__ wildspec)
 
         if ((dir = opendir(dirname)) != (DIR *)NULL) {
             while ((file = readdir(dir)) != (struct dirent *)NULL) {
+                Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
-                if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
+                if (match(file->d_name, wildname, 0) &&  /* 0 == case sens. */
+                    /* skip "." and ".." directory entries */
+                    strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
+                    Trace((stderr, "do_wild:  match() succeeds\n"));
                     if (have_dirname) {
                         strcpy(matchname, dirname);
                         strcpy(matchname+dirnamelen, file->d_name);
@@ -525,7 +705,10 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL)
+    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        if (file->d_name[0] == '.' && wildname[0] != '.')
+            continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
@@ -534,6 +717,7 @@ char *do_wild(__G__ wildspec)
                 strcpy(matchname, file->d_name);
             return matchname;
         }
+    }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = (DIR *)NULL;
@@ -543,6 +727,7 @@ char *do_wild(__G__ wildspec)
     return (char *)NULL;
 
 } /* end function do_wild() */
+
 
 /**********************/
 /* Function mapattr() */
@@ -554,22 +739,76 @@ int mapattr(__G)
     ulg tmp = G.crec.external_file_attributes;
 
     switch (G.pInfo->hostnum) {
-        case UNIX_:
-        case TANDEM_:
-            G.pInfo->file_attr = (unsigned)(tmp >> 16);
-            return 0;
         case AMIGA_:
             tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
             G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
             break;
+        case UNIX_:
+        case VMS_:
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
+        case QDOS_:
+        case TANDEM_:
+            G.pInfo->file_attr = (unsigned)(tmp >> 16);
+            if (G.pInfo->file_attr != 0 || !G.extra_field) {
+                return 0;
+            } else {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                   VMS (and probably others ??) leave 0 in the upper 16-bit
+                   part of the external_file_attributes field. Instead, they
+                   store file permission attributes in some extra field.
+                   As a work-around, we search for the presence of one of
+                   these extra fields and fall back to the MSDOS compatible
+                   part of external_file_attributes if one of the known
+                   e.f. types has been detected.
+                   Later, we might implement extraction of the permission
+                   bits from the VMS extra field. But for now, the work-around
+                   should be sufficient to provide "readable" extracted files.
+                   (For ASI Unix e.f., an experimental remap of the e.f.
+                   mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
+                int r = FALSE;
+
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            G.pInfo->file_attr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+                if (!r)
+                    return 0;
+            }
+            /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
-        case ATARI_:             /* (used to set = 0666) */
         case TOPS20_:
-        case VMS_:
         default:
             tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
@@ -589,17 +828,17 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* truncated), 2 if warning (skip file because  */
-    int renamed;             /* dir doesn't exist), 3 if error (skip file),  */
-{                            /* 10 if no memory (skip file) */
-    char pathcomp[FILNAMSIZ];    /* path-component buffer */
-    char *pp, *cp=(char *)NULL;  /* character pointers */
-    char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;           /* flags */
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
+    char pathcomp[FILNAMSIZ];      /* path-component buffer */
+    char *pp, *cp;                 /* character pointers */
+    char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
+    int quote = FALSE;             /* flags */
     int error = 0;
-    register unsigned workch;    /* hold the character being tested */
+    register unsigned workch;      /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
@@ -607,10 +846,10 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
+        return IZ_VOL_LABEL;    /* can't set disk volume labels on Tandem */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -620,20 +859,17 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
     if (checkdir(__G__ (char *)NULL, INIT) == 10)
         return 10;              /* initialize path buffer, unless no memory */
 
+    /* TANDEM - call in2ex */
+    pp = in2ex(G.filename);
+    if (pp == (char *)NULL)
+        return 10;
+    strcpy(G.filename, pp);
+    free(pp);
+
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-
-    /* TANDEM - call in2ex */
-    strcpy (pathcomp, G.filename);
-    strcpy (G.filename, in2ex(pathcomp));
-    *pathcomp = '\0';
-
-    if (G.jflag)                /* junking directories */
-        cp = (char *)strrchr(G.filename, TANDEM_DELIMITER);
-    if (cp == (char *)NULL)     /* no '/' or not junking dirs */
-        cp = G.filename;        /* point to internal zipfile-member pathname */
-    else
-        ++cp;                   /* point to start of last component of path */
+    /* directories have already been junked in in2ex() */
+    cp = G.filename;            /* point to internal zipfile-member pathname */
 
 /*---------------------------------------------------------------------------
     Begin main loop through characters in filename.
@@ -677,7 +913,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -693,8 +929,11 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == TANDEM_DELIMITER) {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -706,7 +945,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
@@ -1007,47 +1246,56 @@ void version(__G)
 void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
-    ztimbuf tp;
+    iztimes zt;
     ush z_uidgid[2];
-    unsigned eb_izux_len;
-
-/*---------------------------------------------------------------------------
-    If symbolic links are supported, allocate a storage area, put the uncom-
-    pressed "data" in it, and create the link.  Since we know it's a symbolic
-    link to start with, we shouldn't have to worry about overflowing unsigned
-    ints with unsigned longs.
-  ---------------------------------------------------------------------------*/
-
-#ifdef SYMLINKS
-    if (G.symlnk) {
-        unsigned ucsize = (unsigned)G.lrec.ucsize;
-        char *linktarget = (char *)malloc((unsigned)G.lrec.ucsize+1);
-
-        fclose(G.outfile);                      /* close "data" file... */
-        G.outfile = fopen(G.filename, FOPR);    /* ...and reopen for reading */
-        if (!linktarget || fread(linktarget, 1, ucsize, G.outfile) !=
-                           (int)ucsize)
-        {
-            Info(slide, 0x201, ((char *)slide,
-              "warning:  symbolic link (%s) failed\n", G.filename));
-            if (linktarget)
-                free(linktarget);
-            fclose(G.outfile);
-            return;
-        }
-        fclose(G.outfile);                  /* close "data" file for good... */
-        unlink(G.filename);                 /* ...and delete it */
-        linktarget[ucsize] = '\0';
-        if (QCOND2)
-            Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
-        if (symlink(linktarget, G.filename))  /* create the real link */
-            perror("symlink error");
-        free(linktarget);
-        return;                             /* can't set time on symlinks */
-    }
-#endif /* SYMLINKS */
+    unsigned eb_izux_flg;
 
     fclose(G.outfile);
+
+/*---------------------------------------------------------------------------
+    Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
+    time:  adjust base year from 1980 to 1970, do usual conversions from
+    yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
+    light savings time differences.  If we have a Unix extra field, however,
+    we're laughing:  both mtime and atime are ours.  On the other hand, we
+    then have to check for restoration of UID/GID.
+  ---------------------------------------------------------------------------*/
+
+    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
+#ifdef IZ_CHECK_TZ
+                   (G.tz_is_valid ? &zt : NULL),
+#else
+                   &zt,
+#endif
+                   z_uidgid) : 0);
+    if (eb_izux_flg & EB_UT_FL_MTIME) {
+        TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
+          zt.mtime));
+    } else {
+        zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+    }
+    if (eb_izux_flg & EB_UT_FL_ATIME) {
+        TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
+          zt.atime));
+    } else {
+        zt.atime = zt.mtime;
+        TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
+          zt.mtime));
+    }
+
+/*---------------------------------------------------------------------------
+    Change the file's last modified time to that stored in the zipfile.
+    Not sure how (yet) or whether its a good idea to set the last open time
+  ---------------------------------------------------------------------------*/
+
+    if (utime(G.filename, (ztimbuf *)&zt))
+        if (uO.qflag)
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  cannot set times for %s\n", G.filename));
+        else
+            Info(slide, 0x201, ((char *)slide,
+              " (warning) cannot set times"));
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
@@ -1059,21 +1307,26 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         perror("chmod (file attributes) error");
 #endif
 
-    tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                              G.lrec.last_mod_file_time);
+/*---------------------------------------------------------------------------
+       if -X option was specified and we have UID/GID info, restore it
+       this must come after the file security and modtimes changes - since once
+       we have secured the file to somebody else we cannot access it again.
+  ---------------------------------------------------------------------------*/
 
-    TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
-      tp.modtime));
-
-    /* set the file's access and modification times */
-    if (utime(G.filename, &tp))
-#ifdef AOS_VS
-        Info(slide, 0x201, ((char *)slide, "... cannot set time for %s",
-          G.filename));
-#else
-        Info(slide, 0x201, ((char *)slide,
-          "warning:  cannot set the time for %s\n", G.filename));
-#endif
+    if (uO.X_flag && eb_izux_flg & EB_UX2_VALID) {
+        TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
+        if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
+        {
+            if (uO.qflag)
+                Info(slide, 0x201, ((char *)slide,
+                  "warning:  cannot set UID %d and/or GID %d for %s\n",
+                  z_uidgid[0], z_uidgid[1], G.filename));
+            else
+                Info(slide, 0x201, ((char *)slide,
+                  " (warning) cannot set UID %d and/or GID %d",
+                  z_uidgid[0], z_uidgid[1]));
+        }
+    }
 
 } /* end function close_outfile() */
 
@@ -1091,24 +1344,21 @@ char *in2ex(n)
     char *t;              /* pointer to internal */
     char *p;              /* pointer to internal */
     char *e;              /* pointer to internal */
-    int len;
-
 
     if ((x = malloc(strlen(n) + 4)) == NULL)   /* + 4 for safety */
         return NULL;
     *x= '\0';
 
-    if ((t = strrchr(n, INTERNAL_DELIMITER)) != NULL)
+    /* Junk pathname as requested */
+    if (uO.jflag && (t = strrchr(n, INTERNAL_DELIMITER)) != NULL)
         ++t;
     else
         t = n;
 
-    /* GRR:  t is already pointing *after* the last INTERNAL_DELIMITER... ? */
-
-    while (*t != '\0') {         /* File part could be sys,vol,subvol or file */
-        if (*t == INTERNAL_DELIMITER) {      /* System, Volume or Subvol Name */
+    while (*t != '\0') {      /* File part could be sys, vol, subvol or file */
+        if (*t == INTERNAL_DELIMITER) {     /* System, Volume or Subvol Name */
             t++;
-            if (*t == INTERNAL_DELIMITER) {  /* System */
+            if (*t == INTERNAL_DELIMITER) { /* System */
                 strcat(x, TANDEM_NODE_STR);
                 t++;
             } else
@@ -1117,19 +1367,29 @@ char *in2ex(n)
         p = strchr(t, INTERNAL_DELIMITER);
         if (p == NULL)
             break;
-        if ((e = strchr(t,DOS_EXTENSION)) == NULL)
+        if ((e = strchr(t, DOS_EXTENSION)) == NULL)
             e = p;
         else
             e = (e < p ? e : p);
-        len = _min(MAXFILEPARTLEN, (e - t));
+#ifdef CLIP_MAXFNLEN_NSK
+        strncat(x, t, _min(MAXFILEPARTLEN, (e - t)));
+#else
         strncat(x, t, (e - t));
+#endif
         t = p;
     }
 
     if ((e = strchr(t, DOS_EXTENSION)) == NULL)
         strcat(x, t);
-    else
-        strncat(x,t,(e - t));
+    else {
+#ifdef CLIP_MAXFNLEN_NSK
+        strncat(x, t, _min(MAXFILEPARTLEN, (e - t)));
+#else
+        strncat(x, t, (e - t));
+#endif
+        strcat(x, TANDEM_EXTENSION_STR);
+        strcat(x, e+1);
+    }
 
     return x;
 }

@@ -15,10 +15,10 @@ char *exts2swap = ""; /* Extensions to swap (actually, directory names) */
 
 int stat(char *filename,struct stat *res)
 {
- int attr;    /* object attributes */
- int load;    /* load address */
- int exec;    /* exec address */
- int type;    /* type: 0 not found, 1 file, 2 dir, 3 image */
+ int attr;              /* object attributes */
+ unsigned int load;     /* load address */
+ unsigned int exec;     /* exec address */
+ int type;              /* type: 0 not found, 1 file, 2 dir, 3 image */
 
  if (!res)
    return -1;
@@ -37,7 +37,8 @@ int stat(char *filename,struct stat *res)
  res->st_rdev=0;
  res->st_blksize=1024;
 
- res->st_mode = ((attr & 0001) << 8) | ((attr & 0002) << 6) | ((attr & 0020) >> 2) | ((attr & 0040) >> 4);
+ res->st_mode = ((attr & 0001) << 8) | ((attr & 0002) << 6) |
+                ((attr & 0020) >> 2) | ((attr & 0040) >> 4);
 
  switch (type) {
    case 1:                        /* File */
@@ -47,7 +48,7 @@ int stat(char *filename,struct stat *res)
     res->st_mode |= S_IFDIR | 0700;
     break;
    case 3:                        /* Image file */
-    if (G.scanimage)
+    if (uO.scanimage)
       res->st_mode |= S_IFDIR | 0700;
     else
       res->st_mode |= S_IFREG;
@@ -101,7 +102,7 @@ DIR *opendir(char *dirname)
    thisdir->dirname[strlen(thisdir->dirname)-1]=0;
 
  if (er=SWI_OS_File_5(thisdir->dirname,&type,NULL,NULL,NULL,&attr),er!=NULL ||
-     type<=1 || (type==3 && !G.scanimage))
+     type<=1 || (type==3 && !uO.scanimage))
  {
    free(thisdir->dirname);
    free(thisdir);
@@ -198,7 +199,7 @@ int rmdir(char *d)
    free(s);
    return -1;
  }
- if (objtype<2 || (!G.scanimage && objtype==3)) {
+ if (objtype<2 || (!uO.scanimage && objtype==3)) {
 /* this is a file or it doesn't exist */
    free(s);
    return -1;

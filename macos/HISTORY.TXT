@@ -1,0 +1,296 @@
+Macintosh Port of Info-Zip's Zip
+by Dirk Haase, d_haase@sitec.net
+homepage:   www.sitec.net/maczip
+09.November.1998
+================================
+
+
+
+7. Beta release 09.November.1998
+---------------------------------
+
+1) CHG: {all} switched to Metrowerks Codewarrior Pro 4
+
+2) FIX: {unzip} Display of comments stored in the zip-file is 
+        now fixed
+
+3) FIX: {zip} Fixed display of the zip help-screen.
+
+4) CHG: {zip/unzip} Changed special dir 'Re$0urce.Fk' to 'XtraStuf.mac'
+        see entry at 13.June.1998 item 3. I found it more descriptive for 
+        users outside the mac-community. 
+        
+5) CHG: {all} switched to MoreFiles 1.4.9.
+
+6) CHG: {console} changed behaivor of the file open dialog: The select 
+        button is now always enabled.
+        
+7) ADD: {all} Environment variables are now supported. 
+         Basically, it is possible to add timezone (= TZ environment variable) 
+         support here, but it's not yet implemented.
+         See "MacZip.Env" for further info.
+         
+8) RMV: {console} Targets "zip only" and "unzip only" are removed. 
+
+
+
+6. Beta release 09.September.1998
+---------------------------------
+
+
+1) CHG: {Zip/Unzip} Metrowerks Standardlibrary time funktions are 
+        rather broken and incomplete so I was forced to rewrite the 
+        funktions: mktime(), localtime(), gmtime() and time(). 
+
+2) ADD: {Console} Added Pause Funktion for screen output. 
+        The Pause-Function is selfadjusting: Count of lines is depending 
+        on the window size. 
+        
+3) CHG: Extra-Field layout is changed: All datas are now in little-endian 
+        format (see appnote)
+        
+4) ADD: {Console} Added an option to test the archive automatically 
+        after zipping. This option is only via Zip-Dialogbox available 
+        because it needs the unzip-module also.
+
+5) CHG: {Zip} code is now up to date with the latest beta 2.3f.
+
+6) ADD: {Console} Added (drag'n) drop support. Drop on the MacZip icon. 
+        The following situations are supported: 
+                    1. drop of one or more zipfiles (action = unzip)
+                       each archive will be extracted in a separate folder
+                    2. drop of a folder (action = zip -r )
+                       The complete folder (inclusive sub-folders) 
+                       will be zipped
+        Not (yet) supported is currently: dropping more than one file 
+        to compress. Workaround: Put all your files in one folder and 
+        drop that folder on MacZip.
+        MacZip recognize zip-archives automatically.
+
+
+5. Beta release 21.Aug.1998
+----------------------------
+
+
+1) ADD: {Console} Userinterface has now a Statusbar to show the 
+        Progress.
+        
+2) ADD: {Console} It's now possible to stop the run of Zip/Unzip
+        with the well known shortcut [Command] + [.]
+        
+3) CHG: {Console} Improved user-entry routine.
+
+4) ADD: {Zip/Unzip} Crypt-code added. It's now possible to 
+        encrypt/decrypt archives. 
+        
+5) RMV: {Unzip} Removed the warning of PKZip/Mac archive. 
+        Unzip gets confused with the extra field of PKZip/Mac. So I assume 
+        the extra field isn't compatible with Info-Zip's definition.
+
+6) CHG: switched to Metrowerks Codewarrior Pro 3
+        this includes:
+        - new Universal Interfaces 3.1 Headers
+        - improved codegeneration
+
+7) CHG: {Zip} code is now up to date with the latest beta 2.3e.
+        
+8) CHG: {Unzip} changed function names wprintf, wgets .. to macprintf, macgets ..
+        to avoid naming conflict standart library.
+
+9) ADD: {Zip/Unzip} FXinfo, Mac-Pathname, file-dates and Finder-Comments 
+        are now stored in the extra-field. Extra-field layout is 
+        changed accordingly. Unzip uses now the filename stored in the 
+        extra-field when unzipping.
+
+10) CHG: {Unzip} code is now up to date with the latest beta 5.33g.
+ 
+11) CHG: {Unzip} code is (again) up to date with the latest beta 5.33h.
+
+12) ADD: {Unzip} following switches were added:       
+       -J     [MacOS  only] ignore mac extra info. All macintosh
+              info are not restored. Datafork and resource-fork
+              are restored separatly.
+              
+       -i     [MacOS  only] ignore filenames stored in mac extra
+              field. Use the most compatible filename stored in
+              the public field. 
+              
+       -E     [MacOS  only] show mac extra field during restoring
+
+13) ADD: {Zip/Unzip} Charset MacRoman to ISO8859 Latin and vice versa
+
+14) RMV: {Zip} -N option removed. This MacZip crashes using this option.
+         I will fix it later.
+
+
+I think I'm very close for a final release of "MacZip 1.0" :-)
+        
+        
+        
+4. Beta release 27.June.1998
+----------------------------
+
+26.June.1998
+------------
+
+1) FIX: {Zip} extra field size value was wrong.
+
+
+
+25.June.1998
+------------
+
+1) CHG: {Zip} code is now up to date with the latest beta 2.3d.
+        So both modules, zip & unzip, uses now latest beta.
+
+2) ADD: {Zip} added a UT extra-field for better compatibility.
+
+3) CHG: {Unzip} changed the code to find the mac extra-field. 
+        Unzip has to look for a mac extra-field because 
+        mac-archives has now two extra-fields (UT + M3). 
+
+4) CHG: {Unzip} changed the method to move extra-field data to 
+        the internal extra-structure. 
+        Old method was just BlockMove of the ef_structptr to ef_memptr.
+        This method was dangerous because not all members of the
+        structure seamless aligned. There are may be some fill 
+        bytes in the structure depending on the compiler setting. 
+
+5) ADD: {Unzip} added a warning if unzipping a ZipIt/PKZip archive.
+        ZipIt/PKZip archives are usually additionally coded somehow.
+        InfoZip's Unzip will *not* decode the files. So extracted
+        files are may be not decoded. (see also 6. and 7.)
+        
+6) ADD: ZipIt (the Shareware Tool) has now a new extra-field signature: 
+        0x2705. Found in "ZipIt 1.3.8". I added a new macro: EF_ZIPIT2
+        
+7) ADD: Added PKWare's extra-field signature: 0xCF77.
+        Found in "PKZIP v2.03". I added a new macro: EF_PKMAC
+
+8) ADD: {console} It's now possible to save all screen outputs
+        to the disk.
+
+9) RMV: {console} this is the first beta without expire-date.
+        
+
+16.June.1998
+------------
+
+1) FIX: {Unzip/console} Extract path now defaults to current-dir if
+        no path is given.
+
+2> CHG: {Unzip} creates now a extract-folder by default. This behavior 
+        differs to the commandline tool of Unzip on other platforms. 
+        However, for a mac-user is this behavior more convenient.
+
+
+3. Beta release 15.June.1998
+----------------------------
+
+15.June.1998
+------------
+
+1) CHG: {unzip/zip} I changed the layout of the extra field 
+        to support more data. 
+  
+
+14.June.1998
+------------
+
+1) FIX: {Unzip} adjusted time_t value with an correct offset value.
+
+2) FIX: {Unzip} removed all unused code based on unfinished ideas by 
+        former porter(s).
+
+3) CHG: use of shared code izshr 032.
+
+13.June.1998
+------------
+
+1) FIX: {Unzip} Filenames are only converted when needed. When zipping 
+        with the switch 'datafork only' the filenames are shorted which 
+        was wrong.
+
+2) CHG: {Unzip} code is now up to date with the latest beta 5.33f.
+
+3) CHG: {Zip} Changed the naming rule of filenames from old Johnny Lee's 
+        to my implementation. Johnny Lee's idea is based on change of the 
+        filenames which cases several problems when unziping on a non mac 
+        plattform. My idea is to add a special directory: 'Re$0urce.Fk'. 
+        For the future: Zip will create archives according the new nameing 
+        rule. However unzip will be compatible with old nameing rule. 
+        See also 4.
+
+4} ADD: {Unzip} Added a new nameing rule for resource forks filename. 
+        Resource forks are now stored in a special directory: 'Re$0urce.Fk'. 
+        This naming rule make it easier to for other platforms to use
+        mac zip-files.
+        
+        
+
+11.June.1998
+------------
+1) FIX: {Zip} Internal file attribute is set to BINARY by default 
+        when zipping resource forks otherwise Unzip will create 
+        sometimes wrong resource-forks.
+        
+2) CHG: {Unzip} code is now up to date with the latest beta 5.33e.
+
+
+
+
+2. Beta release 10.June.1998
+--------------------------
+
+1) FIX: {Unzip} Long pathname fix solved. Unzip is now able to extract 
+        archives with path longer than 256 chars. 
+       
+2) CHG: {Unzip} removed all conversion from c-style string to 
+        pascal-string (see fix 1)
+     
+3) ADD: {Unzip} Finderinfo of folders are also restored.
+
+4) ADD: {Console} Added info about current path in the command-line box.
+
+5) FIX: {Console} Construction of the command-line of the unzip-dialog 
+        box fixed.
+
+
+
+First beta release 06.June.1998
+-----------------------------
+
+no history.
+Just to many code was neccessary to build the first mac-port.
+
+
+Start of the port MacZip
+February 1998
+
+
+--------------------------------------------------------------------------------
+Legende:
+
+FIX: fixes a bug
+CHG: inform about changed items.
+ADD: added feature
+RMV: removed Item
+
+{Unzip}   -> only related to the Unzip-module
+{Zip}     -> only related to the Zip-module
+             These are just libraries and are linked into the console-app.
+
+{Console} -> only related to the Userinterface (not SIOUX)
+             MacOS has no tool like a command-line. So it's neccessary 
+             to write wrapper around the command-line tools. 
+
+
+
+
+Dirk Haase
+
+
+
+        
+        
+        

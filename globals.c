@@ -15,34 +15,44 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-char *fnames[2] = {"*", NULL};   /* default filenames vector */
+#ifndef FUNZIP
+/* initialization of sigs is completed at runtime so unzip(sfx) executable
+ * won't look like a zipfile
+ */
+char central_hdr_sig[4] = {0, 0, 0x01, 0x02};
+char local_hdr_sig[4]   = {0, 0, 0x03, 0x04};
+char end_central_sig[4] = {0, 0, 0x05, 0x06};
+/* extern char extd_local_sig[4] = {0, 0, 0x07, 0x08};  NOT USED YET */
+
+ZCONST char *fnames[2] = {"*", NULL};   /* default filenames vector */
+#endif
 
 
 #ifndef REENTRANT
-   struct Globals G;
+   Uz_Globs G;
 #else /* REENTRANT */
 
 #  ifndef USETHREADID
-     struct Globals *GG;
+     Uz_Globs *GG;
 #  else /* USETHREADID */
 #    define THREADID_ENTRIES  0x40
 
      int lastScan;
-     struct Globals *threadPtrTable[THREADID_ENTRIES];
-     ulg             threadIdTable [THREADID_ENTRIES] = {
+     Uz_Globs  *threadPtrTable[THREADID_ENTRIES];
+     ulg        threadIdTable [THREADID_ENTRIES] = {
          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,    /* Make sure there are */
          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,    /* THREADID_ENTRIES 0s */
          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
      };
 
-     static char Far TooManyThreads[] =
+     static ZCONST char Far TooManyThreads[] =
        "error:  more than %d simultaneous threads.\n\
         Some threads are probably not calling DESTROYTHREAD()\n";
-     static char Far EntryNotFound[] =
+     static ZCONST char Far EntryNotFound[] =
        "error:  couldn't find global pointer in table.\n\
         Maybe somebody accidentally called DESTROYTHREAD() twice.\n";
-     static char Far GlobalPointerMismatch[] =
+     static ZCONST char Far GlobalPointerMismatch[] =
        "error:  global pointer in table does not match pointer passed as\
  parameter\n";
 
@@ -60,7 +70,7 @@ static void registerGlobalPointer(__G)
         scan++;
 
     if (scan == THREADID_ENTRIES) {
-        char *tooMany = LoadFarString(TooManyThreads);
+        ZCONST char *tooMany = LoadFarString(TooManyThreads);
         Info(slide, 0x421, ((char *)slide, tooMany, THREADID_ENTRIES));
         free(pG);
         EXIT(PK_MEM);   /* essentially memory error before we've started */
@@ -91,7 +101,7 @@ void deregisterGlobalPointer(__G)
   ---------------------------------------------------------------------------*/
 
     if (scan == THREADID_ENTRIES || threadPtrTable[scan] != pG) {
-        char *noEntry;
+        ZCONST char *noEntry;
         if (scan == THREADID_ENTRIES)
             noEntry = LoadFarString(EntryNotFound);
         else
@@ -107,7 +117,7 @@ void deregisterGlobalPointer(__G)
 
 
 
-struct Globals *getGlobalPointer()
+Uz_Globs *getGlobalPointer()
 {
     int scan=0;
     ulg tid = GetThreadId();
@@ -123,8 +133,7 @@ struct Globals *getGlobalPointer()
   ---------------------------------------------------------------------------*/
 
     if (scan == THREADID_ENTRIES) {
-        char *noEntry;
-        noEntry = LoadFarString(EntryNotFound);
+        ZCONST char *noEntry = LoadFarString(EntryNotFound);
         fprintf(stderr, noEntry);  /* can't use Info w/o a global pointer */
         EXIT(PK_ERR);   /* programming error while still working */
     }
@@ -137,32 +146,32 @@ struct Globals *getGlobalPointer()
 
 
 
-struct Globals *globalsCtor()
+Uz_Globs *globalsCtor()
 {
 #ifdef REENTRANT
-    struct Globals *pG = (struct Globals *)malloc(sizeof(struct Globals));
+    Uz_Globs *pG = (Uz_Globs *)malloc(sizeof(Uz_Globs));
 
     if (!pG)
-        return (struct Globals *)NULL;
+        return (Uz_Globs *)NULL;
 #endif /* REENTRANT */
 
     /* for REENTRANT version, G is defined as (*pG) */
 
-    memzero(&G, sizeof(struct Globals));
+    memzero(&G, sizeof(Uz_Globs));
 
+#ifndef FUNZIP
 #ifdef CMS_MVS
-    G.aflag=1;
-    G.C_flag=1;
+    uO.aflag=1;
+    uO.C_flag=1;
 #endif
 
-    G.lflag=(-1);
+    uO.lflag=(-1);
     G.wildzipfn = "";
-    G.pfnames = fnames;
-    G.pxnames = &fnames[1];
+    G.pfnames = (char **)fnames;
+    G.pxnames = (char **)&fnames[1];
     G.pInfo = G.info;
     G.sol = TRUE;          /* at start of line */
 
-#ifndef FUNZIP
     G.message = UzpMessagePrnt;
     G.input = UzpInput;           /* not used by anyone at the moment... */
 #if defined(WINDLL) || defined(MACOS)

@@ -186,6 +186,19 @@ $name
 	LDMFD	sp!, {r4,pc}^
 
 
+; os_error *SWI_OS_File_18(char *filename, int filetype);
+
+	STARTCODE SWI_OS_File_18
+
+	STMFD	sp!, {r4-r5,lr}
+	MOV	r2, r1
+	MOV	r1, r0
+	MOV	r0, #18
+	SWI	OS_File + XOS_Bit
+	MOVVC	r0, #0
+	LDMFD	sp!, {r4-r5,pc}^
+
+
 ; os_error *SWI_OS_CLI(char *cmd);
 
 	STARTCODE SWI_OS_CLI

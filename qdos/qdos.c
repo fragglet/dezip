@@ -32,13 +32,17 @@
 #include "izqdos.h"
 #include "version.h"
 
+#ifndef SFX
 char _prog_name[] = "UnZip";
+#else
+char _prog_name[] = "??Special Flag for unzipsfx hack  ??";
+#endif
 /* sorrid hack at request of GRR follows; hope the compiler stays kind to us */
 char _version[] = {UZ_MAJORVER+'0','.',UZ_MINORVER+'0',PATCHLEVEL+'0'};
 char _extra[] = " " BETALEVEL;
 char _copyright[] = "(c) Info-ZIP Group";
 char *  _endmsg = NULL;
-long _stack = 8*1024;         /* huge stack (for qdos) */
+long _stack = 16*1024;         /* huge stack (for qdos) */
 
 extern void consetup_title(chanid_t,struct WINDOWDEF *);
 void (*_consetup)(chanid_t,struct WINDOWDEF *) = consetup_title;
@@ -213,9 +217,16 @@ char *do_wild(__G__ wildspec)
         /* break the wildspec into a directory part and a wildcard filename */
 
         ws = (char *) iswild(wildspec);
+
+        if(ws == NULL)
+        {
+            strcpy(matchname, wildspec);
+            return matchname;
+        }
+
         us = LastDir(wildspec);
 
-        if(us == wildspec || us > ws)
+        if(us == wildspec)
         {
             dirname = basedir;
             getcwd(basedir, sizeof(basedir)-1);
@@ -271,7 +282,7 @@ char *do_wild(__G__ wildspec)
      * matchname already.
      */
     while ((file = readdir(dir)) != (struct dirent *)NULL)
-        if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
+        if (match(file->d_name, wildname, 2)) {   /* 0 == don't ignore case */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
                 strcpy(matchname+dirnamelen, file->d_name);
@@ -304,6 +315,10 @@ int mapattr(__G)
     ulg tmp = G.crec.external_file_attributes;
 
     switch (G.pInfo->hostnum) {
+        case AMIGA_:
+            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
+            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
+            break;
         case QDOS_:
         case UNIX_:
         case VMS_:
@@ -311,11 +326,58 @@ int mapattr(__G)
         case ATARI_:
         case BEOS_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
-            return 0;
-        case AMIGA_:
-            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
-            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
-            break;
+            if (G.pInfo->file_attr != 0 || !G.extra_field) {
+                return 0;
+            } else {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                   VMS (and probably others ??) leave 0 in the upper 16-bit
+                   part of the external_file_attributes field. Instead, they
+                   store file permission attributes in some extra field.
+                   As a work-around, we search for the presence of one of
+                   these extra fields and fall back to the MSDOS compatible
+                   part of external_file_attributes if one of the known
+                   e.f. types has been detected.
+                   Later, we might implement extraction of the permission
+                   bits from the VMS extra field. But for now, the work-around
+                   should be sufficient to provide "readable" extracted files.
+                   (For ASI Unix e.f., an experimental remap of the e.f.
+                   mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
+                int r = FALSE;
+
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            G.pInfo->file_attr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+                if (!r)
+                    return 0;
+            }
+            /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
         case FS_HPFS_:
@@ -359,10 +421,10 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
+        return IZ_VOL_LABEL;    /* can't set disk volume labels in SMS/QDOS */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -374,7 +436,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == (char *)NULL)     /* no '/' or not junking dirs */
         cp = G.filename;        /* point to internal zipfile-member pathname */
@@ -437,7 +499,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -725,11 +787,12 @@ static void qfix(__G__ ef_ptr, ef_len)
     uch *ef_ptr;
     unsigned ef_len;
 {
+    qdosextra qextra;
 
     while (ef_len >= EB_HEADSIZE)
     {
-        qdosextra   *extra = (qdosextra *)ef_ptr;
-        jbextra     *jbp   = (jbextra   *)ef_ptr;
+        qdosextra   *extra = &qextra;
+        jbextra     *jbp   = (jbextra *)&qextra;
         unsigned    eb_len = makeword(EB_LEN + ef_ptr);
 
         if (eb_len > (ef_len - EB_HEADSIZE)) {
@@ -740,6 +803,9 @@ static void qfix(__G__ ef_ptr, ef_len)
             break;
         }
 
+        /* Must ensure that we don't use ODD addresses here */
+
+        memcpy(&qextra, ef_ptr, sizeof(qdosextra));
         switch (extra->shortid) {
           case SHORTID:
             if (!strncmp(extra->longid, LONGID, strlen(LONGID)))
@@ -824,14 +890,18 @@ void close_outfile(__G)
 
 #ifdef USE_EF_UT_TIME
     eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
-                   G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
-                   &zt, z_uidgid) : 0);
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
+#ifdef IZ_CHECK_TZ
+                   (G.tz_is_valid ? &zt : NULL),
+#else
+                   &zt,
+#endif
+                   z_uidgid) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
           zt.mtime));
     } else {
-        zt.mtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                    G.lrec.last_mod_file_time);
+        zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
     if (eb_izux_flg & EB_UT_FL_ATIME) {
         TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
@@ -843,8 +913,7 @@ void close_outfile(__G)
           zt.mtime));
     }
 #else
-    zt.atime = zt.mtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                           G.lrec.last_mod_file_time);
+    zt.atime = zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
 #endif
 
     /* set the file's access and modification times */
@@ -945,4 +1014,3 @@ char *getp(__G__ m, p, n)
 } /* end function getp() */
 
 #endif /* CRYPT */
-

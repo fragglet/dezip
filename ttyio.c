@@ -16,6 +16,8 @@
 
   ---------------------------------------------------------------------------*/
 
+#define __TTYIO_C       /* identifies this source module */
+
 #include "zip.h"
 #include "crypt.h"
 
@@ -450,9 +452,9 @@ int zgetch(__G__ f)
  * uses the infrastructure that is already in place in filedate.c, it is
  * smaller.  With this function, echoff() and echon() are not needed.
  *
- * For the MAC, a non-echo macgetch() function is defined in mac/mac.c,
- * which uses the event handling mechanisme of the desktop window manager
- * to get a character from the keyboard.
+ * For the MAC, a non-echo macgetch() function is defined in the MacOS
+ * specific sources which uses the event handling mechanism of the
+ * desktop window manager to get a character from the keyboard.
  *
  * For the other systems in this section, a non-echo getch() function
  * is either contained the C runtime library (conio package), or getch()

@@ -1,0 +1,164 @@
+# Makefile for UnZip(SFX) and fUnZip for Borland C++ for Windows 95/NT
+# Version: 5.4 and later        Alvin Koh, Jim Knoble, Christian Spieler, etc.
+# Adapted from the MS-DOS makefile by E-Yen Tan
+#
+# Last revised:  24 Nov 98
+#
+#
+
+
+#    Optional nonstandard preprocessor flags (as -DCHECK_EOF or -DDOS_WILD)
+#    should be added to the environment via "set LOCAL_UNZIP=-DFOO" or added
+#    to the declaration of LOC here:
+LOC = $(LOCAL_UNZIP)
+
+# Type for CPU required: 0: 8086, 1: 80186, 2: 80286, 3: 80386, etc.
+CPU_TYP = 4
+
+# (De)Select inclusion of optimized assembler CRC32 routine:
+USE_ASMCRC = 0
+
+# If you have bcc32i, you should define:
+# CC = bcc32i
+# This compiler generates a faster code.
+CC = bcc32
+AS = tasm32
+
+!if $(USE_ASMCRC)
+ASMFLG = -DASM_CRC
+ASMOBJS = crc_i386.obj
+!else
+ASMFLG =
+ASMOBJS =
+!endif
+
+!if $(UNCLEAN)
+DIRT = -DUSE_SMITH_CODE -DUSE_UNSHRINK
+!else
+DIRT =
+!endif
+
+# compiler flags
+
+ASCPUFLAG = __$(CPU_TYP)86
+!if $(CPU_TYP) != 0
+CC_CPUFLG = -$(CPU_TYP)
+!endif
+ASFLAGS = -ml -m2 -w0 -D$(ASCPUFLAG) $(LOC)
+CFLAGS = -O2 -w- $(CC_CPUFLG) -ff- -k- -P-.C -I. $(ASMFLG) $(LOC) $(DIRT)
+LDFLAGS = -lxncd -l-P		# for bcc
+UNFLAGS = $(CFLAGS)
+FUFLAGS = $(CFLAGS) -K -d
+SXFLAGS = $(CFLAGS)
+
+# implicit rules
+
+.asm.obj:
+	$(AS) $(ASFLAGS) $<
+
+.c.obj:
+	$(CC) -c $(UNFLAGS) {$< }
+
+# list macros
+
+OBJU1 = unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj explode.obj
+OBJU2 = extract.obj fileio.obj globals.obj inflate.obj list.obj match.obj
+OBJU3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj
+OBJUS = win32.obj nt.obj $(ASMOBJS)
+OBJU  = $(OBJU1) $(OBJU2) $(OBJU3) $(OBJUS)
+OBJF  = funzip.obj crc32.obj cryptf.obj globalsf.obj inflatef.obj \
+	ttyiof.obj win32f.obj $(ASMOBJS)
+OBJX1 = unzipsfx.obj crc32.obj crctab.obj crypt.obj extractx.obj fileio.obj
+OBJX2 = globals.obj inflate.obj match.obj processx.obj ttyio.obj
+OBJXS = win32x.obj ntx.obj $(ASMOBJS)
+OBJX  = $(OBJX1) $(OBJX2) $(OBJXS)
+
+UNZIP_H = unzip.h unzpriv.h globals.h win32/w32cfg.h
+
+# explicit rules
+
+all:    unzip.exe funzip.exe unzipsfx.exe
+
+unzip.exe:      $(OBJU)
+	$(CC) $(LDFLAGS) -eunzip.exe @&&|
+$(OBJU)
+|
+
+funzip.exe:     $(OBJF)
+	$(CC) $(LDFLAGS) -efunzip.exe @&&|
+$(OBJF)
+|
+
+unzipsfx.exe:   $(OBJX)
+	$(CC) $(LDFLAGS) -eunzipsfx.exe @&&|
+$(OBJX)
+|
+
+clean:
+	rem Ignore any errors in the following...
+	-del *.obj
+	-del unzip.exe
+	-del funzip.exe
+	-del unzipsfx.exe
+
+# individual file dependencies
+
+crc32.obj:      crc32.c $(UNZIP_H) zip.h
+crctab.obj:     crctab.c $(UNZIP_H) zip.h
+crypt.obj:      crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+envargs.obj:    envargs.c $(UNZIP_H)
+explode.obj:    explode.c $(UNZIP_H)
+extract.obj:    extract.c $(UNZIP_H) crypt.h
+fileio.obj:     fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+globals.obj:    globals.c $(UNZIP_H)
+inflate.obj:    inflate.c inflate.h $(UNZIP_H)
+list.obj:       list.c $(UNZIP_H)
+match.obj:      match.c $(UNZIP_H)
+process.obj:    process.c $(UNZIP_H)
+ttyio.obj:      ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+unreduce.obj:   unreduce.c $(UNZIP_H)
+unshrink.obj:   unshrink.c $(UNZIP_H)
+unzip.obj:      unzip.c $(UNZIP_H) crypt.h version.h consts.h
+zipinfo.obj:    zipinfo.c $(UNZIP_H)
+
+crc_i386.obj:   win32/crc_i386.asm
+	$(AS) $(ASFLAGS) win32\crc_i386.asm, $*.obj ;
+
+win32.obj:      win32/win32.c $(UNZIP_H)
+	$(CC) -c $(UNFLAGS) win32/win32.c
+
+nt.obj:         win32/nt.c $(UNZIP_H)
+	$(CC) -c $(UNFLAGS) win32/nt.c
+
+funzip.obj:     funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+	$(CC) -c $(FUFLAGS) funzip.c
+
+cryptf.obj:     crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(FUFLAGS) -DFUNZIP -ocryptf.obj crypt.c
+
+globalsf.obj:   globals.c $(UNZIP_H)
+	$(CC) -c $(FUFLAGS) -DFUNZIP -oglobalsf.obj globals.c
+
+inflatef.obj:   inflate.c inflate.h $(UNZIP_H) crypt.h
+	$(CC) -c $(FUFLAGS) -DFUNZIP -oinflatef.obj inflate.c
+
+ttyiof.obj:     ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(FUFLAGS) -DFUNZIP -ottyiof.obj ttyio.c
+
+win32f.obj:     win32/win32.c $(UNZIP_H)
+	$(CC) -c $(FUFLAGS) -DFUNZIP -owin32f.obj win32/win32.c
+
+unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h version.h consts.h
+	$(CC) -c $(SXFLAGS) -DSFX -ounzipsfx.obj unzip.c
+
+extractx.obj:   extract.c $(UNZIP_H) crypt.h
+	$(CC) -c $(SXFLAGS) -DSFX -oextractx.obj extract.c
+
+processx.obj:   process.c $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -oprocessx.obj process.c
+
+win32x.obj:     win32/win32.c $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -owin32x.obj win32/win32.c
+
+ntx.obj:        win32/nt.c $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -ontx.obj win32/nt.c

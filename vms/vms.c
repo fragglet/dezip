@@ -185,21 +185,21 @@ static int  vet;
  *                                          yes -> 'stream'
  *                                          no  -> 'block'
  *
- *  yes, in IZ format       'rms'           G.cflag ?
+ *  yes, in IZ format       'rms'           uO.cflag ?
  *                                          yes -> switch(fab.rfm)
  *                                              VAR  -> 'varlen'
  *                                              STM* -> 'stream'
  *                                              default -> 'block'
  *                                          no -> 'block'
  *
- *  yes, in PK format       'qio'           G.cflag ?
+ *  yes, in PK format       'qio'           uO.cflag ?
  *                                          yes -> switch(pka_rattr)
  *                                              VAR  -> 'varlen'
  *                                              STM* -> 'stream'
  *                                              default -> 'block'
  *                                          no -> 'qio'
  *
- *  "text mode" == G.pInfo->textmode || G.cflag
+ *  "text mode" == G.pInfo->textmode || uO.cflag
  */
 
 int open_outfile(__G)           /* return 1 (PK_WARN) if fail */
@@ -252,14 +252,20 @@ static void set_default_datetime_XABs(__GPRO)
     unsigned yr, mo, dy, hh, mm, ss;
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
+    struct tm *t;
 
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_file_date, &z_utime, NULL)
+                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))
+        t = localtime(&(z_utime.mtime));
+    else
+        t = (struct tm *)NULL;
+    if (t != (struct tm *)NULL)
     {
-        struct tm *t = localtime(&(z_utime.mtime));
-
         yr = t->tm_year + 1900;
         mo = t->tm_mon;
         dy = t->tm_mday;
@@ -269,21 +275,21 @@ static void set_default_datetime_XABs(__GPRO)
     }
     else
     {
-        yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
-        mo = ((G.lrec.last_mod_file_date >> 5) & 0x0f) - 1;
-        dy = (G.lrec.last_mod_file_date & 0x1f);
-        hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
-        mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
-        ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
+        yr = ((G.lrec.last_mod_dos_datetime >> 25) & 0x7f) + 1980;
+        mo = ((G.lrec.last_mod_dos_datetime >> 21) & 0x0f) - 1;
+        dy = (G.lrec.last_mod_dos_datetime >> 16) & 0x1f;
+        hh = (G.lrec.last_mod_dos_datetime >> 11) & 0x1f;
+        mm = (G.lrec.last_mod_dos_datetime >> 5) & 0x3f;
+        ss = (G.lrec.last_mod_dos_datetime << 1) & 0x3e;
     }
 #else /* !USE_EF_UT_TIME */
 
-    yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
-    mo = ((G.lrec.last_mod_file_date >> 5) & 0x0f) - 1;
-    dy = (G.lrec.last_mod_file_date & 0x1f);
-    hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
-    mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
-    ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
+    yr = ((G.lrec.last_mod_dos_datetime >> 25) & 0x7f) + 1980;
+    mo = ((G.lrec.last_mod_dos_datetime >> 21) & 0x0f) - 1;
+    dy = (G.lrec.last_mod_dos_datetime >> 16) & 0x1f;
+    hh = (G.lrec.last_mod_dos_datetime >> 11) & 0x1f;
+    mm = (G.lrec.last_mod_dos_datetime >> 5) & 0x3f;
+    ss = (G.lrec.last_mod_dos_datetime << 1) & 0x1f;
 #endif /* ?USE_EF_UT_TIME */
 
     dattim = cc$rms_xabdat;     /* fill XABs with default values */
@@ -300,18 +306,18 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
     int ierr;
 
     text_output = G.pInfo->textmode ||
-                  G.cflag;      /* extract the file in text
+                  uO.cflag;     /* extract the file in text
                                  * (variable-length) format */
-    bin_fixed = text_output || (G.bflag == 0)
+    bin_fixed = text_output || (uO.bflag == 0)
                 ? 0
-                : ((G.bflag - 1) ? 1 : !G.pInfo->textfile);
+                : ((uO.bflag - 1) ? 1 : !G.pInfo->textfile);
 #ifdef USE_ORIG_DOS
-    hostnum = G.pInfo -> hostnum;
+    hostnum = G.pInfo->hostnum;
 #endif
 
     rfm = FAB$C_STMLF;  /* Default, stream-LF format from VMS or UNIX */
 
-    if (!G.cflag)               /* Redirect output */
+    if (!uO.cflag)              /* Redirect output */
     {
         rab = cc$rms_rab;       /* fill RAB with default values */
         fileblk = cc$rms_fab;   /* fill FAB with default values */
@@ -389,7 +395,7 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
             free_up();
             return PK_WARN;
         }
-    }                   /* end if (!G.cflag) */
+    }                   /* end if (!uO.cflag) */
 
     init_buf_ring();
 
@@ -404,16 +410,16 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
 {
     int ierr;
 
-    text_output = G.cflag;      /* extract the file in text
+    text_output = uO.cflag;     /* extract the file in text
                                  * (variable-length) format;
                                  * we ignore "-a" when attributes saved */
 #ifdef USE_ORIG_DOS
-    hostnum = G.pInfo -> hostnum;
+    hostnum = G.pInfo->hostnum;
 #endif
 
     rfm = outfab->fab$b_rfm;    /* Use record format from VMS extra field */
 
-    if (G.cflag)
+    if (uO.cflag)
     {
         if (!PRINTABLE_FORMAT(rfm))
         {
@@ -502,7 +508,7 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
             free_up();
             return PK_WARN;
         }
-    }                   /* end if (!G.cflag) */
+    }                   /* end if (!uO.cflag) */
 
     init_buf_ring();
 
@@ -584,7 +590,7 @@ static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
     int status;
     int i;
 
-    if ( G.cflag )
+    if ( uO.cflag )
     {
         int rtype = pka_rattr.fat$v_rtype;
         if (!PK_PRINTABLE_RECTYP(rtype))
@@ -614,7 +620,7 @@ static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
         }
         _close_routine = _close_rms;
     }
-    else                        /* !(G.cflag) : redirect output */
+    else                        /* !(uO.cflag) : redirect output */
     {
 
         fileblk = cc$rms_fab;
@@ -644,7 +650,7 @@ static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
 
         pka_fnam.dsc$a_pointer = nam.nam$l_name;
         pka_fnam.dsc$w_length  = nam.nam$b_name + nam.nam$b_type;
-        if ( G.V_flag /* keep versions */ )
+        if ( uO.V_flag /* keep versions */ )
             pka_fnam.dsc$w_length += nam.nam$b_ver;
 
         for (i=0;i<3;i++)
@@ -689,7 +695,7 @@ static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
         pka_vbn = 1;
         _flush_routine = _flush_qio;
         _close_routine = _close_qio;
-    }                   /* end if (!G.cflag) */
+    }                   /* end if (!uO.cflag) */
     return PK_COOL;
 }
 
@@ -707,7 +713,7 @@ static int replace(__GPRO)
     {
         do
         {
-            Info(slide, 1, ((char *)slide,
+            Info(slide, 0x81, ((char *)slide,
                  "%s exists:  [o]verwrite, new [v]ersion or [n]o extract?\n\
   (uppercase response [O,V,N] = do same for all files): ",
                  G.filename));
@@ -786,9 +792,9 @@ int find_vms_attrs(__G)
                 if ( first_xab == NULL )                \
                         first_xab = (void *) p;         \
                 if ( last_xab != NULL )                 \
-                        last_xab -> xab$l_nxt = (void *) p;     \
+                        last_xab->xab$l_nxt = (void *) p;       \
                 last_xab = (void *) p;                  \
-                p -> xab$l_nxt = NULL;                  \
+                p->xab$l_nxt = NULL;                    \
         }
     /* End of macro LINK */
 
@@ -856,7 +862,7 @@ int find_vms_attrs(__G)
                 vers = extract_block(__G__ blk, &verlen, 0, 0);
                 if ((m = strrchr((char *) vers, '-')) != NULL)
                     *m = '\0';  /* Cut out release number */
-                if (strcmp(verbuf, (char *) vers) && G.qflag < 2)
+                if (strcmp(verbuf, (char *) vers) && uO.qflag < 2)
                 {
                     Info(slide, 0, ((char *)slide,
                          "[ Warning: VMS version mismatch."));
@@ -916,7 +922,7 @@ int find_vms_attrs(__G)
                         break;
                     case ATR$C_UIC:
                     case ATR$C_ADDACLENT:
-                        skip = !G.X_flag;
+                        skip = !uO.X_flag;
                         break;
                 }
 
@@ -1140,7 +1146,7 @@ int flush(__G__ rawbuf, size, unshrink)    /* return PK-type error code */
     int unshrink;
 {
     G.crc32val = crc32(G.crc32val, rawbuf, (extent)size);
-    if (G.tflag)
+    if (uO.tflag)
         return PK_COOL; /* Do not output. Update CRC only */
     else
         return (*_flush_routine)(__G__ rawbuf, size, 0);
@@ -1649,7 +1655,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
         got_eol = 0;
 
 #ifdef undef
-        if (G.cflag)
+        if (uO.cflag)
             /* skip CR's at the beginning of record */
             while (start < size && rawbuf[start] == CR)
                 ++start;
@@ -1739,7 +1745,7 @@ static int WriteRecord(__G__ rec, len)
 {
     int status;
 
-    if (G.cflag)
+    if (uO.cflag)
     {
         (void)(*G.message)((zvoid *)&G, rec, len, 0);
         (void)(*G.message)((zvoid *)&G, (uch *) ("\n"), 1, 0);
@@ -1774,7 +1780,7 @@ void close_outfile(__G)
     status = (*_flush_routine)(__G__ NULL, 0, 1);
     if (status)
         return /* PK_DISK */;
-    if (G.cflag)
+    if (uO.cflag)
         return /* PK_COOL */;   /* Don't close stdout */
     /* return */ (*_close_routine)(__G);
 }
@@ -1805,7 +1811,7 @@ static int _close_rms(__GPRO)
 
     if (xabpro != NULL)
     {
-        if ( !G.X_flag )
+        if ( !uO.X_flag )
             xabpro->xab$l_uic = 0;    /* Use default (user's) uic */
         xabpro->xab$l_nxt = outfab->fab$l_xab;
         outfab->fab$l_xab = (void *) xabpro;
@@ -1936,8 +1942,8 @@ static time_t mkgmtime(tm)
 /* Function dos_to_unix_time() */  /* only used for timestamping of archives */
 /*******************************/
 
-time_t dos_to_unix_time(ddate, dtime)
-    unsigned ddate, dtime;
+time_t dos_to_unix_time(dosdatetime)
+    ulg dosdatetime;
 {
     struct tm *ltm;             /* Local time. */
     time_t loctime;             /* The time_t value of local time. */
@@ -1949,14 +1955,14 @@ time_t dos_to_unix_time(ddate, dtime)
     ltm = localtime(&then);
 
     /* dissect date */
-    ltm->tm_year = ((ddate >> 9) & 0x7f) + 80;
-    ltm->tm_mon  = ((ddate >> 5) & 0x0f) - 1;
-    ltm->tm_mday = (ddate & 0x1f);
+    ltm->tm_year = ((int)(dosdatetime >> 25) & 0x7f) + 80;
+    ltm->tm_mon  = ((int)(dosdatetime >> 21) & 0x0f) - 1;
+    ltm->tm_mday = ((int)(dosdatetime >> 16) & 0x1f);
 
     /* dissect time */
-    ltm->tm_hour = (dtime >> 11) & 0x1f;
-    ltm->tm_min  = (dtime >> 5) & 0x3f;
-    ltm->tm_sec  = (dtime << 1) & 0x3e;
+    ltm->tm_hour = (int)(dosdatetime >> 11) & 0x1f;
+    ltm->tm_min  = (int)(dosdatetime >> 5) & 0x3f;
+    ltm->tm_sec  = (int)(dosdatetime << 1) & 0x3e;
 
     loctime = mkgmtime(ltm);
 
@@ -1970,13 +1976,14 @@ time_t dos_to_unix_time(ddate, dtime)
     bailout_cnt = 3;
     then = loctime;
     do {
-      tzoffset_adj = loctime - mkgmtime(localtime(&then));
+      ltm = localtime(&then);
+      tzoffset_adj = (ltm != NULL) ? (loctime - mkgmtime(ltm)) : 0L;
       if (tzoffset_adj == 0L)
         break;
       then += tzoffset_adj;
     } while (--bailout_cnt > 0);
 
-    if ( (ddate >= (unsigned)DOSDATE_2038_01_18) &&
+    if ( (dosdatetime >= DOSTIME_2038_01_18) &&
          (then < (time_t)0x70000000L) )
         then = U_TIME_T_MAX;    /* saturate in case of (unsigned) overflow */
     if (then < (time_t)0L)      /* a converted DOS time cannot be negative */
@@ -1998,6 +2005,12 @@ static void uxtime2vmstime(  /* convert time_t value into 64 bit VMS bintime */
     time_t m_time = utimeval;
     struct tm *t = localtime(&m_time);
 
+    if (t == (struct tm *)NULL) {
+        /* time conversion error; use current time instead, hoping
+           that localtime() does not reject it as well! */
+        m_time = time(NULL);
+        t = localtime(&m_time);
+    }
     sprintf(timbuf, "%02d-%3s-%04d %02d:%02d:%02d.00",
             t->tm_mday, month[t->tm_mon], t->tm_year + 1900,
             t->tm_hour, t->tm_min, t->tm_sec);
@@ -2367,6 +2380,12 @@ int mapattr(__G)
     }
 
     switch (G.pInfo->hostnum) {
+        case AMIGA_:
+            tmp = (unsigned)(tmp>>16 & 0x0f);   /* Amiga RWED bits */
+            G.pInfo->file_attr =  (tmp << XAB$V_OWN) |
+                                   grpdef | sysdef | wlddef;
+            break;
+
         case UNIX_:
         case VMS_:  /*IM: ??? Does VMS Zip store protection in UNIX format ?*/
                     /* GRR:  Yup.  Bad decision on my part... */
@@ -2374,25 +2393,73 @@ int mapattr(__G)
         case ATARI_:
         case BEOS_:
         case QDOS_:
-            tmp = (unsigned)(tmp >> 16);  /* drwxrwxrwx */
-            theprot  = (unix_to_vms[tmp & 07] << XAB$V_WLD)
-                     | (unix_to_vms[(tmp>>3) & 07] << XAB$V_GRP)
-                     | (unix_to_vms[(tmp>>6) & 07] << XAB$V_OWN);
+        case TANDEM_:
+            {
+              unsigned uxattr = (unsigned)(tmp >> 16);  /* drwxrwxrwx */
+              int r = FALSE;
 
-            if ( tmp & 0x4000 )
-                /* Directory -- set D bits */
-                theprot |= (XAB$M_NODEL << XAB$V_SYS)
-                        | (XAB$M_NODEL << XAB$V_OWN)
-                        | (XAB$M_NODEL << XAB$V_GRP)
-                        | (XAB$M_NODEL << XAB$V_WLD);
-            G.pInfo->file_attr = theprot;
-            break;
+              if (uxattr == 0 && G.extra_field) {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                   VMS (and probably others ??) leave 0 in the upper 16-bit
+                   part of the external_file_attributes field. Instead,
+                   they store file permission attributes in an e.f. block.
+                   As a work-around, we search for the presence of one of
+                   these extra fields and fall back to the MSDOS compatible
+                   part of external_file_attributes if one of the known
+                   e.f. types has been detected.
+                   Later, we might implement extraction of the permission
+                   bits from the VMS extra field. But for now, the
+                   work-around should be sufficient to provide "readable"
+                   extracted files.
+                   (For ASI Unix e.f., an experimental remap of the e.f.
+                   mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
 
-        case AMIGA_:
-            tmp = (unsigned)(tmp>>16 & 0x0f);   /* Amiga RWED bits */
-            G.pInfo->file_attr =  (tmp << XAB$V_OWN) |
-                                   grpdef | sysdef | wlddef;
-            break;
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            uxattr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+              }
+              if (!r) {
+                  theprot  = (unix_to_vms[uxattr & 07] << XAB$V_WLD)
+                           | (unix_to_vms[(uxattr>>3) & 07] << XAB$V_GRP)
+                           | (unix_to_vms[(uxattr>>6) & 07] << XAB$V_OWN);
+                  if ( tmp & 0x4000 )
+                      /* Directory -- set D bits */
+                      theprot |= (XAB$M_NODEL << XAB$V_SYS)
+                              | (XAB$M_NODEL << XAB$V_OWN)
+                              | (XAB$M_NODEL << XAB$V_GRP)
+                              | (XAB$M_NODEL << XAB$V_WLD);
+                  G.pInfo->file_attr = theprot;
+                  break;
+              }
+            }
+            /* fall through! */
 
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
@@ -2447,6 +2514,7 @@ int mapname(__G__ renamed)
             /* 2 (PK_ERR)  if warning (skip file because dir doesn't exist), */
             /* 3 (PK_BADERR) if error (skip file), */
             /* 77 (IZ_CREATED_DIR) if has created directory, */
+            /* 78 (IZ_VOL_LABEL) if path was volume label (skip it) */
             /* 10 if no memory (skip file) */
     __GDEF
     int renamed;
@@ -2471,8 +2539,11 @@ int mapname(__G__ renamed)
     Initialize various pointers and counters and stuff.
   ---------------------------------------------------------------------------*/
 
+    if (G.pInfo->vollabel)
+        return IZ_VOL_LABEL;    /* can't set disk volume labels on VMS */
+
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = !G.fflag;
+    G.create_dirs = !uO.fflag;
 
     created_dir = FALSE;        /* not yet */
 
@@ -2482,7 +2553,7 @@ int mapname(__G__ renamed)
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
 /* GRR:  watch out for VMS version... */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == NULL)             /* no '/' or not junking dirs */
@@ -2561,7 +2632,7 @@ int mapname(__G__ renamed)
             ++pp;
         if (*pp)                  /* not version number:  convert ';' to '_' */
             *lastsemi = '_';
-        else if (!G.V_flag)       /* only digits between ';' and end:  nuke */
+        else if (!uO.V_flag)      /* only digits between ';' and end:  nuke */
             *lastsemi = '\0';
         /* else only digits and we're saving version number:  do nothing */
     }
@@ -2914,6 +2985,7 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
 {
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
+    struct tm *t;
 #endif
     unsigned short timbuf[7];
     unsigned dy, mo, yr, hh, mm, ss, dy2, mo2, yr2, hh2, mm2, ss2;
@@ -2942,12 +3014,18 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
 
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_file_date, &z_utime, NULL)
+                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))
-    {
-        struct tm *t = localtime(&(z_utime.mtime));
+        t = localtime(&(z_utime.mtime));
+    else
+        t = (struct tm *)NULL;
 
+    if (t != (struct tm *)NULL)
+    {
         yr2 = (unsigned)(t->tm_year) + 1900;
         mo2 = (unsigned)(t->tm_mon) + 1;
         dy2 = (unsigned)(t->tm_mday);
@@ -2959,29 +3037,21 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
            but doesn't matter for compare */
         ss = (unsigned)((float)timbuf[5] + (float)timbuf[6]*.01 + 0.5);
         TTrace((stderr, "check_for_newer:  using Unix extra field mtime\n"));
-    } else {
-        yr2 = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
-        mo2 = ((G.lrec.last_mod_file_date >> 5) & 0x0f);
-        dy2 = (G.lrec.last_mod_file_date & 0x1f);
-        hh2 = (G.lrec.last_mod_file_time >> 11) & 0x1f;
-        mm2 = (G.lrec.last_mod_file_time >> 5) & 0x3f;
-        ss2 = (G.lrec.last_mod_file_time & 0x1f) * 2;
+    }
+    else
+#endif /* USE_EF_UT_TIME */
+    {
+        yr2 = ((G.lrec.last_mod_dos_datetime >> 25) & 0x7f) + 1980;
+        mo2 = (G.lrec.last_mod_dos_datetime >> 21) & 0x0f;
+        dy2 = (G.lrec.last_mod_dos_datetime >> 16) & 0x1f;
+        hh2 = (G.lrec.last_mod_dos_datetime >> 11) & 0x1f;
+        mm2 = (G.lrec.last_mod_dos_datetime >> 5) & 0x3f;
+        ss2 = (G.lrec.last_mod_dos_datetime << 1) & 0x1f;
 
         /* round to nearest 2 secs--may become 60,
            but doesn't matter for compare */
         ss = (unsigned)((float)timbuf[5] + (float)timbuf[6]*.01 + 1.) & (~1);
     }
-#else /* !USE_EF_UT_TIME */
-    yr2 = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
-    mo2 = ((G.lrec.last_mod_file_date >> 5) & 0x0f);
-    dy2 = (G.lrec.last_mod_file_date & 0x1f);
-    hh2 = (G.lrec.last_mod_file_time >> 11) & 0x1f;
-    mm2 = (G.lrec.last_mod_file_time >> 5) & 0x3f;
-    ss2 = (G.lrec.last_mod_file_time & 0x1f) * 2;
-
-    /* round to nearest 2 secs--may become 60, but doesn't matter for compare */
-    ss = (unsigned)((float)timbuf[5] + (float)timbuf[6]*.01 + 1.) & (~1);
-#endif /* ?USE_EF_UT_TIME */
     yr = timbuf[0];
     mo = timbuf[1];
     dy = timbuf[2];

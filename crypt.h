@@ -1,11 +1,11 @@
 /*
-   crypt.h (dummy version) by Info-ZIP.      Last revised:  5 Oct 97
+   crypt.h (dummy version) by Info-ZIP.      Last revised: 15 Aug 98
 
    This is a non-functional version of Info-ZIP's crypt.h encryption/
    decryption header file for Zip, ZipCloak, UnZip and fUnZip.  This
    file is not copyrighted and may be distributed without restriction.
    See the "WHERE" file for sites from which to obtain the full crypt
-   sources (zcrypt27.zip or later).
+   sources (zcrypt28.zip or later).
  */
 
 #ifndef __crypt_h   /* don't include more than once */

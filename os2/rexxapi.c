@@ -116,8 +116,10 @@ int RexxReturn(__GPRO__ int nodefault, RXSTRING *retstr)
   if (G.filenotfound)
     G.os2.rexx_mes = "file not found";
   if (*G.os2.rexx_mes != '0') {
-    if (retstr->strlength > 255)
+    if (retstr->strlength > 255) {
       DosFreeMem(retstr->strptr);
+      retstr->strptr = NULL;
+    }
   } else if (nodefault)
     goto noBuild;
   BUILDRXSTRING(retstr, G.os2.rexx_mes);
@@ -274,11 +276,11 @@ ULONG UZFileTree(CHAR *name, ULONG numargs, RXSTRING args[],
   G.wildzipfn = args[0].strptr;
   G.process_all_files = TRUE;
 
-  G.lflag = 1;
-  G.zipinfo_mode = TRUE;
-  G.C_flag = 1;
+  uO.lflag = 1;
+  uO.zipinfo_mode = TRUE;
+  uO.C_flag = 1;
   G.extract_flag = FALSE;
-  G.qflag = 2;
+  uO.qflag = 2;
 
   if (numargs >= 3 &&                  /* check third option         */
       !RXNULLSTRING(args[2]) &&
@@ -310,9 +312,9 @@ ULONG UZFileTree(CHAR *name, ULONG numargs, RXSTRING args[],
     int first = *args[4].strptr & 0x5f;
 
     if (first == 'Z')
-      G.vflag = 2, G.lflag = 0, G.zipinfo_mode = FALSE;
+      uO.vflag = 2, uO.lflag = 0, uO.zipinfo_mode = FALSE;
     else if (first == 'F')
-      G.vflag = 1, G.lflag = 0, G.zipinfo_mode = FALSE;
+      uO.vflag = 1, uO.lflag = 0, uO.zipinfo_mode = FALSE;
   }
 
   process_zipfiles(__G);
@@ -355,6 +357,7 @@ ULONG UZUnZipToVar(CHAR *name, ULONG numargs, RXSTRING args[],
     return INVALID_ROUTINE;            /* Invalid call to routine    */
   }
 
+  uO.C_flag = 1;
   G.redirect_data=1;
   if (numargs == 3) {
     if (!RXVALIDSTRING(args[2]) ||
@@ -475,7 +478,7 @@ ULONG UZUnZipToStem(CHAR *name, ULONG numargs, RXSTRING args[],
   G.wildzipfn = args[0].strptr;
   G.process_all_files = TRUE;
 
-  G.C_flag = 1;
+  uO.C_flag = 1;
   G.extract_flag = TRUE;
   SetOutputVarStem(__G__ args[1].strptr);
   G.redirect_data = 3;
@@ -518,7 +521,7 @@ ULONG UZUnZipToStem(CHAR *name, ULONG numargs, RXSTRING args[],
   }
 
 
-  G.qflag = 2;
+  uO.qflag = 2;
 
   process_zipfiles(__G);
   if (G.filespecs > 0 && G.pfnames != incname)
@@ -577,7 +580,7 @@ ULONG UZVer(CHAR *name, ULONG numargs, RXSTRING args[],
   if (numargs > 1)                    /* validate arg count         */
     return INVALID_ROUTINE;
 
-  if ((*args[0].strptr & 0x5f) != 'L')
+  if (numargs == 0 || (*args[0].strptr & 0x5f) != 'L')
     /* strcpy( retstr->strptr, UZ_VERNUM );    "5.13a BETA" */
     sprintf( retstr->strptr, "%d.%d%d%s", UZ_MAJORVER, UZ_MINORVER,
       PATCHLEVEL, BETALEVEL );
@@ -819,12 +822,16 @@ int finish_REXX_redirect(__GPRO)
     TextSetNext(__G__ G.redirect_buffer, G.redirect_size, 1);
     SetOutputVarLength(__G);
     DosFreeMem(G.redirect_buffer);
+    G.redirect_buffer = NULL;
+    G.redirect_size = 0;
     break;
   case 3:
     WriteToNextVariable(__G__ G.filename,strlen(G.filename));
     sprintf(G.os2.output_var+G.os2.stem_len,G.filename);
     WriteToVariable(__G__ G.os2.output_var, G.redirect_buffer, G.redirect_size);
     DosFreeMem(G.redirect_buffer);
+    G.redirect_buffer = NULL;
+    G.redirect_size = 0;
     break;
   case 4:
     if ((scan = strrchr(G.filename,'/')) != NULL) {
@@ -839,6 +846,8 @@ int finish_REXX_redirect(__GPRO)
       *scan = '.';
     WriteToVariable(__G__ G.os2.output_var, G.redirect_buffer, G.redirect_size);
     DosFreeMem(G.redirect_buffer);
+    G.redirect_buffer = NULL;
+    G.redirect_size = 0;
     strcpy(G.os2.getvar_buf, G.os2.output_var);
     do {
       if ((scan = strrchr(G.filename,'/')) == NULL)

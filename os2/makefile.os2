@@ -1,4 +1,4 @@
-# Makefile for UnZip, UnZipSFX and fUnZip                     20 April 1997
+# Makefile for UnZip, UnZipSFX and fUnZip                     24 November 1998
 #
 #  supported compilers:
 #  - Microsoft C, version 6.00 or higher, for use under OS/2 1.x (16-bit)
@@ -38,7 +38,7 @@
 #
 #   The NFLAGS macro is used to work around an optimization bug in the IBM
 #   C++ Set compiler; this is fixed by CSD #4, so NFLAGS="" can be used for
-#   all targets below.  We'll leave it as is for this release...
+#   all targets below.
 
 # Notes on Watcom C/C++ compilation for DOS with the PMODE/W extender:
 #
@@ -59,10 +59,10 @@
 default:
 	@echo "Enter `$(MAKE) -f os2/makefile.os2 target' from the main"
 	@echo "UnZip directory, where target is one of:"
-	@echo "   msc mscdos ibm ibmdyn ibmdebug ibmprof ibmdll ibmdlldyn"
-	@echo "   ibmdlldebug ibmdllprof ibmdlldynvalidate ibmdlldebugvalidate"
-	@echo "   metaware borland gcc gccdyn gccdebug gccdos gccwin32 watcom"
-	@echo "   watcom16 watcomdos watcom16dos pmodew watcomwin32"
+	@echo "   msc mscdebug mscdos ibm ibmdyn ibmdebug ibmprof"
+	@echo "   ibmdll ibmdyndll ibmdebugdll ibmprofdll"
+	@echo "   metaware borland gcc gccdyn gccdebug gccdos gccwin32"
+	@echo "   watcom watcom16 watcomdos watcom16dos pmodew watcomwin32"
 
 # MS C 6.00 for OS/2, 16-bit (should figure out way to split unzip/funzip
 # compiles so former is always large model and latter always small model...)
@@ -127,7 +127,7 @@ ibm:
 	$(MAKE) -f os2/makefile.os2 all \
 	CC="icc -Q -O -Gs -I." \
 	CFLAGS="-Sm -Sp1 -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
+	NFLAGS="" \
 	DLLFLAG="" \
 	LDFLAGS="-B/ST:0x50000 -Fe" \
 	LDFLAGS2="" \
@@ -140,7 +140,7 @@ ibmdyn:
 	$(MAKE) -f os2/makefile.os2 all \
 	CC="icc -Q -O -Gs -Gd -I." \
 	CFLAGS="-Sm -Sp1 -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
+	NFLAGS="" \
 	DLLFLAG="" \
 	LDFLAGS="-B/ST:0x50000 -Fe" \
 	LDFLAGS2="" \
@@ -153,7 +153,7 @@ ibmdebug:
 	$(MAKE) -f os2/makefile.os2 all \
 	CC="icc -Q -Ti -I." \
 	CFLAGS="-Sm -Sp1 -D__DEBUG_ALLOC__ -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
+	NFLAGS="" \
 	DLLFLAG="" \
 	LDFLAGS="-B/ST:0x50000 -Fe" \
 	LDFLAGS2="" \
@@ -166,7 +166,7 @@ ibmprof:
 	$(MAKE) -f os2/makefile.os2 all \
 	CC="icc -Q -O -Gs -Gh -Ti -I." \
 	CFLAGS="-Sm -Sp1 -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
+	NFLAGS="" \
 	DLLFLAG="" \
 	LDFLAGS="-B/ST:0x50000 -Fe" \
 	LDFLAGS2="cppopa3.obj" \
@@ -179,7 +179,7 @@ ibmdll:
 	$(MAKE) -f os2/makefile.os2 dll \
 	CC="icc -Q -O -Gs -I." \
 	CFLAGS="-Sm -Sp1 -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
+	NFLAGS="" \
 	DLLFLAG="-Gm -Ge- -DDLL -DOS2DLL -DAPI_DOC" \
 	LDFLAGS="-Fe" \
 	LDFLAGS2="" \
@@ -195,7 +195,7 @@ ibmdyndll:
 	$(MAKE) -f os2/makefile.os2 dll \
 	CC="icc -Q -O -Gs -Gd -I." \
 	CFLAGS="-Sm -Sp1 -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
+	NFLAGS="" \
 	DLLFLAG="-Gm -Ge- -DDLL -DOS2DLL -DAPI_DOC" \
 	LDFLAGS="-Fe" \
 	LDFLAGS2="" \
@@ -211,7 +211,7 @@ ibmdebugdll:
 	$(MAKE) -f os2/makefile.os2 dll \
 	CC="icc -Q -Ti -I." \
 	CFLAGS="-Sm -Sp1 -D__DEBUG_ALLOC__ -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
+	NFLAGS="" \
 	DLLFLAG="-Gm -Ge- -DDLL -DOS2DLL -DAPI_DOC" \
 	LDFLAGS="-Fe" \
 	LDFLAGS2="" \
@@ -227,8 +227,8 @@ ibmprofdll:
 	$(MAKE) -f os2/makefile.os2 dll \
 	CC="icc -Q -O -Gs -Gh -Ti -I." \
 	CFLAGS="-Gm -Sm -Sp1 -DOS2 $(LOCAL_UNZIP)" \
-	NFLAGS="-O-" \
-	DLLFLAG="-Ge- -DDLL -DOS2DLL -DAPI_DOC" \
+	NFLAGS="" \
+	DLLFLAG="-Gm -Ge- -DDLL -DOS2DLL -DAPI_DOC" \
 	LDFLAGS="-Fe" \
 	LDFLAGS2="profit.obj" \
 	OUT="-Fo" \
@@ -324,7 +324,7 @@ pmodew:
 # Watcom C/286 9.0 or higher, crosscompilation for DOS
 watcom16dos:
 	$(MAKE) -f os2/makefile.os2 all \
-	CC="wcl -bt=dos -zq -mm -Ox -s -I." \
+	CC="wcl -bt=dos -zq -ml -Ox -s -I." \
 	CFLAGS="-Zp1 -DMSDOS $(LOCAL_UNZIP)" \
 	NFLAGS="" \
 	DLLFLAG="" \
@@ -461,17 +461,17 @@ gccdos:
 	OBJX2="msdos_.o" \
 	OSDEP_H="msdos/doscfg.h"
 
-# emx, gcc, RSXNT, cross-compilation for Win32
+# emx, gcc, RSXNT, cross-compilation for Win32, statically linked C runtime
 gccwin32:
 	$(MAKE) -f os2/makefile.os2 all \
-	CC="gcc -Zwin32 -O -I." \
+	CC="gcc -Zwin32 -O2 -I." \
 	CFLAGS="-Wall -DWIN32 -DASM_CRC $(LOCAL_UNZIP)" \
 	NFLAGS="" \
 	DLLFLAG="" \
 	AS="gcc" \
 	ASFLAGS="-Di386" \
-	LDFLAGS="-o ./" \
-	LDFLAGS2="-Zsmall-conv -s" \
+	LDFLAGS="-Zsys -o ./" \
+	LDFLAGS2="-ladvapi32 -Zsmall-conv -s" \
 	OUT="-o" \
 	OBJ=".o" \
 	CRC32="crc_gcc" \
@@ -479,6 +479,7 @@ gccwin32:
 	CRC32X="crc_gcc" \
 	OBJU2="win32.o nt.o" \
 	OBJX2="win32_.o nt_.o" \
+	OBJF2="win32f.o" \
 	OSDEP_H="win32/w32cfg.h"
 
 # variables
@@ -502,10 +503,11 @@ OBJU2 = os2$(OBJ) os2acl$(OBJ)
 OBJX  = unzipsf_$(OBJ) $(CRC32X)$(OBJ) crctab_$(OBJ) crypt_$(OBJ) \
         extract_$(OBJ) fileio_$(OBJ) globals_$(OBJ) inflate_$(OBJ) \
 	match_$(OBJ) process_$(OBJ) ttyio_$(OBJ)
-OBJX2 = os2_$(OBJ) os2acl$(OBJ)
+OBJX2 = os2_$(OBJ) os2acl_$(OBJ)
 OBJDLL= api$(OBJ) apihelp$(OBJ) rexxhelp$(OBJ) rexxapi$(OBJ)
 OBJF  = funzip$(OBJ) $(CRC32F)$(OBJ) cryptf$(OBJ) inflatef$(OBJ) \
 	globalsf$(OBJ) ttyiof$(OBJ)
+OBJF2 =
 
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 
@@ -527,14 +529,14 @@ dll:	unzip32.dll unzip.stb funzip.exe unzipsfx.exe
 unzip.exe: $(OBJU) $(OBJU2)
 	$(CC) $(LDFLAGS)$@ $(DEF) $(OBJU) $(OBJU2) $(LDFLAGS2)
 
-funzip.exe: $(OBJF)
-	$(CC) $(LDFLAGS)$@ $(DEF) $(OBJF) $(LDFLAGS2)
+funzip.exe: $(OBJF) $(OBJF2)
+	$(CC) $(LDFLAGS)$@ $(DEF) $(OBJF) $(OBJF2) $(LDFLAGS2)
 
 unzipsfx.exe:	$(OBJX) $(OBJX2)
 	$(CC) $(LDFLAGS)$@ $(DEF) $(OBJX) $(OBJX2) $(LDFLAGS2)
 
 unzip32.dll: $(DLLDEF) $(OBJU) $(OBJU2) $(OBJDLL)
-	$(CC) $(LDFLAGS)$@ $(DLLDEF) $(OBJU) $(OBJDLL) $(OBJU2) $(APILIB) $(LDFLAGS2)
+	$(CC) $(DLLFLAG) $(LDFLAGS)$@ $(DLLDEF) $(OBJU) $(OBJDLL) $(OBJU2) $(APILIB) $(LDFLAGS2)
 
 unzip.stb: unzipstb$(OBJ) $(STUBDEF)
 	$(CC) $(LDFLAGS)$@ $(STUBDEF) unzipstb$(OBJ) $(LDFLAGS2)
@@ -585,6 +587,9 @@ win32_$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h		# Win32 unzipsfx
 nt_$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h		# Win32 unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ win32$(DIRSEP)nt.c
 
+win32f$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h		# Win32 funzip
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ win32$(DIRSEP)win32.c
+
 os2$(OBJ):	os2/os2.c $(UNZIP_H) version.h			# OS/2 only
 	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2.c
 
@@ -593,6 +598,9 @@ os2_$(OBJ):	os2/os2.c $(UNZIP_H)				# OS/2 unzipsfx
 
 os2acl$(OBJ):	os2/os2acl.c $(UNZIP_H) version.h		# OS/2 only
 	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2acl.c
+
+os2acl_$(OBJ):	os2/os2acl.c $(UNZIP_H) version.h		# OS/2 unzipsfx
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ os2$(DIRSEP)os2acl.c
 
 rexxhelp$(OBJ):	os2/rexxhelp.c					# OS/2 DLL only
 	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)rexxhelp.c

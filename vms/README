@@ -32,14 +32,14 @@ on compiling):
  - The VMS C runtime library translates all command-line text to lowercase
    unless it is quoted, making some options and/or filenames not work as
    intended.  For example:
-	unzip -V zipfile vms/README;*
+        unzip -V zipfile vms/README;*
    is translated to
-	unzip -v zipfile vms/readme;*
+        unzip -v zipfile vms/readme;*
    which may not match the contents of the zipfile and definitely won't
    extract the file with its version number as intended.  This can be
    avoided by use of the -C option (/CASE_INSENSITIVE) or by enclosing
    the uppercase stuff in quotes:
-	unzip "-V" zipfile "vms/README;*"
+        unzip "-V" zipfile "vms/README;*"
    Note that quoting the whole line probably won't work, since it would
    be interpreted as a single argument by the C library.
 

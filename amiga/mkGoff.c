@@ -12,9 +12,9 @@
 #  define pG_redirSlide pG->area.Slide
 #endif
 
-void main(void)
+int main(int argc, char **argv)
 {
-    struct Globals *pG = (void *) 0L;
+    Uz_Globs *pG = (void *) 0L;
 
     printf("bb              EQU     %lu\n", &pG->bb);
     printf("bk              EQU     %lu\n", &pG->bk);
@@ -29,6 +29,6 @@ void main(void)
 #endif
     printf("slide           EQU     %lu\n", &pG_redirSlide);
     printf("SIZEOF_slide    EQU     %lu\n", sizeof(pG_redirSlide));
-    printf("CRYPT           EQU     %d\n", CRYPT);
-    exit(0);
+    printf("CRYPT           EQU     %d\n",  CRYPT);
+    return 0;
 }

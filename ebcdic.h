@@ -5,6 +5,30 @@
   The CECP 1047 (Extended de-facto EBCDIC) <-> ISO 8859-1 conversion tables,
   from ftp://aix1.segi.ulg.ac.be/pub/docs/iso8859/iso8859.networking
 
+  NOTES:
+  <Paul_von_Behren@stortek.com> (OS/390 port 12/97)
+   These table no longer represent the standard mappings (for example in the
+   OS/390 iconv utility).  In order to follow current standards I remapped
+     ebcdic x0a to ascii x15    and
+     ebcdic x85 to ascii x25    (and vice-versa)
+   Without these changes, newlines in auto-convert text files appeared
+   as literal \045.
+   I'm not sure what effect this remap would have on the MVS and CMS ports, so
+   I ifdef'd these changes.  Hopefully these ifdef's can be removed when the
+   MVS/CMS folks test the new mappings.
+
+  Christian Spieler <spieler@ikp.tu-darmstadt.de>, 27-Apr-1998
+   The problem mentioned by Paul von Behren was already observed previously
+   on VM/CMS, during the preparation of the CMS&MVS port of UnZip 5.20 in
+   1996. At that point, the ebcdic tables were not changed since they seemed
+   to be an adopted standard (to my knowledge, these tables are still used
+   as presented in mainfraime KERMIT). Instead, the "end-of-line" conversion
+   feature of Zip's and UnZip's "text-translation" mode was used to force
+   correct mappings between ASCII and EBCDIC newline markers.
+   Before interchanging the ASCII mappings of the EBCDIC control characters
+   "NL" 0x25 and "LF" 0x15 according to the OS/390 setting, we have to
+   make sure that EBCDIC 0x15 is never used as line termination.
+
   ---------------------------------------------------------------------------*/
 
 #ifndef __ebcdic_h      /* prevent multiple inclusions */
@@ -20,7 +44,11 @@
 
 ZCONST uch ebcdic[] = {
     0x00, 0x01, 0x02, 0x03, 0x37, 0x2D, 0x2E, 0x2F,  /* 00 - 07 */
+#ifdef OS390
+    0x16, 0x05, 0x15, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,  /* 08 - 0F */
+#else
     0x16, 0x05, 0x25, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,  /* 08 - 0F */
+#endif
     0x10, 0x11, 0x12, 0x13, 0x3C, 0x3D, 0x32, 0x26,  /* 10 - 17 */
     0x18, 0x19, 0x3F, 0x27, 0x1C, 0x1D, 0x1E, 0x1F,  /* 18 - 1F */
     0x40, 0x5A, 0x7F, 0x7B, 0x5B, 0x6C, 0x50, 0x7D,  /* 20 - 27 */
@@ -35,7 +63,11 @@ ZCONST uch ebcdic[] = {
     0x88, 0x89, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,  /* 68 - 6F */
     0x97, 0x98, 0x99, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6,  /* 70 - 77 */
     0xA7, 0xA8, 0xA9, 0xC0, 0x4F, 0xD0, 0xA1, 0x07,  /* 78 - 7F */
+#ifdef OS390
+    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x06, 0x17,  /* 80 - 87 */
+#else
     0x20, 0x21, 0x22, 0x23, 0x24, 0x15, 0x06, 0x17,  /* 80 - 87 */
+#endif
     0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x09, 0x0A, 0x1B,  /* 88 - 8F */
     0x30, 0x31, 0x1A, 0x33, 0x34, 0x35, 0x36, 0x08,  /* 90 - 97 */
     0x38, 0x39, 0x3A, 0x3B, 0x04, 0x14, 0x3E, 0xFF,  /* 98 - 9F */
@@ -57,9 +89,17 @@ ZCONST uch ebcdic[] = {
 ZCONST uch ascii[] = {
     0x00, 0x01, 0x02, 0x03, 0x9C, 0x09, 0x86, 0x7F,  /* 00 - 07 */
     0x97, 0x8D, 0x8E, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,  /* 08 - 0F */
+#ifdef OS390
+    0x10, 0x11, 0x12, 0x13, 0x9D, 0x0A, 0x08, 0x87,  /* 10 - 17 */
+#else
     0x10, 0x11, 0x12, 0x13, 0x9D, 0x85, 0x08, 0x87,  /* 10 - 17 */
+#endif
     0x18, 0x19, 0x92, 0x8F, 0x1C, 0x1D, 0x1E, 0x1F,  /* 18 - 1F */
+#ifdef OS390
+    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x17, 0x1B,  /* 20 - 27 */
+#else
     0x80, 0x81, 0x82, 0x83, 0x84, 0x0A, 0x17, 0x1B,  /* 20 - 27 */
+#endif
     0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x05, 0x06, 0x07,  /* 28 - 2F */
     0x90, 0x91, 0x16, 0x93, 0x94, 0x95, 0x96, 0x04,  /* 30 - 37 */
     0x98, 0x99, 0x9A, 0x9B, 0x14, 0x15, 0x9E, 0x1A,  /* 38 - 3F */
@@ -174,7 +214,7 @@ ZCONST uch ascii[] = {
 
 /*---------------------------------------------------------------------------
 
-  The following conversion tables tranlate between IBM PC CP 850
+  The following conversion tables translate between IBM PC CP 850
   (OEM codepage) and the "Western Europe & America" Windows codepage 1252.
   The Windows codepage 1252 contains the ISO 8859-1 "Latin 1" codepage,
   with some additional printable characters in the range (0x80 - 0x9F),

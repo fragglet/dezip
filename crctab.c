@@ -30,6 +30,8 @@
   combinations of CRC register values and incoming bytes.
 */
 
+#define __CRCTAB_C      /* identifies this source module */
+
 #include "zip.h"
 
 #if (!defined(USE_ZLIB) || defined(USE_OWN_CRCTAB))
@@ -49,7 +51,7 @@ local void make_crc_table OF((void));
 
 #if (defined(DYNALLOC_CRCTAB) && defined(REENTRANT))
    error: Dynamic allocation of CRC table not safe with reentrant code.
-#endif /* DYNALLOC && REENTRANT */
+#endif /* DYNALLOC_CRCTAB && REENTRANT */
 
 #ifdef DYNALLOC_CRCTAB
    local ulg near *crc_table = NULL;
@@ -129,7 +131,7 @@ local void make_crc_table()
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by make_crc_table)
  */
-local ZCONST ulg near crc_table[] = {
+local ZCONST ulg near crc_table[256] = {
   0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
   0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
   0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
@@ -185,10 +187,11 @@ local ZCONST ulg near crc_table[] = {
 };
 #endif /* ?DYNAMIC_CRC_TABLE */
 
+/* use "OF((void))" here to work around a Borland TC++ 1.0 problem */
 #ifdef USE_ZLIB
-uLongf *get_crc_table()
+ZCONST uLongf *get_crc_table OF((void))
 #else
-ulg near *get_crc_table()
+ZCONST ulg near *get_crc_table OF((void))
 #endif
 {
 #ifdef DYNAMIC_CRC_TABLE
@@ -196,9 +199,9 @@ ulg near *get_crc_table()
     make_crc_table();
 #endif
 #ifdef USE_ZLIB
-  return (uLongf *)crc_table;
+  return (ZCONST uLongf *)crc_table;
 #else
-  return (ulg near *)crc_table;
+  return (ZCONST ulg near *)crc_table;
 #endif
 }
 

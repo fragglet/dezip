@@ -12,11 +12,16 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dos/dos.h>
-#include <clib/dos_protos.h>
-#if (defined(DEBUG) && defined(__SASC))
-#  include <sprof.h>
-#endif
+#ifdef __SASC
+#  include <proto/dos.h>
+#  ifdef DEBUG
+#    include <sprof.h>
+#  endif
+#endif /* __SASC */
+#ifdef AZTEC_C
+#  include <dos/dos.h>
+#  include <clib/dos_protos.h>
+#endif /* AZTEC_C */
 
 typedef unsigned long ulg;
 typedef unsigned char uch;

@@ -11,13 +11,11 @@
 
 #OUTPUT Building ZIPLIB
 #APPEND bin CLEAR
-add^list BITSO
 add^list CRC32O
 add^list CRCTABO
 add^list DEFLATEO
 add^list FILEIOO
 add^list GLOBALSO
-add^list MKTIMEO
 add^list TANDEMO
 add^list TREESO
 add^list TTYIOO

@@ -11,6 +11,7 @@
              checkdir()
              mkdir()
              close_outfile()
+             set_direc_attribs()
              stamp_file()
              version()
 
@@ -61,6 +62,20 @@
 #    define dirent direct
 #  endif
 #endif /* ?DIRENT */
+
+#ifdef ACORN_FTYPE_NFS
+/* Acorn bits for NFS filetyping */
+typedef struct {
+  uch ID[2];
+  uch size[2];
+  uch ID_2[4];
+  uch loadaddr[4];
+  uch execaddr[4];
+  uch attr[4];
+} RO_extra_block;
+
+static int isRISCOSexfield OF((uch *extra_field));
+#endif /* ACORN_FTYPE_NFS */
 
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
@@ -117,6 +132,13 @@ char *do_wild(__G__ wildspec)
     if (firstcall) {        /* first call:  must initialize everything */
         firstcall = FALSE;
 
+        if (!iswild(wildspec)) {
+            strcpy(matchname, wildspec);
+            have_dirname = FALSE;
+            dir = NULL;
+            return matchname;
+        }
+
         /* break the wildspec into a directory part and a wildcard filename */
         if ((wildname = strrchr(wildspec, '/')) == (char *)NULL) {
             dirname = ".";
@@ -139,9 +161,13 @@ char *do_wild(__G__ wildspec)
 
         if ((dir = opendir(dirname)) != (DIR *)NULL) {
             while ((file = readdir(dir)) != (struct dirent *)NULL) {
+                Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
-                if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
+                if (match(file->d_name, wildname, 0) &&  /* 0 == case sens. */
+                    /* skip "." and ".." directory entries */
+                    strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
+                    Trace((stderr, "do_wild:  match() succeeds\n"));
                     if (have_dirname) {
                         strcpy(matchname, dirname);
                         strcpy(matchname+dirnamelen, file->d_name);
@@ -173,8 +199,12 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL)
+    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        if (file->d_name[0] == '.' && wildname[0] != '.')
+            continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
+            Trace((stderr, "do_wild:  match() succeeds\n"));
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
                 strcpy(matchname+dirnamelen, file->d_name);
@@ -182,6 +212,7 @@ char *do_wild(__G__ wildspec)
                 strcpy(matchname, file->d_name);
             return matchname;
         }
+    }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = (DIR *)NULL;
@@ -207,21 +238,84 @@ int mapattr(__G)
 {
     ulg tmp = G.crec.external_file_attributes;
 
+    G.pInfo->file_attr = 0;
+    /* initialized to 0 for check in "default" branch below... */
+
     switch (G.pInfo->hostnum) {
+        case AMIGA_:
+            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
+            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
+            break;
         case UNIX_:
         case VMS_:
         case ACORN_:
         case ATARI_:
         case BEOS_:
         case QDOS_:
+        case TANDEM_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
-            return 0;
-        case AMIGA_:
-            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
-            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
-            break;
+            if (G.pInfo->file_attr != 0 || !G.extra_field) {
+                return 0;
+            } else {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                 * VMS (and probably others ??) leave 0 in the upper 16-bit
+                 * part of the external_file_attributes field. Instead, they
+                 * store file permission attributes in some extra field.
+                 * As a work-around, we search for the presence of one of
+                 * these extra fields and fall back to the MSDOS compatible
+                 * part of external_file_attributes if one of the known
+                 * e.f. types has been detected.
+                 * Later, we might implement extraction of the permission
+                 * bits from the VMS extra field. But for now, the work-around
+                 * should be sufficient to provide "readable" extracted files.
+                 * (For ASI Unix e.f., an experimental remap from the e.f.
+                 * mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
+                int r = FALSE;
+
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            G.pInfo->file_attr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+                if (!r)
+                    return 0;
+            }
+            /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
+            /* PKWARE's PKZip for Unix marks entries as FS_FAT_, but stores the
+             * Unix attributes in the upper 16 bits of the external attributes
+             * field, just like Info-ZIP's Zip for Unix.  We try to use that
+             * value, after a check for consistency with the MSDOS attribute
+             * bits (see below).
+             */
+            G.pInfo->file_attr = (unsigned)(tmp >> 16);
+            /* fall through! */
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
@@ -229,6 +323,11 @@ int mapattr(__G)
         default:
             /* read-only bit --> write perms; subdir bit --> dir exec bit */
             tmp = !(tmp & 1) << 1  |  (tmp & 0x10) >> 4;
+            if ((G.pInfo->file_attr & 0700) == (unsigned)(0400 | tmp<<6))
+                /* keep previous G.pInfo->file_attr setting, when its "owner"
+                 * part appears to be consistent with DOS attribute flags!
+                 */
+                return 0;
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
     } /* end switch (host-OS-created-by) */
@@ -256,6 +355,9 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     char pathcomp[FILNAMSIZ];      /* path-component buffer */
     char *pp, *cp=(char *)NULL;    /* character pointers */
     char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
+#ifdef ACORN_FTYPE_NFS
+    char *lastcomma=(char *)NULL;  /* pointer to last comma in pathcomp */
+#endif
     int quote = FALSE;             /* flags */
     int error = 0;
     register unsigned workch;      /* hold the character being tested */
@@ -269,7 +371,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -281,7 +383,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == (char *)NULL)     /* no '/' or not junking dirs */
         cp = G.filename;        /* point to internal zipfile-member pathname */
@@ -312,6 +414,13 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 *pp++ = ';';      /* keep for now; remove VMS ";##" */
                 break;            /*  later, if requested */
 
+#ifdef ACORN_FTYPE_NFS
+            case ',':             /* NFS filetype extension */
+                lastcomma = pp;
+                *pp++ = ',';      /* keep for now; may need to remove */
+                break;            /*  later, if requested */
+#endif
+
             case '\026':          /* control-V quote for special chars */
                 quote = TRUE;     /* set flag for next character */
                 break;
@@ -333,13 +442,29 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
         if (*pp == '\0')          /* only digits between ';' and end:  nuke */
             *lastsemi = '\0';
     }
+
+#ifdef ACORN_FTYPE_NFS
+    /* translate Acorn filetype information if asked to do so */
+    if (uO.acorn_nfs_ext && isRISCOSexfield(G.extra_field)) {
+        /* file *must* have a RISC OS extra field */
+        int ft = (int)makelong(((RO_extra_block *)G.extra_field)->loadaddr);
+        /*32-bit*/
+        if (lastcomma) {
+            pp = lastcomma + 1;
+            while (isxdigit((uch)(*pp))) ++pp;
+            if (pp == lastcomma+4 && *pp == '\0') *lastcomma='\0'; /* nuke */
+        }
+        if ((ft & 1<<31)==0) ft=0x000FFD00;
+        sprintf(pathcomp+strlen(pathcomp), ",%03x", ft>>8 & 0xFFF);
+    }
+#endif /* ACORN_FTYPE_NFS */
 
 /*---------------------------------------------------------------------------
     Report if directory was created (and no file to create:  filename ended
@@ -546,8 +671,13 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1)) ==
-            (char *)NULL)
+#ifdef ACORN_FTYPE_NFS
+        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+
+                                        (uO.acorn_nfs_ext ? 5 : 1)))
+#else
+        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1))
+#endif
+            == (char *)NULL)
             return 10;
         if ((rootlen > 0) && !renamed_fullpath) {
             strcpy(buildpath, rootpath);
@@ -579,7 +709,7 @@ int checkdir(__G__ pathcomp, flag)
                 pathcomp[--rootlen] = '\0';
             }
             if (rootlen > 0 && (stat(pathcomp, &G.statbuf) ||
-                !S_ISDIR(G.statbuf.st_mode)))        /* path does not exist */
+                !S_ISDIR(G.statbuf.st_mode)))       /* path does not exist */
             {
                 if (!G.create_dirs /* || iswild(pathcomp) */ ) {
                     rootlen = 0;
@@ -756,14 +886,18 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
   ---------------------------------------------------------------------------*/
 
     eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
-                   G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
-                   &zt, z_uidgid) : 0);
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
+#ifdef IZ_CHECK_TZ
+                   (G.tz_is_valid ? &zt : NULL),
+#else
+                   &zt,
+#endif
+                   z_uidgid) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
           zt.mtime));
     } else {
-        zt.mtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                    G.lrec.last_mod_file_time);
+        zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
     if (eb_izux_flg & EB_UT_FL_ATIME) {
         TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
@@ -775,11 +909,11 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     }
 
     /* if -X option was specified and we have UID/GID info, restore it */
-    if (G.X_flag && eb_izux_flg & EB_UX2_VALID) {
+    if (uO.X_flag && eb_izux_flg & EB_UX2_VALID) {
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
         if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
         {
-            if (G.qflag)
+            if (uO.qflag)
                 Info(slide, 0x201, ((char *)slide,
                   "warning:  cannot set UID %d and/or GID %d for %s\n",
                   z_uidgid[0], z_uidgid[1], G.filename));
@@ -787,26 +921,26 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
                 Info(slide, 0x201, ((char *)slide,
                   " (warning) cannot set UID %d and/or GID %d",
                   z_uidgid[0], z_uidgid[1]));
-/* GRR: change return type to int and set up to return warning after utime() */
         }
     }
 
     /* set the file's access and modification times */
-    if (utime(G.filename, (ztimbuf *)&zt))
+    if (utime(G.filename, (ztimbuf *)&zt)) {
 #ifdef AOS_VS
-        if (G.qflag)
+        if (uO.qflag)
             Info(slide, 0x201, ((char *)slide, "... cannot set time for %s\n",
               G.filename));
         else
             Info(slide, 0x201, ((char *)slide, "... cannot set time"));
 #else
-        if (G.qflag)
+        if (uO.qflag)
             Info(slide, 0x201, ((char *)slide,
               "warning:  cannot set times for %s\n", G.filename));
         else
             Info(slide, 0x201, ((char *)slide,
               " (warning) cannot set times"));
 #endif /* ?AOS_VS */
+    }
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
@@ -821,6 +955,56 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 } /* end function close_outfile() */
 
 #endif /* !MTS */
+
+
+
+
+#ifdef SET_DIR_ATTRIB
+/* messages of code for setting directory attributes */
+static char Far DirlistUidGidFailed[] =
+  "warning:  cannot set UID %d and/or GID %d for %s\n";
+static char Far DirlistUtimeFailed[] =
+  "warning:  cannot set modification, access times for %s\n";
+#  ifndef NO_CHMOD
+  static char Far DirlistChmodFailed[] =
+    "warning:  cannot set permissions for %s\n";
+#  endif
+
+
+int set_direc_attribs(__G__ d)
+    __GDEF
+    dirtime *d;
+{
+    int errval = PK_OK;
+
+    if (d->have_uidgid &&
+        chown(d->fn, (uid_t)d->uidgid[0], (gid_t)d->uidgid[1]))
+    {
+        Info(slide, 0x201, ((char *)slide,
+          LoadFarString(DirlistUidGidFailed),
+          d->uidgid[0], d->uidgid[1], d->fn));
+        if (!errval)
+            errval = PK_WARN;
+    }
+    if (utime(d->fn, &d->u.t2)) {
+        Info(slide, 0x201, ((char *)slide,
+          LoadFarString(DirlistUtimeFailed), d->fn));
+        if (!errval)
+            errval = PK_WARN;
+    }
+#ifndef NO_CHMOD
+    if (chmod(d->fn, 0xffff & d->perms)) {
+        Info(slide, 0x201, ((char *)slide,
+          LoadFarString(DirlistChmodFailed), d->fn));
+        /* perror("chmod (file attributes) error"); */
+        if (!errval)
+            errval = PK_WARN;
+    }
+#endif /* !NO_CHMOD */
+    return errval;
+} /* end function set_directory_attributes() */
+
+#endif /* SET_DIR_ATTRIB */
 
 
 
@@ -1015,7 +1199,11 @@ void version(__G)
 #ifdef __QNXNTO__
       " (QNX Neutrino)",
 #else
+#ifdef Lynx
+      " (LynxOS)",
+#else
       "",
+#endif /* Lynx */
 #endif /* QNX Neutrino */
 #endif /* QNX 4 */
 #endif /* Convex */
@@ -1156,7 +1344,7 @@ static void qlfix(__G__ ef_ptr, ef_len)
             if (!strncmp(extra->longid, LONGID, strlen(LONGID)))
             {
                 if (eb_len != EXTRALEN)
-                    if (G.qflag)
+                    if (uO.qflag)
                         Info(slide, 0x201, ((char *)slide,
                           "warning:  invalid length in Qdos field for %s\n",
                           G.filename));
@@ -1173,7 +1361,7 @@ static void qlfix(__G__ ef_ptr, ef_len)
             if (!strncmp(jbp->longid, JBLONGID, strlen(JBLONGID)))
             {
                 if (eb_len != JBEXTRALEN)
-                    if (G.qflag)
+                    if (uO.qflag)
                         Info(slide, 0x201, ((char *)slide,
                           "warning:  invalid length in QZ field for %s\n",
                           G.filename));
@@ -1214,3 +1402,23 @@ static void qlfix(__G__ ef_ptr, ef_len)
     }
 }
 #endif /* QLZIP */
+
+
+
+
+#ifdef ACORN_FTYPE_NFS
+
+/* Acorn bits for NFS filetyping */
+
+static int isRISCOSexfield(uch *extra_field)
+{
+ if (extra_field != NULL) {
+   RO_extra_block *block = (RO_extra_block *)extra_field;
+   return (
+     makeword(block->ID) == EF_SPARK &&
+     (makeword(block->size) == 24 || makeword(block->size) == 20) &&
+     makelong(block->ID_2) == 0x30435241 /* ARC0 */);
+ }
+ return FALSE;
+}
+#endif /* ACORN_FTYPE_NFS */

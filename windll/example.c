@@ -6,7 +6,13 @@
 
  */
 
-#define WIN32
+#ifndef WIN32   /* this code is currently only tested for 32-bit console */
+#  define WIN32
+#endif
+
+#if defined(__WIN32__) && !defined(WIN32)
+#  define WIN32
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -15,9 +21,13 @@
 #include "example.h"
 #include "unzver.h"
 #ifdef WIN32
-#include <winver.h>
+#  ifdef __RSXNT__
+#    include <winversi.h>
+#  else
+#    include <winver.h>
+#  endif
 #else
-#include <ver.h>
+#  include <ver.h>
 #endif
 
 #ifdef WIN32
@@ -47,13 +57,14 @@ DWORD dwPlatformId = 0xFFFFFFFF;
 
 
 /* Forward References */
-int WINAPI DisplayBuf(char far *, unsigned long);
+int WINAPI DisplayBuf(LPSTR, unsigned long);
 int WINAPI GetReplaceDlgRetVal(char *);
 int WINAPI password(char *, int, const char *, const char *);
-void WINAPI ReceiveDllMessage(unsigned long,unsigned long,
-    ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long, char);
-_DLL_UNZIP windll_unzip;
-_USER_FUNCTIONS UzInit;
+void WINAPI ReceiveDllMessage(unsigned long, unsigned long, unsigned,
+    unsigned, unsigned, unsigned, unsigned, unsigned,
+    char, LPSTR, LPSTR, unsigned long, char);
+_DLL_UNZIP Wiz_SingleEntryUnzip;
+_USER_FUNCTIONS Wiz_Init;
 void FreeUpMemory(void);
 #ifdef WIN32
 BOOL IsNT(VOID);
@@ -77,7 +88,11 @@ OFSTRUCT ofs;
 HANDLE  hMem;         /* handle to mem alloc'ed */
 
 if (argc < 2)   /* We must have an archive to unzip */
+   {
+   printf("usage: %s <zipfile> [entry1 [entry2 [...]]] [-x xentry1 [...]]",
+          "example");
    return 0;
+   }
 
 hDCL = GlobalAlloc( GPTR, (DWORD)sizeof(DCL));
 if (!hDCL)
@@ -154,7 +169,11 @@ if (dwVerInfoSize)
    LPSTR   lpstrVffInfo; /* Pointer to block to hold info */
    LPSTR lszVer = NULL;
    LPSTR lszVerName = NULL;
+#ifdef __RSXNT__
+   ULONG cchVer = 0;
+#else
    UINT  cchVer = 0;
+#endif
 
    /* Get a block big enough to hold the version information */
    hMem          = GlobalAlloc(GMEM_MOVEABLE, dwVerInfoSize);
@@ -205,7 +224,8 @@ if (hUnzipDll > HINSTANCE_ERROR)
 if (hUnzipDll != NULL)
 #endif
    {
-   (_DLL_UNZIP)windll_unzip = (_DLL_UNZIP)GetProcAddress(hUnzipDll, "windll_unzip");
+   (_DLL_UNZIP)Wiz_SingleEntryUnzip =
+     (_DLL_UNZIP)GetProcAddress(hUnzipDll, "Wiz_SingleEntryUnzip");
    }
 else
    {
@@ -255,21 +275,24 @@ x_opt = NULL;
 if (argc > 2) {
   infv = &argv[2];
   for (infc = 0; infc < argc-2; infc++)
-    if (!strcmp("-x", argv[infc+2])) {
+    if (!strcmp("-x", infv[infc])) {
         x_opt = infv[infc];
-        argv[infc] = NULL;
+        infv[infc] = NULL;
         break;
     }
   exfc = argc - infc - 3;
   if (exfc > 0)
     exfv = &argv[infc+3];
-  else
+  else {
+    exfc = 0;
     exfv = NULL;
+  }
 } else {
   infc = exfc = 0;
   infv = exfv = NULL;
 }
-retcode = (*windll_unzip)(infc, infv, exfc, exfv, lpDCL, lpUserFunctions);
+retcode = (*Wiz_SingleEntryUnzip)(infc, infv, exfc, exfv, lpDCL,
+                                  lpUserFunctions);
 if (x_opt) {
   infv[infc] = x_opt;
   x_opt = NULL;
@@ -327,14 +350,15 @@ return dwPlatformId;
 }
 #endif
 
-/* This is a very stripped down version of what is done in WiZ. Essentially
+/* This is a very stripped down version of what is done in Wiz. Essentially
    what this function is for is to do a listing of an archive contents. It
    is actually never called in this example, but a dummy procedure had to
    be put in, so this was used.
  */
-void WINAPI ReceiveDllMessage(unsigned long ucsize,unsigned long csiz,
-        ush cfactor, ush mo, ush dy, ush yr, ush hh, ush mm,
-    char c, char *filename, char *methbuf, unsigned long crc, char fCrypt)
+void WINAPI ReceiveDllMessage(unsigned long ucsize, unsigned long csiz,
+    unsigned cfactor,
+    unsigned mo, unsigned dy, unsigned yr, unsigned hh, unsigned mm,
+    char c, LPSTR filename, LPSTR methbuf, unsigned long crc, char fCrypt)
 {
 char psLBEntry[PATH_MAX];
 char LongHdrStats[] =
@@ -352,7 +376,7 @@ if (cfactor == 100)
    lstrcpy(szCompFactor, CompFactor100);
 else
    sprintf(szCompFactor, CompFactorStr, sgn, cfactor);
-wsprintf(psLBEntry, LongHdrStats,
+   wsprintf(psLBEntry, LongHdrStats,
       ucsize, csiz, szCompFactor, mo, dy, yr, hh, mm, c, filename);
 
 printf("%s\n", psLBEntry);
@@ -362,15 +386,14 @@ printf("%s\n", psLBEntry);
    this is actually implemented in WiZ. If you have an encrypted file,
    this will probably give you great pain.
  */
-int WINAPI password(char *p, int n, const char *m, const char * name)
+int WINAPI password(char *p, int n, const char *m, const char *name)
 {
 return 1;
 }
 
 /* Dummy "print" routine that simply outputs what is sent from the dll */
-int WINAPI DisplayBuf(char far *buf, unsigned long size)
+int WINAPI DisplayBuf(LPSTR buf, unsigned long size)
 {
-printf("%s", buf);
+printf("%s", (char *)buf);
 return (unsigned int) size;
 }
-

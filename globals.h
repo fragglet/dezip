@@ -40,8 +40,8 @@
   ---------------------------------
 
   If you make the inclusion of any variables conditional, be sure to only
-  check macros that are GUARANTEED to be included in every module.  For
-  instance, newzip, P_flag and pwdarg are needed only if CRYPT is TRUE,
+  check macros that are GUARANTEED to be included in every module.
+  For instance, newzip and pwdarg are needed only if CRYPT is TRUE,
   but this is defined after unzip.h has been read.  If you are not careful,
   some modules will expect your variable to be part of this struct while
   others won't.  This will cause BIG problems. (Inexplicable crashes at
@@ -136,56 +136,33 @@
 /*  Globals  */
 /*************/
 
-struct Globals {
-    int zipinfo_mode;   /* behave like ZipInfo or like normal UnZip? */
-    int aflag;          /* -a: do ASCII-EBCDIC and/or end-of-line translation */
-#ifdef VMS
-    int bflag;          /* -b: force fixed record format for binary files */
-#endif
-#ifdef UNIXBACKUP
-    int B_flag;         /* -B: back up existing files by renaming to *~ first */
-#endif
-    int cflag;          /* -c: output to stdout */
-    int C_flag;         /* -C: match filenames case-insensitively */
-    int dflag;          /* -d: all args are files/dirs to be extracted */
-    int fflag;          /* -f: "freshen" (extract only newer files) */
-    int hflag;          /* -h: header line (zipinfo) */
-#ifdef RISCOS
-    int scanimage;      /* -I: scan image files */
-#endif
-    int jflag;          /* -j: junk pathnames (unzip) */
-    int lflag;          /* -12slmv: listing format (zipinfo) */
-    int L_flag;         /* -L: convert filenames from some OSes to lowercase */
-#ifdef MORE
-    int M_flag;         /* -M: built-in "more" function */
-    int height;         /* check for SIGWINCH, etc., eventually... */
-#endif                  /* (take line-wrapping into account?) */
-    int overwrite_none; /* -n: never overwrite files (no prompting) */
-    int overwrite_all;  /* -o: OK to overwrite files without prompting */
-    int P_flag;         /* -P: give password on command line (ARGH!) */
-    int qflag;          /* -q: produce a lot less output */
-#ifdef DOS_FLX_OS2_W32
-    int sflag;          /* -s: convert spaces in filenames to underscores */
-#endif
-#ifdef DOS_OS2_W32
-    int volflag;        /* -$: extract volume labels */
-#endif
-    int tflag;          /* -t: test (unzip) or totals line (zipinfo) */
-    int T_flag;         /* -T: timestamps (unzip) or dec. time fmt (zipinfo) */
-    int uflag;          /* -u: "update" (extract only newer/brand-new files) */
-    int vflag;          /* -v: (verbosely) list directory */
-    int V_flag;         /* -V: don't strip VMS version numbers */
-#if defined(VMS) || defined(UNIX) || defined(OS2_W32) || defined(__BEOS__)
-    int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
-#endif
-    int zflag;          /* -z: display the zipfile comment (only, for unzip) */
-#ifdef MACOS
-    int HFSFlag;
+typedef struct Globals {
+#ifdef DLL
+    zvoid *callerglobs; /* pointer to structure of pass-through global vars */
 #endif
 
+    /* command options of general use */
+    UzpOpts UzO;        /* command options of general use */
+
+#ifndef FUNZIP
+    /* command options specific to the high level command line interface */
+#ifdef MORE
+    int M_flag;         /* -M: built-in "more" function */
+#endif
+
+    /* internal flags and general globals */
+#ifdef MORE
+    int height;           /* check for SIGWINCH, etc., eventually... */
+#endif                    /* (take line-wrapping into account?) */
+#if (defined(IZ_CHECK_TZ) && defined(USE_EF_UT_TIME))
+    int tz_is_valid;      /* indicates that timezone info can be used */
+#endif
+#ifdef WINDLL
+    int prompt_always;    /* prompt to overwrite if TRUE */
+#endif
     int noargs;           /* did true command line have *any* arguments? */
-    int filespecs;        /* number of real file specifications to be matched */
-    int xfilespecs;       /* number of excluded filespecs to be matched */
+    unsigned filespecs;   /* number of real file specifications to be matched */
+    unsigned xfilespecs;  /* number of excluded filespecs to be matched */
     int process_all_files;
     int create_dirs;      /* used by main(), mapname(), checkdir() */
     int extract_flag;
@@ -201,33 +178,47 @@ struct Globals {
      int filenotfound;
      int redirect_data;   /* redirect data to memory buffer */
      int redirect_text;   /* redirect text output to buffer */
+# ifndef NO_SLIDE_REDIR
+     int redirect_slide;  /* redirect decompression area to mem buffer */
+     unsigned _wsize;
+# endif
+     unsigned redirect_size;       /* size of redirected output buffer */
+     uch *redirect_buffer;         /* pointer to head of allocated buffer */
+     uch *redirect_pointer;        /* pointer past end of written data */
+# ifndef NO_SLIDE_REDIR
+     uch *redirect_sldptr;         /* head of decompression slide buffer */
+# endif
 # ifdef OS2DLL
      cbList(processExternally);    /* call-back list */
 # endif
-     unsigned _wsize;
-     int stem_len;
-     int putchar_idx;
-     uch *redirect_pointer;
-     uch *redirect_buffer;
-     unsigned redirect_size;
 #endif /* DLL */
 
     char **pfnames;
     char **pxnames;
-    char sig[5];
+    char sig[4];
     char answerbuf[10];
     min_info info[DIR_BLKSIZ];
     min_info *pInfo;
+#endif /* !FUNZIP */
     union work area;                /* see unzpriv.h for definition of work */
 
 #ifndef FUNZIP
-    ulg near  *crc_32_tab;
+#  if (!defined(USE_ZLIB) || defined(USE_OWN_CRCTAB))
+    ZCONST ulg near *crc_32_tab;
+#  else
+    ZCONST ulg Far *crc_32_tab;
+#  endif
 #endif
     ulg       crc32val;             /* CRC shift reg. (was static in funzip) */
 
+#ifdef FUNZIP
+    FILE     *in;                   /* file descriptor of compressed stream */
+#endif
     uch       *inbuf;               /* input buffer (any size is OK) */
     uch       *inptr;               /* pointer into input buffer */
     int       incnt;
+
+#ifndef FUNZIP
     ulg       bitbuf;
     int       bits_left;            /* unreduce and unshrink only */
     int       zipeof;
@@ -244,10 +235,6 @@ struct Globals {
     LONGINT   extra_bytes;          /* used in unzip.c, misc.c */
     uch       *extra_field;         /* Unix, VMS, Mac, OS/2, Acorn, ... */
     uch       *hold;
-    char      local_hdr_sig[5];     /* initialize sigs at runtime so unzip */
-    char      central_hdr_sig[5];   /*  executable won't look like a zipfile */
-    char      end_central_sig[5];
-/* char extd_local_sig[5];  NOT USED YET */
 
     local_file_hdr  lrec;          /* used in unzip.c, extract.c */
     cdir_file_hdr   crec;          /* used in unzip.c, extract.c, misc.c */
@@ -272,9 +259,6 @@ struct Globals {
     int      dne;                  /* true if stat() says file doesn't exist */
 #endif
 
-#ifdef FUNZIP
-    FILE     *in;
-#endif
     FILE     *outfile;
     uch      *outbuf;
     uch      *realbuf;
@@ -282,34 +266,24 @@ struct Globals {
 #ifndef VMS                        /* if SMALL_MEM, outbuf2 is initialized in */
     uch      *outbuf2;             /*  process_zipfiles() (never changes); */
 #endif                             /*  else malloc'd ONLY if unshrink and -a */
+#endif /* !FUNZIP */
     uch      *outptr;
     ulg      outcnt;               /* number of chars stored in outbuf */
+#ifndef FUNZIP
     char     filename[FILNAMSIZ];  /* also used by NT for temporary SFX path */
 
 #ifdef CMS_MVS
     char     *tempfn;              /* temp file used; erase on close */
 #endif
 
-#ifdef MACOS
-    short    gnVRefNum;
-    long     glDirID;
-    OSType   gostCreator;
-    OSType   gostType;
-    int      fMacZipped;
-    int      macflag;
-    short    giCursor;
-    CursHandle rghCursor[4];       /* status cursors */
-#endif
-
-    char *pwdarg;      /* pointer to command-line password (-P option) */
-
-    int nopwd;         /* crypt static */
-    ulg keys[3];       /* crypt static: keys defining pseudo-random sequence */
     char *key;         /* crypt static: decryption password or NULL */
+    int nopwd;         /* crypt static */
+#endif /* !FUNZIP */
+    ulg keys[3];       /* crypt static: keys defining pseudo-random sequence */
 
 #if (!defined(DOS_FLX_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
 #if (!defined(MACOS) && !defined(ATARI) && !defined(VMS))
-    int echofd;        /* crypt static: file descriptor whose echo is off */
+    int echofd;        /* ttyio static: file descriptor whose echo is off */
 #endif /* !(MACOS || ATARI || VMS) */
 #endif /* !(DOS_FLX_H68_OS2_W32 || AMIGA || RISCOS) */
 
@@ -327,6 +301,7 @@ struct Globals {
     unsigned bk;              /* inflate static: bits in bit buffer */
 #endif /* ?USE_ZLIB */
 
+#ifndef FUNZIP
 #ifdef SMALL_MEM
     char rgchBigBuffer[512];
     char rgchSmallBuffer[96];
@@ -337,9 +312,9 @@ struct Globals {
     InputFn *input;
     PauseFn *mpause;
     PasswdFn *decr_passwd;
+    StatCBFn *statreportcb;
 #ifdef WINDLL
-    ReplaceFn *replace;
-    SoundFn *sound;
+    LPUSERFUNCTIONS lpUserFunctions;
 #endif
 
     int incnt_leftover;       /* so improved NEXTBYTE does not waste input */
@@ -350,22 +325,23 @@ struct Globals {
     int VMS_line_length;      /*  readable on other platforms */
     int VMS_line_pad;
 #endif
+#endif /* !FUNZIP */
 
 #ifdef SYSTEM_SPECIFIC_GLOBALS
     SYSTEM_SPECIFIC_GLOBALS
 #endif
 
-};  /* end of struct Globals */
+} Uz_Globs;  /* end of struct Globals */
 
 
 /***************************************************************************/
 
 
 #ifdef FUNZIP
-#  if !defined(USE_ZLIB) || defined(USE_OWN_CRCTAB)
-     extern ulg near  crc_32_tab[];
+#  if (!defined(USE_ZLIB) || defined(USE_OWN_CRCTAB))
+     extern ZCONST ulg near  crc_32_tab[256];
 #  else
-     extern ulg near *crc_32_tab;
+     extern ZCONST ulg Far *crc_32_tab;
 #  endif
 #  define CRC_32_TAB  crc_32_tab
 #else
@@ -373,30 +349,37 @@ struct Globals {
 #endif
 
 
-struct Globals *globalsCtor   OF((void));
+Uz_Globs *globalsCtor   OF((void));
 
+/* pseudo constant sigs; they are initialized at runtime so unzip executable
+ * won't look like a zipfile
+ */
+extern char local_hdr_sig[4];
+extern char central_hdr_sig[4];
+extern char end_central_sig[4];
+/* extern char extd_local_sig[4];  NOT USED YET */
 
 #ifdef REENTRANT
-#  define G                   (*pG)
+#  define G                   (*(Uz_Globs *)pG)
 #  define __G                 pG
 #  define __G__               pG,
-#  define __GPRO              struct Globals *pG
-#  define __GPRO__            struct Globals *pG,
-#  define __GDEF              struct Globals *pG;
+#  define __GPRO              Uz_Globs *pG
+#  define __GPRO__            Uz_Globs *pG,
+#  define __GDEF              Uz_Globs *pG;
 #  ifdef  USETHREADID
      extern int               lastScan;
-     void deregisterGlobalPointer     OF((__GPRO));
-     struct Globals *getGlobalPointer OF((void));
-#    define GETGLOBALS()      struct Globals *pG = getGlobalPointer();
+     void deregisterGlobalPointer OF((__GPRO));
+     Uz_Globs *getGlobalPointer   OF((void));
+#    define GETGLOBALS()      Uz_Globs *pG = getGlobalPointer();
 #    define DESTROYGLOBALS()  {free_G_buffers(pG); deregisterGlobalPointer(pG);}
 #  else
-     extern struct Globals    *GG;
-#    define GETGLOBALS()      struct Globals *pG = GG;
+     extern Uz_Globs          *GG;
+#    define GETGLOBALS()      Uz_Globs *pG = GG;
 #    define DESTROYGLOBALS()  {free_G_buffers(pG); free(pG);}
 #  endif /* ?USETHREADID */
-#  define CONSTRUCTGLOBALS()  struct Globals *pG = globalsCtor()
+#  define CONSTRUCTGLOBALS()  Uz_Globs *pG = globalsCtor()
 #else /* !REENTRANT */
-   extern struct Globals      G;
+   extern Uz_Globs            G;
 #  define __G
 #  define __G__
 #  define __GPRO              void
@@ -407,5 +390,6 @@ struct Globals *globalsCtor   OF((void));
 #  define DESTROYGLOBALS()
 #endif /* ?REENTRANT */
 
+#define uO              G.UzO
 
 #endif /* __globals_h */

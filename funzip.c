@@ -1,6 +1,6 @@
 /* funzip.c -- put in the public domain by Mark Adler */
 
-#define VERSION "3.93 of 3 November 1997"
+#define VERSION "3.93 of 21 November 1998"
 
 
 /* You can do whatever you like with this source file, though I would
@@ -75,6 +75,7 @@
     -     31 May 97  -               public release with UnZip 5.31
    3.93   20 Sep 97  G. Roelofs      minor cosmetic fixes to messages
     -      3 Nov 97  -               public release with UnZip 5.32
+    -     28 Nov 98  -               public release with UnZip 5.4
  */
 
 
@@ -189,12 +190,12 @@ __GDEF
 
 #if (!defined(USE_ZLIB) || defined(USE_OWN_CRCTAB))
 #ifdef USE_ZLIB
-uLongf *get_crc_table()
+ZCONST uLongf *get_crc_table()
 {
-  return (uLongf *)crc_32_tab;
+  return (ZCONST uLongf *)crc_32_tab;
 }
 #else /* !USE_ZLIB */
-ulg near *get_crc_table()
+ZCONST ulg near *get_crc_table()
 {
   return crc_32_tab;
 }
@@ -354,14 +355,15 @@ char **argv;
     {
       ush i, e;
 
-      if (p == (char *)NULL)
-        if ((p = (char *)malloc(PWLEN+1)) == (char *)NULL)
+      if (p == (char *)NULL) {
+        if ((p = (char *)malloc(IZ_PWLEN+1)) == (char *)NULL)
           err(1, "out of memory");
-        else if ((p = getp("Enter password: ", p, PWLEN+1)) == (char *)NULL)
+        else if ((p = getp("Enter password: ", p, IZ_PWLEN+1)) == (char *)NULL)
           err(1, "no tty to prompt for password");
+      }
 #if (defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB))
       /* initialize crc_32_tab pointer for decryption */
-      crc_32_tab = (ulg near *)get_crc_table();
+      CRC_32_TAB = (ZCONST ulg Far *)get_crc_table();
 #endif
       init_keys(p);
       for (i = 0; i < RAND_HEAD_LEN; i++)
@@ -389,11 +391,12 @@ char **argv;
     if ((G.inbuf = (uch *)malloc(INBUFSIZ)) == (uch *)NULL)
        err(1, "out of memory");
 #endif /* USE_ZLIB */
-    if ((r = UZinflate(__G)) != 0)
+    if ((r = UZinflate(__G)) != 0) {
       if (r == 3)
         err(1, "out of memory");
       else
         err(4, "invalid compressed data--format violated");
+    }
     inflate_free(__G);
   }
   else

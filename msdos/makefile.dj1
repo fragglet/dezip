@@ -1,5 +1,5 @@
 # Makefile for Info-ZIP's unzip, zipinfo, funzip and unzipsfx
-# using djgpp v1.12m4.  Tested with unz520p by Christian Spieler
+# using djgpp v1.12m4.  Tested with unzip540 by Christian Spieler
 #
 # This Makefile is specifically tailored for GNU Make and GNU C and
 # may not work with a generic UNIX compatible Make utility.
@@ -42,6 +42,7 @@ CFLAGS=-Wall -O2 -m486 $(CPPFLAGS)
 FUN_FLAGS=$(CFLAGS) -DFUNZIP
 SFX_FLAGS=$(CFLAGS) -DSFX
 LDFLAGS=-s -v
+LIBS=-lpc
 
 STRIP=strip
 
@@ -115,11 +116,12 @@ unzips:	unzip$E zipinfo$E funzip$E unzipsfx$E
 
 unzip$E: $(OBJS)
 ifdef LONGARGS
-	$(LD) $(LDFLAGS) $(OBJS) -o unzip
+	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o unzip
 else
 	echo $(OBJS1) > unzip.rsp
 	echo $(OBJS2) >> unzip.rsp
 	echo $(OBJS3) $M$O >> unzip.rsp
+	echo $(LIBS) >> unzip.rsp
 	$(LD) $(LDFLAGS) -o unzip @unzip.rsp
 	$(RM) unzip.rsp
 endif
@@ -140,10 +142,11 @@ funzip$E: $(OBJF)
 
 unzipsfx$E: $(OBJX)
 ifdef LONGARGS
-	$(LD) $(LDFLAGS) $(OBJX) -o unzipsfx
+	$(LD) $(LDFLAGS) $(OBJX) $(LIBS) -o unzipsfx
 else
 	echo $(OBJX1) > unzipsfx.rsp
 	echo $(OBJX2) >> unzipsfx.rsp
+	echo $(LIBS) >> unzipsfx.rsp
 	$(LD) $(LDFLAGS) -o unzipsfx @unzipsfx.rsp
 	$(RM) unzipsfx.rsp
 endif

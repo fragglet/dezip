@@ -17,7 +17,8 @@
 
 #ifdef __IBMC__
 #  define S_IFMT 0xF000
-#  define timezone _timezone
+#  define timezone _timezone            /* (underscore names work with    */
+#  define tzset _tzset                  /*  all versions of C Set)        */
 #  define PIPE_ERROR (errno == EERRSET || errno == EOS2ERR)
 #endif /* __IBMC__ */
 
@@ -95,14 +96,20 @@
 #   define nearmalloc malloc
 #   define nearfree free
 # endif
-# if (defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB))
-#   define USE_OWN_CRCTAB
-# endif
 #endif
 
 /* TIMESTAMP is now supported on OS/2, so enable it by default */
 #if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #  define TIMESTAMP
+#endif
+
+/* check that TZ environment variable is defined before using UTC times */
+#if (!defined(NO_IZ_CHECK_TZ) && !defined(IZ_CHECK_TZ))
+#  define IZ_CHECK_TZ
+#endif
+
+#ifndef OS2_EAS
+#  define OS2_EAS    /* for -l and -v listings (list.c) */
 #endif
 
 #ifdef isupper
@@ -111,16 +118,13 @@
 #ifdef tolower
 #  undef tolower
 #endif
-#ifndef OS2_EAS
-#  define OS2_EAS    /* for -l and -v listings (list.c) */
-#endif
 #define isupper(x)   IsUpperNLS((unsigned char)(x))
 #define tolower(x)   ToLowerNLS((unsigned char)(x))
 #define USETHREADID
 
 /* handlers for OEM <--> ANSI string conversions */
 #ifndef _OS2_ISO_ANSI
-   /* use home_brewed conversion functions; internal charset is OEM */
+   /* use home-brewed conversion functions; internal charset is OEM */
 #  ifdef CRTL_CP_IS_ISO
 #    undef CRTL_CP_IS_ISO
 #  endif

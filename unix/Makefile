@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.32                                                2 November 1997
+# Version:  5.4                                                19 November 1998
 #==============================================================================
 
 
@@ -65,6 +65,8 @@ CP = ln
 LN = ln
 RM = rm -f
 CHMOD = chmod
+BINPERMS = 755
+MANPERMS = 644
 STRIP = strip
 E =
 O = .o
@@ -107,7 +109,7 @@ INSTALLEDMAN = $(MANDIR)/funzip.$(manext) $(MANDIR)/unzip.$(manext) \
 
 # Solaris 2.x stuff:
 PKGDIR = IZunzip
-VERSION = Version 5.32
+VERSION = Version 5.4
 
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, OK, it's a lot ugly:
@@ -115,15 +117,15 @@ MANS = unix/funzip.1 unix/unzip.1 unix/unzipsfx.1 unix/zipgrep.1 unix/zipinfo.1
 DOCS = funzip.doc unzip.doc unzipsfx.doc zipgrep.doc zipinfo.doc
 
 # list of supported systems/targets in this version
-SYSTEMS1 = generic generic2 generic3 generic_zlib
+SYSTEMS1 = generic generic2 generic3 generic_zlib generic_shlib
 SYSTEMS2 = 386i 3Bx 7300 7300_gcc aix aix_rt amdahl amdahl_eft apollo aviion
 SYSTEMS3 = bsd bsdi bsdi_noasm bull coherent convex cray cray_opt cyber_sgi
 SYSTEMS4 = dec dnix encore eta freebsd gcc gould hk68 hp hpux isc isc_gcc isi
-SYSTEMS5 = linux linux_dos linux_noasm linux_shlib linux_shlibz minix mips 
-SYSTEMS6 = next next10 next2x next3x nextfat osf1 pixel ptx pyramid realix 
-SYSTEMS7 = regulus rs6000 sco sco_dos sco_sl sco_x286 sequent sgi solaris 
-SYSTEMS8 = solaris_pkg stardent stellar sunos3 sunos4 sysv sysv_gcc sysv6300 
-SYSTEMS9 = tahoe ti_sysv ultrix vax v7 wombat xenix xos
+SYSTEMS5 = linux linux_dos linux_noasm linux_shlib linux_shlibz lynx minix
+SYSTEMS6 = mips next next10 next2x next3x nextfat osf1 pixel ptx pyramid
+SYSTEMS7 = qnxnto realix regulus rs6000 sco sco_dos sco_sl sco_x286 sequent sgi
+SYSTEMS8 = solaris solaris_pkg stardent stellar sunos3 sunos4 sysv sysv_gcc
+SYSTEMS9 = sysv6300 tahoe ti_sysv ultrix vax v7 wombat xenix xos
 
 
 ####################
@@ -233,19 +235,19 @@ generic_msg:
 # systems...
 
 funzip.doc:	unix/funzip.1
-	nroff -Tman -man unix/funzip.1 | col -b | uniq | expand > $@
+	nroff -Tascii -man unix/funzip.1 | col -b | uniq | expand > $@
 
 unzip.doc:	unix/unzip.1
-	nroff -Tman -man unix/unzip.1 | col -b | uniq | expand > $@
+	nroff -Tascii -man unix/unzip.1 | col -b | uniq | expand > $@
 
 unzipsfx.doc:	unix/unzipsfx.1
-	nroff -Tman -man unix/unzipsfx.1 | col -b | uniq | expand > $@
+	nroff -Tascii -man unix/unzipsfx.1 | col -b | uniq | expand > $@
 
 zipgrep.doc:	unix/zipgrep.1
-	nroff -Tman -man unix/zipgrep.1 | col -b | uniq | expand > $@
+	nroff -Tascii -man unix/zipgrep.1 | col -b | uniq | expand > $@
 
 zipinfo.doc:	unix/zipinfo.1
-	nroff -Tman -man unix/zipinfo.1 | col -b | uniq | expand > $@
+	nroff -Tascii -man unix/zipinfo.1 | col -b | uniq | expand > $@
 
 
 all:		generic_msg generic
@@ -420,11 +422,11 @@ install:	$(MANS)
 	$(INSTALL) unix/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
 	$(INSTALL) unix/zipgrep.1 $(MANDIR)/zipgrep.$(manext)
 	$(INSTALL) unix/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
-	$(CHMOD) 755  $(INSTALLEDBIN)
-	$(CHMOD) 644  $(INSTALLEDMAN)
+	$(CHMOD) $(BINPERMS) $(INSTALLEDBIN)
+	$(CHMOD) $(MANPERMS) $(INSTALLEDMAN)
 
 uninstall:
-	rm -f $(INSTALLEDBIN) $(INSTALLEDMAN)
+	$(RM) $(INSTALLEDBIN) $(INSTALLEDMAN)
 
 
 # the test zipfile
@@ -458,12 +460,12 @@ check:
 	@if diff testmake.unzip-Z testmake.zipinfo; then echo "OK."; else \
 	    echo "#####  WARNING:  zipinfo output doesn't match stored version"; \
 	    echo '#####     (If the only difference is the file times, compare your'; \
-	    echo '#####      timezone with the US Pacific timezone, which is eight'; \
-	    echo '#####      hours west of Greenwich but effectively 7 hours west'; \
+	    echo '#####      timezone with the Central European timezone, which is one'; \
+	    echo '#####      hour east of Greenwich but effectively 2 hours east'; \
 	    echo '#####      during summer Daylight Savings Time.  The upper two'; \
 	    echo '#####      lines should correspond to your local time when the'; \
-	    echo '#####      files were created, on 18 July 1996 at 6:24am PDT.  If'; \
-	    echo '#####      the times are consistent, please ignore this warning.)'; \
+	    echo '#####      files were created, on 19 November 1998 at 10:46pm CET.'; \
+	    echo '#####      If the times are consistent, please ignore this warning.)'; \
 	    fi
 	@$(RM) testmake.unzip-Z testmake.zipinfo
 #
@@ -513,6 +515,26 @@ generic_zlib:	unix_make
 	@echo\
  "This target assumes zlib (libz.a or libz.so.*) is already installed."
 	$(MAKE) unzip funzip CF="$(CF) -DUSE_ZLIB" LF2="-lz $(LF2)"
+
+# Generic GNU C shared library.  This is an example of how to compile UnZip as
+# a shared library.  (Doing so as a static library would be similar.)  See also
+# the linux_shlib target.
+
+generic_shlib:	unix_make
+	@echo\
+ 'This target requires GNU C.  When done, do "setenv LD_LIBRARY_PATH `pwd`"'
+	@echo\
+ 'or similar in order to test the shared library in place (with ./unzip_shlib ,'
+	@echo\
+ 'which is UnZip linked with the DLL).  This target is an example only.'
+	@echo ""
+	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -fPIC -DDLL $(LOC)"
+	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.4 $(OBJSDLL)
+	$(RM) libunzip.so.0 libunzip.so
+	$(LN) -s libunzip.so.0.4 libunzip.so.0
+	$(LN) -s libunzip.so.0 libunzip.so
+	gcc -c -O unzipstb.c
+	gcc -o unzip_shlib unzipstb.o -L. -lunzip
 
 #----------------------------------------------------------------------------
 #  "Normal" group (BSD vs. SysV may be set in unzip.h via predefined macros):
@@ -761,6 +783,10 @@ linux_shlibz:	unix_make
 	gcc -c -O unzipstb.c
 	gcc -o unzip unzipstb.o -L. -lunzip -lz
 
+# LynxOS-x86 2.3.0 and newer, a real-time BSD-like OS; uses gcc.
+lynx:		unix_make
+	$(MAKE) unzips CC=gcc CF="$(CF) -DLynx -DLYNX -DBSD"
+
 # Minix 1.5 PC for the 386.  Invoke as is to use default cc, or as "make
 # minix CC=gcc" to use gcc.  Try "make linux" if you have a working termios.h.
 minix:		unix_make
@@ -797,6 +823,11 @@ nextfat:	unix_make
 	$(MAKE) unzips CF="-O2 -I. $(LOC) -arch i386 -arch m68k" \
 	 LF2="-arch i386 -arch m68k -object -s"
 
+# IBM OS/390 (formerly MVS) compiled under "OpenEdition" shell
+os390:		unix_make
+	make -f unix/Makefile unzips \
+	 CF="$(CF) -DSYSV -DUNIX -DOS390 -DEBCDIC -DNO_PARAM_H" LF2=""
+
 # Sequent Symmetry running Dynix/ptx (sort of SysV.3):  needs to link
 # with libseq to get symlink().
 ptx:		unix_make
@@ -807,6 +838,21 @@ ptx:		unix_make
 # The make in the BSD half is too stupid to understand $(MAKE), sigh...
 pyramid:	unix_make
 	-make -f unix/Makefile pyr_`universe`
+
+# QNX/Neutrino is "special" because you don't have any native development
+# tools yet.  Set ARCH to "x86", "ppcbe", "ppcle", "mipsbe", or "mipsle"
+# to produce x86, PowerPC (big- or little-endian) and MIPS (big-
+# or little-endian) using gcc. [cjh]
+qnxnto:		unix_make
+	@if [ "$(ARCH)" = "" ] ; then \
+		echo "You didn't set ARCH; I'll assume you meant ARCH=x86..." ; \
+		echo "" ; \
+		$(MAKE) -f unix/Makefile CC="qcc -Vgcc_ntox86" unzips ; \
+	else \
+		echo "Making unzip for $(ARCH)..." ; \
+		echo "" ; \
+		$(MAKE) -f unix/Makefile CC="qcc -Vgcc_nto$(ARCH)" unzips ; \
+	fi
 
 # REGULUS:  68040-based, "real-time" SysV.3 mutant; uses gcc, with "REGULUS"
 # predefined.

@@ -5,7 +5,7 @@
 #include <assert.h>    /* required for all Windows applications */
 #include <setjmp.h>
 #include <commdlg.h>
-#ifndef __RSXNT__
+#if (!defined(__RSXNT__) && !defined(__MINGW32__))
 #  include <dlgs.h>
 #endif
 #define UNZIP_INTERNAL
@@ -23,7 +23,7 @@
 #endif
 
 #ifndef PATH_MAX
-#  define PATH_MAX 128            /* max total file or directory name path */
+#  define PATH_MAX 260            /* max total file or directory name path */
 #endif
 
 #define IDM_REPLACE_NO     100
@@ -38,12 +38,9 @@ extern jmp_buf dll_error_return;
 
 extern HANDLE hInst;        /* current instance */
 
-extern LPDCL lpDCL;
-extern LPUSERFUNCTIONS lpUserFunctions;
-
 #ifdef UNZIP_INTERNAL
 void FreeDllMem(__GPRO);
-int win_fprintf(FILE *file, unsigned int, char far *);
+int win_fprintf(zvoid *pG, FILE *file, unsigned int, char far *);
 #endif
 
 #endif /* __windll_h */

@@ -3,7 +3,7 @@
 #   H. Gessau 9/93 <henryg@kullmar.kullmar.se>
 #   J. Lee 8/95 (johnnyl@microsoft.com)
 #
-# Last revised:  9 Mar 97
+# Last revised:  24 Nov 98
 #
 # Tested with VC++ 2.0 for NT for MIPS and Alpha, Visual C++ 2.2 for Intel CPUs
 #
@@ -33,23 +33,32 @@ CPU = i386
 !include <ntwin32.mak>
 
 # object files
-OBJS1 = unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj explode.obj
+OBJS1 = unzip.obj $(CRC32).obj crctab.obj crypt.obj envargs.obj explode.obj
 OBJS2 = extract.obj fileio.obj globals.obj inflate.obj list.obj match.obj
 OBJS3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj
 OBJS4 = win32.obj nt.obj
 OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) $(OBJS4)
-OBJX1 = unzipsfx.obj crc32.obj crctab.obj crypt.obj extract_.obj fileio.obj
+OBJX1 = unzipsfx.obj $(CRC32X).obj crctab.obj crypt.obj extract_.obj fileio.obj
 OBJX2 = globalsx.obj inflate.obj match.obj process_.obj ttyio.obj
 OBJX3 = win32_.obj nt.obj
 OBJX  = $(OBJX1) $(OBJX2) $(OBJX3)
-OBJF  = funzip.obj crc32.obj cryptf.obj globalsf.obj inflatef.obj ttyiof.obj
+OBJF1 = funzip.obj $(CRC32F).obj cryptf.obj globalsf.obj inflatef.obj ttyiof.obj
+OBJF2 = win32f.obj
+OBJF  = $(OBJF1) $(OBJF2)
 
 UNZIP_H = unzip.h unzpriv.h globals.h win32/w32cfg.h
 
-# cvars = $(cvars) -nologo -DMSDOS -DNO_ASM -J
-#cvars = $(cvars) -nologo -DNO_ASM -J -DREENTRANT
-cvars = $(cvars) -nologo -DNO_ASM -J
-#cvars = $(cvars) -nologo -DASM_CRC -J
+#CF_LOC = -DMSDOS -DNO_ASM -J
+#CF_LOC = -nologo -DNO_ASM -J -DREENTRANT
+CF_LOC = -nologo -DNO_ASM -J
+#CF_LOC = -nologo -DASM_CRC -J
+
+cvars = $(cvars) $(CF_LOC)
+
+CRC32 = crc32
+#CRC32 = crc_i386
+CRC32X = $(CRC32)
+CRC32F = $(CRC32)
 
 # USER32.LIB is needed for OemToChar and related routines
 conlibs=$(conlibs) user32.lib
@@ -67,7 +76,7 @@ cdebug = -Ogitb2
 
 # How to compile sources
 .c.obj:
-	$(cc) $(cdebug) $(cflags) $(cvars) $<
+	$(cc) $(cdebug) $(cflags) $(cvars) -o $@ $<
 
 # How to link
 .obj.exe:
@@ -82,7 +91,7 @@ unzip.exe:  $(OBJS)
 unzipsfx.exe:	$(OBJX)
 funzip.exe:	$(OBJF)
 
-crc32.obj:  crc32.c $(UNZIP_H) zip.h
+crc32.obj:	crc32.c $(UNZIP_H) zip.h
 crctab.obj:	crctab.c $(UNZIP_H) zip.h
 crypt.obj:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 envargs.obj:	envargs.c $(UNZIP_H)
@@ -104,10 +113,16 @@ win32.obj:  win32\win32.c $(UNZIP_H) win32\nt.h
 	$(cc) $(cdebug) $(cflags) $(cvars) -I. win32\win32.c
 
 nt.obj:  win32\nt.c win32\nt.h
-    $(cc) $(cdebug) $(cflags) $(cvars) -I. win32\nt.c
+	$(cc) $(cdebug) $(cflags) $(cvars) -I. win32\nt.c
+
+crc_i386.obj:	win32/crc_i386.asm
+	masm -ml win32/crc_i386.asm,$@;
 
 win32_.obj: win32\win32.c $(UNZIP_H) win32\nt.h			# unzipsfx only
 	$(cc) $(cdebug) $(cflags) $(cvars) -I. -DSFX win32\win32.c -Fo$@
+
+win32f.obj: win32\win32.c $(UNZIP_H) win32\nt.h			# funzip only
+	$(cc) $(cdebug) $(cflags) $(cvars) -I. -DFUNZIP win32\win32.c -Fo$@
 
 cryptf.obj:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
 	$(cc) $(cdebug) $(cflags) $(cvars) -DFUNZIP crypt.c -Fo$@

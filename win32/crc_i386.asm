@@ -1,5 +1,5 @@
 ; crc_i386.asm, optimized CRC calculation function for Zip and UnZip, not
-; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 12 Oct 97.
+; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 25 Mar 98.
 ;
 ; Revised 06-Oct-96, Scott Field (sfield@microsoft.com)
 ;   fixed to assemble with masm by not using .model directive which makes
@@ -34,6 +34,12 @@
 ; The loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
 ; This results in shorter code at the expense of reduced performance.
 ;
+; Revised 25-Mar-98, Cosmin Truta (cosmint@cs.ubbcluj.ro)
+;   Working without .model directive caused tasm32 version 5.0 to produce
+;   bad object code. The optimized alignments can be optionally disabled
+;   by defining NO_ALIGN, thus allowing to use .model flat. There is no need
+;   to define this macro if using other version of tasm.
+;
 ;==============================================================================
 ;
 ; Do NOT assemble this source if external crc32 routine from zlib gets used.
@@ -42,9 +48,12 @@
 ;
         .386p
         name    crc_i386
-; don't make assumptions about segment align        .model flat
 
-extrn   _get_crc_table:near    ; ulg near *get_crc_table(void);
+    IFDEF NO_ALIGN
+        .model flat
+    ENDIF
+
+extrn   _get_crc_table:near    ; ZCONST ulg near *get_crc_table(void);
 
 ;
     IFNDEF NO_STD_STACKFRAME
@@ -116,7 +125,11 @@ Do_CRC_dword    MACRO
         ENDM
     ENDIF ; !NO_32_BIT_LOADS
 
-_TEXT   segment para
+    IFNDEF NO_ALIGN
+_TEXT   segment use32 para public 'CODE'
+    ELSE
+_TEXT   segment use32
+    ENDIF
         assume  CS: _TEXT
 
         public  _crc32
@@ -158,8 +171,10 @@ aligned_now:
                 and     edx,000000007H       ; edx = len % 8
                 shr     ecx,3                ; ecx = len / 8
                 jz      SHORT No_Eights
+    IFNDEF NO_ALIGN
 ; align loop head at start of 486 internal cache line !!
                 align   16
+    ENDIF
 Next_Eight:
     IFNDEF  NO_32_BIT_LOADS
                 Do_CRC_dword
@@ -186,8 +201,10 @@ No_Eights:
                 test    ecx,ecx              ;>   if (len)
                 jz      SHORT bail
     ENDIF
+    IFNDEF NO_ALIGN
 ; align loop head at start of 486 internal cache line !!
                 align   16
+    ENDIF
 loupe:                                       ;>     do {
                 Do_CRC_byte                  ;        c = CRC32(c, *buf++);
                 dec     ecx                  ;>     } while (--len);

@@ -9,11 +9,16 @@
 #define _EXAMPLE_H
 
 #include <windows.h>
+#ifdef __RSXNT__
+#  include "win32/rsxntwin.h"
+#endif
 #include <assert.h>    /* required for all Windows applications */
 #include <stdlib.h>
 #include <stdio.h>
 #include <commdlg.h>
-#include <dlgs.h>
+#ifndef __RSXNT__
+#  include <dlgs.h>
+#endif
 #include <windowsx.h>
 
 #include "structs.h"
@@ -38,12 +43,12 @@ extern int hFile;                 /* file handle             */
 
 /* Global functions */
 
-extern _DLL_UNZIP windll_unzip;
-extern _USER_FUNCTIONS UzInit;
-int WINAPI DisplayBuf(char far *, unsigned long int);
+extern _DLL_UNZIP Wiz_SingleEntryUnzip;
+extern _USER_FUNCTIONS Wiz_Init;
+int WINAPI DisplayBuf(LPSTR, unsigned long);
 
 /* Procedure Calls */
-void WINAPI ReceiveDllMessage(unsigned long,unsigned long,
-   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long, char);
+void WINAPI ReceiveDllMessage(unsigned long, unsigned long, unsigned,
+   unsigned, unsigned, unsigned, unsigned, unsigned,
+   char, LPSTR, LPSTR, unsigned long, char);
 #endif /* _EXAMPLE_H */
-

@@ -39,16 +39,26 @@ extern "C" {
 //***** Types and Structures
 //******************************************************************************
 
+typedef int (WINAPI DLLPRNT)(LPSTR, unsigned long);
+typedef int (WINAPI DLLPASSWORD)(LPSTR, int, LPCSTR, LPCSTR);
+typedef int (WINAPI DLLSERVICE)(LPSTR, unsigned long);
+typedef void (WINAPI DLLSND)(void);
+typedef int (WINAPI DLLREPLACE)(LPSTR);
 typedef void (WINAPI DLLMESSAGE)(ulg, ulg, int, int, int, int, int, int,
                                  int, char*, char*, ulg);
 
 typedef struct _USERFUNCTIONS {
+   DLLPRNT       *print;
+   DLLSND        *sound;
+   DLLREPLACE    *replace;
+   DLLPASSWORD   *password;
    DLLMESSAGE    *SendApplicationMessage;
-   WORD           cchComment;
+   DLLSERVICE    *ServiceApplication;
    unsigned long  TotalSizeComp;
    unsigned long  TotalSize;
    int            CompFactor;
    unsigned int   NumMembers;
+   WORD           cchComment;
 } USERFUNCTIONS, *LPUSERFUNCTIONS;
 
 typedef struct _DCL {

@@ -1,0 +1,60 @@
+Last Amended:  10/10/97 by Dave Smith
+
+Tandem Port of Info ZIP (unzip)
+=======================
+
+Recent changes:
+1. Support UNZIPing of EDIT (text) files by use of the "-a" parameter
+2. Changes for version 2.2 affected files:
+- TANDEMC     (changes to stat() to pass file creation time)
+- ZIPINFOC    (exclufe TANDEM from tzset() test)
+3. Fix to default time/date field to UK format (dd/mm/yyyy)
+03/08/98  5.33f   Updates for TANDEMC/H to keep instep with ZIP (file buffering)
+                 New DOIT macro for extracting files from archive
+                 Fix in2ex to expand full vol/subvol depending on '-j' flag
+17/08/98  5.33f   Set USE_EF_UT_TIME to allow for timezone changes
+18/08/98  5.33f   Use define LICENSED to buld object able to update timestamps
+19/08/98  5.33f   Add -X flag support (restore file owner id) via unzip.c/h
+                 new chown function in tandem.c.
+                 Modified close_outfile to make the chown the last step.
+
+A few notes about the files on this subvol
+
+COMMACS   -  required by MAKE, *** held on ZIP subvol ***
+DOIT      -  macro to extract required Tandem files from archive and rename
+MACROS    -  required by MAKE, *** held on ZIP subvol ***
+MAKE      -  recompile UNZIP code, attempts to only recompile changed code
+README    -  this file
+UNZIPLIB  -  library of ZIP compiled routines, used by ZIP/ZIPNOTE etc
+UNZIPL    -  ZIP object (bound using LARGE memory model)
+
+*C        -  Source file
+*H        -  Header files
+*O        -  Individual object files (when compiled by MAKE)
+
+Install Notes:
+==============
+Stage 1 - get UNZIP object onto Tandem
+- download Tandem Unzip executables archive from Web
+- using PC unzip program (e.g. pkunzip/WinZip) extract UNZIP
+- copy UNZIP from PC to Tandem in Binary mode s(FTP/IXF)
+- alter file code to 100
+- optionally place in $SYSTEM.SYSTEM to allow easy access from command line
+
+Stage 2 - (optional) retrieve source code (requires UNZIP on Tandem)
+- download UNZIP source archive from web - contains all supported platforms
+- copy archive onto Tandem as Binary
+- extract Tandem DOIT macro ( UNZIP -j <archive> tandem/DOIT )
+- update DOIT macro to point at archive file
+- restore relevant files by running DOIT
+- replace all references to $DATA9.DAVESUNZ with whatever subvol you use
+- replace all references to $DATA9.DAVESZIP with whatever subvol you use
+  this is required by the MAKE macro file to pick up MACROS and COMMACS
+- replace references to SUPER.DAVES with whatever user id you use
+- to compile run MAKE
+
+Additional Notes - LICENSE the object:
+If you wish to be able to update the last modified time of files you unzip
+you need to use the #define LICENSED and then FUP LICENSE the file
+as SUPER.SUPER.  This is a Tandem restriction since we have to call a PRIV
+procedure to do this.  For UNZIP the define is setup (default) in tandem.h

@@ -25,8 +25,8 @@ LFLAGS2  = $(LIB) C:o.Stubs
 # object file lists
 OBJS1 = unzip.o crc32.o crctab.o crypt.o envargs.o explode.o
 OBJS2 = extract.o fileio.o globals.o inflate.o list.o match.o
-OBJS3 = process.o ttyio.o unreduce.o unshrink.o zipinfo.o 
-OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) riscos.o swiven.o acorn.o 
+OBJS3 = process.o ttyio.o unreduce.o unshrink.o zipinfo.o
+OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) riscos.o swiven.o acorn.o
 OBJF  = funzip.o crc32.o crypt_.o globals_.o inflate_.o ttyio_.o \
         riscos.o swiven.o
 OBJX  = unzipsfx.o crc32.o crctab.o crypt.o extract_.o fileio.o globals.o \

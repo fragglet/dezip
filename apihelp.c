@@ -23,7 +23,7 @@ APIDocStruct APIDoc[] = {
         "\t\t  fprintf(stderr, \"error: using wrong version of DLL\\n\");\n\n"
         "\t\tSee unzip.h for details and unzipstb.c for an example.\n"
     },
-  
+
     {
         "UZPMAIN"  , "UzpMain"  ,
         "int UzpMain(int argc, char *argv[]);",
@@ -38,7 +38,7 @@ APIDocStruct APIDoc[] = {
         "\t\t  printf(\"error: unzip failed\\n\");\n\n"
         "\t\tSee unzip.h for details.\n"
     },
-  
+
     {
         "UZPALTMAIN"  , "UzpAltMain"  ,
         "int UzpAltMain(int argc, char *argv[], UzpInit *init);",
@@ -55,7 +55,7 @@ APIDocStruct APIDoc[] = {
         "\t\t  printf(\"error: unzip failed\\n\");\n\n"
         "\t\tSee unzip.h for details.\n"
     },
-  
+
     {
         "UZPUNZIPTOMEMORY", "UzpUnzipToMemory",
         "int UzpUnzipToMemory(char *zip, char *file, UzpBuffer *retstr);",
@@ -65,31 +65,34 @@ APIDocStruct APIDoc[] = {
         "\t\tfailure.\n\n"
         "\t\tSee unzip.h for details.\n"
     },
-  
+
     {
         "UZPFILETREE", "UzpFileTree",
         "int UzpFileTree(char *name, cbList(callBack),\n"
         "\t\t\tchar *cpInclude[], char *cpExclude[]);",
         "Pass the name of the zip file, a callback function, an\n"
-        "\t\tinclude and exclude file list. UzpUnzipToMemory calls\n"
-        "\t\tthe callback for each valid file found in the zip file.\n"
+        "\t\tinclude and exclude file list. UzpFileTree calls the\n"
+        "\t\tcallback for each valid file found in the zip file.\n"
         "\t\t0 on return indicates failure.\n\n"
         "\t\tSee unzip.h for details.\n"
     },
-  
+
     { 0 }
 };
 
 
+static int function_help OF((__GPRO__ APIDocStruct *doc, char *fname));
 
-int function_help(__G__ doc, fname)
+
+
+static int function_help(__G__ doc, fname)
     __GDEF
     APIDocStruct *doc;
     char *fname;
 {
     strcpy(slide, fname);
-    strupr(slide);
-    while (doc->compare && strcmp(doc->compare,slide))
+    /* strupr(slide);    non-standard */
+    while (doc->compare && STRNICMP(doc->compare,slide,strlen(fname)))
         doc++;
     if (!doc->compare)
         return 0;
@@ -99,7 +102,7 @@ int function_help(__G__ doc, fname)
           doc->function, doc->syntax, doc->purpose));
 
     return 1;
-}  
+}
 
 
 

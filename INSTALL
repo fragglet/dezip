@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 20 Oct 97.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 28 Nov 98.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -15,6 +15,8 @@ To compile UnZip, UnZipSFX and/or fUnZip (quick-start instructions):
 
 (1) Unpack everything into a work directory somewhere, and make sure you're
     in the main UnZip directory (the one with this file in it).
+    * (See note below concerning line termination format used in the source
+       distribution)
 
 (2) Copy the appropriate makefile into the current directory, except under
     OS/2.
@@ -28,10 +30,23 @@ To compile UnZip, UnZipSFX and/or fUnZip (quick-start instructions):
     be installed as a "foreign symbol"; see the Install section below or
     [.vms]readme.vms for details.  (It basically involves adding a line
     sort of like this to login.com:    $ unzip == "$disk:[dir]unzip.exe")
+
     For DOS and other OSes without explicit timezone support (i.e., everybody
     but Unix, Windows 95 and NT), make sure the "TZ" environment variable is
     set to a valid and reasonable value; see your compiler docs for details.
 
+(*) The unzip sources as well as other Info-ZIP source archives are packaged
+    in Unix format. All text files use single LF (Ascii 0x0a) characters as
+    line terminators.  On systems that use different conventions for plain text
+    files (e.g.:DOS,Win9x,WinNT,OS/2 -> combined CR+LF; MacOS -> single CR),
+    some utilities (editors, compilers, etc.) may not accept source files
+    with LF line terminators.
+    For these systems, we recommend to use Info-ZIP's UnZip utility for
+    extraction of our distribution archives, applying the command option
+    "-a" (= translate text files to native format) in the extraction command.
+    In case this procedure is not applicable, an appropiate third-party
+    conversion utility may be used to achieve the desired line termination
+    style (examples: "flip", available for Unix, DOS, OS/2; or "tr" on Unix).
 
 
 To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
@@ -93,12 +108,12 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         thing, as long as no dots in name).  Special treatment only occurs
         if patterns are at end of arguments; i.e., "a*.*" matches all files
         starting with "a", but "*.*c" matches all files ending in "c" *only*
-        if they have a dot somewhere before the "c".  Thus "*.*.*" could be
-        used (albeit awkwardly) to specify all filenames with at least one
-        dot in them, and "*." matches all filenames with no dots in them.
-        [The default method of specifying these would be "*.*" and "* -x *.*",
-        respectively, where the second example makes use of UnZip's exclude-
-        files option.]  All other regular expressions (including "?" and
+        if they have a dot somewhere before the "c".  [The default method of
+        specifying files without a dot would be "* -x *.*", making use of
+        UnZip's exclude-files option.]  The matching is actually the same as
+        Unix, if you assume that undotted filenames really have an invisible
+        dot at the end, which is how DOS and related systems treat filenames
+        in general.  All other regular expressions (including "?" and
         "[range_of_chars]") retain their Unix-like behavior.
 
       VMSWILD   (VMS only)
@@ -165,6 +180,19 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         in listings:  day-month-year or month-day-year or year-month-day.
         For DOS derivatives the format is automatically obtained from the
         operating system; most others default to DF_MDY.
+
+      ACORN_FTYPE_NFS  (currently, Unix only)
+        This option enables a -F option that instructs UnZip to interpret the
+        filetype information extracted from Acorn RiscOS extra field blocks.
+        The filetype IDs are translated into "NFS filetype extensions" and
+        appended to the names of the extracted files. This feature facilitates
+        maintance of Unix-based NFS volumes that are exported to Acorn RiscOS
+        systems.
+
+      QLZIP  (Unix only)
+        Add some support for QDOS extra fields. This option enables Unix
+        UnZip to append "datalen info" to QDOS exec type files in the same
+        format as used by QDOS cross-compilers on Unix or the qltools v2.2(+).
 
       UNIXBACKUP   (Unix only)
         This option enables a -B option that instructs UnZip to rename files
@@ -348,11 +376,17 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         See atari\README for comments on using other compilers.
 
       Macintosh
-        Think C is the only currently supported compiler, although the Mac
-        Programmer's Workbench (MPW) was supported at one time and still has
-        hooks in unzip.h.  For Think C, un-BinHex the Think C project file and
+        Metrowerks CodeWarrior Pro 4 with Universal Interfaces 3.1 is the only
+        currently supported compiler, although the Mac Programmer's Workbench
+        (MPW) and Think C were supported at one time and still have some hooks.
+        Other Compilers may work too, no compiler specific instructions
+        (pragma, header, macros, ...) were used in the code.
+        For CodeWarrior Pro 4, un-BinHex the CodeWarrior project file and
         UnZip resource file (using Stuffit Expander or BinHex 4.0 or later),
         then open the project and click on the compile button.
+        See ":macos:Contents" for the possible project targets.
+        Link order of the standard libraries is very important: Link all
+        sources first and all standard libraries last.
 
       Acorn (RISC OS)
         Extract the files from the archive and place in standard 'Acorn' C
@@ -474,9 +508,18 @@ BeOS
   install in /boot/bin, do "make prefix=/boot/bin install".
 
 Macintosh
+  MacZip requires at least System 7 and a Macintosh with a minimum of a
+  Motorola 68020 or PowerPC 601 processor. Other configurations may work
+  but it is not tested at all.
+  The application (MacZip) is distributed as a combination of zip and unzip
+  in one program. The offical release is a fat binary with both regular 68K
+  and native PowerPC versions included.
   Move the executable(s) somewhere--for example, drag it (or them) to your
   Applications folder.  For easy access, make an alias in the Launcher Control
   Panel or directly on your desktop.
+  This port supports also Apple-event.So you can install it in your
+  WWW-Browser as a helper-app.
+  Look into ":macos:README.TXT" for further info.
 
 Human68K, TOPS-20, AOS/VS, MVS, VM/CMS, etc.
   Dunno, sorry...

@@ -55,6 +55,13 @@ char *do_wild(__G__ wildspec)
     if (firstcall) {        /* first call:  must initialize everything */
         firstcall = FALSE;
 
+        if (!iswild(wildspec)) {
+            strcpy(matchname, wildspec);
+            have_dirname = FALSE;
+            dir = NULL;
+            return matchname;
+        }
+
         /* break the wildspec into a directory part and a wildcard filename */
         if ((wildname = strrchr(wildspec, '/')) == (char *)NULL) {
             dirname = ".";
@@ -77,10 +84,14 @@ char *do_wild(__G__ wildspec)
 
         if ((dir = opendir(dirname)) != (DIR *)NULL) {
             while ((file = readdir(dir)) != (struct dirent *)NULL) {
+                Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
                     /* Need something here for TOS filesystem? [cjh] */
-                if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
+                if (match(file->d_name, wildname, 0) &&  /* 0 == case sens. */
+                    /* skip "." and ".." directory entries */
+                    strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
+                    Trace((stderr, "do_wild:  match() succeeds\n"));
                     if (have_dirname) {
                         strcpy(matchname, dirname);
                         strcpy(matchname+dirnamelen, file->d_name);
@@ -112,9 +123,13 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL)
+    while ((file = readdir(dir)) != (struct dirent *)NULL) {
         /* May need special TOS handling here. [cjh] */
+        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        if (file->d_name[0] == '.' && wildname[0] != '.')
+            continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
+            Trace((stderr, "do_wild:  match() succeeds\n"));
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
                 strcpy(matchname+dirnamelen, file->d_name);
@@ -122,6 +137,7 @@ char *do_wild(__G__ wildspec)
                 strcpy(matchname, file->d_name);
             return matchname;
         }
+    }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
     dir = (DIR *)NULL;
@@ -148,18 +164,70 @@ int mapattr(__G)
     ulg tmp = G.crec.external_file_attributes;
 
     switch (G.pInfo->hostnum) {
+        case AMIGA_:
+            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
+            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
+            break;
         case UNIX_:
         case VMS_:
         case ACORN_:
         case ATARI_:
         case BEOS_:
         case QDOS_:
+        case TANDEM_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
-            return 0;
-        case AMIGA_:
-            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
-            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
-            break;
+            if (G.pInfo->file_attr != 0 || !G.extra_field) {
+                return 0;
+            } else {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                   VMS (and probably others ??) leave 0 in the upper 16-bit
+                   part of the external_file_attributes field. Instead, they
+                   store file permission attributes in some extra field.
+                   As a work-around, we search for the presence of one of
+                   these extra fields and fall back to the MSDOS compatible
+                   part of external_file_attributes if one of the known
+                   e.f. types has been detected.
+                   Later, we might implement extraction of the permission
+                   bits from the VMS extra field. But for now, the work-around
+                   should be sufficient to provide "readable" extracted files.
+                   (For ASI Unix e.f., an experimental remap of the e.f.
+                   mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
+                int r = FALSE;
+
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            G.pInfo->file_attr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+                if (!r)
+                    return 0;
+            }
+            /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
         case FS_HPFS_:
@@ -192,12 +260,12 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
     int renamed;             /*  or 10 if out of memory (skip file) */
 {                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
-    char pathcomp[FILNAMSIZ];    /* path-component buffer */
-    char *pp, *cp=(char *)NULL;  /* character pointers */
-    char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;           /* flags */
+    char pathcomp[FILNAMSIZ];      /* path-component buffer */
+    char *pp, *cp=(char *)NULL;    /* character pointers */
+    char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
+    int quote = FALSE;             /* flags */
     int error = 0;
-    register unsigned workch;    /* hold the character being tested */
+    register unsigned workch;      /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
@@ -205,10 +273,10 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
+        return IZ_VOL_LABEL;    /* can't set disk volume labels on Atari */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -220,7 +288,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == (char *)NULL)     /* no '/' or not junking dirs */
         cp = G.filename;        /* point to internal zipfile-member pathname */
@@ -272,7 +340,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -574,7 +642,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
 #ifdef USE_EF_UT_TIME
-    unsigned eb_izux_flags;
+    unsigned eb_izux_flg;
     iztimes zt;
 #endif
     ztimbuf tp;
@@ -629,16 +697,19 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
   ---------------------------------------------------------------------------*/
 
 #ifdef USE_EF_UT_TIME
-    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
-                   G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
-                   &zt, NULL) : 0);
+    eb_izux_flg = (G.extra_field
+#ifdef IZ_CHECK_TZ
+                   && G.tz_is_valid
+#endif
+                   ? ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
+                       0, G.lrec.last_mod_dos_datetime, &zt, NULL)
+                   : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         tp.modtime = zt.mtime;
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
           tp.modtime));
     } else {
-        tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                      G.lrec.last_mod_file_time);
+        tp.modtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
     if (eb_izux_flg & EB_UT_FL_ATIME) {
         tp.actime = zt.atime;
@@ -650,8 +721,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
           tp.modtime));
     }
 #else /* !USE_EF_UT_TIME */
-    tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                              G.lrec.last_mod_file_time);
+    tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
 
     TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
       tp.modtime));

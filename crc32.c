@@ -5,6 +5,8 @@
 
 /* $Id: crc32.c,v 1.5 1996/01/13 14:55:12 spc Exp $ */
 
+#define __CRC32_C       /* identifies this source module */
+
 #include "zip.h"
 
 #ifndef USE_ZLIB
@@ -32,7 +34,7 @@ ulg crc32(crc, buf, len)
    pointer, then initialize the crc shift register contents instead.
    Return the current crc in either case. */
 {
-  register ulg near *crc_table;
+  register ZCONST ulg near *crc_table;
 
   if (buf == NULL) return 0L;
 

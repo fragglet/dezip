@@ -17,7 +17,7 @@
 .fi
 ..
 .\" =========================================================================
-.TH UNZIP 1L "3 November 1997 (v5.32)" "Info-ZIP"
+.TH UNZIP 1L "28 November 1998 (v5.4)" "Info-ZIP"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
@@ -235,9 +235,35 @@ case-insensitive.  In the example above, all three files would then match
 ``\fCmakefile\fR'' (or ``\fCmake*\fR'', or similar).  The \fB\-C\fP option
 affects files in both the normal file list and the excluded-file list (xlist).
 .TP
+.B \-E
+[MacOS only] display contents of MacOS extra field during restore operation.
+.TP
+.B \-F
+[Acorn only] suppress removal of NFS filetype extension from stored filenames.
+.TP
+.B \-F
+[Unix only, and only if compiled with ACORN_FTYPE_NFS defined] translate
+filetype information from ACORN RISC OS extra field blocks into a
+NFS filetype extension and append it to the names of the extracted files.
+(When the stored filename appears to already have an appended NFS filetype
+extension, it is replaced by the info from the extra field.)
+.TP
+.B \-i
+[MacOS only] ignore filenames stored in MacOS extra fields. Instead, the
+most compatible filename stored in the generic part of the entry's header
+is used.
+.TP
 .B \-j
 junk paths.  The archive's directory structure is not recreated; all files
 are deposited in the extraction directory (by default, the current one).
+.TP
+.B \-J
+[BeOS only] junk file attributes.  The file's BeOS file attributes are not
+restored, just the file's data.
+.TP
+.B \-J
+[MacOS only] ignore MacOS extra fields.  All Macintosh specific info
+is skipped. Data-fork and resource-fork are restored as separate files.
 .TP
 .B \-L
 convert to lowercase any filename originating on an uppercase-only operating
@@ -706,10 +732,11 @@ The Info-ZIP home page is currently at \fChttp://www.cdrom.com/pub/infozip/\fR .
 The primary Info-ZIP authors (current semi-active members of the Zip-Bugs
 workgroup) are:  Greg ``Cave Newt'' Roelofs (UnZip); Onno van der Linden (Zip);
 Jean-loup Gailly (compression); Mark Adler (decompression, fUnZip); Christian
-Spieler (VMS, MS-DOS, Windows 95, NT, shared code, general Zip and UnZip
-integration and optimization); Mike White (Windows GUI, Windows DLLs);
-Kai Uwe Rommel (OS/2); Paul Kienitz (Amiga, Windows 95); Chris Herborth (BeOS,
-QNX, Atari); Jonathan Hudson (SMS/QDOS); Sergio Monesi (Acorn RISC OS); Harald
+Spieler (UnZip maintance coordination, VMS, MS-DOS, Windows 95, NT,
+shared code, general Zip and UnZip integration and optimization);
+Mike White (Windows GUI, Windows DLLs); Kai Uwe Rommel (OS/2);
+Paul Kienitz (Amiga, Windows 95); Chris Herborth (BeOS, QNX, Atari);
+Jonathan Hudson (SMS/QDOS); Sergio Monesi (Acorn RISC OS); Harald
 Denker (Atari, MVS); John Bush (Solaris, Amiga); Hunter Goatley (VMS); Steve
 Salisbury (Windows 95, NT); Steve Miller (Windows CE GUI), Johnny Lee (MS-DOS,
 Windows 95, NT); and Dave Smith (Tandem NSK).
@@ -758,4 +785,6 @@ Info-ZIP (Zip-Bugs subgroup, GRR)
 Info-ZIP (Zip-Bugs subgroup, GRR)
 .IP "v5.32\t\ 3 Nov 97"
 Info-ZIP (Zip-Bugs subgroup, GRR)
+.IP "v5.4\t\28 Nov 98"
+Info-ZIP (Zip-Bugs subgroup, SPC)
 .PD

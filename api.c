@@ -9,12 +9,16 @@
     void UzpVersion2(UzpVer2 *version)
     int UzpMain(int argc, char *argv[]);
     int UzpAltMain(int argc, char *argv[], UzpInit *init);
-    int UzpUnzipToMemory(char *zip, char *file, UzpBuffer *retstr);
     int UzpValidate(char *archive, int AllCodes);
-    int UzpGrep(char *archive, char *file, char *pattern, int cmd, int SkipBin);
+    void UzpFreeMemBuffer(UzpBuffer *retstr);
+    int UzpUnzipToMemory(char *zip, char *file, UzpOpts *optflgs,
+                         UzpCB *UsrFuncts, UzpBuffer *retstr);
+
+  non-WINDLL only (a special WINDLL variant is defined in windll/windll.c):
+    int UzpGrep(char *archive, char *file, char *pattern, int cmd, int SkipBin,
+                UzpCB *UsrFuncts);
 
   OS/2 only (for now):
-
     int UzpFileTree(char *name, cbList(callBack), char *cpInclude[],
           char *cpExclude[]);
 
@@ -33,12 +37,10 @@
 #include "unzip.h"
 #include "version.h"
 #ifdef WINDLL
-#  include "windll\windll.h"
-#endif
-#ifdef USE_ZLIB
-#  include "zlib.h"
+#  include "windll/windll.h"
 #endif
 
+#ifdef DLL      /* This source file supplies DLL-only interface code. */
 
 jmp_buf dll_error_return;
 
@@ -159,13 +161,62 @@ int UZ_EXP UzpAltMain(int argc, char *argv[], UzpInit *init)
     RETURN(r);
 }
 
-#endif
+#endif /* !WINDLL */
 
 
 
 
+#ifndef __16BIT__
 
-int UZ_EXP UzpUnzipToMemory(char *zip, char *file, UzpBuffer *retstr)
+void UZ_EXP UzpFreeMemBuffer(UzpBuffer *retstr)
+{
+    if (retstr->strptr != NULL) {
+        free(retstr->strptr);
+        retstr->strptr = NULL;
+    }
+}
+
+
+
+
+#ifndef WINDLL
+
+static int UzpDLL_Init OF((zvoid *pG, UzpCB *UsrFuncts));
+
+static int UzpDLL_Init(pG, UsrFuncts)
+zvoid *pG;
+UzpCB *UsrFuncts;
+{
+    int (*dummyfn)();
+
+    if (UsrFuncts->structlen >= (sizeof(ulg) + sizeof(dummyfn)) &&
+        UsrFuncts->msgfn)
+        ((Uz_Globs *)pG)->message = UsrFuncts->msgfn;
+    else
+        return FALSE;
+
+    if (UsrFuncts->structlen >= (sizeof(ulg) + 2*sizeof(dummyfn)) &&
+        UsrFuncts->inputfn)
+        ((Uz_Globs *)pG)->input = UsrFuncts->inputfn;
+
+    if (UsrFuncts->structlen >= (sizeof(ulg) + 3*sizeof(dummyfn)) &&
+        UsrFuncts->pausefn)
+        ((Uz_Globs *)pG)->mpause = UsrFuncts->pausefn;
+
+    if (UsrFuncts->structlen >= (sizeof(ulg) + 4*sizeof(dummyfn)) &&
+        UsrFuncts->passwdfn)
+        ((Uz_Globs *)pG)->decr_passwd = UsrFuncts->passwdfn;
+
+    if (UsrFuncts->structlen >= (sizeof(ulg) + 5*sizeof(dummyfn)) &&
+        UsrFuncts->statrepfn)
+        ((Uz_Globs *)pG)->statreportcb = UsrFuncts->statrepfn;
+
+    return TRUE;
+}
+
+
+int UZ_EXP UzpUnzipToMemory(char *zip, char *file, UzpOpts *optflgs,
+    UzpCB *UsrFuncts, UzpBuffer *retstr)
 {
     int r;
 #if (defined(WINDLL) && !defined(CRTL_CP_IS_ISO))
@@ -174,21 +225,38 @@ int UZ_EXP UzpUnzipToMemory(char *zip, char *file, UzpBuffer *retstr)
 
     CONSTRUCTGLOBALS();
 #if (defined(WINDLL) && !defined(CRTL_CP_IS_ISO))
-   intern_zip = (char *)malloc(strlen(zip)+1);
-   if (intern_zip == NULL)
-      return PK_MEM;
-   intern_file = (char *)malloc(strlen(file)+1);
-   if (intern_file == NULL) {
-      free(intern_zip);
-      return PK_MEM;
-   }
-   ISO_TO_INTERN(zip, intern_zip);
-   ISO_TO_INTERN(file, intern_file);
-#  define zip intern_zip
-#  define file intern_file
+    intern_zip = (char *)malloc(strlen(zip)+1);
+    if (intern_zip == NULL) {
+       DESTROYGLOBALS()
+       return PK_MEM;
+    }
+    intern_file = (char *)malloc(strlen(file)+1);
+    if (intern_file == NULL) {
+       DESTROYGLOBALS()
+       free(intern_zip);
+       return PK_MEM;
+    }
+    ISO_TO_INTERN(zip, intern_zip);
+    ISO_TO_INTERN(file, intern_file);
+#   define zip intern_zip
+#   define file intern_file
 #endif
+    /* Copy those options that are meaningful for UzpUnzipToMemory, instead of
+     * a simple "memcpy(G.UzO, optflgs, sizeof(UzpOpts));"
+     */
+    uO.pwdarg = optflgs->pwdarg;
+    uO.aflag = optflgs->aflag;
+    uO.C_flag = optflgs->C_flag;
+    uO.qflag = optflgs->qflag;  /* currently,  overridden in unzipToMemory */
+
+    if (!UzpDLL_Init((zvoid *)&G, UsrFuncts)) {
+       DESTROYGLOBALS();
+       return PK_BADERR;
+    }
     G.redirect_data = 1;
-    r = unzipToMemory(__G__ zip, file, retstr)==0;
+
+    r = (unzipToMemory(__G__ zip, file, retstr) <= PK_WARN);
+
     DESTROYGLOBALS()
 #if (defined(WINDLL) && !defined(CRTL_CP_IS_ISO))
 #  undef file
@@ -196,8 +264,14 @@ int UZ_EXP UzpUnzipToMemory(char *zip, char *file, UzpBuffer *retstr)
     free(intern_file);
     free(intern_zip);
 #endif
+    if (!r && retstr->strlength) {
+       free(retstr->strptr);
+       retstr->strptr = NULL;
+    }
     return r;
 }
+#endif /* !WINDLL */
+#endif /* !__16BIT__ */
 
 
 
@@ -211,9 +285,9 @@ int UZ_EXP UzpFileTree(char *name, cbList(callBack), char *cpInclude[],
     int r;
 
     CONSTRUCTGLOBALS();
-    G.qflag = 2;
-    G.vflag = 1;
-    G.C_flag = 1;
+    uO.qflag = 2;
+    uO.vflag = 1;
+    uO.C_flag = 1;
     G.wildzipfn = name;
     G.process_all_files = TRUE;
     if (cpInclude) {
@@ -229,7 +303,7 @@ int UZ_EXP UzpFileTree(char *name, cbList(callBack), char *cpInclude[],
         while (*ptr != NULL) ptr++;
         G.xfilespecs = ptr - cpExclude;
         G.pxnames = cpExclude, G.process_all_files = FALSE;
-    } else
+    }
 
     G.processExternally = callBack;
     r = process_zipfiles(__G)==0;
@@ -262,8 +336,7 @@ int unzipToMemory(__GPRO__ char *zip, char *file, UzpBuffer *retstr)
 
     G.process_all_files = FALSE;
     G.extract_flag = TRUE;
-    G.qflag = 2;
-    G.C_flag = 1;
+    uO.qflag = 2;
     G.wildzipfn = zip;
 
     G.pfnames = incname;
@@ -271,16 +344,12 @@ int unzipToMemory(__GPRO__ char *zip, char *file, UzpBuffer *retstr)
     incname[1] = NULL;
     G.filespecs = 1;
 
-    redirect_outfile(__G);
     r = process_zipfiles(__G);
     if (retstr) {
         retstr->strptr = (char *)G.redirect_buffer;
         retstr->strlength = G.redirect_size;
     }
-    r |= G.filenotfound;
-    if (r)
-        return r;   /* GRR:  these two lines don't make much sense... */
-    return r;
+    return r;                   /* returns `PK_???' error values */
 }
 
 
@@ -288,17 +357,28 @@ int unzipToMemory(__GPRO__ char *zip, char *file, UzpBuffer *retstr)
 int redirect_outfile(__G)
      __GDEF
 {
-    G.redirect_size = G.lrec.ucsize;
+    if (G.redirect_size != 0 || G.redirect_buffer != NULL)
+        return FALSE;
+
+#ifndef NO_SLIDE_REDIR
+    G.redirect_slide = !G.pInfo->textmode;
+#endif
+    G.redirect_size = (G.pInfo->textmode ?
+                       G.lrec.ucsize * lenEOL : G.lrec.ucsize);
 #ifdef OS2
     DosAllocMem((void **)&G.redirect_buffer, G.redirect_size+1,
       PAG_READ|PAG_WRITE|PAG_COMMIT);
     G.redirect_pointer = G.redirect_buffer;
 #else
+#ifdef __16BIT__
+    if ((ulg)((extent)G.redirect_size) != G.redirect_size)
+        return FALSE;
+#endif
     G.redirect_pointer = G.redirect_buffer = malloc(G.redirect_size+1);
 #endif
     if (!G.redirect_buffer)
         return FALSE;
-    G.redirect_pointer[G.redirect_size] = 0;
+    G.redirect_pointer[G.redirect_size] = '\0';
     return TRUE;
 }
 
@@ -315,6 +395,26 @@ int writeToMemory(__GPRO__ uch *rawbuf, ulg size)
 
 
 
+int close_redirect(__G)
+     __GDEF
+{
+    if (G.pInfo->textmode) {
+        *G.redirect_pointer = '\0';
+        G.redirect_size = G.redirect_pointer - G.redirect_buffer;
+        if ((G.redirect_buffer =
+             realloc(G.redirect_buffer, G.redirect_size + 1)) == NULL) {
+            G.redirect_size = 0;
+            return EOF;
+        }
+    }
+    return 0;
+}
+
+
+
+
+#ifndef __16BIT__
+#ifndef WINDLL
 
 /* Purpose: Determine if file in archive contains the string szSearch
 
@@ -341,36 +441,17 @@ int writeToMemory(__GPRO__ uch *rawbuf, ulg size)
  */
 
 int UZ_EXP UzpGrep(char *archive, char *file, char *pattern, int cmd,
-                   int SkipBin)
+                   int SkipBin, UzpCB *UsrFuncts)
 {
     int retcode = FALSE, compare;
     ulg i, j, patternLen, buflen;
     char * sz, *p;
+    UzpOpts flgopts;
     UzpBuffer retstr;
-#ifdef WINDLL
-    LPUSERFUNCTIONS lpTemp;
-#endif
 
+    memzero(&flgopts, sizeof(UzpOpts));         /* no special options */
 
-#ifdef WINDLL
-    /* Turn off any windows printing functions, as they may not have been
-     * identified yet. There is no requirement that we initialize the
-     * dll with printing stuff for this. */
-    UzpNoPrinting(TRUE);
-
-    /* If we haven't initialized the Windows user functions, the pointer
-     * for the comment flag may simply have garbage in it, and as a result
-     * will take off into never-never land. Save it off, make it null, and
-     * restore it below. */
-    lpTemp = lpUserFunctions;
-    lpUserFunctions = NULL;
-#endif
-
-    if (!UzpUnzipToMemory(archive, file, &retstr)) {
-#ifdef WINDLL
-       lpUserFunctions = lpTemp;
-       UzpNoPrinting(FALSE);
-#endif
+    if (!UzpUnzipToMemory(archive, file, &flgopts, UsrFuncts, &retstr)) {
        return -1;   /* not enough memory, file not found, or other error */
     }
 
@@ -387,10 +468,6 @@ int UZ_EXP UzpGrep(char *archive, char *file, char *pattern, int cmd,
                 {
                     /* OK, we now think we have a binary file of some sort */
                     free(retstr.strptr);
-#ifdef WINDLL
-                    lpUserFunctions = lpTemp;
-                    UzpNoPrinting(FALSE);
-#endif
                     return FALSE;
                 }
             }
@@ -400,10 +477,7 @@ int UZ_EXP UzpGrep(char *archive, char *file, char *pattern, int cmd,
     patternLen = strlen(pattern);
 
     if (retstr.strlength < patternLen) {
-#ifdef WINDLL
-        lpUserFunctions = lpTemp;
-        UzpNoPrinting(FALSE);
-#endif
+        free(retstr.strptr);
         return FALSE;
     }
 
@@ -443,14 +517,10 @@ int UZ_EXP UzpGrep(char *archive, char *file, char *pattern, int cmd,
     free(sz);
     free(retstr.strptr);
 
-#ifdef WINDLL
-    lpUserFunctions = lpTemp;
-    UzpNoPrinting(FALSE);
-#endif
-
     return retcode;
 }
-
+#endif /* !WINDLL */
+#endif /* !__16BIT__ */
 
 
 
@@ -460,24 +530,24 @@ int UZ_EXP UzpValidate(char *archive, int AllCodes)
     int retcode;
     CONSTRUCTGLOBALS();
 
-    G.jflag = 1;
-    G.tflag = 1;
-    G.overwrite_none = 0;
-    G.extract_flag = (!G.zipinfo_mode &&
-                      !G.cflag && !G.tflag && !G.vflag && !G.zflag
+    uO.jflag = 1;
+    uO.tflag = 1;
+    uO.overwrite_none = 0;
+    G.extract_flag = (!uO.zipinfo_mode &&
+                      !uO.cflag && !uO.tflag && !uO.vflag && !uO.zflag
 #ifdef TIMESTAMP
-                      && !G.T_flag
+                      && !uO.T_flag
 #endif
                      );
 
-    G.qflag = 2;               /* turn off all messages */
+    uO.qflag = 2;                        /* turn off all messages */
     G.fValidate = TRUE;
-    G.pfnames = &fnames[0];    /* assign default filename vector */
+    G.pfnames = (char **)&fnames[0];    /* assign default filename vector */
 #ifdef WINDLL
-    UzpNoPrinting(TRUE);
+    Wiz_NoPrinting(TRUE);
 #endif
 
-    if (archive == NULL) {     /* something is screwed up:  no filename */
+    if (archive == NULL) {      /* something is screwed up:  no filename */
         DESTROYGLOBALS();
         return PK_NOZIP;
     }
@@ -488,13 +558,13 @@ int UZ_EXP UzpValidate(char *archive, int AllCodes)
     _ISO_INTERN(G.wildzipfn);
 #endif
 
-    G.process_all_files = TRUE;       /* for speed */
+    G.process_all_files = TRUE;         /* for speed */
 
     retcode = setjmp(dll_error_return);
 
     if (retcode) {
 #ifdef WINDLL
-        UzpNoPrinting(FALSE);
+        Wiz_NoPrinting(FALSE);
 #endif
         free(G.wildzipfn);
         DESTROYGLOBALS();
@@ -505,7 +575,7 @@ int UZ_EXP UzpValidate(char *archive, int AllCodes)
 
     free(G.wildzipfn);
 #ifdef WINDLL
-    UzpNoPrinting(FALSE);
+    Wiz_NoPrinting(FALSE);
 #endif
     DESTROYGLOBALS();
 
@@ -527,3 +597,5 @@ int UZ_EXP UzpValidate(char *archive, int AllCodes)
     else
         return FALSE;
 }
+
+#endif /* DLL */

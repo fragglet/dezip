@@ -1,5 +1,5 @@
 # WMAKE makefile for Windows 95 and Windows NT (Intel only)
-# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 29 Sep 97.
+# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 26 Apr 98.
 # Makes UnZip.exe, fUnZip.exe, and UnZipSFX.exe.
 #
 # Invoke from UnZip source dir with "WMAKE -F WIN32\MAKEFILE.WAT [targets]"
@@ -61,7 +61,7 @@ OBJX3 = $(O)process.obx $(O)ttyio.obx
 OBJX  = $(OBJX1) $(OBJX2) $(OBJX3) $(O)win32.obx $(O)nt.obx
 
 OBJF1 = $(O)funzip.obj $(crcob) $(O)cryptf.obj $(O)globalsf.obj
-OBJF  = $(OBJF1) $(O)inflatef.obj $(O)ttyiof.obj
+OBJF  = $(OBJF1) $(O)inflatef.obj $(O)ttyiof.obj $(O)win32f.obj
 
 UNZIP_H = unzip.h unzpriv.h globals.h win32\w32cfg.h
 
@@ -181,6 +181,9 @@ $(O)inflatef.obj: inflate.c inflate.h $(UNZIP_H) crypt.h
 
 $(O)ttyiof.obj:   ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(cc) $(cdebug) $(cflags) $(cvars) -DFUNZIP ttyio.c -fo=$@
+
+$(O)win32f.obj:    win32\win32.c $(UNZIP_H)
+	$(cc) $(cdebux) $(cflags) $(cvars) -DFUNZIP win32\win32.c -fo=$@
 
 # Unwanted file removal:
 

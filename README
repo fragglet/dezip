@@ -1,10 +1,10 @@
-This is the README file for the 3 November 1997 public release of the
+This is the README file for the 28 November 1998 public release of the
 Info-ZIP group's portable UnZip zipfile-extraction program (and related
 utilities).
 
-unzip532.zip      portable UnZip, version 5.32, source code distribution
-unzip532.tar.Z    same as above, but compress'd tar format
-unzip532.tar.gz   same as above, but gzip'd tar format
+unzip540.zip      portable UnZip, version 5.4, source code distribution
+unzip540.tar.Z    same as above, but compress'd tar format
+unzip540.tar.gz   same as above, but gzip'd tar format
 
 __________________________________________________________________________
 
@@ -53,6 +53,21 @@ vms/descrip.mms.
 
 CHANGES AND NEW FEATURES
 ------------------------
+The 5.4 release adds new ports, again. Other important items are changes
+to the listing format, new supplemental features and several bug fixes
+(especially concerning time-stamp handling...):
+
+   - new IBM OS/390 port, a UNIX derivate (POSIX with EBCDIC charset)
+   - complete revision of the MacOS port
+   - changed listing formats to enlarge the file size fields for more digits
+   - added capability to restore directory attributes on MSDOS, OS/2, WIN32
+   - enabled support of symbolic links on BeOS
+   - Unix: optional Acorn filetype support, useful for volumes exported via NFS
+   - several changes/additions to the DLL API
+   - GUI SFX stub for Win16 (Windows 3.1) and Win32 (Windows 9x, Windows NT)
+   - new free GCC compiler environments supported on WIN32
+   - many time-zone handling bug fixes for WIN32, AMIGA, ...
+
 The 5.32 release adds two new ports and a fix for at least one relatively
 serious bug:
 
@@ -182,11 +197,14 @@ also various unrelated lists) and instructions on how to subscribe to one
 or more of them (courtesy of Hunter Goatley).  As of 1997, subscribing to
 the announcements list required a command of the form
 
-	SUBSCRIBE Info-ZIP-announce "Joe Isuzu"
+        SUBSCRIBE Info-ZIP-announce "Joe Isuzu"
 
 The discussion list is called Info-ZIP; it can be set for either normal or
 digest-style delivery.
 
 
 -- Greg Roelofs (sometimes known as Cave Newt), principal UnZip developer
-   guy, with inspiration from David Kirschbaum
+   guy, with inspiration from David Kirschbaum, was Author of this text.
+
+-- Christian Spieler (shorthand: SPC), current UnZip maintance coordinator,
+   applied the most recent changes.

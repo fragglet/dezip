@@ -3,7 +3,7 @@ Contents of the "os2" subdirectory for UnZip 5.3 and later:
   Contents      this file
   makefile.os2  makefile for almost every compiler available under OS/2
   os2.c         OS/2-specific support routines
-  os2.h         OS/2-specific data declarations
+  os2data.h     OS/2-specific data declarations
   os2cfg.h      OS/2-specific configuration, included in unzpriv.h
   os2acl.c      OS/2-specific routines for access-control-list support
   os2acl.h      OS/2-specific header file for access-control-list support

@@ -98,6 +98,15 @@ int unshrink(__G)
     shrint code, oldcode, freecode, curcode;
     shrint lastfreecode;
     unsigned int outbufsiz;
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+    /* Normally realbuf and outbuf will be the same.  However, if the data
+     * are redirected to a large memory buffer, realbuf will point to the
+     * new location while outbuf will remain pointing to the malloc'd
+     * memory buffer. */
+    uch *realbuf = G.outbuf;
+#else
+#   define realbuf G.outbuf
+#endif
 
 
 /*---------------------------------------------------------------------------
@@ -123,18 +132,21 @@ int unshrink(__G)
     for (code = BOGUSCODE+1;  code < HSIZE;  ++code)
         parent[code] = FREE_CODE;
 
-    G.realbuf = G.outbuf;   /* use normal outbuf unless we're a DLL routine */
-#ifdef DLL
-    if (G.redirect_data) {
-        G.realbuf = G.redirect_buffer;
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+    if (G.redirect_slide) { /* use normal outbuf unless we're a DLL routine */
+        realbuf = G.redirect_buffer;
         outbufsiz = G.redirect_size;
     } else
 #endif
+#ifdef DLL
+    if (G.pInfo->textmode && !G.redirect_data)
+#else
     if (G.pInfo->textmode)
+#endif
         outbufsiz = RAWBUFSIZ;
     else
         outbufsiz = OUTBUFSIZ;
-    G.outptr = G.realbuf;
+    G.outptr = realbuf;
     G.outcnt = 0L;
 
 /*---------------------------------------------------------------------------
@@ -207,11 +219,11 @@ int unshrink(__G)
                 OUTDBG(*p)
                 if (++G.outcnt == outbufsiz) {
                     Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
-                    if ((error = flush(__G__ G.realbuf, G.outcnt, TRUE)) != 0)
+                    if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0)
                         fprintf(stderr, "unshrink:  flush() error (%d)\n",
                           error);
                     Trace((stderr, "done with flush()\n"));
-                    G.outptr = G.realbuf;
+                    G.outptr = realbuf;
                     G.outcnt = 0L;
                 }
             }
@@ -241,7 +253,7 @@ int unshrink(__G)
 
     if (G.outcnt > 0L) {
         Trace((stderr, "doing final flush(), outcnt = %lu\n", G.outcnt));
-        if ((error = flush(__G__ G.realbuf, G.outcnt, TRUE)) != 0)
+        if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0)
             fprintf(stderr, "unshrink:  flush() error (%d)\n", error);
         Trace((stderr, "done with flush()\n"));
     }

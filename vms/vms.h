@@ -38,21 +38,25 @@
 #endif
 
 /*
- *  Under Alpha (DEC C?), the FIB unions are declared as variant_unions.
- *  FIBDEF.H includes the definition of __union, which we check
- *  below to make sure we access the structure correctly.
+ *  Under Alpha (DEC C in VAXC mode) and under `good old' VAXC, the FIB unions
+ *  are declared as variant_unions.  DEC C (Alpha) in ANSI modes and third
+ *  party compilers which do not support `variant_union' define preprocessor
+ *  symbols to `hide' the "intermediate union/struct" names from the
+ *  programmer's API.
+ *  We check the presence of these defines and for DEC's FIBDEF.H defining
+ *  __union as variant_union to make sure we access the structure correctly.
  */
 #define variant_union 1
 #if defined(fib$w_did) || (defined(__union) && (__union == variant_union))
-#  define FIB$W_DID       fib$w_did
-#  define FIB$W_FID       fib$w_fid
-#  define FIB$L_ACCTL     fib$l_acctl
-#  define FIB$W_EXCTL     fib$w_exctl
+#  define FIB$W_DID     fib$w_did
+#  define FIB$W_FID     fib$w_fid
+#  define FIB$L_ACCTL   fib$l_acctl
+#  define FIB$W_EXCTL   fib$w_exctl
 #else
-#  define FIB$W_DID       fib$r_did_overlay.fib$w_did
-#  define FIB$W_FID       fib$r_fid_overlay.fib$w_fid
-#  define FIB$L_ACCTL     fib$r_acctl_overlay.fib$l_acctl
-#  define FIB$W_EXCTL     fib$r_exctl_overlay.fib$w_exctl
+#  define FIB$W_DID     fib$r_did_overlay.fib$w_did
+#  define FIB$W_FID     fib$r_fid_overlay.fib$w_fid
+#  define FIB$L_ACCTL   fib$r_acctl_overlay.fib$l_acctl
+#  define FIB$W_EXCTL   fib$r_exctl_overlay.fib$w_exctl
 #endif
 #undef variant_union
 

@@ -1,0 +1,203 @@
+# Makefile for UnZip, fUnZip and UnZipSFX using LCC-Win32.
+# By E-Yen Tan (3 June 1998).
+# Last updated 24 November 1998 (Christian Spieler).
+#
+# This version includes rules to build the 32-bit windll DLL.
+
+CC=lcc
+CCFLAGS=-Zp8 -I. -DWIN32 $(AS_FLAGS)
+DLLFLAG=
+#DLLFLAG=-DWINDLL -DDLL -I./windll
+AS=lcc
+ASFLAGS=
+LD = lcclnk
+DLLLDFLAG=
+#DLLLDFLAG=-dll -entry DllMain
+LDFLAGS=-s -o ./
+LDFLAGS2=
+OUT=-Fo
+OBJ=.obj
+
+CP=copy
+RM=del
+
+# Optional macros should be declared below.
+# (LCC's Make is unable to read the LOCAL_UNZIP environment variable.)
+LOC = $(ASMFLG)
+
+# Options to select optimized assembler code for CRC32 calculation.
+#ifdef NOASM
+#ASMFLG=
+#CRC32=crc32
+#CRC32F=crc32f
+#CRC32X=crc32_
+#else
+ASMFLG=-DASM_CRC
+CRC32=crc_lcc
+CRC32F=crc_lcc
+CRC32X=crc_lcc
+#endif
+
+CFLAGS = $(CCFLAGS) $(LOC)
+
+# The system specific files are defined here:
+OBJUS=win32$(OBJ) nt$(OBJ)
+OBJDS=win32$(OBJ) nt$(OBJ)
+OBJXS=win32_$(OBJ) nt_$(OBJ)
+OBJFS=win32f$(OBJ)
+OSDEP_H=win32/w32cfg.h
+WINDLL_H=windll/windll.h windll/structs.h windll/decs.h
+DLLDEF=windll\windllgc.def
+
+
+OBJU1 = unzip$(OBJ) $(CRC32)$(OBJ) crctab$(OBJ) crypt$(OBJ) envargs$(OBJ)
+OBJU2 = explode$(OBJ) extract$(OBJ) fileio$(OBJ) globals$(OBJ)
+OBJU3 = inflate$(OBJ) list$(OBJ) match$(OBJ) process$(OBJ) ttyio$(OBJ)
+OBJU4 = unreduce$(OBJ) unshrink$(OBJ) zipinfo$(OBJ)
+OBJU  = $(OBJU1) $(OBJU2) $(OBJU3) $(OBJU4) $(OBJUS)
+OBJDLL = windll$(OBJ) windll32.res api$(OBJ)
+OBJD1 = $(CRC32)$(OBJ) crctab$(OBJ) crypt$(OBJ) envargs$(OBJ)
+OBJD2 = explode$(OBJ) extract$(OBJ) fileio$(OBJ) globals$(OBJ)
+OBJD3 = inflate$(OBJ) list$(OBJ) match$(OBJ) process$(OBJ) ttyio$(OBJ)
+OBJD4 = unreduce$(OBJ) unshrink$(OBJ) zipinfo$(OBJ)
+OBJD  = $(OBJDLL) $(OBJD1) $(OBJD2) $(OBJD3) $(OBJD4) $(OBJDS)
+OBJX1 = unzipsf_$(OBJ) $(CRC32X)$(OBJ) crctab_$(OBJ) crypt_$(OBJ)
+OBJX2 = extract_$(OBJ) fileio_$(OBJ) globals_$(OBJ) inflate_$(OBJ)
+OBJX3 = match_$(OBJ) process_$(OBJ) ttyio_$(OBJ)
+OBJX  = $(OBJX1) $(OBJX2) $(OBJX3) $(OBJXS)
+OBJF  = funzip$(OBJ) $(CRC32F)$(OBJ) cryptf$(OBJ) inflatef$(OBJ) \
+	globalsf$(OBJ) ttyiof$(OBJ) $(OBJFS)
+
+UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
+
+# rules
+
+.SUFFIXES: .c $(OBJ)
+
+.c$(OBJ):
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ $<
+
+.asm.obj:
+	$(AS) $(ASFLAGS) $<
+
+# targets
+
+all:	unzip.exe funzip.exe unzipsfx.exe
+dll:	unzip32.dll
+
+unzip.exe: $(OBJU)
+	$(LD) $(LDFLAGS)$@ $(DEF) $(OBJU) $(LDFLAGS2)
+
+funzip.exe: $(OBJF)
+	$(LD) $(LDFLAGS)$@ $(DEF) $(OBJF) $(LDFLAGS2)
+
+unzipsfx.exe:	$(OBJX)
+	$(LD) $(LDFLAGS)$@ $(DEF) $(OBJX) $(LDFLAGS2)
+
+unzip32.dll: $(DLLDEF) $(OBJD)
+	$(LD) $(DLLLDFLAG) $(LDFLAGS)$@ $(DLLDEF) $(OBJD) $(LDFLAGS2)
+
+example.exe: example$(OBJ)
+	$(LD) $(LDFLAGS)$@ $(DEF) example$(OBJ) -lversion $(LDFLAGS2)
+
+# dependencies
+
+api$(OBJ):	api.c $(UNZIP_H) version.h
+apihelp$(OBJ):	apihelp.c $(UNZIP_H) version.h
+crc32$(OBJ):	crc32.c $(UNZIP_H) zip.h
+crctab$(OBJ):	crctab.c $(UNZIP_H) zip.h
+envargs$(OBJ):	envargs.c $(UNZIP_H)
+explode$(OBJ):	explode.c $(UNZIP_H)
+extract$(OBJ):	extract.c $(UNZIP_H) crypt.h
+fileio$(OBJ):	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+globals$(OBJ):	globals.c $(UNZIP_H)
+inflate$(OBJ):	inflate.c $(UNZIP_H)
+list$(OBJ):	list.c $(UNZIP_H)
+match$(OBJ):	match.c $(UNZIP_H)
+process$(OBJ):	process.c $(UNZIP_H)
+ttyio$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+unreduce$(OBJ):	unreduce.c $(UNZIP_H)
+unshrink$(OBJ):	unshrink.c $(UNZIP_H)
+unzip$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+zipinfo$(OBJ):	zipinfo.c $(UNZIP_H)
+
+funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+	$(CC) -c $(CFLAGS) $(OUT)$@ funzip.c
+
+example$(OBJ):	windll/example.c windll/example.h
+	$(CC) -c $(CFLAGS) -I./windll $(OUT)$@ windll/example.c
+
+windll$(OBJ):	windll/windll.c $(UNZIP_H) $(WINDLL_H)
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ windll/windll.c
+
+windll32.res:	windll/windll.rc
+	- lrc -r $(DLLFLAG) -DWIN32 -o$@ windll/windll.rc
+
+win32$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h version.h
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ win32/win32.c
+
+nt$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ win32/nt.c
+
+crc_lcc.obj:	win32/crc_lcc.asm
+	$(AS) $(ASFLAGS) -Fo$@ win32/crc_lcc.asm
+
+crypt$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ crypt.c
+
+crc32f$(OBJ):	crc32.c $(UNZIP_H) zip.h
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ crc32.c
+
+cryptf$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ crypt.c
+
+globalsf$(OBJ):	globals.c $(UNZIP_H)
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ globals.c
+
+inflatef$(OBJ):	inflate.c inflate.h $(UNZIP_H) crypt.h
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ inflate.c
+
+ttyiof$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ ttyio.c
+
+win32f$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ win32/win32.c
+
+crc32_$(OBJ):	crc32.c $(UNZIP_H) zip.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ crc32.c
+
+crctab_$(OBJ):	crctab.c $(UNZIP_H) zip.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ crctab.c
+
+crypt_$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ crypt.c
+
+extract_$(OBJ):	extract.c $(UNZIP_H) crypt.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ extract.c
+
+fileio_$(OBJ):	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ fileio.c
+
+globals_$(OBJ):	globals.c $(UNZIP_H)
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ globals.c
+
+inflate_$(OBJ):	inflate.c inflate.h $(UNZIP_H) crypt.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ inflate.c
+
+match_$(OBJ):	match.c $(UNZIP_H)
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ match.c
+
+process_$(OBJ):	process.c $(UNZIP_H)
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ process.c
+
+ttyio_$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ ttyio.c
+
+unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ unzip.c
+
+win32_$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ win32/win32.c
+
+nt_$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
+	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ win32/nt.c

@@ -11,10 +11,10 @@
 
         16-Sep-1995     Christian Spieler
                         Added #pragma (no)member_alignment directives
-                        to archive compatibility with DEC C and Alpha AXP
+                        to achieve compatibility with DEC C and Alpha AXP
 
         05-Oct-1995     Christian Spieler
-                        Revised fatdef, fchdef, fjndef to archive closer
+                        Revised fatdef, fchdef, fjndef to achieve closer
                         compatibility with DEC's system include header files
                         supplied with C version 4.0 and newer.
 

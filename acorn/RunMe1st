@@ -2,7 +2,7 @@
 | Run it and it will copy all the needed files into the correct
 | place.
 
-| Set the correct type of 'srcrename' so that the only requirement 
+| Set the correct type of 'srcrename' so that the only requirement
 | for the user is to set 'RunMe1st' to Obey
 SetType <Obey$Dir>.srcrename FF8
 

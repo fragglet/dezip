@@ -3,19 +3,20 @@ LIBRARY UNZIP32  ; Library module name
 
 DESCRIPTION 'Windows Info-ZIP UnZip32 DLL by Mike White'
 
-CODE  PRELOAD FIXED
+;CODE  PRELOAD FIXED
 
-DATA  PRELOAD MOVEABLE
+;DATA  PRELOAD MOVEABLE
 
 EXPORTS
-     windll_unzip
+     Wiz_SingleEntryUnzip
      UzpVersion
-     Unz_Init
-     Unz_SetOpts
-     Unz_Unzip
-     UzpValidate
-     UzpNoPrinting
+     Wiz_Init
+     Wiz_SetOpts
+     Wiz_Unzip
+     Wiz_Validate
+     Wiz_NoPrinting
      UzpVersion2
-     UzpUnzipToMemory
-     UzpGrep
+     Wiz_UnzipToMemory
+     Wiz_Grep
+     UzpFreeMemBuffer
 

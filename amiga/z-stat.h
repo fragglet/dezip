@@ -1,6 +1,5 @@
-#ifndef __Z_STAT_H
-#define __Z_STAT_H
-#define __STAT_H
+#ifndef __amiga_z_stat_h
+#define __amiga_z_stat_h
 
 /* Since older versions of the Lattice C compiler for Amiga, and all current */
 /* versions of the Manx Aztec C compiler for Amiga, either provide no stat() */
@@ -15,7 +14,19 @@
 /* functions included in amiga/stat.c.  If you use amiga/stat.c, this must   */
 /* be included wherever you use either readdir() or stat().                  */
 
-#include <time.h>
+#ifdef AZTEC_C
+#  define __STAT_H
+#else  /* __SASC */
+/* do not include the following header, replacement definitions are here */
+#  define _STAT_H      /* do not include SAS/C <stat.h> */
+#  define _DIRENT_H    /* do not include SAS/C <dirent.h> */
+#  define _SYS_DIR_H   /* do not include SAS/C <sys/dir.h> */
+#  define _COMMIFMT_H  /* do not include SAS/C <sys/commifmt.h> */
+#  include <dos.h>
+#endif
+#include <libraries/dos.h>
+#include "amiga/z-time.h"
+
 
 struct stat {
     unsigned short st_mode;
@@ -52,9 +63,6 @@ struct stat {
 int stat(char *name, struct stat *buf);
 int fstat(int handle, struct stat *buf);      /* returns dummy values */
 
-
-#include <libraries/dos.h>
-
 typedef struct dirent {
     struct dirent       *d_cleanuplink,
                        **d_cleanupparent;
@@ -69,13 +77,11 @@ DIR *opendir(char *);
 void closedir(DIR *);
 void close_leftover_open_dirs(void);    /* call this if aborted in mid-run */
 struct dirent *readdir(DIR *);
-
-int rmdir(char *);
-
-#  ifdef AZTEC_C
-void tzset(void);
 int umask(void);
-int chmod(char *filename, int bits);
-#  endif
 
-#endif /* __Z_STAT_H */
+#ifdef AZTEC_C
+int rmdir(char *);
+int chmod(char *filename, int bits);
+#endif
+
+#endif /* __amiga_z_stat_h */

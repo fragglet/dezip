@@ -47,7 +47,6 @@
 
 /* private prototypes */
 
-#ifndef NO_NTSD_WITH_RSXNT  /* RSXNT windows.h does not yet support NT sec. */
 static BOOL Initialize(VOID);
 #if 0   /* currently unused */
 static BOOL Shutdown(VOID);
@@ -81,7 +80,7 @@ VOLUMECAPS g_VolumeCaps;
 CRITICAL_SECTION VolumeCapsLock;
 
 
-/* our diferred set structure linked list element, used for making a copy
+/* our deferred set structure linked list element, used for making a copy
    of input data which is used at a later time to process the original input
    at a time when it makes more sense. eg, applying security to newly created
    directories, after all files have been placed in such directories. */
@@ -162,7 +161,7 @@ static BOOL DeferSet(char *resource, PVOLUMECAPS VolumeCaps, uch *buffer)
     if(!bInitialized) if(!Initialize()) return FALSE;
 
     cbResource = lstrlenA(resource) + 1;
-    cbBuffer = GetSecurityDescriptorLength(buffer);
+    cbBuffer = GetSecurityDescriptorLength((PSECURITY_DESCRIPTOR)buffer);
     cbDeferSet = sizeof(DEFERRED_SET) + cbBuffer + sizeof(VOLUMECAPS) +
       cbResource;
 
@@ -220,10 +219,12 @@ BOOL ProcessDefer(PDWORD dwDirectoryCount, PDWORD dwBytesProcessed,
 
         if(SecuritySet(This->resource, This->VolumeCaps, This->buffer)) {
             (*dwDirectoryCount)++;
-            *dwBytesProcessed += GetSecurityDescriptorLength(This->buffer);
+            *dwBytesProcessed +=
+              GetSecurityDescriptorLength((PSECURITY_DESCRIPTOR)This->buffer);
         } else {
             (*dwDirectoryFail)++;
-            *dwBytesFail += GetSecurityDescriptorLength(This->buffer);
+            *dwBytesFail +=
+              GetSecurityDescriptorLength((PSECURITY_DESCRIPTOR)This->buffer);
         }
 
         Next = This->Next;
@@ -655,5 +656,4 @@ static VOID InitLocalPrivileges(VOID)
 
     CloseHandle(hToken);
 }
-#endif /* !NO_NTSD_WITH_RSXNT */
 #endif /* NTSD_EAS */

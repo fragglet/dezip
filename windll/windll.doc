@@ -2,8 +2,8 @@ There are now several entry points to the dll.
 
 There is a single "unzipping" entry point of:
 
-windll_unzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
-     DCL far*lpDCL, USERFUNCTIONS far *lpUserFunc)
+Wiz_SingleEntryUnzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
+                     LPDCL lpDCL, LPUSERFUNCTIONS lpUserFunc)
 
 where the arguments are:
 
@@ -45,18 +45,20 @@ int fPrivilege          = 1 => restore Acl's, 2 => Use privileges
 LPSTR lpszZipFN         = zip file name
 LPSTR lpszExtractDir    = Directory to extract to. This should be NULL if you
                           are extracting to the current directory.
-} DCL, _far *LPDCL;
+} DCL, far * LPDCL;
 
 The typedef's for the function pointers in the structure USERFUNCTIONS
 are shown immediately below.
 
 typedef unsigned short ush;
 typedef int (WINAPI DLLPRNT) (LPSTR, unsigned long);
-typedef int (WINAPI DLLPASSWORD) (LPSTR, int, const LPSTR, const LPSTR);
+typedef int (WINAPI DLLPASSWORD) (LPSTR, int, LPCSTR, LPCSTR);
+typedef int (WINAPI DLLSERVICE) (LPSTR, unsigned long);
 typedef void (WINAPI DLLSND) (void);
 typedef int (WINAPI DLLREPLACE)(LPSTR);
-typedef void (WINAPI DLLMESSAGE)(unsigned long, unsigned long,
-   ush, ush, ush, ush, ush, ush, char, LPSTR, LPSTR, unsigned long, char);
+typedef void (WINAPI DLLMESSAGE)(unsigned long, unsigned long, unsigned,
+   unsigned, unsigned, unsigned, unsigned, unsigned,
+   char, LPSTR, LPSTR, unsigned long, char);
 
 Structure USERFUNCTIONS
 
@@ -71,10 +73,17 @@ DLLMESSAGE *SendApplicationMessage = a pointer to the application's routine
                           for displaying information about specific files
                           in the archive. Used for listing the contents of
                           an archive.
+DLLSERVICE *ServCallBk  = Callback function designed to be used for
+                          allowing the application to process Windows messages,
+                          or canceling the operation, as well as giving the
+                          option of a progress indicator. If this function
+                          returns a non-zero value, then it will terminate
+                          what it is doing. It provides the application with
+                          the name of the name of the archive member it has
+                          just processed, as well as it's original size.
 NOTE: The values below are filled in only when listing the contents of an
       archive.
 
-WORD cchComment;        = flag to be set if archive has a comment
 unsigned long TotalSizeComp = value to be filled in by the dll for the
                           compressed total size of the archive. Note this
                           value does not include the size of the archive
@@ -85,6 +94,7 @@ int CompFactor          = value to be filled in by the dll for the overall
                           compression factor. This could actually be computed
                           from the other values, but it is available.
 unsigned int NumMembers = total number of files in the archive.
+WORD cchComment;        = flag to be set if archive has a comment
 } USERFUNCTIONS, far * LPUSERFUNCTIONS;
 
 For examples of how the actual calls to the dll are set up in WiZ, look in
@@ -99,7 +109,7 @@ different versions of the dll loaded, with resulting unknown behavior.
 
 Additional entry points:
 
-    WINAPI UzpVersion2(UzpVer far *);
+    void WINAPI UzpVersion2(UzpVer far *);
 
 where UzpVer is defined as:
 
@@ -127,34 +137,36 @@ typedef struct _ver {
    See api.c for exactly what UzpVersion2 does, but the short version of
    what it does is fill in the version information in the UzpVer structure.
 
-void WINAPI Unz_NoPrinting(int flag)
+void WINAPI Wiz_NoPrinting(int flag)
 
    This entry point simply turns off all messages to the calling application if
    flag is true, and turns them on if flag is false.
 
-int WINAPI Unz_Validate(LPSTR archive, int AllCodes)
+int WINAPI Wiz_Validate(LPSTR archive, int AllCodes)
 
    If AllCodes is FALSE, then Unz_Validate returns TRUE if archive points to a
    valid archive, and FALSE otherwise. If AllCodes is TRUE, then Unz_Validate
    returns whatever error code process_zipfiles returns, without evaluating it.
 
-int UZ_EXP UzpUnzipToMemory(char *zip, char *file, UzpBuffer *retstr)
+int WINAPI Wiz_UnzipToMemory(LPSTR zip, LPSTR file, LPUSERFUNCTIONS lpUserFunc,
+                             UzpBuffer *retstr)
 
    Where UzpBuffer is defined as:
 
    typedef struct _UzpBuffer {
-   ulg strlength; /* length of string */
-   char * strptr; /* pointer to string */
+      ulg strlength; /* length of string */
+      char * strptr; /* pointer to string */
    } UzpBuffer
 
    Pass the name of the zip file in zip and the name of the file you wish to
    extract in file. UzpUnzipToMemory will create a buffer and return it in
    *retstr. 0 on return indicates failure.
 
-int UZ_EXP Unz_Grep(char *zip, char *file, char * pattern, int code)
+int WINAPI Wiz_Grep(LPSTR archive, LPSTR file, LPSTR pattern, int cmd,
+                    int SkipBin, LPUSERFUNCTIONS lpUserFunc)
 
-   Pass the name of the zip file in "zip", the name of the file you wish to
-   perform the "grep" on in "file", and the string you wish to look for in
+   Pass the name of the zip file in "zip", the name of the zip entry you wish
+   to perform the "grep" on in "file", and the string you wish to look for in
    "pattern". There are four possible options for code:
 
    0 => case insensitive search
@@ -162,7 +174,12 @@ int UZ_EXP Unz_Grep(char *zip, char *file, char * pattern, int code)
    2 => case insensitive search, whole words only
    3 => case sensitive search, whole words only
 
-   Unz_Grep returns:
+   If SkipBin is TRUE, then any binary (loosely interpreted) files will be
+   ignored.
+
+   lpUserFunc is a pointer to a USERFUNCTION structure as shown above.
+
+   UzpGrep returns:
 
    -1 => error such as unable to allocate memory, unable to find file, etc.
     0 => match not found, based on the search criteria
@@ -204,15 +221,17 @@ follows (explanations for each function are shown further below):
         .
         .
         .
-        Unz_Init(UzpGlobals, lpUserFunctions); /* Set up user functions */
+        Wiz_Init(pG, lpUserFunctions); /* Set up user functions */
+        /* zvoid *pG, LPUSERFUNCTIONS lpUserFunctions */
         .
         .
         .
-        Unz_SetOpts(UzpGlobals, lpDCL); /* Set up unzipping options */
+        Wiz_SetOpts(pG, C); /* Set up unzipping options */
+        /* zvoid *pG, LPDCL C */
         .
         .
         .
-        Unz_Unzip(UzpGlobals, ifnc, ifnv, xfnc, xfnv); /* Unzip files */
+        Wiz_Unzip(pG, ifnc, ifnv, xfnc, xfnv); /* Unzip files */
         .
         .
         .
@@ -221,17 +240,16 @@ follows (explanations for each function are shown further below):
 
 Each entry point is as defined below:
 
-    BOOL WINAPI Unz_Init(zvoid *, USERFUNCTIONS far *);
+    BOOL WINAPI Wiz_Init(zvoid *, LPUSERFUNCTIONS);
 
-    BOOL WINAPI Unz_SetOpts(zvoid *, LPDCL);
+    BOOL WINAPI Wiz_SetOpts(zvoid *, LPDCL);
 
-    int WINAPI Unz_Unzip(zvoid *, int, char **, int, char **);
+    int WINAPI Wiz_Unzip(zvoid *, int, char **, int, char **);
 
 Note that you should use either windll_unzip OR the series of calls
 described above. Using both, depending on how you do it, could cause
 problems.
 
-Last revised October 22, 1997.
+Last revised June 13, 1998.
 
 Mike White
-

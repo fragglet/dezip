@@ -1,4 +1,4 @@
-# Makefile for UnZip 5.30 using Manx Aztec C 5.2, last revised 19 Oct 97.
+# Makefile for UnZip 5.4 using Manx Aztec C 5.2, last revised 18 Nov 98.
 # Define EXTRA=xxx on the Make command line for e.g. -dUSE_UNSHRINK.
 
 EXTRA =
@@ -72,7 +72,7 @@ cleaner : clean
 
 
 $(OBJS) $(XOBJS) $(FOBJS) : unzip.h unzpriv.h globals.h \
-                             amiga/amiga.h amiga/z-stat.h
+                             amiga/amiga.h amiga/z-stat.h amiga/z-time.h
 
 crypt.o crypt.fo ttyio.o ttyio.fo : zip.h
 

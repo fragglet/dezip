@@ -41,7 +41,7 @@ stripped. For example:
 
 will extract all the files called 'foo.c' to a directory called 'c'.
 This can be used to include "c:h:o:s:txt" to pull all the text files
-out to a separate directory. 
+out to a separate directory.
 
 UnZip fully supports SparkFS Extra Field. This means that zipfiles created
 with SparkFS or Zip (on RISC OS) will be correctly unzipped, including

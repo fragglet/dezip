@@ -35,7 +35,10 @@
                                     to avoid bug in Encore compiler.
     c13  25 Aug 94  M. Adler        fixed distance-length comment (orig c9 fix)
     c14  22 Nov 95  S. Maxwell      removed unnecessary "static" on auto array
-    c15   6 Jul 96  W. Haidinger    added ulg typecasts to flush() calls
+    c15   6 Jul 96  W. Haidinger    added ulg typecasts to flush() calls.
+    c16   8 Feb 98  C. Spieler      added ZCONST modifiers to const tables
+                                    and #ifdef DEBUG around debugging code.
+    c16b 25 Mar 98  C. Spieler      modified DLL code for slide redirection.
  */
 
 
@@ -89,7 +92,7 @@
 #  define WSIZE 0x8000  /* window size--must be a power of two, and */
 #endif                  /* at least 8K for zip's implode method */
 
-#ifdef DLL
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
 #  define wsize G._wsize
 #else
 #  define wsize WSIZE
@@ -122,29 +125,29 @@ int explode OF((__GPRO));
 
 
 /* Tables for length and distance */
-static ush cplen2[] =
+static ZCONST ush cplen2[] =
         {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
         18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
         35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
         52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65};
-static ush cplen3[] =
+static ZCONST ush cplen3[] =
         {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
         19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
         36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
         53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66};
-static ush extra[] =
+static ZCONST ush extra[] =
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         8};
-static ush cpdist4[] =
+static ZCONST ush cpdist4[] =
         {1, 65, 129, 193, 257, 321, 385, 449, 513, 577, 641, 705,
         769, 833, 897, 961, 1025, 1089, 1153, 1217, 1281, 1345, 1409, 1473,
         1537, 1601, 1665, 1729, 1793, 1857, 1921, 1985, 2049, 2113, 2177,
         2241, 2305, 2369, 2433, 2497, 2561, 2625, 2689, 2753, 2817, 2881,
         2945, 3009, 3073, 3137, 3201, 3265, 3329, 3393, 3457, 3521, 3585,
         3649, 3713, 3777, 3841, 3905, 3969, 4033};
-static ush cpdist8[] =
+static ZCONST ush cpdist8[] =
         {1, 129, 257, 385, 513, 641, 769, 897, 1025, 1153, 1281,
         1409, 1537, 1665, 1793, 1921, 2049, 2177, 2305, 2433, 2561, 2689,
         2817, 2945, 3073, 3201, 3329, 3457, 3585, 3713, 3841, 3969, 4097,
@@ -289,10 +292,13 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       /* do the copy */
       s -= n;
       do {
-#ifdef DLL
-        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+        if (G.redirect_slide) {
+          /* &= w/ wsize not needed and wrong if redirect */
+          if (d >= wsize)
+            return 1;
           n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-        else
+        } else
 #endif
         n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
@@ -422,10 +428,13 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       /* do the copy */
       s -= n;
       do {
-#ifdef DLL
-        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+        if (G.redirect_slide) {
+          /* &= w/ wsize not needed and wrong if redirect */
+          if (d >= wsize)
+            return 1;
           n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-        else
+        } else
 #endif
         n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
@@ -546,10 +555,13 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       /* do the copy */
       s -= n;
       do {
-#ifdef DLL
-        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+        if (G.redirect_slide) {
+          /* &= w/ wsize not needed and wrong if redirect */
+          if (d >= wsize)
+            return 1;
           n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-        else
+        } else
 #endif
         n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
@@ -670,10 +682,13 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       /* do the copy */
       s -= n;
       do {
-#ifdef DLL
-        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+        if (G.redirect_slide) {
+          /* &= w/ wsize not needed and wrong if redirect */
+          if (d >= wsize)
+            return 1;
           n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-        else
+        } else
 #endif
         n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
@@ -736,8 +751,8 @@ int explode(__G)
   int bd;               /* bits for td */
   unsigned l[256];      /* bit lengths for codes */
 
-#ifdef DLL
-  if (G.redirect_data)
+#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
+  if (G.redirect_slide)
     wsize = G.redirect_size, redirSlide = G.redirect_buffer;
   else
     wsize = WSIZE, redirSlide = slide;
@@ -745,7 +760,7 @@ int explode(__G)
 
   /* Tune base table sizes.  Note: I thought that to truly optimize speed,
      I would have to select different bl, bd, and bb values for different
-     compressed file sizes.  I was suprised to find out the the values of
+     compressed file sizes.  I was surprised to find out that the values of
      7, 7, and 9 worked best over a very wide range of sizes, except that
      bd = 8 worked marginally better for large compressed sizes. */
   bl = 7;
@@ -753,7 +768,9 @@ int explode(__G)
 
 
   /* With literal tree--minimum match length is 3 */
+#ifdef DEBUG
   G.hufts = 0;                    /* initialize huft's malloc'ed */
+#endif
   if (G.lrec.general_purpose_bit_flag & 4)
   {
     bb = 9;                     /* base table size for literals */
@@ -844,9 +861,7 @@ int explode(__G)
     huft_free(td);
     huft_free(tl);
   }
-#ifdef DEBUG
-  fprintf(stderr, "<%u > ", G.hufts);
-#endif /* DEBUG */
+  Trace((stderr, "<%u > ", G.hufts));
   return (int)r;
 }
 

@@ -7,7 +7,7 @@ Known, current PKZIP bugs/limitations:
    middle.  PKWARE apparently characterized this as a "known problem."
 
  - PKUNZIP 2.04g considers volume labels valid only if originated on a FAT
-   file system, but other OSes and file systems (e.g., Amiga and OS/2 HPFS) 
+   file system, but other OSes and file systems (e.g., Amiga and OS/2 HPFS)
    support volume labels, too.
 
  - PKUNZIP 2.04g can restore volume labels created by Zip 2.x but not by
@@ -39,6 +39,14 @@ Known, current PKZIP bugs/limitations:
    archive encrypted with an 8-bit password with one of the two PKZIP versions
    cannot be decrypted with the other version.
 
+ - PKZIP for Windows GUI (v 2.60), PKZIP for Windows command line (v 2.50) and
+   PKZIP for Unix (v 2.51) save the host's native file timestamps, but
+   only in a local extra field. Thus, timestamp-related selections (update
+   or freshen, both in extraction or archiving operations) use the DOS-format
+   localtime records in the Zip archives for comparisons. This may result
+   in wrong decisions of the program when updating and first archiv creations
+   are carried out in different local time zones.
+
  - PKUNZIP 2.04g is reported to have problems with archives created on and/or
    copied from Iomega ZIP drives (irony, eh?).
 
@@ -50,6 +58,25 @@ Known, current WinZip bugs/limitations:
 
  - WinZip doesn't allow 8-bit passwords, which means it cannot decrypt an
    archive created with an 8-bit password (by PKZIP or Info-ZIP's Zip).
+
+ - WinZip (Version 6.3 PL1) fails to remove old extra fields when freshening
+   existing archive entries. When updating archives created by Info-ZIP's Zip
+   that contain UT time stamp extra field blocks, UnZip cannot display or
+   restore the updated (DOS) time stamps of the freshened archive members.
+
+Known, current other third-party Zip utils bugs/limitations:
+------------------------------------------------------------
+
+ - Asi's PKZip clones for Macintosh (versions 2.3 and 2.10d) are thoroughly
+   broken. They create invalid Zip archives!
+   a) For the first entry, both compressed size and uncompressed length
+      are recorded as 0, despite the fact that compressed data of non-zero
+      length has been added.
+   b) Their program creates extra fields with an (undocumented) internal
+      structure that violates the requirements of PKWARE's Zip format
+      specification document "appnote.txt": Their extra field seems to
+      contain pure data; the 4-byte block header consisting of block ID
+      and data length is missing.
 
 Possibly current PKZIP bugs:
 ---------------------------

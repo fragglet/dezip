@@ -5,9 +5,9 @@
   Amiga-specific routines for use with Info-ZIP's UnZip 5.1 and later.
   See History.5xx for revision history.
 
-  Contents:   mapattr()
+  Contents:   do_wild()
+              mapattr()
               mapname()
-              do_wild()
               checkdir()
               close_outfile()
               stamp_file()
@@ -52,175 +52,10 @@
 #ifndef SFX
 /* Make sure the number here matches version.h in the *EXACT* form */
 /* UZ_MAJORVER "." UZ_MINORVER PATCHLEVEL vvvv     No non-digits!  */
-const char version_id[]  = "\0$VER: UnZip 5.30 ("
+const char version_id[]  = "\0$VER: UnZip 5.4 ("
 #include "env:VersionDate"
    ")\r\n";
 #endif /* SFX */
-
-
-/**********************/
-/* Function mapattr() */
-/**********************/
-
-int mapattr(__G)      /* Amiga version */
-    __GDEF
-{
-    ulg  tmp = G.crec.external_file_attributes;
-
-
-    /* Amiga attributes = hsparwed = hidden, script, pure, archive,
-     * read, write, execute, delete */
-
-    switch (G.pInfo->hostnum) {
-        case AMIGA_:
-            if ((tmp & 1) == (tmp>>18 & 1))
-                tmp ^= 0x000F0000;      /* PKAZip compatibility kluge */
-            /* turn off archive bit for restored Amiga files */
-            G.pInfo->file_attr = (unsigned)((tmp>>16) & (~S_IARCHIVE));
-            break;
-
-        case UNIX_:   /* preserve read, write, execute:  use logical-OR of */
-        case VMS_:    /* user, group, and other; if writable, set delete bit */
-        case ACORN_:
-        case ATARI_:
-        case BEOS_:
-        case QDOS_:
-            tmp >>= 16;
-            tmp = (( tmp>>6 | tmp>>3 | tmp) & 07) << 1;
-            G.pInfo->file_attr = (unsigned)(tmp&S_IWRITE? tmp|S_IDELETE : tmp);
-            break;
-
-        /* all other platforms:  assume read-only bit in DOS half of attribute
-         * word is set correctly ==> will become READ or READ+WRITE+DELETE */
-        case FS_FAT_:
-        case FS_HPFS_:  /* can add S_IHIDDEN check to MSDOS/OS2/NT eventually */
-        case FS_NTFS_:
-        case MAC_:
-        case TOPS20_:
-        default:
-            G.pInfo->file_attr = (unsigned)(tmp&1? S_IREAD : S_IRWD);
-            break;
-
-    } /* end switch (host-OS-created-by) */
-
-    G.pInfo->file_attr &= 0xff;   /* mask off all but lower eight bits */
-    return 0;
-
-} /* end function mapattr() */
-
-
-
-
-/************************/
-/*  Function mapname()  */
-/************************/
-
-int mapname(__G__ renamed)  /* return 0 if no error, 1 if caution (truncate), */
-    __GDEF                  /* 2 if warning (skip because dir doesn't exist), */
-    int renamed;            /* 3 if error (skip file), 10 if no memory (skip) */
-{                           /*  [also IZ_CREATED_DIR] */
-    char pathcomp[FILNAMSIZ];   /* path-component buffer */
-    char *pp, *cp=NULL;         /* character pointers */
-    char *lastsemi = NULL;      /* pointer to last semi-colon in pathcomp */
-    int error = 0;
-    register unsigned workch;   /* hold the character being tested */
-
-
-/*---------------------------------------------------------------------------
-    Initialize various pointers and counters and stuff.
-  ---------------------------------------------------------------------------*/
-
-    /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
-
-    G.created_dir = FALSE;      /* not yet */
-
-    /* user gave full pathname:  don't prepend G.rootpath */
-    G.renamed_fullpath = (renamed && strchr(G.filename, ':'));
-
-    if (checkdir(__G__ (char *)NULL, INIT) == 10)
-        return 10;              /* initialize path buffer, unless no memory */
-
-    *pathcomp = '\0';           /* initialize translation buffer */
-    pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
-        cp = (char *)strrchr(G.filename, '/');
-    if (cp == NULL)             /* no '/' or not junking dirs */
-        cp = G.filename;        /* point to internal zipfile-member pathname */
-    else
-        ++cp;                   /* point to start of last component of path */
-
-/*---------------------------------------------------------------------------
-    Begin main loop through characters in filename.
-  ---------------------------------------------------------------------------*/
-
-    while ((workch = (uch)*cp++) != 0) {
-
-        switch (workch) {
-        case '/':             /* can assume -j flag not given */
-            *pp = '\0';
-            if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
-                return error;
-            pp = pathcomp;    /* reset conversion buffer for next piece */
-            lastsemi = NULL;  /* leave directory semi-colons alone */
-            break;
-
-        case ';':             /* VMS version (or DEC-20 attrib?) */
-            lastsemi = pp;         /* keep for now; remove VMS ";##" */
-            *pp++ = (char)workch;  /*  later, if requested */
-            break;
-
-        default:
-            /* allow ISO European characters in filenames: */
-            if (isprint(workch) || (160 <= workch && workch <= 255))
-                *pp++ = (char)workch;
-        } /* end switch */
-    } /* end while loop */
-
-    *pp = '\0';                   /* done with pathcomp:  terminate it */
-
-    /* if not saving them, remove with VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
-        pp = lastsemi + 1;
-        while (isdigit((uch)(*pp)))
-            ++pp;
-        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
-            *lastsemi = '\0';
-    }
-
-/*---------------------------------------------------------------------------
-    Report if directory was created (and no file to create:  filename ended
-    in '/'), check name to be sure it exists, and combine path and name be-
-    fore exiting.
-  ---------------------------------------------------------------------------*/
-
-    if (G.filename[strlen(G.filename) - 1] == '/') {
-        checkdir(__G__ G.filename, GETPATH);
-        if (G.created_dir) {
-            if (QCOND2) {
-                Info(slide, 0, ((char *)slide, "   creating: %s\n",
-                  G.filename));
-            }
-            return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
-        }
-        return 2;   /* dir existed already; don't look for data to extract */
-    }
-
-    if (*pathcomp == '\0') {
-        Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
-             G.filename));
-        return 3;
-    }
-
-    if ((error = checkdir(__G__ pathcomp, APPEND_NAME)) == 1) {
-        /* GRR:  OK if truncated here:  warn and continue */
-        /* (warn in checkdir?) */
-    }
-    checkdir(__G__ G.filename, GETPATH);
-
-    return error;
-
-} /* end function mapname() */
 
 
 static int ispattern(char *p)
@@ -261,12 +96,14 @@ char *do_wild(__G__ wildspec)
 */
     struct dirent *file;
     BPTR lok = 0;
+
     /* Even when we're just returning wildspec, we *always* do so in
      * matchname[]--calling routine is allowed to append four characters
      * to the returned string, and wildspec may be a pointer to argv[].
      */
     if (!G.notfirstcall) {      /* first call:  must initialize everything */
         G.notfirstcall = TRUE;
+
         /* avoid needless readdir() scans: */
         if (!ispattern(wildspec) || (lok = Lock(wildspec, ACCESS_READ))) {
             if (lok) UnLock(lok);       /* ^^ we ignore wildcard chars if */
@@ -340,6 +177,243 @@ char *do_wild(__G__ wildspec)
     return (char *)NULL;
 
 } /* end function do_wild() */
+
+
+
+
+/**********************/
+/* Function mapattr() */
+/**********************/
+
+int mapattr(__G)      /* Amiga version */
+    __GDEF
+{
+    ulg  tmp = G.crec.external_file_attributes;
+
+
+    /* Amiga attributes = hsparwed = hidden, script, pure, archive,
+     * read, write, execute, delete */
+
+    switch (G.pInfo->hostnum) {
+        case AMIGA_:
+            if ((tmp & 1) == (tmp>>18 & 1))
+                tmp ^= 0x000F0000;      /* PKAZip compatibility kluge */
+            /* turn off archive bit for restored Amiga files */
+            G.pInfo->file_attr = (unsigned)((tmp>>16) & (~S_IARCHIVE));
+            break;
+
+        case UNIX_:   /* preserve read, write, execute:  use logical-OR of */
+        case VMS_:    /* user, group, and other; if writable, set delete bit */
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
+        case QDOS_:
+        case TANDEM_:
+            {
+              unsigned uxattr = (unsigned)(tmp >> 16);
+              int r = FALSE;
+
+              if (uxattr == 0 && G.extra_field) {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                   VMS (and probably others ??) leave 0 in the upper 16-bit
+                   part of the external_file_attributes field. Instead, they
+                   store file permission attributes in some extra field.
+                   As a work-around, we search for the presence of one of
+                   these extra fields and fall back to the MSDOS compatible
+                   part of external_file_attributes if one of the known
+                   e.f. types has been detected.
+                   Later, we might implement extraction of the permission
+                   bits from the VMS extra field. But for now, the work-around
+                   should be sufficient to provide "readable" extracted files.
+                   (For ASI Unix e.f., an experimental remap of the e.f.
+                   mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
+
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            uxattr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+              }
+              if (!r) {
+                uxattr = (( uxattr>>6 | uxattr>>3 | uxattr) & 07) << 1;
+                G.pInfo->file_attr = (unsigned)(uxattr&S_IWRITE ?
+                                                uxattr|S_IDELETE : uxattr);
+                break;
+              }
+            }
+            /* fall through! */
+
+        /* all other platforms:  assume read-only bit in DOS half of attribute
+         * word is set correctly ==> will become READ or READ+WRITE+DELETE */
+        case FS_FAT_:
+        case FS_HPFS_:  /* can add S_IHIDDEN check to MSDOS/OS2/NT eventually */
+        case FS_NTFS_:
+        case MAC_:
+        case TOPS20_:
+        default:
+            G.pInfo->file_attr = (unsigned)(tmp&1? S_IREAD : S_IRWD);
+            break;
+
+    } /* end switch (host-OS-created-by) */
+
+    G.pInfo->file_attr &= 0xff;   /* mask off all but lower eight bits */
+    return 0;
+
+} /* end function mapattr() */
+
+
+
+
+/************************/
+/*  Function mapname()  */
+/************************/
+
+int mapname(__G__ renamed)  /* return 0 if no error, 1 if caution (truncate), */
+    __GDEF                  /* 2 if warning (skip because dir doesn't exist), */
+    int renamed;            /* 3 if error (skip file), 10 if no memory (skip) */
+{                           /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
+    char pathcomp[FILNAMSIZ];   /* path-component buffer */
+    char *pp, *cp=NULL;         /* character pointers */
+    char *lastsemi = NULL;      /* pointer to last semi-colon in pathcomp */
+    int error = 0;
+    register unsigned workch;   /* hold the character being tested */
+
+
+/*---------------------------------------------------------------------------
+    Initialize various pointers and counters and stuff.
+  ---------------------------------------------------------------------------*/
+
+    if (G.pInfo->vollabel)
+        return IZ_VOL_LABEL;    /* can't set disk volume labels in AmigaDOS */
+
+    /* can create path as long as not just freshening, or if user told us */
+    G.create_dirs = (!uO.fflag || renamed);
+
+    G.created_dir = FALSE;      /* not yet */
+
+    /* user gave full pathname:  don't prepend G.rootpath */
+#ifndef OLD_AMIGA_RENAMED
+    G.renamed_fullpath = (renamed &&
+                          (*G.filename == '/' || *G.filename == ':'));
+#else
+    /* supress G.rootpath even when user gave a relative pathname */
+# if 1
+    G.renamed_fullpath = (renamed && strpbrk(G.filename, ":/");
+# else
+    G.renamed_fullpath = (renamed &&
+                          (strchr(G.filename, ':') || strchr(G.filename, '/')));
+# endif
+#endif
+
+    if (checkdir(__G__ (char *)NULL, INIT) == 10)
+        return 10;              /* initialize path buffer, unless no memory */
+
+    *pathcomp = '\0';           /* initialize translation buffer */
+    pp = pathcomp;              /* point to translation buffer */
+    if (uO.jflag)               /* junking directories */
+        cp = (char *)strrchr(G.filename, '/');
+    if (cp == NULL)             /* no '/' or not junking dirs */
+        cp = G.filename;        /* point to internal zipfile-member pathname */
+    else
+        ++cp;                   /* point to start of last component of path */
+
+/*---------------------------------------------------------------------------
+    Begin main loop through characters in filename.
+  ---------------------------------------------------------------------------*/
+
+    while ((workch = (uch)*cp++) != 0) {
+
+        switch (workch) {
+        case '/':             /* can assume -j flag not given */
+            *pp = '\0';
+            if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
+                return error;
+            pp = pathcomp;    /* reset conversion buffer for next piece */
+            lastsemi = NULL;  /* leave directory semi-colons alone */
+            break;
+
+        case ';':             /* VMS version (or DEC-20 attrib?) */
+            lastsemi = pp;         /* keep for now; remove VMS ";##" */
+            *pp++ = (char)workch;  /*  later, if requested */
+            break;
+
+        default:
+            /* allow ISO European characters in filenames: */
+            if (isprint(workch) || (160 <= workch && workch <= 255))
+                *pp++ = (char)workch;
+        } /* end switch */
+    } /* end while loop */
+
+    *pp = '\0';                   /* done with pathcomp:  terminate it */
+
+    /* if not saving them, remove with VMS version numbers (appended ";###") */
+    if (!uO.V_flag && lastsemi) {
+        pp = lastsemi + 1;
+        while (isdigit((uch)(*pp)))
+            ++pp;
+        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
+            *lastsemi = '\0';
+    }
+
+/*---------------------------------------------------------------------------
+    Report if directory was created (and no file to create:  filename ended
+    in '/'), check name to be sure it exists, and combine path and name be-
+    fore exiting.
+  ---------------------------------------------------------------------------*/
+
+    if (G.filename[strlen(G.filename) - 1] == '/') {
+        checkdir(__G__ G.filename, GETPATH);
+        if (G.created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
+            return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
+        }
+        return 2;   /* dir existed already; don't look for data to extract */
+    }
+
+    if (*pathcomp == '\0') {
+        Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
+             G.filename));
+        return 3;
+    }
+
+    if ((error = checkdir(__G__ pathcomp, APPEND_NAME)) == 1) {
+        /* GRR:  OK if truncated here:  warn and continue */
+        /* (warn in checkdir?) */
+    }
+    checkdir(__G__ G.filename, GETPATH);
+
+    return error;
+
+} /* end function mapname() */
+
 
 
 
@@ -536,7 +610,7 @@ int checkdir(__G__ pathcomp, flag)
         Trace((stderr, "freeing rootpath\n"));
         if (G.rootlen > 0) {
             free(G.rootpath);
-            rootlen = 0;
+            G.rootlen = 0;
         }
         return 0;
     }
@@ -561,17 +635,20 @@ void close_outfile(__G)
 #endif
     LONG FileDate();
 
-    if (G.cflag)                /* can't set time or filenote on stdout */
+    if (uO.cflag)               /* can't set time or filenote on stdout */
         return;
 
-  /* close the file *before* setting its time under AmigaDos */
+  /* close the file *before* setting its time under AmigaDOS */
 
     fclose(G.outfile);
 
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+        G.tz_is_valid &&
+#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_file_date, &z_utime, NULL)
+                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))
     {
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
@@ -579,13 +656,11 @@ void close_outfile(__G)
         m_time = z_utime.mtime;
     } else {
         /* Convert DOS time to time_t format */
-        m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                  G.lrec.last_mod_file_time);
+        m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
 #else /* !USE_EF_UT_TIME */
     /* Convert DOS time to time_t format */
-    m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
-                              G.lrec.last_mod_file_time);
+    m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
 #endif /* ?USE_EF_UT_TIME */
 
 #ifdef DEBUG
@@ -603,7 +678,7 @@ void close_outfile(__G)
 
   /* give it a filenote from the zipfile comment, if appropriate */
 
-    if (G.N_flag && G.filenotes[G.filenote_slot]) {
+    if (uO.N_flag && G.filenotes[G.filenote_slot]) {
         SetComment(G.filename, G.filenotes[G.filenote_slot]);
         free(G.filenotes[G.filenote_slot]);
         G.filenotes[G.filenote_slot] = NULL;
@@ -633,10 +708,11 @@ int stamp_file(fname, modtime)
 #endif /* TIMESTAMP */
 
 
+#ifndef __SASC
 /********************************************************************/
 /* Load filedate as a separate external file; it's used by Zip, too.*/
 /*                                                                  */
-#include "amiga/filedate.c"                                      /* */
+#  include "amiga/filedate.c"                                    /* */
 /*                                                                  */
 /********************************************************************/
 
@@ -644,8 +720,11 @@ int stamp_file(fname, modtime)
 
 #  include "amiga/stat.c"
 /* this is the exact same stat.c used by Zip */
+#endif /* !__SASC */
+/* SAS/C makes separate object modules of these; there is less  */
+/* trouble that way when redefining standard library functions. */
 
-#  include <stdio.h>
+#include <stdio.h>
 
 void _abort(void)               /* called when ^C is pressed */
 {
@@ -861,7 +940,7 @@ void version(__G)
 ******/
 
 /* Print strings using "CompiledWith" mask defined in unzip.c (used by all).
- *  ("Compiled with %s%s under %s%s%s%s.")
+ *  ("Compiled with %s%s for %s%s%s%s.")
  */
 
    printf(LoadFarString(CompiledWith),

@@ -5,25 +5,29 @@
    restriction.  (That's a little geek humor, heh heh.)
  */
 
-#ifndef __version_h   /* don't include more than once */
+#ifndef __version_h     /* don't include more than once */
 #define __version_h
 
 #ifdef BETA
-#  define BETALEVEL         "i BETA"
-#  define VERSION_DATE      "2 Nov 97"          /* internal beta version */
+#  undef BETA           /* define BETA for internal beta releases */
+#endif
+
+#ifdef BETA
+#  define BETALEVEL         "d BETA"
+#  define VERSION_DATE      "27 November 98"    /* internal beta version */
 #else
 #  define BETALEVEL         ""
-#  define VERSION_DATE      "3 November 1997"   /* official release version */
+#  define VERSION_DATE      "28 November 1998"  /* official release version */
 #  define RELEASE
 #endif
 
 #define UZ_MAJORVER    5   /* UnZip */
-#define UZ_MINORVER    3
+#define UZ_MINORVER    4
 
 #define ZI_MAJORVER    2   /* ZipInfo */
-#define ZI_MINORVER    2
+#define ZI_MINORVER    3
 
-#define PATCHLEVEL     2
+#define PATCHLEVEL     0
 
 
 /* these are obsolete but remain for backward compatibility: */

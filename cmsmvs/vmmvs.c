@@ -4,8 +4,6 @@
 
   Contains:  vmmvs_open_infile()
              open_outfile()
-             find_vms_attrs()
-             flush()
              close_outfile()
              close_infile()
              getVMMVSexfield()
@@ -34,7 +32,13 @@ FILE *vmmvs_open_infile(__G)
    FILE *fzip;
 
    G.tempfn = NULL;
-   if ((fzip = fopen(G.zipfn,"rb,recfm=fb")) == (FILE *)NULL) {
+
+   fzip = fopen(G.zipfn, FOPR);
+
+#if 0
+   /* Let's try it without the convert for a while -- RG Hartwig */
+
+   if ((fzip = fopen(G.zipfn,"rb,recfm=fb")) == NULL) {
       size_t cnt;
       char *buf;
       FILE *in, *out;
@@ -45,7 +49,7 @@ FILE *vmmvs_open_infile(__G)
           (out = fopen(G.tempfn,"wb,recfm=fb,lrecl=1")) != NULL) {
          Trace((stdout,"Converting ZIP file to fixed record format...\n"));
          while (!feof(in)) {
-            cnt= fread(buf,1,32768,in);
+            cnt = fread(buf,1,32768,in);
             if (cnt) fwrite(buf,1,cnt,out);
          }
       }
@@ -60,7 +64,7 @@ FILE *vmmvs_open_infile(__G)
       fclose(in);
 
       fzip = fopen(G.tempfn,"rb,recfm=fb");
-      if (fzip == (FILE *)NULL) return NULL;
+      if (fzip == NULL) return NULL;
 
       /* Update the G.ziplen value since it might have changed after
          the reformatting copy. */
@@ -68,6 +72,8 @@ FILE *vmmvs_open_infile(__G)
       fseek(fzip,0L,SEEK_END);
       G.ziplen = ftell(fzip);
    }
+
+#endif
 
    return fzip;
 }
@@ -85,21 +91,37 @@ int open_outfile(__G)           /* return 1 if fail */
 
     if (G.pInfo->textmode)
         mode = FOPWT;
-    else {
-        if (G.lrec.extra_field_length > EB_HEADSIZE) {
-            ush leb_id   = makeword(&G.extra_field[EB_ID]);
-            ush leb_dlen = makeword(&G.extra_field[EB_LEN]);
+    else if (G.lrec.extra_field_length > 0 && G.extra_field != NULL) {
+        unsigned lef_len = (unsigned)(G.lrec.extra_field_length);
+        uch *lef_buf = G.extra_field;
 
-            if ((leb_id == EF_VMCMS || leb_id == EF_MVS) &&
-                (leb_dlen <= (G.lrec.extra_field_length - EB_HEADSIZE)) &&
-                (getVMMVSexfield(type, G.extra_field, (unsigned)leb_dlen) > 0))
+        while (lef_len > EB_HEADSIZE) {
+            unsigned eb_id = makeword(&lef_buf[EB_ID]);
+            unsigned eb_dlen = makeword(&lef_buf[EB_LEN]);
+
+            if (eb_dlen > (lef_len - EB_HEADSIZE)) {
+                /* Discovered some extra field inconsistency! */
+                TTrace((stderr,
+                        "open_outfile: block length %u > rest lef_size %u\n",
+                        eb_dlen, lef_len - EB_HEADSIZE));
+                break;
+            }
+
+            if ((eb_id == EF_VMCMS || eb_id == EF_MVS) &&
+                (getVMMVSexfield(type, lef_buf, eb_dlen) > 0)) {
                 mode = type;
+                break;
+            }
+
+            /* Skip this extra field block */
+            lef_buf += (eb_dlen + EB_HEADSIZE);
+            lef_len -= (eb_dlen + EB_HEADSIZE);
         }
     }
     if (mode == NULL) mode = FOPW;
 
-    Trace((stderr, "Output file='%s' opening with '%s'\n", G.filename,type));
-    if ((G.outfile = fopen(G.filename, mode)) == (FILE *)NULL) {
+    Trace((stderr, "Output file='%s' opening with '%s'\n", G.filename, mode));
+    if ((G.outfile = fopen(G.filename, mode)) == NULL) {
         Info(slide, 0x401, ((char *)slide, "\nerror:  cannot create %s\n",
              G.filename));
         Trace((stderr, "error %d: '%s'\n", errno, strerror(errno)));
@@ -120,9 +142,9 @@ void close_outfile(__G)
 } /* end function close_outfile() */
 
 
-/****************************/
+/***************************/
 /* Function close_infile() */
-/****************************/
+/***************************/
 
 void close_infile(__G)
    __GDEF
@@ -147,7 +169,6 @@ extent getVMMVSexfield(type, ef_block, datalen)
     unsigned datalen;
 {
     fldata_t *fdata = (fldata_t *) &ef_block[4];
-    unsigned long lrecl;
 
     if (datalen < sizeof(fldata_t))
         return 0;
@@ -156,7 +177,7 @@ extent getVMMVSexfield(type, ef_block, datalen)
     strcat(type,  fdata->__openmode == __TEXT   ? ""
                  :fdata->__openmode == __BINARY ? "b"
                  :fdata->__openmode == __RECORD ? "b,type=record"
-                 : "");
+                 :                                "");
     strcat(type, ",recfm=");
     strcat(type,  fdata->__recfmF? "F"
                  :fdata->__recfmV? "V"
@@ -166,12 +187,11 @@ extent getVMMVSexfield(type, ef_block, datalen)
     if (fdata->__recfmS)   strcat(type, "S");
     if (fdata->__recfmASA) strcat(type, "A");
     if (fdata->__recfmM)   strcat(type, "M");
-    lrecl = fdata->__recfmV ? fdata->__maxreclen+4
-                            : fdata->__maxreclen;
-    sprintf(type+strlen(type), ",lrecl=%ld", lrecl);
-
+    sprintf(type+strlen(type), ",lrecl=%ld", fdata->__recfmV
+                                              ? fdata->__maxreclen+4
+                                              : fdata->__maxreclen);
 #ifdef VM_CMS
-    /* For CMS, use blocksize for FB files only, otherwise use LRECL */
+    /* For CMS, use blocksize for FB files only */
     if (fdata->__recfmBlk)
        sprintf(type+strlen(type), ",blksize=%ld", fdata->__blksize);
 #else
@@ -232,55 +252,50 @@ int mapname(__G__ renamed)
             /* 2 (PK_ERR)  if warning (skip file because dir doesn't exist), */
             /* 3 (PK_BADERR) if error (skip file), */
             /* 10 if no memory (skip file) */
+            /* 78 (IZ_VOL_LABEL) if path was volume label (skip it) */
     __GDEF
     int renamed;
 {
-    char newname[68], *lbar;
+    char newname[FILNAMSIZ], *lbar;
 #ifdef MVS
     char *pmember;
 #endif
     int name_changed = 0;
 
+    if (G.pInfo->vollabel)
+        return IZ_VOL_LABEL;    /* can't set disk volume labels in CMS_MVS */
+
 #ifdef MVS
-    while ((lbar = strrchr(G.filename,'_')) != NULL) {
-       strcpy(lbar,(lbar)+1);
-       name_changed = 1;
-    }
-    /* '-' and '+' ARE valid chars for CMS.  --RGH  */
-    while ((lbar = strrchr(G.filename,'+')) != NULL) {
-       strcpy(lbar,(lbar)+1);
-       name_changed = 1;
-    }
-    while ((lbar = strrchr(G.filename,'-')) != NULL) {
-       strcpy(lbar,(lbar)+1);
+    /* Remove bad characters for MVS from the filename */
+    while ((lbar = strpbrk(G.filename, "_+-")) != NULL) {
+       /* Must use memmove() here because data overlaps.  */
+       /* strcpy() gives undefined behavior in this case. */
+       memmove(lbar, lbar+1, strlen(lbar));
        name_changed = 1;
     }
 #endif
 
-    while ((lbar = strrchr(G.filename,'(')) != NULL) {
-       strcpy(lbar,(lbar)+1);
-       name_changed = 1;
-    }
-    while ((lbar = strrchr(G.filename,')')) != NULL) {
-       strcpy(lbar,(lbar)+1);
+    /* Remove bad characters for MVS/CMS from the filename */
+    while ((lbar = strpbrk(G.filename, "()")) != NULL) {
+       memmove(lbar, lbar+1, strlen(lbar));
        name_changed = 1;
     }
 
 #ifdef VM_CMS
-    if ((lbar = strrchr(G.filename,'/')) != NULL) {
-        strcpy((char *)newname,(char *)((lbar)+1));
-        printf("WARNING: file '%s' renamed as '%s'\n",G.filename,newname);
-        strcpy(G.filename,(char *)newname);
+    if ((lbar = strrchr(G.filename, '/')) != NULL) {
+        strcpy(newname, lbar+1);
+        Trace((stderr, "File '%s' renamed to '%s'\n", G.filename, newname));
+        strcpy(G.filename, newname);
         name_changed = 1;
     }
 #else /* MVS */
-    if ((pmember = strrchr(G.filename,'/')) == NULL)
+    if ((pmember = strrchr(G.filename, '/')) == NULL)
         pmember = G.filename;
     else
         pmember++;
 
     /* search for extension in file name */
-    if ((lbar = strrchr(pmember,'.')) != NULL) {
+    if ((lbar = strrchr(pmember, '.')) != NULL) {
         *lbar++ = '\0';
         strcpy(newname, pmember);
         strcpy(pmember, lbar);
@@ -291,21 +306,21 @@ int mapname(__G__ renamed)
 
     /* Remove all 'internal' dots '.', to prevent false consideration as
      * MVS path delimiters! */
-    while ((lbar = strrchr(G.filename,'.')) != NULL) {
-        strcpy(lbar,(lbar)+1);
+    while ((lbar = strrchr(G.filename, '.')) != NULL) {
+        memmove(lbar, lbar+1, strlen(lbar));
         name_changed = 1;
     }
 
     /* Finally, convert path delimiters from internal '/' to external '.' */
-    while ((lbar = strchr(G.filename,'/')) != NULL)
+    while ((lbar = strchr(G.filename, '/')) != NULL)
         *lbar = '.';
 #endif /* ?VM_CMS */
 
 #ifndef MVS
-    if ((lbar = strchr(G.filename,'.')) == (char *)NULL) {
-        printf("WARNING: file '%s' has NO extension - renamed as '%s.NONAME'\n"\
-              ,G.filename,G.filename);
-       strcat(G.filename,".NONAME");
+    if ((lbar = strchr(G.filename, '.')) == NULL) {
+        printf("WARNING: file '%s' has no extension - renamed to '%s.NONAME'\n"\
+              ,G.filename, G.filename);
+       strcat(G.filename, ".NONAME");
        name_changed = 1;
     }
 #endif
@@ -329,11 +344,22 @@ int checkdir(__G__ pathcomp, flag)
  *          10 - can't allocate memory for filename buffers
  */
 {
-    static int rootlen = 0;      /* length of rootpath */
-    static char *rootpath;       /* user's "extract-to" directory */
+    static int rootlen = 0;     /* length of rootpath */
+    static char *rootpath;      /* user's "extract-to" directory */
 
 #   define FN_MASK   7
 #   define FUNCTION  (flag & FN_MASK)
+
+/*---------------------------------------------------------------------------
+    ROOT:  if appropriate, store the path in rootpath and create it if neces-
+    sary; else assume it's a zipfile member and return.  This path segment
+    gets used in extracting all members from every zipfile specified on the
+    command line.  Note that under OS/2 and MS-DOS, if a candidate extract-to
+    directory specification includes a drive letter (leading "x:"), it is
+    treated just as if it had a trailing '/'--that is, one directory level
+    will be created if the path doesn't exist, unless this is otherwise pro-
+    hibited (e.g., freshening).
+  ---------------------------------------------------------------------------*/
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
@@ -420,7 +446,7 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
 {
     FILE *stream;
 
-    if ((stream = fopen(filename, "r")) != (FILE *)NULL) {
+    if ((stream = fopen(filename, FOPR)) != NULL) {
        fclose(stream);
        /* File exists, assume it is "newer" than archive entry. */
        return EXISTS_AND_NEWER;
@@ -440,7 +466,7 @@ int stat(const char *path, struct stat *buf)
    char fname[PATH_MAX];
    time_t ltime;
 
-   if ((fp = fopen(path, "rb")) != NULL) {
+   if ((fp = fopen(path, FOPR)) != NULL) {
       fldata_t fdata;
       if (fldata( fp, fname, &fdata ) == 0) {
          buf->st_dev  = fdata.__device;
@@ -466,6 +492,7 @@ int stat(const char *path, struct stat *buf)
 
 
 
+#ifdef STAND_ALONE
 /***************************/
 /*  Function main_vmmvs()  */
 /***************************/
@@ -474,7 +501,6 @@ int stat(const char *path, struct stat *buf)
 /* into argc and argv.  This is required for stand-alone               */
 /* execution.  This calls the "real" main() when done.                 */
 
-#ifdef STAND_ALONE
 int MAIN_VMMVS(void)
    {
     int  argc=0;
@@ -523,46 +549,79 @@ void version(__G)
 {
     int len;
     char liblvlmsg [50+1];
+    char *compiler = "?";
+    char *platform = "?";
+    char complevel[64];
 
+    /* Map the runtime library level information */
     union {
        unsigned int iVRM;
        struct {
-          unsigned int v:8;
-          unsigned int r:8;
-          unsigned int m:8;
+          unsigned int pd:4;    /* Product designation */
+          unsigned int vv:4;    /* Version             */
+          unsigned int rr:8;    /* Release             */
+          unsigned int mm:16;   /* Modification level  */
        } xVRM;
     } VRM;
 
+
     /* Break down the runtime library level */
     VRM.iVRM = __librel();
-    sprintf(liblvlmsg, ".  Runtime level V%dR%dM%d",
-            VRM.xVRM.v, VRM.xVRM.r, VRM.xVRM.m);
+    sprintf(liblvlmsg, "Using runtime library level %s V%dR%dM%d",
+            (VRM.xVRM.pd==1 ? "LE" : "CE"),
+            VRM.xVRM.vv, VRM.xVRM.rr, VRM.xVRM.mm);
+    /* Note:  LE = Language Environment, CE = Common Env. (C/370). */
+    /* This refers ONLY to the current runtimes, not the compiler. */
 
 
-    /* Output is in the form "Compiled with %s%s for %s%s%s%s" */
+#ifdef VM_CMS
+    platform = "VM/CMS";
+    #ifdef __IBMC__
+       compiler = "IBM C";
+    #else
+       compiler  = "C/370";
+    #endif
+#endif
 
+#ifdef MVS
+    platform = "MVS";
+    #ifdef __IBMC__
+       compiler = "IBM C/C++";
+    #else
+       compiler = "C/370";
+    #endif
+#endif
+
+#ifdef __COMPILER_VER__
+    VRM.iVRM = __COMPILER_VER__;
+    sprintf(complevel," V%dR%dM%d",
+            VRM.xVRM.vv, VRM.xVRM.rr, VRM.xVRM.mm);
+#else
+#ifdef __IBMC__
+    sprintf(complevel," V%dR%d", __IBMC__ / 100, (__IBMC__ % 100)/10);
+#else
+    complevel[0] = '\0';
+#endif
+#endif
+
+
+    /* Output is in the form "Compiled with %s%s for %s%s%s%s." */
     len = sprintf((char *)slide, LoadFarString(CompiledWith),
 
     /* Add compiler name and level */
-      "C/370", "",          /* Assumed.  Can't get compiler lvl(?) */
+    compiler, complevel,
 
     /* Add compile environment */
-#ifdef VM_CMS
-      "VM/CMS",
-#else
-      "MVS",
-#endif
+    platform,
 
     /* Add timestamp */
 #ifdef __DATE__
       " on " __DATE__
 #ifdef __TIME__
-     " at " __TIME__
+      " at " __TIME__
 #endif
-     ".\n", "",
-#else
-      "", "",
 #endif
+      ".\n", "",
       liblvlmsg
     );
 

@@ -23,9 +23,7 @@
 #endif
 
 #ifdef __WATCOMC__
-#  undef SSTAT
-#  define SSTAT stat_bandaid
-   int stat_bandaid(const char *path, struct stat *buf);
+#  define DOS_STAT_BANDAID
 
 #  ifdef __386__
 #    ifndef WATCOMC_386
@@ -63,6 +61,9 @@
 #    define __32BIT__
 #  endif
 #  define far
+#  ifndef HAVE_MKTIME
+#    define HAVE_MKTIME
+#  endif
 #endif
 
 #if defined(__GO32__) || defined(__DJGPP__)    /* MS-DOS compiler, not OS/2 */
@@ -72,7 +73,10 @@
 #  ifndef __GO32__
 #    define __GO32__
 #  endif
-#  include <sys/timeb.h>           /* for structure ftime */
+#  ifndef HAVE_MKTIME
+#    define HAVE_MKTIME
+#  endif
+#  include <sys/timeb.h>           /* for structure ftime and ftime() */
 #  if (defined(__DJGPP__) && (__DJGPP__ > 1))
 #    include <unistd.h>            /* for prototypes for read/write etc. */
 #    include <dir.h>               /* for FA_LABEL */
@@ -118,8 +122,9 @@
 #    define nearmalloc malloc
 #    define nearfree free
 #  endif
-#  if defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB)
-#    define USE_OWN_CRCTAB
+#  if defined(DEBUG) && defined(MSC) && (!defined(_MSC_VER) || _MSC_VER < 600)
+     /* for MSC 5.1, prevent macro expansion space overflow in DEBUG mode */
+#    define NO_DEBUG_IN_MACROS
 #  endif
 #endif
 
@@ -134,10 +139,30 @@
  */
 #define NOVELL_BUG_FAILSAFE
 
+/* Some implementations of stat() tend to fail on "." in root directories
+ * or on remote (root) directories specified by an UNC network path. This
+ * patch of stat() is useful for at least the WATCOM compilers. The
+ * stat_bandaid() wrapper detects stat failures on root directories and
+ * fills in suitable values.
+ */
+#ifdef DOS_STAT_BANDAID
+#  undef SSTAT
+#  ifdef WILD_STAT_BUG
+#    define SSTAT(path,pbuf) (iswild(path) || stat_bandaid(path,pbuf))
+#  else
+#    define SSTAT stat_bandaid
+#  endif
+   int stat_bandaid(const char *path, struct stat *buf);
+#endif
 
 /* the TIMESTAMP feature is now supported on MSDOS, enable it per default */
 #if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #  define TIMESTAMP
+#endif
+
+/* check that TZ environment variable is defined before using UTC times */
+#if (!defined(NO_IZ_CHECK_TZ) && !defined(IZ_CHECK_TZ))
+#  define IZ_CHECK_TZ
 #endif
 
 /* The optional "long filename" support available with some MSDOS compiler

@@ -8,14 +8,12 @@ CODE  PRELOAD FIXED
 DATA  PRELOAD MOVEABLE
 
 EXPORTS
-     windll_unzip
+     Wiz_SingleEntryUnzip
      UzpVersion
-     Unz_Init
-     Unz_SetOpts
-     Unz_Unzip
-     UzpValidate
-     UzpNoPrinting
+     Wiz_Init
+     Wiz_SetOpts
+     Wiz_Unzip
+     Wiz_Validate
+     Wiz_NoPrinting
      UzpVersion2
-     UzpUnzipToMemory
-     UzpGrep
 

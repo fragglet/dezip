@@ -28,7 +28,9 @@
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
 
-extern int mkdir(char *path, int mode);
+extern int mkdir(const char *path, int mode);
+static int has_NFS_ext(const char *name);
+static int uxtime2acornftime(unsigned *pexadr, unsigned *pldadr, time_t ut);
 
 
 #ifndef SFX
@@ -134,6 +136,19 @@ char *do_wild(__G__ wildspec)
 
 
 
+/**************************/
+/* Function has_NFS_ext() */
+/**************************/
+
+static int has_NFS_ext(const char* name)
+{
+  int i = strlen(name) - 4;
+  return (i >= 0 && name[i] == ',' && (i > 0 || name[i-1]=='/') &&
+          isxdigit(name[i+1]) && isxdigit(name[i+2]) && isxdigit(name[i+3]));
+} /* end function has_NFS_ext() */
+
+
+
 /**********************/
 /* Function mapattr() */
 /**********************/
@@ -144,18 +159,70 @@ int mapattr(__G)
     ulg tmp = G.crec.external_file_attributes;
 
     switch (G.pInfo->hostnum) {
+        case AMIGA_:
+            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
+            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
+            break;
         case UNIX_:
         case VMS_:
         case ACORN_:
         case ATARI_:
         case BEOS_:
         case QDOS_:
+        case TANDEM_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
-            break;
-        case AMIGA_:
-            tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
-            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
-            break;
+            if (G.pInfo->file_attr != 0 || !G.extra_field) {
+                break;
+            } else {
+                /* Some (non-Info-ZIP) implementations of Zip for Unix and
+                   VMS (and probably others ??) leave 0 in the upper 16-bit
+                   part of the external_file_attributes field. Instead, they
+                   store file permission attributes in some extra field.
+                   As a work-around, we search for the presence of one of
+                   these extra fields and fall back to the MSDOS compatible
+                   part of external_file_attributes if one of the known
+                   e.f. types has been detected.
+                   Later, we might implement extraction of the permission
+                   bits from the VMS extra field. But for now, the work-around
+                   should be sufficient to provide "readable" extracted files.
+                   (For ASI Unix e.f., an experimental remap of the e.f.
+                   mode value IS already provided!)
+                 */
+                ush ebID;
+                unsigned ebLen;
+                uch *ef = G.extra_field;
+                unsigned ef_len = G.crec.extra_field_length;
+                int r = FALSE;
+
+                while (!r && ef_len >= EB_HEADSIZE) {
+                    ebID = makeword(ef);
+                    ebLen = (unsigned)makeword(ef+EB_LEN);
+                    if (ebLen > (ef_len - EB_HEADSIZE))
+                        /* discoverd some e.f. inconsistency! */
+                        break;
+                    switch (ebID) {
+                      case EF_ASIUNIX:
+                        if (ebLen >= (EB_ASI_MODE+2)) {
+                            G.pInfo->file_attr =
+                              (unsigned)makeword(ef+(EB_HEADSIZE+EB_ASI_MODE));
+                            /* force stop of loop: */
+                            ef_len = (ebLen + EB_HEADSIZE);
+                            break;
+                        }
+                        /* else: fall through! */
+                      case EF_PKVMS:
+                        /* "found nondecypherable e.f. with perm. attr" */
+                        r = TRUE;
+                      default:
+                        break;
+                    }
+                    ef_len -= (ebLen + EB_HEADSIZE);
+                    ef += (ebLen + EB_HEADSIZE);
+                }
+                if (!r)
+                    break;
+            }
+            /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
         case FS_HPFS_:
@@ -172,15 +239,13 @@ int mapattr(__G)
 
     G.pInfo->file_attr|=(0xFFDu<<20);
 
-    if (G.filename[strlen(G.filename)-4]==',') {
+    if (has_NFS_ext(G.filename)) {
       int ftype=strtol(G.filename+strlen(G.filename)-3,NULL,16)&0xFFF;
 
-      G.pInfo->file_attr&=0x000FFFFF;
-      G.pInfo->file_attr|=(ftype<<20);
+      G.pInfo->file_attr = (G.pInfo->file_attr & 0x000FFFFF) | (ftype<<20);
     }
     else if (G.crec.internal_file_attributes & 1) {
-      G.pInfo->file_attr&=0x000FFFFF;
-      G.pInfo->file_attr|=(0xFFFu<<20);
+      G.pInfo->file_attr = (G.pInfo->file_attr & 0x000FFFFF) | (0xFFFu<<20);
     }
 
     return 0;
@@ -213,10 +278,10 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
+        return IZ_VOL_LABEL;    /* can't set disk volume labels in RISCOS */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!G.fflag || renamed);
+    G.create_dirs = (!uO.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
@@ -228,7 +293,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (G.jflag)                /* junking directories */
+    if (uO.jflag)               /* junking directories */
         cp = (char *)strrchr(G.filename, '/');
     if (cp == (char *)NULL)     /* no '/' or not junking dirs */
         cp = G.filename;        /* point to internal zipfile-member pathname */
@@ -296,7 +361,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.V_flag && lastsemi) {
+    if (!uO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -336,8 +401,8 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         }
     }
 
-    if (pathcomp[strlen(pathcomp)-4]==',') {
-      /* remove the filetype extension */
+    if (!uO.acorn_nfs_ext && has_NFS_ext(pathcomp)) {
+      /* remove the filetype extension unless requested otherwise */
       /* the filetype should be already set by mapattr() */
       pathcomp[strlen(pathcomp)-4]=0;
     }
@@ -586,14 +651,14 @@ int checkdir(__G__ pathcomp, flag)
 /********************/
 
 int mkdir(path, mode)
-    char *path;
+    const char *path;
     int mode;   /* ignored */
 /*
  * returns:   0 - successful
  *           -1 - failed (errno not set, however)
  */
 {
-    return (SWI_OS_File_8(path) == NULL)? 0 : -1;
+    return (SWI_OS_File_8((char *)path) == NULL)? 0 : -1;
 }
 
 
@@ -607,7 +672,8 @@ int isRISCOSexfield(void *extra_field)
 {
  if (extra_field!=NULL) {
    extra_block *block=(extra_block *)extra_field;
-   return(block->ID==SPARKID && (block->size==24 || block->size==20) && block->ID_2==SPARKID_2);
+   return(block->ID==EF_SPARK && (block->size==24 || block->size==20) &&
+          block->ID_2==SPARKID_2);
  }
  else
    return FALSE;
@@ -664,6 +730,28 @@ void printRISCOSexfield(int isdir, void *extra_field)
 }
 
 
+/**********************************************/
+/* internal help function for time conversion */
+/**********************************************/
+static int uxtime2acornftime(unsigned *pexadr, unsigned *pldadr, time_t ut)
+{
+   unsigned timlo;      /* 3 lower bytes of acorn file-time plus carry byte */
+   unsigned timhi;      /* 2 high bytes of acorn file-time */
+
+   timlo = ((unsigned)ut & 0x00ffffffU) * 100 + 0x00996a00U;
+   timhi = ((unsigned)ut >> 24);
+   timhi = timhi * 100 + 0x0000336eU + (timlo >> 24);
+   if (timhi & 0xffff0000U)
+       return 1;        /* calculation overflow, do not change time */
+
+   /* insert the five time bytes into loadaddr and execaddr variables */
+   *pexadr = (timlo & 0x00ffffffU) | ((timhi & 0x000000ffU) << 24);
+   *pldadr = (*pldadr & 0xffffff00U) | ((timhi >> 8) & 0x000000ffU);
+
+   return 0;            /* subject to future extension to signal overflow */
+}
+
+
 /****************************/
 /* Function close_outfile() */
 /****************************/
@@ -677,7 +765,8 @@ void close_outfile(__G)
    setRISCOSexfield(G.filename, G.extra_field);
  }
  else {
-   int loadaddr,execaddr,attr;
+   unsigned int loadaddr, execaddr;
+   int attr;
    int mode=G.pInfo->file_attr&0xffff;   /* chmod equivalent mode */
 
    time_t m_time;
@@ -687,8 +776,11 @@ void close_outfile(__G)
 
 #ifdef USE_EF_UT_TIME
    if (G.extra_field &&
+#ifdef IZ_CHECK_TZ
+       G.tz_is_valid &&
+#endif
        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                         G.lrec.last_mod_file_date, &z_utime, NULL)
+                         G.lrec.last_mod_dos_datetime, &z_utime, NULL)
         & EB_UT_FL_MTIME))
    {
        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
@@ -696,21 +788,20 @@ void close_outfile(__G)
        m_time = z_utime.mtime;
    } else
 #endif /* USE_EF_UT_TIME */
-       m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                 G.lrec.last_mod_file_time);
+       m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
 
    /* set the file's modification time */
-   SWI_OS_File_5(G.filename,NULL,&loadaddr,NULL,NULL,&attr);
+   SWI_OS_File_5(G.filename, NULL, &loadaddr, NULL, NULL, &attr);
 
-   loadaddr=0xfff00000U | ((((m_time>>8) * 100)>>24) + 0x33);
-   execaddr=m_time * 100 + 0x6e996a00U;
+   uxtime2acornftime(&execaddr, &loadaddr, m_time);
 
-   loadaddr|=((G.pInfo->file_attr&0xFFF00000) >> 12);
+   loadaddr = (loadaddr & 0xfff000ffU) |
+              ((G.pInfo->file_attr&0xfff00000) >> 12);
 
    attr=(attr&0xffffff00) | ((mode&0400) >> 8) | ((mode&0200) >> 6) |
                             ((mode&0004) << 2) | ((mode&0002) << 4);
 
-   SWI_OS_File_1(G.filename,loadaddr,execaddr,attr);
+   SWI_OS_File_1(G.filename, loadaddr, execaddr, attr);
  }
 
 } /* end function close_outfile() */
@@ -728,22 +819,23 @@ int stamp_file(fname, modtime)
     ZCONST char *fname;
     time_t modtime;
 {
-    int loadaddr, execaddr, attr;
+    unsigned int loadaddr, execaddr;
+    int attr;
 
     /* set the file's modification time */
     if (SWI_OS_File_5((char *)fname, NULL, &loadaddr, NULL, NULL, &attr)
         != NULL)
         return -1;
 
-    loadaddr=0xfff00000U | ((((modtime>>8) * 100)>>24) + 0x33);
-    execaddr=modtime * 100 + 0x6e996a00U;
+    if (uxtime2acornftime(&execaddr, &loadaddr, modtime) != 0)
+        return -1;
 
     return (SWI_OS_File_1((char *)fname, loadaddr, execaddr, attr) == NULL) ?
            0 : -1;
 
 } /* end function stamp_file() */
 
-#endif /* TIMESTAP */
+#endif /* TIMESTAMP */
 
 
 

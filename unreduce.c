@@ -49,15 +49,15 @@ static void LoadFollowers OF((__GPRO__ f_array *followers, uch *Slen));
 /*  UnReduce Global Constants  */
 /*******************************/
 
-static shrint L_table[] =
+static ZCONST shrint L_table[] =
 {0, 0x7f, 0x3f, 0x1f, 0x0f};
 
-static shrint D_shift[] =
+static ZCONST shrint D_shift[] =
 {0, 0x07, 0x06, 0x05, 0x04};
-static shrint D_mask[] =
+static ZCONST shrint D_mask[] =
 {0, 0x01, 0x03, 0x07, 0x0f};
 
-static shrint B_table[] =
+static ZCONST shrint B_table[] =
 {8, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5,
  5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6,
  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,

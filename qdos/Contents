@@ -1,13 +1,14 @@
-Contents of the "qdos" subdirectory for UnZip 5.32 and later:
+Contents of the "qdos" subdirectory for UnZip 5.4 and later:
 
-  Contents    this file
-  README      release notes from Jonathan Hudson (author of port)
-  Makefile    makefile for xtc68 cross-compiler on Linux (native QDOS exes)
-  config.S    assembler routine for ...?
-  crc68.s     68000 version of CRC code
-  izqdos.h    SMS/QDOS-specific header file
-  makesfx.c   source for MakeSFX utility (since simple concatenation won't work)
-  qdos.c      SMS/QDOS-specific functions
+  Contents      this file
+  IZREADME.SMS  release notes from Jonathan Hudson (author of port)
+  Makefile      makefile for xtc68 cross-compiler on Linux (native QDOS exes)
+  callstub.c    user interface stub for SMS/QDOS specific SFX archives
+  config.S      assembler routine for ...?
+  crc68.s       68000 version of CRC code
+  izqdos.h      SMS/QDOS-specific header file
+  makesfx.c     source for MakeSFX utility (simple concatenation does not work)
+  qdos.c        SMS/QDOS-specific functions
 
 Notes:
 
