@@ -1,0 +1,349 @@
+[These patches have NOT been installed as of v3.10.
+ David Kirschbaum
+ Info-ZIP Coordinator
+]
+
+Received: by mcsun.EU.net via EUnet; Fri, 18 May 90 20:50:40 +0200 (MET)
+Received: from lena by kestrel.Ukc.AC.UK   with UUCP  id aa00758;
+          18 May 90 18:19 BST
+Received: by lena with netmail(8.73); Fri May 18 14:30:13 BST 1990
+Date: Fri May 18 14:30:13 BST 1990
+X-Mailer: Mail User's Shell (7.0.4 1/26/90)
+From: Mike O'Carroll <mike@elec-eng.leeds.ac.uk>
+Message-Id: <4867.9005181430.lena@lena.uucp>
+To: kirsch@usasoc.soc.mil
+Subject: unzip30
+
+I'm not sure if anyone else has done this, but I have made a Dos & OS/2
+version of unzip.  The cdiffs are below.  The supplied makefile (unzip)
+generates a family program which executes in both Dos and OS/2 modes.
+I can supply the .exe if required (31K).
+
+The mods took 15 minutes, and the result has undergone 35 seconds
+testing (:-) ; I had one .ZIP file to unzip, and it worked OK, but no
+great confidence yet.
+
+BTW, can I get a corresponding ZIP from somewhere?  Simtel20?
+
+Regards,
+        Mike
+
+-------------------------
+#       This is a shell archive.
+#       Remove everything above and including the cut line.
+#       Then run the rest of the file through sh.
+#-----cut here-----cut here-----cut here-----cut here-----
+#!/bin/sh
+# shar: Shell Archiver
+#       Run the following text with /bin/sh to create:
+#       match.dif
+#       unzip.dif
+#       unzip
+# This archive created: Fri May 18 14:20:18 BST 1990
+if [ -f 'match.dif' ] ; then
+echo shar: will not overwrite existing file \'match.dif\' >&2
+else
+cat << \SHAR_EOF >'match.dif'
+*** match.c     Fri May 18 13:54:07 1990
+--- Dmatch.c    Fri May 18 13:54:15 1990
+***************
+*** 10,15
+   * 11/13/89  C. Mascott     adapt for use with unzip
+   * 01/25/90  J. Cowan       match case-insensitive
+   * 03/17/90  D. Kirschbaum      Prototypes, other tweaks for Turbo C.
+   *
+   */
+  
+
+--- 10,16 -----
+   * 11/13/89  C. Mascott     adapt for use with unzip
+   * 01/25/90  J. Cowan       match case-insensitive
+   * 03/17/90  D. Kirschbaum      Prototypes, other tweaks for Turbo C.
++  * 18-may-90 M. O'Carroll   Dos & OS/2 family version
+   *
+   */
+  
+***************
+*** 24,29
+   *        This file contains service routines needed to maintain an archive.
+   */
+  
+  #include <sys/types.h>
+  #include <sys/dir.h>
+  #include <ctype.h>
+
+--- 25,31 -----
+   *        This file contains service routines needed to maintain an archive.
+   */
+  
++ #ifdef MSC
+  #include <sys/types.h>
+  #include <ctype.h>
+  #include <stdio.h>
+***************
+*** 25,30
+   */
+  
+  #include <sys/types.h>
+  #include <sys/dir.h>
+  #include <ctype.h>
+  
+
+--- 27,36 -----
+  
+  #ifdef MSC
+  #include <sys/types.h>
++ #include <ctype.h>
++ #include <stdio.h>
++ #else
++ #include <sys/types.h>
+  #include <sys/dir.h>
+  #include <ctype.h>
+  #endif
+***************
+*** 27,32
+  #include <sys/types.h>
+  #include <sys/dir.h>
+  #include <ctype.h>
+  
+  #ifdef __TURBOC__               /* v2.0b */
+  #include <stdio.h>      /* for printf() */
+
+--- 33,39 -----
+  #include <sys/types.h>
+  #include <sys/dir.h>
+  #include <ctype.h>
++ #endif
+  
+  #ifdef __TURBOC__               /* v2.0b */
+  #include <stdio.h>      /* for printf() */
+SHAR_EOF
+fi
+if [ -f 'unzip.dif' ] ; then
+echo shar: will not overwrite existing file \'unzip.dif\' >&2
+else
+cat << \SHAR_EOF >'unzip.dif'
+*** unzip.c     Fri May 18 13:52:51 1990
+--- Dunzip.c    Fri May 18 13:53:00 1990
+***************
+*** 63,68
+  
+  #endif
+  
+  #define min(a,b) ((a) < (b) ? (a) : (b))
+  
+  #ifndef ZMEM                            /* v2.0f use your system's stuff */
+
+--- 63,77 -----
+  
+  #endif
+  
++ /* Added stuff for MSC Dos & OS/2 family version - Mike O'Carroll, 18-May-90
++  */
++ #ifdef MSC
++ #include <os2.h>
++ #include <sys/types.h>
++ #include <io.h>         /* for setftime(), dup(), creat() */
++ #include <sys/stat.h>   /* for S_IWRITE, S_IREAD */
++ #include <memory.h>     /* for memcpy() */
++ #else
+  #define min(a,b) ((a) < (b) ? (a) : (b))
+  #endif /* MSC */
+  
+***************
+*** 64,69
+  #endif
+  
+  #define min(a,b) ((a) < (b) ? (a) : (b))
+  
+  #ifndef ZMEM                            /* v2.0f use your system's stuff */
+  #define zmemcpy memcpy
+
+--- 73,79 -----
+  #include <memory.h>     /* for memcpy() */
+  #else
+  #define min(a,b) ((a) < (b) ? (a) : (b))
++ #endif /* MSC */
+  
+  #ifndef ZMEM                            /* v2.0f use your system's stuff */
+  #define zmemcpy memcpy
+***************
+*** 473,478
+    */
+  {
+  #ifndef UNIX
+      union {
+          struct ftime ft;        /* system file time record */
+          struct {
+
+--- 483,489 -----
+    */
+  {
+  #ifndef UNIX
++ #   ifdef MSC
+      union {
+          FDATE fd;               /* system file date record */
+          UWORD zdate;            /* date word */
+***************
+*** 474,479
+  {
+  #ifndef UNIX
+      union {
+          struct ftime ft;        /* system file time record */
+          struct {
+                  UWORD ztime;     /* date and time words */
+
+--- 485,511 -----
+  #ifndef UNIX
+  #   ifdef MSC
+      union {
++         FDATE fd;               /* system file date record */
++         UWORD zdate;            /* date word */
++     } ud;
++ 
++     union {
++         FTIME ft;               /* system file time record */
++         UWORD ztime;            /* time word */
++     } ut;
++ 
++     FILESTATUS fs;
++ 
++     DosQFileInfo(outfd, 1, &fs, sizeof(fs));
++     ud.zdate = lrec.last_mod_file_date;
++     fs.fdateLastWrite = ud.fd;
++     ut.ztime = lrec.last_mod_file_time;
++     fs.ftimeLastWrite = ut.ft;
++     DosSetFileInfo(outfd, 1, &fs, sizeof(fs));
++ 
++ #   else /* MSC */
++ 
++     union {
+          struct ftime ft;        /* system file time record */
+          struct {
+                  UWORD ztime;     /* date and time words */
+***************
+*** 490,495
+      td.zt.zdate = lrec.last_mod_file_date;
+  
+      setftime(outfd, &td.ft);
+  
+  #else   /* UNIX */
+  
+
+--- 522,529 -----
+      td.zt.zdate = lrec.last_mod_file_date;
+  
+      setftime(outfd, &td.ft);
++ 
++ #   endif /* MSC */
+  
+  #else   /* UNIX */
+  
+SHAR_EOF
+fi
+if [ -f 'unzip' ] ; then
+echo shar: will not overwrite existing file \'unzip\' >&2
+else
+cat << \SHAR_EOF >'unzip'
+# For MSC brian damaged (:-) make.  To generate Dos & OS/2 version, type
+# "make unzip"
+#
+# I used Microsoft C V5.1, with the SDK.
+#
+# The following comments come from the Unix Makefile, and most may
+# well be irrelevant to the Dos version.
+#       Mike O'Carroll 18-May-90 <mike@ee.leeds.ac.uk>
+# -----------------------------------------------------------------------
+#
+# "make vaxbsd" -- makes unzip on a VAX 11-780 BSD 4.3 in current directory
+# "make"        -- uses environment variable SYSTEM to set the type
+#                  system to compile for.
+# "make wombat" -- Chokes and dies if you haven't added the specifics
+#                  for your Wombat 68000 (or whatever) to the systems list.
+#
+# CFLAGS are flags for the C compiler.  LDFLAGS are flags for the loader.
+#
+# My host (a VAX 11-780 running BSD 4.3) is hereafter referred to as
+# "my host."
+#
+# My host's /usr/include/sys/param.h defines BSD for me.
+# You may have to add "-DBSD" to the list of CFLAGS for your system.
+#
+# You MAY need to define "-DNOTINT16" if the program produces crc errors
+# during a "-t" run or extraction.  (This involves structure alignment.)
+# It won't HURT to define "-dNOTINT16" anyway .. but if you don't need it,
+# why add to the program size, complexity, etc.?
+#
+# If your host is "big-endian" (as in the 68000 family) and does NOT order
+# its integers and long integers in Intel fashion (low .. high), you should
+# define "-DHIGH_LOW".  This insures key structure values will be "swapped"
+# low end for high end.
+# Some mainframes DO require this.
+#
+# Some systems have a shell-defined "$MAKE" (my host did not).  If not,
+# use "make" instead of the "$MAKE" or "$(MAKE)" in your system's makerule.
+# Or try adding the following line to your .login file:
+#   setenv MAKE "make"
+# (It didn't help on my host.)
+#
+# zmemcpy has been added to the list of required files for some systems.
+# memcpy() is a normal C function that works just fine in Turbo C
+# and some Unix systems, but has a problem in others (producing CRC errors).
+#
+# You can try a compile without zmemcpy.c, and if it works .. fine.
+# (To do this, you may have to remove zmemcpy.o from your system's list
+# of required OBJS files, and the "-DZMEM" from the list of CFLAGS defines.)
+#
+# Else use the included zmemcpy.c.
+# (Again, you may have to add zmemcpy.o to your system's list of required
+# OBJS files, and the "-DZMEM" to the list of CFLAGS defines.)
+
+# To test, insure your zip file includes some LARGE members.  Many systems
+# ran just fine with zip file members <512 bytes, but failed with larger ones.
+#
+
+CC = cl
+CFLAGS = -DMSC
+LD = link
+LDFLAGS = /NOI
+RM = del
+LIBC = c:\m5\lib\p\slibce
+LIBD = c:\m5\lib\doscalls.lib
+LIBA = c:\m5\lib\api.lib
+INCL = -Ic:\m5\include
+
+OBJ1 = unzip.obj crc32.obj match.obj ascebc.obj mapname.obj
+OBJ2 = zmemset.obj zmemcpy.obj
+
+.c.obj:
+        $(CC) -c $(CFLAGS) $(INCL) $*.c
+
+unzip.obj:      unzip.c
+
+crc32.obj:      crc32.c
+
+match.obj:      match.c
+
+ascebc.obj:     ascebc.c
+
+mapname.obj:    mapname.c
+
+zmemset.obj:    zmemset.c
+
+zmemcpy.obj:    zmemcpy.c
+
+unziptmp.exe:   $(OBJ1) $(OBJ2)
+        $(LD) $(LDFLAGS) $(OBJ1) $(OBJ2), $*.exe,,$(LIBC)+$(LIBD);
+
+unzip.exe:      unziptmp.exe
+        bind unziptmp.exe $(LIBD) $(LIBA) -o unzip.exe
+        $(RM) unziptmp.exe
+        $(RM) *.obj
+        $(RM) *.map
+SHAR_EOF
+fi
+
+-- 
+Mike O'Carroll, Microsystems Unit, University of Leeds, LS2 9JT, UK
+E-mail: @ukc.ac.uk:mike@ee.leeds.ac.uk
+UUCP:   ...!mcsun!ukc!lena!mike or mike@lena.uucp

@@ -1,0 +1,64 @@
+Date: Fri, 25 May 90 12:52:22 -0500
+From: jpd@pc.usl.edu (jpd DugalJP)
+Message-Id: <9005251752.AA28036@pc.usl.edu>
+To: Info-ZIP@WSMR-SIMTEL20.ARMY.MIL
+Subject: Improved unzip man page
+
+.TH unzip 1 "version 3.0"
+.SH NAME
+unzip - list/test/extract from a ZIP archive file
+.SH SYNOPSIS
+unzip [-tvcam] file[.zip]  [filespec] ...
+.SH ARGUMENTS
+.in +12
+.ti -12
+file[.zip]  Path of the ZIP archive.  The suffix ".zip" is applied
+if the entryname portion lacks a suffix.  Note that
+self-extracting ZIP files are supported; just specify
+the ".exe" suffix yourself.
+.sp 1
+.ti -12
+[filespec]  An optional list of archive members to be processed.
+Expressions may be used to match multiple menbers.  See
+DESCRIPTION (below) for more details.
+.SH OPTIONS
+.nf
+-t	test archive contents for validity
+-v	view (ie, list) archive contents
+-c	extract to stdout
+.sp 1
+-a	convert <CR> <LF> at line end to <LF>
+-m	map extracted filenames to lower case
+.fi
+.SH DESCRIPTION
+.B unzip
+will list, test, or extract from a ZIP archive, commonly found on MSDOS
+systems.
+Archive member extraction is implied by the absence of the -v or -t
+options.  All archive members are processed unless a
+.B filespec
+is provided to specify a subset of the archive members.
+The
+.B filespec
+is similar to an egrep expression, and may contain:
+.sp 1
+.in +8
+.ti -8
+*       matches a sequence of 0 or more characters
+.ti -8
+?       matches exactly 1 character
+.ti -8
+\\nnn    matches the character having octal code nnn
+.ti -8
+[...]   matches any single character found inside the brackets; ranges
+are specified by a beginning character, a hyphen, and an ending
+character.  If a '!' follows the left bracket, then the range
+of characters matched is complemented, with respect to the ASCII
+character set.
+.SH AUTHOR
+.nf
+v1.2	3/15/89	Samuel H. Smith
+v2.x	1989 Many contributors.	
+v3.0	5/1/90 David Kirschbaum consolidator, kirsch@arsocomvax.socom.mil
+.fi
+

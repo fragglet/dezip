@@ -1,5 +1,5 @@
 /*
- mapname.c  for unzip v2.0j
+ mapname.c  for unzip v3.05
 
  Change DEC-20, VAX/VMS, DOS style filenames into normal Unix names.
  Almost ALL the code is from good old xxu, Author:  F. da Cruz, CUCCA
@@ -29,6 +29,8 @@
  is enabled, it gobbles digits in file names!  Sigh ... Fixed.
  Sloppy testing.
  David Kirschbaum
+
+ 25 Apr 90:  Bill Davidsen did some tweaking.  v3.05
 
 */
 
@@ -72,6 +74,7 @@ mapped_name()
     int quote = 0;			/* Flags */
     int indir = 0;
     int done = 0;
+    register int workch;		/* hold the character being tested */
 
 
     xp = filename;		/* Copy pointer for simplicity */
@@ -83,17 +86,17 @@ mapped_name()
     dc = 0;			/* Filename dot counter */
     done = 0;			/* Flag for early completion */
 
-    for (cp = xp; (*cp != '\0') && !done; cp++) { /* Loop thru chars... */
+    for (cp = xp; workch = *cp++; ) { /* Loop thru chars... */
 
 	if (quote) {		/* If this char quoted.. */
-	    *pp++ = *cp;	/*  include it literally. */
+	    *pp++ = workch;	/*  include it literally. */
 	    quote = 0;
         }
 	else if (indir) {	/* If in directory name.. */
-	    if (*cp == delim)
+	    if (workch == delim)
 		indir = 0;	/* look for end delimiter. */
         }
-        else switch (*cp) {
+        else switch (workch) {
 	    case '<':		/* Discard DEC-20 directory name */
 		indir = 1;
 		delim = '>';
@@ -110,7 +113,7 @@ mapped_name()
 	    case '.':		/* DEC -20 generation number
 				 * or MS-DOS type */
 		if (++dc == 1)	/* Keep first dot */
-		    *pp++ = *cp;
+		    *pp++ = workch;
 		else		/* Discard everything starting */
 		    done = 1;	/* with second dot. */
 		break;
@@ -121,28 +124,21 @@ mapped_name()
 		quote = 1;	/* Set flag for next time. */
 		break;
 	    default:		/* some other char */
-		if(isdigit(*cp))	/* v2.0k '0'..'9' */
-		    *pp++ = *cp;	/* v2.0k accept them, no tests */
+		if(isdigit(workch))	/* v2.0k '0'..'9' */
+		    *pp++ = workch;	/* v2.0k accept them, no tests */
 		else{
 		    if(mflag){		/* if -m switch.. */
-		        if (isupper(*cp)) /* Uppercase letter to lowercase */
-        	            *pp++ = tolower(*cp);
+		        if (isupper(workch)) /* Uppercase letter to lowercase */
+        	            workch = tolower(workch);
 		    }
-		    else if (*cp == ' ')  /* change blanks to underscore */
+		    if (workch == ' ')  /* change blanks to underscore */
 		        *pp++ = '_';
-		    else if (isprint(*cp)) /* Other printable, just keep */
-		        *pp++ = *cp;
+		    else if (isprint(workch)) /* Other printable, just keep */
+		        *pp++ = workch;
 		}
 	}  /* switch */
-
-	*pp = '\0';			/* Done with name, terminate it */
-	if (strcmp(name,xp) == 0) {	/* If the name didn't change.. */
-#ifdef MAP_DEBUG
-	    fprintf(stderr,"(ok)\n");
-#endif
-	    continue;			/* exit the loop */
-	}
     }  /* for loop */
+    *pp = '\0';				/* Done with name, terminate it */
 
     /* We COULD check for existing names right now,
      * create a "unique" name, etc.
@@ -161,3 +157,4 @@ mapped_name()
     strcpy(filename,name);	/* copy converted name into global */
     return(1);
 }
+

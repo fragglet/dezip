@@ -2,7 +2,11 @@
  *             Written by Allan Bjorklund
  *             March 21, 1990
  *
+ * v3.04 No more need for ae_buf() since no longer used.
+ * v3.01 patched by Bo Kullmar to fix an -a switch bug.
+ * patch is in kullmar.pat
  */
+
 #ifdef EBCDIC                                 /* Thy may want only the <CR><NL> to <SP><NL> routine */
  
 /*  This is the translation table MTS uses.  (7bit ascii to ebcdic) */
@@ -46,7 +50,7 @@ void a_to_e ( instr )
 #endif
  
  
- 
+#ifdef BEFORE304 
 /* ae_buf - This routine translates a buffer instead of a string
  *          and substitues <SP><NL> for <CR><NL>.  Returns an integer
  *          indicating the number of bytes after conversion.
@@ -85,3 +89,4 @@ void ae_buf ( cbuff, numb )
           }
       *numb = ocount;
      }
+#endif	/* BEFORE304 */

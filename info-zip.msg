@@ -28,5 +28,14 @@ So .. to contact Info-ZIP for reporting bugs/improvements/additional ports:
 
 David Kirschbaum
 moderator?
-13 Jul 90
+13 Apr 90
+
+22 May 90:  Keith is moving Info-ZIP to another host, so the above addresses
+will be:
+  Usenet people via uucp:  uunet!tacom-emh1.army.mil!info-zip
+  ARPAnet:		   Info-ZIP@tacom-emh1.army.mil
+
+25 May 90:  Informed yet again by Keith that (because he's also losing access
+to tacom-emh1) Info-ZIP will return to wsmr-simtel20.army.mil
+so .. back to the original addresses, folks.
 

@@ -1,0 +1,52 @@
+UNZIP310.ARC	Current Unix unzip source
+UNZIP310.TAR-Z	Ditto, in compressed tar format
+
+v3.10, 16 Aug 90
+- No significant changes.  Amdahl mainframe system added to Makefile.
+  (Who ever thought calling an Amdalh (IBM clone) a 68000 would work!?)
+- Dif file required for Coherent installation in coherent.msg.
+- Dif files required for Atari (Turbo C v2.0) in atari.zip
+  (atari.hdr is msg header for initial uuencoded transfer).
+  These dif files are for an earlier version (v3.06?) and may need
+  some tweaking to patch smoothly.
+  They (and the Coherent patches) have NOT been installed.     
+
+Version 3.10 will be the current "fielded" version until further notice.
+No patches to earlier versions will be accepted.  (PLEASE don't expect me
+to be able to back-engineer your Wombat 68000 patches for v3.02!)
+
+The Info-ZIP workgroup are currently working on a new beta-test version
+that may or may not involve the following "features":
+  - default lowercasing of extracted member file names
+  - IFDEFs for incremental vs. new "monster" compile
+  - Integration of the Atari (Turbo C) patches.
+  - Use of central directory for member listing and more.
+  - Use of central directory "created by" byte to make "intelligent"
+    guesses as to filename and/or text conversion.
+
+(No there were no versions 3.08 or 3.09: we went right from v3.07 (last
+beta test) to v3.10.)
+
+This version will NOT be fielded via EMail to Info-ZIP members.
+
+As soon as I can figure out how, I'll be transferring full source, history,
+etc. to comp.sources.misc (wherever THAT is).
+
+The above archives are currently maintained on SIMTEL20 in:
+PS:<KPETERSEN.ZIP> subdirectory, available for anonymous ftp (and other means
+of snarfing).
+
+To contact Info-ZIP for reporting bugs/improvements/additional ports:
+  Usenet people via uucp:  uunet!wsmr-simtel20.army.mil!info-zip
+  ARPAnet:		   Info-ZIP@wsmr-simtel20.army.mil
+
+For normal unzip-related messages and discussion, please address them to
+Info-ZIP and not to me personally.  I'm only the coordinator and shall simply
+redirect your messages to the Info-ZIP mailing list.  If it's something
+personal or a monster mailing (like the Atari uuencoded archive of dif files)
+you don't wish to inflict on everyone .. ok, send to me and I'll figure out
+how to distribute, announce, implement, whatever.
+
+David Kirschbaum
+Info-ZIP Coordinator
+

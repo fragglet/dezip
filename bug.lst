@@ -1,5 +1,0 @@
-- Extracting a text file with "-a" conversion
-  (File is MS-DOS text with CR/LF EOLs.)  It all comes out well enough
-  but I continue to get CRC errors and possibly some garbage characters
-  at the very end of the file.
-
