@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   vms.c                                        Igor Mandrichenko and others
@@ -21,14 +29,9 @@
              check_for_newer()
              return_VMS
              screenlines()
+             screencolumns()
+             screenlinewrap()
              version()
-
-  ---------------------------------------------------------------------------
-
-     Portions copyright (C) 1992-93 Igor Mandrichenko.
-     Permission is granted to any individual or institution to use, copy,
-     or redistribute this software so long as all of the original files
-     are included unmodified and that this copyright notice is retained.
 
   ---------------------------------------------------------------------------*/
 
@@ -38,6 +41,9 @@
 #include "unzip.h"
 #include "vms.h"
 #include "vmsdefs.h"
+#ifdef MORE
+#  include <ttdef.h>
+#endif
 #include <lib$routines.h>
 #include <unixlib.h>
 
@@ -2256,7 +2262,7 @@ static void vms_msg(__GPRO__ char *string, int status)
 
 char *do_wild( __G__ wld )
     __GDEF
-    char *wld;
+    ZCONST char *wld;
 {
     int status;
 
@@ -2340,8 +2346,9 @@ extern int SYS$SETDFPROT();
 int mapattr(__G)
     __GDEF
 {
-    ulg  tmp=G.crec.external_file_attributes, theprot;
-    static ulg  defprot = -1L,
+    ulg tmp = G.crec.external_file_attributes;
+    ulg theprot;
+    static ulg  defprot = (ulg)-1L,
                 sysdef,owndef,grpdef,wlddef;  /* Default protection fields */
 
 
@@ -2349,14 +2356,14 @@ int mapattr(__G)
     /*     file protection, so we need not to change type */
     /*     of G.pInfo->file_attr. WORD is quite enough. */
 
-    if ( defprot == -1L )
+    if ( defprot == (ulg)-1L )
     {
         /*
          * First time here -- Get user default settings
          */
 
 #ifdef SETDFPROT    /* Undef this if linker cat't resolve SYS$SETDFPROT */
-        defprot = 0L;
+        defprot = (ulg)0L;
         if ( !ERR(SYS$SETDFPROT(0,&defprot)) )
         {
             sysdef = defprot & ( (1L<<XAB$S_SYS)-1 ) << XAB$V_SYS;
@@ -2365,18 +2372,16 @@ int mapattr(__G)
             wlddef = defprot & ( (1L<<XAB$S_WLD)-1 ) << XAB$V_WLD;
         }
         else
-        {
 #endif /* SETDFPROT */
+        {
             umask(defprot = umask(0));
             defprot = ~defprot;
             wlddef = unix_to_vms[defprot & 07] << XAB$V_WLD;
             grpdef = unix_to_vms[(defprot>>3) & 07] << XAB$V_GRP;
             owndef = unix_to_vms[(defprot>>6) & 07] << XAB$V_OWN;
-            sysdef = owndef << (XAB$V_SYS - XAB$V_OWN);
+            sysdef = owndef >> (XAB$V_OWN - XAB$V_SYS);
             defprot = sysdef | owndef | grpdef | wlddef;
-#ifdef SETDFPROT
         }
-#endif /* SETDFPROT */
     }
 
     switch (G.pInfo->hostnum) {
@@ -2385,6 +2390,14 @@ int mapattr(__G)
             G.pInfo->file_attr =  (tmp << XAB$V_OWN) |
                                    grpdef | sysdef | wlddef;
             break;
+
+        case THEOS_:
+            tmp &= 0xF1FFFFFFL;
+            if ((tmp & 0xF0000000L) != 0x40000000L)
+                tmp &= 0x01FFFFFFL;     /* not a dir, mask all ftype bits */
+            else
+                tmp &= 0x41FFFFFFL;     /* leave directory bit as set */
+            /* fall through! */
 
         case UNIX_:
         case VMS_:  /*IM: ??? Does VMS Zip store protection in UNIX format ?*/
@@ -2449,7 +2462,7 @@ int mapattr(__G)
                   theprot  = (unix_to_vms[uxattr & 07] << XAB$V_WLD)
                            | (unix_to_vms[(uxattr>>3) & 07] << XAB$V_GRP)
                            | (unix_to_vms[(uxattr>>6) & 07] << XAB$V_OWN);
-                  if ( tmp & 0x4000 )
+                  if ( uxattr & 0x4000 )
                       /* Directory -- set D bits */
                       theprot |= (XAB$M_NODEL << XAB$V_SYS)
                               | (XAB$M_NODEL << XAB$V_OWN)
@@ -2727,6 +2740,9 @@ int checkdir(__G__ pathcomp, fcn)
         int fields = 0;
         struct dsc$descriptor  pthcmp;
 
+        if (rootlen > 0)        /* rootpath was already set, nothing to do */
+            return 0;
+
         /*
          *  Initialize everything
          */
@@ -2970,6 +2986,7 @@ int checkdir(__G__ pathcomp, fcn)
     if ( function == END )
     {
         Trace((stderr, "checkdir(): nothing to free...\n"));
+        rootlen = 0;
         return 0;
     }
 
@@ -3207,7 +3224,12 @@ void return_VMS(err)
 
 
 #ifdef MORE
-int screenlines(void)
+static int scrnlines = -1;
+static int scrncolumns = -1;
+static int scrnwrap = -1;
+
+
+static int getscreeninfo(int *tt_rows, int *tt_cols, int *tt_wrap)
 {
     /*
      * For VMS v5.x:
@@ -3217,14 +3239,12 @@ int screenlines(void)
      *     System Services Reference Manual, pp. sys-23, sys-379
      *   fixed-length descriptor info:  Programming, Vol. 3, System Services,
      *     Intro to System Routines, sec. 2.9.2
-     * GRR, 15 Aug 91 / SPC, 07 Aug 1995
+     * GRR, 15 Aug 91 / SPC, 07 Aug 1995, 14 Nov 1999
      */
 
 #ifndef OUTDEVICE_NAME
 #define OUTDEVICE_NAME  "SYS$OUTPUT"
 #endif
-
-    static int scrnlines = -1;
 
     static ZCONST struct dsc$descriptor_s OutDevDesc =
         {(sizeof(OUTDEVICE_NAME) - 1), DSC$K_DTYPE_T, DSC$K_CLASS_S,
@@ -3237,35 +3257,73 @@ int screenlines(void)
     {
         uch class, type;
         ush pagewidth;
-        uch ttcharsbits[3];
-        uch pagelength;
+        union {
+            struct {
+                uch ttcharsbits[3];
+                uch pagelength;
+            } ttdef_bits;
+            unsigned ttcharflags;
+        } ttdef_area;
     }      ttmode;              /* total length = 8 bytes */
 
 
-    if (scrnlines < 0)
+    /* assign a channel to standard output */
+    status = sys$assign(&OutDevDesc, &OutDevChan, 0, 0);
+    if (status & 1)
     {
-        /* assign a channel to standard output */
-        status = sys$assign(&OutDevDesc, &OutDevChan, 0, 0);
-        if (status & 1)
-        {
-            /* use sys$qiow and the IO$_SENSEMODE function to determine
-             * the current tty status.
-             */
-            status = sys$qiow(0, OutDevChan, IO$_SENSEMODE, &iosb, 0, 0,
-                              &ttmode, sizeof(ttmode), 0, 0, 0, 0);
-            /* deassign the output channel by way of clean-up */
-            (void) sys$dassgn(OutDevChan);
-        }
-
-        scrnlines = ( ( (status & 1) &&
-                        ((status = iosb[0]) & 1) &&
-                        (ttmode.pagelength >= 5)
-                      )
-                     ? (int) (ttmode.pagelength)        /* TT device value */
-                     : (24) );                          /* VT 100 default  */
+        /* use sys$qiow and the IO$_SENSEMODE function to determine
+         * the current tty status.
+         */
+        status = sys$qiow(0, OutDevChan, IO$_SENSEMODE, &iosb, 0, 0,
+                          &ttmode, sizeof(ttmode), 0, 0, 0, 0);
+        /* deassign the output channel by way of clean-up */
+        (void) sys$dassgn(OutDevChan);
     }
 
+    if ( (status & 1) && ((status = iosb[0]) & 1) ) {
+        if (tt_rows != NULL)
+            *tt_rows = ( (ttmode.ttdef_area.ttdef_bits.pagelength >= 5)
+                        ? (int) (ttmode.ttdef_area.ttdef_bits.pagelength)
+                                                        /* TT device value */
+                        : (24) );                       /* VT 100 default  */
+        if (tt_cols != NULL)
+            *tt_cols = ( (ttmode.pagewidth >= 10)
+                        ? (int) (ttmode.pagewidth)      /* TT device value */
+                        : (80) );                       /* VT 100 default  */
+        if (tt_wrap != NULL)
+            *tt_wrap = ((ttmode.ttdef_area.ttcharflags & TT$M_WRAP) != 0);
+    } else {
+	/* VT 100 defaults */
+        if (tt_rows != NULL)
+            *tt_rows = 24;
+        if (tt_cols != NULL)
+            *tt_cols = 80;
+        if (tt_wrap != NULL)
+            *tt_wrap = FALSE;
+    }
+
+    return ((status & 1) != 0);
+}
+
+int screenlines()
+{
+    if (scrnlines < 0)
+        getscreeninfo(&scrnlines, &scrncolumns, &scrnwrap);
     return (scrnlines);
+}
+
+int screencolumns()
+{
+    if (scrncolumns < 0)
+        getscreeninfo(&scrnlines, &scrncolumns, &scrnwrap);
+    return (scrncolumns);
+}
+
+int screenlinewrap()
+{
+    if (scrnwrap == -1)
+        getscreeninfo(&scrnlines, &scrncolumns, &scrnwrap);
+    return (scrnwrap);
 }
 #endif /* MORE */
 

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   api.c
@@ -35,10 +43,10 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#include "version.h"
 #ifdef WINDLL
 #  include "windll/windll.h"
 #endif
+#include "version.h"
 
 #ifdef DLL      /* This source file supplies DLL-only interface code. */
 
@@ -61,8 +69,8 @@ UzpVer * UZ_EXP UzpVersion()   /* should be pointer to const struct */
 #else
     version.flag = 0;
 #endif
-    version.betalevel = BETALEVEL;
-    version.date = VERSION_DATE;
+    version.betalevel = UZ_BETALEVEL;
+    version.date = UZ_VERSION_DATE;
 
 #ifdef ZLIB_VERSION
     version.zlib_version = ZLIB_VERSION;
@@ -74,20 +82,20 @@ UzpVer * UZ_EXP UzpVersion()   /* should be pointer to const struct */
     /* someday each of these may have a separate patchlevel: */
     version.unzip.major = UZ_MAJORVER;
     version.unzip.minor = UZ_MINORVER;
-    version.unzip.patchlevel = PATCHLEVEL;
+    version.unzip.patchlevel = UZ_PATCHLEVEL;
 
     version.zipinfo.major = ZI_MAJORVER;
     version.zipinfo.minor = ZI_MINORVER;
-    version.zipinfo.patchlevel = PATCHLEVEL;
+    version.zipinfo.patchlevel = UZ_PATCHLEVEL;
 
     /* these are retained for backward compatibility only: */
     version.os2dll.major = UZ_MAJORVER;
     version.os2dll.minor = UZ_MINORVER;
-    version.os2dll.patchlevel = PATCHLEVEL;
+    version.os2dll.patchlevel = UZ_PATCHLEVEL;
 
     version.windll.major = UZ_MAJORVER;
     version.windll.minor = UZ_MINORVER;
-    version.windll.patchlevel = PATCHLEVEL;
+    version.windll.patchlevel = UZ_PATCHLEVEL;
 
     return &version;
 }
@@ -102,8 +110,8 @@ void UZ_EXP UzpVersion2(UzpVer2 *version)
 #else
     version->flag = 0;
 #endif
-    strcpy(version->betalevel, BETALEVEL);
-    strcpy(version->date, VERSION_DATE);
+    strcpy(version->betalevel, UZ_BETALEVEL);
+    strcpy(version->date, UZ_VERSION_DATE);
 
 #ifdef ZLIB_VERSION
     strcpy(version->zlib_version, ZLIB_VERSION);
@@ -115,20 +123,20 @@ void UZ_EXP UzpVersion2(UzpVer2 *version)
     /* someday each of these may have a separate patchlevel: */
     version->unzip.major = UZ_MAJORVER;
     version->unzip.minor = UZ_MINORVER;
-    version->unzip.patchlevel = PATCHLEVEL;
+    version->unzip.patchlevel = UZ_PATCHLEVEL;
 
     version->zipinfo.major = ZI_MAJORVER;
     version->zipinfo.minor = ZI_MINORVER;
-    version->zipinfo.patchlevel = PATCHLEVEL;
+    version->zipinfo.patchlevel = UZ_PATCHLEVEL;
 
     /* these are retained for backward compatibility only: */
     version->os2dll.major = UZ_MAJORVER;
     version->os2dll.minor = UZ_MINORVER;
-    version->os2dll.patchlevel = PATCHLEVEL;
+    version->os2dll.patchlevel = UZ_PATCHLEVEL;
 
     version->windll.major = UZ_MAJORVER;
     version->windll.minor = UZ_MINORVER;
-    version->windll.patchlevel = PATCHLEVEL;
+    version->windll.patchlevel = UZ_PATCHLEVEL;
 }
 
 

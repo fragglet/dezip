@@ -1,4 +1,13 @@
 #
+;===========================================================================
+; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+;
+; See the accompanying file LICENSE, version 2000-Apr-09 or later
+; (the contents of which are also included in unzip.h) for terms of use.
+; If, for some reason, all these files are missing, the Info-ZIP license
+; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+;===========================================================================
+
 .globl _qlflag
 .globl _qlwait
 #ifdef ZIP
@@ -10,7 +19,7 @@
         dc.b    '<<QCFX>>01'
 #ifdef ZIP
         dc.w    8
-	dc.b    'Info-ZIP'
+        dc.b    'Info-ZIP'
 *                12345678901234567890
         ds.w    0
         dc.w    3
@@ -18,7 +27,7 @@
         ds.w    0
 #else
         dc.w    10
-	dc.b    'Info-UNZIP'
+        dc.b    'Info-UNZIP'
 *                12345678901234567890
         ds.w    0
         dc.w    3
@@ -43,13 +52,13 @@ d_5:    dc.w    dpt-d_5
 d_6:    dc.w    dxx-d_6
 
 #else
-	dc.b    4
+        dc.b    4
         dc.b    0
 l5:
         dc.w    list1-l5
         dc.w    0
 l5a:
-        dc.w    Postit-l5a		; post proc
+        dc.w    Postit-l5a              ; post proc
 l6:
         dc.w    apt-l6
 l7:
@@ -61,21 +70,21 @@ l8:
         dc.w    list2-l8
         dc.w    0
 l8a:
-	dc.w    Postit-l8a		; post proc
+        dc.w    Postit-l8a              ; post proc
 l9:
         dc.w    bpt-l9
 la:
         dc.w    bxx-la
 * -------------------------------------
 #endif
-	dc.w    -1                          ; end
+        dc.w    -1                          ; end
 
 _qlflag:
-	dc.w	0
+        dc.w    0
 _qlwait:
         dc.w    250
 _dtype:
-	dc.w	255
+        dc.w    255
 
 hpt:    dc.w    10
         dc.b    'Exit Delay'
@@ -105,7 +114,7 @@ apt:
 *                12345678901234567890
 .even
 axx:    dc.b    0
-	dc.b	0
+        dc.b    0
         dc.w    8
         dc.b    'SMS/QDOS'
 .even
@@ -114,7 +123,7 @@ axx:    dc.b    0
         dc.w    7
         dc.b    'Default'
 .even
-	dc.w    -1
+        dc.w    -1
 .even
 bpt:
         dc.w    12
@@ -132,15 +141,14 @@ bxx:
         dc.b    'SMS/QDOS'
 *                12345678901234567890
 .even
-	 dc.w    -1
+         dc.w    -1
 Postit:
-	lea.l	_qlflag,a0
-	move.b  list1,d0
-	move.b	d0,(a0)
-	move.b	list2,d0
-	or.b	d0,(a0)
-	moveq	#0,d0
-	rts
+        lea.l   _qlflag,a0
+        move.b  list1,d0
+        move.b  d0,(a0)
+        move.b  list2,d0
+        or.b    d0,(a0)
+        moveq   #0,d0
+        rts
 #endif
-	end
-
+        end

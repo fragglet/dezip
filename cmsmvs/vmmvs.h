@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* vmmvs.h:  include file for both VM/CMS and MVS ports of UnZip */
 #ifndef __vmmvs_h               /* prevent multiple inclusions */
 #define __vmmvs_h
@@ -5,6 +13,32 @@
 #ifndef NULL
 #  define NULL (zvoid *)0
 #endif
+
+#ifdef MVS
+#  define _POSIX_SOURCE    /* tell MVS we want full definitions */
+#  define NO_STRNICMP      /* MVS has no strnicmp() */
+#  include <features.h>
+   /* MVS complains if a function has the same name as a csect. */
+#  if defined(__UNZIP_C)
+#    pragma csect(STATIC,"unzip_s")
+#  elif defined(__CRC32_C)
+#    pragma csect(STATIC,"crc32_s")
+#  elif defined(__ENVARGS_C)
+#    pragma csect(STATIC,"envarg_s")
+#  elif defined(__EXPLODE_C)
+#    pragma csect(STATIC,"explod_s")
+#  elif defined(__INFLATE_C)
+#    pragma csect(STATIC,"inflat_s")
+#  elif defined(__MATCH_C)
+#    pragma csect(STATIC,"match_s")
+#  elif defined(__UNREDUCE_C)
+#    pragma csect(STATIC,"unredu_s")
+#  elif defined(__UNSHRINK_C)
+#    pragma csect(STATIC,"unshri_s")
+#  elif defined(__ZIPINFO_C)
+#    pragma csect(STATIC,"zipinf_s")
+#  endif
+#endif /* MVS */
 
 #include <time.h>               /* the usual non-BSD time functions */
 #ifdef VM_CMS

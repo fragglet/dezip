@@ -33,7 +33,7 @@ Notes about MS-DOS executables and compilers:
 For these reasons, Info-ZIP's distributed versions of the 16-bit MS-DOS 
 executables are compiled with MSC 6 or 7.
 
- - djgpp 2.x (currently 2.01) is no longer distributed with the go32 extender.
+ - djgpp 2.x (currently 2.03) is no longer distributed with the go32 extender.
    Instead, a 2K stub bound into the executable searches for a DPMI server;
    if none is found, it loads the default DPMI server while executing UnZip.
    Both djgpp 1.x and 2.x are capable of substituting a list of files in an
@@ -110,8 +110,8 @@ executables are compiled with MSC 6 or 7.
    occur with QEMM.)
 
 For these reasons Info-ZIP's distributed 32-bit MS-DOS executables will 
-probably be compiled with djgpp 2.01, mainly because of its nice long-filename
+be compiled with djgpp 2.03, mainly because of its nice long-filename
 support when running in a Win32 DOS box.  The cwsdpmi DPMI server will be
 bundled if necessary.
 
-GRR 970330
+SPC 2000416

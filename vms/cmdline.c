@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 #define module_name VMS_UNZIP_CMDLINE
 #define module_ident "02-007"
 /*
@@ -817,7 +825,7 @@ int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
     flag = (error? 1 : 0);
 
     Info(slide, flag, ((char *)slide, UnzipSFXBanner,
-      UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL, VERSION_DATE));
+      UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL, UZ_VERSION_DATE));
     Info(slide, flag, ((char *)slide, "\
 Valid main options are /TEST, /FRESHEN, /UPDATE, /PIPE, /SCREEN, /COMMENT%s.\n",
       SFXOPT_EXDIR));
@@ -870,7 +878,8 @@ ZipInfo %d.%d%d%s %s, by Newtware and the fine folks at Info-ZIP.\n\n\
 List name, date/time, attribute, size, compression method, etc., about files\n\
 in list (excluding those in xlist) contained in the specified .zip archive(s).\
 \n\"file[.zip]\" may be a wildcard name containing * or % (e.g., \"*font-%.zip\
-\").\n", ZI_MAJORVER, ZI_MINORVER, PATCHLEVEL, BETALEVEL, VERSION_DATE));
+\").\n", ZI_MAJORVER, ZI_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
+          UZ_VERSION_DATE));
 
         Info(slide, flag, ((char *)slide, "\
    usage:  zipinfo file[.zip] [list] [/EXCL=(xlist)] [/DIR=exdir] /options\n\
@@ -899,7 +908,8 @@ Remember that non-lowercase filespecs must be\
     } else {   /* UnZip mode */
 
         Info(slide, flag, ((char *)slide, UnzipUsageLine1,
-          UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL, VERSION_DATE));
+          UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
+          UZ_VERSION_DATE));
 
 #ifdef BETA
         Info(slide, flag, ((char *)slide, BetaVersion, "", ""));

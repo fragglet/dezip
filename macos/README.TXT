@@ -1,13 +1,32 @@
-Macintosh Port of Info-Zip's Zip
-by Dirk Haase, d_haase@sitec.net
-homepage:   www.sitec.net/maczip
-13.November 1998
+Macintosh Port of Info-ZIP's Zip
+and UnZip
+By Dirk Haase, d_haase@sitec.net
+Home page: www.sitec.net/maczip
+Mirror page:
+www.haase-online.de/dirk/maczip
 ================================
 
 
-Some notes about this port:
-===========================
 
+Abstract:
+---------
+MacZip is a cross-platform compatible tool that
+includes both Zip (for compression) and UnZip (for extraction).
+
+Zip is a compression and file packaging utility for Unix,
+VMS, MSDOS, OS/2, Windows 9x, Windows NT, Atari, Macintosh,
+Amiga, Acorn RISC OS, and other systems.
+
+UnZip unpacks zip archives.
+The Zip and UnZip programs can process archives pro-
+duced by PKZIP, and PKZIP and PKUNZIP can work with
+archives produced by zip. Zip version 2.2 is compatible
+with PKZIP 2.04.
+
+
+
+Requirements
+------------
 MacZip requires at least System 7 and a Macintosh with a minimum of a
 Motorola 68020 or PowerPC 601 processor. Other configurations may work
 but it is not tested at all.
@@ -15,14 +34,18 @@ but it is not tested at all.
 The application is distributed as a fat binary with both regular 68K
 and native PowerPC versions included.
 
+
+
+Installation
+------------
 Move the executable(s) somewhere--for example, drag it (or them) to your
 Applications folder.  For easy access, make an alias in the Launcher Control
 Panel or directly on your desktop.
 The GUI is very simple. It was not my intention to make a full-blown GUI,
 however I think it is comfortable enough to use it as regular tool.
 
-This port supports also Apple-event.So you can install it in your
-WWW-Browser as a helper-app.
+This port supports also Apple-event. So you can install it in your
+WWW-Browser as a helper app.
 
 For more Info about the contents of this package, take a look into
 the "macos/Contents" (or :macos:Contents) file. Some notes on how to
@@ -33,36 +56,129 @@ rebuild the Macintosh applications can be found in INSTALL.
 Usage:
 ------
 
-To extract a Zip archive, just drop it on MacZip.
-MacZip will start and extract all files in a separate folder.
-Or
-Start MacZip; choose the app you want in the menu "Current App".
-Select "File->Command Line" execute your selected app with the
-Unix-style command-line
-Or select
-"File->Start Zip/Unzip" to execute your app via dialog-box.
-For more information about switches choose File->Get help on
-Zip/Unzip. A short introduction is also available online:
+Basically there are four ways to start MacZip:
+
+a) Drag'n Drop
+   To extract an archive, drop an archive on MacZip.
+   To compress files drop a file, folder or volume on MacZip.
+   Note: You cannot drop more than one item at the same time.
+
+
+
+b) using the Dialog box (Menu: File -> Zip/Unzip):
+   * Compression (Zip):
+   - Go to "File -> Zip"and the "Zip Options" Dialog Box appears.
+   - Click on "Location of the compressed File"
+   - The "Select an archive" dialog box appears
+        a) select a existing zip archive
+           -> Your files will be added to that zip archive.
+        b) select a folder and name your new zip archive
+           -> a new zip archive will be created with your files.
+   - Select one or more check boxes if you want.
+     see Zip.txt for more information.
+   - Click on "File or Folder to Compress"
+   - The "Select a File or Folder" dialog box appears
+        a) select a file
+           -> This file will be compressed.
+        b) select a folder
+           -> the contents of the folder will be compressed.
+   - Click on "Start Zip" to start the task.
+
+  * Extraction (Unzip):
+   - Go to "File -> Unzip"and the "Unzip Options" Dialog Box appears.
+   - Click on "Location of the compressed File"
+   - The "Select an archive" dialog box appears
+   - select a existing zip archive
+   - Select one or more check boxes if you want.
+     see Unzip.txt for more information.
+   - Click on "Location of the extracted Files"
+   - The "Select a Folder" dialog box appears
+        a) select a file
+           -> This file will be compressed.
+        b) select a folder
+           -> the contents of the archive will be extracted
+              into this folder.
+   - Click on "Start Unzip" to start the task.
+
+
+
+c) Using the Command line (Menu: File->Command Line):
+   The Zip & UnZip tools are command line tools. So the behavior is exactly
+   the same like the Zip & UnZip tools on Unix or Windows/DOS. This means,
+   if you want to zip some files, you have to write a command line like this:
+   "zip [switches] path_to_zip_archive path_to_files_folders"
+
+   - Go to "File" and select "Command Line" and the "MacZip Entry box"
+     Dialog Box appears.
+
+   An example:
+
+   a: your zip may be created at
+           Macintosh HD:applications:archive.zip
+
+   b: your files may be found at
+           Macintosh HD:somewhere:my_folder_to_archive:*
+
+   Note: At the end of the path there must be a filename or a wild card !
+   (see Footnote: 1 wild card, 2 Mac path names)
+
+   So the command line should look like (one line!):
+
+   zip "Macintosh HD:applications:archive.zip" "Macintosh HD:somewhere:my_folder_to_archive:*"
+
+   - Click on "Enter" to start the task.
+
+   Since you can not set a default folder you have to enter always a
+   full qualified path names. Full-qualified path names are path names
+   including the Volume name ! (see Footnote: 2 Mac path names)
+
+
+
+d) Using Applescript:
+
+There is only one additional event defined: "do_cmd". You can enter
+every valid command line. The first word must be "zip" or "unzip" to
+select the action (compress or extraction).
+
+See sample Applescript:
+
+        tell application "MacZip (PPC)"
+            activate
+            with timeout of 90000 seconds
+                do_cmd "zip -rjjN Volume:archive \"My Volume:*\" "
+            end timeout
+        end tell
+
+This script opens MacZip, brings it to the foreground on the Mac, starts the
+zip action with the command line: zip -rjjN Volume:archive "My Volume:*" .
+
+
+
+
+A short introduction is also available online:
 http://www.sitec.net/maczip/How-To-Do/
 
 It's possible to stop the run of Zip/Unzip with the well
 known shortcut [Command] + [.].
 
+
+---------------------------------------------------------------------------
+
 There are some Mac-specific switches available.
 Zip Module:
-       -df    [MacOS   only]  Include  only  data-fork  of  files
-              zipped into the archive.  Good for exporting  files
-              to  foreign operating-systems.  Resource-forks will
-              be ignored at all.
+       -df    [MacOS] Include only data-fork of files zipped into
+              the  archive.   Good for exporting files to foreign
+              operating-systems.  Resource-forks will be  ignored
+              at all.
 
-       -jj    [MacOS  only] record Fullpath (+ Volname). The com-
-              plete  path  including  volume  will  be stored. By
-              default the relative path will be stored.
+       -jj    [MacOS] record Fullpath (+ Volname).  The  complete
+              path  including  volume  will be stored. By default
+              the relative path will be stored.
 
-       -S     Include system and hidden  files.  This  option  is
-              effective  on  some  systems only; it is ignored on
-              Unix.  On MacOS, this option includes finder invis-
-              ible files, which are ignored otherwise.
+       -S     [MSDOS, OS/2, WIN32 and ATARI] Include  system  and
+              hidden files.
+              [MacOS]  Includes finder invisible files, which are
+              ignored otherwise.
 
 Unzip Module:
        -E     [MacOS only] display contents of MacOS extra  field
@@ -78,30 +194,13 @@ Unzip Module:
               resource-fork are restored as separate files.
 
 
+Select [File]->[Get Help on Zip/Unzip] for a complete list
+of switches.
 
 
-Performance and Limitations:
-----------------------------
 
-I was curious about performance items. So I took one small test on my 200 PPC
-under MacOS 8.1. To compare `Drop Stuff' with `MacZip' I archived my Netscape
-folder:
-143 Files in 21 folders about 15.6 Megabytes.
-
-Compress:
-Drop Stuff (4.0) needs 70 sec to compress and additional 20 sec to create
-a HQX file.
-Compression ratio: 2.01 times smaller
-MacZip needs 45 sec to compress, so it's about 1.5 - 2 times faster.
-Compression ratio: 2.06 times smaller
-
-Expand:
-Stuffit Expander (4.02) needs 35 sec to create a '.sit' file and
-additional 35 sec to expand all files.
-MacZip need 25 sec to expand all files so it's 1.7 - 3.5 times faster.
-
-
-Limitations/Problems:
+Limitations / Problems:
+-----------------------
 
     - Aliases are not supported. I tried, but I got broken aliases
       This port will silently ignore all aliases.
@@ -111,14 +210,14 @@ Limitations/Problems:
       You may need to increase the 'Preferred Size' in 'Get Info'.
       Values of 12 Megabytes or more are possible
 
-    - Unzip needs about 500 Kbyte of memory to unzip no matter
+    - Unzip needs about 500 Kbytes of memory to unzip no matter
       how many files were compressed and expanded.
 
     - and finally one big macintosh-related problem:
-      This port has one weak point: It's based on pathnames.
-      As you may be already know: Pathnames are not unique on a Mac !
+      This port has one weak point: It's based on path names.
+      As you may be already know: Path names are not unique on a Mac !
       The main reason is that an attempt to implement support exact saving of
-      the MacOS specific internal file-structures would require a throughout
+      the MacOS specific internal file structures would require a throughout
       rewrite of major parts of shared code, probably sacrifying compatibility
       with other systems.
       I have no solution at the moment. The port will just warn you if you try
@@ -130,76 +229,79 @@ Limitations/Problems:
 
 Known Bugs:
 
-    - Display of comments stored in the zip-file is in a mess.
-
     - crypted files in a zip archive are sometimes corrupt:
       I get an error message: invalid compressed data to inflate.
-      Appearance of this error is purly be change:
+      Appearance of this error is purely be chance:
       I did a small test: Unzipping an archive containing 3589 files
-      56 files fails to unzip, so about 1.5%
+      56 files fails to unzip, so about 1.5%.
+      Root cause is completely unclear to me :(
 
-I strongly recommend to test your archive (eg. unzip -t archive).
+I strongly recommend to test your archive (e.g. unzip -t archive).
 
 
 
 
-Zip-Programs / Macintosh Extra-Data:
+
+Zip Programs / Macintosh Extra-Data:
 -----------------------------------------
 A brief overview:
-Currently, as far as I know, there are 4 Zip-Programs available
+Currently, as far as I know, there are 4 Zip programs available
 for the Macintosh platform.
-These programs build (of cause) different variants of Zip-Files:
+These programs build (of course) different variants of Zip files:
 
-    - Info-Zip's first Port of Zip. Ported by Johnny Lee
+    - Info-ZIP's first Port of Zip. Ported by Johnny Lee
       This Port is rather outdated and no longer supported (since 1992).
       68K only. Only minimal Mac-info is stored (Creator/Type,
-      Finderattributes).
-      Until now, Only Unzip 5.32 survived.
+      Finder attributes). Creator/Type: '????' / '????'
+      Until year 1998, only UnZip 5.32 survived.
 
     - ZipIt by Tom Brown. This is Shareware and still supported I think.
-      ZipIt has a nice GUI, but I found it can't handle large Zipfiles
-      quite well. ZipIt compresses Macintosh files using the MacBinary
-      format. So, transfering files to other platforms is not so easy.
-      Only minimal Mac-info is stored (Creator/Type, Finderattributes).
-      Macfilenames are changed to a most compatible filename.
+      ZipIt has a nice GUI, but I found it can't handle large Zip files
+      quite well. ZipIt compresses Macintosh files using the Mac Binary
+      format. So, transferring files to other platforms is not so easy.
+      Only minimal Mac-info is stored (Creator/Type, Finder attributes).
+      Mac filenames are changed to a most compatible filename.
+      Creator/Type: 'ZIP ' / 'ZIP '
 
     - PKZIP/mac v2.03/210d. This is Shareware.
-      This Zip implementation for the Mac can be found on ASI's website
+      This Zip implementation for the Mac can be found on ASI's web site
       (http://www.asizip.com/products/products.htm).  The name of this
-      program is misleading, it is NOT a product from PKWARE.  ASI last
+      program is misleading, it is NOT a product from PKWARE.  ASI's last
       release version is v2.03, and they also offer a newer beta version
       PKZIP/mac 210d. But even the Beta version is rather outdated (1995).
-      Only minimal Mac-info is stored (Creator/Type, Finderattributes).
+      Only minimal Mac-info is stored (Creator/Type, Finder attributes).
       The Zipfile format looks like incompatible to other platforms.
       (More details about the compatibility issue can be found in
-      proginfo/3rdparty.bug!)
-      Macfilenames are restored without any change.
+      proginfo/3rdparty.bug!). Type: 'PKz1'
+      Mac filenames are restored without any change.
 
 and finally:
-    - Info-Zip's latest Port of Zip. MacZip 1.0. Ported by me :-)
-      It is supported (of cause) and up to date. Fullset of macintosh
-      info is stored: Creator/Type, Finderattributes, Findercomments,
-      MacOS 8.0 Foldersettings, Icon/Folder-Positions ...
-      Macfilenames are restored without any change.
+    - Info-ZIP's latest Port of Zip. MacZip 1.0. Ported by me :-)
+      It is supported (of course) and up to date. Full set of macintosh
+      info is stored: Creator/Type, Finder attributes, Finder comments,
+      MacOS 8.0 Folder settings, Icon/Folder Positions ...
+      Mac filenames are restored without any change.
+      Creator/Type: 'IZip' / 'ZIP '
+
 
 Compatibility of my port; Extraction:
-   - Archives from Info-Zip's first port (by Johnny Lee) are still compatible.
-   - Archives from ZipIt can be extracted, but some files will still
-     remain in a MacBinaryformat, no Finderinfo will be restored.
-   - PKZiP/mac archives-files are extracted without resource-forks
-     and without any Finderinfo. I have no information about that zip-format.
+   - Archives from Info-ZIP's first port (by Johnny Lee) are still compatible.
+   - Extraction of ZipIt archives is supported. This support is not
+     complete: Filenames are correct but Directory names are sometimes mangled
+     to a DOS compatible form. Segmented archives are not supported.
+   - PKZiP/mac archive files are extracted without resource-forks
+     and without any Finder info. I have no information about that zip format.
 
 Compatibility of my port; Compression:
-   - My port supports only the new Info-Zip format
+   - My port supports only the new Info-ZIP format
      (introduced with this port). Therefore archives created by MacZip 1.0
-     (1998) must be extracted with this version or later releases of Info-ZIP's
-     UnZip to restore the complete set of Macintosh attributes.
+     (March 1999) must be extracted with this version or later releases
+     of Info-ZIP's UnZip to restore the complete set of Macintosh attributes.
 
 Note: This port is complete unrelated to the shareware ZipIt. Even more,
 handling of special Macintosh attributes is incompatible with ZipIt.
 This port (MacZip) may be used to extract archives created by ZipIt,
-but the Resource fork and the extra field of ZipIt will be ignored.
-Make sure that you get the result as you expected.
+but make sure that you get the result as you expected.
 
 
 
@@ -212,32 +314,32 @@ the data fork do not have to exhibit any particular internal structure.
 The application is responsible for interpreting the bytes in the data fork
 in whatever manner is appropriate. The bytes in the resource fork usually
 have a defined internal structure and contain data object like menus,
-dialog-boxes, icons and pictures.
+dialog boxes, icons and pictures.
 Although all Macintosh files contain both a data fork and a resource fork,
 one or both of these forks may be empty.
 
-MacZip stores data-forks and resource-forks separatly. The Zipfile-Format
+MacZip stores data-forks and resource-forks separately. The Zipfile format
 does not allow to store two archive entries using exactly the same name.
-My solution is to modify the Pathname of the resource-fork. All resource-fork
+My solution is to modify the Path name of the resource-fork. All resource-fork
 names are prepended with a leading special directory named "XtraStuf.mac".
 So, when extracting on a Mac, you should never see this directory
 "XtraStuf.mac" on your *disk*.
 
-On all foreign systems that support directories in filenames (e.g: OS/2, Unix,
+On all foreign systems that support directories in filenames (e.g.: OS/2, Unix,
 DOS/Windows, VMS) you will get a directory "XtraStuf.mac" when extracting
 MacZip archives.
-You can delete the complete directory "XtraStuf.mac" since Mac-resources
+You can delete the complete directory "XtraStuf.mac" since Mac resources
 do not make much sense outside the MacOS world.
 
 
 
-Textencoding; Charsets of the Filenames:
-----------------------------------------
+Text encoding; Charsets of the Filenames:
+-----------------------------------------
 
 The following information is only important if you plan to transfer
 archives across different platforms/language systems:
 
-A typical Zip-archive does not support different charsets. All filenames
+A typical Zip archive does not support different charsets. All filenames
 stored in the public area (= accessible by foreign systems other
 than MacOS) must be coded in the charset ISO-8859-1 (CP1252 in the Microsoft
 Windows world) or CP850 (DOSLatin1). The latter should only be used by
@@ -271,9 +373,9 @@ If you generate a filename list of your archive (unzip -l), you will
 see the converted filenames. Your can also extract the archive with
 the switch '-i' (= ignore mac filenames), and test your result.
 
-This MacZip-port uses its own filename stored in the archive.
+This MacZip port uses its own filename stored in the archive.
 At the moment, the filename will be not converted. However,
-I'm planning to add support for unicode.
+I'm planning to add support for Unicode.
 
 Currently, the following Mac OS encodings are NOT supported:
 Japanese, ChineseTrad, Korean, Arabic, Hebrew, Greek, Cyrillic,
@@ -284,11 +386,11 @@ Vietnamese, ExtArabic and finally:
 Symbol - this is the encoding for the font named "Symbol".
 Dingbats - this is the encoding for the font named "Zapf Dingbats".
 If you extract an archive coded with one of these charsets
-you will propably get filenames with funny characters.
+you will probably get filenames with funny characters.
 
 These problems apply only to filenames and NOT to the file
 content.
-Of cause: The content of the files will NEVER be converted !!
+of course: The content of the files will NEVER be converted !!
 
 
 
@@ -297,37 +399,37 @@ File-/Creator Type:
 
 This port uses the creator type 'IZip' and it is registered at Apple
 (since 08. March 1998). File types can not be registered any more.
-This port uses '.zip' for normal Zip archive files and '.zp2' for
-Zip archives that contain encrypted entries.
-The creator 'IZip' type should be used for all future versions.
+This port uses 'ZIP ' for Zip archive files.
+The creator 'IZip' type should be used for all future versions of
+MacZip.
 
 
 
-Hints for proper restoration of filetime stamps:
-------------------------------------------------
+Hints for proper restoration of file-time stamps:
+-------------------------------------------------
 
-UnZip requires the host computer to have proper timezone information in
+UnZip requires the host computer to have proper time zone information in
 order to handle certain tasks correctly (see unzip.doc).  To set the
-timezone on the Macintosh, go to the Map Control Panel and enter the
+time zone on the Macintosh, go to the Map Control Panel and enter the
 correct number of hours (and, in a few locales, minutes) offset from
-Universal Time/Greenwich Mean Time.  For example, the US Pacific timezone
+Universal Time/Greenwich Mean Time.  For example, the US Pacific time zone
 is -8 hours from UTC/GMT during standard (winter) time and -7 hours from
-UTC/GMT during Daylight Savings Time.  The US Eastern timezone is -5 hours
+UTC/GMT during Daylight Savings Time.  The US Eastern time zone is -5 hours
 during the winter and -4 hours during the summer.
 
 Discussion of Daylight Savings Time
 -----------------------------------
 The setting in the Date & Time control panel for Daylight Savings time
 is a universal setting. That is, it assumes everybody in the world is
-observing Daylight Savings time when its checkbox is selected.
+observing Daylight Savings time when its check box is selected.
 
 If other areas of the world are not observing Daylight Savings time when
-the checkbox is selected in the Date & Time control panel, then the Map
+the check box is selected in the Date & Time control panel, then the Map
 control panel will be off by an hour for all areas that are not recognizing
 Daylight Savings time.
 
 Conversely, if you set the Map control panel to an area that does not observe
-Daylight Savings time and deselect/uncheck the checkbox for Daylight Savings
+Daylight Savings time and deselect/uncheck the check box for Daylight Savings
 time in the Date & Time control panel, then time in all areas celebrating
 Daylight Savings time will be off by an hour in the Map control panel.
 
@@ -356,49 +458,51 @@ Example:
      the U.S. which also does not observe Daylight Savings time.
 
 Conclusion:
-MacZip only know the GMT and DST offsets for the current time, not
+MacZip only knows the GMT and DST offsets of the current time, not
 for the time in question.
-Do not use the setting in the Date and Time control panel for Daylight
-Savings time. Instead: Change your current timezone accordingly.
 
 
 Projects & Packages:
 --------------------
 
-A Note to version numbers: Version of MacZip is currently 1.00 and
-is based on the zip-code version 2.3 and unzip-code version 5.4.
-See About-Box for current version and compiler build-date.
+A Note to version numbers: Version of MacZip is currently 1.03 and
+is based on the zip code version 2.3 and unzip code version 5.4.
+See About Box for current version and compiler build date.
 
 Because of the amount of sources I splitted this port into
-serveral projects. See http://www.sitec.net/maczip for updates.
+several projects. See http://www.sitec.net/maczip for updates.
 
 - core source parts:
-    unzipxxx.zip
+    unzxxx.zip
     zipxxx.zip
-      These archives contains the main-parts of the port. You can build
-      libraries and a standalone-App with Metrowerks standard console SIOUX.
+      These archives contains the main parts of the port. You can build
+      libraries and a standalone App with Metrowerks standard console SIOUX.
       They contain only sources, no executables.
       These archives are exact copies of the standard Info-ZIP source
-      distributions; they were only repacked under MacOS using MacZip,
+      distributions; they were only repackaged under MacOS using MacZip,
       with one minor addition: For those files that are stored in BinHex'ed
       format in the Info-ZIP reference source archives, unpacked version
       that are ready for use have been added.
 
 - additional source part:
-    MacZipxxxxsrc.zip: contains all the GUI-staff and the project-files to
-      build the main-app.  Only sources of the GUI, no zip- or unzip-code.
-      To build MacZip successfully you will need to also download the zip-
-      and unzip-packages.
+    MacZipxxx.zip: contains all the GUI stuff and the project files to
+      build the main-app.  Only sources of the GUI, no zip or unzip code.
+      To build MacZip successfully you will need to also download the zip
+      and unzip packages.
 
 - executables:
-    MacZipxxxxnc.hqx: contains only executables and some docs,
-                      version without en-/decryption support
-    MacZipxxxxc.hqx:  contains only executables and some docs, Crypt version
+    MacZipxxxnc.hqx: contains only executables and 'README.TXT',
+                     This version is without en-/decryption support !
+    MacZipxxxc.hqx:  contains only executables and 'README.TXT',
+                     This version supports en-/decryption !
 
 - encryption sources:
-    zcryptxx.zip: To build crypt-versions of MacZip.
+    zcryptxx.zip: To build crypt versions of MacZip.
     download from ftp://ftp.icce.rug.nl/infozip/ (and subdirectories)
 
+- documentation:
+    MacZipDocu.zip: contains some further docus about the algorithm,
+                    limits, Info-ZIP's appnote and a How-to-do Webpage.
 
 
 Credits:
@@ -409,13 +513,48 @@ More Files fixes many of the broken or underfunctional
 parts of the file system. Thanks to Jim Luther.
 (see morefiles.doc)
 
-MatWild.c: Originally C++ code written by JJS (jstrout@ucsd.edu).
 
 
 
 
 
 
+---------------------------------------------------------------------------
+Footnotes:
+
+1. wild card:
+    The '*' is a wild card and means 'all files'
+    Just in case you don't know wild cards:
+    '*' is a place holder for any character.
+    e.g.:
+    "this*" matches with "this_file" or  "this_textfile" but it
+    doesn't match with "only_this_file" or  "first_this_textfile"
+    "*this*" matches with "this_file" or  "this_textfile" AND
+    matches with "only_this_file" or  "first_this_textfile"
+
+
+2. Mac pathnames:
+The following characteristics of Macintosh pathnames should be noted:
+
+    A full pathname never begins with a colon, but must contain at
+    least one colon.
+    A partial pathname always begins with a colon separator except in
+    the case where the file partial pathname is a simple file or
+    directory name.
+    Single trailing separator colons in full or partial pathnames are
+    ignored except in the case of full pathnames to volumes.
+    In full pathnames to volumes, the trailing separator colon is required.
+    Consecutive separator colons can be used to ascend a level from a
+    directory to its parent directory. Two consecutive separator colons
+    will ascend one level, three consecutive separator colons will ascend
+    two levels, and so on. Ascending can only occur from a directory;
+    not a file.
+
+
+
+
+
+---------------------------------------------------------------------------
 
 Dirk Haase
 ==========

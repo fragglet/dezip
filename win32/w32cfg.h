@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
     Win32 specific configuration section:
   ---------------------------------------------------------------------------*/
@@ -5,29 +13,41 @@
 #ifndef __w32cfg_h
 #define __w32cfg_h
 
-#if (defined(__CYGWIN__) && !defined(__CYGWIN32__))
-#  define __CYGWIN32__        /* new versions of CygWin may not define this */
+#if (defined(__CYGWIN32__) && !defined(__CYGWIN__))
+#  define __CYGWIN__            /* compatibility for CygWin B19 and older */
 #endif
 
-#include <sys/types.h>        /* off_t, time_t, dev_t, ... */
+#if (defined(_MSC_VER) && !defined(MSC))
+#  define MSC
+#endif
+
+/* enable multibyte character set support by default */
+#ifndef _MBCS
+#  define _MBCS
+#endif
+#if (defined(__CYGWIN__) && defined(_MBCS))
+#  undef _MBCS                  /* CygWin RTL lacks support for __mb_cur_max */
+#endif
+
+#include <sys/types.h>          /* off_t, time_t, dev_t, ... */
 #include <sys/stat.h>
-#include <io.h>               /* read(), open(), etc. */
+#include <io.h>                 /* read(), open(), etc. */
 #include <time.h>
 #if (defined(__RSXNT__) || defined(__EMX__)) && !defined(tzset)
 #  define tzset _tzset
 #endif
 #ifdef __MINGW32__
-   extern void _tzset(void);  /* this is missing in <time.h> */
+   extern void _tzset(void);    /* this is missing in <time.h> */
 #  ifndef tzset
 #    define tzset _tzset
 #  endif
 #endif
 #include <memory.h>
-#if (!defined(__RSXNT__) && !defined(__CYGWIN32__))
-#  include <direct.h>         /* mkdir() */
+#if (!defined(__RSXNT__) && !defined(__CYGWIN__))
+#  include <direct.h>           /* mkdir() */
 #endif
 #include <fcntl.h>
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 #  include <unistd.h>
    extern int setmode(int, int);        /* this is missing in <fcntl.h> */
 #endif
@@ -36,45 +56,78 @@
 #else
 #  include <utime.h>
 #endif
+#define GOT_UTIMBUF
 
-#if defined(FILEIO_C)
-#  ifndef __CYGWIN32__
+#ifdef _MBCS
+#  if (!defined(__EMX__) && !defined(__MINGW32__) && !defined(__CYGWIN__))
+#    include <stdlib.h>
+#    include <mbstring.h>
+     /* for MSC (and compatible compilers), use routines supplied by RTL */
+#    define PREINCSTR(ptr) (ptr = (char *)_mbsinc((const uch *)(ptr)))
+#    define MBSCHR(str, c) (char *)_mbschr((const uch *)(str), (c))
+#    define MBSRCHR(str, c) (char *)_mbsrchr((const uch *)(str), (c))
+#  endif
+#  if (defined(__MINGW32__) && !defined(MB_CUR_MAX))
+#    ifdef __MSVCRT__
+       extern int *__p___mb_cur_max(void);
+#      define MB_CUR_MAX (*__p___mb_cur_max())
+#    else
+       extern int *_imp____mb_cur_max_dll;
+#      define MB_CUR_MAX (*_imp____mb_cur_max_dll)
+#    endif
+#  endif
+#  if (defined(__LCC__) && !defined(MB_CUR_MAX))
+     extern int *_imp____mb_cur_max;
+#    define MB_CUR_MAX (*_imp____mb_cur_max)
+#  endif
+#endif
+
+#if defined(__FILEIO_C)
+#  ifndef __CYGWIN__
 #    include <conio.h>
 #  endif
 #  include <windows.h>
 #  ifdef __RSXNT__
-#    include "win32/rsxntwin.h"
+#    include "../win32/rsxntwin.h"
+#  endif
+#  ifndef TIME_ZONE_ID_INVALID
+#    define TIME_ZONE_ID_INVALID  (DWORD)0xFFFFFFFFL
 #  endif
 #endif
-#if (defined(ENVARGS_C) || defined(EXTRACT_C) || defined(UNZIP_C) || \
+#if (defined(__ENVARGS_C) || defined(__EXTRACT_C) || defined(__UNZIP_C) || \
      defined(ZCRYPT_INTERNAL))
 #  include <windows.h>
 #  ifdef __RSXNT__
-#    include "win32/rsxntwin.h"
+#    include "../win32/rsxntwin.h"
+#  endif
+#  ifndef TIME_ZONE_ID_INVALID
+#    define TIME_ZONE_ID_INVALID  (DWORD)0xFFFFFFFFL
 #  endif
 #endif
-#if (defined(__CYGWIN32__) || defined(__MINGW32__))
-   /* the following definitions are missing in their <windows.h> */
-#  ifndef AnsiToOem
-#    define AnsiToOem CharToOemA
-#  endif
-#  ifndef OemToAnsi
-#    define OemToAnsi OemToCharA
-#  endif
+
+/* the following definitions are considered as "obsolete" by Microsoft and
+ * might be missing in some versions of <windows.h>
+ */
+#ifndef AnsiToOem
+#  define AnsiToOem CharToOemA
+#endif
+#ifndef OemToAnsi
+#  define OemToAnsi OemToCharA
 #endif
 
 #define DIR_END       '\\'      /* OS uses '\\' as directory separator */
 #define DIR_END2      '/'       /* also check for '/' (RTL may convert) */
-#ifndef DATE_FORMAT
-#  define DATE_FORMAT DF_MDY
+#ifdef DATE_FORMAT
+#  undef DATE_FORMAT
 #endif
+#define DATE_FORMAT   dateformat()
 #define lenEOL        2
 #define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 
 #if (defined(__RSXNT__) && !defined(HAVE_MKTIME))
 #  define HAVE_MKTIME           /* use mktime() in time conversion routines */
 #endif
-#if (defined(__CYGWIN32__) && defined(HAVE_MKTIME))
+#if (defined(__CYGWIN__) && defined(HAVE_MKTIME))
 #  undef HAVE_MKTIME            /* Cygnus' mktime() implementation is buggy */
 #endif
 #if (!defined(NT_TZBUG_WORKAROUND) && !defined(NO_NT_TZBUG_WORKAROUND))
@@ -146,21 +199,19 @@
     char lastRootPath[4];\
     int lastVolOldFAT, lastVolLocTim;\
     char *rootpath, *buildpathHPFS, *buildpathFAT, *endHPFS, *endFAT;\
-    char *dirname, *wildname, matchname[FILNAMSIZ];\
+    ZCONST char *wildname;\
+    char *dirname, matchname[FILNAMSIZ];\
     int rootlen, have_dirname, dirnamelen, notfirstcall;\
     zvoid *wild_dir;
 
 /* created_dir, renamed_fullpath, fnlen, and nLabelDrive are used by   */
 /*    both mapname() and checkdir().                                   */
-/* lastRootPath and lastVolOldFAT are used by IsVolumeOldFAT().        */
+/* lastRootPath, lastVolOldFAT and lastVolLocTim are used by           */
+/*    IsVolumeOldFAT() and NTQueryVolInfo().                           */
 /* rootlen, rootpath, buildpathHPFS, buildpathFAT, endHPFS, and endFAT */
 /*    are used by checkdir().                                          */
 /* wild_dir, dirname, wildname, matchname[], dirnamelen, have_dirname, */
 /*    and notfirstcall are used by do_wild().                          */
-
-#if (defined(_MSC_VER) && !defined(MSC))
-#  define MSC
-#endif
 
 /* This replacement for C-RTL-supplied getch() (or similar) functionality
  * avoids leaving unabsorbed LFs in the keyboard buffer under Windows95,
@@ -186,7 +237,9 @@ int getch_win32  OF((void));
 #    define __W32STAT_GLOBALS__
 #    define __W32STAT_G__
 #  endif
-#  undef SSTAT
+#  ifdef SSTAT
+#    undef SSTAT
+#  endif
 #  ifdef WILD_STAT_BUG
 #    define SSTAT(path, pbuf) (iswild(path) || zstat_win32(__W32STAT_G__ path, pbuf))
 #  else
@@ -218,5 +271,14 @@ int getch_win32  OF((void));
 #  endif
 #  define PIPE_ERROR (errno == EPIPE)
 #endif /* __WATCOMC__ */
+
+#define SCREENLINES screenlines()
+#define SCREENWIDTH screencolumns()
+int screenlines(void);
+int screencolumns(void);
+
+/* on the DOS or NT console screen, line-wraps are always enabled */
+#define SCREENLWRAP 1
+#define TABSIZE 8
 
 #endif /* !__w32cfg_h */

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   unzpriv.h
@@ -126,28 +134,14 @@
 #  define DECLARE_ERRNO
 #endif /* pyr */
 
-/* stat() bug for Borland, VAX C (also GNU?), and Atari ST MiNT on TOS
+/* stat() bug for Borland, VAX C RTL, and Atari ST MiNT on TOS
  * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
  * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
  * included on this list; it would be good to know what version the problem
- * was fixed at, if it did exist.  Watcom 10.6 has a separate stat() problem:
- * it fails on "." when the current directory is a root.  This is covered by
- * giving it a separate definition of SSTAT in OS-specific header files. */
+ * was fixed at, if it did exist.  */
 #if (defined(__TURBOC__) || defined(VMS) || defined(__MINT__))
 #  define WILD_STAT_BUG
 #endif
-
-#ifdef WILD_STAT_BUG
-#  define SSTAT(path,pbuf) (iswild(path) || stat(path,pbuf))
-#else
-#  define SSTAT stat
-#endif
-
-#ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
-#  define stat(p,s) zstat((p),(s))
-#endif
-
-#define STRNICMP zstrnicmp
 
 /*---------------------------------------------------------------------------
     OS-dependent includes
@@ -237,7 +231,7 @@
   ---------------------------------------------------------------------------*/
 
 #ifdef AOS_VS
-#  ifdef FILEIO_C
+#  ifdef __FILEIO_C
 #    include "aosvs/aosvs.h"
 #  endif
 #endif
@@ -285,37 +279,54 @@
 #  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
-#  define SCREENLINES   screenlines()
+#  define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
+#  define SCREENLINES
+#  define SCREENWIDTH
 #  define USE_EF_UT_TIME
 #  define SET_DIR_ATTRIB
 #  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #    define TIMESTAMP
 #  endif
 #  define RESTORE_UIDGID
-#  define NO_GMTIME               /* maybe DR10 will have timezones... */
+#  define NO_STRNICMP             /* not in the x86 headers at least */
 #  define INT_SPRINTF
 #  define SYMLINKS
 #  define MAIN main_stub          /* now that we're using a wrapper... */
 #endif
 
 /*---------------------------------------------------------------------------
-    Human68k/X68000 section:
+    Human68k/X680x0 section:
   ---------------------------------------------------------------------------*/
 
-#ifdef __human68k__    /* DO NOT DEFINE DOS_OS2 HERE!  If Human68k is so much */
-#  include <time.h>    /*  like MS-DOS and/or OS/2, create DOS_H68_OS2 macro. */
+#ifdef __human68k__   /* DO NOT DEFINE DOS_OS2 HERE!  If Human68k is so much */
+#  ifndef _MBCS
+#    define _MBCS
+#  endif
+#  include <time.h>   /*  like MS-DOS and/or OS/2, create DOS_H68_OS2 macro. */
 #  include <fcntl.h>
 #  include <io.h>
 #  include <conio.h>
-#  include <jctype.h>
 #  include <sys/stat.h>
+#  ifdef HAVE_MBSTRING_H
+#    include <mbstring.h>
+#  endif
+#  ifdef HAVE_MBCTYPE_H
+#    include <mbctype.h>
+#  else
+#    ifndef _ismbblead
+#      define _ismbblead(c) (0x80 <= (c) && ((c) < 0xa0 || 0xe0 <= (c)))
+#    endif
+#  endif
 #  ifndef DATE_FORMAT
 #    define DATE_FORMAT DF_YMD   /* Japanese standard */
 #  endif
-      /* GRR:  these EOL macros are guesses */
-#  define lenEOL        2
-#  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
-#  define EXE_EXTENSION ".exe"   /* just a guess... */
+#  define lenEOL        1
+#  define PutNativeEOL  *q++ = native(LF);
+#  define INT_SPRINTF
+#  define SYMLINKS
+#  ifdef SFX
+#    define MAIN main_sfx
+#  endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -331,7 +342,6 @@
   ---------------------------------------------------------------------------*/
 
 #ifdef WINDLL
-#  define MSWIN
 #  ifdef MORE
 #    undef MORE
 #  endif
@@ -384,12 +394,10 @@
 #    define DIR_END       '\\'  /* OS uses '\\' as directory separator */
 #    define DIR_END2      '/'   /* also check for '/' (RTL may convert) */
 #  endif
-#  ifndef WIN32
-#    ifdef DATE_FORMAT
-#      undef DATE_FORMAT
-#    endif
-#    define DATE_FORMAT   dateformat()
+#  ifdef DATE_FORMAT
+#    undef DATE_FORMAT
 #  endif
+#  define DATE_FORMAT     dateformat()
 #  define lenEOL          2
 #  define PutNativeEOL    {*q++ = native(CR); *q++ = native(LF);}
 #  define USE_EF_UT_TIME
@@ -421,6 +429,14 @@
 #endif /* MTS */
 
  /*---------------------------------------------------------------------------
+    Novell NLM section
+  ---------------------------------------------------------------------------*/
+
+#ifdef NLM
+#  include "novell/nlmcfg.h"
+#endif
+
+ /*---------------------------------------------------------------------------
     QDOS section
   ---------------------------------------------------------------------------*/
 
@@ -443,6 +459,9 @@
 #  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #    define TIMESTAMP
 #  endif
+#  define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
+#  define SCREENLINES
+#  define SCREENWIDTH
 #endif
 
 /*---------------------------------------------------------------------------
@@ -458,8 +477,18 @@
 #  ifndef DATE_FORMAT
 #    define DATE_FORMAT  DF_DMY
 #  endif
+#  define SCREENLINES   25
 #  define USE_EF_UT_TIME
 #  define RESTORE_UIDGID
+#  define NO_STRNICMP
+#endif
+
+/*---------------------------------------------------------------------------
+    THEOS section:
+  ---------------------------------------------------------------------------*/
+
+#ifdef THEOS
+#  include "theos/thscfg.h"
 #endif
 
 /*---------------------------------------------------------------------------
@@ -482,6 +511,9 @@
 #  define strrchr   rindex
 #  define REALLY_SHORT_SYMS
 #  define NO_MKDIR
+#  ifndef HAVE_STRNICMP
+#    define NO_STRNICMP           /* probably not provided by TOPS20 C RTL  */
+#  endif
 #  define DIR_BEG       '<'
 #  define DIR_END       '>'
 #  define DIR_EXT       ".directory"
@@ -496,95 +528,7 @@
   ---------------------------------------------------------------------------*/
 
 #ifdef UNIX
-#  include <sys/types.h>       /* off_t, time_t, dev_t, ... */
-#  include <sys/stat.h>
-
-#  ifndef COHERENT
-#    include <fcntl.h>         /* O_BINARY for open() w/o CR/LF translation */
-#  else /* COHERENT */
-#    ifdef _I386
-#      include <fcntl.h>       /* Coherent 4.0.x, Mark Williams C */
-#    else
-#      include <sys/fcntl.h>   /* Coherent 3.10, Mark Williams C */
-#    endif
-#    define SHORT_SYMS
-#    ifndef __COHERENT__       /* Coherent 4.2 has tzset() */
-#      define tzset  settz
-#    endif
-#  endif /* ?COHERENT */
-
-#  ifndef NO_PARAM_H
-#    ifdef NGROUPS_MAX
-#      undef NGROUPS_MAX       /* SCO bug:  defined again in <sys/param.h> */
-#    endif
-#    ifdef BSD
-#      define TEMP_BSD         /* may be defined again in <sys/param.h> */
-#      undef BSD
-#    endif
-#    include <sys/param.h>     /* conflict with <sys/types.h>, some systems? */
-#    ifdef TEMP_BSD
-#      undef TEMP_BSD
-#      ifndef BSD
-#        define BSD
-#      endif
-#    endif
-#  endif /* !NO_PARAM_H */
-
-#  ifdef __osf__
-#    define DIRENT
-#    ifdef BSD
-#      undef BSD
-#    endif
-#  endif /* __osf__ */
-
-#  ifdef BSD
-#    include <sys/time.h>
-#    include <sys/timeb.h>
-#    ifdef _AIX
-#      include <time.h>
-#    endif
-#  else
-#    include <time.h>
-     struct tm *gmtime(), *localtime();
-#  endif
-
-#  if (defined(BSD4_4) || (defined(SYSV) && defined(MODERN)))
-#    include <unistd.h>        /* this includes utime.h on SGIs */
-#    if (defined(BSD4_4) || defined(linux))
-#      include <utime.h>
-#      define GOT_UTIMBUF
-#    endif
-#  endif
-
-#  if (defined(V7) || defined(pyr_bsd))
-#    define strchr   index
-#    define strrchr  rindex
-#  endif
-#  ifdef V7
-#    define O_RDONLY 0
-#    define O_WRONLY 1
-#    define O_RDWR   2
-#  endif
-
-#  ifdef MINIX
-#    include <stdio.h>
-#  endif
-#  ifndef DATE_FORMAT
-#    define DATE_FORMAT DF_MDY    /* GRR:  customize with locale.h somehow? */
-#  endif
-#  define lenEOL        1
-#  ifdef EBCDIC
-#    define PutNativeEOL  *q++ = '\n';
-#  else
-#    define PutNativeEOL  *q++ = native(LF);
-#  endif
-#  define SCREENLINES   screenlines()
-#  define USE_EF_UT_TIME
-#  define SET_DIR_ATTRIB
-#  if (!defined(TIMESTAMP) && !defined(NOTIMESTAMP))   /* GRR 970513 */
-#    define TIMESTAMP
-#  endif
-#  define RESTORE_UIDGID
+#  include "unix/unxcfg.h"
 #endif /* UNIX */
 
 /*---------------------------------------------------------------------------
@@ -608,6 +552,9 @@
 #  include <unixio.h>
 #  include <rms.h>
 #  define _MAX_PATH (NAM$C_MAXRSS+1)    /* to define FILNAMSIZ below */
+#  ifndef HAVE_STRNICMP                 /* use our private zstrnicmp() */
+#    define NO_STRNICMP                 /*  unless explicitely overridden */
+#  endif
 #  ifdef RETURN_CODES  /* VMS interprets standard PK return codes incorrectly */
 #    define RETURN(ret) return_VMS(__G__ (ret))   /* verbose version */
 #    define EXIT(ret)   return_VMS(__G__ (ret))
@@ -627,6 +574,8 @@
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
+#  define SCREENWIDTH   screencolumns()
+#  define SCREENLWRAP   screenlinewrap()
 #  if (defined(__VMS_VERSION) && !defined(VMS_VERSION))
 #    define VMS_VERSION __VMS_VERSION
 #  endif
@@ -694,12 +643,32 @@
 #  define DOS_FLX_H68_OS2_W32
 #endif
 
+#if (defined(DOS_FLX_OS2) || defined(NLM))
+#  define DOS_FLX_NLM_OS2
+#endif
+
+#if (defined(DOS_FLX_OS2_W32) || defined(NLM))
+#  define DOS_FLX_NLM_OS2_W32
+#endif
+
+#if (defined(DOS_FLX_H68_OS2_W32) || defined(NLM))
+#  define DOS_FLX_H68_NLM_OS2_W32
+#endif
+
 #if (defined(TOPS20) || defined(VMS))
 #  define T20_VMS
 #endif
 
 #if (defined(MSDOS) || defined(T20_VMS))
 #  define DOS_T20_VMS
+#endif
+
+#if (defined(__BEOS__) || defined(UNIX))
+#  define BEO_UNX
+#endif
+
+#if (defined(BEO_UNX) || defined(THEOS))
+#  define BEO_THS_UNX
 #endif
 
 /* clean up with a few defaults */
@@ -725,13 +694,28 @@
 #  define TIMET_TO_NATIVE(x)
 #  define NATIVE_TO_TIMET(x)
 #endif
+#ifndef SSTAT
+#  ifdef WILD_STAT_BUG
+#    define SSTAT(path,pbuf) (iswild(path) || stat(path,pbuf))
+#  else
+#    define SSTAT stat
+#  endif
+#endif
+#ifndef STRNICMP
+#  ifdef NO_STRNICMP
+#    define STRNICMP zstrnicmp
+#  else
+#    define STRNICMP strnicmp
+#  endif
+#endif
 
-#if (defined(DOS_FLX_OS2_W32) || defined(UNIX) || defined(RISCOS))
+
+#if (defined(DOS_FLX_NLM_OS2_W32) || defined(BEO_UNX) || defined(RISCOS))
 #  ifndef HAVE_UNLINK
 #    define HAVE_UNLINK
 #  endif
 #endif
-#if (defined(AOS_VS) || defined(ATARI) || defined(__BEOS__)) /* GRR: others? */
+#if (defined(AOS_VS) || defined(ATARI)) /* GRR: others? */
 #  ifndef HAVE_UNLINK
 #    define HAVE_UNLINK
 #  endif
@@ -743,7 +727,7 @@
 #  if (defined(SYSV) || defined(CONVEX) || defined(NeXT) || defined(BSD4_4))
 #    define INT_SPRINTF      /* sprintf() returns int:  SysVish/Posix */
 #  endif
-#  if (defined(DOS_FLX_OS2_W32) || defined(VMS) || defined(AMIGA))
+#  if (defined(DOS_FLX_NLM_OS2_W32) || defined(VMS) || defined(AMIGA))
 #    define INT_SPRINTF      /* sprintf() returns int:  ANSI */
 #  endif
 #  if (defined(ultrix) || defined(__ultrix)) /* Ultrix 4.3 and newer */
@@ -754,7 +738,7 @@
 #      define PCHAR_SPRINTF  /* undetermined actual return value */
 #    endif
 #  endif
-#  if (defined(__osf__) || defined(_AIX) || defined(CMS_MVS))
+#  if (defined(__osf__) || defined(_AIX) || defined(CMS_MVS) || defined(THEOS))
 #    define INT_SPRINTF      /* sprintf() returns int:  ANSI/Posix */
 #  endif
 #  if defined(sun)
@@ -791,10 +775,21 @@
 #define MSG_NO_WDLL(f) (f & 0x1000)   /* bit 12:  1 = skip if Windows DLL */
 
 #if (defined(MORE) && !defined(SCREENLINES))
-#  ifdef DOS_FLX_OS2_W32
+#  ifdef DOS_FLX_NLM_OS2_W32
 #    define SCREENLINES 25  /* can be (should be) a function instead */
 #  else
 #    define SCREENLINES 24  /* VT-100s are assumed to be minimal hardware */
+#  endif
+#endif
+#if (defined(MORE) && !defined(SCREENSIZE))
+#  ifdef DOS_FLX_NLM_OS2_W32
+#    define SCREENSIZE(scrrows, scrcols) { \
+            if ((scrrows) != NULL) *(scrrows) = 25; \
+            if ((scrcols) != NULL) *(scrcols) = 80; }
+#  else
+#    define SCREENSIZE(scrrows, scrcols) { \
+            if ((scrrows) != NULL) *(scrrows) = 24; \
+            if ((scrcols) != NULL) *(scrcols) = 80; }
 #  endif
 #endif
 
@@ -945,10 +940,13 @@
 /* ...unless byteseek is used.  Let's try that for a while.            */
 #  define FOPR "rb,byteseek"
 #  define FOPM "r+b,byteseek"
-#  define FOPW "wb,recfm=v,lrecl=32760"
 #  ifdef MVS
-#    define FOPWT "w,lrecl=133"
+#    define FOPW "wb,recfm=u,lrecl=32760,byteseek" /* New binary files */
+#    define FOPWE "wb"                             /* Existing binary files */
+#    define FOPWT "w,lrecl=133"                    /* New text files */
+#    define FOPWTE "w"                             /* Existing text files */
 #  else
+#    define FOPW "wb,recfm=v,lrecl=32760"
 #    define FOPWT "w"
 #  endif
 #endif /* CMS_MVS */
@@ -991,7 +989,7 @@
  * define some or all of the following:  NAME_MAX, PATH_MAX, _POSIX_NAME_MAX,
  * _POSIX_PATH_MAX.
  */
-#ifdef DOS_FLX_OS2
+#ifdef DOS_FLX_NLM_OS2_W32
 #  include <limits.h>
 #endif
 
@@ -1012,6 +1010,99 @@
 #endif /* !PATH_MAX */
 
 #define FILNAMSIZ  PATH_MAX
+
+/* DBCS support for Info-ZIP  (mainly for japanese (-: )
+ * by Yoshioka Tsuneo (QWF00133@nifty.ne.jp,tsuneo-y@is.aist-nara.ac.jp)
+ */
+#ifdef _MBCS
+#  include <locale.h>
+   /* Multi Byte Character Set */
+#  define ___MBS_TMP_DEF  char *___tmp_ptr;
+#  define ___TMP_PTR      ___tmp_ptr
+#  define CLEN(ptr) mblen((ZCONST char *)(ptr), MB_CUR_MAX)
+#  ifndef PREINCSTR
+#    define PREINCSTR(ptr) (ptr += CLEN(ptr))
+#  endif
+#  define POSTINCSTR(ptr) (___TMP_PTR=(char *)(ptr), PREINCSTR(ptr),___TMP_PTR)
+   char *plastchar OF((ZCONST char *ptr, extent len));
+#  define lastchar(ptr, len) ((int)(unsigned)*plastchar(ptr, len))
+#  ifndef MBSCHR
+#    define NEED_UZMBSCHR
+#    define MBSCHR(str,c) (char *)uzmbschr((ZCONST unsigned char *)(str), c)
+#  endif
+#  ifndef MBSRCHR
+#    define NEED_UZMBSRCHR
+#    define MBSRCHR(str,c) (char *)uzmbsrchr((ZCONST unsigned char *)(str), c)
+#  endif
+#  define SETLOCALE(category, locale) setlocale(category, locale)
+#else /* !_MBCS */
+#  define ___MBS_TMP_DEF
+#  define ___TMP_PTR
+#  define CLEN(ptr) 1
+#  define PREINCSTR(ptr) (++(ptr))
+#  define POSTINCSTR(ptr) ((ptr)++)
+#  define plastchar(ptr, len) (&ptr[(len)-1])
+#  define lastchar(ptr, len) (ptr[(len)-1])
+#  define MBSCHR(str, c) strchr(str, c)
+#  define MBSRCHR(str, c) strrchr(str, c)
+#  define SETLOCALE(category, locale)
+#endif /* ?_MBCS */
+#define INCSTR(ptr) PREINCSTR(ptr)
+
+
+#ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
+#  define stat(p,s) zstat((p),(s))
+#endif
+
+#if (defined(CRAY) && defined(ZMEM))
+#  undef ZMEM
+#endif
+
+#ifdef ZMEM
+#  undef ZMEM
+#  define memcmp(b1,b2,len)      bcmp(b2,b1,len)
+#  define memcpy(dest,src,len)   bcopy(src,dest,len)
+#  define memzero                bzero
+#else
+#  define memzero(dest,len)      memset(dest,0,len)
+#endif
+
+#ifndef TRUE
+#  define TRUE      1   /* sort of obvious */
+#endif
+#ifndef FALSE
+#  define FALSE     0
+#endif
+
+#ifndef SEEK_SET
+#  define SEEK_SET  0
+#  define SEEK_CUR  1
+#  define SEEK_END  2
+#endif
+
+#if (!defined(S_IEXEC) && defined(S_IXUSR))
+#  define S_IEXEC   S_IXUSR
+#endif
+
+#if (defined(UNIX) && defined(S_IFLNK) && !defined(MTS))
+#  define SYMLINKS
+#  ifndef S_ISLNK
+#    define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
+#  endif
+#endif /* UNIX && S_IFLNK && !MTS */
+
+#ifndef S_ISDIR
+#  ifdef CMS_MVS
+#    define S_ISDIR(m)  (FALSE)
+#  else
+#    define S_ISDIR(m)  (((m) & S_IFMT) == S_IFDIR)
+# endif
+#endif
+
+#ifndef IS_VOLID
+#  define IS_VOLID(m)  ((m) & 0x08)
+#endif
+
 
 #ifdef SHORT_SYMS                   /* Mark Williams C, ...? */
 #  define extract_or_test_files     xtr_or_tst_files
@@ -1076,7 +1167,9 @@
 #define SKIP              0             /* skip header block */
 #define DISPLAY           1             /* display archive comment (ASCII) */
 #define DISPL_8           5             /* display file comment (ext. ASCII) */
-#define DS_FN             2             /* read filename (ext. ASCII) */
+#define DS_FN             2             /* read filename (ext. ASCII, chead) */
+#define DS_FN_C           2             /* read filename from central header */
+#define DS_FN_L           6             /* read filename from local header */
 #define EXTRA_FIELD       3             /* copy extra field into buffer */
 #define DS_EF             3
 #ifdef AMIGA
@@ -1086,6 +1179,13 @@
 #define DOES_NOT_EXIST    -1   /* return values for check_for_newer() */
 #define EXISTS_AND_OLDER  0
 #define EXISTS_AND_NEWER  1
+
+#define OVERWRT_QUERY     0    /* status values for G.overwrite_mode */
+#define OVERWRT_ALWAYS    1
+#define OVERWRT_NEVER     2
+
+#define IS_OVERWRT_ALL    (G.overwrite_mode == OVERWRT_ALWAYS)
+#define IS_OVERWRT_NONE   (G.overwrite_mode == OVERWRT_NEVER)
 
 #define ROOT              0    /* checkdir() extract-to path:  called once */
 #define INIT              1    /* allocate buildpath:  called once per member */
@@ -1113,8 +1213,9 @@
 #define FS_VFAT_          14   /* filesystem used by Windows 95, NT */
 #define MVS_              15
 #define BEOS_             16   /* hybrid POSIX/database filesystem */
-#define TANDEM_           17   /* Tandem/NSK */
-#define NUM_HOSTS         18   /* index of last system + 1 */
+#define TANDEM_           17   /* Tandem NSK */
+#define THEOS_            18   /* THEOS */
+#define NUM_HOSTS         19   /* index of last system + 1 */
 
 #define STORED            0    /* compression methods */
 #define SHRUNK            1
@@ -1162,6 +1263,9 @@
 #define EF_QDOS      0xfb4a    /* SMS/QDOS ("J\373") */
 #define EF_AOSVS     0x5356    /* AOS/VS ("VS") */
 #define EF_SPARK     0x4341    /* David Pilling's Acorn/SparkFS ("AC") */
+#define EF_TANDEM    0x4154    /* Tandem NSK ("TA") */
+#define EF_THEOS     0x6854    /* Jean-Michel Dubois' Theos "Th" */
+#define EF_THEOSO    0x4854    /* old Theos port */
 #define EF_MD5       0x4b46    /* Fred Kantor's MD5 ("FK") */
 #define EF_ASIUNIX   0x756e    /* ASi's Unix ("nu") */
 
@@ -1232,19 +1336,6 @@
 #  define NOANSIFILT
 #endif
 
-#if (defined(CRAY) && defined(ZMEM))
-#  undef ZMEM
-#endif
-
-#ifdef ZMEM
-#  undef ZMEM
-#  define memcmp(b1,b2,len)      bcmp(b2,b1,len)
-#  define memcpy(dest,src,len)   bcopy(src,dest,len)
-#  define memzero                bzero
-#else
-#  define memzero(dest,len)      memset(dest,0,len)
-#endif
-
 #ifdef VMS
 #  define ENV_UNZIP       "UNZIP_OPTS"     /* names of environment variables */
 #  define ENV_ZIPINFO     "ZIPINFO_OPTS"
@@ -1277,38 +1368,6 @@
 #  define QCOND2    (!uO.qflag)
 #endif
 
-#ifndef TRUE
-#  define TRUE      1   /* sort of obvious */
-#endif
-#ifndef FALSE
-#  define FALSE     0
-#endif
-
-#ifndef SEEK_SET
-#  define SEEK_SET  0
-#  define SEEK_CUR  1
-#  define SEEK_END  2
-#endif
-
-#if (defined(UNIX) && defined(S_IFLNK) && !defined(MTS))
-#  define SYMLINKS
-#  ifndef S_ISLNK
-#    define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
-#  endif
-#endif /* UNIX && S_IFLNK && !MTS */
-
-#ifndef S_ISDIR
-#  ifdef CMS_MVS
-#    define S_ISDIR(m)  (FALSE)
-#  else
-#    define S_ISDIR(m)  (((m) & S_IFMT) == S_IFDIR)
-# endif
-#endif
-
-#ifndef IS_VOLID
-#  define IS_VOLID(m)  ((m) & 0x08)
-#endif
-
 
 
 
@@ -1327,7 +1386,7 @@
 #  endif
 #endif
 
-#if (defined(WIN32) || defined(sgi) || defined(GOT_UTIMBUF) || defined(ATARI))
+#if (defined(GOT_UTIMBUF) || defined(sgi) || defined(ATARI))
    typedef struct utimbuf ztimbuf;
 #else
    typedef struct ztimbuf {
@@ -1361,6 +1420,7 @@ typedef struct min_info {
     ulg crc;                 /* crc (needed if extended header) */
     ulg compr_size;          /* compressed size (needed if extended header) */
     ulg uncompr_size;        /* uncompressed size (needed if extended header) */
+    int hostver;
     int hostnum;
     unsigned file_attr;      /* local flavor, as used by creat(), chmod()... */
     unsigned encrypted : 1;  /* file encrypted: decrypt before uncompressing */
@@ -1369,6 +1429,7 @@ typedef struct min_info {
     unsigned textmode : 1;   /* file is to be extracted as text */
     unsigned lcflag : 1;     /* convert filename to lowercase */
     unsigned vollabel : 1;   /* "file" is an MS-DOS volume (disk) label */
+    unsigned HasUxAtt : 1;   /* crec ext_file_attr has Unix style mode bits */
 } min_info;
 
 typedef struct VMStimbuf {
@@ -1594,7 +1655,7 @@ int      zipinfo                 OF((__GPRO));
 int      list_files              OF((__GPRO));
 #ifdef TIMESTAMP
    int   get_time_stamp          OF((__GPRO__  time_t *last_modtime,
-                                     unsigned *nmember));
+                                     ulg *nmember));
 #endif
 int      ratio                   OF((ulg uc, ulg c));
 void     fnprint                 OF((__GPRO));
@@ -1630,11 +1691,13 @@ ulg      makelong             OF((ZCONST uch *sig));
 #if (!defined(STR_TO_OEM) || defined(NEED_STR2OEM))
    char *str2oem              OF((char *dst, ZCONST char *src));
 #endif
-int      zstrnicmp            OF((register ZCONST char *s1,
+#ifdef NO_STRNICMP
+   int   zstrnicmp            OF((register ZCONST char *s1,
                                   register ZCONST char *s2,
                                   register unsigned n));
+#endif
 #ifdef REGULUS
-   int zstat                  OF((char *p, struct stat *s));
+   int   zstat                OF((ZCONST char *p, struct stat *s));
 #endif
 #ifdef ZMEM   /* MUST be ifdef'd because of conflicts with the standard def. */
    zvoid *memset OF((register zvoid *, register int, register unsigned int));
@@ -1642,6 +1705,12 @@ int      zstrnicmp            OF((register ZCONST char *s1,
                      register unsigned int));
    zvoid *memcpy OF((register zvoid *, register ZCONST zvoid *,
                      register unsigned int));
+#endif
+#ifdef NEED_UZMBSCHR
+   unsigned char *uzmbschr  OF((ZCONST unsigned char *str, unsigned int c));
+#endif
+#ifdef NEED_UZMBSRCHR
+   unsigned char *uzmbsrchr OF((ZCONST unsigned char *str, unsigned int c));
 #endif
 #ifdef SMALL_MEM
    char *fLoadFarString       OF((__GPRO__ const char Far *sz));
@@ -1687,11 +1756,15 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
    int    inflate_free           OF((__GPRO));                  /* inflate.c */
 #endif /* ?USE_ZLIB */
 #if (!defined(SFX) && !defined(FUNZIP))
-void   unreduce                  OF((__GPRO));                 /* unreduce.c */
+#ifndef COPYRIGHT_CLEAN
+   int    unreduce               OF((__GPRO));                 /* unreduce.c */
 /* static void  LoadFollowers    OF((__GPRO__ f_array *follower, uch *Slen));
                                                                 * unreduce.c */
-int    unshrink                  OF((__GPRO));                 /* unshrink.c */
+#endif /* !COPYRIGHT_CLEAN */
+#ifndef LZW_CLEAN
+   int    unshrink               OF((__GPRO));                 /* unshrink.c */
 /* static void  partial_clear    OF((__GPRO));                  * unshrink.c */
+#endif /* !LZW_CLEAN */
 #endif /* !SFX && !FUNZIP */
 
 /*---------------------------------------------------------------------------
@@ -1728,45 +1801,13 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 #endif
 
 /*---------------------------------------------------------------------------
-    Human68K-only functions:
-  ---------------------------------------------------------------------------*/
-
-#ifdef __human68k__
-   void  InitTwentyOne       OF((void));
-#endif
-
-/*---------------------------------------------------------------------------
-    Macintosh-only functions:
-  ---------------------------------------------------------------------------*/
-
-#ifdef MACOS
-   void    screenOpen        OF((char *));                    /* macscreen.c */
-   void    screenControl     OF((char *, int));               /* macscreen.c */
-   void    screenDump        OF((char *, long));              /* macscreen.c */
-   void    screenUpdate      OF((WindowPtr));                 /* macscreen.c */
-   void    screenClose       OF((void));                      /* macscreen.c */
-   int     macgetch          OF((void));                      /* macscreen.c */
-
-   int     macmkdir     OF((char *));                               /* mac.c */
-   short   macopen      OF((char *, short));                        /* mac.c */
-   short   maccreat     OF((char *));                               /* mac.c */
-   short   macread      OF((short, char *, unsigned));              /* mac.c */
-   long    macwrite     OF((short, char *, unsigned));              /* mac.c */
-   short   macclose     OF((short));                                /* mac.c */
-   long    maclseek     OF((short, long, short));                   /* mac.c */
-   char   *macfgets     OF((char *, int, FILE *));                  /* mac.c */
-   int     macfprintf   OF((FILE *, char *, ...));                  /* mac.c */
-   int     macprintf    OF((char *, ...));                          /* mac.c */
-#endif
-
-/*---------------------------------------------------------------------------
     MSDOS-only functions:
   ---------------------------------------------------------------------------*/
 
 #if (defined(MSDOS) && (defined(__GO32__) || defined(__EMX__)))
    unsigned _dos_getcountryinfo(void *);                          /* msdos.c */
 #if (!defined(__DJGPP__) || (__DJGPP__ < 2))
-   unsigned _dos_setftime(int, unsigned short, unsigned short);   /* msdos.c */
+   unsigned _dos_setftime(int, unsigned, unsigned);               /* msdos.c */
    unsigned _dos_setfileattr(char *, unsigned);                   /* msdos.c */
    unsigned _dos_creat(char *, unsigned, int *);                  /* msdos.c */
    void _dos_getdrive(unsigned *);                                /* msdos.c */
@@ -1874,7 +1915,7 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 
 Uz_Globs *globalsCtor    OF((void));                            /* globals.c */
 
-void     envargs         OF((__GPRO__ int *Pargc, char ***Pargv,
+int      envargs         OF((int *Pargc, char ***Pargv,
                              ZCONST char *envstr, ZCONST char *envstr2));
                                                                 /* envargs.c */
 void     mksargs         OF((int *argcp, char ***argvp));       /* envargs.c */
@@ -1898,11 +1939,15 @@ int      dateformat      OF((void));              /* currently, only msdos.c */
 int      mapattr         OF((__GPRO));                              /* local */
 int      mapname         OF((__GPRO__ int renamed));                /* local */
 int      checkdir        OF((__GPRO__ char *pathcomp, int flag));   /* local */
-char    *do_wild         OF((__GPRO__ char *wildzipfn));            /* local */
+char    *do_wild         OF((__GPRO__ ZCONST char *wildzipfn));     /* local */
 char    *GetLoadPath     OF((__GPRO));                              /* local */
-#if (defined(MORE) && (defined(UNIX) || defined(VMS) || defined(__BEOS__)))
-   int screenlines       OF((void));                                /* local */
-#endif
+#if (defined(MORE) && (defined(BEO_UNX) || defined(QDOS) || defined(VMS)))
+   int screensize        OF((int *tt_rows, int *tt_cols));          /* local */
+#  if (defined(SCREENWIDTH) && defined(SCREENLWRAP) && defined(VMS))
+      int screencolumns  OF((void));                                /* local */
+      int screenlinewrap OF((void));                                /* local */
+#  endif
+#endif /* MORE && (BEO_UNX || QDOS || VMS) */
 #ifndef MTS /* macro in MTS */
    void  close_outfile   OF((__GPRO));                              /* local */
 #endif
@@ -1937,7 +1982,12 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #endif
 
 #ifdef DEBUG
-#  define Trace(x)   fprintf x
+#  if (defined(THEOS) && defined(NO_BOGUS_SPC))
+#    define NO_DEBUG_IN_MACROS
+#    define Trace(x)   _fprintf x
+#  else
+#    define Trace(x)   fprintf x
+#  endif
 #else
 #  define Trace(x)
 #endif
@@ -2109,8 +2159,8 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #  define FLUSH(w)  flush(__G__ (ulg)(w))
 #  define NEXTBYTE  getc(G.in)   /* redefined in crypt.h if full version */
 #else
-#  define FLUSH(w)  if (G.mem_mode) memflush(__G__ redirSlide,(ulg)(w)); \
-     else flush(__G__ redirSlide,(ulg)(w),0)
+#  define FLUSH(w)  ((G.mem_mode) ? memflush(__G__ redirSlide,(ulg)(w)) \
+                                  : flush(__G__ redirSlide,(ulg)(w),0))
 #  define NEXTBYTE  (--G.incnt >= 0 ? (int)(*G.inptr++) : readbyte(__G))
 #endif
 
@@ -2143,35 +2193,35 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  */
 
 
-/* GRR:  should change name to STRLOWER and use StringLower if possible */
+/* GRR:  should use StringLower for STRLOWER macro if possible */
 
 /*
  *  Copy the zero-terminated string in str1 into str2, converting any
  *  uppercase letters to lowercase as we go.  str2 gets zero-terminated
  *  as well, of course.  str1 and str2 may be the same character array.
  */
-#ifdef __human68k__
-#  define TOLOWER(str1, str2) \
+#ifdef _MBCS
+#  define STRLOWER(str1, str2) \
    { \
-       char *p=(str1), *q=(str2); \
-       uch c; \
-       while ((c = *p++) != '\0') { \
-           if (iskanji(c)) { \
-               if (*p == '\0') \
-                   break; \
-               *q++ = c; \
-               *q++ = *p++; \
-           } else \
-               *q++ = isupper(c) ? tolower(c) : c; \
+       char  *p, *q, c; unsigned i; \
+       p = (char *)(str1); \
+       q = (char *)(str2); \
+       while ((c = *p) != '\0') { \
+           if ((i = CLEN(p)) > 1) { \
+               while (i--) *q++ = *p++; \
+           } else { \
+               *q++ = (char)(isupper((int)(c))? tolower((int)(c)) : c); \
+               p++; \
+           } \
        } \
        *q = '\0'; \
    }
 #else
-#  define TOLOWER(str1, str2) \
+#  define STRLOWER(str1, str2) \
    { \
        char  *p, *q; \
-       p = (str1) - 1; \
-       q = (str2); \
+       p = (char *)(str1) - 1; \
+       q = (char *)(str2); \
        while (*++p) \
            *q++ = (char)(isupper((int)(*p))? tolower((int)(*p)) : *p); \
        *q = '\0'; \
@@ -2323,12 +2373,21 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  *  -> DOS (this includes 16-bit Windows 3.1)  (FS_FAT_)
  *  -> OS/2                                    (FS_HPFS_)
  *  -> Win95/WinNT with Nico Mak's WinZip      (FS_NTFS_ && hostver == "5.0")
+ * EXCEPTIONS:
+ *  PKZIP for Windows 2.5 and 2.6 flag their entries as "FS_FAT_", but the
+ *  filename stored in the local header is coded in Windows ANSI (ISO 8859-1).
+ *  Likewise, PKZIP for UNIX 2.51 flags its entries as "FS_FAT_", but the
+ *  filenames stored in BOTH the local and the central header are coded
+ *  in the local system's codepage (usually ANSI codings like ISO 8859-1).
  *
  * All other ports are assumed to code zip entry filenames in ISO 8859-1.
  */
 #ifndef Ext_ASCII_TO_Native
-#  define Ext_ASCII_TO_Native(string, hostnum, hostver) \
-    if ((hostnum) == FS_FAT_ || (hostnum) == FS_HPFS_ || \
+#  define Ext_ASCII_TO_Native(string, hostnum, hostver, isuxatt, islochdr) \
+    if (((hostnum) == FS_FAT_ && \
+         !(((islochdr) || (isuxatt)) && \
+           (hostver) >= 25 && (hostver) <= 26)) || \
+        (hostnum) == FS_HPFS_ || \
         ((hostnum) == FS_NTFS_ && (hostver) == 50)) { \
         _OEM_INTERN((string)); \
     } else { \
@@ -2357,13 +2416,16 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 
    extern ZCONST char Far  VersionDate[];
    extern ZCONST char Far  CentSigMsg[];
+#ifndef SFX
    extern ZCONST char Far  EndSigMsg[];
+#endif
    extern ZCONST char Far  SeekMsg[];
    extern ZCONST char Far  FilenameNotMatched[];
    extern ZCONST char Far  ExclFilenameNotMatched[];
    extern ZCONST char Far  ReportMsg[];
 
 #ifndef SFX
+   extern ZCONST char Far  Zipnfo[];
    extern ZCONST char Far  CompiledWith[];
 #endif /* !SFX */
 

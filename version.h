@@ -1,8 +1,13 @@
 /*
-   version.h (for UnZip) by Info-ZIP.
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
 
-   This header file is not copyrighted and may be distributed without
-   restriction.  (That's a little geek humor, heh heh.)
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
+/*
+   version.h (for UnZip) by Info-ZIP.
  */
 
 #ifndef __version_h     /* don't include more than once */
@@ -13,11 +18,11 @@
 #endif
 
 #ifdef BETA
-#  define BETALEVEL         "d BETA"
-#  define VERSION_DATE      "27 November 98"    /* internal beta version */
+#  define UZ_BETALEVEL      "g BETA"
+#  define UZ_VERSION_DATE   "14 Apr 00"         /* internal beta version */
 #else
-#  define BETALEVEL         ""
-#  define VERSION_DATE      "28 November 1998"  /* official release version */
+#  define UZ_BETALEVEL      ""
+#  define UZ_VERSION_DATE   "16 April 2000"     /* official release version */
 #  define RELEASE
 #endif
 
@@ -27,18 +32,20 @@
 #define ZI_MAJORVER    2   /* ZipInfo */
 #define ZI_MINORVER    3
 
-#define PATCHLEVEL     0
+#define UZ_PATCHLEVEL  1
+
+#define UZ_VER_STRING  "5.41"        /* keep in sync with Version numbers! */
 
 
 /* these are obsolete but remain for backward compatibility: */
 #define D2_MAJORVER    UZ_MAJORVER   /* DLL for OS/2 */
 #define D2_MINORVER    UZ_MINORVER
-#define D2_PATCHLEVEL  PATCHLEVEL
+#define D2_PATCHLEVEL  UZ_PATCHLEVEL
 
 #define DW_MAJORVER    UZ_MAJORVER   /* DLL for MS Windows */
 #define DW_MINORVER    UZ_MINORVER
-#define DW_PATCHLEVEL  PATCHLEVEL
+#define DW_PATCHLEVEL  UZ_PATCHLEVEL
 
-#define WIN_VERSION_DATE  VERSION_DATE
+#define WIN_VERSION_DATE  UZ_VERSION_DATE
 
 #endif /* !__version_h */

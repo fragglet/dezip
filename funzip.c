@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* funzip.c -- put in the public domain by Mark Adler */
 
 #define VERSION "3.93 of 21 November 1998"
@@ -88,7 +96,7 @@
 
    funzip needs to be linked with inflate.o and crypt.o compiled from
    the unzip source.  If decryption is desired, the full version of
-   crypt.c (and crypt.h) from zcrypt21.zip or later must be used.
+   crypt.c (and crypt.h) from zcrypt28.zip or later must be used.
 
  */
 
@@ -138,9 +146,15 @@
 #define GZPCOS 7                /* offset of operating system compressed on */
 #define GZPHDR 8                /* length of minimal gzip header */
 
+#ifdef THEOS
+/* Macros cause stack overflow in compiler */
+ush SH(uch* p) { return ((ush)(uch)((p)[0]) | ((ush)(uch)((p)[1]) << 8)); }
+ulg LG(uch* p) { return ((ulg)(SH(p)) | ((ulg)(SH((p)+2)) << 16)); }
+#else /* !THEOS */
 /* Macros for getting two-byte and four-byte header values */
 #define SH(p) ((ush)(uch)((p)[0]) | ((ush)(uch)((p)[1]) << 8))
 #define LG(p) ((ulg)(SH(p)) | ((ulg)(SH((p)+2)) << 16))
+#endif /* ?THEOS */
 
 /* Function prototypes */
 void err OF((int, char *));
@@ -282,13 +296,13 @@ char **argv;
   }
   else
   {
-#ifdef DOS_FLX_H68_OS2_W32
+#ifdef DOS_FLX_NLM_OS2_W32
 #if (defined(__HIGHC__) && !defined(FLEXOS))
     setmode(stdin, _BINARY);
 #else
     setmode(0, O_BINARY);  /* some buggy C libraries require BOTH setmode() */
 #endif                     /*  call AND the fdopen() in binary mode :-( */
-#endif /* DOS_FLX_H68_OS2_W32 */
+#endif /* DOS_FLX_NLM_OS2_W32 */
 
 #ifdef RISCOS
     G.in = stdin;
@@ -298,13 +312,13 @@ char **argv;
 #endif
   }
 
-#ifdef DOS_FLX_H68_OS2_W32
+#ifdef DOS_FLX_H68_NLM_OS2_W32
 #if (defined(__HIGHC__) && !defined(FLEXOS))
   setmode(stdout, _BINARY);
 #else
   setmode(1, O_BINARY);
 #endif
-#endif /* DOS_FLX_H68_OS2_W32 */
+#endif /* DOS_FLX_H68_NLM_OS2_W32 */
 
 #ifdef RISCOS
   out = stdout;

@@ -1,12 +1,14 @@
-Contents of the UnZip 5.4 source archive.  The OS-specific subdirectories
+Contents of the UnZip 5.41 source archive.  The OS-specific subdirectories
 at the end contain their own Contents listings:
 
   Contents      this file
   README        what UnZip is; general information
-  COPYING       copyrights and distribution policy
+  LICENSE       Info-ZIP license; terms for using and distributing UnZip
+  COPYING       copyrights and distribution policy (obsolete)
   INSTALL       how to compile and install UnZip and related utilities
   WHERE         where Zip/UnZip and encryption/decryption support can be found
-  History.540   new features and fixes in this release
+  History.540   new features and fixes of the last major release
+  History.541   new features and fixes in this release
   ToDo          rough priority list of new features to be added in next release
   BUGS          known bugs, problems, and (possible) other features to be added
   unzip.doc     UnZip manual page, human-readable format
@@ -22,8 +24,8 @@ at the end contain their own Contents listings:
   crc32.c       code for calculation 32bit CRC of a string buffer (required*)
   crc_i386.S    fast assembler replacement for crc32.c (Intel 386 and newer)
   crctab.c      supplies polynomial table for CRC calculation
-  crypt.c       dummy decryption routines (required*)
-  crypt.h       dummy decryption header file (required*)
+  crypt.c       de-/encryption routines (required*)
+  crypt.h       de-/encryption header file (required*)
   ebcdic.h      static lookup table for ASCII <-> EBCDIC translation (required)
   envargs.c     code to read options from environment variables (required)
   explode.c     code for exploding (required)
@@ -59,16 +61,18 @@ at the end contain their own Contents listings:
   human68k/     support files for compiling under X68000/Human68K
   macos/        support files for compiling under Macintosh OS
   msdos/        support files for compiling under MS-DOS
-  novell/       support files for compiling for Novell Netware NLM (preliminary)
+  novell/       support files for compiling for Novell Netware NLM
   os2/          support files for compiling under OS/2 (includes DLL stuff)
   qdos/         support files for compiling under SMS/QDOS
   tandem/       support files for compiling under Tandem NSK
+  theos/        support files for compiling under Theos
   tops20/       support files for compiling under TOPS-20
   unix/         support files for compiling under Unix
   vms/          support files for compiling under VMS
-  win32/        support files for compiling under Windows 95 and Windows NT
+  win32/        support files for compiling under Windows 9x and Windows NT
   wince/        support files for compiling under Windows CE (GUI version)
-  windll/       support files for compiling Windows 3.x/95/NT DLLs
+  windll/       support files for compiling Windows 3.x/9x/NT DLLs
+  man/          nroff man-page sources for the main user documentation
   proginfo/     programming docs, additional technical info, contributor list
 
 Files marked "required*" are also needed to compile fUnZip.  The normal

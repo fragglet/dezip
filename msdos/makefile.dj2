@@ -1,11 +1,11 @@
-# Makefile for Info-ZIP's UnZip, UnZipSFX and fUnZip using djgpp v2.01, by
-# Frank Donahoe.                                 Last updated:  30 Sept 97
+# Makefile for Info-ZIP's UnZip, UnZipSFX and fUnZip using DJGPP v2.01 or
+# higher, by Frank Donahoe.                      Last updated: 16 April 00
 
 # This Makefile is specifically tailored for GNU make and GNU C and
 # may not work with a generic Unix-compatible make utility.  The latest
-# make version is 3.75.  Thanks to Eli Zaretskii for generously responding
+# make version is 3.78.1.  Thanks to Eli Zaretskii for generously responding
 # to questions with advice on the changes needed to make install work under
-# the new version.
+# DJGPP version 2.0x.
 # Features used:
 # - pattern rules (%.o : %.c, etc.)
 # - GNU-specific conditionals and functions  (ifeq, $(patsubst,,),...)
@@ -22,10 +22,10 @@
 #
 #   ftp://ftp.simtel.net/pub/simtelnet/gnu/djgpp/v2misc/csdpmi?[b,s].zip
 #
-# and on its mirrors worldwide.  The latest version as of this writing is 3.
+# and on its mirrors worldwide.  The latest version as of this writing is 4.
 # Archives with the b postscript contain the binaries.  An alternate server
-# is found, l.c., in the archive pmode??[b,s].zip.  The latest (960908) is
-# v1.1.
+# is found, l.c., in the archive pmode??[b,s].zip.  The latest (970730) is
+# v1.2.
 
 # Separators colon and <sp> are used in Unix, semi-colon and <sp> in DOS.
 VPATH=. msdos
@@ -39,22 +39,32 @@ endif
 .PHONY : clean install uninstall
 
 # UnZip flags
-# LOCAL_UNZIP may be set in AUTOEXEC.BAT or defined in djgpp.env [make].
+# LOCAL_UNZIP may be set in "AUTOEXEC.BAT" or defined in "djgpp.env" under
+# [make] as in the example below.  Or, if you habitually work in a DOS box
+# under Windows9x, right click on the MS-DOS icon, select properties, then
+# program, to find a slot called batch file, where you may specify the path
+# to a file which will set the variables of choice every time the box is
+# opened.
 # See, for example, DOSWILD, in the file INSTALL.
 
 # [make]
-# LOCAL_UNZIP=-DDOSWILD
-# BUTT=-m486
+# +BUTT=-m486
+# +LOC=-W -Wall
+# +LOCAL_UNZIP=-DUSE_UNSHRINK
 
-# BUTT may also be defined to specify the target system.  At present, -m386
-# and -m486 are the only supported options.  Either will produce code that
-# will run on the other microprocessor, though possibly not so fast.
-# In any case, omitting BUTT will result in a slightly smaller executable.
+# BUTT may be defined to specify the target system.  With gcc v2.95,
+# optimizing options like "-mpentiumpro -march=pentiumpro" are supported,
+# but the traditional "-m386" and "-m486" options of previous gcc 2.x
+# version will continue to work.
+# So if you are in the habit of compiling from source, programs for your
+# own use, it is well to consult gcc's manual for options suitable to
+# your processer and to set BUTT accordingly.  Consult INSTALL for
+# LOCAL_UNZIP.
 
-LOC=-DDOS -DUSE_VFAT $(ASMFLG) $(LOCAL_UNZIP)
+LOC=
 CC=gcc
 LD=$(CC)
-CPPFLAGS=-I. $(LOC)
+CPPFLAGS=-I. -DDOS -DUSE_VFAT $(ASMFLG) $(LOCAL_UNZIP) $(LOC)
 ASFLAGS=$(CPPFLAGS)
 CFLAGS=-Wall -O2 $(BUTT) $(CPPFLAGS)
 
@@ -80,12 +90,18 @@ INSTALL=ginstall
 # The default value of RM is "rm -f"  .  If rm.exe is not found, uncomment
 # the following:
 # RM=del
-# If "djp.exe," which is Laszlo Molnar's executable file packer, is in the
-# path, uncomment the three lines found far below containing $(DJP).  The
-# executable files will be converted to self-extracting compressed files.
-# Look for "djp.exe" in the directory v2misc in the archive mlp???b.zip.
-# Do not add the option -s to DJP without making the required changes to
-# the targets zipinfo$E and unzipsfx$E.
+# Laszlo Molnar who wrote DJ Packer and Markus F. X. J. Oberhumer who wrote
+# the compression library used by the DJ Packer have collaborated on the
+# Ultimate Packer for eXecutables, which has recently been released.  Look
+# for upx???d.zip at     http://upx.tsx.org/                            or
+# look for "djp.exe", now two years old, in the archive mlp107[b,s].zip,
+# found in the same directory as csdpmi4[b,s].zip
+# Do not add the option -s to djp.exe without making the required changes
+# to the targets zipinfo$E and unzipsfx$E.  Uncomment the three lines
+# beginning with $(DJP).
+# (Note by the UnZip maintainer: For now, "makefile.dj2" keeps "djp.exe"
+# as packer example, because "upx" new, not [yet] contained in the standard
+# djgpp distribution set and almost untested with UnZip.)
 
 DJP = djp -q
 E = .exe
@@ -163,7 +179,7 @@ crc_gcc$O: crc_i386.S		# 32bit, GNU AS
 # following in djgpp.env:
 
 # [make]
-# BIN_PATH=%\>;BIN_PATH%%\DJDIR%\bin
+# +BIN_PATH=%\DJDIR%\bin
 
 # Even if so placed, it can be over-ridden here by, say:
 # BIN_PATH=c:\usr\bin

@@ -1,5 +1,5 @@
 # WMAKE makefile for Windows 95 and Windows NT (Intel only)
-# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 26 Apr 98.
+# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 24 Oct 99.
 # Makes UnZip.exe, fUnZip.exe, and UnZipSFX.exe.
 #
 # Invoke from UnZip source dir with "WMAKE -F WIN32\MAKEFILE.WAT [targets]"
@@ -114,6 +114,9 @@ UnZipSFX.exe:	$(OBJX)
 fUnZip.exe:	$(OBJF)
 	$(link) $(lflags) $(ldebug) name $@ file {$(OBJF)}
 
+uzexampl.exe:	$(O)uzexampl.obj
+	$(link) $(lflags) $(ldebug) name $@ file {$(O)uzexampl.obj}
+
 # Source dependencies:
 
 #       generic (UnZip, fUnZip):
@@ -183,7 +186,12 @@ $(O)ttyiof.obj:   ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(cc) $(cdebug) $(cflags) $(cvars) -DFUNZIP ttyio.c -fo=$@
 
 $(O)win32f.obj:    win32\win32.c $(UNZIP_H)
-	$(cc) $(cdebux) $(cflags) $(cvars) -DFUNZIP win32\win32.c -fo=$@
+	$(cc) $(cdebug) $(cflags) $(cvars) -DFUNZIP win32\win32.c -fo=$@
+
+# Windll command line example:
+
+$(O)uzexampl.obj: windll\uzexampl.c windll\uzexampl.h
+	$(cc) $(cdebug) $(cflags) $(cvars) windll\uzexampl.c -fo=$@
 
 # Unwanted file removal:
 

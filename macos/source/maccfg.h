@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
     MACOS specific configuration and declarations:
   ---------------------------------------------------------------------------*/
@@ -130,12 +138,12 @@
 #ifdef foreign
 #  undef foreign
 #endif
-#define foreign(c) ((c) & 0x80 ? MacRoman_to_ISO8859_1[(c) & 0x7f] : (c))
+#define foreign(c) ((c) & 0x80 ? MacRoman_to_WinCP1252[(c) & 0x7f] : (c))
 
 #ifdef native
 #  undef native
 #endif
-#define native(c)  ((c) & 0x80 ? ISO8859_1_to_MacRoman[(c) & 0x7f] : (c))
+#define native(c)  ((c) & 0x80 ? WinCP1252_to_MacRoman[(c) & 0x7f] : (c))
 #define NATIVE "MacRoman charset"
 
 #ifdef _ISO_INTERN
@@ -143,7 +151,7 @@
 #endif
 #define _ISO_INTERN(str1) {register uch *p;\
    for (p=(uch *)(str1); *p; p++)\
-     *p = (*p & 0x80) ? ISO8859_1_to_MacRoman[*p & 0x7f] : *p;}
+     *p = (*p & 0x80) ? WinCP1252_to_MacRoman[*p & 0x7f] : *p;}
 
 #ifdef _OEM_INTERN
 #  undef _OEM_INTERN
@@ -153,13 +161,13 @@
 #endif
 #define _OEM_INTERN(str1) {register uch *p;\
    for (p=(uch *)(str1); *p; p++)\
-     *p = (*p & 0x80) ? ISO8859_1_to_MacRoman[oem2iso[*p & 0x7f]] : *p;}
+     *p = (*p & 0x80) ? WinCP1252_to_MacRoman[oem2iso[*p & 0x7f]] : *p;}
 
-#ifdef FILEIO_C         /* get the ISO8859-1 <--> MacROMAN conversion tables */
+#ifdef __FILEIO_C       /* get the ISO8859-1 <--> MacROMAN conversion tables */
 #  include "charmap.h"
 #else
-   extern ZCONST uch ISO8859_1_to_MacRoman[128];
-   extern ZCONST uch MacRoman_to_ISO8859_1[128];
+   extern ZCONST uch WinCP1252_to_MacRoman[128];
+   extern ZCONST uch MacRoman_to_WinCP1252[128];
 #endif
 
 
@@ -181,6 +189,7 @@ typedef struct _ZipExtraHdr {
    extra-field definition; so it's *not* the definition of the extra-field  */
 
 typedef struct _MacInfo {
+    unsigned char *filename;  /* for ZipIt ef */
     ush         header;     /* tag for this extra block type  */
     ush         data;       /* total data size for this block */
     ulg         size;       /* uncompressed finder attribute data size */
@@ -223,6 +232,24 @@ typedef struct _MacInfo {
 /*****************************************************************************/
 /*  Prototypes                                                               */
 /*****************************************************************************/
+
+void    screenOpen      OF((char *));                         /* macscreen.c */
+void    screenControl   OF((char *, int));                    /* macscreen.c */
+void    screenDump      OF((char *, long));                   /* macscreen.c */
+void    screenUpdate    OF((WindowPtr));                      /* macscreen.c */
+void    screenClose     OF((void));                           /* macscreen.c */
+int     macgetch        OF((void));                           /* macscreen.c */
+
+int     macmkdir        OF((char *));                             /* macos.c */
+short   macopen         OF((char *, short));                      /* macos.c */
+short   maccreat        OF((char *));                             /* macos.c */
+short   macread         OF((short, char *, unsigned));            /* macos.c */
+long    macwrite        OF((short, char *, unsigned));            /* macos.c */
+short   macclose        OF((short));                              /* macos.c */
+long    maclseek        OF((short, long, short));                 /* macos.c */
+char   *macfgets        OF((char *, int, FILE *));                /* macos.c */
+int     macfprintf      OF((FILE *, char *, ...));                /* macos.c */
+int     macprintf       OF((char *, ...));                        /* macos.c */
 
 ulg    makePPClong(ZCONST uch *sig);
 ush    makePPCword(ZCONST uch *b);

@@ -65,7 +65,7 @@
 |THEN|
   SPOOLCOM /OUTV buf/ OPEN [sup];JOB (OWNER, LOC [locn]),STATUS,DELETE !
   #OUTPUTV buf
-  #OUTPUT Compiling [src]...
+  #OUTPUT Compiling [src]... [options]
   C /IN [src], OUT [out].[stem]/[obj];SYMBOLS,HIGHPIN [options]
   [#CASE [tacl^completioncode]
   | 0 |

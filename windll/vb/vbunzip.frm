@@ -170,7 +170,7 @@ Option Explicit
 '--
 '-- This Source Code Is Freely Available From The Info-ZIP Project
 '-- Web Server At:
-'-- http://www.cdrom.com/pub/infozip/infozip.html
+'-- ftp://ftp.info-zip.org/pub/infozip/infozip.html
 '--
 '-- A Very Special Thanks To Mr. Mike Le Voi
 '-- And Mr. Mike White

@@ -1,3 +1,59 @@
+/*
+These Functions were originally part of More Files version 1.4.8
+
+More Files fixes many of the broken or underfunctional
+parts of the file system.
+
+More Files
+
+A collection of File Manager and related routines
+
+by Jim Luther (Apple Macintosh Developer Technical Support Emeritus)
+with significant code contributions by Nitin Ganatra
+(Apple Macintosh Developer Technical Support Emeritus)
+Copyright  1992-1998 Apple Computer, Inc.
+Portions copyright  1995 Jim Luther
+All rights reserved.
+
+The Package "More Files" is distributed under the following
+license terms:
+
+         "You may incorporate this sample code into your
+          applications without restriction, though the
+          sample code has been provided "AS IS" and the
+          responsibility for its operation is 100% yours.
+          However, what you are not permitted to do is to
+          redistribute the source as "DSC Sample Code" after
+          having made changes. If you're going to
+          redistribute the source, we require that you make
+          it clear in the source that the code was descended
+          from Apple Sample Code, but that you've made
+          changes."
+
+
+The following changes are made by Info-ZIP:
+
+- The only changes are made by pasting the functions
+  (mostly found in MoreFilesExtras.c / MoreFiles.c)
+  directly into macstuff.c / macstuff.h and slightly
+  reformatting the text (replacement of TABs by spaces,
+  removal/replacement of non-ASCII characters).
+  The code itself is NOT changed.
+
+This file has been modified by Info-ZIP for use in MacZip.
+This file is NOT part of the original package More Files.
+
+More Files can be found on the MetroWerks CD and Developer CD from
+Apple. You can also download the latest version from:
+
+    http://members.aol.com/JumpLong/#MoreFiles
+
+Jim Luther's Home-page:
+    http://members.aol.com/JumpLong/
+
+
+*/
+
 #include <string.h>
 
 
@@ -864,6 +920,7 @@ pascal OSErr FSpLocationFromFullPath(short fullPathLength,
     nullString[0] = 0;  /* null string to indicate no zone or server name */
     result = NewAliasMinimalFromFullPath(fullPathLength, fullPath, nullString,
                                          nullString, &alias);
+
     if ( result == noErr )
     {
         /* Let the Alias Manager resolve the alias. */
@@ -871,6 +928,7 @@ pascal OSErr FSpLocationFromFullPath(short fullPathLength,
 
         DisposeHandle((Handle)alias);   /* Free up memory used */
     }
+
     return ( result );
 }
 
@@ -1606,6 +1664,61 @@ pascal  OSErr   GetDirName(short vRefNum,
     }
 
     return ( error );
+}
+
+
+/*****************************************************************************/
+
+pascal  OSErr   GetVolFileSystemID(ConstStr255Param pathname,
+                                   short vRefNum,
+                                   short *fileSystemID)
+{
+    HParamBlockRec pb;
+    OSErr error;
+
+    error = GetVolumeInfoNoName(pathname,vRefNum, &pb);
+    if ( error == noErr )
+    {
+        *fileSystemID = pb.volumeParam.ioVFSID;
+    }
+
+    return ( error );
+}
+
+/*****************************************************************************/
+
+pascal  OSErr GetDInfo(short vRefNum,
+                       long dirID,
+                       ConstStr255Param name,
+                       DInfo *fndrInfo)
+{
+    CInfoPBRec pb;
+    OSErr error;
+
+    error = GetCatInfoNoName(vRefNum, dirID, name, &pb);
+    if ( error == noErr )
+    {
+        if ( (pb.dirInfo.ioFlAttrib & ioDirMask) != 0 )
+        {
+            /* it's a directory, return the DInfo */
+            *fndrInfo = pb.dirInfo.ioDrUsrWds;
+        }
+        else
+        {
+            /* oops, a file was passed */
+            error = dirNFErr;
+        }
+    }
+
+    return ( error );
+}
+
+/*****************************************************************************/
+
+pascal  OSErr FSpGetDInfo(const FSSpec *spec,
+                          DInfo *fndrInfo)
+{
+    return ( GetDInfo(spec->vRefNum, spec->parID, spec->name, fndrInfo) );
 }
 
 

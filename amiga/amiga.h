@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* amiga.h
  *
  * Globular definitions that affect all of AmigaDom.
@@ -126,7 +134,8 @@ void _abort(void);              /* ctrl-C trap */
     int created_dir, renamed_fullpath, rootlen;\
     char *rootpath, *buildpath, *build_end;\
     DIR *wild_dir;\
-    char *dirname, *wildname, matchname[FILNAMSIZ];\
+    ZCONST char *wildname;\
+    char *dirname, matchname[FILNAMSIZ];\
     int dirnamelen, notfirstcall;
 
 /* filenotes[] and filenote_slot are for the -N option that restores      */

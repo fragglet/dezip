@@ -2,7 +2,7 @@
 #
 # Makefile for Info-ZIP's unzip, unzipsfx, and funzip on BeOS
 #
-# Copyright (c) 1998 Info-ZIP
+# Copyright (c) 1998-1999 Info-ZIP
 #             Chris Herborth (chrish@qnx.com)
 #
 # This is the new New and Improved Makefile for BeOS; it will:
@@ -101,8 +101,8 @@ INSTALLEDMAN = $(MANDIR)/unzip.$(manext) $(MANDIR)/funzip.$(manext) \
 #
 UNZIPS = unzip$E funzip$E unzipsfx$E zipinfo$E
 # this is a little ugly...well, no, it's a lot ugly:
-MANS = unix/unzip.1 unix/unzipsfx.1 unix/zipinfo.1 unix/funzip.1
-DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc
+MANS = man/unzip.1 man/unzipsfx.1 man/zipinfo.1 man/funzip.1 man/zipgrep.1
+DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc zipgrep.doc
 
 ######################################################################
 # Things that change:
@@ -157,7 +157,9 @@ endif
 ifeq "$(WHAT)" "x86-gcc"
 CC=gcc
 LD=gcc
-CF=-O3 -mcpu=i586 -Wall -ansi -I. -I/boot/develop/headers/be/support \
+CF=-O3 -mpentiumpro \
+   -Wall -Wno-multichar -Wno-trigraphs \
+   -ansi -I. -I/boot/develop/headers/be/support \
    -I/boot/develop/headers/be/storage $(LOC)
 LF=-o unzip
 LF2=-L/boot/develop/lib/x86 -lbe -lroot
@@ -326,10 +328,11 @@ install:	all
 	$(LN) unzip$E $(BINDIR)/zipinfo$E
 	$(RM) $(BINDIR)/zipgrep$E
 	$(INSTALL) -m 755 unix/zipgrep $(BINDIR)/zipgrep$E
-	$(INSTALL) -m 644 unix/unzip.1 $(MANDIR)/unzip.$(manext)
-	$(INSTALL) -m 644 unix/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
-	$(INSTALL) -m 644 unix/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
-	$(INSTALL) -m 644 unix/funzip.1 $(MANDIR)/funzip.$(manext)
+	$(INSTALL) -m 644 man/unzip.1 $(MANDIR)/unzip.$(manext)
+	$(INSTALL) -m 644 man/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
+	$(INSTALL) -m 644 man/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
+	$(INSTALL) -m 644 man/funzip.1 $(MANDIR)/funzip.$(manext)
+	$(INSTALL) -m 644 man/zipgrep.1 $(MANDIR)/zipgrep.$(manext)
 	$(INSTALL) -m 644 $(DOCS) $(MANDIR)
 
 # alternatively, could use zip method:  -cd $(BINDIR); rm -f $(UNZIPS)  [etc.]

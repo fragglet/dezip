@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   helpers.c
@@ -13,6 +21,7 @@
 #include "zip.h"
 #include <ctype.h>
 #include <time.h>
+#include <sound.h>
 
 #include "macstuff.h"
 #include "helpers.h"
@@ -28,34 +37,12 @@ extern int noisy;
 extern char MacPathEnd;
 extern char *zipfile;   /* filename of the Zipfile */
 extern char *tempzip;   /* Temporary zip file name */
+extern ZCONST unsigned char MacRoman_to_WinCP1252[128];
 
 
 static char         argStr[1024];
 static char         *argv[MAX_ARGS + 1];
 
-
-/*****************************************************************************/
-/*  Prototypes                                                               */
-/*****************************************************************************/
-
-
-/*****************************************************************************/
-/*  Macros, typedefs                                                         */
-/*****************************************************************************/
-
-
-  /*
-   * ARGH.  Mac times are based on 1904 Jan 1 00:00, not 1970 Jan 1 00:00.
-   *  So we have to diddle time_t's appropriately:  add or subtract 66 years'
-   *  worth of seconds == number of days times 86400 == (66*365 regular days +
-   *  17 leap days ) * 86400 == (24090 + 17) * 86400 == 2082844800L seconds.
-   *  We hope time_t is an unsigned long (ulg) on the Macintosh...
-   */
-/*
-This Offset is only used by MacFileDate_to_UTime()
-*/
-
-#define NATIVE_TO_STATS(x)  (x) -= (unsigned long)2082844800L
 
 
 /*****************************************************************************/
@@ -94,6 +81,22 @@ return cstr;
 }
 
 
+/*
+**  strcpy() and strcat() work-alikes which allow overlapping buffers.
+*/
+
+char *sstrcpy(char *to,const char *from)
+{
+    memmove(to, from, 1+strlen(from));
+    return to;
+}
+
+char *sstrcat(char *to,const char *from)
+{
+    sstrcpy(to + strlen(to), from);
+    return to;
+}
+
 
 
 /*
@@ -107,6 +110,7 @@ char *strPtr = NULL;
 if ((strPtr = calloc(size, sizeof(char))) == NULL)
     printerr("StrCalloc failed:", -1, size, __LINE__, __FILE__, "");
 
+Assert_it(strPtr,"strPtr == NULL","")
 return strPtr;
 }
 
@@ -118,6 +122,7 @@ return strPtr;
 */
 char *StrFree(char *strPtr)
 {
+
 if (strPtr != NULL)
     {
     free(strPtr);
@@ -136,22 +141,29 @@ return NULL;
 
 char *sBit2Str(unsigned short value)
 {
-short pos = 0;
-static char str[sizeof(value)*8];
+  static char str[sizeof(value)*8];
+  int biz    = 16;
+  int strwid = 16;
+  int i, j;
+  char *tempPtr = str;
 
-memset(str, '0', sizeof(value)*8);  /* set string-buffer */
+      j = strwid - (biz + (biz >> 2)- (biz % 4 ? 0 : 1));
 
-for (pos = sizeof(value)*8; pos != 0; value >>= 1)
-    {
-    if (value & 01)
-        str[pos] = '1';
-    else str[pos] = '0';
-    pos--;
-    }
+      for (i = 0; i < j; i++) {
+            *tempPtr++ = ' ';
+      }
+      while (--biz >= 0)
+      {
+            *tempPtr++ = ((value >> biz) & 1) + '0';
+            if (!(biz % 4) && biz) {
+                  *tempPtr++ = ' ';
+            }
+      }
+      *tempPtr = '\0';
 
-str[(sizeof(value)*8)+1] = '\0';
-return str;
+  return str;
 }
+
 
 
 
@@ -173,8 +185,8 @@ int ParseArguments(char *s, char ***arg)
     while ((c = *p++) != 0) {
         if (c==' ') continue;
         argv[n++] = p1;
-        if (n > MAX_ARGS)               /* mm 970404 */
-            return (n-1);               /* mm 970404 */
+        if (n > MAX_ARGS)
+            return (n-1);
         do {
             if (c=='\\' && *p++)
                 c = *p++;
@@ -330,86 +342,75 @@ return *p1 - *p2;
 
 
 /*
-**  creates an archive file name
-**
+** Convert the MacOS-Strings (Filenames/Findercomments) to a most compatible.
+** These strings will be stored in the public area of the zip-archive.
+** Every foreign platform (outside macos) will access these strings
+** for extraction.
 */
 
-void createArchiveName(char *thePath)
+void MakeCompatibleString(char *MacOS_Str,
+            const char SpcChar1, const char SpcChar2,
+            const char SpcChar3, const char SpcChar4,
+            short CurrTextEncodingBase)
 {
-char *tmpPtr;
-short folderCount = 0;
-char name[256];
-unsigned short pathlen = strlen(thePath);
+    char *tmpPtr;
+    register uch curch;
 
-for (tmpPtr = thePath; *tmpPtr; tmpPtr++)
-    if (*tmpPtr == ':') folderCount++;
-
-if (folderCount > 1) { /* path contains at least one folder */
-    if (pathlen <= 30) thePath[pathlen-2] = 0x0;
-    else thePath[pathlen-4] = 0x0;
-	strcat(thePath,".zip");
-} else {  /* path contains no folder */
-    strcpy(name, thePath);
-    FindDesktopFolder(thePath);
-    if (pathlen <= 30) name[pathlen-2] = 0x0;
-    else name[pathlen-4] = 0x0;
-	strcat(thePath,name);
-	strcat(thePath,".zip");
-}
-}
-
-
-
-/*
-** finds the desktop-folder on a volume with
-** largest amount of free-space.
-*/
-
-void FindDesktopFolder(char *Path)
-{
-FSSpec  volumes[50];        /* 50 Volumes should be enough */
-short   actVolCount, volIndex = 1, VolCount = 0;
-OSErr   err;
-short     i, foundVRefNum;
-FSSpec spec;
-UnsignedWide freeBytes;
-UnsignedWide totalBytes;
-UnsignedWide MaxFreeBytes;
-
-err = OnLine(volumes, 50, &actVolCount, &volIndex);
-printerr("OnLine:", (err != -35) && (err != 0), err, __LINE__, __FILE__, "");
-
-MaxFreeBytes.hi = 0;
-MaxFreeBytes.lo = 0;
-
-for (i=0; i < actVolCount; i++)
+    Assert_it(MacOS_Str,"MakeCompatibleString MacOS_Str == NULL","")
+    for (tmpPtr = MacOS_Str; (curch = *tmpPtr) != '\0'; tmpPtr++)
     {
-    XGetVInfo(volumes[i].vRefNum,
-              volumes[i].name,
-			  &volumes[i].vRefNum,
-			  &freeBytes,
-			  &totalBytes);
-
-	if (MaxFreeBytes.hi < freeBytes.hi) {
-		MaxFreeBytes.hi = freeBytes.hi;
-		MaxFreeBytes.lo = freeBytes.lo;
-		foundVRefNum = volumes[i].vRefNum;
-	printf("\n1 Path: %s \n", Path);
-	}
-
-	if ((freeBytes.hi == 0) && (MaxFreeBytes.lo < freeBytes.lo)) {
-		MaxFreeBytes.hi = freeBytes.hi;
-		MaxFreeBytes.lo = freeBytes.lo;
-		foundVRefNum = volumes[i].vRefNum;
-	}
-
+        if (curch == SpcChar1)
+            *tmpPtr = SpcChar2;
+        else
+        if (curch == SpcChar3)
+            *tmpPtr = SpcChar4;
+        else  /* default */
+        /* now convert from MacRoman to ISO-8859-1 */
+        /* but convert only if MacRoman is activ */
+            if ((CurrTextEncodingBase == kTextEncodingMacRoman) &&
+                (curch > 127))
+                   {
+                    *tmpPtr = (char)MacRoman_to_WinCP1252[curch - 128];
+                   }
+    }  /* end for */
 }
 
- FSpFindFolder(foundVRefNum, kDesktopFolderType,
-            kDontCreateFolder,&spec);
 
- GetFullPathFromSpec(Path, &spec , &err);
+
+
+Boolean CheckForSwitch(char *Switch, int argc, char **argv)
+{
+  char *p;              /* steps through option arguments */
+  int i;                /* arg counter, root directory flag */
+
+  for (i = 1; i < argc; i++)
+  {
+    if (argv[i][0] == '-')
+    {
+      if (argv[i][1])
+        {
+        for (p = argv[i]+1; *p; p++)
+            {
+            if (*p == Switch[0])
+                {
+                return true;
+                }
+            if ((Switch[1] != NULL) &&
+                ((*p == Switch[0]) && (*p == Switch[1])))
+                {
+                return true;
+                }
+            }
+         }
+     }
+  }
+
+return false;
 }
+
+
+
+
 
 
 

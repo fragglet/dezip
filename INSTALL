@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 28 Nov 98.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 08 Apr 2000.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -57,12 +57,13 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
     tops20/* should be unpacked into the current directory, but TOPS-20
     is no longer fully supported anyway.
 
-    If you wish to compile with decryption enabled, you must get the zcrypt
-    package (see the "WHERE" file).  Unpack crypt.c and crypt.h from the
-    zcrypt archive, overwriting the dummy versions supplied with UnZip.  If
-    you don't have any sort of unzipper available, you'll have to compile the
-    non-crypt version first and use that to unpack the full crypt sources,
-    then recompile.
+    As of UnZip 5.41, full decryption support has been integrated in the
+    UnZip source distribution.  If you wish to compile binaries without
+    decryption support, you must define the preprocessor flag NO_CRYPT.
+    For many environments, you may add this flag to the custom compilation
+    flags supplied by the environment variable LOCAL_UNZIP.  For more
+    details, see the make procedures and accompanied documentation for your
+    particular target OS.
 
 
 (2) Choose the appropriate makefile based on the description in the Con-
@@ -115,6 +116,17 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         dot at the end, which is how DOS and related systems treat filenames
         in general.  All other regular expressions (including "?" and
         "[range_of_chars]") retain their Unix-like behavior.
+
+      WILD_STOP_AT_DIR
+        Modifies the pattern matching routine so that both '?' (single-char
+        wildcard) and '*' (multi-char wildcard) do not match the directory
+        separator character '/'. Examples:
+          "*.c" matches "foo.c" but not "mydir/foo.c"
+          "*/*.c" matches "bar/foo.c" but not "baz/bar/foo.c"
+          "??*/*" matches "ab/foo" and "abc/foo" but not "a/foo" or "a/b/foo"
+        This modified behaviour is equivalent to the pattern matching style
+        used by the shells of some of UnZip's supported target OSs (one
+        example is Acorn RISC OS).
 
       VMSWILD   (VMS only)
         Use parentheses rather than brackets to delimit sets (ranges), and

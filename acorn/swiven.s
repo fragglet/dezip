@@ -1,3 +1,11 @@
+;===========================================================================
+; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+;
+; See the accompanying file LICENSE, version 2000-Apr-09 or later
+; (the contents of which are also included in unzip.h) for terms of use.
+; If, for some reason, all these files are missing, the Info-ZIP license
+; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+;===========================================================================
 ; SWI veneers used by Zip/Unzip
 ;
 
@@ -33,6 +41,7 @@ OS_ReadC			EQU &000004
 OS_ReadVarVal			EQU &000023
 DDEUtils_Prefix			EQU &042580
 Territory_ReadCurrentTimeZone	EQU &043048
+MimeMap_Translate		EQU &050B00
 
 	MACRO
 	STARTCODE $name
@@ -288,6 +297,19 @@ $name
 	SWI	Territory_ReadCurrentTimeZone + XOS_Bit
 	MOVVC	r0, r1
 	MOVVS	r0, #0
+	MOVS	pc, ip
+
+
+; int SWI_MimeMap_Translate(char *ext);
+
+	STARTCODE SWI_MimeMap_Translate
+	MOV	ip,lr
+	MOV	r1, r0
+	MOV	r0, #3
+	MOV	r2, #0
+	SWI	MimeMap_Translate + XOS_Bit
+	MOVVC	r0, r3
+	MVNVS	r0, #0 ; return -1 on error
 	MOVS	pc, ip
 
 

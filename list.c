@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   list.c
@@ -54,21 +62,21 @@
      "%8lu  %-7s%8lu %4s  %02u-%02u-%02u %02u:%02u  %08lx %c";
    static ZCONST char Far LongFileTrailer[] =
      "--------          -------  ---                       \
-     -------\n%8lu         %8lu %4s                            %u file%s\n";
+     -------\n%8lu         %8lu %4s                            %lu file%s\n";
 #ifdef OS2_EAS
    static ZCONST char Far ShortHdrStats[] =
      "%9lu %6lu %6lu  %02u-%02u-%02u %02u:%02u  %c";
    static ZCONST char Far ShortFileTrailer[] = " --------  -----  -----       \
-            -------\n%9lu %6lu %6lu                   %u file%s\n";
+            -------\n%9lu %6lu %6lu                   %lu file%s\n";
    static ZCONST char Far OS2ExtAttrTrailer[] =
-     "%ld file%s %ld bytes of OS/2 extended attributes attached.\n";
+     "%lu file%s %lu bytes of OS/2 extended attributes attached.\n";
    static ZCONST char Far OS2ACLTrailer[] =
-     "%ld file%s %ld bytes of access control lists attached.\n";
+     "%lu file%s %lu bytes of access control lists attached.\n";
 #else
    static ZCONST char Far ShortHdrStats[] =
      "%9lu  %02u-%02u-%02u %02u:%02u  %c";
-   static ZCONST char Far ShortFileTrailer[] =
-     " --------                   -------\n%9lu                   %u file%s\n";
+   static ZCONST char Far ShortFileTrailer[] = " --------       \
+            -------\n%9lu                   %lu file%s\n";
 #endif /* ?OS2_EAS */
 #endif /* !WINDLL */
 
@@ -89,7 +97,8 @@ int list_files(__G)    /* return PK-type error code */
     int longhdr=(uO.vflag>1);
 #endif
     int date_format;
-    unsigned j, methnum, members=0;
+    ulg j, members=0L;
+    unsigned methnum;
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
     struct tm *t;
@@ -142,14 +151,25 @@ int list_files(__G)    /* return PK-type error code */
     }
 #endif /* !WINDLL */
 
-    for (j = 0; j++ < (unsigned)G.ecrec.total_entries_central_dir;) {
+    for (j = 1L;;j++) {
 
         if (readbuf(__G__ G.sig, 4) == 0)
             return PK_EOF;
-        if (strncmp(G.sig, central_hdr_sig, 4)) {  /* just to make sure */
-            Info(slide, 0x401, ((char *)slide, LoadFarString(CentSigMsg), j));
-            Info(slide, 0x401, ((char *)slide, LoadFarString(ReportMsg)));
-            return PK_BADERR;   /* sig not found */
+        if (strncmp(G.sig, central_hdr_sig, 4)) {  /* is it a CentDir entry? */
+            if (((unsigned)(j - 1) & (unsigned)0xFFFF) ==
+                (unsigned)G.ecrec.total_entries_central_dir) {
+                /* "j modulus 64k" matches the reported 16-bit-unsigned
+                 * number of directory entries -> probably, the regular
+                 * end of the central directory has been reached
+                 */
+                break;
+            } else {
+                Info(slide, 0x401,
+                     ((char *)slide, LoadFarString(CentSigMsg), j));
+                Info(slide, 0x401,
+                     ((char *)slide, LoadFarString(ReportMsg)));
+                return PK_BADERR;   /* sig not found */
+            }
         }
         /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag, ...: */
         if ((error = process_cdir_file_hdr(__G)) != PK_COOL)
@@ -272,12 +292,12 @@ int list_files(__G)    /* return PK-type error code */
              * ('methnum' is not yet set, it is used as temporary buffer) */
             switch (date_format) {
                 case DF_YMD:
-                    methnum = (unsigned)mo;
-                    mo = yr; yr = dy; dy = (ush)methnum;
+                    methnum = mo;
+                    mo = yr; yr = dy; dy = methnum;
                     break;
                 case DF_DMY:
-                    methnum = (unsigned)mo;
-                    mo = dy; dy = (ush)methnum;
+                    methnum = mo;
+                    mo = dy; dy = methnum;
             }
 
             csiz = G.crec.csize;
@@ -304,17 +324,17 @@ int list_files(__G)    /* return PK-type error code */
             }
 
 #if 0       /* GRR/Euro:  add this? */
-#if defined(DOS_FLX_OS2_W32) || defined(UNIX)
+#if defined(DOS_FLX_NLM_OS2_W32) || defined(THEOS) || defined(UNIX)
             for (p = G.filename;  *p;  ++p)
                 if (!isprint(*p))
                     *p = '?';  /* change non-printable chars to '?' */
-#endif /* DOS_FLX_OS2_W32 || UNIX */
+#endif /* DOS_FLX_NLM_OS2_W32 || THEOS || UNIX */
 #endif /* 0 */
 
 #ifdef WINDLL
             /* send data to application for formatting and printing */
             (*G.lpUserFunctions->SendApplicationMessage)(G.crec.ucsize, csiz,
-              (ush)cfactor, mo, dy, yr, hh, mm,
+              (unsigned)cfactor, mo, dy, yr, hh, mm,
               (char)(G.pInfo->lcflag ? '^' : ' '),
               (LPSTR)fnfilter(G.filename, slide), (LPSTR)methbuf, G.crec.crc32,
               (char)((G.crec.general_purpose_bit_flag & 1) ? 'E' : ' '));
@@ -393,7 +413,7 @@ int list_files(__G)    /* return PK-type error code */
         /* pass the totals back to the calling application */
         G.lpUserFunctions->TotalSizeComp = tot_csize;
         G.lpUserFunctions->TotalSize = tot_ucsize;
-        G.lpUserFunctions->CompFactor = cfactor;
+        G.lpUserFunctions->CompFactor = (ulg)cfactor;
         G.lpUserFunctions->NumMembers = members;
 
 #else /* !WINDLL */
@@ -432,13 +452,11 @@ int list_files(__G)    /* return PK-type error code */
     Double check that we're back at the end-of-central-directory record.
   ---------------------------------------------------------------------------*/
 
-    if (readbuf(__G__ G.sig, 4) == 0)  /* disk error? */
-        return PK_EOF;
     if (strncmp(G.sig, end_central_sig, 4)) {   /* just to make sure again */
         Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
         error_in_archive = PK_WARN;   /* didn't find sig */
     }
-    if (members == 0 && error_in_archive <= PK_WARN)
+    if (members == 0L && error_in_archive <= PK_WARN)
         error_in_archive = PK_FIND;
 
     return error_in_archive;
@@ -462,8 +480,8 @@ static int fn_is_dir(__G)    /* returns TRUE if G.filename is directory */
     register char   endc;
 
     return  fn_len > 0 &&
-            ((endc = G.filename[fn_len-1]) == '/' ||
-             (G.pInfo->hostnum == FS_FAT_ && !strchr(G.filename, '/') &&
+            ((endc = lastchar(G.filename, fn_len)) == '/' ||
+             (G.pInfo->hostnum == FS_FAT_ && !MBSCHR(G.filename, '/') &&
               endc == '\\'));
 }
 
@@ -478,10 +496,10 @@ static int fn_is_dir(__G)    /* returns TRUE if G.filename is directory */
 int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
     __GDEF
     time_t *last_modtime;
-    unsigned *nmember;
+    ulg *nmember;
 {
     int do_this_file=FALSE, error, error_in_archive=PK_COOL;
-    unsigned j;
+    ulg j;
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
 #endif
@@ -496,17 +514,28 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     *last_modtime = 0L;         /* assuming no zipfile data older than 1970 */
-    *nmember = 0;
+    *nmember = 0L;
     G.pInfo = &info;
 
-    for (j = 0; j++ < (unsigned)G.ecrec.total_entries_central_dir;) {
+    for (j = 1L;; j++) {
 
         if (readbuf(__G__ G.sig, 4) == 0)
             return PK_EOF;
-        if (strncmp(G.sig, central_hdr_sig, 4)) {  /* just to make sure */
-            Info(slide, 0x401, ((char *)slide, LoadFarString(CentSigMsg), j));
-            Info(slide, 0x401, ((char *)slide, LoadFarString(ReportMsg)));
-            return PK_BADERR;
+        if (strncmp(G.sig, central_hdr_sig, 4)) {  /* is it a CentDir entry? */
+            if (((unsigned)(j - 1) & (unsigned)0xFFFF) ==
+                (unsigned)G.ecrec.total_entries_central_dir) {
+                /* "j modulus 64k" matches the reported 16-bit-unsigned
+                 * number of directory entries -> probably, the regular
+                 * end of the central directory has been reached
+                 */
+                break;
+            } else {
+                Info(slide, 0x401,
+                     ((char *)slide, LoadFarString(CentSigMsg), j));
+                Info(slide, 0x401,
+                     ((char *)slide, LoadFarString(ReportMsg)));
+                return PK_BADERR;   /* sig not found */
+            }
         }
         /* process_cdir_file_hdr() sets pInfo->lcflag: */
         if ((error = process_cdir_file_hdr(__G)) != PK_COOL)
@@ -582,13 +611,11 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
     Double check that we're back at the end-of-central-directory record.
   ---------------------------------------------------------------------------*/
 
-    if (readbuf(__G__ G.sig, 4) == 0)
-        return PK_EOF;
     if (strncmp(G.sig, end_central_sig, 4)) {   /* just to make sure again */
         Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
         error_in_archive = PK_WARN;
     }
-    if (*nmember == 0 && error_in_archive <= PK_WARN)
+    if (*nmember == 0L && error_in_archive <= PK_WARN)
         error_in_archive = PK_FIND;
 
     return error_in_archive;

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        WINMAIN.CPP
@@ -7,7 +15,7 @@
 //              almost nothing about the Info-ZIP code.  All Info-ZIP related
 //              functions are wrapped by helper functions in INTRFACE.CPP.  The
 //              code in this module only calls those wrapper functions and
-//              INTRFACE.CPP handles all the details and callbacks of the 
+//              INTRFACE.CPP handles all the details and callbacks of the
 //              Info-ZIP code.
 //
 // Copyright:   All the source files for Pocket UnZip, except for components
@@ -104,10 +112,10 @@ extern "C" {
 
 #include "unzip.h"
 
+#include "crypt.h"     // Needed to pick up CRYPT define setting and return values.
+
 #include "version.h"   // Only needed by consts.h (VERSION_DATE & VersionDate)
 #include "consts.h"    // Only include once - defines constant string messages.
-
-#include "crypt.h"     // Needed to pick up CRYPT define if set and return values.
 
 #include <commctrl.h>  // Common controls - mainly ListView and ImageList
 #include <commdlg.h>   // Common dialogs - OpenFile dialog
@@ -149,6 +157,7 @@ static FILE_TYPE_NODE *g_pftHead       = NULL;
 #ifdef _WIN32_WCE
 static LPCTSTR         g_szHelpFile    = TEXT("\\windows\\punzip.htp");
 #else
+static TCHAR           g_szTempDirPath[_MAX_PATH];
 static LPCTSTR         g_szHelpFile    = TEXT("punzip.html");
 #endif
 
@@ -212,7 +221,12 @@ LPTSTR BuildAttributesString(LPTSTR szBuffer, DWORD dwAttributes);
 LPCSTR BuildTypeString(FILE_NODE *pFile, LPSTR szType);
 LPCSTR GetFileFromPath(LPCSTR szPath);
 void ForwardSlashesToBackSlashesA(LPSTR szBuffer);
-void ForwardSlashesToBackSlashesW(LPWSTR szBuffer);
+#ifdef UNICODE
+   void ForwardSlashesToBackSlashesW(LPWSTR szBuffer);
+#  define ForwardSlashesToBackSlashes ForwardSlashesToBackSlashesW
+#else
+#  define ForwardSlashesToBackSlashes ForwardSlashesToBackSlashesA
+#endif
 void DeleteDirectory(LPTSTR szPath);
 
 // Registry Functions
@@ -234,7 +248,7 @@ void RemoveFileFromMRU(LPCTSTR szFile);
 void ActivateMRU(UINT uIDItem);
 
 // Open Zip File Functions
-void ReadZipFileList(LPCWSTR wszPath);
+void ReadZipFileList(LPCTSTR wszPath);
 
 // Zip File Properties Dialog Functions
 BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -278,7 +292,7 @@ BOOL CALLBACK DlgProcAbout(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // Entrypoint is a tiny bit different on Windows CE - UNICODE command line.
 #ifdef _WIN32_WCE
-extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
+extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                               LPTSTR lpCmdLine, int nCmdShow)
 #else
 extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -319,7 +333,7 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
       // Get our main window's small icon.  On Windows CE, we need to send ourself
       // a WM_SETICON in order for our task bar to update itself.
-      g_hIconMain = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_UNZIP), 
+      g_hIconMain = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_UNZIP),
                                      IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
       wc.hIcon = g_hIconMain;
 
@@ -333,7 +347,7 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 #else
 
-      // On NT we add a cursor, icon, and nenu to our application's window class.
+      // On NT we add a cursor, icon, and menu to our application's window class.
       wc.hCursor      = LoadCursor(NULL, IDC_ARROW);
       wc.hIcon        = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_UNZIP));
       wc.lpszMenuName = MAKEINTRESOURCE(IDR_UNZIP);
@@ -345,7 +359,7 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
       // Get and store command line file (if any).
       if (lpCmdLine && *lpCmdLine) {
-         mbstowcs(szBuffer, lpCmdLine, countof(szBuffer));
+         MBSTOTSTR(szBuffer, lpCmdLine, countof(szBuffer));
          szZipPath = szBuffer;
       }
 
@@ -358,7 +372,7 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
       // Create our main window using our registered window class.
       g_hWndMain = CreateWindow(wc.lpszClassName, g_szAppName, dwStyle,
-                                CW_USEDEFAULT, CW_USEDEFAULT, 
+                                CW_USEDEFAULT, CW_USEDEFAULT,
                                 CW_USEDEFAULT, CW_USEDEFAULT,
                                 NULL, NULL, hInstance, NULL);
 
@@ -379,15 +393,15 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
       // The message pump.  Loop until we get a WM_QUIT message.
       while (GetMessage(&msg, NULL, 0, 0)) {
-      
+
          // Check to see if this is an accelerator and handle it if neccessary.
          if (!TranslateAccelerator(g_hWndMain, hAccel, &msg)) {
 
             // If a normal message, then dispatch it to the correct window.
             TranslateMessage(&msg);
-            DispatchMessage(&msg); 
+            DispatchMessage(&msg);
 
-            // Wait until our application is up an visible before trying to
+            // Wait until our application is up and visible before trying to
             // initialize some of our structures and load any command line file.
             if ((msg.message == WM_PAINT) && (dwPaintFlags != 0x11)) {
                if (msg.hwnd == g_hWndWaitFor) {
@@ -396,7 +410,7 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                   dwPaintFlags |= 0x10;
                }
                if (dwPaintFlags == 0x11) {
-                  InitializeApplication((szZipPath && *szZipPath) ? 
+                  InitializeApplication((szZipPath && *szZipPath) ?
                                         szZipPath : NULL);
                }
             }
@@ -413,7 +427,7 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
    } __except(EXCEPTION_EXECUTE_HANDLER) {
 
       // Something very bad happened.  Try our best to appear somewhat graceful.
-      MessageBox(NULL, 
+      MessageBox(NULL,
          TEXT("An internal error occurred.  Possible causes are that you are ")
          TEXT("out of memory, a ZIP file (if one is loaded) contains an ")
          TEXT("unexpected error, or there is a bug in our program (that's why ")
@@ -472,20 +486,20 @@ void InitializeApplication(LPCTSTR szZipFile) {
    // Set our temporary directory.
 #ifdef _WIN32_WCE
    g_szTempDir = TEXT("\\Temporary Pocket UnZip Files");
-#else 
+#else
    g_szTempDir = TEXT("C:\\Temporary Pocket UnZip Files");
 
    // Set the drive to be the same drive as the OS installation is on.
-   TCHAR szPath[_MAX_PATH];
-   if (GetWindowsDirectory(szPath, countof(szPath))) {
-      *((LPTSTR)g_szTempDir) = *szPath;
+   if (GetWindowsDirectory(g_szTempDirPath, countof(g_szTempDirPath))) {
+      lstrcpy(g_szTempDirPath + 3, TEXT("Temporary Pocket UnZip Files"));
+      g_szTempDir  = g_szTempDirPath;
    }
 #endif
 }
 
 //******************************************************************************
 void ShutdownApplication() {
-   
+
    // Free our banner font.
    if (g_hFontBanner) {
       DeleteObject(g_hFontBanner);
@@ -521,13 +535,15 @@ void RegisterUnzip() {
    // register ourself with the system as the default application to handle
    // ".zip" files.
    TCHAR szPath[32] = TEXT("punzip.exe");
+   TCHAR szTstPath[32];
 
 #else
 
    // Get our module's path and file name.  We use the short path name for the
-   // registry because it is guarenteed to contain no spaces.
+   // registry because it is guaranteed to contain no spaces.
    TCHAR szLongPath[_MAX_PATH];
    TCHAR szPath[_MAX_PATH];
+   TCHAR szTstPath[_MAX_PATH];
    GetModuleFileName(NULL, szLongPath, countof(szLongPath));
    GetShortPathName(szLongPath, szPath, countof(szPath));
 
@@ -536,17 +552,42 @@ void RegisterUnzip() {
    // Store a pointer to the end of our path for easy appending.
    LPTSTR szEnd = szPath + _tcslen(szPath);
 
-   // Associate "ZIP" file extensions to our application
-   RegWriteKey(HKEY_CLASSES_ROOT, TEXT(".zip"), TEXT("zipfile"));
-   RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile"), TEXT("ZIP File"));
-   RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\shell"), NULL);
-   RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\shell\\Open"), NULL);
-   _tcscpy(szEnd, TEXT(" %1"));
-   RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\shell\\Open\\command"), szPath);
+   BOOL fDoRegisterPUnZip = TRUE;
 
-   // Register our program icon for all ZIP files.
-   _stprintf(szEnd, TEXT(",-%u"), IDI_ZIPFILE);
-   RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\DefaultIcon"), szPath);
+   // Associate "ZIP" file extensions to our application
+   if (RegReadKey(HKEY_CLASSES_ROOT, TEXT(".zip"), szTstPath, sizeof(szTstPath)))
+   {
+      if (_tcscmp(szTstPath, TEXT("zipfile")) != 0)
+         fDoRegisterPUnZip = FALSE;
+      else if (RegReadKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\shell\\Open\\command"),
+                          szTstPath, sizeof(szTstPath)) &&
+               (_tcsncmp(szTstPath, szPath, _tcslen(szPath)) != 0))
+         fDoRegisterPUnZip = FALSE;
+
+      if (!fDoRegisterPUnZip)
+      {
+         fDoRegisterPUnZip =
+            (IDOK == MessageBox(g_hWndMain,
+                                TEXT("Currently, Pocket UnZip is not registered as default ")
+                                TEXT("handler for Zip archives.\n\n")
+                                TEXT("Please, confirm that Pocket UnZip should now register itself ")
+                                TEXT("as default application for handling Zip archives (.zip files)"),
+                                g_szAppName,
+                                MB_ICONQUESTION | MB_OKCANCEL));
+      }
+   }
+   if (fDoRegisterPUnZip) {
+      RegWriteKey(HKEY_CLASSES_ROOT, TEXT(".zip"), TEXT("zipfile"));
+      RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile"), TEXT("ZIP File"));
+      RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\shell"), NULL);
+      RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\shell\\Open"), NULL);
+      _tcscpy(szEnd, TEXT(" %1"));
+      RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\shell\\Open\\command"), szPath);
+
+      // Register our program icon for all ZIP files.
+      _stprintf(szEnd, TEXT(",-%u"), IDI_ZIPFILE);
+      RegWriteKey(HKEY_CLASSES_ROOT, TEXT("zipfile\\DefaultIcon"), szPath);
+   }
 
    // Create our application option location.
    RegWriteKey(HKEY_CURRENT_USER, TEXT("Software"), NULL);
@@ -558,7 +599,7 @@ void BuildImageList() {
 
    // Create our global image list.
 #ifdef _WIN32_WCE
- 
+
    // On Windows CE, we can't spare a color for the mask, so we have to create
    // the mask in a separate monochrome bitmap.
 
@@ -584,7 +625,7 @@ void BuildImageList() {
    DWORD dwIndex = 0, dwCount = countof(szExtension);
 
    // Enumerate all the keys immediately under HKEY_CLASSES_ROOT.
-   while (ERROR_SUCCESS == RegEnumKeyEx(HKEY_CLASSES_ROOT, dwIndex++, szExtension, 
+   while (ERROR_SUCCESS == RegEnumKeyEx(HKEY_CLASSES_ROOT, dwIndex++, szExtension,
                                         &dwCount, NULL, NULL, NULL, NULL))
    {
       dwCount = countof(szExtension);
@@ -678,9 +719,9 @@ void BuildImageList() {
       if (!*szDescription && (image < 0)) {
          continue;
       }
-         
+
       // Create our FILE_TYPE_NODE.
-      int length = _tcslen(szExtension) - 1 + _tcslen(szDescription);
+      size_t length = _tcslen(szExtension) - 1 + _tcslen(szDescription);
       FILE_TYPE_NODE *pft = (FILE_TYPE_NODE*) new BYTE[
          sizeof(FILE_TYPE_NODE) + (sizeof(TCHAR) * length)];
 
@@ -693,9 +734,10 @@ void BuildImageList() {
       // Fill in the node.
       pft->pNext = NULL;
       pft->image = (image >= 0) ? image : IMAGE_GENERIC;
-      wcstombs(pft->szExtAndDesc, szExtension + 1, length + 3);
-      wcstombs(pft->szExtAndDesc + strlen(pft->szExtAndDesc) + 1, 
-               szDescription, length + 3);
+      TSTRTOMBS(pft->szExtAndDesc, szExtension + 1, length + 2);
+      size_t sizext = (strlen(pft->szExtAndDesc) + 1);
+      TSTRTOMBS(pft->szExtAndDesc + sizext,
+                szDescription, length - sizext + 2);
 
       // Add the node to our list.
       if (pftLast) {
@@ -728,7 +770,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
       case WM_SIZE:
          // Resize our list view control to match our client area.
-         MoveWindow(g_hWndList, 0, g_cyCmdBar + 22, LOWORD(lParam), 
+         MoveWindow(g_hWndList, 0, g_cyCmdBar + 22, LOWORD(lParam),
                     HIWORD(lParam) - (g_cyCmdBar + 22), TRUE);
 
 #ifndef _WIN32_WCE
@@ -736,7 +778,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
          MoveWindow(g_hWndCmdBar, 0, 0, LOWORD(lParam), g_cyCmdBar, TRUE);
 #endif
          return 0;
-      
+
       case WM_SETFOCUS:
          // Always direct focus to our list control.
          SetFocus(g_hWndList);
@@ -745,7 +787,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
       case WM_DESTROY:
          PostQuitMessage(0);
          return 0;
-      
+
       case WM_HELP:
          OnHelp();
          return 0;
@@ -761,7 +803,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             case MSG_ADD_TEXT_TO_EDIT:
                AddTextToEdit((LPCSTR)lParam);
                return 0;
-            
+
             case MSG_PROMPT_TO_REPLACE:
                return PromptToReplace((LPCSTR)lParam);
 
@@ -815,7 +857,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             case IDM_FILE_OPEN:
                OnFileOpen();
                return 0;
-            
+
             case IDM_FILE_PROPERTIES:
                DialogBox(g_hInst, MAKEINTRESOURCE(IDD_PROPERTIES), hWnd, (DLGPROC)DlgProcProperties);
                return 0;
@@ -865,7 +907,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
             default:
                // Check to see if a MRU file was selected.
-               if ((LOWORD(wParam) >= MRU_START_ID) && 
+               if ((LOWORD(wParam) >= MRU_START_ID) &&
                    (LOWORD(wParam) < (MRU_START_ID + MRU_MAX_FILE)))
                {
                   ActivateMRU(LOWORD(wParam));
@@ -873,7 +915,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
          }
     }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}          
+}
 
 //******************************************************************************
 //***** Event Handlers for our Main Window
@@ -927,7 +969,7 @@ int OnCreate() {
 
    // Create the tree control.  Our main window will resize it to fit.
    g_hWndList = CreateWindow(WC_LISTVIEW, TEXT(""),
-                             WS_VSCROLL | WS_CHILD | WS_VISIBLE | 
+                             WS_VSCROLL | WS_CHILD | WS_VISIBLE |
                              LVS_REPORT | LVS_SHOWSELALWAYS,
                              0, 0, 0, 0, g_hWndMain, NULL, g_hInst, NULL);
 
@@ -961,8 +1003,8 @@ int OnCreate() {
 
    // Create a tool bar and add the toolbar bitmaps to it.
    g_hWndCmdBar = CreateToolbarEx(g_hWndMain, WS_CHILD | WS_VISIBLE | TBSTYLE_TOOLTIPS,
-                                  1, 9, g_hInst, IDB_TOOLBAR, tbButton, 
-                                  countof(tbButton), 16, 16, 16, 16, 
+                                  1, 9, g_hInst, IDB_TOOLBAR, tbButton,
+                                  countof(tbButton), 16, 16, 16, 16,
                                   sizeof(TBBUTTON));
 
    // Get our tool tip control.
@@ -971,7 +1013,7 @@ int OnCreate() {
    // Set our tool tip strings.
    TOOLINFO ti;
    ti.cbSize = sizeof(ti);
-   int tip = 0, button; 
+   int tip = 0, button;
    while (SendMessage(hWndTT, TTM_ENUMTOOLS, tip++, (LPARAM)&ti)) {
       for (button = 0; button < countof(tbButton); button++) {
          if (tbButton[button].idCommand == (int)ti.uId) {
@@ -1001,12 +1043,12 @@ int OnCreate() {
 #endif // _WIN32_WCE
 
    // Enable Full Row Select - This feature is supported on Windows CE and was
-   // introduced to Win95/NT with IE 3.0.  If the user does not have a 
-   // COMCTL32.DLL that supports this feature, then they will just see the 
+   // introduced to Win95/NT with IE 3.0.  If the user does not have a
+   // COMCTL32.DLL that supports this feature, then they will just see the
    // old standard First Column Select.
    SendMessage(g_hWndList, LVM_SETEXTENDEDLISTVIEWSTYLE, 0, LVS_EX_FULLROWSELECT |
                SendMessage(g_hWndList, LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0));
-  
+
    // Get our expanded view option from the registry.
    g_fExpandedView = GetOptionInt(TEXT("ExpandedView"), FALSE);
 
@@ -1063,8 +1105,8 @@ void OnActionView() {
    FILE_NODE *pfn = (FILE_NODE*)lvi.lParam;
 
    // Bail out if the selected item is a folder or volume label.
-   if (pfn->dwAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_VOLUME)) {
-      MessageBox(g_hWndMain, TEXT("You cannot view folders or volume labels."), 
+   if (pfn->dwAttributes & (FILE_ATTRIBUTE_DIRECTORY | ZFILE_ATTRIBUTE_VOLUME)) {
+      MessageBox(g_hWndMain, TEXT("You cannot view folders or volume labels."),
                  g_szAppName, MB_ICONINFORMATION | MB_OK);
       return;
    }
@@ -1076,7 +1118,7 @@ void OnActionView() {
 
    // Set our extraction directory to our temporary directory.
    if (!SetExtractToDirectory((LPTSTR)g_szTempDir)) {
-      
+
       // Create error message.  Use szPath buffer because it is handy.
       _stprintf(szPath,
          TEXT("Could not create \"%s\"\n\n")
@@ -1114,7 +1156,7 @@ void OnActionView() {
    g_fViewing = TRUE;
 
    // Display our progress dialog and do the extraction.
-   DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_VIEW_PROGRESS), g_hWndMain, 
+   DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_VIEW_PROGRESS), g_hWndMain,
                   (DLGPROC)DlgProcViewProgress, (LPARAM)&ei);
 
    // Clear our viewing flag.
@@ -1142,7 +1184,11 @@ void OnActionView() {
       } else {
          // Create error message.  Use szPath buffer because it is handy.
          _stprintf(szPath,
+#ifdef UNICODE
             TEXT("Could not extract \"%S\".\n\n%s\n\nTry using the Test or ")
+#else
+            TEXT("Could not extract \"%s\".\n\n%s\n\nTry using the Test or ")
+#endif
             TEXT("Extract action on the file for more details."),
             *szMappedPath ? szMappedPath : pfn->szPathAndMethod,
             GetZipErrorString(ei.result));
@@ -1153,7 +1199,7 @@ void OnActionView() {
 
       // If we managed to create a bad file, then delete it.
       if (*szMappedPath) {
-         mbstowcs(szPath, szMappedPath, countof(szPath));
+         MBSTOTSTR(szPath, szMappedPath, countof(szPath));
          SetFileAttributes(szPath, FILE_ATTRIBUTE_NORMAL);
          if (!DeleteFile(szPath)) {
             SetFileAttributes(szPath, FILE_ATTRIBUTE_READONLY);
@@ -1164,7 +1210,7 @@ void OnActionView() {
    }
 
    // Convert the file name to UNICODE.
-   mbstowcs(szPath, szMappedPath, countof(szPath));
+   MBSTOTSTR(szPath, szMappedPath, countof(szPath));
 
    // Prepare to launch the file.
    SHELLEXECUTEINFO sei;
@@ -1288,7 +1334,7 @@ void OnGetDispInfo(LV_DISPINFO *plvdi) {
          ForwardSlashesToBackSlashesA(szBuffer);
 
          // Convert the string to UNICODE and store it in our list control.
-         mbstowcs(plvdi->item.pszText, szBuffer, plvdi->item.cchTextMax);
+         MBSTOTSTR(plvdi->item.pszText, szBuffer, plvdi->item.cchTextMax);
 
          return;
 
@@ -1297,7 +1343,7 @@ void OnGetDispInfo(LV_DISPINFO *plvdi) {
          return;
 
       case 2: // Type
-         mbstowcs(plvdi->item.pszText, BuildTypeString(pFile, szBuffer), 
+         MBSTOTSTR(plvdi->item.pszText, BuildTypeString(pFile, szBuffer),
                   plvdi->item.cchTextMax);
          return;
 
@@ -1322,22 +1368,22 @@ void OnGetDispInfo(LV_DISPINFO *plvdi) {
 
       case 6: // Ratio
          int factor; factor = ratio(pFile->dwSize, pFile->dwCompressedSize);
-         _stprintf(plvdi->item.pszText, TEXT("%d.%d%%"), factor / 10, 
+         _stprintf(plvdi->item.pszText, TEXT("%d.%d%%"), factor / 10,
                    ((factor < 0) ? -factor : factor) % 10);
          return;
 
       case 7: // Method
-         mbstowcs(plvdi->item.pszText, pFile->szPathAndMethod + strlen(pFile->szPathAndMethod) + 1, 
+         MBSTOTSTR(plvdi->item.pszText, pFile->szPathAndMethod + strlen(pFile->szPathAndMethod) + 1,
                   plvdi->item.cchTextMax);
          return;
 
       case 8: // CRC
-         _stprintf(plvdi->item.pszText, L"%08X", pFile->dwCRC);
+         _stprintf(plvdi->item.pszText, TEXT("%08X"), pFile->dwCRC);
          return;
 
       case 9: // Comment
-         mbstowcs(plvdi->item.pszText, pFile->szComment ? pFile->szComment : "",
-                  plvdi->item.cchTextMax);
+         MBSTOTSTR(plvdi->item.pszText, pFile->szComment ? pFile->szComment : "",
+                   plvdi->item.cchTextMax);
          return;
    }
 }
@@ -1377,11 +1423,11 @@ void Sort(int sortColumn, BOOL fForce) {
       TCHAR szColumn[32];
       LV_COLUMN lvc;
       lvc.mask = LVCF_TEXT;
-      lvc.pszText = szColumn; 
+      lvc.pszText = szColumn;
 
       // Remove the '^' from the current sort column.
       if (g_sortColumn != -1) {
-         _stprintf(szColumn, (g_columns[g_sortColumn].format == LVCFMT_LEFT) ? 
+         _stprintf(szColumn, (g_columns[g_sortColumn].format == LVCFMT_LEFT) ?
                    TEXT("%s   ") : TEXT("   %s"), g_columns[g_sortColumn].szName);
          ListView_SetColumn(g_hWndList, g_sortColumn, &lvc);
       }
@@ -1390,7 +1436,7 @@ void Sort(int sortColumn, BOOL fForce) {
       g_sortColumn = sortColumn;
 
       // Add the '^' to the new sort column.
-      _stprintf(szColumn, (g_columns[g_sortColumn].format == LVCFMT_LEFT) ? 
+      _stprintf(szColumn, (g_columns[g_sortColumn].format == LVCFMT_LEFT) ?
                 TEXT("%s ^") : TEXT("^ %s"), g_columns[g_sortColumn].szName);
       ListView_SetColumn(g_hWndList, g_sortColumn, &lvc);
 
@@ -1424,9 +1470,9 @@ int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM sortColumn) {
          break;
 
       case 2: { // Type - Volume Label's first, then directories, then files
-         int f1 = (pFile1->dwAttributes & FILE_ATTRIBUTE_VOLUME)    ? 1 : 
+         int f1 = (pFile1->dwAttributes & ZFILE_ATTRIBUTE_VOLUME)   ? 1 :
                   (pFile1->dwAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 2 : 3;
-         int f2 = (pFile2->dwAttributes & FILE_ATTRIBUTE_VOLUME)    ? 1 : 
+         int f2 = (pFile2->dwAttributes & ZFILE_ATTRIBUTE_VOLUME)   ? 1 :
                   (pFile2->dwAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 2 : 3;
          if ((f1 == 3) && (f2 == 3)) {
             CHAR szType1[128];
@@ -1495,14 +1541,17 @@ int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM sortColumn) {
 
 void SetCaptionText(LPCTSTR szPrefix) {
    TCHAR szCaption[_MAX_PATH + 32];
-   if (szPrefix && *g_szZipFile) {
-      _stprintf(szCaption, TEXT("%s - %S"), szPrefix, GetFileFromPath(g_szZipFile));
-   } else if (szPrefix) {
-      _stprintf(szCaption, TEXT("%s - Pocket UnZip"), szPrefix);
-   } else if (*g_szZipFile) {
-      _stprintf(szCaption, TEXT("%S"), GetFileFromPath(g_szZipFile));
+   if (szPrefix) {
+      _stprintf(szCaption, TEXT("%s - "), szPrefix);
    } else {
-      _tcscpy(szCaption, TEXT("Pocket UnZip"));
+      *szCaption = 0;
+   }
+   if (*g_szZipFile) {
+      size_t lenPrefix = _tcslen(szCaption);
+      MBSTOTSTR(szCaption + lenPrefix, GetFileFromPath(g_szZipFile),
+                countof(szCaption) - lenPrefix);
+   } else {
+      _tcscat(szCaption, TEXT("Pocket UnZip"));
    }
    SetWindowText(g_hWndMain, szCaption);
 }
@@ -1536,10 +1585,10 @@ void DrawBanner(HDC hdc) {
    // Note that you do not need to free icons as they are a resource.
    static HICON hIcon = NULL;
    if (!hIcon) {
-      hIcon = (HICON)LoadImage(g_hInst, MAKEINTRESOURCE(IDI_ZIPFILE), 
+      hIcon = (HICON)LoadImage(g_hInst, MAKEINTRESOURCE(IDI_ZIPFILE),
                                IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
    }
-   
+
    // Draw the ZIP file image.
    DrawIconEx(hdc, rc.left + 6, rc.top + 3, hIcon, 16, 16, 0, NULL, DI_NORMAL);
 
@@ -1548,7 +1597,7 @@ void DrawBanner(HDC hdc) {
    SetTextColor(hdc, RGB(0, 0, 0));
    SetBkMode(hdc, TRANSPARENT);
 
-   rc.left   += 26;      
+   rc.left   += 26;
    rc.right  -= 48;
    rc.bottom -=  2;
 
@@ -1558,9 +1607,13 @@ void DrawBanner(HDC hdc) {
       _tcscpy(szPath, TEXT("Initializing..."));
    } else if (*g_szZipFile) {
       if (g_fLoading) {
+#ifdef UNICODE
          _stprintf(szPath, TEXT("Loading %S"), g_szZipFile);
+#else
+         _stprintf(szPath, TEXT("Loading %s"), g_szZipFile);
+#endif
       } else {
-         mbstowcs(szPath, g_szZipFile, countof(szPath));
+         MBSTOTSTR(szPath, g_szZipFile, countof(szPath));
       }
    } else {
       _tcscpy(szPath, TEXT("No File Loaded"));
@@ -1598,7 +1651,7 @@ void AddDeleteColumns() {
       for (column = curColumns; column < newColumns; column++) {
 
          // Build the real column string.
-         _stprintf(szColumn, (g_columns[column].format == LVCFMT_LEFT) ? 
+         _stprintf(szColumn, (g_columns[column].format == LVCFMT_LEFT) ?
                    TEXT("%s   ") : TEXT("   %s"), g_columns[column].szName);
 
          // Insert the column with the correct format.
@@ -1615,7 +1668,7 @@ void AddDeleteColumns() {
       }
    }
 
-   // Store our new column count statically to help us with the next call to 
+   // Store our new column count statically to help us with the next call to
    // AddDeleteColumns().
    curColumns = newColumns;
 
@@ -1694,7 +1747,7 @@ LPCTSTR GetZipErrorString(int error) {
          return TEXT("None of the files could be processed because they were ")
                 TEXT("all compressed using an unsupported compression or ")
                 TEXT("encryption algorithm.");
-         
+
       case IZ_BADPWD: // no files found: all had bad password.
          return TEXT("None of the files could be processed because all the ")
                 TEXT("password(s) specified were incorrect.");
@@ -1705,6 +1758,7 @@ LPCTSTR GetZipErrorString(int error) {
                 TEXT("space, the ZIP file contains unexpected errors, or there ")
                 TEXT("is a bug in our program (that's why it's free).");
 
+      case IZ_CTRLC:  // canceled by user's interaction
       case PK_ABORTED: // user aborted
          return TEXT("The operation was aborted.");
    }
@@ -1724,7 +1778,7 @@ void AddFileToListView(FILE_NODE *pFile) {
    lvi.iImage  = IMAGE_GENERIC;
 
    // Special case Volume Labels.
-   if (pFile->dwAttributes & FILE_ATTRIBUTE_VOLUME) {
+   if (pFile->dwAttributes & ZFILE_ATTRIBUTE_VOLUME) {
       pFile->szType = "Volume Label";
       lvi.iImage = IMAGE_VOLUME;
 
@@ -1740,7 +1794,7 @@ void AddFileToListView(FILE_NODE *pFile) {
       LPCSTR pszFile = GetFileFromPath(pFile->szPathAndMethod);
 
       // Find the extension portion of our file.
-      LPCSTR pszExt = strrchr(pszFile, '.');
+      LPCSTR pszExt = MBSRCHR(pszFile, '.');
 
       // Search our known extension list for this extension.
       if (pszExt && *(pszExt + 1)) {
@@ -1801,7 +1855,7 @@ void CenterWindow(HWND hWnd) {
    GetWindowRect(GetParent(hWnd), &rcParent);
 
    // Center our window over our parent's window.
-   SetWindowPos(hWnd, NULL, 
+   SetWindowPos(hWnd, NULL,
       rcParent.left + ((rcParent.right  - rcParent.left) - (rc.right  - rc.left)) / 2,
       rcParent.top  + ((rcParent.bottom - rcParent.top ) - (rc.bottom - rc.top )) / 2,
       0, 0, SWP_NOZORDER | SWP_NOSIZE);
@@ -1814,7 +1868,7 @@ void AddTextToEdit(LPCSTR szText) {
       return;
    }
 
-   // Add the characters one by one to our edit box while performing the 
+   // Add the characters one by one to our edit box while performing the
    // the following newline conversions:
    //    Single CR -> CR/LF
    //    Single LF -> CR/LF
@@ -1893,14 +1947,14 @@ LPTSTR FormatValue(LPTSTR szValue, DWORD dwValue) {
 LPTSTR BuildAttributesString(LPTSTR szBuffer, DWORD dwAttributes) {
    // Build the attribute string according to the flags specified for this file.
    _stprintf(szBuffer, TEXT("%s%s%s%s%s%s%s%s"),
-             (dwAttributes & FILE_ATTRIBUTE_VOLUME)    ? TEXT("V") : TEXT(""),
-             (dwAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TEXT("D") : TEXT(""),
-             (dwAttributes & FILE_ATTRIBUTE_READONLY)  ? TEXT("R") : TEXT(""),
-             (dwAttributes & FILE_ATTRIBUTE_ARCHIVE)   ? TEXT("A") : TEXT(""),
-             (dwAttributes & FILE_ATTRIBUTE_HIDDEN)    ? TEXT("H") : TEXT(""),
-             (dwAttributes & FILE_ATTRIBUTE_SYSTEM)    ? TEXT("S") : TEXT(""),
-             (dwAttributes & FILE_ATTRIBUTE_ENCRYPTED) ? TEXT("E") : TEXT(""),
-             (dwAttributes & FILE_ATTRIBUTE_COMMENT)   ? TEXT("C") : TEXT(""));
+             (dwAttributes & ZFILE_ATTRIBUTE_VOLUME)    ? TEXT("V") : TEXT(""),
+             (dwAttributes & FILE_ATTRIBUTE_DIRECTORY)  ? TEXT("D") : TEXT(""),
+             (dwAttributes & FILE_ATTRIBUTE_READONLY)   ? TEXT("R") : TEXT(""),
+             (dwAttributes & FILE_ATTRIBUTE_ARCHIVE)    ? TEXT("A") : TEXT(""),
+             (dwAttributes & FILE_ATTRIBUTE_HIDDEN)     ? TEXT("H") : TEXT(""),
+             (dwAttributes & FILE_ATTRIBUTE_SYSTEM)     ? TEXT("S") : TEXT(""),
+             (dwAttributes & ZFILE_ATTRIBUTE_ENCRYPTED) ? TEXT("E") : TEXT(""),
+             (dwAttributes & ZFILE_ATTRIBUTE_COMMENT)   ? TEXT("C") : TEXT(""));
    return szBuffer;
 }
 
@@ -1916,7 +1970,7 @@ LPCSTR BuildTypeString(FILE_NODE *pFile, LPSTR szType) {
    LPCSTR pszFile = GetFileFromPath(pFile->szPathAndMethod);
 
    // Get the extension portion of the file.
-   LPCSTR pszExt = strrchr(pszFile, '.');
+   LPCSTR pszExt = MBSRCHR(pszFile, '.');
 
    // If we have an extension create a type name for this file.
    if (pszExt && *(pszExt + 1)) {
@@ -1925,14 +1979,14 @@ LPCSTR BuildTypeString(FILE_NODE *pFile, LPSTR szType) {
       strcat(szType, " File");
       return szType;
    }
-   
+
    // If no extension, then use the default "File".
    return "File";
 }
 
 //******************************************************************************
 LPCSTR GetFileFromPath(LPCSTR szPath) {
-   LPCSTR p1 = strrchr(szPath, '/'), p2 = strrchr(szPath, '\\');
+   LPCSTR p1 = MBSRCHR(szPath, '/'), p2 = MBSRCHR(szPath, '\\');
    if (p1 && (p1 > p2)) {
       return p1 + 1;
    } else if (p2) {
@@ -1947,7 +2001,7 @@ void ForwardSlashesToBackSlashesA(LPSTR szBuffer) {
       if (*szBuffer == '/') {
          *szBuffer = '\\';
       }
-      szBuffer++;
+      INCSTR(szBuffer);
    }
 }
 
@@ -1985,7 +2039,7 @@ void DeleteDirectory(LPTSTR szPath) {
          if (w32fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 
             // Ignore current directory (.) and previous directory (..)
-            if (_tcscmp(w32fd.cFileName, TEXT("."))   && 
+            if (_tcscmp(w32fd.cFileName, TEXT("."))   &&
                 _tcscmp(w32fd.cFileName, TEXT("..")))
             {
                // Recurse into DeleteDirectory() to delete subdirectory.
@@ -2002,7 +2056,7 @@ void DeleteDirectory(LPTSTR szPath) {
 
             // Attempt to delete the file.  If we fail and the file used to be
             // read-only, then set the read-only bit back on it.
-            if (!DeleteFile(szPath) && 
+            if (!DeleteFile(szPath) &&
                 (w32fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY))
             {
                SetFileAttributes(szPath, FILE_ATTRIBUTE_READONLY);
@@ -2032,7 +2086,7 @@ void RegWriteKey(HKEY hKeyRoot, LPCTSTR szSubKey, LPCTSTR szValue) {
 
    if (RegCreateKeyEx(hKeyRoot, szSubKey, 0, NULL, 0, KEY_SET_VALUE, NULL, &hKey, &dwDisposition) == ERROR_SUCCESS) {
       if (szValue) {
-         RegSetValueEx(hKey, NULL, 0, REG_SZ, (LPBYTE)szValue, 
+         RegSetValueEx(hKey, NULL, 0, REG_SZ, (LPBYTE)szValue,
                        sizeof(TCHAR) * (_tcslen(szValue) + 1));
       }
       RegCloseKey(hKey);
@@ -2057,7 +2111,7 @@ void WriteOptionString(LPCTSTR szOption, LPCTSTR szValue) {
    HKEY hKey = NULL;
 
    if (RegOpenKeyEx(HKEY_CURRENT_USER, g_szRegKey, 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
-      RegSetValueEx(hKey, szOption, 0, REG_SZ, (LPBYTE)szValue, 
+      RegSetValueEx(hKey, szOption, 0, REG_SZ, (LPBYTE)szValue,
                     sizeof(TCHAR) * (_tcslen(szValue) + 1));
       RegCloseKey(hKey);
    }
@@ -2107,7 +2161,7 @@ DWORD GetOptionInt(LPCTSTR szOption, DWORD dwDefault) {
 //******************************************************************************
 
 void DisableEditing(HWND hWndEdit) {
-   
+
    // Make sure the control does not have ES_READONLY or ES_WANTRETURN styles.
    DWORD dwStyle = (DWORD)GetWindowLong(hWndEdit, GWL_STYLE);
    if (dwStyle & (ES_READONLY | ES_WANTRETURN)) {
@@ -2157,9 +2211,9 @@ LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
          fCtrl  = (GetKeyState(VK_CONTROL) & 0x8000) ? TRUE : FALSE;
          fShift = (GetKeyState(VK_SHIFT)   & 0x8000) ? TRUE : FALSE;
 
-         // Skip all forms of DELETE, SHIFT-INSERT (paste), 
+         // Skip all forms of DELETE, SHIFT-INSERT (paste),
          // CTRL-RETURN (hard-return), and CTRL-TAB (hard-tab).
-         if ((          (wParam == VK_DELETE)) || 
+         if ((          (wParam == VK_DELETE)) ||
              (fShift && (wParam == VK_INSERT)) ||
              (fCtrl  && (wParam == VK_RETURN)) ||
              (fCtrl  && (wParam == VK_TAB)))
@@ -2178,7 +2232,7 @@ LRESULT CALLBACK EditSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 //******************************************************************************
 
 #ifdef _WIN32_WCE
-int GetMenuString(HMENU hMenu, UINT uIDItem, LPTSTR lpString, int nMaxCount, 
+int GetMenuString(HMENU hMenu, UINT uIDItem, LPTSTR lpString, int nMaxCount,
                   UINT uFlag) {
    MENUITEMINFO mii;
    ZeroMemory(&mii, sizeof(mii));
@@ -2193,7 +2247,7 @@ int GetMenuString(HMENU hMenu, UINT uIDItem, LPTSTR lpString, int nMaxCount,
 
 //******************************************************************************
 void InitializeMRU() {
-   
+
    TCHAR szMRU[MRU_MAX_FILE][_MAX_PATH + 4], szOption[8];
    int   i, j;
 
@@ -2231,12 +2285,12 @@ void InitializeMRU() {
 
 //******************************************************************************
 void AddFileToMRU(LPCSTR szFile) {
-   
+
    TCHAR szMRU[MRU_MAX_FILE + 1][_MAX_PATH + 4], szOption[8];
    int   i, j;
 
    // Store the new file in our first MRU index.
-   mbstowcs(&szMRU[0][3], szFile, _MAX_PATH);
+   MBSTOTSTR(&szMRU[0][3], szFile, _MAX_PATH);
 
    //---------------------------------------------------------------------------
    // We first read the current MRU list from the registry, merge in our new
@@ -2281,7 +2335,7 @@ void AddFileToMRU(LPCSTR szFile) {
    for (i = 1; i <= MRU_MAX_FILE; i++) {
 
       // Query our file Menu for a MRU file.
-      if (GetMenuString(hMenu, MRU_START_ID + i - 1, szMRU[i], 
+      if (GetMenuString(hMenu, MRU_START_ID + i - 1, szMRU[i],
                         countof(szMRU[0]), MF_BYCOMMAND))
       {
          // Delete this item from the menu for now.
@@ -2445,12 +2499,12 @@ void ActivateMRU(UINT uIDItem) {
 //***** Open Zip File Functions
 //******************************************************************************
 
-void ReadZipFileList(LPCWSTR wszPath) {
+void ReadZipFileList(LPCTSTR wszPath) {
 
    // Show wait cursor.
    HCURSOR hCur = SetCursor(LoadCursor(NULL, IDC_WAIT));
 
-   wcstombs(g_szZipFile, wszPath, countof(g_szZipFile));
+   TSTRTOMBS(g_szZipFile, wszPath, countof(g_szZipFile));
 
    // Update our banner to show that we are loading.
    g_fLoading = TRUE;
@@ -2556,7 +2610,7 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 #ifdef _WIN32_WCE
          // Add "Ok" button to caption bar.
-         SetWindowLong(hDlg, GWL_EXSTYLE, WS_EX_CAPTIONOKBTN | 
+         SetWindowLong(hDlg, GWL_EXSTYLE, WS_EX_CAPTIONOKBTN |
                        GetWindowLong(hDlg, GWL_EXSTYLE));
 #endif
          // Center us over our parent.
@@ -2582,12 +2636,12 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
             FILE_NODE *pFile = (FILE_NODE*)lvi.lParam;
 
             // Merge this file's attributes into our accumulative attributes.
-            MergeValues(&directory, (pFile->dwAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0);
-            MergeValues(&readOnly,  (pFile->dwAttributes & FILE_ATTRIBUTE_READONLY)  != 0);
-            MergeValues(&archive,   (pFile->dwAttributes & FILE_ATTRIBUTE_ARCHIVE)   != 0);
-            MergeValues(&hidden,    (pFile->dwAttributes & FILE_ATTRIBUTE_HIDDEN)    != 0);
-            MergeValues(&system,    (pFile->dwAttributes & FILE_ATTRIBUTE_SYSTEM)    != 0);
-            MergeValues(&encrypted, (pFile->dwAttributes & FILE_ATTRIBUTE_ENCRYPTED) != 0);
+            MergeValues(&directory, (pFile->dwAttributes & FILE_ATTRIBUTE_DIRECTORY)  != 0);
+            MergeValues(&readOnly,  (pFile->dwAttributes & FILE_ATTRIBUTE_READONLY)   != 0);
+            MergeValues(&archive,   (pFile->dwAttributes & FILE_ATTRIBUTE_ARCHIVE)    != 0);
+            MergeValues(&hidden,    (pFile->dwAttributes & FILE_ATTRIBUTE_HIDDEN)     != 0);
+            MergeValues(&system,    (pFile->dwAttributes & FILE_ATTRIBUTE_SYSTEM)     != 0);
+            MergeValues(&encrypted, (pFile->dwAttributes & ZFILE_ATTRIBUTE_ENCRYPTED) != 0);
 
             // Merge this file's date/time into our accumulative date/time.
             int curHour = (pFile->dwModified >> 6) & 0x001F;
@@ -2639,8 +2693,8 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
          } else {
 
             // Set the file name text for the single item selected.
-            mbstowcs(szBuffer, szPath, countof(szBuffer));
-            ForwardSlashesToBackSlashesW(szBuffer);
+            MBSTOTSTR(szBuffer, szPath, countof(szBuffer));
+            ForwardSlashesToBackSlashes(szBuffer);
             SetDlgItemText(hDlg, IDC_FILE, szBuffer);
 
             // Set the CRC text for the single item selected.
@@ -2660,12 +2714,12 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 
          // Set the Compression Factor text.
          int factor = ratio(dwSize, dwCompressedSize);
-         _stprintf(szBuffer, TEXT("%d.%d%%"), factor / 10, 
+         _stprintf(szBuffer, TEXT("%d.%d%%"), factor / 10,
                    ((factor < 0) ? -factor : factor) % 10);
          SetDlgItemText(hDlg, IDC_COMPRESSON_FACTOR, szBuffer);
 
          // Set the Compression Method text.
-         mbstowcs(szBuffer, szMethod, countof(szBuffer));
+         MBSTOTSTR(szBuffer, szMethod, countof(szBuffer));
          SetDlgItemText(hDlg, IDC_COMPRESSION_METHOD, szBuffer);
 
          // Set the Attribute check boxes.
@@ -2680,17 +2734,17 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
          // consider "??/" to be a valid string.  "??/" is a trigraph that is
          // turned into "\" by the preprocessor and causes grief for the compiler.
          LPTSTR psz = szBuffer;
-         psz += ((month  < 0) ? _stprintf(psz, TEXT("?\?/")) : 
+         psz += ((month  < 0) ? _stprintf(psz, TEXT("?\?/")) :
                                 _stprintf(psz, TEXT("%u/"), month));
          psz += ((day    < 0) ? _stprintf(psz, TEXT("?\?/")) :
                                 _stprintf(psz, TEXT("%u/"), day));
-         psz += ((year   < 0) ? _stprintf(psz, TEXT("?\? ")) : 
+         psz += ((year   < 0) ? _stprintf(psz, TEXT("?\? ")) :
                                 _stprintf(psz, TEXT("%u "), year % 100));
-         psz += ((hour   < 0) ? _stprintf(psz, TEXT("?\?:")) : 
+         psz += ((hour   < 0) ? _stprintf(psz, TEXT("?\?:")) :
                                 _stprintf(psz, TEXT("%u:"), hour));
-         psz += ((minute < 0) ? _stprintf(psz, TEXT("?\? ")) : 
+         psz += ((minute < 0) ? _stprintf(psz, TEXT("?\? ")) :
                                 _stprintf(psz, TEXT("%02u "), minute));
-         psz += ((pm     < 0) ? _stprintf(psz, TEXT("?M")) : 
+         psz += ((pm     < 0) ? _stprintf(psz, TEXT("?M")) :
                                 _stprintf(psz, TEXT("%cM"), pm ? TEXT('P') : TEXT('A')));
          SetDlgItemText(hDlg, IDC_MODIFIED, szBuffer);
 
@@ -2711,9 +2765,9 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
             AddTextToEdit(szComment);
          } else {
             CHAR szTemp[64];
-            _stprintf(szBuffer, TEXT("%u of the selected files %s a comment."), 
+            _stprintf(szBuffer, TEXT("%u of the selected files %s a comment."),
                       dwCommentCount, (dwCommentCount == 1)? TEXT("has") : TEXT("have"));
-            wcstombs(szTemp, szBuffer, countof(szTemp));
+            TSTRTOMBS(szTemp, szBuffer, countof(szTemp));
             AddTextToEdit(szTemp);
          }
          g_hWndEdit = NULL;
@@ -2770,8 +2824,8 @@ void MergeValues(int *p1, int p2) {
 
 //******************************************************************************
 void CheckThreeStateBox(HWND hDlg, int nIDButton, int state) {
-   CheckDlgButton(hDlg, nIDButton, (state == 0) ? BST_UNCHECKED : 
-                                   (state == 1) ? BST_CHECKED : 
+   CheckDlgButton(hDlg, nIDButton, (state == 0) ? BST_UNCHECKED :
+                                   (state == 1) ? BST_CHECKED :
                                                   BST_INDETERMINATE);
 }
 
@@ -2798,7 +2852,7 @@ void ExtractOrTestFiles(BOOL fExtract) {
    if ((int)ei.dwFileCount != ListView_GetItemCount(g_hWndList)) {
       ei.szFileList = new LPSTR[ei.dwFileCount + 1];
       if (!ei.szFileList) {
-         MessageBox(g_hWndMain, GetZipErrorString(PK_MEM), g_szAppName, 
+         MessageBox(g_hWndMain, GetZipErrorString(PK_MEM), g_szAppName,
                     MB_ICONERROR | MB_OK);
          return;
       }
@@ -2827,11 +2881,11 @@ void ExtractOrTestFiles(BOOL fExtract) {
    }
 
    // If we are extracting, display the extract dialog to query for parameters.
-   if (!fExtract || (DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_EXTRACT), g_hWndMain, 
+   if (!fExtract || (DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_EXTRACT), g_hWndMain,
                                     (DLGPROC)DlgProcExtractOrTest, (LPARAM)&ei) == IDOK))
    {
       // Display our progress dialog and do the extraction/test.
-      DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_EXTRACT_PROGRESS), g_hWndMain, 
+      DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_EXTRACT_PROGRESS), g_hWndMain,
                      (DLGPROC)DlgProcExtractProgress, (LPARAM)&ei);
    }
 
@@ -2850,7 +2904,7 @@ BOOL CALLBACK DlgProcExtractOrTest(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
    switch (uMsg) {
 
       case WM_INITDIALOG:
-         
+
          // Store our extract information structure.
          pei = (EXTRACT_INFO*)lParam;
 
@@ -2891,7 +2945,7 @@ BOOL CALLBACK DlgProcExtractOrTest(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 
                // Verify our "extract to" path is valid.
                if (!SetExtractToDirectory(szPath)) {
-                  MessageBox(hDlg, TEXT("The directory you entered is invalid or does not exist."), 
+                  MessageBox(hDlg, TEXT("The directory you entered is invalid or does not exist."),
                              g_szAppName, MB_ICONERROR | MB_OK);
                   SetFocus(GetDlgItem(hDlg, IDC_EXTRACT_TO));
                   return FALSE;
@@ -2899,7 +2953,7 @@ BOOL CALLBACK DlgProcExtractOrTest(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 
                // Query other control values.
                pei->fRestorePaths = IsDlgButtonChecked(hDlg, IDC_RESTORE_PATHS);
-               pei->overwriteMode = 
+               pei->overwriteMode =
                   IsDlgButtonChecked(hDlg, IDC_OVERWRITE_NEWER)  ? OM_NEWER  :
                   IsDlgButtonChecked(hDlg, IDC_OVERWRITE_ALWAYS) ? OM_ALWAYS :
                   IsDlgButtonChecked(hDlg, IDC_OVERWRITE_NEVER)  ? OM_NEVER  : OM_PROMPT;
@@ -2910,17 +2964,17 @@ BOOL CALLBACK DlgProcExtractOrTest(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
                WriteOptionString(TEXT("ExtractToDirectory"), szPath);
 
                // Fall through to IDCANCEL
-               
+
             case IDCANCEL:
                EndDialog(hDlg, LOWORD(wParam));
                return FALSE;
 
             case IDC_EXTRACT_TO:
- 
+
                // Make sure the path ends in a wack (\).
                if (HIWORD(wParam) == EN_KILLFOCUS) {
                   GetDlgItemText(hDlg, IDC_EXTRACT_TO, szPath, countof(szPath));
-                  int length = _tcslen(szPath);
+                  size_t length = _tcslen(szPath);
                   if ((length == 0) || szPath[length - 1] != TEXT('\\')) {
                      szPath[length    ] = TEXT('\\');
                      szPath[length + 1] = TEXT('\0');
@@ -2928,7 +2982,7 @@ BOOL CALLBACK DlgProcExtractOrTest(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
                   }
                }
                return FALSE;
-            
+
             case IDC_BROWSE:
                GetDlgItemText(hDlg, IDC_EXTRACT_TO, szPath, countof(szPath));
                if (FolderBrowser(szPath, countof(szPath))) {
@@ -2954,13 +3008,13 @@ BOOL FolderBrowser(LPTSTR szPath, DWORD dwLength) {
    // display the dialog in this function, and then we sublass it.  Our subclass
    // functions tweaks the dialog a bit and and returns the path.
 
-   ForwardSlashesToBackSlashesW(szPath);
+   ForwardSlashesToBackSlashes(szPath);
 
    TCHAR szInitialDir[_MAX_PATH];
    _tcscpy(szInitialDir, szPath);
 
    // Remove trailing wacks from path - The common dialog doesn't like them.
-   int length = _tcslen(szInitialDir);
+   size_t length = _tcslen(szInitialDir);
    while ((length > 0) && (szInitialDir[length - 1] == TEXT('\\'))) {
       szInitialDir[--length] = TEXT('\0');
    }
@@ -3009,7 +3063,7 @@ BOOL FolderBrowser(LPTSTR szPath, DWORD dwLength) {
    bi.pszDisplayName = szPath;
    bi.lpszTitle = TEXT("Extract To");
    bi.ulFlags = BIF_RETURNONLYFSDIRS;
- 
+
    // Prompt user for path.
    LPITEMIDLIST piidl = SHBrowseForFolder(&bi);
    if (!piidl) {
@@ -3018,14 +3072,14 @@ BOOL FolderBrowser(LPTSTR szPath, DWORD dwLength) {
 
    // Build path string.
    SHGetPathFromIDList(piidl, szPath);
- 
-   // Free the PIDL returned by SHBrowseForFolder. 
+
+   // Free the PIDL returned by SHBrowseForFolder.
    LPMALLOC pMalloc = NULL;
    SHGetMalloc(&pMalloc);
-   pMalloc->Free(piidl); 
- 
+   pMalloc->Free(piidl);
+
    // Add trailing wack if one is not present.
-   int length = _tcslen(szPath);
+   size_t length = _tcslen(szPath);
    if ((length > 0) && (szPath[length - 1] != TEXT('\\'))) {
       szPath[length++] = TEXT('\\');
       szPath[length]   = TEXT('\0');
@@ -3084,7 +3138,7 @@ BOOL CALLBACK DlgProcBrowser(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
       } else {
          // If no directory is selected, then enter the imaginary filename "!"
-         // into the name edit control and let the "Ok" end this dialog. The 
+         // into the name edit control and let the "Ok" end this dialog. The
          // result will be the correct path with a "\!" at the end.
          SetDlgItemText(hDlg, IDC_SAVE_NAME_EDIT, TEXT("!"));
       }
@@ -3110,7 +3164,7 @@ void SubclassSaveAsDlg() {
 
    // Walk the window list.
    while (hWnd) {
-   
+
       // Check to see if this window was created by us and has controls from a
       // common "save as" dialog.
       if ((GetWindowThreadProcessId(hWnd, NULL) == dwThreadId) &&
@@ -3146,7 +3200,7 @@ BOOL CALLBACK DlgProcExtractProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
    switch (uMsg) {
 
       case WM_INITDIALOG:
-         
+
          // Globally store our handle so our worker thread can post to us.
          g_hDlgProgress = hDlg;
 
@@ -3182,14 +3236,14 @@ BOOL CALLBACK DlgProcExtractProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 
          // Resize our dialog to be full screen (same size as parent).
          GetWindowRect(g_hWndMain, &rc2);
-         MoveWindow(hDlg, rc2.left, rc2.top, rc2.right - rc2.left, 
+         MoveWindow(hDlg, rc2.left, rc2.top, rc2.right - rc2.left,
                     rc2.bottom - rc2.top + 1, FALSE);
 
          // Get our new client size.
          GetClientRect(hDlg, &rc2);
 
          // Resize our edit box to fill the client.
-         MoveWindow(g_hWndEdit, rcEdit.left, rcEdit.top, 
+         MoveWindow(g_hWndEdit, rcEdit.left, rcEdit.top,
                     (rcEdit.right  - rcEdit.left) + (rc2.right  - rc1.right),
                     (rcEdit.bottom - rcEdit.top)  + (rc2.bottom - rc1.bottom),
                     FALSE);
@@ -3220,15 +3274,15 @@ BOOL CALLBACK DlgProcExtractProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
          }
 
          // Set the ranges on our progress bars.
-         SendMessage(pei->hWndProgFile,  PBM_SETRANGE, 0, 
+         SendMessage(pei->hWndProgFile,  PBM_SETRANGE, 0,
                      MAKELPARAM(0, PROGRESS_MAX));
-         SendMessage(pei->hWndProgTotal, PBM_SETRANGE, 0, 
+         SendMessage(pei->hWndProgTotal, PBM_SETRANGE, 0,
                      MAKELPARAM(0, PROGRESS_MAX));
 
          // Set our file and byte totals.
-         SetDlgItemText(hDlg, IDC_FILES_TOTAL, 
+         SetDlgItemText(hDlg, IDC_FILES_TOTAL,
                         FormatValue(szBuffer, pei->dwFileCount));
-         SetDlgItemText(hDlg, IDC_BYTES_TOTAL, 
+         SetDlgItemText(hDlg, IDC_BYTES_TOTAL,
                         FormatValue(szBuffer, pei->dwByteCount));
 
          // Luanch our Extract/Test thread and wait for WM_PRIVATE
@@ -3247,14 +3301,14 @@ BOOL CALLBACK DlgProcExtractProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
             SendMessage(pei->hWndProgFile,  PBM_SETPOS, PROGRESS_MAX, 0);
             SendMessage(pei->hWndProgTotal, PBM_SETPOS, PROGRESS_MAX, 0);
             SetWindowText(pei->hWndPercentage, TEXT("100%"));
-            SetDlgItemText(hDlg, IDC_FILES_PROCESSED, 
+            SetDlgItemText(hDlg, IDC_FILES_PROCESSED,
                            FormatValue(szBuffer, pei->dwFileCount));
-            SetDlgItemText(hDlg, IDC_BYTES_PROCESSED, 
+            SetDlgItemText(hDlg, IDC_BYTES_PROCESSED,
                            FormatValue(szBuffer, pei->dwByteCount));
          }
 
          // Update our status text.
-         SetWindowText(pei->hWndEditFile, 
+         SetWindowText(pei->hWndEditFile,
             (pei->result == PK_OK)      ? TEXT("Completed.  There were no warnings or errors.") :
             (pei->result == PK_WARN)    ? TEXT("Completed.  There was one or more warnings.") :
             (pei->result == PK_ABORTED) ? TEXT("Aborted.  There may be warnings or errors.") :
@@ -3314,7 +3368,7 @@ BOOL CALLBACK DlgProcViewProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lP
    switch (uMsg) {
 
       case WM_INITDIALOG:
-         
+
          // Globally store our handle so our worker thread can post to us.
          g_hDlgProgress = hDlg;
 
@@ -3328,7 +3382,7 @@ BOOL CALLBACK DlgProcViewProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lP
          pei->hWndProgFile = GetDlgItem(hDlg, IDC_FILE_PROGRESS);
 
          // Set the ranges on our progress bar.
-         SendDlgItemMessage(hDlg, IDC_FILE_PROGRESS, PBM_SETRANGE, 0, 
+         SendDlgItemMessage(hDlg, IDC_FILE_PROGRESS, PBM_SETRANGE, 0,
                             MAKELPARAM(0, PROGRESS_MAX));
 
          // Luanch our Extract thread and wait for WM_PRIVATE message.
@@ -3367,8 +3421,8 @@ void UpdateProgress(EXTRACT_INFO *pei, BOOL fFull) {
 
    // Compute our file progress bar position.
    if (pei->dwBytesTotalThisFile) {
-      dwFile = (DWORD)(((DWORDLONG)PROGRESS_MAX * 
-                        (DWORDLONG)pei->dwBytesWrittenThisFile) / 
+      dwFile = (DWORD)(((DWORDLONG)PROGRESS_MAX *
+                        (DWORDLONG)pei->dwBytesWrittenThisFile) /
                         (DWORDLONG)pei->dwBytesTotalThisFile);
    } else {
       dwFile = PROGRESS_MAX;
@@ -3383,11 +3437,11 @@ void UpdateProgress(EXTRACT_INFO *pei, BOOL fFull) {
    }
 
    // Compute our total progress bar position.
-   dwTotal = (DWORD)(((DWORDLONG)PROGRESS_MAX * 
-                      (DWORDLONG)(pei->dwBytesWrittenPreviousFiles + 
-                                  pei->dwBytesWrittenThisFile + 
-                                  pei->dwFile)) / 
-                      (DWORDLONG)(pei->dwByteCount + 
+   dwTotal = (DWORD)(((DWORDLONG)PROGRESS_MAX *
+                      (DWORDLONG)(pei->dwBytesWrittenPreviousFiles +
+                                  pei->dwBytesWrittenThisFile +
+                                  pei->dwFile)) /
+                      (DWORDLONG)(pei->dwByteCount +
                                   pei->dwFileCount));
    dwPercentage = dwTotal / (PROGRESS_MAX / 100);
 
@@ -3401,7 +3455,7 @@ void UpdateProgress(EXTRACT_INFO *pei, BOOL fFull) {
    // Set our current file and byte process counts.
    FormatValue(szBuffer, pei->dwFile - 1);
    SetWindowText(pei->hWndFilesProcessed, szBuffer);
-   FormatValue(szBuffer, pei->dwBytesWrittenPreviousFiles + 
+   FormatValue(szBuffer, pei->dwBytesWrittenPreviousFiles +
                pei->dwBytesWrittenThisFile);
    SetWindowText(pei->hWndBytesProcessed, szBuffer);
 
@@ -3409,11 +3463,12 @@ void UpdateProgress(EXTRACT_INFO *pei, BOOL fFull) {
    if (fFull) {
 
       // Build our message string.
-      _stprintf(szBuffer, TEXT("%Sing: %S"), pei->fExtract ? 
-                "Extract" : "Test", pei->szFile);
+      _tcscpy(szBuffer, pei->fExtract ? TEXT("Extract") : TEXT("Test"));
+      size_t preflen = _tcslen(szBuffer);
+      MBSTOTSTR(szBuffer+preflen, pei->szFile,countof(szBuffer)-preflen);
 
       // Change all forward slashes to back slashes in the buffer.
-      ForwardSlashesToBackSlashesW(szBuffer);
+      ForwardSlashesToBackSlashes(szBuffer);
 
       // Update the file name in our dialog.
       SetWindowText(pei->hWndEditFile, szBuffer);
@@ -3432,14 +3487,18 @@ int PromptToReplace(LPCSTR szPath) {
 
       // Build prompt.
       TCHAR szMessage[_MAX_PATH + 128];
-      _stprintf(szMessage, 
+      _stprintf(szMessage,
+#ifdef UNICODE
          TEXT("A file named \"%S\" has already been extracted for viewing.  ")
+#else
+         TEXT("A file named \"%s\" has already been extracted for viewing.  ")
+#endif
          TEXT("That file might be opened and locked for viewing by another application.\n\n")
          TEXT("Would you like to attempt to overwirite it with the new file?"),
          GetFileFromPath(szPath));
-      
+
       // Display prompt.
-      if (IDYES == MessageBox(g_hDlgProgress, szMessage, g_szAppName, 
+      if (IDYES == MessageBox(g_hDlgProgress, szMessage, g_szAppName,
                               MB_ICONWARNING | MB_YESNO))
       {
          // Tell Info-ZIP to continue with extraction.
@@ -3450,9 +3509,9 @@ int PromptToReplace(LPCSTR szPath) {
       g_fSkipped = TRUE;
       return IDM_REPLACE_NO;
    }
-   
+
    // Otherwise, do the normal replace prompt dialog.
-   return DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_REPLACE), g_hWndMain, 
+   return DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_REPLACE), g_hWndMain,
                          (DLGPROC)DlgProcReplace, (LPARAM)szPath);
 }
 
@@ -3466,12 +3525,16 @@ BOOL CALLBACK DlgProcReplace(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
          // Play the question tone to alert the user.
          MessageBeep(MB_ICONQUESTION);
-         
+
          // Display a message with the file name.
+#ifdef UNICODE
          _stprintf(szMessage, TEXT("\"%S\" already exists."), (LPCSTR)lParam);
+#else
+         _stprintf(szMessage, TEXT("\"%s\" already exists."), (LPCSTR)lParam);
+#endif
 
          // Change all forward slashes to back slashes in the buffer.
-         ForwardSlashesToBackSlashesW(szMessage);
+         ForwardSlashesToBackSlashes(szMessage);
 
          // Display the file string.
          SetDlgItemText(hDlg, IDC_FILE, szMessage);
@@ -3508,7 +3571,7 @@ BOOL CALLBACK DlgProcReplace(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 #if CRYPT
 
 BOOL CALLBACK DlgProcPassword(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-   
+
    // Return Values:
    //    IZ_PW_ENTERED    got some PWD string, use/try it
    //    IZ_PW_CANCEL     no password available (for this entry)
@@ -3524,10 +3587,10 @@ BOOL CALLBACK DlgProcPassword(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
          // Play the question tone to alert the user.
          MessageBeep(MB_ICONQUESTION);
-         
+
 #ifdef _WIN32_WCE
          // Add "Ok" button to caption bar.
-         SetWindowLong(hDlg, GWL_EXSTYLE, WS_EX_CAPTIONOKBTN | 
+         SetWindowLong(hDlg, GWL_EXSTYLE, WS_EX_CAPTIONOKBTN |
                        GetWindowLong(hDlg, GWL_EXSTYLE));
 #endif
 
@@ -3535,10 +3598,14 @@ BOOL CALLBACK DlgProcPassword(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
          pdi = (DECRYPT_INFO*)lParam;
 
          // Display a message with the file name.
+#ifdef UNICODE
          _stprintf(szMessage, TEXT("\"%S\" is encrypted."), pdi->szFile);
+#else
+         _stprintf(szMessage, TEXT("\"%s\" is encrypted."), pdi->szFile);
+#endif
 
          // Change all forward slashes to back slashes in the buffer.
-         ForwardSlashesToBackSlashesW(szMessage);
+         ForwardSlashesToBackSlashes(szMessage);
 
          // Display the message with the file name.
          SetDlgItemText(hDlg, IDC_FILE, szMessage);
@@ -3566,7 +3633,7 @@ BOOL CALLBACK DlgProcPassword(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
                // Store the password in our return password buffer.
                GetDlgItemText(hDlg, IDC_PASSWORD, szMessage, countof(szMessage));
-               wcstombs(pdi->szPassword, szMessage, pdi->nSize);
+               TSTRTOMBS(pdi->szPassword, szMessage, pdi->nSize);
                EndDialog(hDlg, IZ_PW_ENTERED);
                return FALSE;
 
@@ -3603,10 +3670,10 @@ BOOL CALLBACK DlgProcViewAssociation(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 
          // Read our default viewer from the registry.
 #ifdef _WIN32_WCE
-         GetOptionString(TEXT("FileViewer"), TEXT("\\Windows\\PWord.exe"), 
+         GetOptionString(TEXT("FileViewer"), TEXT("\\Windows\\PWord.exe"),
                          szApp, sizeof(TCHAR) * _MAX_PATH);
 #else
-         GetOptionString(TEXT("FileViewer"), TEXT("notepad.exe"), 
+         GetOptionString(TEXT("FileViewer"), TEXT("notepad.exe"),
                          szApp, sizeof(TCHAR) * _MAX_PATH);
 #endif
 
@@ -3638,7 +3705,7 @@ BOOL CALLBACK DlgProcViewAssociation(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
                GetDlgItemText(hDlg, IDC_PATH, szApp, _MAX_PATH);
 
                // Get the direcory from the path text.
-               ForwardSlashesToBackSlashesW(szApp);
+               ForwardSlashesToBackSlashes(szApp);
                TCHAR szInitialDir[_MAX_PATH], *szFile;
                _tcscpy(szInitialDir, szApp);
                if (szFile = _tcsrchr(szInitialDir, TEXT('\\'))) {
@@ -3697,7 +3764,7 @@ BOOL CALLBACK DlgProcComment(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
          // On CE, we resize our dialog to be full screen (same size as parent).
          GetWindowRect(g_hWndMain, &rc);
-         MoveWindow(hDlg, rc.left, rc.top, rc.right - rc.left, 
+         MoveWindow(hDlg, rc.left, rc.top, rc.right - rc.left,
                     rc.bottom - rc.top + 1, FALSE);
 #else
          // On NT we just center the dialog.
@@ -3751,16 +3818,16 @@ BOOL CALLBACK DlgProcAbout(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 #ifdef _WIN32_WCE
          // Add "Ok" button to caption bar.
-         SetWindowLong(hDlg, GWL_EXSTYLE, WS_EX_CAPTIONOKBTN | 
+         SetWindowLong(hDlg, GWL_EXSTYLE, WS_EX_CAPTIONOKBTN |
                        GetWindowLong(hDlg, GWL_EXSTYLE));
 #endif
 
          // Fill in a few static members.
          TCHAR szBuffer[80];
          SetDlgItemText(hDlg, IDC_PRODUCT, TEXT(VER_PRODUCT_STR));
-         _stprintf(szBuffer, TEXT("Freeware Version %S"), VER_FULLVERSION_STR);
+         _stprintf(szBuffer, TEXT("Freeware Version %s"), TEXT(VER_FULLVERSION_STR));
          SetDlgItemText(hDlg, IDC_VERSION, szBuffer);
-         _stprintf(szBuffer, TEXT("Developed by %S"), VER_DEVELOPER_STR);
+         _stprintf(szBuffer, TEXT("Developed by %s"), TEXT(VER_DEVELOPER_STR));
          SetDlgItemText(hDlg, IDC_DEVELOPER, szBuffer);
          SetDlgItemText(hDlg, IDC_COPYRIGHT, TEXT(VER_COPYRIGHT_STR));
          SetDlgItemText(hDlg, IDC_COMMENT, TEXT(VER_COMMENT_STR));

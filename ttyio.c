@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   ttyio.c
@@ -10,7 +18,7 @@
   Contains:  echo()         (VMS only)
              Echon()        (Unix only)
              Echoff()       (Unix only)
-             screenlines()  (Unix only)
+             screensize()   (Unix only)
              zgetch()       (Unix and non-Unix versions)
              getp()         ("PC," Unix/Atari/Be, VMS/VMCMS/MVS)
 
@@ -303,7 +311,9 @@ void Echon(__G)
 
 #if (defined(TIOCGWINSZ) && !defined(M_UNIX))
 
-int screenlines()
+int screensize(tt_rows, tt_cols)
+    int *tt_rows;
+    int *tt_cols;
 {
     struct winsize wsz;
 #ifdef DEBUG_WINSZ
@@ -315,40 +325,69 @@ int screenlines()
 #ifdef DEBUG_WINSZ
         if (firsttime) {
             firsttime = FALSE;
-            fprintf(stderr, "ttyio.c screenlines():  ws_row = %d\n",
+            fprintf(stderr, "ttyio.c screensize():  ws_row = %d\n",
               wsz.ws_row);
+            fprintf(stderr, "ttyio.c screensize():  ws_col = %d\n",
+              wsz.ws_col);
         }
 #endif
-        /* number of columns = ws_col */
-        return (wsz.ws_row > 0)? wsz.ws_row : 24;   /* number of rows */
-
+        /* number of rows */
+        if (tt_rows != NULL)
+            *tt_rows = (int)((wsz.ws_row > 0) ? wsz.ws_row : 24);
+        /* number of columns */
+        if (tt_cols != NULL)
+            *tt_cols = (int)((wsz.ws_col > 0) ? wsz.ws_col : 80);
+        return 0;    /* signal success */
     } else {         /* this happens when piping to more(1), for example */
 #ifdef DEBUG_WINSZ
         if (firsttime) {
             firsttime = FALSE;
             fprintf(stderr,
-              "ttyio.c screenlines():  ioctl(TIOCGWINSZ) failed\n"));
+              "ttyio.c screensize():  ioctl(TIOCGWINSZ) failed\n"));
         }
 #endif
-        return 24;   /* VT-100 assumed to be minimal hardware */
+        /* VT-100 assumed to be minimal hardware */
+        if (tt_rows != NULL)
+            *tt_rows = 24;
+        if (tt_cols != NULL)
+            *tt_cols = 80;
+        return 1;       /* signal failure */
     }
 }
 
 #else /* !TIOCGWINSZ: service not available, fall back to semi-bogus method */
 
-int screenlines()
+int screensize(tt_rows, tt_cols)
+    int *tt_rows;
+    int *tt_cols;
 {
     char *envptr, *getenv();
     int n;
+    int errstat = 0;
 
     /* GRR:  this is overly simplistic, but don't have access to stty/gtty
      * system anymore
      */
-    envptr = getenv("LINES");
-    if (envptr == (char *)NULL || (n = atoi(envptr)) < 5)
-        return 24;   /* VT-100 assumed to be minimal hardware */
-    else
-        return n;
+    if (tt_rows != NULL) {
+        envptr = getenv("LINES");
+        if (envptr == (char *)NULL || (n = atoi(envptr)) < 5) {
+            /* VT-100 assumed to be minimal hardware */
+            *tt_rows = 24;
+            errstat = 1;    /* signal failure */
+        } else {
+            *tt_rows = n;
+        }
+    }
+    if (tt_cols != NULL) {
+        envptr = getenv("COLUMNS");
+        if (envptr == (char *)NULL || (n = atoi(envptr)) < 5) {
+            *tt_cols = 80;
+            errstat = 1;    /* signal failure */
+        } else {
+            *tt_cols = n;
+        }
+    }
+    return errstat;
 }
 
 #endif /* ?(TIOCGWINSZ && !M_UNIX) */

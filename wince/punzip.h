@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        PUNZIP.H
@@ -48,13 +56,11 @@ extern "C" {
 #define _WINDOWS
 #endif
 
+#ifdef _WIN32_WCE   /* for native Windows CE, force UNICODE mode */
 #ifndef UNICODE
 #define UNICODE
 #endif
-
-#ifndef _UNICODE
-#define _UNICODE
-#endif
+#endif /* _WIN32_WCE */
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -62,6 +68,14 @@ extern "C" {
 
 #ifndef STRICT
 #define STRICT
+#endif
+
+#if defined(_UNICODE) && !defined(UNICODE)
+#define UNICODE
+#endif
+
+#if defined(UNICODE) && !defined(_UNICODE)
+#define _UNICODE
 #endif
 
 #if defined(_DEBUG) && !defined(DEBUG)
@@ -144,6 +158,10 @@ extern "C" {
 //***** Global defines, constants, and macros
 //******************************************************************************
 
+#if (defined(_MSC_VER) && !defined(MSC))
+#define MSC
+#endif
+
 #ifndef PATH_MAX
 #define PATH_MAX _MAX_PATH
 #endif
@@ -170,8 +188,19 @@ extern "C" {
     } while (c != '\0');}
 
 
-#if (defined(_MSC_VER) && !defined(MSC))
-#define MSC
+#if defined(UNICODE)
+#  define MBSTOTSTR mbstowcs
+#  define TSTRTOMBS wcstombs
+#else
+#  define MBSTOTSTR strncpy
+#  define TSTRTOMBS strncpy
+#endif
+
+#if defined(_MBCS)
+   /* MSC-specific version, _mbsinc() may not be available for other systems */
+#  define PREINCSTR(ptr) (ptr = (char *)_mbsinc((const UCHAR *)(ptr)))
+#  define MBSCHR(str, c) (char *)_mbschr((const UCHAR *)(str), (c))
+#  define MBSRCHR(str, c) (char *)_mbsrchr((const UCHAR *)(str), (c))
 #endif
 
 #ifdef MSC
@@ -190,7 +219,7 @@ extern "C" {
 
 #define countof(a) (sizeof(a)/sizeof(*(a)))
 
-// The max number of retires (not including the first attempt) for entering
+// The max number of retries (not including the first attempt) for entering
 // a password for and encrypted file before giving up on that file.
 #define MAX_PASSWORD_RETRIES 2
 
@@ -209,10 +238,13 @@ extern "C" {
 #include <windows.h>
 #include <setjmp.h>
 #include <stdlib.h>
+#ifdef _MBCS
+#include <mbstring.h>
+#endif
 #include <excpt.h>
-#include "wince\wince.h"     // Our WinCE specific code and our debug function.
-#include "wince\resource.h"  // Our resource constants
-#include "wince\punzip.rcv"  // Our version information.
+#include "wince/wince.h"     // Our WinCE specific code and our debug function.
+#include "wince/resource.h"  // Our resource constants
+#include "wince/punzip.rcv"  // Our version information.
 
 #ifdef __cplusplus
 } // extern "C"

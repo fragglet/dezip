@@ -1,53 +1,18 @@
 ?tacl macro
 #frame
 #push zipfile
-#SET zipfile UNZIP54
+#SET zipfile UNZFILE
 
 unzip -a [zipfile] *.c  -x */*
-==RENAME api     apic
-==ERASE APIC
-RENAME api     apiz
-RENAME apihelp apihelpz
-
-RENAME bits    bitsc
-RENAME crc32   crc32c
-RENAME crctab  crctabc
-RENAME crypt   cryptc
-RENAME envargs envargsc
-RENAME explode explodec
-RENAME extract extractc
-RENAME fileio  fileioc
-RENAME funzip  funzipc
-RENAME globals globalsc
-RENAME inflate inflatec
-RENAME list    listc
-RENAME match   matchc
-RENAME process processc
-RENAME ttyio   ttyioc
-==RENAME unreduce
-RENAME unshrink unshrinc
-RENAME unzip   unzipc
-==RENAME unzipstb
-RENAME zipinfo zipinfoc
+== Following not required
+RENAME apic     apicz
+RENAME apihelpc apihelpz
 
 unzip -a [zipfile] *.h -x */*
-RENAME consts  constsh
-RENAME crypt   crypth
-RENAME ebcdic  ebcdich
-RENAME globals globalsh
-RENAME inflate inflateh
-RENAME tables  tablesh
-RENAME ttyio   ttyioh
-RENAME unzip   unziph
-RENAME unzpriv unzprivh
-RENAME version versionh
-RENAME zip     ziph
 
 unzip -aj [zipfile] tandem/*.h
-RENAME tandem  tandemh
 
 unzip -aj [zipfile] tandem/*.c
-RENAME tandem  tandemc
 
 unzip -aj [zipfile] tandem/* -x tandem/*.*
 

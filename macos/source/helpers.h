@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 #ifndef HELPERS_H
 #define HELPERS_H       1
 
@@ -7,6 +15,8 @@ unsigned char *CToPCpy(unsigned char *pstr, char *cstr);
  /* Convert a Pascal string to a C string */
 char *PToCCpy(unsigned char *pstr, char *cstr);
 
+char *sstrcpy(char *to,const char *from);
+char *sstrcat(char *to,const char *from);
 
 char *StrCalloc(unsigned short size);
 char *StrFree(char *strPtr);
@@ -33,10 +43,14 @@ void leftStatusString(char *status);
 void rightStatusString(char *status);
 
 Boolean isZipFile(FSSpec *fileToOpen);
-void createArchiveName(char *Path);
-void FindDesktopFolder(char *Path);
 
 unsigned long MacFileDate_to_UTime(unsigned long mactime);
+Boolean CheckForSwitch(char *Switch, int argc, char **argv);
+
+void MakeCompatibleString(char *MacOS_Str,
+            const char SpcChar1, const char SpcChar2,
+            const char SpcChar3, const char SpcChar4,
+            short CurrTextEncodingBase);
 
 #define     MAX_ARGS    25
 

@@ -20,11 +20,11 @@ f none $PKG/doc/zipgrep.doc=zipgrep.doc 0644 root bin
 f none $PKG/doc/zipinfo.doc=zipinfo.doc 0644 root bin
 d none $PKG/man 0755 root bin
 d none $PKG/man/man1 0755 root bin
-f none $PKG/man/man1/funzip.1=unix/funzip.1 0644 root bin
-f none $PKG/man/man1/unzip.1=unix/unzip.1 0644 root bin
-f none $PKG/man/man1/unzipsfx.1=unix/unzipsfx.1 0644 root bin
-f none $PKG/man/man1/zipgrep.1=unix/zipgrep.1 0644 root bin
-f none $PKG/man/man1/zipinfo.1=unix/zipinfo.1 0644 root bin
+f none $PKG/man/man1/funzip.1=man/funzip.1 0644 root bin
+f none $PKG/man/man1/unzip.1=man/unzip.1 0644 root bin
+f none $PKG/man/man1/unzipsfx.1=man/unzipsfx.1 0644 root bin
+f none $PKG/man/man1/zipgrep.1=man/zipgrep.1 0644 root bin
+f none $PKG/man/man1/zipinfo.1=man/zipinfo.1 0644 root bin
 i pkginfo
 i prototype
 i README

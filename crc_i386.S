@@ -1,6 +1,14 @@
 /*
- * crc_i386.S, optimized CRC calculation function for Zip and UnZip, not
- * copyrighted by Paul Kienitz and Christian Spieler.  Last revised 12 Oct 97.
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
+/*
+ * crc_i386.S, optimized CRC calculation function for Zip and UnZip,
+ * created by Paul Kienitz and Christian Spieler.  Last revised 24 Dec 98.
  *
  * GRR 961110:  incorporated Scott Field optimizations from win32/crc_i386.asm
  *              => overall 6% speedup in "unzip -tq" on 9MB zipfile (486-66)
@@ -147,10 +155,10 @@ _crc32:                         /* ulg crc32(ulg crc, uch *buf, extent len) */
                 movl    arg3, %ecx           /* 3rd arg: extent len          */
                 notl    %eax                 /* >   c = ~crc;                */
 
-#ifndef  NO_UNROLLED_LOOPS
-#  ifndef  NO_32_BIT_LOADS
                 testl   %ecx, %ecx
+#ifndef  NO_UNROLLED_LOOPS
                 jz      .L_bail
+#  ifndef  NO_32_BIT_LOADS
                 /* Assert now have positive length */
 .L_align_loop:
                 testl   $3, %esi        /* Align buf on lword boundary */
@@ -160,9 +168,8 @@ _crc32:                         /* ulg crc32(ulg crc, uch *buf, extent len) */
                 jnz     .L_align_loop
 .L_aligned_now:
 #  endif  /* !NO_32_BIT_LOADS */
-                movl    %ecx, %edx           /* save len in edx          */
-                andl    $7, %edx             /* edx = len % 8            */
-                shrl    $3, %ecx             /* ecx = len / 8            */
+                movl    %ecx, %edx           /* save len in edx */
+                shrl    $3, %ecx             /* ecx = len / 8   */
                 jz      .L_No_Eights
 /*  align loop head at start of 486 internal cache line !! */
                 ALIGNMENT
@@ -197,14 +204,9 @@ _crc32:                         /* ulg crc32(ulg crc, uch *buf, extent len) */
 
 .L_No_Eights:
                 movl    %edx, %ecx
-#endif /* NO_UNROLLED_LOOPS */
-
-#ifndef NO_JECXZ_SUPPORT
-                jecxz   .L_bail              /* > if (len)                   */
-#else
-                testl   %ecx, %ecx           /* > if (len)                   */
-                jz      .L_bail
-#endif
+                andl    $7, %ecx             /* ecx = len % 8   */
+#endif /* !NO_UNROLLED_LOOPS */
+                jz      .L_bail              /* > if (len)                   */
 /* align loop head at start of 486 internal cache line !! */
                 ALIGNMENT
 .L_loupe:                                    /* >   do {                     */

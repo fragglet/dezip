@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   consts.h
@@ -15,15 +23,15 @@ ZCONST ush near mask_bits[] = {
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
 
-ZCONST char Far VersionDate[] = VERSION_DATE;   /* now defined in version.h */
+ZCONST char Far VersionDate[] = UZ_VERSION_DATE; /* now defined in version.h */
 
 #ifndef SFX
-   ZCONST char Far EndSigMsg[] = 
+   ZCONST char Far EndSigMsg[] =
    "\nnote:  didn't find end-of-central-dir signature at end of central dir.\n";
 #endif
 
 ZCONST char Far CentSigMsg[] =
-  "error:  expected central file header signature not found (file #%u).\n";
+  "error:  expected central file header signature not found (file #%lu).\n";
 ZCONST char Far SeekMsg[] =
   "error [%s]:  attempt to seek before beginning of zipfile\n%s";
 ZCONST char Far FilenameNotMatched[] = "caution: filename not matched:  %s\n";

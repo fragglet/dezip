@@ -1,11 +1,22 @@
-; crc_lcc.asm, optimized CRC calculation function for Zip and UnZip, not
-; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 25 Mar 98.
+;===========================================================================
+; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+;
+; See the accompanying file LICENSE, version 2000-Apr-09 or later
+; (the contents of which are also included in zip.h) for terms of use.
+; If, for some reason, all these files are missing, the Info-ZIP license
+; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+;===========================================================================
+; crc_lcc.asm, optimized CRC calculation function for Zip and UnZip,
+; created by Paul Kienitz and Christian Spieler.  Last revised 24 Dec 98.
 ;
 ; The code in this file has been copied verbatim from crc_i386.{asm|S};
 ; only the assembler syntax and metacommands have been adapted to
 ; the habits of the free LCC-Win32 C compiler package.
 ; This version of the code uses the "optimized for i686" variant of
 ; crc_i386.{asm|S}.
+; IMPORTANT NOTE to the Info-ZIP editors:
+; The TAB characters in this source file are required by the parser of
+; the LCC-Win32 assembler program and MUST NOT be removed!!
 ;
 ; For more information (and a revision log), look into the original
 ; source files.
@@ -48,7 +59,6 @@ _$5:
 	jnz	_$5
 _$6:
 	movl	%ecx,%edx
-	andl	$7,%edx
 	shrl	$3,%ecx
 	jz	_$8
 _$7:
@@ -84,7 +94,8 @@ _$7:
 	jnz	_$7
 _$8:
 	movl	%edx,%ecx
-	jecxz	_$4
+	andl	$7,%ecx
+	jz	_$4
 _$9:
 	xorb    (%esi),%al
 	incl    %esi

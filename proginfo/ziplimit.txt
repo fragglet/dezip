@@ -13,6 +13,11 @@ A) Hard limits of the Zip archive format:
    The number of archive entries and of multivolume parts are limited by
    the structure of the "end-of-central-directory" record, where the these
    numbers are stored in 2-Byte fields.
+   Some Zip and/or UnZip implementations (for example Info-ZIP's) allow
+   handling of archives with more than 64k entries.  (The information
+   from "number of entries" field in the "end-of-central-directory" record
+   is not really neccessary to retrieve the contents of a Zip archive;
+   it should rather be used for consistency checks.)
 
    Length of an archive entry name:             64 kByte (2^16 - 1)
    Length of archive member comment:            64 kByte (2^16 - 1)
@@ -35,22 +40,26 @@ B) Implementation limits of UnZip:
    -->> ONLY for imploded and reduced archive members: <<--
    Uncompressed size of archive entry:  2 GByte (2^31 - 1 Bytes)
 
-   Multi-volume archive creation is not supported.
+   The number of Zip archive entries is unlimited. The "number-of-entries"
+   field of the "end-of-central-dir" record is checked against the "number
+   of entries found in the central directory" modulus 64k (2^16).
+
+   Multi-volume archive extraction is not supported.
 
    Memory requirements are mostly independent of the archive size
    and archive contents.
    In general, UnZip needs a fixed amount of internal buffer space
    plus the size to hold the complete information of the currently
-   processed entrie's local header. Here, a large extra field
+   processed entry's local header. Here, a large extra field
    (could be up to 64 kByte) may exceed the available memory
    for MSDOS 16-bit executables (when they were compiled in small
    or medium memory model, with a fixed 64kByte limit on data space).
 
    The other exception where memory requirements scale with "larger"
    archives is the "restore directory attributes" feature. Here, the
-   directory attributes info for each restored directory has to be hold
+   directory attributes info for each restored directory has to be held
    in memory until the whole archive has been processed. So, the amount
-   of memory needed to hold this info scales with the number of restored
+   of memory needed to keep this info scales with the number of restored
    directories and may cause memory problems when a lot of directories
    are restored in a single run.
 
@@ -71,6 +80,8 @@ C) Implementation limits of the Zip executables:
      a1) 16-bit executable:             <16k ((2^16)/4)
          (The smaller limit a1) results from the array size limit of
          the "qsort()" function.)
+         32-bit executables             <1G ((2^32)/4)
+         (usual system limit of the "qsort()" function on 32-bit systems)
 
      b) stack space needed by qsort to sort list of archive entries
 
@@ -90,11 +101,12 @@ C) Implementation limits of the Zip executables:
      environments without virtual memory), the number of archive entries
      is most often limited by condition c).
      For example, with approx. 100 kBytes of free memory after loading and
-     initializing the program, a 16-bit DOS Zip cannot process more than 600 to 1000 (+)
-     archive entries. (For the 16-bit Windows DLL, limit c) is less important
-     because Windows executables are not restricted to the 1024k area of real
-     mode memory. The 16-bit Windows Zip is limited by conditions a1) and b),
-     say: at maximum approx. 16000 entries!)
+     initializing the program, a 16-bit DOS Zip cannot process more than 600
+     to 1000 (+) archive entries.  (For the 16-bit Windows DLL or the 16-bit
+     OS/2 port, limit c) is less important because Windows or OS/2 executables
+     are not restricted to the 1024k area of real mode memory.  These 16-bit
+     ports are limited by conditions a1) and b), say: at maximum approx.
+     16000 entries!)
 
 
  2.2. Number of "new" entries (add operation)
@@ -167,4 +179,4 @@ D) Some technical remarks:
 
 Please report any problems to:  Zip-Bugs@lists.wku.edu
 
-Last updated:  30 April 1998, Christian Spieler
+Last updated:  24 December 1999, Christian Spieler

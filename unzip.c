@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   unzip.c
@@ -41,26 +49,23 @@
 
   Version:  unzip5??.{tar.Z | tar.gz | zip} for Unix, VMS, OS/2, MS-DOS, Amiga,
               Atari, Windows 3.x/95/NT/CE, Macintosh, Human68K, Acorn RISC OS,
-              BeOS, SMS/QDOS, VM/CMS, MVS, AOS/VS and TOPS-20.  Decryption
-              requires sources in zcrypt28.zip.  See the accompanying "WHERE"
-              file in the main source distribution for ftp, uucp, BBS and mail-
-              server sites, or see http://www.cdrom.com/pub/infozip/UnZip.html .
+              BeOS, SMS/QDOS, VM/CMS, MVS, AOS/VS, Tandem NSK, Theos and
+              TOPS-20.
 
-  Copyrights:  see accompanying file "COPYING" in UnZip source distribution.
-               (This software is free but NOT IN THE PUBLIC DOMAIN.  There
-               are some restrictions on commercial use.)
+  Copyrights:  see accompanying file "LICENSE" in UnZip source distribution.
+               (This software is free but NOT IN THE PUBLIC DOMAIN.)
 
   ---------------------------------------------------------------------------*/
 
 
 
-#define UNZIP_C
+#define __UNZIP_C       /* identifies this source module */
 #define UNZIP_INTERNAL
-#include "unzip.h"        /* includes, typedefs, macros, prototypes, etc. */
+#include "unzip.h"      /* includes, typedefs, macros, prototypes, etc. */
 #include "crypt.h"
 #include "version.h"
 
-#ifndef WINDLL            /* The WINDLL port uses windll/windll.c instead... */
+#ifndef WINDLL          /* The WINDLL port uses windll/windll.c instead... */
 
 /*******************/
 /* Local Functions */
@@ -88,6 +93,8 @@ static void  show_version_info  OF((__GPRO));
 #ifdef RISCOS
    static ZCONST char Far EnvUnZipExts[] = ENV_UNZIPEXTS;
 #endif /* RISCOS */
+  static ZCONST char Far NoMemArguments[] =
+    "envargs:  cannot get memory for arguments";
 #endif
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
@@ -148,7 +155,7 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 #endif /* ?(DLL && API_DOC) */
 
 /* local2[] and local3[]:  modifier options */
-#ifdef DOS_FLX_OS2_W32
+#ifdef DOS_FLX_H68_OS2_W32
 #ifdef FLEXOS
    static ZCONST char Far local2[] = "";
 #else
@@ -194,7 +201,7 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
    static ZCONST char Far local3[] = "\n";
 #endif
 #else /* !VMS */
-#if (defined(__BEOS__) || defined(TANDEM) || defined(UNIX))
+#ifdef BEO_UNX
    static ZCONST char Far local2[] = " -X  restore UID/GID info";
 #ifdef MORE
    static ZCONST char Far local3[] = "\
@@ -202,12 +209,21 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 #else
    static ZCONST char Far local3[] = "\n";
 #endif
-#else /* !(__BEOS__ || TANDEM || UNIX) */
+#else /* !BEO_UNX */
+#ifdef TANDEM
+   static ZCONST char Far local2[] = " -X  restore Tandem User ID";
+#ifdef MORE
+   static ZCONST char Far local3[] = "\
+  -b  create 'C' (180) text files            -M  pipe through \"more\" pager\n";
+#else
+   static ZCONST char Far local3[] = " -b  create 'C' (180) text files\n";
+#endif
+#else /* !TANDEM */
 #ifdef AMIGA
    static ZCONST char Far local2[] = " -N  restore comments as filenotes";
 #ifdef MORE
-   static ZCONST char Far local3[] = "\
-                                             -M  pipe through \"more\" pager\n";
+   static ZCONST char Far local3[] = " \
+                                            -M  pipe through \"more\" pager\n";
 #else
    static ZCONST char Far local3[] = "\n";
 #endif
@@ -215,7 +231,8 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 #ifdef MACOS
    static ZCONST char Far local2[] = " -E  show Mac info during extraction";
    static ZCONST char Far local3[] = " \
- -i  ignore filenames in mac extra info     -J  junk (ignore) Mac extra info\n\n";
+ -i  ignore filenames in mac extra info     -J  junk (ignore) Mac extra info\n\
+\n";
 #else /* !MACOS */
 #ifdef MORE
    static ZCONST char Far local2[] = " -M  pipe through \"more\" pager";
@@ -226,7 +243,8 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 #endif
 #endif /* ?MACOS */
 #endif /* ?AMIGA */
-#endif /* ?(__BEOS__ || TANDEM || UNIX) */
+#endif /* ?TANDEM */
+#endif /* ?BEO_UNX */
 #endif /* ?VMS */
 #endif /* ?DOS_FLX_OS2_W32 */
 #endif /* !SFX */
@@ -346,6 +364,10 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef NTSD_EAS
      static ZCONST char Far NTSDExtAttrib[] = "NTSD_EAS";
 #  endif
+#  ifdef OLD_THEOS_EXTRA
+     static ZCONST char Far OldTheosExtra[] =
+     "OLD_THEOS_EXTRA (handle also old Theos port extra field)";
+#  endif
 #  ifdef OS2_EAS
      static ZCONST char Far OS2ExtAttrib[] = "OS2_EAS";
 #  endif
@@ -397,6 +419,9 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef VMSWILD
      static ZCONST char Far VmsWild[] = "VMSWILD";
 #  endif
+#  ifdef WILD_STOP_AT_DIR
+     static ZCONST char Far WildStopAtDir[] = "WILD_STOP_AT_DIR";
+#  endif
 #  if CRYPT
 #    ifdef PASSWD_FROM_STDIN
        static ZCONST char Far PasswdStdin[] = "PASSWD_FROM_STDIN";
@@ -447,8 +472,8 @@ Send bug reports to authors at Zip-Bugs@lists.wku.edu; see README for details.\
 #endif /* ?VMS */
 
 static ZCONST char Far UnzipUsageLine2v[] = "\
-Latest sources and executables are at ftp://ftp.cdrom.com/pub/infozip/ , as of\
-\nabove date; see http://www.cdrom.com/pub/infozip/UnZip.html for other sites.\
+Latest sources and executables are at ftp://ftp.info-zip.org/pub/infozip/ ;\
+\nsee ftp://ftp.info-zip.org/pub/infozip/UnZip.html for other sites.\
 \n\n";
 
 #ifdef MACOS
@@ -460,8 +485,8 @@ Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-d exdir]\n \
 #ifdef VM_CMS
 static ZCONST char Far UnzipUsageLine2[] = "\
 Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d fm]\n \
- Default action is to extract files in list, except those in xlist, to disk fm;\n\
-  file[.zip] may be a wildcard.  %s\n";
+ Default action is to extract files in list, except those in xlist, to disk fm;\
+\n  file[.zip] may be a wildcard.  %s\n";
 #else /* !VM_CMS */
 static ZCONST char Far UnzipUsageLine2[] = "\
 Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
@@ -565,23 +590,17 @@ int unzip(__G__ argc, argv)
 #ifndef NO_ZIPINFO
     char *p;
 #endif
-#ifdef DOS_FLX_H68_OS2_W32
+#ifdef DOS_FLX_H68_NLM_OS2_W32
     int i;
 #endif
     int retcode, error=FALSE;
+
+    SETLOCALE(LC_CTYPE,"");
 
 #if (defined(__IBMC__) && defined(__DEBUG_ALLOC__))
     extern void DebugMalloc(void);
 
     atexit(DebugMalloc);
-#endif
-
-#ifdef MALLOC_WORK
-    G.area.Slide =(uch *)calloc(8193, sizeof(shrint)+sizeof(uch)+sizeof(uch));
-    G.area.shrink.Parent = (shrint *)G.area.Slide;
-    G.area.shrink.value = G.area.Slide + (sizeof(shrint)*(HSIZE+1));
-    G.area.shrink.Stack = G.area.Slide +
-                           (sizeof(shrint) + sizeof(uch))*(HSIZE+1);
 #endif
 
 /*---------------------------------------------------------------------------
@@ -599,11 +618,11 @@ int unzip(__G__ argc, argv)
 #endif
 
 /*---------------------------------------------------------------------------
-    Human68K initialization code.
+    NetWare initialization code.
   ---------------------------------------------------------------------------*/
 
-#ifdef __human68k__
-    InitTwentyOne();
+#ifdef NLM
+    InitUnZipConsole();
 #endif
 
 /*---------------------------------------------------------------------------
@@ -612,6 +631,29 @@ int unzip(__G__ argc, argv)
 
 #ifdef RISCOS
     set_prefix();
+#endif
+
+/*---------------------------------------------------------------------------
+    Theos initialization code.
+  ---------------------------------------------------------------------------*/
+
+#ifdef THEOS
+    /* The easiest way found to force creation of libraries when selected
+     * members are to be unzipped. Explicitely add libraries names to the
+     * arguments list before the first member of the library.
+     */
+    if (! _setargv(&argc, &argv)) {
+        Info(slide, 0x401, ((char *)slide, "cannot process argv\n"));
+        return(PK_MEM);
+    }
+#endif
+
+#ifdef MALLOC_WORK
+    G.area.Slide =(uch *)calloc(8193, sizeof(shrint)+sizeof(uch)+sizeof(uch));
+    G.area.shrink.Parent = (shrint *)G.area.Slide;
+    G.area.shrink.value = G.area.Slide + (sizeof(shrint)*(HSIZE+1));
+    G.area.shrink.Stack = G.area.Slide +
+                           (sizeof(shrint) + sizeof(uch))*(HSIZE+1);
 #endif
 
 /*---------------------------------------------------------------------------
@@ -654,8 +696,13 @@ int unzip(__G__ argc, argv)
 #ifdef VMSCLI
     {
         ulg status = vms_unzip_cmdline(&argc, &argv);
-        if (!(status & 1))
+        if (!(status & 1)) {
+#if (defined(MALLOC_WORK) && !defined(REENTRANT))
+            free(G.area.Slide);
+            G.area.Slide = (uch *)NULL;
+#endif
             return status;
+        }
     }
 #endif /* VMSCLI */
 
@@ -677,8 +724,13 @@ int unzip(__G__ argc, argv)
 #ifdef VMSCLI
     {
         ulg status = vms_unzip_cmdline(&argc, &argv);
-        if (!(status & 1))
+        if (!(status & 1)) {
+#if (defined(MALLOC_WORK) && !defined(REENTRANT))
+            free(G.area.Slide);
+            G.area.Slide = (uch *)NULL;
+#endif
             return status;
+        }
     }
 #endif /* VMSCLI */
 
@@ -695,36 +747,50 @@ int unzip(__G__ argc, argv)
     }
     ++p;
 
+#ifdef THEOS
+    if (strncmp(p, "ZIPINFO.",8) == 0 || strstr(p, ".ZIPINFO:") != NULL ||
+        strncmp(p, "II.",3) == 0 || strstr(p, ".II:") != NULL ||
+#else
     if (STRNICMP(p, LoadFarStringSmall(Zipnfo), 7) == 0 ||
         STRNICMP(p, "ii", 2) == 0 ||
+#endif
         (argc > 1 && strncmp(argv[1], "-Z", 2) == 0))
     {
         uO.zipinfo_mode = TRUE;
-        envargs(__G__ &argc, &argv, LoadFarStringSmall(EnvZipInfo),
-          LoadFarStringSmall2(EnvZipInfo2));
-        error = zi_opts(__G__ &argc, &argv);
+        if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvZipInfo),
+                             LoadFarStringSmall2(EnvZipInfo2))) != PK_OK)
+            perror(LoadFarString(NoMemArguments));
+        else
+            error = zi_opts(__G__ &argc, &argv);
     } else
 #endif /* NO_ZIPINFO */
     {
         uO.zipinfo_mode = FALSE;
-        envargs(__G__ &argc, &argv, LoadFarStringSmall(EnvUnZip),
-          LoadFarStringSmall2(EnvUnZip2));
-        error = uz_opts(__G__ &argc, &argv);
+        if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvUnZip),
+                             LoadFarStringSmall2(EnvUnZip2))) != PK_OK)
+            perror(LoadFarString(NoMemArguments));
+        else
+            error = uz_opts(__G__ &argc, &argv);
     }
 
 #endif /* ?SFX */
 
-    if ((argc < 0) || error)
+    if ((argc < 0) || error) {
+#if (defined(MALLOC_WORK) && !defined(REENTRANT))
+            free(G.area.Slide);
+            G.area.Slide = (uch *)NULL;
+#endif
         return error;
+    }
 
 /*---------------------------------------------------------------------------
     Now get the zipfile name from the command line and then process any re-
     maining options and file specifications.
   ---------------------------------------------------------------------------*/
 
-#ifdef DOS_FLX_H68_OS2_W32
-    /* convert MSDOS-style directory separators to Unix-style ones for
-     * user's convenience (include zipfile name itself)
+#ifdef DOS_FLX_H68_NLM_OS2_W32
+    /* convert MSDOS-style 'backward slash' directory separators to Unix-style
+     * 'forward slashes' for user's convenience (include zipfile name itself)
      */
 #ifdef SFX
     for (G.pfnames = argv, i = argc;  i > 0;  --i) {
@@ -732,14 +798,19 @@ int unzip(__G__ argc, argv)
     /* argc does not include the zipfile specification */
     for (G.pfnames = argv, i = argc+1;  i > 0;  --i) {
 #endif
+#ifdef __human68k__
+        extern char *_toslash(char *);
+        _toslash(*G.pfnames);
+#else /* !__human68k__ */
         char *q;
 
         for (q = *G.pfnames;  *q;  ++q)
             if (*q == '\\')
                 *q = '/';
         ++G.pfnames;
+#endif /* ?__human68k__ */
     }
-#endif /* DOS_FLX_H68_OS2_W32 */
+#endif /* DOS_FLX_H68_NLM_OS2_W32 */
 
 #ifndef SFX
     G.wildzipfn = *argv++;
@@ -808,6 +879,10 @@ int unzip(__G__ argc, argv)
                     else {
                         Info(slide, 0x401, ((char *)slide,
                           LoadFarString(MustGiveExdir)));
+#if (defined(MALLOC_WORK) && !defined(REENTRANT))
+                        free(G.area.Slide);
+                        G.area.Slide = (uch *)NULL;
+#endif
                         return(PK_PARAM);  /* don't extract here by accident */
                     }
                 }
@@ -851,6 +926,12 @@ int unzip(__G__ argc, argv)
   ---------------------------------------------------------------------------*/
 
     retcode = process_zipfiles(__G);
+#if (defined(MALLOC_WORK) && !defined(REENTRANT))
+    if (G.area.Slide != (uch *)NULL) {
+        free(G.area.Slide);
+        G.area.Slide = (uch *)NULL;
+    }
+#endif
     return(retcode);
 
 } /* end main()/unzip() */
@@ -887,6 +968,17 @@ int uz_opts(__G__ pargc, pargv)
                 case ('-'):
                     ++negative;
                     break;
+#ifdef RISCOS
+                case ('/'):
+                    if (negative) {   /* negative not allowed with -/ swap */
+                        Info(slide, 0x401, ((char *)slide,
+                          "error:  must give extensions list"));
+                        return(PK_PARAM);  /* don't extract here by accident */
+                    }
+                    exts2swap = s; /* override Unzip$Exts */
+                    s += strlen(s);
+                    break;
+#endif
                 case ('a'):
                     if (negative) {
                         uO.aflag = MAX(uO.aflag-negative,0);
@@ -902,7 +994,7 @@ int uz_opts(__G__ pargc, pargv)
 #endif
                 case ('b'):
                     if (negative) {
-#ifdef VMS
+#if (defined(TANDEM) || defined(VMS))
                         uO.bflag = MAX(uO.bflag-negative,0);
 #endif
                         negative = 0;   /* do nothing:  "-b" is default */
@@ -910,6 +1002,9 @@ int uz_opts(__G__ pargc, pargv)
 #ifdef VMS
                         if (uO.aflag == 0)
                            ++uO.bflag;
+#endif
+#ifdef TANDEM
+                        ++uO.bflag;
 #endif
                         uO.aflag = 0;
                     }
@@ -1156,14 +1251,14 @@ int uz_opts(__G__ pargc, pargv)
                     qlflag ^= strtol(s, &s, 10);
                     break;    /* we XOR this as we can config qlflags */
 #endif
-#ifdef DOS_FLX_OS2_W32
+#ifdef DOS_FLX_NLM_OS2_W32
                 case ('s'):    /* spaces in filenames:  allow by default */
                     if (negative)
                         uO.sflag = FALSE, negative = 0;
                     else
                         uO.sflag = TRUE;
                     break;
-#endif /* DOS_FLX_OS2_W32 */
+#endif /* DOS_FLX_NLM_OS2_W32 */
                 case ('t'):
                     if (negative)
                         uO.tflag = FALSE, negative = 0;
@@ -1248,7 +1343,7 @@ int uz_opts(__G__ pargc, pargv)
                     error = TRUE;
                     break;
 #endif /* !SFX */
-#ifdef DOS_OS2_W32
+#ifdef DOS_H68_OS2_W32
                 case ('$'):
                     if (negative) {
                         uO.volflag = MAX(uO.volflag-negative,0);
@@ -1256,7 +1351,7 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.volflag;
                     break;
-#endif /* DOS_OS2_W32 */
+#endif /* DOS_H68_OS2_W32 */
                 default:
                     error = TRUE;
                     break;
@@ -1317,7 +1412,7 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
     /* print our banner unless we're being fairly quiet */
     if (uO.qflag < 2)
         Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXBanner),
-          UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL,
+          UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
           LoadFarStringSmall(VersionDate)));
 #ifdef BETA
     /* always print the beta warning:  no unauthorized distribution!! */
@@ -1358,7 +1453,7 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 #  ifdef DOS_OS2_W32
 #    define LOCAL "s$"
 #  endif
-#  ifdef FLEXOS
+#  if (defined(FLEXOS) || defined(NLM))
 #    define LOCAL "s"
 #  endif
 #  ifdef AMIGA
@@ -1380,7 +1475,7 @@ int usage(__G__ error)   /* return PK-type error code */
     int error;
 {
     Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXBanner),
-      UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL,
+      UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
       LoadFarStringSmall(VersionDate)));
     Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXOpts),
       SFXOPT1, LOCAL));
@@ -1426,7 +1521,7 @@ int usage(__G__ error)   /* return PK-type error code */
 #ifndef NO_ZIPINFO
 
         Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine1),
-          ZI_MAJORVER, ZI_MINORVER, PATCHLEVEL, BETALEVEL,
+          ZI_MAJORVER, ZI_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
           LoadFarStringSmall(VersionDate),
           LoadFarStringSmall2(ZipInfoExample), QUOTS,QUOTS));
         Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine2)));
@@ -1442,7 +1537,7 @@ int usage(__G__ error)   /* return PK-type error code */
     } else {   /* UnZip mode */
 
         Info(slide, flag, ((char *)slide, LoadFarString(UnzipUsageLine1),
-          UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL,
+          UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
           LoadFarStringSmall(VersionDate)));
 #ifdef BETA
         Info(slide, flag, ((char *)slide, LoadFarString(BetaVersion), "", ""));
@@ -1494,13 +1589,13 @@ static void show_version_info(__G)
 {
     if (uO.qflag > 3)                           /* "unzip -vqqqq" */
         Info(slide, 0, ((char *)slide, "%d\n",
-          (UZ_MAJORVER*100 + UZ_MINORVER*10 + PATCHLEVEL)));
+          (UZ_MAJORVER*100 + UZ_MINORVER*10 + UZ_PATCHLEVEL)));
     else {
         char *envptr, *getenv();
         int numopts = 0;
 
         Info(slide, 0, ((char *)slide, LoadFarString(UnzipUsageLine1v),
-          UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL,
+          UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
           LoadFarStringSmall(VersionDate)));
         Info(slide, 0, ((char *)slide,
           LoadFarString(UnzipUsageLine2v)));
@@ -1569,6 +1664,11 @@ static void show_version_info(__G)
 #ifdef NTSD_EAS
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(NTSDExtAttrib)));
+        ++numopts;
+#endif
+#ifdef OLD_THEOS_EXTRA
+        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
+          LoadFarStringSmall(OldTheosExtra)));
         ++numopts;
 #endif
 #ifdef OS2_EAS
@@ -1651,6 +1751,11 @@ static void show_version_info(__G)
 #ifdef VMSWILD
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(VmsWild)));
+        ++numopts;
+#endif
+#ifdef WILD_STOP_AT_DIR
+        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
+          LoadFarStringSmall(WildStopAtDir)));
         ++numopts;
 #endif
 #if CRYPT

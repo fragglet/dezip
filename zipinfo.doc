@@ -56,7 +56,7 @@ ARGUMENTS
               matches are found, the specification is assumed  to
               be  a literal filename; and if that also fails, the
 
-Info-ZIP             28 November 1998 (v2.3)                    1
+Info-ZIP              16 April 2000 (v2.31)                     1
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -115,7 +115,7 @@ OPTIONS
               forward-searching  or  editing  capability.   Also,
               zipinfo  doesn't  notice  if long lines wrap at the
 
-Info-ZIP             28 November 1998 (v2.3)                    2
+Info-ZIP              16 April 2000 (v2.31)                     2
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -174,7 +174,7 @@ DETAILED DESCRIPTION
        character  (`T'  or  `B').   The second character may also
        take on four values, depending  on  whether  there  is  an
 
-Info-ZIP             28 November 1998 (v2.3)                    3
+Info-ZIP              16 April 2000 (v2.31)                     3
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -233,7 +233,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
 
        The medium and long listings are almost identical  to  the
 
-Info-ZIP             28 November 1998 (v2.3)                    4
+Info-ZIP              16 April 2000 (v2.31)                     4
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -292,7 +292,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
        lists  file  comments and the zipfile comment, if any, and
        the type and number of bytes in any stored  extra  fields.
 
-Info-ZIP             28 November 1998 (v2.3)                    5
+Info-ZIP              16 April 2000 (v2.31)                     5
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -351,7 +351,7 @@ ENVIRONMENT OPTIONS
        FOOPT  are  defined,  however,  ZIPINFO  takes precedence.
        unzip's diagnostic option (-v with no zipfile name) can be
 
-Info-ZIP             28 November 1998 (v2.3)                    6
+Info-ZIP              16 April 2000 (v2.31)                     6
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -410,7 +410,7 @@ EXAMPLES
        header and/or footer are printed.  This behavior is useful
        when   zipinfo   is   used   with   a   wildcard   zipfile
 
-Info-ZIP             28 November 1998 (v2.3)                    7
+Info-ZIP              16 April 2000 (v2.31)                     7
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -469,7 +469,7 @@ TIPS
 BUGS
        As  with  unzip,  zipinfo's -M (``more'') option is overly
 
-Info-ZIP             28 November 1998 (v2.3)                    8
+Info-ZIP              16 April 2000 (v2.31)                     8
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -491,8 +491,8 @@ SEE ALSO
        cloak(1L), zipnote(1L), zipsplit(1L)
 
 URL
-       The    Info-ZIP    home    page    is     currently     at
-       http://www.cdrom.com/pub/infozip/ .
+       The Info-ZIP home page  is  currently  at  ftp://ftp.info-
+       zip.org/pub/infozip/ .
 
 AUTHOR
        Greg  ``Cave  Newt''  Roelofs.   ZipInfo contains pattern-
@@ -500,5 +500,5 @@ AUTHOR
        others.   Please  refer  to the CONTRIBS file in the UnZip
        source distribution for a more complete list.
 
-Info-ZIP             28 November 1998 (v2.3)                    9
+Info-ZIP              16 April 2000 (v2.31)                     9
 

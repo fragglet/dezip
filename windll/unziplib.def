@@ -10,7 +10,6 @@ DATA  PRELOAD MOVEABLE
 EXPORTS
      Wiz_SingleEntryUnzip
      UzpVersion
-     Wiz_Grep
      Wiz_Init
      Wiz_SetOpts
      Wiz_Unzip
@@ -19,5 +18,6 @@ EXPORTS
      UzpVersion2
      Wiz_UnzipToMemory
      Wiz_Match
+     Wiz_Grep
      UzpFreeMemBuffer
 

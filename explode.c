@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* explode.c -- put in the public domain by Mark Adler
    version c15, 6 July 1996 */
 
@@ -39,6 +47,8 @@
     c16   8 Feb 98  C. Spieler      added ZCONST modifiers to const tables
                                     and #ifdef DEBUG around debugging code.
     c16b 25 Mar 98  C. Spieler      modified DLL code for slide redirection.
+    c16d 05 Jul 99  C. Spieler      take care of flush() return values and
+                                    stop processing in case of errors
  */
 
 
@@ -85,6 +95,7 @@
    module.
  */
 
+#define __EXPLODE_C     /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"      /* must supply slide[] (uch) array and NEXTBYTE macro */
 
@@ -221,6 +232,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
   unsigned u;           /* true if unflushed */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* explode the coded data */
@@ -250,7 +262,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       redirSlide[w++] = (uch)t->v.n;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, (ulg)w, 0);
+        if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+          return retval;
         w = u = 0;
       }
     }
@@ -322,7 +335,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, (ulg)w, 0);
+          if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+            return retval;
           w = u = 0;
         }
       } while (n);
@@ -330,7 +344,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, (ulg)w, 0);
+  if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+    return retval;
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
@@ -357,6 +372,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
   unsigned u;           /* true if unflushed */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* explode the coded data */
@@ -386,7 +402,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       redirSlide[w++] = (uch)t->v.n;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, (ulg)w, 0);
+        if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+          return retval;
         w = u = 0;
       }
     }
@@ -458,7 +475,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, (ulg)w, 0);
+          if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+            return retval;
           w = u = 0;
         }
       } while (n);
@@ -466,7 +484,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, (ulg)w, 0);
+  if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+    return retval;
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
@@ -493,6 +512,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
   unsigned u;           /* true if unflushed */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* explode the coded data */
@@ -512,7 +532,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       redirSlide[w++] = (uch)b;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, (ulg)w, 0);
+        if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+          return retval;
         w = u = 0;
       }
       DUMPBITS(8)
@@ -585,7 +606,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, (ulg)w, 0);
+          if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+            return retval;
           w = u = 0;
         }
       } while (n);
@@ -593,7 +615,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, (ulg)w, 0);
+  if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+    return retval;
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
@@ -620,6 +643,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
   unsigned u;           /* true if unflushed */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* explode the coded data */
@@ -639,7 +663,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       redirSlide[w++] = (uch)b;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, (ulg)w, 0);
+        if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+          return retval;
         w = u = 0;
       }
       DUMPBITS(8)
@@ -712,7 +737,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, (ulg)w, 0);
+          if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+            return retval;
           w = u = 0;
         }
       } while (n);
@@ -720,7 +746,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, (ulg)w, 0);
+  if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
+    return retval;
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);

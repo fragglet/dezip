@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   match.c
@@ -60,18 +68,21 @@
   ---------------------------------------------------------------------------*/
 
 
+#define __MATCH_C       /* identifies this source module */
 
 /* define ToLower() in here (for Unix, define ToLower to be macro (using
  * isupper()); otherwise just use tolower() */
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
+#ifndef THEOS   /* the Theos port defines its own variant of match() */
+
 #if 0  /* this is not useful until it matches Amiga names insensitively */
 #ifdef AMIGA        /* some other platforms might also want to use this */
 #  define ANSI_CHARSET       /* MOVE INTO UNZIP.H EVENTUALLY */
 #endif
 #endif /* 0 */
-  
+
 #ifdef ANSI_CHARSET
 #  ifdef ToLower
 #    undef ToLower
@@ -128,7 +139,7 @@ int match(string, pattern, ignore_case)
         if (!strcmp(dospattern+j-3, "*.*")) {
             dospattern[j-2] = '\0';                    /* nuke the ".*" */
         } else if (!strcmp(dospattern+j-2, "*.")) {
-            char *p = strchr(string, '.');
+            char *p = MBSCHR(string, '.');
 
             if (p) {   /* found a dot:  match fails */
                 free(dospattern);
@@ -155,18 +166,23 @@ static int recmatch(p, s, ic)
  * pattern.  This routine recurses on itself no more deeply than the number
  * of characters in the pattern. */
 {
-    unsigned int c;       /* pattern char or start of range in [-] loop */ 
+    unsigned int c;       /* pattern char or start of range in [-] loop */
 
     /* Get first character, the pattern for new recmatch calls follows */
-    c = *p++;
+    c = *p; INCSTR(p);
 
     /* If that was the end of the pattern, match if string empty too */
     if (c == 0)
         return *s == 0;
 
-    /* '?' (or '%') matches any character (but not an empty string) */
+    /* '?' (or '%') matches any character (but not an empty string).
+     * If WILD_STOP_AT_DIR is defined, it won't match '/' */
     if (c == WILDCHAR)
-        return *s ? recmatch(p, s + 1, ic) : 0;
+#ifdef WILD_STOP_AT_DIR
+        return (*s && *s != '/') ? recmatch(p, s + CLEN(s), ic) : 0;
+#else
+        return *s ? recmatch(p, s + CLEN(s), ic) : 0;
+#endif
 
     /* '*' matches any number of characters, including zero */
 #ifdef AMIGA
@@ -176,10 +192,18 @@ static int recmatch(p, s, ic)
     if (c == '*') {
         if (*p == 0)
             return 1;
-        for (; *s; s++)
+#ifdef WILD_STOP_AT_DIR
+        for (; *s && *s != '/'; INCSTR(s))
+            if ((c = recmatch(p, s, ic)) != 0)
+                return (int)c;
+        return (*p == '/' || (*p == '\\' && p[1] == '/'))
+               ? recmatch(p, s, ic) : 2;
+#else /* !WILD_STOP_AT_DIR */
+        for (; *s; INCSTR(s))
             if ((c = recmatch(p, s, ic)) != 0)
                 return (int)c;
         return 2;       /* 2 means give up--match will return false */
+#endif /* ?WILD_STOP_AT_DIR */
     }
 
     /* Parse and process the list of characters and ranges in brackets */
@@ -188,10 +212,10 @@ static int recmatch(p, s, ic)
         ZCONST uch *q;  /* pointer to end of [-] group */
         int r;          /* flag true to match anything but the range */
 
-        if (*s == 0)                           /* need a character to match */
+        if (*s == 0)                            /* need a character to match */
             return 0;
-        p += (r = (*p == '!' || *p == '^'));   /* see if reverse */
-        for (q = p, e = 0; *q; q++)            /* find closing bracket */
+        p += (r = (*p == '!' || *p == '^'));    /* see if reverse */
+        for (q = p, e = 0; *q; INCSTR(q))       /* find closing bracket */
             if (e)
                 e = 0;
             else
@@ -201,22 +225,24 @@ static int recmatch(p, s, ic)
                     break;
         if (*q != END_RANGE)         /* nothing matches if bad syntax */
             return 0;
-        for (c = 0, e = *p == '-'; p < q; p++) {  /* go through the list */
-            if (e == 0 && *p == '\\')             /* set escape flag if \ */
+        for (c = 0, e = (*p == '-'); p < q; INCSTR(p)) {
+            /* go through the list */
+            if (!e && *p == '\\')               /* set escape flag if \ */
                 e = 1;
-            else if (e == 0 && *p == '-')         /* set start of range if - */
+            else if (!e && *p == '-')           /* set start of range if - */
                 c = *(p-1);
             else {
                 unsigned int cc = Case(*s);
 
                 if (*(p+1) != '-')
                     for (c = c ? c : *p; c <= *p; c++)  /* compare range */
-                        if ((unsigned)Case(c) == cc)  /* typecast for MSC bug */
+                        if ((unsigned)Case(c) == cc) /* typecast for MSC bug */
                             return r ? 0 : recmatch(q + 1, s + 1, ic);
                 c = e = 0;   /* clear range, escape flags */
             }
         }
-        return r ? recmatch(q + 1, s + 1, ic) : 0;  /* bracket match failed */
+        return r ? recmatch(q + CLEN(q), s + CLEN(s), ic) : 0;
+                                        /* bracket match failed */
     }
 
     /* if escape ('\'), just compare next character */
@@ -225,13 +251,14 @@ static int recmatch(p, s, ic)
 
     /* just a character--compare it */
 #ifdef QDOS
-    return QMatch(Case((uch)c), Case(*s)) ? recmatch(p, ++s, ic) : 0;
+    return QMatch(Case((uch)c), Case(*s)) ? recmatch(p, s + CLEN(s), ic) : 0;
 #else
-    return Case((uch)c) == Case(*s) ? recmatch(p, ++s, ic) : 0;
+    return Case((uch)c) == Case(*s) ? recmatch(p, s + CLEN(s), ic) : 0;
 #endif
 
 } /* end function recmatch() */
 
+#endif /* !THEOS */
 
 
 
@@ -239,9 +266,12 @@ static int recmatch(p, s, ic)
 int iswild(p)        /* originally only used for stat()-bug workaround in */
     ZCONST char *p;  /*  VAX C, Turbo/Borland C, Watcom C, Atari MiNT libs; */
 {                    /*  now used in process_zipfiles() as well */
-    for (; *p; ++p)
+    for (; *p; INCSTR(p))
         if (*p == '\\' && *(p+1))
             ++p;
+#ifdef THEOS
+        else if (*p == '?' || *p == '*' || *p=='#'|| *p == '@')
+#else /* !THEOS */
 #ifdef VMS
         else if (*p == '%' || *p == '*')
 #else /* !VMS */
@@ -251,6 +281,7 @@ int iswild(p)        /* originally only used for stat()-bug workaround in */
         else if (*p == '?' || *p == '*' || *p == '[')
 #endif /* ?AMIGA */
 #endif /* ?VMS */
+#endif /* ?THEOS */
 #ifdef QDOS
             return (int)p;
 #else
@@ -268,8 +299,11 @@ int iswild(p)        /* originally only used for stat()-bug workaround in */
 #ifdef TEST_MATCH
 
 #define put(s) {fputs(s,stdout); fflush(stdout);}
+#ifdef main
+#  undef main
+#endif
 
-void main()
+int main(int argc, char **argv)
 {
     char pat[256], str[256];
 

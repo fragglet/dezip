@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   beos.c
@@ -41,7 +49,9 @@
 static uch *scanBeOSexfield  OF((const uch *ef_ptr, unsigned ef_len));
 static int  set_file_attrs( const char *, const unsigned char *, const off_t );
 static void setBeOSexfield   OF((const char *path, uch *extra_field));
+#ifdef BEOS_USE_PRINTEXFIELD
 static void printBeOSexfield OF((int isdir, uch *extra_field));
+#endif
 #ifdef BEOS_ASSIGN_FILETYPE
 static void assign_MIME( const char * );
 #endif
@@ -57,30 +67,30 @@ static int renamed_fullpath;   /* ditto */
 
 char *do_wild(__G__ wildspec)
     __GDEF
-    char *wildspec;         /* only used first time on a given dir */
+    ZCONST char *wildspec;  /* only used first time on a given dir */
 {
-    static DIR *dir = (DIR *)NULL;
-    static char *dirname, *wildname, matchname[FILNAMSIZ];
-    static int firstcall=TRUE, have_dirname, dirnamelen;
+    static DIR *wild_dir = (DIR *)NULL;
+    static ZCONST char *wildname;
+    static char *dirname, matchname[FILNAMSIZ];
+    static int notfirstcall=FALSE, have_dirname, dirnamelen;
     struct dirent *file;
-
 
     /* Even when we're just returning wildspec, we *always* do so in
      * matchname[]--calling routine is allowed to append four characters
      * to the returned string, and wildspec may be a pointer to argv[].
      */
-    if (firstcall) {        /* first call:  must initialize everything */
-        firstcall = FALSE;
+    if (!notfirstcall) {    /* first call:  must initialize everything */
+        notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
             strcpy(matchname, wildspec);
             have_dirname = FALSE;
-            dir = NULL;
+            wild_dir = NULL;
             return matchname;
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, '/')) == (char *)NULL) {
+        if ((wildname = strrchr(wildspec, '/')) == (ZCONST char *)NULL) {
             dirname = ".";
             dirnamelen = 1;
             have_dirname = FALSE;
@@ -99,8 +109,8 @@ char *do_wild(__G__ wildspec)
             have_dirname = TRUE;
         }
 
-        if ((dir = opendir(dirname)) != (DIR *)NULL) {
-            while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        if ((wild_dir = opendir(dirname)) != (DIR *)NULL) {
+            while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
                 if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
@@ -113,8 +123,8 @@ char *do_wild(__G__ wildspec)
                 }
             }
             /* if we get to here directory is exhausted, so close it */
-            closedir(dir);
-            dir = (DIR *)NULL;
+            closedir(wild_dir);
+            wild_dir = (DIR *)NULL;
         }
 
         /* return the raw wildspec in case that works (e.g., directory not
@@ -124,8 +134,8 @@ char *do_wild(__G__ wildspec)
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == (DIR *)NULL) {
-        firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
+    if (wild_dir == (DIR *)NULL) {
+        notfirstcall = FALSE; /* nothing left to try--reset for new wildspec */
         if (have_dirname)
             free(dirname);
         return (char *)NULL;
@@ -135,7 +145,7 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+    while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
         if (file->d_name[0] == '.' && wildname[0] != '.')
             continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
@@ -148,9 +158,9 @@ char *do_wild(__G__ wildspec)
         }
     }
 
-    closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = (DIR *)NULL;
-    firstcall = TRUE;  /* reset for new wildspec */
+    closedir(wild_dir);     /* have read at least one entry; nothing left */
+    wild_dir = (DIR *)NULL;
+    notfirstcall = FALSE;   /* reset for new wildspec */
     if (have_dirname)
         free(dirname);
     return (char *)NULL;
@@ -177,11 +187,18 @@ int mapattr(__G)
             tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
             G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
             break;
+        case THEOS_:
+            tmp &= 0xF1FFFFFFL;
+            if ((tmp & 0xF0000000L) != 0x40000000L)
+                tmp &= 0x01FFFFFFL;     /* not a dir, mask all ftype bits */
+            else
+                tmp &= 0x41FFFFFFL;     /* leave directory bit as set */
+            /* fall through! */
+        case BEOS_:
         case UNIX_:
         case VMS_:
         case ACORN_:
         case ATARI_:
-        case BEOS_:
         case QDOS_:
         case TANDEM_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
@@ -239,12 +256,35 @@ int mapattr(__G)
             /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
+            /* PKWARE's PKZip for Unix marks entries as FS_FAT_, but stores the
+             * Unix attributes in the upper 16 bits of the external attributes
+             * field, just like Info-ZIP's Zip for Unix.  We try to use that
+             * value, after a check for consistency with the MSDOS attribute
+             * bits (see below).
+             */
+            G.pInfo->file_attr = (unsigned)(tmp >> 16);
+            /* fall through! */
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
         case TOPS20_:
         default:
-            tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
+            /* Ensure that DOS subdir bit is set when the entry's name ends
+             * in a '/'.  Some third-party Zip programs fail to set the subdir
+             * bit for directory entries.
+             */
+            if ((tmp | 0x10) == 0) {
+                extent fnlen = strlen(G.filename);
+                if (fnlen > 0 && G.filename[fnlen-1] == '/')
+                    tmp |= 0x10;
+            }
+            /* read-only bit --> write perms; subdir bit --> dir exec bit */
+            tmp = !(tmp & 1) << 1  |  (tmp & 0x10) >> 4;
+            if ((G.pInfo->file_attr & 0700) == (unsigned)(0400 | tmp<<6))
+                /* keep previous G.pInfo->file_attr setting, when its "owner"
+                 * part appears to be consistent with DOS attribute flags!
+                 */
+                return 0;
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
     } /* end switch (host-OS-created-by) */
@@ -365,31 +405,32 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                   G.filename));
             }
 
+            if (!uO.J_flag) {   /* Handle the BeOS extra field if present. */
+                void *ptr = scanBeOSexfield( G.extra_field,
+                                             G.lrec.extra_field_length );
+                if (ptr) {
+                    setBeOSexfield( G.filename, ptr );
+                }
+            }
+
 #ifndef NO_CHMOD
             /* set approx. dir perms (make sure can still read/write in dir) */
             if (chmod(G.filename, (0xffff & G.pInfo->file_attr) | 0700))
                 perror("chmod (directory attributes) error");
 #endif
 
-            if (!uO.J_flag) {   /* Handle the BeOS extra field if present. */
-                void *ptr = scanBeOSexfield( G.extra_field,
-                                             G.lrec.extra_field_length );
-                if (ptr) {
-                    setBeOSexfield( G.filename, ptr );
-                } else {
-#ifdef BEOS_ASSIGN_FILETYPE
-                    /* Otherwise, ask the system to assign a MIME type. */
-                    assign_MIME( G.filename );
-#else
-                    ; /* optimise me away baby */
-#endif
-                }
-            }
-
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         /* TODO: should we re-write the BeOS extra field data in case it's */
-        /* changed?                                                        */
+        /* changed?  The answer is yes. [Sept 1999 - cjh]                  */
+        if (!uO.J_flag) {   /* Handle the BeOS extra field if present. */
+            void *ptr = scanBeOSexfield( G.extra_field,
+                                         G.lrec.extra_field_length );
+            if (ptr) {
+                setBeOSexfield( G.filename, ptr );
+            }
+        }
+
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
@@ -583,34 +624,45 @@ int checkdir(__G__ pathcomp, flag)
             rootlen = 0;
             return 0;
         }
+        if (rootlen > 0)        /* rootpath was already set, nothing to do */
+            return 0;
         if ((rootlen = strlen(pathcomp)) > 0) {
-            if (pathcomp[rootlen-1] == '/') {
-                pathcomp[--rootlen] = '\0';
-            }
-            if (rootlen > 0 && (stat(pathcomp, &G.statbuf) ||
-                !S_ISDIR(G.statbuf.st_mode)))       /* path does not exist */
-            {
-                if (!G.create_dirs /* || iswild(pathcomp) */ ) {
-                    rootlen = 0;
-                    return 2;   /* skip (or treat as stored file) */
-                }
-                /* create the directory (could add loop here to scan pathcomp
-                 * and create more than one level, but why really necessary?) */
-                if (mkdir(pathcomp, 0777) == -1) {
-                    Info(slide, 1, ((char *)slide,
-                      "checkdir:  cannot create extraction directory: %s\n",
-                      pathcomp));
-                    rootlen = 0;   /* path didn't exist, tried to create, and */
-                    return 3;  /* failed:  file exists, or 2+ levels required */
-                }
-            }
-            if ((rootpath = (char *)malloc(rootlen+2)) == (char *)NULL) {
+            char *tmproot;
+
+            if ((tmproot = (char *)malloc(rootlen+2)) == (char *)NULL) {
                 rootlen = 0;
                 return 10;
             }
-            strcpy(rootpath, pathcomp);
-            rootpath[rootlen++] = '/';
-            rootpath[rootlen] = '\0';
+            strcpy(tmproot, pathcomp);
+            if (tmproot[rootlen-1] == '/') {
+                tmproot[--rootlen] = '\0';
+            }
+            if (rootlen > 0 && (stat(tmproot, &G.statbuf) ||
+                !S_ISDIR(G.statbuf.st_mode)))       /* path does not exist */
+            {
+                if (!G.create_dirs /* || iswild(tmproot) */ ) {
+                    free(tmproot);
+                    rootlen = 0;
+                    return 2;   /* skip (or treat as stored file) */
+                }
+                /* create the directory (could add loop here scanning tmproot
+                 * to create more than one level, but why really necessary?) */
+                if (mkdir(tmproot, 0777) == -1) {
+                    Info(slide, 1, ((char *)slide,
+                      "checkdir:  cannot create extraction directory: %s\n",
+                      tmproot));
+                    free(tmproot);
+                    rootlen = 0;  /* path didn't exist, tried to create, and */
+                    return 3; /* failed:  file exists, or 2+ levels required */
+                }
+            }
+            tmproot[rootlen++] = '/';
+            tmproot[rootlen] = '\0';
+            if ((rootpath = (char *)realloc(tmproot, rootlen+1)) == NULL) {
+                free(tmproot);
+                rootlen = 0;
+                return 10;
+            }
             Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
         return 0;
@@ -688,13 +740,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
                                          G.lrec.extra_field_length );
             if (ptr) {
                 setBeOSexfield( G.filename, ptr );
-            } else {
-                /* Otherwise, ask the system to try assigning a MIME type. */
-#ifdef BEOS_ASSIGN_FILETYPE
-                assign_MIME( G.filename );
-#else
-                ; /* optimise me away, baby */
-#endif
             }
         }
 
@@ -704,6 +749,21 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 #endif /* SYMLINKS */
 
     fclose(G.outfile);
+
+    /* handle the BeOS extra field if present */
+    if (!uO.J_flag) {
+        void *ptr = scanBeOSexfield( G.extra_field,
+                                     G.lrec.extra_field_length );
+
+        if (ptr) {
+            setBeOSexfield( G.filename, ptr );
+#ifdef BEOS_ASSIGN_FILETYPE
+        } else {
+            /* Otherwise, ask the system to try assigning a MIME type. */
+            assign_MIME( G.filename );
+#endif
+        }
+    }
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
@@ -771,23 +831,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         else
             Info(slide, 0x201, ((char *)slide,
               " (warning) cannot set time"));
-    }
-
-    /* handle the BeOS extra field if present */
-    if (!uO.J_flag) {
-        void *ptr = scanBeOSexfield( G.extra_field,
-                                     G.lrec.extra_field_length );
-
-        if (ptr) {
-            setBeOSexfield( G.filename, ptr );
-        } else {
-#ifdef BEOS_ASSIGN_FILETYPE
-            /* Otherwise, ask the system to try assigning a MIME type. */
-            assign_MIME( G.filename );
-#else
-            ; /* optimise me away baby */
-#endif
-        }
     }
 
 } /* end function close_outfile() */
@@ -1108,6 +1151,7 @@ static void setBeOSexfield( const char *path, uch *extra_field )
     return;
 }
 
+#ifdef BEOS_USE_PRINTEXFIELD
 static void printBeOSexfield( int isdir, uch *extra_field )
 {
     uch *ptr       = extra_field;
@@ -1160,6 +1204,7 @@ static void printBeOSexfield( int isdir, uch *extra_field )
         printf("\t\t%ld uncompressed bytes\n", full_size);
     }
 }
+#endif
 
 #ifdef BEOS_ASSIGN_FILETYPE
 /* Note: This will no longer be necessary in BeOS PR4; update_mime_info()    */

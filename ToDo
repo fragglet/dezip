@@ -16,9 +16,9 @@ For UnZip 6.0/6.1/who knows:
         very soon (6.0 or 6.1)
 
    o MSDOS/WIN32/others: detection of "reserved" names (= names of character
-     devices, or system extensions that look like a characters device driver);
-     with the goal of emitting "meaningful" error messages and/or rename
-     queries.
+     devices, or system extensions that look like a characters device driver)
+     at runtime; with the goal of emitting "meaningful" error messages and/or
+     rename queries.
      (Currently, these reserved names are catched as "non-deletable files".)
 
    o redesign "file exists -- is newer/older -- overwrite/skip/rename"
@@ -76,7 +76,8 @@ For UnZip 6.0/6.1/who knows:
 
 Some maintance or OS specific topics for 6.0 release:
 
-   * add "unix-style-path -> partitioned-dataset filename" conversion to MVS port
+   * add "unix-style-path -> partitioned-dataset filename" conversion
+     to MVS port
 
    * should we add support for (null) entry names (empty entry name field), to
      conform to the PKWARE specification?

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        INTRFACE.H
@@ -38,32 +46,6 @@ extern "C" {
 //******************************************************************************
 //***** Types and Structures
 //******************************************************************************
-
-typedef int (WINAPI DLLPRNT)(LPSTR, unsigned long);
-typedef int (WINAPI DLLPASSWORD)(LPSTR, int, LPCSTR, LPCSTR);
-typedef int (WINAPI DLLSERVICE)(LPSTR, unsigned long);
-typedef void (WINAPI DLLSND)(void);
-typedef int (WINAPI DLLREPLACE)(LPSTR);
-typedef void (WINAPI DLLMESSAGE)(ulg, ulg, int, int, int, int, int, int,
-                                 int, char*, char*, ulg);
-
-typedef struct _USERFUNCTIONS {
-   DLLPRNT       *print;
-   DLLSND        *sound;
-   DLLREPLACE    *replace;
-   DLLPASSWORD   *password;
-   DLLMESSAGE    *SendApplicationMessage;
-   DLLSERVICE    *ServiceApplication;
-   unsigned long  TotalSizeComp;
-   unsigned long  TotalSize;
-   int            CompFactor;
-   unsigned int   NumMembers;
-   WORD           cchComment;
-} USERFUNCTIONS, *LPUSERFUNCTIONS;
-
-typedef struct _DCL {
-   int PromptToOverwrite;
-} DCL, *LPDCL;
 
 typedef enum _OVERWRITE_MODE {
    OM_PROMPT = 0,
@@ -118,7 +100,7 @@ BOOL DoExtractOrTestFiles(LPCSTR szZipFile, EXTRACT_INFO *pei);
 int  DoGetComment(LPCSTR szZipFile);
 BOOL SetExtractToDirectory(LPTSTR szDirectory);
 
-int  win_fprintf(FILE *file, unsigned int dwCount, char far *buffer);
+int  win_fprintf(zvoid *pG, FILE *file, unsigned int dwCount, char far *buffer);
 
 
 //******************************************************************************

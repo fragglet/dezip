@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   aosvs.h
@@ -5,7 +13,7 @@
   AOS/VS-specific header file for use with Info-ZIP's UnZip 5.2 and later.
 
   ---------------------------------------------------------------------------*/
-  
+
 
 /* stuff to set up for system calls (?FSTAT & ?SACL) and the extra field */
 
@@ -29,7 +37,7 @@ extern int   zvs_credir(ZCONST char *dname, long cretim, long modtim,
                         int hashfsize, int maxindlev);
 extern long  dgdate(short mm, short dd, short yy);
 extern char  *ux_to_vs_name(char *outname, ZCONST char *inname);
-  
+
 
 /* could probably avoid the unions - all elements in each one are the same
  * size, and we're going to assume this */

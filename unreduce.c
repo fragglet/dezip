@@ -21,6 +21,7 @@
   ---------------------------------------------------------------------------*/
 
 
+#define __UNREDUCE_C    /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"   /* defines COPYRIGHT_CLEAN by default */
 
@@ -82,7 +83,7 @@ static ZCONST shrint B_table[] =
 /*  Function unreduce()  */
 /*************************/
 
-void unreduce(__G)   /* expand probabilistically reduced data */
+int unreduce(__G)       /* expand probabilistically reduced data */
      __GDEF
 {
     register int lchar = 0;
@@ -91,9 +92,10 @@ void unreduce(__G)   /* expand probabilistically reduced data */
     shrint V = 0;
     shrint Len = 0;
     long s = G.ucsize;  /* number of bytes left to decompress */
-    unsigned w = 0;      /* position in output window slide[] */
-    unsigned u = 1;      /* true if slide[] unflushed */
+    unsigned w = 0;     /* position in output window slide[] */
+    unsigned u = 1;     /* true if slide[] unflushed */
     uch Slen[256];
+    int retval = 0;     /* error code returned: initialized to "no error" */
 
     f_array *followers = (f_array *)(slide + 0x4000);
     int factor = G.lrec.compression_method - 1;
@@ -123,7 +125,8 @@ void unreduce(__G)   /* expand probabilistically reduced data */
                 s--;
                 slide[w++] = (uch)nchar;
                 if (w == 0x4000) {
-                    flush(__G__ slide, (ulg)w, 0);
+                    if ((retval = flush(__G__ slide, (ulg)w, 0)) != 0)
+                      return retval;
                     w = u = 0;
                 }
             }
@@ -144,7 +147,8 @@ void unreduce(__G)   /* expand probabilistically reduced data */
                 slide[w++] = DLE;
                 if (w == 0x4000)
                 {
-                  flush(__G__ slide, (ulg)w, 0);
+                  if ((retval = flush(__G__ slide, (ulg)w, 0)) != 0)
+                    return retval;
                   w = u = 0;
                 }
                 ExState = 0;
@@ -186,7 +190,8 @@ void unreduce(__G)   /* expand probabilistically reduced data */
                     }
                   if (w == 0x4000)
                   {
-                    flush(__G__ slide, (ulg)w, 0);
+                    if ((retval = flush(__G__ slide, (ulg)w, 0)) != 0)
+                      return retval;
                     w = u = 0;
                   }
                 } while (n);
@@ -201,7 +206,9 @@ void unreduce(__G)   /* expand probabilistically reduced data */
     }
 
     /* flush out slide */
-    flush(__G__ slide, (ulg)w, 0);
+    retval = flush(__G__ slide, (ulg)w, 0);
+
+    return retval;
 }
 
 

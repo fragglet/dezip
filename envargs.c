@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*----------------------------------------------------------------*
  | envargs - add default options from environment to command line
  |----------------------------------------------------------------
@@ -20,7 +28,7 @@
  *----------------------------------------------------------------*/
 
 
-#define ENVARGS_C
+#define __ENVARGS_C     /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
@@ -31,14 +39,11 @@
 #endif /* ?__EMX__ */
 
 static int count_args OF((ZCONST char *));
-static void mem_err OF((__GPRO));
-
-static ZCONST char Far NoMemArguments[] =
-  "envargs:  cannot get memory for arguments";
 
 
-void envargs(__G__ Pargc, Pargv, envstr, envstr2)
-    __GDEF
+/* envargs() returns PK-style error code */
+
+int envargs(Pargc, Pargv, envstr, envstr2)
     int *Pargc;
     char ***Pargv;
     ZCONST char *envstr, *envstr2;
@@ -62,11 +67,11 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
             while (ISspace(*envptr))
                 envptr++;
     if (envptr == (char *)NULL || *envptr == '\0')
-        return;
+        return PK_OK;
 
     bufptr = malloc(1 + strlen(envptr));
     if (bufptr == (char *)NULL)
-        mem_err(__G);
+        return PK_MEM;
 #if (defined(WIN32) || defined(WINDLL))
 # ifdef WIN32
     if (IsWinNT()) {
@@ -90,7 +95,7 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
     argv = (char **)malloc((argc + *Pargc + 1) * sizeof(char *));
     if (argv == (char **)NULL) {
         free(bufptr);
-        mem_err(__G);
+        return PK_MEM;
     }
     argvect = argv;
 
@@ -104,14 +109,15 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
             char *argstart = ++bufptr;
 
             *(argv++) = argstart;
-            for (ch = *bufptr; ch != '\0' && ch != '\"'; ch = *(++bufptr))
+            for (ch = *bufptr; ch != '\0' && ch != '\"';
+                 ch = *PREINCSTR(bufptr))
                 if (ch == '\\' && bufptr[1] != '\0')
-                    ++bufptr;           /* skip char after backslash */
+                    ++bufptr;           /* advance to char after backslash */
             if (ch != '\0')
                 *(bufptr++) = '\0';     /* overwrite trailing " */
 
             /* remove escape characters */
-            while ((argstart = strchr(argstart, '\\')) != (char *)NULL) {
+            while ((argstart = MBSCHR(argstart, '\\')) != (char *)NULL) {
                 strcpy(argstart, argstart + 1);
                 if (*argstart)
                     ++argstart;
@@ -119,38 +125,38 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
         } else {
             *(argv++) = bufptr;
             while ((ch = *bufptr) != '\0' && !ISspace(ch))
-                ++bufptr;
+                INCSTR(bufptr);
             if (ch != '\0')
                 *(bufptr++) = '\0';
         }
 #else
-#ifdef DOS_FLX_OS2_W32
+#ifdef DOS_FLX_NLM_OS2_W32
         /* we do not support backslash-quoting of quotes in quoted
-         * strings under DOS_OS2_W32, because backslashes are directory
-         * separators and double quotes are illegal in filenames */
+         * strings under DOS_FLX_NLM_OS2_W32, because backslashes are
+         * directory separators and double quotes are illegal in filenames */
         if (*bufptr == '"') {
             *(argv++) = ++bufptr;
             while ((ch = *bufptr) != '\0' && ch != '\"')
-                ++bufptr;
+                INCSTR(bufptr);
             if (ch != '\0')
                 *(bufptr++) = '\0';
         } else {
             *(argv++) = bufptr;
             while ((ch = *bufptr) != '\0' && !ISspace(ch))
-                ++bufptr;
+                INCSTR(bufptr);
             if (ch != '\0')
                 *(bufptr++) = '\0';
         }
 #else
         *(argv++) = bufptr;
         while ((ch = *bufptr) != '\0' && !ISspace(ch))
-            ++bufptr;
+            INCSTR(bufptr);
         if (ch != '\0')
             *(bufptr++) = '\0';
-#endif /* ?DOS_FLX_OS2_W32 */
+#endif /* ?DOS_FLX_NLM_OS2_W32 */
 #endif /* ?(AMIGA || UNIX) */
         while ((ch = *bufptr) != '\0' && ISspace(ch))
-            ++bufptr;
+            INCSTR(bufptr);
     } while (ch);
 
     /* now save old argc and copy in the old args */
@@ -161,9 +167,11 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
     /* finally, add a NULL after the last arg, like Unix */
     *argv = (char *)NULL;
 
-    /* save the values and return */
+    /* save the values and return, indicating succes */
     *Pargv = argvect;
     *Pargc = argc;
+
+    return PK_OK;
 }
 
 
@@ -179,27 +187,28 @@ static int count_args(s)
         ++count;
 #if defined(AMIGA) || defined(UNIX)
         if (*s == '\"') {
-            for (ch = *(++s);  ch != '\0' && ch != '\"';  ch = *(++s))
+            for (ch = *PREINCSTR(s);  ch != '\0' && ch != '\"';
+                 ch = *PREINCSTR(s))
                 if (ch == '\\' && s[1] != '\0')
                     ++s;
             if (*s)
                 ++s;        /* trailing quote */
         } else
 #else
-#ifdef DOS_FLX_OS2_W32
+#ifdef DOS_FLX_NLM_OS2_W32
         if (*s == '\"') {
             ++s;                /* leading quote */
             while ((ch = *s) != '\0' && ch != '\"')
-                ++s;
+                INCSTR(s);
             if (*s)
                 ++s;        /* trailing quote */
         } else
-#endif /* DOS_FLX_OS2_W32 */
+#endif /* DOS_FLX_NLM_OS2_W32 */
 #endif /* ?(AMIGA || UNIX) */
         while ((ch = *s) != '\0' && !ISspace(ch))  /* note else-clauses above */
-            ++s;
+            INCSTR(s);
         while ((ch = *s) != '\0' && ISspace(ch))
-            ++s;
+            INCSTR(s);
     } while (ch);
 
     return count;
@@ -207,34 +216,27 @@ static int count_args(s)
 
 
 
-static void mem_err(__G)
-    __GDEF
-{
-    perror(LoadFarString(NoMemArguments));
-    DESTROYGLOBALS()
-    EXIT(PK_MEM);
-}
-
-
-
 #ifdef TEST
 
-main(argc, argv)
+int main(argc, argv)
     int argc;
     char **argv;
 {
-    int i;
+    int err;
 
     printf("Orig argv: %p\n", argv);
     dump_args(argc, argv);
-    envargs(__G__ &argc, &argv, "ENVTEST");
+    if ((err = envargs(&argc, &argv, "ENVTEST")) != PK_OK) {
+        perror("envargs:  cannot get memory for arguments");
+        EXIT(err);
+    }
     printf(" New argv: %p\n", argv);
     dump_args(argc, argv);
 }
 
 
 
-dump_args(argc, argv)
+void dump_args(argc, argv)
     int argc;
     char *argv[];
 {
@@ -290,7 +292,8 @@ void mksargs(argcp, argvp)
         return;
 
     /* find out how many environment arguments there are */
-    for (envp = environ, newargc = 0; *envp != NULL && (*envp)[0] == '~';
+    for (envp = environ, newargc = 0;
+         *envp != NULL && (*envp)[0] == '~';
          envp++, newargc++)
         ;
     if (newargc == 0)

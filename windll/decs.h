@@ -1,15 +1,23 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 #ifndef __decs_h   /* prevent multiple inclusions */
 #define __decs_h
 
 #include <windows.h>
 #ifndef __unzip_h
-#  include "unzip.h"
+#  include "../unzip.h"
 #endif
 #ifndef __structs_h
-#  include "structs.h"
+#  include "../windll/structs.h"
 #endif
 
-#define WizMatch match
+#define Wiz_Match match
 
 void    WINAPI Wiz_NoPrinting(int f);
 int     WINAPI Wiz_Validate(LPSTR archive, int AllCodes);

@@ -63,11 +63,13 @@
 #define IDC_COPYRIGHT                   1038
 #define IDC_PATH                        1039
 
-#define IDM_REPLACE_NO                  2001
-#define IDM_REPLACE_YES                 2002
-#define IDM_REPLACE_ALL                 2003
-#define IDM_REPLACE_NONE                2004
-#define IDM_REPLACE_RENAME              2005
+#define IDM_REPLACE_NO                  100
+#define IDM_REPLACE_TEXT                101
+#define IDM_REPLACE_YES                 102
+#define IDM_REPLACE_ALL                 103
+#define IDM_REPLACE_NONE                104
+#define IDM_REPLACE_RENAME              105
+#define IDM_REPLACE_HELP                106
 
 #define IDM_FILE_OPEN                   40001
 #define IDM_FILE_PROPERTIES             40002
@@ -84,7 +86,7 @@
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        103

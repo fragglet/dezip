@@ -1,22 +1,25 @@
 /*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
 
- Copyright (C) 1990-1998 Mark Adler, Richard B. Wales, Jean-loup Gailly,
- Kai Uwe Rommel, Onno van der Linden, George Petrov and Igor Mandrichenko.
- Permission is granted to any individual or institution to use, copy, or
- redistribute this software so long as all of the original files are included,
- that it is not sold for profit, and that this copyright notice is retained.
-
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
-
 #ifndef __tandem_h   /* prevent multiple inclusions */
 #define __tandem_h
 
 #define TANDEM       /* better than __TANDEM */
 
-#define LICENSED     /* object needs FUP LICENSE to allow timestamp update */
+/* LICENSED define now supplied by compile time option (MAKE) */
 
 #define NO_UNISTD_H
-
+#define NO_RMDIR
+#define NO_MKTEMP
+#ifdef ZIP
+#  define USE_CASE_MAP
+#  define USE_EF_UT_TIME
+#endif /* ZIP */
 
 /* Include file for TANDEM */
 
@@ -33,25 +36,31 @@
 #define PASSWD_FROM_STDIN
                   /* Kludge until we know how to open a non-echo tty channel */
 
-#define TANDEM_BLOCKSIZE 4096
-#define MAXFILEPARTLEN 8
-#define MAXPATHLEN 128
-#define EXTENSION_MAX 3
-#define NO_RMDIR
-#define NO_MKTEMP
+#define NSK_UNSTRUCTURED   0
+#define NSK_RELATIVE       1
+#define NSK_ENTRYSEQUENCED 2
+#define NSK_KEYSEQUENCED   3
+#define NSK_OBJECTFILECODE 100
+#define NSK_EDITFILECODE   101
+#define NSK_ZIPFILECODE    1001
+#define TANDEM_BLOCKSIZE   4096
+#define MAX_NORMAL_READ    4096
+#define MAX_EDIT_READ      255
+#define MAX_LARGE_READ        57344
+#define MAX_LARGE_READ_EXPAND 30720
 
-#ifdef UNZIP                    /* definitions for UNZIP */
-/* #define INBUFSIZ 8192       */
-/* #define USE_STRM_INPUT      */
-/* #define USE_FWRITE          */
-/* #define REALLY_SHORT_SYMS   */
-/* #define PATH_MAX 128        */
-#endif /* UNZIP */
+#define MAXFILEPARTLEN     8
+#define MAXPATHLEN         128
+#define EXTENSION_MAX      3
+/* FILENAME_MAX is defined in stdio.h */
 
 #define EXIT zexit     /*  To stop creation of Abend files */
 #define RETURN zexit   /*  To stop creation of Abend files */
 #define fopen zipopen  /*  To allow us to set extent sizes */
 #define putc zputc     /*  To allow us to auto flush  */
+
+
+/* Prototype function declarations */
 
 void zexit (int);
 
@@ -64,6 +73,21 @@ int zputc(
 int,
 FILE *
 );
+
+int zgetch (void);
+
+short parsename(
+  const char *,
+  char *,
+  char *
+);
+
+int islicensed (void);
+
+time_t gmt_to_time_t (long long *);
+
+/* End of prototype function declarations */
+
 
 #define FOPR "rb"
 #define FOPM "r+"
@@ -80,16 +104,13 @@ FILE *
                       /* For Guardian we choose a multiple of 4K             */
 
 #ifndef __INT32
-#define SBSZ 0x04000  /* For STORE method we can use a maximum of int        */
-                      /* size.  In Large memory model this equates to 32767  */
-                      /* We use a multiple of 4k to match Guardian I/O       */
+#define SBSZ 0x0e000  /* Maximum of size unsigned (int). Only used in STORE  */
+                      /* method.  We can use up to 56K bytes thanks to large */
+                      /* transfer mode.  Note WSIZE is limited to 32K, which */
+                      /* limits the DEFLATE read size to same value.         */
 #else
 #define SBSZ 0x10000  /* WIDE model so we can use 64K                        */
 #endif /* __INT32 */
-
-/* For deflate.c,  need to look into BI_MEM and DYN_ALLOC defines */
-
-/* <dirent.h> definitions */
 
 #define NAMELEN FILENAME_MAX+1+EXTENSION_MAX   /* allow for space extension */
 
@@ -110,16 +131,32 @@ void           rewinddir(DIR *dirp);
 int            closedir(DIR *dirp);
 char *         readd(DIR *dirp);
 
-#define ALIAS_MASK  (unsigned int) 0x80
-#define SKIP_MASK   (unsigned int) 0x1F
-#define TTRLEN      3
-#define RECLEN      254
-
 #define DISK_DEVICE         3
+
+/* SETMODE Literals */
 #define SET_FILE_SECURITY   1
 #define SET_FILE_OWNER      2
 #define SET_FILE_BUFFERED   90
 #define SET_FILE_BUFFERSIZE 93
+#define SET_LARGE_TRANSFERS 141
+
+/* FILE_OPEN_ Literals */
+#define NSK_RDWR             0
+#define NSK_RDONLY           1
+#define NSK_WRONLY           2
+#define NSK_APPEND           3
+#define NSK_SHARED           0
+#define NSK_EXCLUSIVE        1
+#define NSK_PROCESSEXCLUSIVE 2
+#define NSK_PROTECTED        3
+#define NSK_UNSTRUCTUREDACCESS 0x8000
+#define NSK_NOUPDATEOPENTIME   0x2000
+
+#define NSK_NO_DELIMITER        0x0001
+#define NSK_USE_FF_DELIMITER    0x0002
+#define NSK_SPACE_FILL          0x0004
+#define NSK_TRIM_TRAILING_SPACE 0x0008
+#define NSK_LARGE_READ_EXPAND   0x0100     /* use smaller value for Expand */
 
 #define DOS_EXTENSION      '.'
 #define TANDEM_EXTENSION   ' '
@@ -137,12 +174,75 @@ char *         readd(DIR *dirp);
 #define INTERNAL_DELIMITER_STR "/"
 #define INTERNAL_NODE_STR      "//"
 
-typedef struct {
-   unsigned short int count;
-   char rest[RECLEN];
-} RECORD;
+/* Use 'spare' area at end of stat structure to hold additional Tandem/NSK
+   file details. Initially used to hold Creation time, now also holds most
+   Enscribe details */
 
-char    *endmark = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+struct nsk_stat_reserved
+{
+  int64_t spare[3];
+};
 
+typedef struct
+{
+  unsigned group   : 8;
+  unsigned user    : 8;
+} nsk_owner;
+
+typedef struct
+{
+  unsigned buffered    : 1;
+  unsigned audited     : 1;
+  unsigned acompress   : 1;
+  unsigned icompress   : 1;
+  unsigned dcompress   : 1;
+  unsigned oddunstr    : 1;
+  unsigned verified    : 1;
+  unsigned serial      : 1;
+  unsigned refresheof  : 1;
+  unsigned broken      : 1;
+  unsigned corrupt     : 1;
+  unsigned primpart    : 1;
+  unsigned secpart     : 1;
+  unsigned crashopen   : 1;
+  unsigned rollforward : 1;
+  unsigned clearonpurge: 1;
+} nsk_file_flags;
+
+typedef struct
+{
+  unsigned short filecode;  /* 16 */
+  unsigned short block;     /* 16 */  /* Allow of block > 4096 one day ! */
+  nsk_file_flags flags;     /* 16 */
+  nsk_owner owner;          /* 16 */
+  unsigned short primext;   /* 16 */
+  unsigned short secext;    /* 16 */
+  unsigned maxext    : 10;
+  unsigned read      : 3;
+  unsigned write     : 3;
+  unsigned execute   : 3;
+  unsigned delete    : 3;
+  unsigned licensed  : 1;
+  unsigned progid    : 1;
+  unsigned keylen    : 8;
+  unsigned           : 5;
+  unsigned keyoff    : 11;
+  unsigned           : 1;
+  unsigned filetype  : 2;
+  unsigned fileopen  : 1;
+  unsigned reclen    : 12;
+} nsk_file_attrs;
+
+struct nsk_stat_overlay
+{
+  time_t creation_time;  /* 32 */
+  char   nsk_ef_start;   /* Start of ef region */
+};
+
+typedef union
+{
+  struct nsk_stat_reserved reserved;
+  struct nsk_stat_overlay  ov;
+} nsk_stat_ov;
 
 #endif /* !__tandem_h */

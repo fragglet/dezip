@@ -1,29 +1,25 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 #ifndef __windll_h   /* prevent multiple inclusions */
 #define __windll_h
 
 #include <windows.h>
 #include <assert.h>    /* required for all Windows applications */
 #include <setjmp.h>
-#include <commdlg.h>
-#if (!defined(__RSXNT__) && !defined(__MINGW32__))
-#  include <dlgs.h>
-#endif
-#define UNZIP_INTERNAL
-#include "unzip.h"
-#include "structs.h"
-#include "decs.h"
 
-#ifndef MSWIN
-#  define MSWIN
-#endif
+#include "../unzip.h"
+#include "../windll/structs.h"
+#include "../windll/decs.h"
 
 /* Allow compilation under Borland C++ also */
 #ifndef __based
 #  define __based(A)
-#endif
-
-#ifndef PATH_MAX
-#  define PATH_MAX 260            /* max total file or directory name path */
 #endif
 
 #define IDM_REPLACE_NO     100
@@ -34,11 +30,12 @@
 #define IDM_REPLACE_RENAME 105
 #define IDM_REPLACE_HELP   106
 
+#ifdef UNZIP_INTERNAL
+
 extern jmp_buf dll_error_return;
 
 extern HANDLE hInst;        /* current instance */
 
-#ifdef UNZIP_INTERNAL
 void FreeDllMem(__GPRO);
 int win_fprintf(zvoid *pG, FILE *file, unsigned int, char far *);
 #endif

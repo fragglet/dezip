@@ -160,7 +160,7 @@ Watcom/PMODE:
 
 Summary:
 
-For Zip: 
+For Zip:
 Use the 16-bit executable whenever possible (unless you need the
 larger memory capabilities when zipping up a huge amount of files)
 

@@ -1,4 +1,12 @@
 /*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
+/*
    ttyio.h
  */
 
@@ -84,6 +92,12 @@
 #  define HAVE_WORKING_GETCH
 #endif
 
+#ifdef NLM
+#  define echoff(f)
+#  define echon()
+#  define HAVE_WORKING_GETCH
+#endif
+
 #ifdef QDOS
 #  define echoff(f)
 #  define echon()
@@ -136,6 +150,24 @@
 #ifdef CMS_MVS
 #  define echoff(f)
 #  define echon()
+#endif
+
+#ifdef TANDEM
+#  define echoff(f)
+#  define echon()
+#  define getch() zgetch() /* defined in TANDEMC */
+#  define HAVE_WORKING_GETCH
+#endif
+
+/* The THEOS C runtime library supplies the function conmask() to toggle
+ * terminal input echo on (conmask("e")) and off (conmask("n")).  But,
+ * since THEOS C RTL also contains a working non-echo getch() function,
+ * the echo toggles are not needed.
+ */
+#ifdef THEOS
+#  define echoff(f)
+#  define echon()
+#  define HAVE_WORKING_GETCH
 #endif
 
 /* VMS has a single echo() function in ttyio.c to toggle terminal

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
     OS/2 specific configuration section:
   ---------------------------------------------------------------------------*/
@@ -120,6 +128,10 @@
 #endif
 #define isupper(x)   IsUpperNLS((unsigned char)(x))
 #define tolower(x)   ToLowerNLS((unsigned char)(x))
+#ifndef NO_STRNICMP     /* use UnZip's zstrnicmp(), because some compilers  */
+#  define NO_STRNICMP   /*  don't provide a NLS-aware strnicmp() function  */
+#endif
+
 #define USETHREADID
 
 /* handlers for OEM <--> ANSI string conversions */
@@ -132,5 +144,14 @@
 #    define CRTL_CP_IS_OEM
 #  endif
 #endif
+
+/* screen size detection */
+#define SCREENLINES screenlines()
+#define SCREENWIDTH screencolumns()
+int screenlines(void);
+int screencolumns(void);
+
+/* on the OS/2 console screen, line-wraps are always enabled */
+#define SCREENLWRAP 1
 
 #endif /* !__os2cfg_h */

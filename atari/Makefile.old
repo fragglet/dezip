@@ -14,7 +14,7 @@
 # MACRO DEFINITIONS #
 #####################
 
-# Defaults most systems use (use LOCAL_UNZIP in environment to add flags, 
+# Defaults most systems use (use LOCAL_UNZIP in environment to add flags,
 # such as -DDOSWILD).
 
 # UnZip flags
@@ -97,10 +97,10 @@ clean:
 install:	$(UNZIPS) $(MANS)
 	$(INSTALL) $(UNZIPS) $(BINDIR)
 	$(LN) $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E
-	$(INSTALL) unix/unzip.1 $(MANDIR)/unzip.$(manext)
-	$(INSTALL) unix/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
-	$(INSTALL) unix/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
-	$(INSTALL) unix/funzip.1 $(MANDIR)/funzip.$(manext)
+	$(INSTALL) man/unzip.1 $(MANDIR)/unzip.$(manext)
+	$(INSTALL) man/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
+	$(INSTALL) man/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
+	$(INSTALL) man/funzip.1 $(MANDIR)/funzip.$(manext)
 
 # alternatively, could use zip method:  -cd $(BINDIR); rm -f $(UNZIPS)  [etc.]
 uninstall:

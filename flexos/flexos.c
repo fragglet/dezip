@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   flexos.c
@@ -67,21 +75,21 @@ static char Far PathTooLongTrunc[] =
 
 char *do_wild(__G__ wildspec)
     __GDEF
-    char *wildspec;          /* only used first time on a given dir */
+    ZCONST char *wildspec;   /* only used first time on a given dir */
 {
-    static DIR *dir = (DIR *)NULL;
-    static char *dirname, *wildname, matchname[FILNAMSIZ];
-    static int firstcall=TRUE, have_dirname, dirnamelen;
+    static DIR *wild_dir = (DIR *)NULL;
+    static ZCONST char *wildname;
+    static char *dirname, matchname[FILNAMSIZ];
+    static int notfirstcall=FALSE, have_dirname, dirnamelen;
     char *fnamestart;
     struct dirent *file;
-
 
     /* Even when we're just returning wildspec, we *always* do so in
      * matchname[]--calling routine is allowed to append four characters
      * to the returned string, and wildspec may be a pointer to argv[].
      */
-    if (firstcall) {        /* first call:  must initialize everything */
-        firstcall = FALSE;
+    if (!notfirstcall) {    /* first call:  must initialize everything */
+        notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
             strcpy(matchname, wildspec);
@@ -91,8 +99,8 @@ char *do_wild(__G__ wildspec)
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, '/')) == (char *)NULL &&
-            (wildname = strrchr(wildspec, ':')) == (char *)NULL) {
+        if ((wildname = strrchr(wildspec, '/')) == (ZCONST char *)NULL &&
+            (wildname = strrchr(wildspec, ':')) == (ZCONST char *)NULL) {
             dirname = ".";
             dirnamelen = 1;
             have_dirname = FALSE;
@@ -109,18 +117,18 @@ char *do_wild(__G__ wildspec)
 /* GRR:  cannot strip trailing char for opendir since might be "d:/" or "d:"
  *       (would have to check for "./" at end--let opendir handle it instead) */
             strncpy(dirname, wildspec, dirnamelen);
-            dirname[dirnamelen] = '\0';       /* terminate for strcpy below */
+            dirname[dirnamelen] = '\0';   /* terminate for strcpy below */
             have_dirname = TRUE;
         }
         Trace((stderr, "do_wild:  dirname = [%s]\n", dirname));
 
-        if ((dir = opendir(dirname)) != (DIR *)NULL) {
+        if ((wild_dir = opendir(dirname)) != (DIR *)NULL) {
             if (have_dirname) {
                 strcpy(matchname, dirname);
                 fnamestart = matchname + dirnamelen;
             } else
                 fnamestart = matchname;
-            while ((file = readdir(dir)) != (struct dirent *)NULL) {
+            while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 strcpy(fnamestart, file->d_name);
                 if (strrchr(fnamestart, '.') == (char *)NULL)
@@ -137,8 +145,8 @@ char *do_wild(__G__ wildspec)
                 }
             }
             /* if we get to here directory is exhausted, so close it */
-            closedir(dir);
-            dir = (DIR *)NULL;
+            closedir(wild_dir);
+            wild_dir = (DIR *)NULL;
         }
 #ifdef DEBUG
         else {
@@ -153,8 +161,8 @@ char *do_wild(__G__ wildspec)
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == (DIR *)NULL) {
-        firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
+    if (wild_dir == (DIR *)NULL) {
+        notfirstcall = FALSE; /* nothing left to try--reset for new wildspec */
         if (have_dirname)
             free(dirname);
         return (char *)NULL;
@@ -169,7 +177,7 @@ char *do_wild(__G__ wildspec)
         fnamestart = matchname + dirnamelen;
     } else
         fnamestart = matchname;
-    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+    while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
         Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
         strcpy(fnamestart, file->d_name);
         if (strrchr(fnamestart, '.') == (char *)NULL)
@@ -184,9 +192,9 @@ char *do_wild(__G__ wildspec)
         }
     }
 
-    closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = (DIR *)NULL;
-    firstcall = TRUE;  /* reset for new wildspec */
+    closedir(wild_dir);     /* have read at least one entry; nothing left */
+    wild_dir = (DIR *)NULL;
+    notfirstcall = FALSE;   /* reset for new wildspec */
     if (have_dirname)
         free(dirname);
     return (char *)NULL;
@@ -629,46 +637,56 @@ int checkdir(__G__ pathcomp, flag)
             rootlen = 0;
             return 0;
         }
+        if (rootlen > 0)        /* rootpath was already set, nothing to do */
+            return 0;
         if ((rootlen = strlen(pathcomp)) > 0) {
-            int had_trailing_pathsep=FALSE, xtra=2;
+            int had_trailing_pathsep=FALSE, add_dot=FALSE;
+            char *tmproot;
 
-            if (pathcomp[rootlen-1] == '/' || pathcomp[rootlen-1] == '\\') {
-                pathcomp[--rootlen] = '\0';
+            if ((tmproot = (char *)malloc(rootlen+3)) == (char *)NULL) {
+                rootlen = 0;
+                return 10;
+            }
+            strcpy(tmproot, pathcomp);
+            if (tmproot[rootlen-1] == '/' || tmproot[rootlen-1] == '\\') {
+                tmproot[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
-            if (pathcomp[rootlen-1] == ':') {
-                if (!had_trailing_pathsep)   /* i.e., original wasn't "xxx:/" */
-                    xtra = 3;      /* room for '.' + '/' + 0 at end of "xxx:" */
-            } else if (rootlen > 0) {     /* need not check "xxx:." and "xxx:/" */
-                if (stat(pathcomp,&G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
+            if (tmproot[rootlen-1] == ':') {
+                if (!had_trailing_pathsep)  /* i.e., original wasn't "xxx:/" */
+                    add_dot = TRUE;     /* relative path: add '.' before '/' */
+            } else if (rootlen > 0) {  /* need not check "xxx:." and "xxx:/" */
+                if (SSTAT(tmproot, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
                 {
                     /* path does not exist */
-                    if (!G.create_dirs /* || iswild(pathcomp) */ ) {
+                    if (!G.create_dirs /* || iswild(tmproot) */ ) {
+                        free(tmproot);
                         rootlen = 0;
                         return 2;   /* treat as stored file */
                     }
 /* GRR:  scan for wildcard characters?  OS-dependent...  if find any, return 2:
  * treat as stored file(s) */
-                    /* create directory (could add loop here to scan pathcomp
-                     * and create more than one level, but really necessary?) */
-                    if (mkdir(pathcomp, 0777) == -1) {
+                    /* create directory (could add loop here scanning tmproot
+                     * to create more than one level, but really necessary?) */
+                    if (mkdir(tmproot, 0777) == -1) {
                         Info(slide, 1, ((char *)slide,
                           LoadFarString(CantCreateExtractDir),
-                          FnFilter1(pathcomp)));
-                        rootlen = 0;   /* path didn't exist, tried to create, */
-                        return 3;  /* failed:  file exists, or need 2+ levels */
+                          FnFilter1(tmproot)));
+                        free(tmproot);
+                        rootlen = 0;  /* path didn't exist, tried to create, */
+                        return 3; /* failed:  file exists, or need 2+ levels */
                     }
                 }
             }
-            if ((rootpath = (char *)malloc(rootlen+xtra)) == (char *)NULL) {
+            if (add_dot)                    /* had just "x:", make "x:." */
+                tmproot[rootlen++] = '.';
+            tmproot[rootlen++] = '/';
+            tmproot[rootlen] = '\0';
+            if ((rootpath = (char *)realloc(tmproot, rootlen+1)) == NULL) {
+                free(tmproot);
                 rootlen = 0;
                 return 10;
             }
-            strcpy(rootpath, pathcomp);
-            if (xtra == 3)                  /* had just "x:", make "x:." */
-                rootpath[rootlen++] = '.';
-            rootpath[rootlen++] = '/';
-            rootpath[rootlen] = '\0';
             Trace((stderr, "rootpath now = [%s]\n", FnFilter1(rootpath)));
         }
         return 0;
@@ -689,7 +707,11 @@ int checkdir(__G__ pathcomp, flag)
     }
 
     return 99;  /* should never reach */
-}
+
+} /* end function checkdir() */
+
+
+
 
 /****************************/
 /* Function close_outfile() */

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   msdos.c
@@ -242,32 +250,32 @@ struct zdirent *Readdir(d)
 
 char *do_wild(__G__ wildspec)
     __GDEF
-    char *wildspec;          /* only used first time on a given dir */
+    ZCONST char *wildspec;   /* only used first time on a given dir */
 {
-    static zDIR *dir = (zDIR *)NULL;
-    static char *dirname, *wildname, matchname[FILNAMSIZ];
-    static int firstcall=TRUE, have_dirname, dirnamelen;
+    static zDIR *wild_dir = (zDIR *)NULL;
+    static ZCONST char *wildname;
+    static char *dirname, matchname[FILNAMSIZ];
+    static int notfirstcall=FALSE, have_dirname, dirnamelen;
     char *fnamestart;
     struct zdirent *file;
-
 
     /* Even when we're just returning wildspec, we *always* do so in
      * matchname[]--calling routine is allowed to append four characters
      * to the returned string, and wildspec may be a pointer to argv[].
      */
-    if (firstcall) {        /* first call:  must initialize everything */
-        firstcall = FALSE;
+    if (!notfirstcall) {    /* first call:  must initialize everything */
+        notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
             strcpy(matchname, wildspec);
             have_dirname = FALSE;
-            dir = NULL;
+            wild_dir = NULL;
             return matchname;
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, '/')) == (char *)NULL &&
-            (wildname = strrchr(wildspec, ':')) == (char *)NULL) {
+        if ((wildname = strrchr(wildspec, '/')) == (ZCONST char *)NULL &&
+            (wildname = strrchr(wildspec, ':')) == (ZCONST char *)NULL) {
             dirname = ".";
             dirnamelen = 1;
             have_dirname = FALSE;
@@ -284,18 +292,18 @@ char *do_wild(__G__ wildspec)
 /* GRR:  can't strip trailing char for opendir since might be "d:/" or "d:"
  *       (would have to check for "./" at end--let opendir handle it instead) */
             strncpy(dirname, wildspec, dirnamelen);
-            dirname[dirnamelen] = '\0';       /* terminate for strcpy below */
+            dirname[dirnamelen] = '\0';   /* terminate for strcpy below */
             have_dirname = TRUE;
         }
         Trace((stderr, "do_wild:  dirname = [%s]\n", dirname));
 
-        if ((dir = Opendir(dirname)) != (zDIR *)NULL) {
+        if ((wild_dir = Opendir(dirname)) != (zDIR *)NULL) {
             if (have_dirname) {
                 strcpy(matchname, dirname);
                 fnamestart = matchname + dirnamelen;
             } else
                 fnamestart = matchname;
-            while ((file = Readdir(dir)) != (struct zdirent *)NULL) {
+            while ((file = Readdir(wild_dir)) != (struct zdirent *)NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 strcpy(fnamestart, file->d_name);
                 if (strrchr(fnamestart, '.') == (char *)NULL)
@@ -312,8 +320,8 @@ char *do_wild(__G__ wildspec)
                 }
             }
             /* if we get to here directory is exhausted, so close it */
-            Closedir(dir);
-            dir = (zDIR *)NULL;
+            Closedir(wild_dir);
+            wild_dir = (zDIR *)NULL;
         }
 #ifdef DEBUG
         else {
@@ -328,8 +336,8 @@ char *do_wild(__G__ wildspec)
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == (zDIR *)NULL) {
-        firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
+    if (wild_dir == (zDIR *)NULL) {
+        notfirstcall = FALSE; /* nothing left to try--reset for new wildspec */
         if (have_dirname)
             free(dirname);
         return (char *)NULL;
@@ -344,7 +352,7 @@ char *do_wild(__G__ wildspec)
         fnamestart = matchname + dirnamelen;
     } else
         fnamestart = matchname;
-    while ((file = Readdir(dir)) != (struct zdirent *)NULL) {
+    while ((file = Readdir(wild_dir)) != (struct zdirent *)NULL) {
         Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
         strcpy(fnamestart, file->d_name);
         if (strrchr(fnamestart, '.') == (char *)NULL)
@@ -359,9 +367,9 @@ char *do_wild(__G__ wildspec)
         }
     }
 
-    Closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = (zDIR *)NULL;
-    firstcall = TRUE;  /* reset for new wildspec */
+    Closedir(wild_dir);     /* have read at least one entry; nothing left */
+    wild_dir = (zDIR *)NULL;
+    notfirstcall = FALSE;   /* reset for new wildspec */
     if (have_dirname)
         free(dirname);
     return (char *)NULL;
@@ -435,7 +443,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
             pathcomp[0] = '/';  /* copy the '/' and terminate */
             pathcomp[1] = '\0';
             ++cp;
-        } else if (isalpha(G.filename[0]) && G.filename[1] == ':') {
+        } else if (isalpha((uch)G.filename[0]) && G.filename[1] == ':') {
             renamed_fullpath = TRUE;
             pp = pathcomp;
             *pp++ = *cp++;      /* copy the "d:" (+ '/', possibly) */
@@ -634,7 +642,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
             z_dos_chmod(__G__ G.filename, G.pInfo->file_attr);
 
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
-        } else if (uO.overwrite_all) {
+        } else if (IS_OVERWRT_ALL) {
             /* overwrite attributes of existing directory on user's request */
 
             /* set file attributes: */
@@ -792,7 +800,7 @@ int checkdir(__G__ pathcomp, flag)
 #ifdef MSC /* MSC 6.00 bug:  stat(non-existent-dir) == 0 [exists!] */
         if (_dos_getfileattr(buildpath, &attrs) || stat(buildpath, &G.statbuf))
 #else
-        if (SSTAT(buildpath, &G.statbuf))    /* path doesn't exist */
+        if (SSTAT(buildpath, &G.statbuf))   /* path doesn't exist */
 #endif
         {
             if (!G.create_dirs) { /* told not to create (freshening) */
@@ -938,54 +946,64 @@ int checkdir(__G__ pathcomp, flag)
             rootlen = 0;
             return 0;
         }
+        if (rootlen > 0)        /* rootpath was already set, nothing to do */
+            return 0;
         if ((rootlen = strlen(pathcomp)) > 0) {
-            int had_trailing_pathsep=FALSE, has_drive=FALSE, xtra=2;
+            int had_trailing_pathsep=FALSE, has_drive=FALSE, add_dot=FALSE;
+            char *tmproot;
 
-            if (isalpha(pathcomp[0]) && pathcomp[1] == ':')
+            if ((tmproot = (char *)malloc(rootlen+3)) == (char *)NULL) {
+                rootlen = 0;
+                return 10;
+            }
+            strcpy(tmproot, pathcomp);
+            if (isalpha((uch)tmproot[0]) && tmproot[1] == ':')
                 has_drive = TRUE;   /* drive designator */
-            if (pathcomp[rootlen-1] == '/' || pathcomp[rootlen-1] == '\\') {
-                pathcomp[--rootlen] = '\0';
+            if (tmproot[rootlen-1] == '/' || tmproot[rootlen-1] == '\\') {
+                tmproot[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
             if (has_drive && (rootlen == 2)) {
                 if (!had_trailing_pathsep)   /* i.e., original wasn't "x:/" */
-                    xtra = 3;      /* room for '.' + '/' + 0 at end of "x:" */
+                    add_dot = TRUE;    /* relative path: add '.' before '/' */
             } else if (rootlen > 0) {     /* need not check "x:." and "x:/" */
 #ifdef MSC
                 /* MSC 6.00 bug:  stat(non-existent-dir) == 0 [exists!] */
-                if (_dos_getfileattr(pathcomp, &attrs) ||
-                    SSTAT(pathcomp,&G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
+                if (_dos_getfileattr(tmproot, &attrs) ||
+                    SSTAT(tmproot, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
 #else
-                if (SSTAT(pathcomp,&G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
+                if (SSTAT(tmproot, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
 #endif
                 {
                     /* path does not exist */
-                    if (!G.create_dirs /* || iswild(pathcomp) */ ) {
+                    if (!G.create_dirs /* || iswild(tmproot) */ ) {
+                        free(tmproot);
                         rootlen = 0;
                         return 2;   /* treat as stored file */
                     }
 /* GRR:  scan for wildcard characters?  OS-dependent...  if find any, return 2:
  * treat as stored file(s) */
-                    /* create directory (could add loop here to scan pathcomp
-                     * and create more than one level, but really necessary?) */
-                    if (MKDIR(pathcomp, 0777) == -1) {
+                    /* create directory (could add loop here scanning tmproot
+                     * to create more than one level, but really necessary?) */
+                    if (MKDIR(tmproot, 0777) == -1) {
                         Info(slide, 1, ((char *)slide,
                           LoadFarString(CantCreateExtractDir),
-                          FnFilter1(pathcomp)));
-                        rootlen = 0;   /* path didn't exist, tried to create, */
-                        return 3;  /* failed:  file exists, or need 2+ levels */
+                          FnFilter1(tmproot)));
+                        free(tmproot);
+                        rootlen = 0;  /* path didn't exist, tried to create, */
+                        return 3; /* failed:  file exists, or need 2+ levels */
                     }
                 }
             }
-            if ((rootpath = (char *)malloc(rootlen+xtra)) == (char *)NULL) {
+            if (add_dot)                    /* had just "x:", make "x:." */
+                tmproot[rootlen++] = '.';
+            tmproot[rootlen++] = '/';
+            tmproot[rootlen] = '\0';
+            if ((rootpath = (char *)realloc(tmproot, rootlen+1)) == NULL) {
+                free(tmproot);
                 rootlen = 0;
                 return 10;
             }
-            strcpy(rootpath, pathcomp);
-            if (xtra == 3)                  /* had just "x:", make "x:." */
-                rootpath[rootlen++] = '.';
-            rootpath[rootlen++] = '/';
-            rootpath[rootlen] = '\0';
             Trace((stderr, "rootpath now = [%s]\n", FnFilter1(rootpath)));
         }
         return 0;
@@ -1326,10 +1344,10 @@ static int volumelabel(newlabel)
 
 
 
-#if defined(USE_EF_UT_TIME) || defined(TIMESTAMP)
+#if (defined(USE_EF_UT_TIME) || defined(TIMESTAMP))
 /* The following DOS date/time structure is machine-dependent as it
  * assumes "little-endian" byte order.  For MSDOS-specific code, which
- * is run on x86 CPUs (or emulators), this assumption is valid; but
+ * is run on ix86 CPUs (or emulators), this assumption is valid; but
  * care should be taken when using this code as template for other ports.
  */
 typedef union {
@@ -1665,6 +1683,8 @@ void version(__G)
         "++ 3.0",
 #    elif (__TURBOC__ == 0x0295)     /* [661] vfy'd by Kevin */
         "++ 1.0",
+#    elif (__TURBOC__ == 0x0201)     /* Brian:  2.01 -> 0x0201 */
+        " 2.01",
 #    elif ((__TURBOC__ >= 0x018d) && (__TURBOC__ <= 0x0200)) /* James: 0x0200 */
         " 2.0",
 #    elif (__TURBOC__ > 0x0100)
@@ -1694,7 +1714,7 @@ void version(__G)
       "unknown compiler", "",
 #endif /* ?compilers */
 
-      "MS-DOS",
+      "\nMS-DOS",
 
 #if (defined(__GNUC__) || defined(WATCOMC_386))
       " (32-bit)",
@@ -1780,7 +1800,7 @@ unsigned _dos_getcountryinfo(void *countrybuffer)
     return (unsigned)_doserrno;
 }
 
-unsigned _dos_setftime(int fd, ush dosdate, ush dostime)
+unsigned _dos_setftime(int fd, unsigned dosdate, unsigned dostime)
 {
     asm("movl %0, %%ebx": : "g" (fd));
     asm("movl %0, %%ecx": : "g" (dostime));

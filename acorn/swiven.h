@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* swiven.h */
 
 #ifndef __swiven_h
@@ -53,5 +61,9 @@ os_error *SWI_DDEUtils_Prefix(char *dir);
 
 int SWI_Read_Timezone(void);
 /* returns the timezone offset (centiseconds) */
+
+int SWI_MimeMap_Translate(const char *ext);
+/* given a filename extn, returns the filetype (or -1 if no match).
+ * Uses the MimeMap module */
 
 #endif /* !__swiven_h */

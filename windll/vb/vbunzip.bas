@@ -17,7 +17,7 @@ Option Explicit
 '--
 '-- This Source Code Is Freely Available From The Info-ZIP Project
 '-- Web Server At:
-'-- http://www.cdrom.com/pub/infozip/infozip.html
+'-- ftp://ftp.info-zip.org/pub/infozip/infozip.html
 '--
 '-- A Very Special Thanks To Mr. Mike Le Voi
 '-- And Mr. Mike White
@@ -61,14 +61,14 @@ End Type
 
 '-- UNZIP32.DLL DCL Structure
 Private Type DCLIST
-  ExtractOnlyNewer  As Long    ' 1 = Extract Only Newer, Else 0
+  ExtractOnlyNewer  As Long    ' 1 = Extract Only Newer/New, Else 0
   SpaceToUnderscore As Long    ' 1 = Convert Space To Underscore, Else 0
   PromptToOverwrite As Long    ' 1 = Prompt To Overwrite Required, Else 0
   fQuiet            As Long    ' 2 = No Messages, 1 = Less, 0 = All
   ncflag            As Long    ' 1 = Write To Stdout, Else 0
   ntflag            As Long    ' 1 = Test Zip File, Else 0
   nvflag            As Long    ' 0 = Extract, 1 = List Zip Contents
-  nUflag            As Long    ' 1 = Extract Only Newer, Else 0
+  nfflag            As Long    ' 1 = Extract Only Newer Over Existing, Else 0
   nzflag            As Long    ' 1 = Display Zip File Comment, Else 0
   ndflag            As Long    ' 1 = Honor Directories, Else 0
   noflag            As Long    ' 1 = Overwrite Files, Else 0
@@ -124,14 +124,14 @@ Private UZVER  As UZPVER
 '-- Public Variables For Setting The
 '-- UNZIP32.DLL DCLIST Structure
 '-- These Must Be Set Before The Actual Call To VBUnZip32
-Public uExtractNewer     As Integer  ' 1 = Extract Only Newer, Else 0
+Public uExtractOnlyNewer As Integer  ' 1 = Extract Only Newer/New, Else 0
 Public uSpaceUnderScore  As Integer  ' 1 = Convert Space To Underscore, Else 0
 Public uPromptOverWrite  As Integer  ' 1 = Prompt To Overwrite Required, Else 0
 Public uQuiet            As Integer  ' 2 = No Messages, 1 = Less, 0 = All
 Public uWriteStdOut      As Integer  ' 1 = Write To Stdout, Else 0
 Public uTestZip          As Integer  ' 1 = Test Zip File, Else 0
 Public uExtractList      As Integer  ' 0 = Extract, 1 = List Contents
-Public uExtractOnlyNewer As Integer  ' 1 = Extract Only Newer, Else 0
+Public uFreshenExisting  As Integer  ' 1 = Update Existing by Newer, Else 0
 Public uDisplayComment   As Integer  ' 1 = Display Zip File Comment, Else 0
 Public uHonorDirectories As Integer  ' 1 = Honor Directories, Else 0
 Public uOverWriteFiles   As Integer  ' 1 = Overwrite Files, Else 0
@@ -186,7 +186,7 @@ Public Sub UZReceiveDLLMessage(ByVal ucsize As Long, _
   '-- You Can Modify Below!
   '------------------------------------------------
 
-  strout = Space(80)
+  strout = Space$(80)
 
   '-- For Zip Message Printing
   If uZipNumber = 0 Then
@@ -195,7 +195,7 @@ Public Sub UZReceiveDLLMessage(ByVal ucsize As Long, _
     Mid(strout, 62, 4) = "Date"
     Mid(strout, 71, 4) = "Time"
     uZipMessage = strout & vbNewLine
-    strout = Space(80)
+    strout = Space$(80)
   End If
 
   s0 = ""
@@ -203,24 +203,24 @@ Public Sub UZReceiveDLLMessage(ByVal ucsize As Long, _
   '-- Do Not Change This For Next!!!
   For xx = 0 To 255
     If fname.ch(xx) = 0 Then Exit For
-    s0 = s0 & Chr(fname.ch(xx))
+    s0 = s0 & Chr$(fname.ch(xx))
   Next
 
   '-- Assign Zip Information For Printing
-  Mid(strout, 1, 50) = Mid(s0, 1, 50)
-  Mid(strout, 51, 7) = Right("        " & Str(ucsize), 7)
-  Mid(strout, 60, 3) = Right("0" & Trim(Str(mo)), 2) & "/"
-  Mid(strout, 63, 3) = Right("0" & Trim(Str(dy)), 2) & "/"
-  Mid(strout, 66, 2) = Right("0" & Trim(Str(yr)), 2)
-  Mid(strout, 70, 3) = Right(Str(hh), 2) & ":"
-  Mid(strout, 73, 2) = Right("0" & Trim(Str(mm)), 2)
+  Mid$(strout, 1, 50) = Mid$(s0, 1, 50)
+  Mid$(strout, 51, 7) = Right$("        " & CStr(ucsize), 7)
+  Mid$(strout, 60, 3) = Right$("0" & Trim$(CStr(mo)), 2) & "/"
+  Mid$(strout, 63, 3) = Right$("0" & Trim$(CStr(dy)), 2) & "/"
+  Mid$(strout, 66, 2) = Right$("0" & Trim$(CStr(yr)), 2)
+  Mid$(strout, 70, 3) = Right$(Str$(hh), 2) & ":"
+  Mid$(strout, 73, 2) = Right$("0" & Trim$(CStr(mm)), 2)
 
-  ' Mid(strout, 75, 2) = Right(" " & Str(cfactor), 2)
-  ' Mid(strout, 78, 8) = Right("        " & Str(csiz), 8)
+  ' Mid(strout, 75, 2) = Right$(" " & CStr(cfactor), 2)
+  ' Mid(strout, 78, 8) = Right$("        " & CStr(csiz), 8)
   ' s0 = ""
   ' For xx = 0 To 255
-  '     If meth.ch(xx) = 0 Then exit for
-  '     s0 = s0 & Chr(meth.ch(xx))
+  '     If meth.ch(xx) = 0 Then Exit For
+  '     s0 = s0 & Chr$(meth.ch(xx))
   ' Next xx
 
   '-- Do Not Modify Below!!!
@@ -243,7 +243,7 @@ Public Function UZDLLPrnt(ByRef fname As UNZIPCBChar, ByVal x As Long) As Long
   '-- Gets The UNZIP32.DLL Message For Displaying.
   For xx = 0 To x - 1
     If fname.ch(xx) = 0 Then Exit For
-    s0 = s0 & Chr(fname.ch(xx))
+    s0 = s0 & Chr$(fname.ch(xx))
   Next
 
   '-- Assign Zip Information
@@ -267,7 +267,7 @@ Public Function UZDLLServ(ByRef mname As UNZIPCBChar, ByVal x As Long) As Long
     '-- Get Zip32.DLL Message For processing
     For xx = 0 To x - 1
         If mname.ch(xx) = 0 Then Exit For
-        s0 = s0 + Chr(mname.ch(xx))
+        s0 = s0 & Chr$(mname.ch(xx))
     Next
     ' At this point, s0 contains the message passed from the DLL
     ' It is up to the developer to code something useful here :)
@@ -295,7 +295,7 @@ Public Function UZDLLPass(ByRef p As UNZIPCBCh, _
   szpassword = InputBox("Please Enter The Password!")
 
   '-- No Password So Exit The Function
-  If szpassword = "" Then
+  If Len(szpassword) = 0 Then
     uVbSkip = 1
     Exit Function
   End If
@@ -305,7 +305,7 @@ Public Function UZDLLPass(ByRef p As UNZIPCBCh, _
     If m.ch(xx) = 0 Then
       Exit For
     Else
-      prompt = prompt & Chr(m.ch(xx))
+      prompt = prompt & Chr$(m.ch(xx))
     End If
   Next
 
@@ -314,10 +314,10 @@ Public Function UZDLLPass(ByRef p As UNZIPCBCh, _
   Next
 
   For xx = 0 To Len(szpassword) - 1
-    p.ch(xx) = Asc(Mid(szpassword, xx + 1, 1))
+    p.ch(xx) = Asc(Mid$(szpassword, xx + 1, 1))
   Next
 
-  p.ch(xx) = Chr(0) ' Put Null Terminator For C
+  p.ch(xx) = 0 ' Put Null Terminator For C
 
   UZDLLPass = 0
 
@@ -338,7 +338,8 @@ Public Function UZDLLRep(ByRef fname As UNZIPCBChar) As Long
   s0 = ""
 
   For xx = 0 To 255
-    If fname.ch(xx) = 0 Then xx = 99999 Else s0 = s0 & Chr(fname.ch(xx))
+    If fname.ch(xx) = 0 Then Exit For 
+    s0 = s0 & Chr$(fname.ch(xx))
   Next
 
   '-- This Is The MsgBox Code
@@ -352,26 +353,24 @@ Public Function UZDLLRep(ByRef fname As UNZIPCBChar) As Long
     Exit Function
   End If
 
-  UZDLLRep = 102         ' 102 = Overwrite 103 = Overwrite All
+  UZDLLRep = 102         ' 102 = Overwrite, 103 = Overwrite All
 
 End Function
 
 '-- ASCIIZ To String Function
 Public Function szTrim(szString As String) As String
 
-  Dim pos As Integer
-  Dim ln  As Integer
+  Dim pos As Long
 
-  pos = InStr(szString, Chr(0))
-  ln = Len(szString)
+  pos = InStr(szString, vbNullChar)
 
   Select Case pos
     Case Is > 1
-      szTrim = Trim(Left(szString, pos - 1))
+      szTrim = Trim$(Left$(szString, pos - 1))
     Case 1
       szTrim = ""
     Case Else
-      szTrim = Trim(szString)
+      szTrim = Trim$(szString)
   End Select
 
 End Function
@@ -385,14 +384,14 @@ Public Sub VBUnZip32()
 
   '-- Set The UNZIP32.DLL Options
   '-- (WARNING!) Do Not Change
-  UZDCL.ExtractOnlyNewer = uExtractNewer     ' 1 = Extract Only Newer
+  UZDCL.ExtractOnlyNewer = uExtractOnlyNewer ' 1 = Extract Only Newer/New
   UZDCL.SpaceToUnderscore = uSpaceUnderScore ' 1 = Convert Space To Underscore
   UZDCL.PromptToOverwrite = uPromptOverWrite ' 1 = Prompt To Overwrite Required
   UZDCL.fQuiet = uQuiet                      ' 2 = No Messages 1 = Less 0 = All
   UZDCL.ncflag = uWriteStdOut                ' 1 = Write To Stdout
   UZDCL.ntflag = uTestZip                    ' 1 = Test Zip File
   UZDCL.nvflag = uExtractList                ' 0 = Extract 1 = List Contents
-  UZDCL.nUflag = uExtractOnlyNewer           ' 1 = Extract Only Newer
+  UZDCL.nfflag = uFreshenExisting            ' 1 = Update Existing by Newer
   UZDCL.nzflag = uDisplayComment             ' 1 = Display Zip File Comment
   UZDCL.ndflag = uHonorDirectories           ' 1 = Honour Directories
   UZDCL.noflag = uOverWriteFiles             ' 1 = Overwrite Files
@@ -417,9 +416,9 @@ Public Sub VBUnZip32()
   '-- (WARNING!!!) Do Not Change
   With UZVER
     .structlen = Len(UZVER)
-    .beta = Space(9) & vbNullChar
-    .date = Space(19) & vbNullChar
-    .zlib = Space(9) & vbNullChar
+    .beta = Space$(9) & vbNullChar
+    .date = Space$(19) & vbNullChar
+    .zlib = Space$(9) & vbNullChar
   End With
 
   '-- Get Version
@@ -430,10 +429,10 @@ Public Sub VBUnZip32()
   '-- The Version Information!
   '--------------------------------------
   MsgStr$ = "DLL Date: " & szTrim(UZVER.date)
-  MsgStr$ = MsgStr$ & vbNewLine$ & "Zip Info: " & Hex(UZVER.zipinfo(1)) & "." & _
-       Hex(UZVER.zipinfo(2)) & Hex(UZVER.zipinfo(3))
-  MsgStr$ = MsgStr$ & vbNewLine$ & "DLL Version: " & Hex(UZVER.windll(1)) & "." & _
-       Hex(UZVER.windll(2)) & Hex(UZVER.windll(3))
+  MsgStr$ = MsgStr$ & vbNewLine$ & "Zip Info: " & Hex$(UZVER.zipinfo(1)) & "." & _
+       Hex$(UZVER.zipinfo(2)) & Hex$(UZVER.zipinfo(3))
+  MsgStr$ = MsgStr$ & vbNewLine$ & "DLL Version: " & Hex$(UZVER.windll(1)) & "." & _
+       Hex$(UZVER.windll(2)) & Hex$(UZVER.windll(3))
   MsgStr$ = MsgStr$ & vbNewLine$ & "--------------"
   '-- End Of Version Information.
 
@@ -448,14 +447,14 @@ Public Sub VBUnZip32()
 
   '-- You Can Change This As Needed!
   '-- For Compression Information
-  MsgStr$ = MsgStr$ & vbNewLine$ & "Only Shows If uExtractList = 1 List Contents"
-  MsgStr$ = MsgStr$ & vbNewLine$ & "--------------"
-  MsgStr$ = MsgStr$ & vbNewLine$ & "Comment         : " & UZUSER.cchComment
-  MsgStr$ = MsgStr$ & vbNewLine$ & "Total Size Comp : " & UZUSER.TotalSizeComp
-  MsgStr$ = MsgStr$ & vbNewLine$ & "Total Size      : " & UZUSER.TotalSize
-  MsgStr$ = MsgStr$ & vbNewLine$ & "Compress Factor : %" & UZUSER.CompFactor
-  MsgStr$ = MsgStr$ & vbNewLine$ & "Num Of Members  : " & UZUSER.NumMembers
-  MsgStr$ = MsgStr$ & vbNewLine$ & "--------------"
+  MsgStr$ = MsgStr$ & vbNewLine & "Only Shows If uExtractList = 1 List Contents"
+  MsgStr$ = MsgStr$ & vbNewLine & "--------------"
+  MsgStr$ = MsgStr$ & vbNewLine & "Comment         : " & UZUSER.cchComment
+  MsgStr$ = MsgStr$ & vbNewLine & "Total Size Comp : " & UZUSER.TotalSizeComp
+  MsgStr$ = MsgStr$ & vbNewLine & "Total Size      : " & UZUSER.TotalSize
+  MsgStr$ = MsgStr$ & vbNewLine & "Compress Factor : %" & UZUSER.CompFactor
+  MsgStr$ = MsgStr$ & vbNewLine & "Num Of Members  : " & UZUSER.NumMembers
+  MsgStr$ = MsgStr$ & vbNewLine & "--------------"
 
   VBUnzFrm.MsgOut.Text = VBUnzFrm.MsgOut.Text & MsgStr$ & vbNewLine$
 End Sub

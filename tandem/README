@@ -1,5 +1,3 @@
-Last Amended:  10/10/97 by Dave Smith
-
 Tandem Port of Info ZIP (unzip)
 =======================
 
@@ -7,7 +5,7 @@ Recent changes:
 1. Support UNZIPing of EDIT (text) files by use of the "-a" parameter
 2. Changes for version 2.2 affected files:
 - TANDEMC     (changes to stat() to pass file creation time)
-- ZIPINFOC    (exclufe TANDEM from tzset() test)
+- ZIPINFOC    (exclude TANDEM from tzset() test)
 3. Fix to default time/date field to UK format (dd/mm/yyyy)
 03/08/98  5.33f   Updates for TANDEMC/H to keep instep with ZIP (file buffering)
                  New DOIT macro for extracting files from archive
@@ -17,6 +15,20 @@ Recent changes:
 19/08/98  5.33f   Add -X flag support (restore file owner id) via unzip.c/h
                  new chown function in tandem.c.
                  Modified close_outfile to make the chown the last step.
+30/11/98  5.41a  Updated mapname/chmod/in2ex, include licensing in MAKE
+21/12/98  5.41a  Add decoding of new Tandem extra field EF_TANDEM
+                 Make '-a' default option.  Add '-b' option to force creation
+                 of 'C' filecode 180 type text files.
+                 If available populate Tandem file code (e.g. Object files)
+                 Rationalised TANDEMH and TANDEMC wth ZIP 2.3i
+                 Fixed MORE (-M flag) processing by creating zgetch()
+12/01/99  5.41a  Correct bug stopping setting of last open timestamp
+24/03/99  5.41b  Split TANDEMC into TANDEMC/TANZIPC/TANUNZC
+24/03/99  5.41b  Added TANNSKH to allow for declarations which require
+                 structures defined in ZIPH after call to TANDEMH
+07/05/99  5.41c  Assume not DST if can't resolve time (no DST table available)
+01/06/99  5.41c  Add steps to make Self Extracting files (SFX)
+
 
 A few notes about the files on this subvol
 
@@ -24,6 +36,7 @@ COMMACS   -  required by MAKE, *** held on ZIP subvol ***
 DOIT      -  macro to extract required Tandem files from archive and rename
 MACROS    -  required by MAKE, *** held on ZIP subvol ***
 MAKE      -  recompile UNZIP code, attempts to only recompile changed code
+MAKESFX   -  make SFX header file
 README    -  this file
 UNZIPLIB  -  library of ZIP compiled routines, used by ZIP/ZIPNOTE etc
 UNZIPL    -  ZIP object (bound using LARGE memory model)
@@ -47,14 +60,32 @@ Stage 2 - (optional) retrieve source code (requires UNZIP on Tandem)
 - extract Tandem DOIT macro ( UNZIP -j <archive> tandem/DOIT )
 - update DOIT macro to point at archive file
 - restore relevant files by running DOIT
-- replace all references to $DATA9.DAVESUNZ with whatever subvol you use
-- replace all references to $DATA9.DAVESZIP with whatever subvol you use
-  this is required by the MAKE macro file to pick up MACROS and COMMACS
+- replace references to $T with a collector on your system
 - replace references to SUPER.DAVES with whatever user id you use
-- to compile run MAKE
+- to compile run MAKE (compiles, accelerates, licences)
+- NOTE:  Always run the accelerated object on TNS/R systems, otherwise
+         it runs extremely slow.
+
 
 Additional Notes - LICENSE the object:
+======================================
 If you wish to be able to update the last modified time of files you unzip
-you need to use the #define LICENSED and then FUP LICENSE the file
-as SUPER.SUPER.  This is a Tandem restriction since we have to call a PRIV
-procedure to do this.  For UNZIP the define is setup (default) in tandem.h
+you need to add the line "#define LICENSED" to the TANDEMH file.  If you set
+this option you MUST FUP LICENSE the file as SUPER.SUPER.
+This is a Tandem restriction since we have to call a PRIV procedure to update
+the file label.  For UNZIP the define is setup (default) in tandem.h
+
+
+Additional Notes - Self Extracting
+==================================
+
+To create a Self Extracting (SFX) file you need to do the following
+- run the MAKESFX file to create the SFX object files
+- create a normal Zip file
+- create an empty Unstructured file
+- FUP COPY SFX into new file
+- FUP COPY your Zip file to the end of this new file
+- run ZIP -A <zipfile> to fix the internal pointers
+- alter the filecode of <zipfile> to 100 (I'll do this in Zip -A soon)
+
+For performance you should Axcel the finished file.

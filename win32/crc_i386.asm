@@ -1,5 +1,13 @@
-; crc_i386.asm, optimized CRC calculation function for Zip and UnZip, not
-; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 25 Mar 98.
+;===========================================================================
+; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+;
+; See the accompanying file LICENSE, version 2000-Apr-09 or later
+; (the contents of which are also included in zip.h) for terms of use.
+; If, for some reason, all these files are missing, the Info-ZIP license
+; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+;===========================================================================
+; crc_i386.asm, optimized CRC calculation function for Zip and UnZip,
+; created by Paul Kienitz and Christian Spieler.  Last revised 24 Dec 98.
 ;
 ; Revised 06-Oct-96, Scott Field (sfield@microsoft.com)
 ;   fixed to assemble with masm by not using .model directive which makes
@@ -38,7 +46,7 @@
 ;   Working without .model directive caused tasm32 version 5.0 to produce
 ;   bad object code. The optimized alignments can be optionally disabled
 ;   by defining NO_ALIGN, thus allowing to use .model flat. There is no need
-;   to define this macro if using other version of tasm.
+;   to define this macro if using other versions of tasm.
 ;
 ;==============================================================================
 ;
@@ -155,10 +163,10 @@ _crc32          proc    near  ; ulg crc32(ulg crc, ZCONST uch *buf, extent len)
                 mov     ecx,Arg3             ; 3rd arg: extent len
                 not     eax                  ;>   c = ~crc;
 
-    IFNDEF  NO_UNROLLED_LOOPS
-    IFNDEF  NO_32_BIT_LOADS
                 test    ecx,ecx
-                je      bail
+    IFNDEF  NO_UNROLLED_LOOPS
+                jz      bail
+    IFNDEF  NO_32_BIT_LOADS
 align_loop:
                 test    esi,3                ; align buf pointer on next
                 jz      SHORT aligned_now    ;  dword boundary
@@ -168,7 +176,6 @@ align_loop:
 aligned_now:
     ENDIF ; !NO_32_BIT_LOADS
                 mov     edx,ecx              ; save len in edx
-                and     edx,000000007H       ; edx = len % 8
                 shr     ecx,3                ; ecx = len / 8
                 jz      SHORT No_Eights
     IFNDEF NO_ALIGN
@@ -193,14 +200,9 @@ Next_Eight:
                 jnz     Next_Eight
 No_Eights:
                 mov     ecx,edx
-
-    ENDIF ; NO_UNROLLED_LOOPS
-    IFNDEF  NO_JECXZ_SUPPORT
-                jecxz   bail                 ;>   if (len)
-    ELSE
-                test    ecx,ecx              ;>   if (len)
-                jz      SHORT bail
-    ENDIF
+                and     ecx,000000007H       ; ecx = len % 8
+    ENDIF ; !NO_UNROLLED_LOOPS
+                jz      SHORT bail           ;>   if (len)
     IFNDEF NO_ALIGN
 ; align loop head at start of 486 internal cache line !!
                 align   16

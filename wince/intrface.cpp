@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        INTRFACE.CPP
@@ -17,13 +25,14 @@
 //              Finally, this module implements the few functions that the
 //              Info-ZIP code expects the port to implement. These functions are
 //              OS dependent and are mostly related to validating file names and
-//              directoies, and setting file attributes and dates of saved files.
+//              directories, and setting file attributes and dates of saved files.
 //
 // Copyright:   All the source files for Pocket UnZip, except for components
 //              written by the Info-ZIP group, are copyrighted 1997 by Steve P.
-//              Miller.  The product "Pocket UnZip" itself is property of the
-//              author and cannot be altered in any way without written consent
-//              from Steve P. Miller.
+//              Miller.  As of June 1999, Steve P. Miller has agreed to apply
+//              the Info-ZIP License (see citation on top of this module)
+//              to his work.  See the contents of this License for terms
+//              and conditon of using the product "Pocket UnZip".
 //
 // Disclaimer:  All project files are provided "as is" with no guarantee of
 //              their correctness.  The authors are not liable for any outcome
@@ -32,7 +41,8 @@
 //              understanding of its implementation.  You are hereby granted
 //              full permission to use this source in any way you wish, except
 //              to alter Pocket UnZip itself.  For comments, suggestions, and
-//              bug reports, please write to stevemil@pobox.com.
+//              bug reports, please write to stevemil@pobox.com or the Info-ZIP
+//              mailing list Zip-Bugs@lists.wku.edu.
 //
 // Functions:   DoListFiles
 //              DoExtractOrTestFiles
@@ -43,7 +53,7 @@
 //              IsFileOrDirectory
 //              SmartCreateDirectory
 //              ExtractOrTestFilesThread
-//              CheckForAbort
+//              CheckForAbort2
 //              SetCurrentFile
 //              UzpMessagePrnt2
 //              UzpInput2
@@ -69,13 +79,15 @@
 // Date      Name          History
 // --------  ------------  -----------------------------------------------------
 // 02/01/97  Steve Miller  Created (Version 1.0 using Info-ZIP UnZip 5.30)
+// 08/01/99  Johnny Lee, Christian Spieler, Steve Miller, and others
+//                         Adapted to UnZip 5.41 (Version 1.1)
 //
-//******************************************************************************
+//*****************************************************************************
 
 
-//******************************************************************************
-#if 0 // The following information and structure are here just for reference
-//******************************************************************************
+//*****************************************************************************
+// The following information and structure are here just for reference
+//*****************************************************************************
 //
 // The Windows CE version of Unzip builds with the following defines set:
 //
@@ -108,121 +120,7 @@
 //
 //    _WIN32_WCE=100       (When building for Windows CE native)
 //
-// This causes our Globals structure to look like the following.  The only
-// things we care about is this Globals structure, the process_zipfiles()
-// function, and a few callback functions.  The Info-ZIP code has not been
-// been modified in any way.
-//
-
-typedef struct Globals {
-   zvoid         *callerglobs;          // points to pass-through global vars
-   UzpOpts        UzO;                  // command options structure
-   int            prompt_always;        // prompt to overwrite if TRUE
-   int            noargs;               // did true command line have *any* arguments?
-   unsigned       filespecs;            // number of real file specifications to be matched
-   unsigned       xfilespecs;           // number of excluded filespecs to be matched
-   int            process_all_files;
-   int            create_dirs;          // used by main(), mapname(), checkdir()
-   int            extract_flag;
-   int            newzip;               // reset in extract.c; used in crypt.c
-   LONGINT        real_ecrec_offset;
-   LONGINT        expect_ecrec_offset;
-   long           csize;                // used by decompr. (NEXTBYTE): must be signed
-   long           ucsize;               // used by unReduce(), explode()
-   long           used_csize;           // used by extract_or_test_member(), explode()
-   int            fValidate;            // true if only validating an archive
-   int            filenotfound;
-   int            redirect_data;        // redirect data to memory buffer
-   int            redirect_text;        // redirect text output to buffer
-   int            redirect_slide;       // redirect decompression area to mem buffer
-   unsigned       _wsize;
-   unsigned       redirect_size;
-   uch           *redirect_buffer;
-   uch           *redirect_pointer;
-   uch           *redirect_sldptr;      // head of decompression slide buffer
-   char         **pfnames;
-   char         **pxnames;
-   char           sig[4];
-   char           answerbuf[10];
-   min_info       info[DIR_BLKSIZ];
-   min_info      *pInfo;
-   union work     area;                 // see unzpriv.h for definition of work
-   ZCONST ulg near *crc_32_tab;
-   ulg            crc32val;             // CRC shift reg. (was static in funzip)
-   uch           *inbuf;                // input buffer (any size is OK)
-   uch           *inptr;                // pointer into input buffer
-   int            incnt;
-   ulg            bitbuf;
-   int            bits_left;            // unreduce and unshrink only
-   int            zipeof;
-   char          *argv0;                // used for NT and EXE_EXTENSION
-   char          *wildzipfn;
-   char          *zipfn;                // GRR:  MSWIN:  must nuke any malloc'd zipfn...
-   int            zipfd;                // zipfile file handle
-   LONGINT        ziplen;
-   LONGINT        cur_zipfile_bufstart; // extract_or_test, readbuf, ReadByte
-   LONGINT        extra_bytes;          // used in unzip.c, misc.c
-   uch           *extra_field;          // Unix, VMS, Mac, OS/2, Acorn, ...
-   uch           *hold;
-
-   local_file_hdr lrec;                 // used in unzip.c, extract.c
-   cdir_file_hdr  crec;                 // used in unzip.c, extract.c, misc.c
-   ecdir_rec      ecrec;                // used in unzip.c, extract.c
-   struct stat    statbuf;              // used by main, mapname, check_for_newer
-
-   int            mem_mode;
-   uch           *outbufptr;            // extract.c static
-   ulg            outsize;              // extract.c static
-   int            reported_backslash;   // extract.c static
-   int            disk_full;
-   int            newfile;
-
-   int            didCRlast;            // fileio static
-   ulg            numlines;             // fileio static: number of lines printed
-   int            sol;                  // fileio static: at start of line
-   int            no_ecrec;             // process static
-   FILE          *outfile;
-   uch           *outbuf;
-   uch           *realbuf;
-
-   uch           *outbuf2;              //  main() (never changes); else malloc'd
-   uch           *outptr;
-   ulg            outcnt;               // number of chars stored in outbuf
-   char           filename[FILNAMSIZ];
-
-   char          *key;                  // crypt static: decryption password or NULL
-   int            nopwd;                // crypt static
-   ulg            keys[3];              // crypt static: keys defining pseudo-random sequence
-
-   unsigned       hufts;                // track memory usage
-
-   struct huft   *fixed_tl;             // inflate static
-   struct huft   *fixed_td;             // inflate static
-   int            fixed_bl
-   int            fixed_bd;             // inflate static
-   unsigned       wp;                   // inflate static: current position in slide
-   ulg            bb;                   // inflate static: bit buffer
-   unsigned       bk;                   // inflate static: bits in bit buffer
-   MsgFn         *message;
-   InputFn       *input;
-   PauseFn       *mpause;
-   PasswdFn      *decr_passwd;
-   StatCBFn      *statreportcb;
-   LPUSERFUNCTIONS lpUserFunctions;
-
-   int            incnt_leftover;       // so improved NEXTBYTE does not waste input
-   uch           *inptr_leftover;
-
-   // These are defined in PUNZIP.H.
-   char           matchname[FILNAMSIZ]; // used by do_wild()
-   int            notfirstcall;         // used by do_wild()
-   char          *zipfnPtr;
-   char          *wildzipfnPtr;
-} Uz_Globs;
-
-#endif // #if 0 - This struct is here just for reference
-
-//******************************************************************************
+//****************************************************************************/
 
 extern "C" {
 #define __INTRFACE_CPP__
@@ -275,21 +173,24 @@ DWORD WINAPI ExtractOrTestFilesThread(LPVOID lpv);
 unsigned __stdcall ExtractOrTestFilesThread(void *lpv);
 #endif
 
-void CheckForAbort(Uz_Globs *pG);
 void SetCurrentFile(Uz_Globs *pG);
 
 // Callbacks from Info-ZIP code.
-int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag);
-int UzpInput2(zvoid *pG, uch *buffer, int *size, int flag);
-void UzpMorePause(zvoid *pG, const char *szPrompt, int flag);
-int UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
-                const char *szZipFile, const char *szFile);
-int WINAPI UzpReplace(char *szFile);
+int UZ_EXP UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag);
+int UZ_EXP UzpInput2(zvoid *pG, uch *buffer, int *size, int flag);
+void UZ_EXP UzpMorePause(zvoid *pG, const char *szPrompt, int flag);
+int UZ_EXP UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
+                       const char *szZipFile, const char *szFile);
+int UZ_EXP CheckForAbort2(zvoid *pG, int fnflag, ZCONST char *zfn,
+                          ZCONST char *efn, ZCONST zvoid *details);
+int WINAPI UzpReplace(LPSTR szFile);
 void WINAPI UzpSound(void);
-void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
-                       int day, int year, int hour, int minute, int uppercase,
-                       char *szPath, char *szMethod, ulg dwCRC);
-int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer);
+void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, unsigned ratio,
+                       unsigned month, unsigned day, unsigned year,
+                       unsigned hour, unsigned minute, char uppercase,
+                       LPSTR szPath, LPSTR szMethod, ulg dwCRC, char chCrypt);
+int win_fprintf(zvoid *pG, FILE *file, unsigned int dwCount, char far *buffer);
+void WINAPI Wiz_NoPrinting(int f);
 
 // Functions that Info-ZIP expects the port to write and export.
 void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem);
@@ -297,7 +198,7 @@ int GetFileTimes(Uz_Globs *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
                  FILETIME *pftModified);
 int mapattr(Uz_Globs *pG);
 void close_outfile(Uz_Globs *pG);
-char* do_wild(Uz_Globs *pG, char *wildspec);
+char* do_wild(Uz_Globs *pG, ZCONST char *wildspec);
 int mapname(Uz_Globs *pG, int renamed);
 int test_NT(Uz_Globs *pG, uch *eb, unsigned eb_size);
 int checkdir(Uz_Globs *pG, char *pathcomp, int flag);
@@ -504,7 +405,7 @@ BOOL SetExtractToDirectory(LPTSTR szDirectory) {
    }
 
    // Store the directory for when we do an extract.
-   wcstombs(g_szExtractToDirectory, szDirectory, countof(g_szExtractToDirectory));
+   TSTRTOMBS(g_szExtractToDirectory, szDirectory, countof(g_szExtractToDirectory));
 
    // We always want a wack at the end of our path.
    strcat(g_szExtractToDirectory, "\\");
@@ -531,26 +432,31 @@ Uz_Globs* InitGlobals(LPCSTR szZipFile) {
       return NULL;
    }
 
-   // Store a global pointer to our USERFUNCTIONS structure so that LIST.C,
-   // PROCESS.C, and WINMAIN can access it.
+   // Clear our USERFUNCTIONS structure
+   ZeroMemory(&g_uf, sizeof(g_uf));
+
+   // Initialize a global pointer to our USERFUNCTIONS structure that is
+   // used by WINMAIN.CPP to access it (without using the pG construction).
+   lpUserFunctions = &g_uf;
+
+   // Store a global pointer to our USERFUNCTIONS structure in pG so that
+   // the generic Info-ZIP code LIST.C and PROCESS.C can access it.
    pG->lpUserFunctions = &g_uf;
 
-   // Clear our USERFUNCTIONS structure and assign our SendAppMsg() function.
-   ZeroMemory(&g_uf, sizeof(g_uf));
-   g_uf.SendApplicationMessage = SendAppMsg;
-
    // Fill in all our callback functions.
-   pG->message     = UzpMessagePrnt2;
-   pG->input       = UzpInput2;
-   pG->mpause      = UzpMorePause;
-   pG->lpUserFunctions->replace     = UzpReplace;
-   pG->lpUserFunctions->sound       = UzpSound;
+   pG->message      = UzpMessagePrnt2;
+   pG->input        = UzpInput2;
+   pG->mpause       = UzpMorePause;
+   pG->statreportcb = CheckForAbort2;
+   pG->lpUserFunctions->replace                = UzpReplace;
+   pG->lpUserFunctions->sound                  = UzpSound;
+   pG->lpUserFunctions->SendApplicationMessage = SendAppMsg;
 
 #if CRYPT
    pG->decr_passwd = UzpPassword;
 #endif
 
-   // Match filenames case-sensitively.  We can do this since we can guarentee
+   // Match filenames case-sensitively.  We can do this since we can guarantee
    // exact case because the user can only select files via our UI.
    pG->UzO.C_flag = FALSE;
 
@@ -614,7 +520,7 @@ BOOL SmartCreateDirectory(Uz_Globs *pG, LPCSTR szDirectory) {
 
    // Copy path to a UNICODE buffer.
    TCHAR szBuffer[_MAX_PATH];
-   mbstowcs(szBuffer, szDirectory, countof(szBuffer));
+   MBSTOTSTR(szBuffer, szDirectory, countof(szBuffer));
 
    int x = IsFileOrDirectory(szBuffer);
 
@@ -671,7 +577,9 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
             break;
 
          default:               // Force a prompt
-            pG->prompt_always = TRUE;
+            pG->UzO.overwrite_all = FALSE;
+            pG->UzO.overwrite_none = FALSE;
+            pG->UzO.uflag = FALSE;
             break;
       }
 
@@ -742,41 +650,6 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
 }
 
 //******************************************************************************
-void CheckForAbort(Uz_Globs *pG) {
-   if (g_pExtractInfo->fAbort) {
-
-      // Add a newline to our log if we are in the middle of a line of text.
-      if (!g_pExtractInfo->fNewLineOfText) {
-         SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT, (LPARAM)"\n");
-      }
-
-      // Make sure whatever file we are currently processing gets closed.
-      if (((int)pG->outfile != 0) && ((int)pG->outfile != -1)) {
-         if (g_pExtractInfo->fExtract && *pG->filename) {
-
-            // Make sure the user is aware that this file is screwed.
-            SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
-                        (LPARAM)"warning: ");
-            SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
-                        (LPARAM)pG->filename);
-            SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
-                        (LPARAM)" is probably truncated.\n");
-         }
-
-         // Close the file.
-         close_outfile(pG);
-      }
-
-      // Display an aborted message in the log
-      SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
-                  (LPARAM)"Operation aborted by user.\n");
-
-      // I hate to do this... Take a giant step out of here.
-      longjmp(dll_error_return, PK_ABORTED);
-   }
-}
-
-//******************************************************************************
 void SetCurrentFile(Uz_Globs *pG) {
 
    // Reset all our counters as we about to process a new file.
@@ -793,7 +666,6 @@ void SetCurrentFile(Uz_Globs *pG) {
                (LPARAM)g_pExtractInfo);
 
    // Check our abort flag.
-   CheckForAbort(pG);
 }
 
 
@@ -801,7 +673,8 @@ void SetCurrentFile(Uz_Globs *pG) {
 //***** Callbacks from Info-ZIP code.
 //******************************************************************************
 
-int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag) {
+int UZ_EXP UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag)
+{
 
    // Some ZIP files cause us to get called during DoListFiles(). We only handle
    // messages while processing DoExtractFiles().
@@ -810,7 +683,11 @@ int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag) {
          SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
                      (LPARAM)buffer);
       } else {
+#ifdef UNICODE
          DebugOut(TEXT("Unhandled call to UzpMessagePrnt2(\"%S\")"), buffer);
+#else
+         DebugOut(TEXT("Unhandled call to UzpMessagePrnt2(\"%s\")"), buffer);
+#endif
       }
       return 0;
    }
@@ -822,7 +699,7 @@ int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag) {
       SetCurrentFile((Uz_Globs*)pG);
    }
 
-   // Make sure this message was inteded for us to display.
+   // Make sure this message was intended for us to display.
    if (!MSG_NO_WGUI(flag) && !MSG_NO_WDLL(flag)) {
 
       // Insert a leading newline if requested to do so.
@@ -841,10 +718,16 @@ int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag) {
       }
 
       // We always remove trailing whitespace.
-      LPSTR psz = (LPSTR)buffer + strlen((LPSTR)buffer) - 1;
-      while ((psz >= (LPSTR)buffer) && (*psz == ' ')) {
-         *(psz--) = '\0';
+      LPSTR psz = (LPSTR)buffer;
+      LPSTR pszn;
+      while ((pszn = MBSCHR(psz, ' ')) != NULL) {
+         for (psz = pszn+1; *psz == ' '; psz++);
+         if (*psz == '\0') {
+            *pszn = '\0';
+            break;
+         }
       }
+
 
       // Determine if the next line of text will be a new line of text.
       g_pExtractInfo->fNewLineOfText = ((*psz == '\r') || (*psz == '\n'));
@@ -866,19 +749,21 @@ int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag) {
 }
 
 //******************************************************************************
-int UzpInput2(zvoid *pG, uch *buffer, int *size, int flag) {
+int UZ_EXP UzpInput2(zvoid *pG, uch *buffer, int *size, int flag)
+{
    DebugOut(TEXT("WARNING: UzpInput2(...) called"));
    return 0;
 }
 
 //******************************************************************************
-void UzpMorePause(zvoid *pG, const char *szPrompt, int flag) {
+void UZ_EXP UzpMorePause(zvoid *pG, const char *szPrompt, int flag)
+{
    DebugOut(TEXT("WARNING: UzpMorePause(...) called"));
 }
 
 //******************************************************************************
-int UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
-                const char *szZipFile, const char *szFile)
+int UZ_EXP UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
+                       const char *szZipFile, const char *szFile)
 {
    // Return Values:
    //    IZ_PW_ENTERED    got some PWD string, use/try it
@@ -913,7 +798,46 @@ int UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
 }
 
 //******************************************************************************
-int WINAPI UzpReplace(char *szFile) {
+int UZ_EXP CheckForAbort2(zvoid *pG, int fnflag, ZCONST char *zfn,
+                    ZCONST char *efn, ZCONST zvoid *details)
+{
+   int rval = UZ_ST_CONTINUE;
+
+   if (g_pExtractInfo->fAbort) {
+
+      // Add a newline to our log if we are in the middle of a line of text.
+      if (!g_pExtractInfo->fNewLineOfText) {
+         SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT, (LPARAM)"\n");
+      }
+
+      // Make sure whatever file we are currently processing gets closed.
+      if (((int)((Uz_Globs *)pG)->outfile != 0) &&
+          ((int)((Uz_Globs *)pG)->outfile != -1)) {
+         if (g_pExtractInfo->fExtract && *efn) {
+
+            // Make sure the user is aware that this file is screwed.
+            SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
+                        (LPARAM)"warning: ");
+            SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
+                        (LPARAM)efn);
+            SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
+                        (LPARAM)" is probably truncated.\n");
+         }
+      }
+
+      // Display an aborted message in the log
+      SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
+                  (LPARAM)"Operation aborted by user.\n");
+
+      // Signal "Immediate Cancel" back to the UnZip engine.
+      rval = UZ_ST_BREAK;
+   }
+
+   return rval;
+}
+
+//******************************************************************************
+int WINAPI UzpReplace(LPSTR szFile) {
    // Pass control to our GUI thread which will prompt the user to overwrite.
    return SendMessage(g_hWndMain, WM_PRIVATE, MSG_PROMPT_TO_REPLACE, (LPARAM)szFile);
 }
@@ -925,9 +849,10 @@ void WINAPI UzpSound(void) {
 
 //******************************************************************************
 // Called from LIST.C
-void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
-                       int day, int year, int hour, int minute, int uppercase,
-                       char *szPath, char *szMethod, ulg dwCRC)
+void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, unsigned ratio,
+                       unsigned month, unsigned day, unsigned year,
+                       unsigned hour, unsigned minute, char uppercase,
+                       LPSTR szPath, LPSTR szMethod, ulg dwCRC, char chCrypt)
 {
    // If we are out of memory, then just bail since we will only make things worse.
    if (g_fOutOfMemory) {
@@ -944,7 +869,11 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
 
    // Bail out if we failed to allocate the node.
    if (!g_pFileLast) {
+#ifdef UNICODE
       DebugOut(TEXT("Failed to create a FILE_NODE for \"%S\"."), szPath);
+#else
+      DebugOut(TEXT("Failed to create a FILE_NODE for \"%s\"."), szPath);
+#endif
       g_fOutOfMemory = TRUE;
       return;
    }
@@ -975,8 +904,8 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
    // We need to get our globals structure to determine our attributes and
    // encryption information.
    g_pFileLast->dwAttributes = (pG->crec.external_file_attributes & 0xFF);
-   if (pG->crec.general_purpose_bit_flag & 1) {
-      g_pFileLast->dwAttributes |= FILE_ATTRIBUTE_ENCRYPTED;
+   if (chCrypt == 'E') {
+      g_pFileLast->dwAttributes |= ZFILE_ATTRIBUTE_ENCRYPTED;
    }
 
    // Store the path and method in our string buffer.
@@ -988,7 +917,8 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
 }
 
 //******************************************************************************
-int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
+int win_fprintf(zvoid *pG, FILE *file, unsigned int dwCount, char far *buffer)
+{
 
    // win_fprintf() is used within Info-ZIP to write to a file as well as log
    // information.  If the "file" is a real file handle (not stdout or stderr),
@@ -1011,10 +941,6 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
       SendMessage(g_hWndMain, WM_PRIVATE, MSG_UPDATE_PROGRESS_PARTIAL,
                   (LPARAM)g_pExtractInfo);
 
-      // Check our abort flag.
-      GETGLOBALS();
-      CheckForAbort(pG);
-
       return dwBytesWriten;
    }
 
@@ -1023,10 +949,7 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
 
       // Most of our progress strings come to our UzpMessagePrnt2() callback,
       // but we occasionally get one here.  We will just forward it to
-      // UzpMessagePrnt2() as if it never came here.  To do this, we need to
-      // get a pointer to our Globals struct.  Calling GETGLOBALS() sort of
-      // breaks us from be REENTRANT, but we don't support that anyway.
-      GETGLOBALS();
+      // UzpMessagePrnt2() as if it never came here.
       UzpMessagePrnt2(pG, (uch*)buffer, dwCount, 0);
       return dwCount;
    }
@@ -1045,20 +968,23 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
    if (g_pFileLast) {
 
       // Calcalute the size of the buffer we will need to store this comment.
-      // We are going to convert all ASC values 0 - 31 (excpet tab, new line,
+      // We are going to convert all ASC values 0 - 31 (except tab, new line,
       // and CR) to ^char.
       int size = 1;
-      for (char *p2, *p1 = buffer; *p1; p1++) {
-         size += ((*p1 >= 32) || (*p1 == '\t') || (*p1 == '\r') || (*p1 == '\n')) ? 1 : 2;
+      for (char *p2, *p1 = buffer; *p1; INCSTR(p1)) {
+         size += ((*p1 >= 32) || (*p1 == '\t') ||
+                  (*p1 == '\r') || (*p1 == '\n')) ? CLEN(p1) : 2;
       }
 
       // Allocate a comment buffer and assign it to the last file node we saw.
       if (g_pFileLast->szComment = new CHAR[size]) {
 
          // Copy while formatting.
-         for (p1 = buffer, p2 = (char*)g_pFileLast->szComment; *p1; p1++) {
-            if ((*p1 >= 32) || (*p1 == '\t') || (*p1 == '\r') || (*p1 == '\n')) {
-               *(p2++) = *p1;
+         for (p1 = buffer, p2 = (char*)g_pFileLast->szComment; *p1; INCSTR(p1)) {
+            if ((*p1 >= 32) || (*p1 == '\t') ||
+                (*p1 == '\r') || (*p1 == '\n')) {
+               memcpy(p2, p1, CLEN(p1));
+               p2 += CLEN(p1);
             } else {
                *(p2++) = '^';
                *(p2++) = 64 + *p1;
@@ -1067,8 +993,8 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
          *p2 = '\0';
       }
 
-      // Update the attributes of the file node to incldue the comment attribute.
-      g_pFileLast->dwAttributes |= FILE_ATTRIBUTE_COMMENT;
+      // Update the attributes of the file node to include the comment attribute.
+      g_pFileLast->dwAttributes |= ZFILE_ATTRIBUTE_COMMENT;
 
       // Clear the file node so we don't try to add another bogus comment to it.
       g_pFileLast = NULL;
@@ -1079,8 +1005,17 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
    if (dwCount >= _MAX_PATH) {
       buffer[_MAX_PATH] = '\0';
    }
+#ifdef UNICODE
    DebugOut(TEXT("Unhandled call to win_fprintf(\"%S\")"), buffer);
+#else
+   DebugOut(TEXT("Unhandled call to win_fprintf(\"%S\")"), buffer);
+#endif
    return dwCount;
+}
+
+//******************************************************************************
+void WINAPI Wiz_NoPrinting(int f) {
+   // Do nothing.
 }
 
 
@@ -1202,7 +1137,7 @@ int GetFileTimes(Uz_Globs *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
       // Get any date/time we can.  This can return 0 to 3 unix time fields.
       unsigned eb_izux_flg = ef_scan_for_izux(pG->extra_field,
                                               pG->lrec.extra_field_length, 0,
-                                              pG->lrec.last_mod_file_date,
+                                              pG->lrec.last_mod_dos_datetime,
                                               &z_utime, NULL);
 
       // We require at least a modified time.
@@ -1229,8 +1164,7 @@ int GetFileTimes(Uz_Globs *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
 #endif // USE_EF_UT_TIME
 
    // If all else fails, we can resort to using the DOS date and time data.
-   time_t ux_modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                        G.lrec.last_mod_file_time);
+   time_t ux_modtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
    utimeToFileTime(ux_modtime, pftModified, fOldFileSystem);
 
    *pftAccessed = *pftModified;
@@ -1246,7 +1180,7 @@ void close_outfile(Uz_Globs *pG) {
    int timeFlags = GetFileTimes(pG, &ftCreated, &ftAccessed, &ftModified);
 
    TCHAR szFile[_MAX_PATH];
-   mbstowcs(szFile, pG->filename, countof(szFile));
+   MBSTOTSTR(szFile, pG->filename, countof(szFile));
 
 #ifdef _WIN32_WCE
 
@@ -1309,7 +1243,7 @@ void close_outfile(Uz_Globs *pG) {
 
 //******************************************************************************
 // Called by PROCESS.C
-char* do_wild(Uz_Globs *pG, char *wildspec) {
+char* do_wild(Uz_Globs *pG, ZCONST char *wildspec) {
 
    // This is a very slimmed down version of do_wild() taken from WIN32.C.
    // Since we don't support wildcards, we basically just return the wildspec
@@ -1363,7 +1297,7 @@ int mapname(Uz_Globs *pG, int renamed) {
    pIn = (pG->UzO.jflag) ? (CHAR*)GetFileFromPath(pG->filename) : pG->filename;
 
    // Begin main loop through characters in filename.
-   for ( ; *pIn; pIn++) {
+   for ( ; *pIn; INCSTR(pIn)) {
 
       // Make sure we don't overflow our output buffer.
       if (pOut >= (szBuffer + countof(szBuffer) - 2)) {
@@ -1406,7 +1340,16 @@ int mapname(Uz_Globs *pG, int renamed) {
 
          default:
             // Allow European characters and spaces in filenames.
-            *(pOut++) = ((*pIn >= 0x20) ? *pIn : '_');
+#ifdef _MBCS
+            if ((UCHAR)*pIn >= 0x20) {
+                memcpy(pOut, pIn, CLEN(pIn));
+                INCSTR(pOut);
+            } else {
+                *(pOut++) = '_';
+            }
+#else
+            *(pOut++) = (((UCHAR)*pIn >= 0x20) ? *pIn : '_');
+#endif
       }
    }
 
@@ -1435,7 +1378,7 @@ int mapname(Uz_Globs *pG, int renamed) {
    }
 
    // If it is a directory, then display the "creating" status text.
-   if ((pOut > szBuffer) && (pOut[-1] == TEXT('\\'))) {
+   if ((pOut > szBuffer) && (lastchar(szBuffer, pOut-szBuffer) == '\\')) {
       Info(slide, 0, ((char *)slide, "creating: %s\n", pG->filename));
       return IZ_CREATED_DIR;
    }
@@ -1461,7 +1404,7 @@ int checkdir(Uz_Globs *pG, char *pathcomp, int flag) {
 
 //******************************************************************************
 // Called from EXTRACT.C and LIST.C
-int match(char *string, char *pattern, int ignore_case) {
+int match(ZCONST char *string, ZCONST char *pattern, int ignore_case) {
    // match() for the other ports compares a file in the Zip file with some
    // command line file pattern.  In our case, we always pass in exact matches,
    // so we can simply do a string compare to see if we have a match.
@@ -1470,7 +1413,7 @@ int match(char *string, char *pattern, int ignore_case) {
 
 //******************************************************************************
 // Called from PROCESS.C
-int iswild(char *pattern) {
+int iswild(ZCONST char *pattern) {
    // Our file patterns never contain wild characters.  They are always exact
    // matches of file names in our Zip file.
    return FALSE;
@@ -1530,7 +1473,7 @@ BOOL IsOldFileSystem(char *szPath) {
    GetVolumeInformationA(szRoot, NULL, 0, NULL, NULL, NULL, szFS, sizeof(szFS));
 
    // Ensure that the file system type string is uppercase.
-   strupr(szFS);
+   _strupr(szFS);
 
    // Return true for (V)FAT and (OS/2) HPFS format.
    return !strncmp(szFS, "FAT",  3) ||

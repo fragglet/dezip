@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   vmmvs.c (for both VM/CMS and MVS)
@@ -18,6 +26,7 @@
   ---------------------------------------------------------------------------*/
 
 
+#define __VMMVS_C       /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
@@ -88,10 +97,32 @@ int open_outfile(__G)           /* return 1 if fail */
 {
     char type[100];
     char *mode = NULL;
+#ifdef MVS
+    /* Check if the output file already exists and do not overwrite its DCB */
+    char basefilename[PATH_MAX], *p;
+    FILE *exists;
 
-    if (G.pInfo->textmode)
-        mode = FOPWT;
-    else if (G.lrec.extra_field_length > 0 && G.extra_field != NULL) {
+    /* Get the base file name, without any member name */
+    strcpy(basefilename, G.filename);
+    if ((p = strchr(basefilename, '(')) != NULL) {
+       if (basefilename[0] == '\'')
+          *p++ = '\'';
+       *p = '\0';
+    }
+    exists = fopen(basefilename, FOPR);
+    if (exists) {
+       if (G.pInfo->textmode)
+           mode = FOPWTE;       /* Text file, existing */
+       else
+           mode = FOPWE;        /* Binary file, existing */
+       fclose(exists);
+    }
+    else   /* continued on next line */
+#endif /* MVS */
+    if (G.pInfo->textmode) {
+        if (mode == NULL)
+           mode = FOPWT;
+    } else if (G.lrec.extra_field_length > 0 && G.extra_field != NULL) {
         unsigned lef_len = (unsigned)(G.lrec.extra_field_length);
         uch *lef_buf = G.extra_field;
 
@@ -212,7 +243,7 @@ extent getVMMVSexfield(type, ef_block, datalen)
 
 char *do_wild(__G__ wld)
     __GDEF
-    char *wld;             /* only used first time on a given dir */
+    ZCONST char *wld;      /* only used first time on a given dir */
 {
     static int First = 0;
     static char filename[256];
@@ -387,15 +418,23 @@ int checkdir(__G__ pathcomp, flag)
     if (FUNCTION == GETPATH) {
         if (rootlen > 0) {
 #ifdef VM_CMS                     /* put the exdir after the filename */
-           strcat(pathcomp,".");       /* used as minidisk to be save on  */
-           strcat(pathcomp,rootpath);
+           strcat(pathcomp, ".");       /* used as minidisk to be save on  */
+           strcat(pathcomp, rootpath);
 #else /* MVS */
            char newfilename[PATH_MAX];
            char *start_fname;
+           int quoted = 0;
 
-           strcpy(newfilename,rootpath);
-           if (strchr(pathcomp,'(') == NULL) {
-              if ((start_fname = strrchr(pathcomp,'.')) == NULL) {
+           strcpy(newfilename, rootpath);
+           if (newfilename[0] == '\'') {
+              quoted = strlen(newfilename) - 1;
+              if (newfilename[quoted] == '\'')
+                 newfilename[quoted] = '\0';
+              else
+                 quoted = 0;
+           }
+           if (strchr(pathcomp, '(') == NULL) {
+              if ((start_fname = strrchr(pathcomp, '.')) == NULL) {
                  start_fname = pathcomp;
               }
               else {
@@ -403,16 +442,18 @@ int checkdir(__G__ pathcomp, flag)
                  strcat(newfilename, ".");
                  strcat(newfilename, pathcomp);
               }
-              strcat(newfilename,"(");
-              strcat(newfilename,start_fname);
-              strcat(newfilename,")");
+              strcat(newfilename, "(");
+              strcat(newfilename, start_fname);
+              strcat(newfilename, ")");
            }
            else {
-              strcat(newfilename,".");
-              strcat(newfilename,pathcomp);
+              strcat(newfilename, ".");
+              strcat(newfilename, pathcomp);
            }
+           if (quoted)
+              strcat(newfilename, "'");
            Trace((stdout, "new dataset : %s\n", newfilename));
-           strcpy(pathcomp,newfilename);
+           strcpy(pathcomp, newfilename);
 #endif /* ?VM_CMS */
         }
         return 0;

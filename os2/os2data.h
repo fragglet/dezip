@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   os2data.h
@@ -82,7 +90,7 @@ struct os2Global {
    FILEFINDBUF find;
 #endif
 #endif /* !SFX */
-  
+
    int created_dir;        /* used by mapname(), checkdir() */
    int renamed_fullpath;   /* ditto */
    int fnlen;              /* ditto */
@@ -93,15 +101,16 @@ struct os2Global {
 #endif
    int longnameEA;         /* checkdir(), close_outfile() */
    char *lastpathcomp;     /* ditto */
-  
+
    struct direct dp;
    int lower;
    USHORT nLastDrive, nResult;
-  
-   DIR *dir;
-   char *dirname, *wildname, matchname[FILNAMSIZ];
-   int firstcall, have_dirname, dirnamelen;
-  
+
+   DIR *wild_dir;
+   ZCONST char *wildname;
+   char *dirname, matchname[FILNAMSIZ];
+   int notfirstcall, have_dirname, dirnamelen;
+
    int rootlen;          /* length of rootpath */
    char *rootpath;       /* user's "extract-to" directory */
    char *buildpathHPFS;  /* full path (so far) to extracted file, */
@@ -114,7 +123,7 @@ struct os2Global {
    char output_var[MAXLEN];
    char getvar_buf[MAXLEN];
    int getvar_len;
-  
+
    int output_idx;
    int stem_len;
    int putchar_idx;

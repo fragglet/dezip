@@ -21,7 +21,7 @@ In order for this to work, certain conditions have to be met:
 
   1) NEXTBYTE input must not be mixed with other forms of input involving
      G.inptr and G.incnt.  They must be separated by defer/undefer.
-     
+
   I believe this condition is fully met by simply bracketing the central
   part of extract_or_test_member with defer/undefer, around the part
   where the actual decompression is done, and another defer/undefer pair

@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.3 and later                       Mark Wright and others
+# Makefile for UnZip 5.41 and later                      Mark Wright and others
 # Version:  Watcom C                                                   6 Feb 97
 #------------------------------------------------------------------------------
 
@@ -19,8 +19,8 @@
 # Macro definitions
 NLMNAME = unzip
 DESCRIPTION = unzip utility
-VERSION = 0.50
-COPYRIGHT = Copyright 1990-1997 Info-ZIP (Zip-Bugs@lists.wku.edu).
+VERSION = 5.41.0
+COPYRIGHT = Copyright 1990-2000 Info-ZIP (Zip-Bugs@lists.wku.edu).
 SCREENNAME = Info-ZIP's UnZip Utility
 CLIBIMP = \watcom\novi\clib.imp
 OBJFILE = $NLMNAME.obj
@@ -28,14 +28,16 @@ PRELUDE = \watcom\novi\prelude.obj
 
 # Compile switches
 # d2    include full symbolic debugging information
-# 3s    generate 386 instructions, use stack-based argument-passing conventions
+# 5s    generate 586 instructions, use stack-based argument-passing conventions
 # zdp   allows DS register to "peg" it to DGROUP
 # zq    "quiet" mode
 # NLM   produce Novell Loadable Module
 # DEBUG include debug info
 
-# COMPILE = wcc386 /zq /d2 /3s /zdp /w4 /DNLM
-COMPILE = wcc386 /zq /d2 /3s /zdp /w4 /DNLM $(LOCAL_UNZIP)
+CC = wcc386
+# COMPILE = wcc386 -zq -d2 -3s -zdp -w4 -DNLM
+# COMPILE = wcc386 -zq -d2 -5s -zdp -w4 -DNLM $(LOCAL_UNZIP)
+COMPILE = $(CC) -zq -olax -5s -zp1 -ei -ez -ri -w4 -DNLM -DN_PLAT_NLM -U_WIN32 $(LOCAL_UNZIP)
 LINK = wlink
 DESTDIR = target
 
@@ -45,7 +47,7 @@ DESTDIR = target
    @$COMPILE $[*.c
 
 
-UNZIP_H = unzip.h unzpriv.h globals.h os2\os2cfg.h
+UNZIP_H = unzip.h unzpriv.h globals.h novell/nlmcfg.h
 
 crc32.obj:      crc32.c $(UNZIP_H) zip.h
 crctab.obj:     crctab.c $(UNZIP_H) zip.h
@@ -69,8 +71,8 @@ zipinfo.obj:    zipinfo.c $(UNZIP_H)
 #crc_i86.obj:    msdos\crc_i86.asm
 #	$(AS) $(ASFLAGS) -D$(ASUNMODEL) msdos\crc_i86.asm, $@;
 
-os2.obj:      os2\os2.c $(UNZIP_H)
-	$(CC) -c -A$(UNMODEL) $(CFLAGS) os2\os2.c
+novell.obj:     novell/novell.c $(UNZIP_H)
+	$(CC) -c -A$(UNMODEL) $(CFLAGS) novell/novell.c
 
 
 OBJ01 = unzip.obj
@@ -90,7 +92,7 @@ OBJ14 = ttyio.obj
 OBJ15 = unreduce.obj
 OBJ16 = unshrink.obj
 OBJ17 = zipinfo.obj
-OBJ18 = os2.obj
+OBJ18 = novell.obj
 #OBJ19 = $(ASMOBJS)
 OBJS = $OBJFILE $OBJ01 $OBJ02 $OBJ03 $OBJ04 $OBJ05 $OBJ06 $OBJ07 $OBJ08 \
 	$OBJ09 $OBJ10 $OBJ11 $OBJ12 $OBJ13 $OBJ14 $OBJ15 $OBJ16 $OBJ17 \

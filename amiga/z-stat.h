@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 #ifndef __amiga_z_stat_h
 #define __amiga_z_stat_h
 
@@ -60,7 +68,7 @@ struct stat {
 #define S_IEXECUTE   (1<<1)
 #define S_IDELETE    (1<<0)
 
-int stat(char *name, struct stat *buf);
+int stat(const char *name, struct stat *buf);
 int fstat(int handle, struct stat *buf);      /* returns dummy values */
 
 typedef struct dirent {
@@ -73,15 +81,15 @@ typedef struct dirent {
 
 extern unsigned short disk_not_mounted;         /* flag set by opendir() */
 
-DIR *opendir(char *);
+DIR *opendir(const char *);
 void closedir(DIR *);
 void close_leftover_open_dirs(void);    /* call this if aborted in mid-run */
 struct dirent *readdir(DIR *);
 int umask(void);
 
 #ifdef AZTEC_C
-int rmdir(char *);
-int chmod(char *filename, int bits);
+int rmdir(const char *);
+int chmod(const char *filename, int bits);
 #endif
 
 #endif /* __amiga_z_stat_h */

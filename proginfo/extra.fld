@@ -20,7 +20,7 @@ format unless otherwise specified.  Note that "Short" means two bytes,
 of their native sizes.  Unless specifically noted, all integer fields should
 be interpreted as unsigned (non-negative) numbers.
 
-Christian Spieler, 19980918
+Christian Spieler, 19990220
 
                         -------------------------
 
@@ -43,10 +43,12 @@ Christian Spieler, 19980918
           0x2605        ZipIt Macintosh (first version)
           0x2705        ZipIt Macintosh v 1.3.5 and newer (w/o full filename)
           0x334d        Info-ZIP Macintosh (new, D. Haase's 'Mac3' field )
+          0x4154        Tandem NSK
           0x4341        Acorn/SparkFS (David Pilling)
           0x4453        Windows NT security descriptor (binary ACL)
           0x4704        VM/CMS
           0x470f        MVS
+          0x4854        Theos, old inofficial port
           0x4b46        FWKCS MD5 (third party, see below)
           0x4c41        OS/2 access control list (text ACL)
           0x4d49        Info-ZIP VMS (VAX or Alpha)
@@ -54,6 +56,7 @@ Christian Spieler, 19980918
           0x5455        extended timestamp
           0x5855        Info-ZIP Unix (original; also OS/2, NT, etc.)
           0x6542        BeOS (BeBox, PowerMac, etc.)
+          0x6854        Theos
           0x756e        ASi Unix
           0x7855        Info-ZIP Unix (new)
           0xfb4a        SMS/QDOS
@@ -889,6 +892,100 @@ The following are detailed descriptions of the known extra-field block types:
                 IPC file fstat packet           (P_FSTAT_IPC struct)
 
           AclBuf contains the raw ACL data; its length is $MXACL.
+
+
+         -Tandem NSK Extra Field:
+          ======================
+
+          The following is the layout of the file-attributes extra block for
+          Tandem NSK.  The local-header and central-header versions are
+          identical.  (Last Revision 19981221)
+
+          Value         Size            Description
+          -----         ----            -----------
+
+  (TA)    0x4154        Short           tag for this extra block type ("TA")
+          TSize         Short           total data size for this block
+          NSKattrs      20 Bytes        NSK attributes
+
+
+         -THEOS Extra Field:
+          =================
+
+          The following is the layout of the file-attributes extra block for
+          Theos.  The local-header and central-header versions are identical.
+          (Last Revision 19990206)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Theos) 0x6854        Short       'Th' signature
+          size          Short       size of extra block
+          flags         Byte        reserved for future use
+          filesize      Long        file size
+          fileorg       Byte        type of file (see below)
+          keylen        Short       key length for indexed and keyed files,
+                                    data segment size for 16 bits programs
+          reclen        Short       record length for indexed,keyed and direct,
+                                    text segment size for 16 bits programs
+          filegrow      Byte        growing factor for indexed,keyed and direct
+          protect       Byte        protections (see below)
+          reserved      Short       reserved for future use
+
+            File types
+            ==========
+
+            0x80  library (keyed access list of files)
+            0x40  directory
+            0x10  stream file
+            0x08  direct file
+            0x04  keyed file
+            0x02  indexed file
+            0x0e  reserved
+            0x01  16 bits real mode program (obsolete)
+            0x21  16 bits protected mode program
+            0x41  32 bits protected mode program
+
+            Protection codes
+            ================
+
+            User protection
+            ---------------
+            0x01  non readable
+            0x02  non writable
+            0x04  non executable
+            0x08  non erasable
+
+            Other protection
+            ----------------
+            0x10  non readable
+            0x20  non writable
+            0x40  non executable Theos before 4.0
+            0x40  modified Theos 4.x
+            0x80  not hidden
+
+
+         -THEOS old inofficial Extra Field:
+          ================================
+
+          The following is the layout of an inoffical former version of a
+          Theos file-attributes extra blocks.  This layout was never published
+          and is no longer created. However, UnZip can optionally support it
+          when compiling with the option flag OLD_THEOS_EXTRA defined.
+          Both the local-header and central-header versions are identical.
+          (Last Revision 19990206)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (THS0)  0x4854        Short       'TH' signature
+          size          Short       size of extra block
+          flags         Short       reserved for future use
+          filesize      Long        file size
+          reclen        Short       record length for indexed,keyed and direct,
+                                    text segment size for 16 bits programs
+          keylen        Short       key length for indexed and keyed files,
+                                    data segment size for 16 bits programs
+          filegrow      Byte        growing factor for indexed,keyed and direct
+          reserved      3 Bytes     reserved for future use
 
 
          -FWKCS MD5 Extra Field:

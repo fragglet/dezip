@@ -1,6 +1,6 @@
 # Makefile for UnZip, fUnZip and UnZipSFX
-# for emx 0.9c + rsxnt 1.4 / gcc under WIN32. Derived from makefile.os2
-# By E-Yen Tan and Christian Spieler. Last updated 24 November 1998.
+# for emx 0.9d + rsxnt 1.42 / gcc under WIN32. Derived from makefile.os2
+# By E-Yen Tan and Christian Spieler. Last updated 10 March 1999.
 #
 # This makefile should work fine with GNU make and hopefully some others.
 # Tested with Spieler's special GNU make 3.74 gnuish 16-bit version.
@@ -18,8 +18,13 @@ AS_FLAGS = -DASM_CRC
 CP=copy
 RM=del
 
-CC=gcc -O2 -I. -m486 -Zwin32
-CFLAGS=-Wall -DWIN32 $(AS_FLAGS) $(LOCAL_UNZIP)
+CC=gcc -Zwin32 -I.
+CC_OSIZ=-O1
+CC_OTIM=-O2 -mpentium
+CC_OPTS=-Wall -DWIN32 $(AS_FLAGS) $(LOCAL_UNZIP)
+CFLAGS=$(CC_OTIM) $(CC_OPTS)
+CFLAGSX=$(CC_OSIZ) $(CC_OPTS) -DSFX
+CFLAGSF=$(CC_OTIM) $(CC_OPTS) -DFUNZIP
 DLLFLAG=
 AS=gcc
 ASFLAGS=-Di386
@@ -102,6 +107,9 @@ unzipsfx.exe:	$(OBJX)
 	$(CC) $(LDFLAGS)$@ $(DEF) $(OBJX) $(LDFLAGS2)
 #	@ $(RM) unzipsfx.rsp
 
+uzexampl.exe:	uzexampl$(OBJ)
+	$(CC) $(LDFLAGS)$@ $(DEF) uzexampl$(OBJ) -lversion $(LDFLAGS2)
+
 # dependencies
 
 apihelp$(OBJ):	apihelp.c $(UNZIP_H) version.h
@@ -129,26 +137,29 @@ funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h	# funzip only
 unzipstb$(OBJ):	unzipstb.c					# DLL version
 	$(CC) -c $(CFLAGS) $(OUT)$@ unzipstb.c
 
+uzexampl$(OBJ):	windll/uzexampl.c windll/uzexampl.h		# WINDLL example
+	$(CC) -c $(CFLAGS) $(OUT)$@ windll/uzexampl.c
+
 win32$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h version.h	# win32 only
 	$(CC) -c $(CFLAGS) $(OUT)$@ win32$(DIRSEP)win32.c
 
 win32f$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h		# win32 funzip
-	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ win32$(DIRSEP)win32.c
+	$(CC) -c $(CFLAGSF) $(OUT)$@ win32$(DIRSEP)win32.c
 
 win32_$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h		# win32 unzipsfx
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ win32$(DIRSEP)win32.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ win32$(DIRSEP)win32.c
 
 nt$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h		# win32 only
 	$(CC) -c $(CFLAGS) $(OUT)$@ win32$(DIRSEP)nt.c
 
 nt_$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h		# win32 only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ win32$(DIRSEP)nt.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ win32$(DIRSEP)nt.c
 
 os2$(OBJ):	os2/os2.c $(UNZIP_H) version.h			# OS/2 only
 	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ os2$(DIRSEP)os2.c
 
 os2_$(OBJ):	os2/os2.c $(UNZIP_H)				# OS/2 unzipsfx
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ os2$(DIRSEP)os2.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ os2$(DIRSEP)os2.c
 
 os2acl$(OBJ):	os2/os2acl.c $(UNZIP_H) version.h		# OS/2 only
 	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ os2$(DIRSEP)os2acl.c
@@ -172,49 +183,49 @@ crypt$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ crypt.c
 
 cryptf$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
-	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ crypt.c
+	$(CC) -c $(CFLAGSF) $(OUT)$@ crypt.c
 
 crc32f$(OBJ):	crc32.c $(UNZIP_H) zip.h			# funzip only
-	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ crc32.c
+	$(CC) -c $(CFLAGSF) $(OUT)$@ crc32.c
 
 globalsf$(OBJ):	globals.c $(UNZIP_H)				# funzip only
-	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ globals.c
+	$(CC) -c $(CFLAGSF) $(OUT)$@ globals.c
 
 inflatef$(OBJ):	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
-	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ inflate.c
+	$(CC) -c $(CFLAGSF) $(OUT)$@ inflate.c
 
 ttyiof$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
-	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ ttyio.c
+	$(CC) -c $(CFLAGSF) $(OUT)$@ ttyio.c
 
 crc32_$(OBJ):	crc32.c $(UNZIP_H) zip.h			# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ crc32.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ crc32.c
 
 crctab_$(OBJ):	crctab.c $(UNZIP_H) zip.h			# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ crctab.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ crctab.c
 
 crypt_$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ crypt.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ crypt.c
 
 extract_$(OBJ):	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ extract.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ extract.c
 
 fileio_$(OBJ):	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ fileio.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ fileio.c
 
 globals_$(OBJ):	globals.c $(UNZIP_H)				# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ globals.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ globals.c
 
 inflate_$(OBJ):	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ inflate.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ inflate.c
 
 match_$(OBJ):	match.c $(UNZIP_H)				# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ match.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ match.c
 
 process_$(OBJ):	process.c $(UNZIP_H)				# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ process.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ process.c
 
 ttyio_$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ ttyio.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ ttyio.c
 
 unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ unzip.c
+	$(CC) -c $(CFLAGSX) $(OUT)$@ unzip.c

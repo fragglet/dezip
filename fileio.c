@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   fileio.c
@@ -30,8 +38,11 @@
              str2oem()                (CRYPT && NEED_STR2OEM, only)
              memset()                 (ZMEM only)
              memcpy()                 (ZMEM only)
-             zstrnicmp()
+             zstrnicmp()              (NO_STRNICMP only)
              zstat()                  (REGULUS only)
+             plastchar()              (_MBCS only)
+             uzmbschr()               (_MBCS && NEED_UZMBSCHR, only)
+             uzmbsrchr()              (_MBCS && NEED_UZMBSRCHR, only)
              fLoadFarString()         (SMALL_MEM only)
              fLoadFarStringSmall()    (SMALL_MEM only)
              fLoadFarStringSmall2()   (SMALL_MEM only)
@@ -40,7 +51,7 @@
   ---------------------------------------------------------------------------*/
 
 
-#define FILEIO_C
+#define __FILEIO_C      /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #ifdef WINDLL
@@ -89,7 +100,7 @@ static int disk_error OF((__GPRO));
 /* Strings used in fileio.c */
 /****************************/
 
-#if (defined(UNIX) || defined(DOS_FLX_OS2_W32) || defined(__BEOS__))
+#if (defined(BEO_THS_UNX) || defined(DOS_FLX_NLM_OS2_W32))
    static ZCONST char Far CannotDeleteOldFile[] =
      "error:  cannot delete old %s\n";
 #ifdef UNIXBACKUP
@@ -97,7 +108,7 @@ static int disk_error OF((__GPRO));
      "error:  cannot rename old %s\n";
    static ZCONST char Far BackupSuffix[] = "~";
 #endif
-#endif /* UNIX || DOS_FLX_OS2_W32 || __BEOS__ */
+#endif /* BEO_THS_UNX || DOS_FLX_NLM_OS2_W32 */
 
 static ZCONST char Far CannotOpenZipfile[] =
   "error:  cannot open zipfile [ %s ]\n";
@@ -161,27 +172,27 @@ int open_input_file(__G)    /* return 1 if open failed */
      *  translation, which would corrupt the bitstreams
      */
 
-#if (defined(UNIX) || defined(TOPS20) || defined(AOS_VS) || defined(__BEOS__))
-    G.zipfd = open(G.zipfn, O_RDONLY);
-#else /* !(UNIX || TOPS20 || AOS_VS || __BEOS__) */
 #ifdef VMS
     G.zipfd = open(G.zipfn, O_RDONLY, 0, "ctx=stm");
 #else /* !VMS */
 #ifdef MACOS
     G.zipfd = open(G.zipfn, 0);
 #else /* !MACOS */
-#ifdef RISCOS
-    G.zipfd = fopen(G.zipfn, "rb");
-#else /* !RISCOS */
 #ifdef CMS_MVS
     G.zipfd = vmmvs_open_infile(__G);
 #else /* !CMS_MVS */
+#ifdef USE_STRM_INPUT
+    G.zipfd = fopen(G.zipfn, FOPR);
+#else /* !USE_STRM_INPUT */
+# ifdef O_BINARY
     G.zipfd = open(G.zipfn, O_RDONLY | O_BINARY);
+# else
+    G.zipfd = open(G.zipfn, O_RDONLY);
+# endif
+#endif /* ?USE_STRM_INPUT */
 #endif /* ?CMS_MVS */
-#endif /* ?RISCOS */
 #endif /* ?MACOS */
 #endif /* ?VMS */
-#endif /* ?(UNIX || TOPS20 || AOS_VS || __BEOS__) */
 
 #ifdef USE_STRM_INPUT
     if (G.zipfd == NULL)
@@ -217,7 +228,7 @@ int open_outfile(__G)         /* return 1 if fail */
 #ifdef QDOS
     QFilename(__G__ G.filename);
 #endif
-#if (defined(DOS_FLX_OS2_W32) || defined(UNIX) || defined(__BEOS__))
+#if (defined(DOS_FLX_NLM_OS2_W32) || defined(BEO_THS_UNX))
 #ifdef BORLAND_STAT_BUG
     /* Borland 5.0's stat() barfs if the filename has no extension and the
      * file doesn't exist. */
@@ -280,6 +291,10 @@ int open_outfile(__G)         /* return 1 if fail */
               FnFilter1(G.filename)));
         }
 #endif /* DOS_FLX_OS2_W32 */
+#ifdef NLM
+        /* Give the file read/write permission (non-POSIX shortcut) */
+        chmod(G.filename, 0);
+#endif /* NLM */
         if (unlink(G.filename) != 0) {
             Info(slide, 0x401, ((char *)slide,
               LoadFarString(CannotDeleteOldFile), FnFilter1(G.filename)));
@@ -288,7 +303,7 @@ int open_outfile(__G)         /* return 1 if fail */
         Trace((stderr, "open_outfile:  %s now deleted\n",
           FnFilter1(G.filename)));
     }
-#endif /* DOS_FLX_OS2_W32 || UNIX || __BEOS__ */
+#endif /* DOS_FLX_NLM_OS2_W32 || BEO_THS_UNX */
 #ifdef RISCOS
     if (SWI_OS_File_7(G.filename,0xDEADDEAD,0xDEADDEAD,G.lrec.ucsize)!=NULL) {
         Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
@@ -325,7 +340,7 @@ int open_outfile(__G)         /* return 1 if fail */
 #else /* !MTS */
 #ifdef TANDEM
     if (SSTAT(G.filename, &G.statbuf) == 0) {
-        Trace((stderr, "open_outfile:  stat(%s) returns 0 (file exists)\n",
+        Trace((stderr, "open_outfile:  stat(%s) returns 0:  file exists\n",
           FnFilter1(G.filename)));
         if (unlink(G.filename) != 0) {
             Trace((stderr, "open_outfile:  existing file %s is read-only\n",
@@ -385,7 +400,7 @@ int open_outfile(__G)         /* return 1 if fail */
 #endif /* !TOPS20 */
 
 #ifdef USE_FWRITE
-#ifdef DOS_OS2_W32
+#ifdef DOS_NLM_OS2_W32
     /* 16-bit MSC: buffer size must be strictly LESS than 32K (WSIZE):  bogus */
     setbuf(G.outfile, (char *)NULL);   /* make output unbuffered */
 #else /* !DOS_OS2_W32 */
@@ -857,9 +872,9 @@ int flush(__G__ rawbuf, size, unshrink)
                 ++p;
             G.didCRlast = FALSE;
             for (q = transbuf;  p < rawbuf+(unsigned)size;  ++p) {
-                if (*p == CR) {           /* lone CR or CR/LF: EOL either way */
+                if (*p == CR) {           /* lone CR or CR/LF: treat as EOL  */
                     PutNativeEOL
-                    if (p == rawbuf+(unsigned)size-1)  /* last char in buffer */
+                    if (p == rawbuf+(unsigned)size-1) /* last char in buffer */
                         G.didCRlast = TRUE;
                     else if (p[1] == LF)  /* get rid of accompanying LF */
                         ++p;
@@ -971,7 +986,10 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     int error;
     uch *q=buf, *endbuf=buf+(unsigned)size;
 #ifdef MORE
-    uch *p=buf-1;
+    uch *p=buf;
+#if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
+    int islinefeed = FALSE;
+#endif
 #endif
     FILE *outfp;
 
@@ -1033,9 +1051,22 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     }
 
 #ifdef MORE
+# ifdef SCREENSIZE
+    /* room for --More-- and one line of overlap: */
+#  if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
+    SCREENSIZE(&((Uz_Globs *)pG)->height, &((Uz_Globs *)pG)->width);
+#  else
+    SCREENSIZE(&((Uz_Globs *)pG)->height, (int *)NULL);
+#  endif
+    ((Uz_Globs *)pG)->height -= 2;
+# else
     /* room for --More-- and one line of overlap: */
     ((Uz_Globs *)pG)->height = SCREENLINES - 2;
-#endif
+#  if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
+    ((Uz_Globs *)pG)->width = SCREENWIDTH;
+#  endif
+# endif
+#endif /* MORE */
 
     if (MSG_LNEWLN(flag) && !((Uz_Globs *)pG)->sol) {
         /* not at start of line:  want newline */
@@ -1047,9 +1078,12 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
 #ifdef MORE
             if (((Uz_Globs *)pG)->M_flag)
             {
+#if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
+                ((Uz_Globs *)pG)->chars = 0;
+#endif
                 ++((Uz_Globs *)pG)->numlines;
-                if (((Uz_Globs *)pG)->numlines %
-                    ((Uz_Globs *)pG)->height == 0L)    /* GRR: fix */
+                ++((Uz_Globs *)pG)->lines;
+                if (((Uz_Globs *)pG)->lines >= ((Uz_Globs *)pG)->height)
                     (*((Uz_Globs *)pG)->mpause)((zvoid *)pG,
                       LoadFarString(MorePrompt), 1);
             }
@@ -1077,11 +1111,33 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
 #endif
                                                  )
     {
-        while (++p < endbuf) {
+        while (p < endbuf) {
             if (*p == '\n') {
+#if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
+		islinefeed = TRUE;
+            } else if (SCREENLWRAP) {
+                if (*p == '\r') {
+                    ((Uz_Globs *)pG)->chars = 0;
+                } else {
+#  ifdef TABSIZE
+                    if (*p == '\t')
+                        ((Uz_Globs *)pG)->chars +=
+                            (TABSIZE - (((Uz_Globs *)pG)->chars % TABSIZE));
+                    else
+#  endif
+                        ++((Uz_Globs *)pG)->chars;
+
+                    if (((Uz_Globs *)pG)->chars >= ((Uz_Globs *)pG)->width)
+                        islinefeed = TRUE;
+                }
+            }
+            if (islinefeed) {
+                islinefeed = FALSE;
+                ((Uz_Globs *)pG)->chars = 0;
+#endif /* (SCREENWIDTH && SCREEN_LWRAP) */
                 ++((Uz_Globs *)pG)->numlines;
-                if (((Uz_Globs *)pG)->numlines %
-                    ((Uz_Globs *)pG)->height == 0L)    /* GRR: fix */
+                ++((Uz_Globs *)pG)->lines;
+                if (((Uz_Globs *)pG)->lines >= ((Uz_Globs *)pG)->height)
                 {
                     if ((error = WriteError(q, p-q+1, outfp)) != 0)
                         return error;
@@ -1092,6 +1148,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
                       LoadFarString(MorePrompt), 1);
                 }
             }
+            INCSTR(p);
         } /* end while */
         size = (ulg)(p - q);   /* remaining text */
     }
@@ -1117,7 +1174,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
             if ((error = REDIRECTPRINT(q, size)) != 0)
                 return error;
         }
-#endif
+#endif /* OS2DLL */
         ((Uz_Globs *)pG)->sol = (endbuf[-1] == '\n');
     }
     return 0;
@@ -1198,7 +1255,11 @@ void UZ_EXP UzpMorePause(pG, prompt, flag)
     if (flag & 1) {
         do {
             c = (uch)FGETCH(0);
-        } while (c != '\r' && c != '\n' && c != ' ' && c != 'q' && c != 'Q');
+        } while (
+#ifdef THEOS
+                 c != 17 &&     /* standard QUIT key */
+#endif
+                 c != '\r' && c != '\n' && c != ' ' && c != 'q' && c != 'Q');
     } else
         c = (uch)FGETCH(0);
 
@@ -1206,12 +1267,22 @@ void UZ_EXP UzpMorePause(pG, prompt, flag)
     fprintf(stderr, LoadFarString(HidePrompt));
     fflush(stderr);
 
-    if (ToLower(c) == 'q') {
+    if (
+#ifdef THEOS
+        (c == 17) ||            /* standard QUIT key */
+#endif
+        (ToLower(c) == 'q')) {
         DESTROYGLOBALS()
         EXIT(PK_COOL);
     }
 
     ((Uz_Globs *)pG)->sol = TRUE;
+
+#ifdef MORE
+    /* space for another screen, enter for another line. */
+    if ((flag & 1) && c == ' ')
+        ((Uz_Globs *)pG)->lines = 0;
+#endif /* MORE */
 
 } /* end function UzpMorePause() */
 
@@ -1450,7 +1521,7 @@ time_t dos_to_unix_time(dosdatetime)
 #ifdef WIN32
     /* account for timezone differences */
     res = GetTimeZoneInformation(&tzinfo);
-    if (res != TIME_ZONE_ID_UNKNOWN)
+    if (res != TIME_ZONE_ID_INVALID)
     {
     m_time += 60*(tzinfo.Bias);
 #else /* !WIN32 */
@@ -1570,7 +1641,7 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
             Trace((stderr,
               "check_for_newer:  lstat(%s) returns 0:  symlink does exist\n",
               FnFilter1(filename)));
-            if (QCOND2 && !uO.overwrite_all)
+            if (QCOND2 && !IS_OVERWRT_ALL)
                 Info(slide, 0, ((char *)slide, LoadFarString(FileIsSymLink),
                   FnFilter1(filename), " with no real file"));
             return EXISTS_AND_OLDER;   /* symlink dates are meaningless */
@@ -1586,7 +1657,7 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
     if (lstat(filename, &G.statbuf) == 0 && S_ISLNK(G.statbuf.st_mode)) {
         Trace((stderr, "check_for_newer:  %s is a symbolic link\n",
           FnFilter1(filename)));
-        if (QCOND2 && !uO.overwrite_all)
+        if (QCOND2 && !IS_OVERWRT_ALL)
             Info(slide, 0, ((char *)slide, LoadFarString(FileIsSymLink),
               FnFilter1(filename), ""));
         return EXISTS_AND_OLDER;   /* symlink dates are meaningless */
@@ -1662,15 +1733,15 @@ int do_string(__G__ len, option)      /* return PK-type error code */
 
 /*---------------------------------------------------------------------------
     This function processes arbitrary-length (well, usually) strings.  Four
-    options are allowed:  SKIP, wherein the string is skipped (pretty logical,
-    eh?); DISPLAY, wherein the string is printed to standard output after un-
-    dergoing any necessary or unnecessary character conversions; DS_FN,
-    wherein the string is put into the filename[] array after undergoing ap-
-    propriate conversions (including case-conversion, if that is indicated:
-    see the global variable pInfo->lcflag); and EXTRA_FIELD, wherein the
-    `string' is assumed to be an extra field and is copied to the (freshly
-    malloced) buffer G.extra_field.  The third option should be OK since
-    filename is dimensioned at 1025, but we check anyway.
+    major options are allowed:  SKIP, wherein the string is skipped (pretty
+    logical, eh?); DISPLAY, wherein the string is printed to standard output
+    after undergoing any necessary or unnecessary character conversions;
+    DS_FN, wherein the string is put into the filename[] array after under-
+    going appropriate conversions (including case-conversion, if that is
+    indicated: see the global variable pInfo->lcflag); and EXTRA_FIELD,
+    wherein the `string' is assumed to be an extra field and is copied to
+    the (freshly malloced) buffer G.extra_field.  The third option should
+    be OK since filename is dimensioned at 1025, but we check anyway.
 
     The string, by the way, is assumed to start at the current file-pointer
     position; its length is given by len.  So start off by checking length
@@ -1726,7 +1797,8 @@ int do_string(__G__ len, option)      /* return PK-type error code */
                    "extended ASCII" charset into the compiler's (system's)
                    internal text code page */
                 Ext_ASCII_TO_Native((char *)G.outbuf, G.pInfo->hostnum,
-                                    G.crec.version_made_by[0]);
+                                    G.pInfo->hostver, G.pInfo->HasUxAtt,
+                                    FALSE);
 #ifdef WINDLL
                 /* translate to ANSI (RTL internal codepage may be OEM) */
                 INTERN_TO_ISO((char *)G.outbuf, (char *)G.outbuf);
@@ -1789,6 +1861,7 @@ int do_string(__G__ len, option)      /* return PK-type error code */
      */
 
     case DS_FN:
+    case DS_FN_L:
         extra_len = 0;
         if (len >= FILNAMSIZ) {
             Info(slide, 0x401, ((char *)slide,
@@ -1803,11 +1876,11 @@ int do_string(__G__ len, option)      /* return PK-type error code */
 
         /* translate the Zip entry filename coded in host-dependent "extended
            ASCII" into the compiler's (system's) internal text code page */
-        Ext_ASCII_TO_Native(G.filename, G.pInfo->hostnum,
-                            G.crec.version_made_by[0]);
+        Ext_ASCII_TO_Native(G.filename, G.pInfo->hostnum, G.pInfo->hostver,
+                            G.pInfo->HasUxAtt, (option == DS_FN_L));
 
         if (G.pInfo->lcflag)      /* replace with lowercase filename */
-            TOLOWER(G.filename, G.filename);
+            STRLOWER(G.filename, G.filename);
 
         if (G.pInfo->vollabel && len > 8 && G.filename[8] == '.') {
             char *p = G.filename+8;
@@ -2062,6 +2135,7 @@ zvoid *memcpy(dst, src, len)
 
 
 
+#ifdef NO_STRNICMP
 
 /************************/
 /* Function zstrnicmp() */
@@ -2083,6 +2157,7 @@ int zstrnicmp(s1, s2, n)
     return 0;
 }
 
+#endif /* NO_STRNICMP */
 
 
 
@@ -2095,13 +2170,80 @@ int zstrnicmp(s1, s2, n)
 /********************/
 
 int zstat(p, s)
-    char *p;
+    ZCONST char *p;
     struct stat *s;
 {
-    return (stat(p,s) >= 0? 0 : (-1));
+    return (stat((char *)p,s) >= 0? 0 : (-1));
 }
 
 #endif /* REGULUS */
+
+
+
+
+#ifdef _MBCS
+
+/* DBCS support for Info-ZIP's zip  (mainly for japanese (-: )
+ * by Yoshioka Tsuneo (QWF00133@nifty.ne.jp,tsuneo-y@is.aist-nara.ac.jp)
+ * This code is public domain!   Date: 1998/12/20
+ */
+
+/************************/
+/* Function plastchar() */
+/************************/
+
+char *plastchar(ptr, len)
+    ZCONST char *ptr;
+    extent len;
+{
+    unsigned clen;
+    ZCONST char *oldptr = ptr;
+    while(*ptr != '\0' && len > 0){
+        oldptr = ptr;
+        clen = CLEN(ptr);
+        ptr += clen;
+        len -= clen;
+    }
+    return (char *)oldptr;
+}
+
+
+#ifdef NEED_UZMBSCHR
+/***********************/
+/* Function uzmbschr() */
+/***********************/
+
+unsigned char *uzmbschr(str, c)
+    ZCONST unsigned char *str;
+    unsigned int c;
+{
+    while(*str != '\0'){
+        if (*str == c) {return (char*)str;}
+        INCSTR(str);
+    }
+    return NULL;
+}
+#endif /* NEED_UZMBSCHR */
+
+
+#ifdef NEED_UZMBSRCHR
+/************************/
+/* Function uzmbsrchr() */
+/************************/
+
+unsigned char *uzmbsrchr(str, c)
+    ZCONST unsigned char *str;
+    unsigned int c;
+{
+    unsigned char *match = NULL;
+    while(*str != '\0'){
+        if (*str == c) {match = (char*)str;}
+        INCSTR(str);
+    }
+    return match;
+}
+#endif /* NEED_UZMBSRCHR */
+#endif /* _MBCS */
 
 
 

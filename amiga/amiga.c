@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*------------------------------------------------------------------------
 
   amiga.c
@@ -51,8 +59,8 @@
 
 #ifndef SFX
 /* Make sure the number here matches version.h in the *EXACT* form */
-/* UZ_MAJORVER "." UZ_MINORVER PATCHLEVEL vvvv     No non-digits!  */
-const char version_id[]  = "\0$VER: UnZip 5.4 ("
+/* UZ_MAJORVER "." UZ_MINORVER UZ_PATCHLEVEL vvvv  No non-digits!  */
+const char version_id[]  = "\0$VER: UnZip 5.41 ("
 #include "env:VersionDate"
    ")\r\n";
 #endif /* SFX */
@@ -87,11 +95,12 @@ static int ispattern(char *p)
 
 char *do_wild(__G__ wildspec)
     __GDEF
-    char *wildspec;         /* only used first time on a given dir */
+    ZCONST char *wildspec;  /* only used first time on a given dir */
 {
 /* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in amiga.h:
     static DIR *wild_dir = NULL;
-    static char *dirname, *wildname, matchname[FILNAMSIZ];
+    static ZCONST char *wildname;
+    static char *dirname, matchname[FILNAMSIZ];
     static int notfirstcall = FALSE, dirnamelen;
 */
     struct dirent *file;
@@ -113,8 +122,8 @@ char *do_wild(__G__ wildspec)
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((G.wildname = strrchr(wildspec, '/')) == NULL
-                        && (G.wildname = strrchr(wildspec, ':')) == NULL) {
+        if ((G.wildname = (ZCONST char *)strrchr(wildspec, '/')) == NULL &&
+            (G.wildname = (ZCONST char *)strrchr(wildspec, ':')) == NULL) {
             G.dirname = "";             /* current dir */
             G.dirnamelen = 0;
             G.wildname = wildspec;
@@ -171,7 +180,7 @@ char *do_wild(__G__ wildspec)
 
     closedir(G.wild_dir);  /* have read at least one dir entry; nothing left */
     G.wild_dir = NULL;
-    G.notfirstcall = FALSE;  /* reset for new wildspec */
+    G.notfirstcall = FALSE; /* reset for new wildspec */
     if (G.dirnamelen > 0)
         free(G.dirname);
     return (char *)NULL;
@@ -567,10 +576,12 @@ int checkdir(__G__ pathcomp, flag)
 #if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
-        if (pathcomp == NULL) {
+        if (pathcomp == (char *)NULL) {
             G.rootlen = 0;
             return 0;
         }
+        if (G.rootlen > 0)      /* G.rootpath was already set, nothing to do */
+            return 0;
         if ((G.rootlen = strlen(pathcomp)) > 0) {
             if (stat(pathcomp, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode)) {
                 /* path does not exist */
@@ -578,14 +589,14 @@ int checkdir(__G__ pathcomp, flag)
                     G.rootlen = 0;
                     return 2;   /* treat as stored file */
                 }
-                /* create the directory (could add loop here to scan pathcomp
-                 * and create more than one level, but why really necessary?) */
+                /* create the directory (could add loop here scanning pathcomp
+                 * to create more than one level, but why really necessary?) */
                 if (MKDIR(pathcomp, 0777) == -1) {
                     Info(slide, 1, ((char *)slide,
                          "checkdir:  cannot create extraction directory: %s\n",
                          pathcomp));
-                    G.rootlen = 0; /* path didn't exist, tried to create, and */
-                    return 3;  /* failed:  file exists, or 2+ levels required */
+                    G.rootlen = 0;/* path didn't exist, tried to create, and */
+                    return 3; /* failed:  file exists, or 2+ levels required */
                 }
             }
             if ((G.rootpath = (char *)malloc(G.rootlen+2)) == NULL) {

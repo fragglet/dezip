@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* Here we have a handmade stat() function because Aztec's c.lib stat() */
 /* does not support an st_mode field, which we need... also a chmod().  */
 
@@ -54,10 +62,10 @@ void close_leftover_open_dirs(void)
 
 unsigned short disk_not_mounted;
 
-extern int stat(char *file,struct stat *buf);
+extern int stat(const char *file, struct stat *buf);
 
 stat(file,buf)
-char *file;
+const char *file;
 struct stat *buf;
 {
 
@@ -66,7 +74,7 @@ struct stat *buf;
         time_t ftime;
         struct tm local_tm;
 
-        if( (lock = Lock(file,SHARED_LOCK))==0 )
+        if( (lock = Lock((char *)file,SHARED_LOCK))==0 )
                 /* file not found */
                 return(-1);
 
@@ -140,11 +148,11 @@ int fstat(int handle, struct stat *buf)
 
 /* opendir(), readdir(), closedir(), rmdir(), and chmod() by Paul Kienitz. */
 
-DIR *opendir(char *path)
+DIR *opendir(const char *path)
 {
     DIR *dd = AllocMem(sizeof(DIR), MEMF_PUBLIC);
     if (!dd) return NULL;
-    if (!(dd->d_parentlock = Lock(path, MODE_OLDFILE))) {
+    if (!(dd->d_parentlock = Lock((char *)path, MODE_OLDFILE))) {
         disk_not_mounted = IoErr() == ERROR_DEVICE_NOT_MOUNTED;
         FreeMem(dd, sizeof(DIR));
         return NULL;
@@ -183,15 +191,15 @@ struct dirent *readdir(DIR *dd)
 
 #ifdef AZTEC_C
 
-int rmdir(char *path)
+int rmdir(const char *path)
 {
-    return (DeleteFile(path) ? 0 : IoErr());
+    return (DeleteFile((char *)path) ? 0 : IoErr());
 }
 
-int chmod(char *filename, int bits)     /* bits are as for st_mode */
+int chmod(const char *filename, int bits)       /* bits are as for st_mode */
 {
     long protmask = (bits & 0xFF) ^ 0xF;
-    return !SetProtection(filename, protmask);
+    return !SetProtection((char *)filename, protmask);
 }
 
 

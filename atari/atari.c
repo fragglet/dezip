@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   atari.c
@@ -40,20 +48,20 @@ static int renamed_fullpath;   /* ditto */
 
 char *do_wild(__G__ wildspec)
     __GDEF
-    char *wildspec;         /* only used first time on a given dir */
+    ZCONST char *wildspec;  /* only used first time on a given dir */
 {
-    static DIR *dir = (DIR *)NULL;
-    static char *dirname, *wildname, matchname[FILNAMSIZ];
-    static int firstcall=TRUE, have_dirname, dirnamelen;
+    static DIR *wild_dir = (DIR *)NULL;
+    static ZCONST char *wildname;
+    static char *dirname, matchname[FILNAMSIZ];
+    static int notfirstcall=FALSE, have_dirname, dirnamelen;
     struct dirent *file;
-
 
     /* Even when we're just returning wildspec, we *always* do so in
      * matchname[]--calling routine is allowed to append four characters
      * to the returned string, and wildspec may be a pointer to argv[].
      */
-    if (firstcall) {        /* first call:  must initialize everything */
-        firstcall = FALSE;
+    if (!notfirstcall) {    /* first call:  must initialize everything */
+        notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
             strcpy(matchname, wildspec);
@@ -63,7 +71,7 @@ char *do_wild(__G__ wildspec)
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, '/')) == (char *)NULL) {
+        if ((wildname = strrchr(wildspec, '/')) == (ZCONST char *)NULL) {
             dirname = ".";
             dirnamelen = 1;
             have_dirname = FALSE;
@@ -82,8 +90,8 @@ char *do_wild(__G__ wildspec)
             have_dirname = TRUE;
         }
 
-        if ((dir = opendir(dirname)) != (DIR *)NULL) {
-            while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        if ((wild_dir = opendir(dirname)) != (DIR *)NULL) {
+            while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
@@ -101,8 +109,8 @@ char *do_wild(__G__ wildspec)
                 }
             }
             /* if we get to here directory is exhausted, so close it */
-            closedir(dir);
-            dir = (DIR *)NULL;
+            closedir(wild_dir);
+            wild_dir = (DIR *)NULL;
         }
 
         /* return the raw wildspec in case that works (e.g., directory not
@@ -112,8 +120,8 @@ char *do_wild(__G__ wildspec)
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == (DIR *)NULL) {
-        firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
+    if (wild_dir == (DIR *)NULL) {
+        notfirstcall = FALSE; /* nothing left to try--reset for new wildspec */
         if (have_dirname)
             free(dirname);
         return (char *)NULL;
@@ -123,7 +131,7 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL) {
+    while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
         /* May need special TOS handling here. [cjh] */
         Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
         if (file->d_name[0] == '.' && wildname[0] != '.')
@@ -139,9 +147,9 @@ char *do_wild(__G__ wildspec)
         }
     }
 
-    closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = (DIR *)NULL;
-    firstcall = TRUE;  /* reset for new wildspec */
+    closedir(wild_dir);     /* have read at least one entry; nothing left */
+    wild_dir = (DIR *)NULL;
+    notfirstcall = FALSE;   /* reset for new wildspec */
     if (have_dirname)
         free(dirname);
     return (char *)NULL;
@@ -168,6 +176,13 @@ int mapattr(__G)
             tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
             G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
             break;
+        case THEOS_:
+            tmp &= 0xF1FFFFFFL;
+            if ((tmp & 0xF0000000L) != 0x40000000L)
+                tmp &= 0x01FFFFFFL;     /* not a dir, mask all ftype bits */
+            else
+                tmp &= 0x41FFFFFFL;     /* leave directory bit as set */
+            /* fall through! */
         case UNIX_:
         case VMS_:
         case ACORN_:
@@ -230,12 +245,35 @@ int mapattr(__G)
             /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
+            /* PKWARE's PKZip for Unix marks entries as FS_FAT_, but stores the
+             * Unix attributes in the upper 16 bits of the external attributes
+             * field, just like Info-ZIP's Zip for Unix.  We try to use that
+             * value, after a check for consistency with the MSDOS attribute
+             * bits (see below).
+             */
+            G.pInfo->file_attr = (unsigned)(tmp >> 16);
+            /* fall through! */
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
         case TOPS20_:
         default:
-            tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
+            /* Ensure that DOS subdir bit is set when the entry's name ends
+             * in a '/'.  Some third-party Zip programs fail to set the subdir
+             * bit for directory entries.
+             */
+            if ((tmp | 0x10) == 0) {
+                extent fnlen = strlen(G.filename);
+                if (fnlen > 0 && G.filename[fnlen-1] == '/')
+                    tmp |= 0x10;
+            }
+            /* read-only bit --> write perms; subdir bit --> dir exec bit */
+            tmp = !(tmp & 1) << 1  |  (tmp & 0x10) >> 4;
+            if ((G.pInfo->file_attr & 0700) == (unsigned)(0400 | tmp<<6))
+                /* keep previous G.pInfo->file_attr setting, when its "owner"
+                 * part appears to be consistent with DOS attribute flags!
+                 */
+                return 0;
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
     } /* end switch (host-OS-created-by) */
@@ -580,34 +618,45 @@ int checkdir(__G__ pathcomp, flag)
             rootlen = 0;
             return 0;
         }
+        if (rootlen > 0)        /* rootpath was already set, nothing to do */
+            return 0;
         if ((rootlen = strlen(pathcomp)) > 0) {
-            if (pathcomp[rootlen-1] == '/') {
-                pathcomp[--rootlen] = '\0';
-            }
-            if (rootlen > 0 && (stat(pathcomp, &G.statbuf) ||
-                !S_ISDIR(G.statbuf.st_mode)))       /* path does not exist */
-            {
-                if (!G.create_dirs /* || iswild(pathcomp) */ ) {
-                    rootlen = 0;
-                    return 2;   /* skip (or treat as stored file) */
-                }
-                /* create the directory (could add loop here to scan pathcomp
-                 * and create more than one level, but why really necessary?) */
-                if (mkdir(pathcomp, 0777) == -1) {
-                    Info(slide, 1, ((char *)slide,
-                      "checkdir:  cannot create extraction directory: %s\n",
-                      pathcomp));
-                    rootlen = 0;   /* path didn't exist, tried to create, and */
-                    return 3;  /* failed:  file exists, or 2+ levels required */
-                }
-            }
-            if ((rootpath = (char *)malloc(rootlen+2)) == (char *)NULL) {
+            char *tmproot;
+
+            if ((tmproot = (char *)malloc(rootlen+2)) == (char *)NULL) {
                 rootlen = 0;
                 return 10;
             }
-            strcpy(rootpath, pathcomp);
-            rootpath[rootlen++] = '/';
-            rootpath[rootlen] = '\0';
+            strcpy(tmproot, pathcomp);
+            if (tmproot[rootlen-1] == '/') {
+                tmproot[--rootlen] = '\0';
+            }
+            if (rootlen > 0 && (stat(tmproot, &G.statbuf) ||
+                !S_ISDIR(G.statbuf.st_mode)))       /* path does not exist */
+            {
+                if (!G.create_dirs /* || iswild(tmproot) */ ) {
+                    free(tmproot);
+                    rootlen = 0;
+                    return 2;   /* skip (or treat as stored file) */
+                }
+                /* create the directory (could add loop here scanning tmproot
+                 * to create more than one level, but why really necessary?) */
+                if (mkdir(tmproot, 0777) == -1) {
+                    Info(slide, 1, ((char *)slide,
+                      "checkdir:  cannot create extraction directory: %s\n",
+                      tmproot));
+                    free(tmproot);
+                    rootlen = 0;  /* path didn't exist, tried to create, and */
+                    return 3; /* failed:  file exists, or 2+ levels required */
+                }
+            }
+            tmproot[rootlen++] = '/';
+            tmproot[rootlen] = '\0';
+            if ((rootpath = (char *)realloc(tmproot, rootlen+1)) == NULL) {
+                free(tmproot);
+                rootlen = 0;
+                return 10;
+            }
             Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
         return 0;

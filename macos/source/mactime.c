@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* -----------------------------------------------------------------------------
 
 The original functions (Metrowerks Codewarrior pro 3.0) gmtime, localtime,
@@ -389,7 +397,6 @@ static struct tm *time2tm(const time_t *timer)
     static const short monthday[12] =
         {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
 
-    /* macLocal -= GMTDelta();  */
     UNIX_TO_MACOS(macLocal);
     SecondsToDate(macLocal, &dtr);
 
@@ -439,7 +446,6 @@ DateTimeRec  dtr;
  DateToSeconds(&dtr, &intMacTime);
 
  MACOS_TO_UNIX(intMacTime);
- /* intMacTime -= GMTDelta(); */
 
  return intMacTime;
 }

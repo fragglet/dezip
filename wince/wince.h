@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        WINCE.H
@@ -43,7 +51,7 @@ extern "C" {
 // building for release, then we turn all calls to DebugOut() into no-ops.  The
 // Microsoft compiler (and hopefully others) will not generate any code at all
 // for the retail version of DebugOut() defined here.  This works much better
-// than trying to create a variable argument macro - something C/C++ does not 
+// than trying to create a variable argument macro - something C/C++ does not
 // support cleanly.
 
 #ifdef DEBUG
@@ -58,6 +66,9 @@ __inline void DebugOut(LPCTSTR szFormat, ...) {}
 //******************************************************************************
 
 #if !defined(_WIN32_WCE)
+#ifndef UNICODE
+#include <stdio.h>
+#endif
 #include <io.h>
 #include <time.h>
 #include <fcntl.h>
@@ -79,7 +90,7 @@ __inline void DebugOut(LPCTSTR szFormat, ...) {}
 #define _stprintf wsprintf
 #endif
 
-#ifndef _vsnwprintf
+#ifndef _vsntprintf
 #define _vsntprintf(d,c,f,a) wvsprintf(d,f,a)
 #endif
 

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* riscos.c */
 
 #include <stdio.h>
@@ -11,7 +19,7 @@
 
 #define MAXEXT 16
 
-char *exts2swap = ""; /* Extensions to swap (actually, directory names) */
+char *exts2swap = NULL; /* Extensions to swap (actually, directory names) */
 
 int stat(char *filename,struct stat *res)
 {
@@ -246,7 +254,7 @@ void getRISCOSexts(char *envstr)
 
 int checkext(char *suff)
 {
- register char *extptr=exts2swap;
+ register char *extptr = exts2swap ? exts2swap : "";
  register char *suffptr;
  register int e,s;
 

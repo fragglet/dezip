@@ -6,10 +6,10 @@ __________________________________________________________________________
 
 This document defines a set of rules and guidelines for those who wish to
 contribute patches to Zip and UnZip (or even entire ports to new operating
-systems).  The list below is something between a style sheet and a "Miss 
-Manners" etiquette guide.  While Info-ZIP encourages contributions and 
+systems).  The list below is something between a style sheet and a "Miss
+Manners" etiquette guide.  While Info-ZIP encourages contributions and
 fixes from anyone who finds something worth changing, we are also aware
-of the fact that no two programmers have the programming style and that 
+of the fact that no two programmers have the programming style and that
 unrestrained changes by a few dozen contributors would result in hideously
 ugly (and unmaintainable) Frankenstein code.  So consider the following an
 attempt by the maintainers to maintain sanity as well as useful code.
@@ -66,7 +66,7 @@ Explanations:
       #1), etc.; but also more substantive things like (for UnZip) putting
       character strings into static (far) variables and using the LoadFar-
       String macros to avoid overflowing limited MS-DOS data segments, and
-      using the ugly Info() macro instead of the more usual *printf() 
+      using the ugly Info() macro instead of the more usual *printf()
       functions so that dynamic-link-library ports are simpler.  NEVER put
       single-OS code (e.g., OS/2) of more than two or three lines into the
       main (generic) modules; those are shared by everybody, and nobody else
@@ -106,7 +106,7 @@ Explanations:
       ning a big new port.  And try to *stay* up to date while working on
       your port--at least, as much as possible.
 
-      
+
 (0.3) The Bronze Rule:  NO FEELTHY PIGGYBACKS
 
       UnZip is currently ported to something like 12 operating systems

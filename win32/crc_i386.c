@@ -1,6 +1,14 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* crc_i386.c -- Microsoft 32-bit C/C++ adaptation of crc_i386.asm
  * Created by Rodney Brown from crc_i386.asm, modified by Chr. Spieler.
- * Last revised: 22-Mai-1998
+ * Last revised: 24-Dec-1998
  *
  * Original coded (in crc_i386.asm) and put into the public domain
  * by Paul Kienitz and Christian Spieler.
@@ -37,10 +45,12 @@
  *   32-bit, removed unneeded kludge for potentially unknown movzx mnemonic,
  *   confirmed correct working with MS VC++ (32-bit).
  *
- * Revised 22-Mai-98, Peter Kunath, Chr. Spieler : The 16-Nov-97 revision broke
+ * Revised 22-May-98, Peter Kunath, Chr. Spieler: The 16-Nov-97 revision broke
  *   MSVC 5.0. Inside preprocessor macros, each instruction is enclosed in its
  *   own __asm {...} construct.  For MSVC, a "#pragma warning" was added to
  *   shut up the "no return value" warning message.
+ *
+ * Revised 13-Dec-98, Chr. Spieler: Modified path to "zip.h" header file.
  *
  * FLAT memory model assumed.
  *
@@ -49,7 +59,7 @@
  *
  */
 
-#include "zip.h"
+#include "../zip.h"
 
 #ifndef USE_ZLIB
 
@@ -138,10 +148,10 @@ ulg crc32(crc, buf, len)
                 mov     ecx,len         ;/* 3rd arg: extent len            */
                 not     eax             ;/*>   c = ~crc;                   */
 
-#ifndef NO_UNROLLED_LOOPS
-#  ifndef NO_32_BIT_LOADS
                 test    ecx,ecx
-                je      bail
+#ifndef NO_UNROLLED_LOOPS
+                jz      bail
+#  ifndef NO_32_BIT_LOADS
 align_loop:
                 test    esi,3           ;/* align buf pointer on next      */
                 jz      aligned_now     ;/*  dword boundary                */
@@ -153,7 +163,6 @@ align_loop:
 aligned_now:
 #  endif /* !NO_32_BIT_LOADS */
                 mov     edx,ecx         ;/* save len in edx  */
-                and     edx,000000007H  ;/* edx = len % 8    */
                 shr     ecx,3           ;/* ecx = len / 8    */
                 jz      No_Eights
 ; align loop head at start of 486 internal cache line !!
@@ -178,14 +187,10 @@ Next_Eight:
                 jnz     Next_Eight
 No_Eights:
                 mov     ecx,edx
+                and     ecx,000000007H  ;/* ecx = len % 8    */
 
-#endif /* NO_UNROLLED_LOOPS */
-#ifndef NO_JECXZ_SUPPORT
-                jecxz   bail            ;/*>  if (len)                     */
-#else
-                test    ecx,ecx         ;/*>  if (len)                     */
-                jz      bail
-#endif
+#endif /* !NO_UNROLLED_LOOPS */
+                jz      bail            ;/*>  if (len)                     */
 ; align loop head at start of 486 internal cache line !!
                 align   16
 loupe:                                  ;/*>    do { */

@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.4                                                19 November 1998
+# Version:  5.41                                                  16 April 2000
 #==============================================================================
 
 
@@ -73,6 +73,9 @@ O = .o
 M = unix
 SHELL = /bin/sh
 
+# Version info for unix/unix.c
+HOST_VERSINFO=-DIZ_CC_NAME='\"\$$(CC) \"' -DIZ_OS_NAME='\"`uname -a`\"'
+
 # defaults for crc32 stuff and system dependent headers
 CRC32 = crc32
 OSDEP_H =
@@ -109,11 +112,11 @@ INSTALLEDMAN = $(MANDIR)/funzip.$(manext) $(MANDIR)/unzip.$(manext) \
 
 # Solaris 2.x stuff:
 PKGDIR = IZunzip
-VERSION = Version 5.4
+VERSION = Version 5.41
 
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, OK, it's a lot ugly:
-MANS = unix/funzip.1 unix/unzip.1 unix/unzipsfx.1 unix/zipgrep.1 unix/zipinfo.1
+MANS = man/funzip.1 man/unzip.1 man/unzipsfx.1 man/zipgrep.1 man/zipinfo.1
 DOCS = funzip.doc unzip.doc unzipsfx.doc zipgrep.doc zipinfo.doc
 
 # list of supported systems/targets in this version
@@ -122,7 +125,7 @@ SYSTEMS2 = 386i 3Bx 7300 7300_gcc aix aix_rt amdahl amdahl_eft apollo aviion
 SYSTEMS3 = bsd bsdi bsdi_noasm bull coherent convex cray cray_opt cyber_sgi
 SYSTEMS4 = dec dnix encore eta freebsd gcc gould hk68 hp hpux isc isc_gcc isi
 SYSTEMS5 = linux linux_dos linux_noasm linux_shlib linux_shlibz lynx minix
-SYSTEMS6 = mips next next10 next2x next3x nextfat osf1 pixel ptx pyramid
+SYSTEMS6 = mips mpeix next next10 next2x next3x nextfat osf1 pixel ptx pyramid
 SYSTEMS7 = qnxnto realix regulus rs6000 sco sco_dos sco_sl sco_x286 sequent sgi
 SYSTEMS8 = solaris solaris_pkg stardent stellar sunos3 sunos4 sysv sysv_gcc
 SYSTEMS9 = sysv6300 tahoe ti_sysv ultrix vax v7 wombat xenix xos
@@ -160,11 +163,7 @@ help:
 	@echo\
  '  notes on compiling various targets.  As a last resort, feel free to read'
 	@echo\
- '  the numerous comments within the Makefile itself.  Note that to compile'
-	@echo\
- '  the decryption version of UnZip, you must obtain the full versions of'
-	@echo\
- '  crypt.c and crypt.h (see the "WHERE" file for ftp and mail-server sites).'
+ '  the numerous comments within the Makefile itself.'
 	@echo\
  '  Have a mostly pretty good day.'
 	@echo ""
@@ -223,7 +222,7 @@ generic_msg:
 	$(CC) -c $(CF) -o $@ $*.c
 
 # this doesn't work...directories are always a pain with implicit rules
-#.1.doc:		unix/$<
+#.1.doc:		man/$<
 #	nroff -Tman -man $< | col -b | uniq | \
 #	 sed 's/Sun Release ..../Info-ZIP        /' > $@
 
@@ -234,20 +233,20 @@ generic_msg:
 # distributions).  We should probably add a ".1.doc" rule for more generic
 # systems...
 
-funzip.doc:	unix/funzip.1
-	nroff -Tascii -man unix/funzip.1 | col -b | uniq | expand > $@
+funzip.doc:	man/funzip.1
+	nroff -Tascii -man man/funzip.1 | col -b | uniq | expand > $@
 
-unzip.doc:	unix/unzip.1
-	nroff -Tascii -man unix/unzip.1 | col -b | uniq | expand > $@
+unzip.doc:	man/unzip.1
+	nroff -Tascii -man man/unzip.1 | col -b | uniq | expand > $@
 
-unzipsfx.doc:	unix/unzipsfx.1
-	nroff -Tascii -man unix/unzipsfx.1 | col -b | uniq | expand > $@
+unzipsfx.doc:	man/unzipsfx.1
+	nroff -Tascii -man man/unzipsfx.1 | col -b | uniq | expand > $@
 
-zipgrep.doc:	unix/zipgrep.1
-	nroff -Tascii -man unix/zipgrep.1 | col -b | uniq | expand > $@
+zipgrep.doc:	man/zipgrep.1
+	nroff -Tascii -man man/zipgrep.1 | col -b | uniq | expand > $@
 
-zipinfo.doc:	unix/zipinfo.1
-	nroff -Tascii -man unix/zipinfo.1 | col -b | uniq | expand > $@
+zipinfo.doc:	man/zipinfo.1
+	nroff -Tascii -man man/zipinfo.1 | col -b | uniq | expand > $@
 
 
 all:		generic_msg generic
@@ -417,11 +416,11 @@ install:	$(MANS)
 	$(RM) $(BINDIR)/zipinfo$E
 	$(LN) $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E
 	-$(INSTALL_D) $(MANDIR)
-	$(INSTALL) unix/funzip.1 $(MANDIR)/funzip.$(manext)
-	$(INSTALL) unix/unzip.1 $(MANDIR)/unzip.$(manext)
-	$(INSTALL) unix/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
-	$(INSTALL) unix/zipgrep.1 $(MANDIR)/zipgrep.$(manext)
-	$(INSTALL) unix/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
+	$(INSTALL) man/funzip.1 $(MANDIR)/funzip.$(manext)
+	$(INSTALL) man/unzip.1 $(MANDIR)/unzip.$(manext)
+	$(INSTALL) man/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
+	$(INSTALL) man/zipgrep.1 $(MANDIR)/zipgrep.$(manext)
+	$(INSTALL) man/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
 	$(CHMOD) $(BINPERMS) $(INSTALLEDBIN)
 	$(CHMOD) $(MANPERMS) $(INSTALLEDMAN)
 
@@ -541,7 +540,7 @@ generic_shlib:	unix_make
 #----------------------------------------------------------------------------
 
 386i:		unzips	# sun386i, SunOS 4.0.2
-3Bx:		unzips	# AT&T 3B2/1000-80; should work on any WE32XXX machine
+#3Bx:		unzips	# AT&T 3B2/1000-80; should work on any WE32XXX machine
 #aix_rt:		unzips	# IBM RT 6150 under AIX 2.2.1
 bull:		unzips	# Bull DPX/2, BOS 2.00.45 (doesn't require -Xk switch)
 convex:		unzips	# Convex C-120 and C-210 (-O is enough; -ext is default)
@@ -792,6 +791,12 @@ lynx:		unix_make
 minix:		unix_make
 	$(MAKE) unzips CF="$(CF) -DMINIX -DSHORT_NAMES" CC=$(CC) LD=$(CC)
 
+# MPE/iX, the Unix variant for HP 3000 systems.
+mpeix:		unix_make
+	$(MAKE) unzips CC=c89\
+	 CF="$(CF) -DUNIX -D_POSIX_SOURCE -DHAVE_TERMIOS_H -DPASSWD_FROM_STDIN -DNO_PARAM_H"\
+	 LF2=-lbsd CP=cp LN="ln -s"
+
 # NeXT info.
 next:
 	@echo
@@ -825,8 +830,11 @@ nextfat:	unix_make
 
 # IBM OS/390 (formerly MVS) compiled under "OpenEdition" shell
 os390:		unix_make
-	make -f unix/Makefile unzips \
-	 CF="$(CF) -DSYSV -DUNIX -DOS390 -DEBCDIC -DNO_PARAM_H" LF2=""
+	set -x; \
+	$(MAKE) -f unix/Makefile unzips \
+	 CC=c89 LD="\$$(CC) -Wl,EDIT=NO" \
+	 CF="$(CF) -DSYSV -DUNIX -DOS390 -DEBCDIC -DNO_PARAM_H \
+	 -D_ALL_SOURCE $(HOST_VERSINFO)" LF2=""
 
 # Sequent Symmetry running Dynix/ptx (sort of SysV.3):  needs to link
 # with libseq to get symlink().

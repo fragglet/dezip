@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        WINMAIN.H
@@ -60,10 +68,10 @@ extern "C" {
 
 #define PROGRESS_MAX                   32768
 
-#define FILE_ATTRIBUTE_VOLUME     0x00000008
-#define FILE_ATTRIBUTE_ENCRYPTED  0x10000000
-#define FILE_ATTRIBUTE_COMMENT    0x20000000
- 
+#define ZFILE_ATTRIBUTE_VOLUME    0x00000008
+#define ZFILE_ATTRIBUTE_ENCRYPTED 0x10000000
+#define ZFILE_ATTRIBUTE_COMMENT   0x20000000
+
 #define IMAGE_VOLUME                       0
 #define IMAGE_FOLDER                       1
 #define IMAGE_APPLICATION                  2

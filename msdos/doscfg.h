@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
     MS-DOS specific configuration section:
   ---------------------------------------------------------------------------*/
@@ -146,7 +154,9 @@
  * fills in suitable values.
  */
 #ifdef DOS_STAT_BANDAID
-#  undef SSTAT
+#  ifdef SSTAT
+#    undef SSTAT
+#  endif
 #  ifdef WILD_STAT_BUG
 #    define SSTAT(path,pbuf) (iswild(path) || stat_bandaid(path,pbuf))
 #  else
@@ -233,9 +243,9 @@
 #    endif
 #  endif /* ?(code page of 16bit Windows compilers) */
    /* include Win API declarations only in sources where conversion is
-    * actually used (skip EXTRACT_C, extract.c includes windll.h instead)
+    * actually used (skip __EXTRACT_C, extract.c includes windll.h instead)
     */
-#  if defined(ENVARGS_C) || defined(UNZIP_C) || defined(ZCRYPT_INTERNAL)
+#  if defined(__ENVARGS_C) || defined(__UNZIP_C) || defined(ZCRYPT_INTERNAL)
 #    include <windows.h>
 #  endif
    /* use conversion functions of Windows API */
@@ -286,5 +296,9 @@
    int screenlines(void);
    int screencolumns(void);
 #endif
+
+/* on the DOS console screen, line-wraps are always enabled */
+#define SCREENLWRAP 1
+#define TABSIZE 8
 
 #endif /* !__doscfg_h */

@@ -27,14 +27,15 @@ lpUserFunc = pointer to a structure that contains pointers to functions
 The DCL structure is shown below:
 
 typedef struct {
-int ExtractOnlyNewer;   = true if you are to extract only newer
+int ExtractOnlyNewer;   = true for "update" without interaction
+                          (extract only newer/new files, without queries)
 int SpaceToUnderscore;  = true if convert space to underscore
 int PromptToOverwrite;  = true if prompt to overwrite is wanted
 int fQuiet;             = quiet flag. 1 = few messages, 2 = no messages, 0 = all messages
 int ncflag              = write to stdout if true
 int ntflag              = test zip file
 int nvflag              = verbose listing
-int nUflag              = "update" (extract only newer/new files)
+int nfflag              = "freshen" (replace existing files by newer versions)
 int nzflag              = display zip file comment
 int ndflag              = all args are files/dir to be extracted
 int noflag              = true if you are to always over-write files, false if not
@@ -46,6 +47,14 @@ LPSTR lpszZipFN         = zip file name
 LPSTR lpszExtractDir    = Directory to extract to. This should be NULL if you
                           are extracting to the current directory.
 } DCL, far * LPDCL;
+
+REMARK:
+The three extract-mode flags ExtractOnlyNewer, PromptToOverwrite, and noflag
+are considered to exclude each other. exactly ONE of these flags should be
+selected (= set to TRUE).
+The fflag switch is a modifier for ExtractOnlyNewer that prevents the
+creation of new files; it should only be used in conjunction with the
+ExtractOnlyNewer switch.
 
 The typedef's for the function pointers in the structure USERFUNCTIONS
 are shown immediately below.
@@ -90,16 +99,16 @@ unsigned long TotalSizeComp = value to be filled in by the dll for the
                           header and central directory list.
 unsigned long TotalSize = value to be filled in by the dll for the total
                           size of all files in the archive.
-int CompFactor          = value to be filled in by the dll for the overall
+unsigned long CompFactor = value to be filled in by the dll for the overall
                           compression factor. This could actually be computed
                           from the other values, but it is available.
-unsigned int NumMembers = total number of files in the archive.
+unsigned long NumMembers = total number of files in the archive.
 WORD cchComment;        = flag to be set if archive has a comment
 } USERFUNCTIONS, far * LPUSERFUNCTIONS;
 
 For examples of how the actual calls to the dll are set up in WiZ, look in
 the files action.c and wizmain.c in the WiZ source directory. For a trival
-example of how to load and call the dll, look in example.c and example.h.
+example of how to load and call the dll, look in uzexampl.c and uzexampl.h.
 
 For examples of how the actual loading and unloading of the dll's themselves
 was done, look in wizmain.c in the WiZ source directory. Note that WiZ looks
@@ -250,6 +259,6 @@ Note that you should use either windll_unzip OR the series of calls
 described above. Using both, depending on how you do it, could cause
 problems.
 
-Last revised June 13, 1998.
+Last revised June 21, 1999.
 
-Mike White
+Mike White, Christian Spieler

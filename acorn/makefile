@@ -1,5 +1,5 @@
-# Makefile for UnZip, UnZipSFX, ZipInfo and fUnZip (5.2 or later)
-# last modified:  18 Apr 96
+# Makefile for UnZip, UnZipSFX, ZipInfo and fUnZip (5.41 or later)
+# last modified:  27 Oct 1999
 
 # add -g to CC to debug
 # add -d to BIND to debug
@@ -16,7 +16,7 @@ E    =
 #   LFLAGS2   flags after obj file list (libraries, etc)
 #
 LIB      =
-CFLAGS   = -throwback -wn
+CFLAGS   = -throwback -wn -DNO_STRNICMP
 CFLAGS   = $(CFLAGS) -IC:,@.
 ASMFLAGS = -Throwback -Stamp -NoCache -CloseExec -quit
 LFLAGS1  =

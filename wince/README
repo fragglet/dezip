@@ -3,11 +3,10 @@ _______________________________________________________________________________
    This is the Windows CE Info-ZIP port README, last updated 5 April 1997.
 _______________________________________________________________________________
 
-Contents of the "WinCE" subdirectory for UnZip 5.30 and later:
+Contents of the "WinCE" subdirectory for UnZip 5.41 and later:
 
    README       This file.
    Contents     A file containing this Contents list.
-   punzip.dsp   Visual C++ 5.0 project for WinCE (SH3 and MIPS) and WinNT.
    punzip.h     Main header file for the entire Pocket UnZip project.
    winmain.cpp  Contains the entire user interface and all Windows code.
    winmain.h    Header for winmain.cpp.
@@ -29,6 +28,10 @@ Contents of the "WinCE" subdirectory for UnZip 5.30 and later:
    toolbar.bmp  Windows NT toolbar bitmap (16 bits/pixel).
    punzip.htp   Windows CE help file (rename to punzip.html for WinNT).
    inc\         Contains dummy headers that are called by Info-ZIP code.
+   vc5\
+     punzip.dsp   Visual C++ 5.0 project for WinCE (SH3 and MIPS) and WinNT.
+   vc6\
+     punzip.dsp   Visual C++ 6.0 project for WinCE (SH3 and MIPS) and WinNT.
 
 _______________________________________________________________________________
 
@@ -36,7 +39,7 @@ _______________________________________________________________________________
 _______________________________________________________________________________
 
 Copyright
-     
+
      All the source files for Pocket UnZip, except for components
      written by the Info-ZIP group, are copyrighted 1997 by Steve P.
      Miller.  The product "Pocket UnZip" itself is property of the
@@ -44,7 +47,7 @@ Copyright
      from Steve P. Miller.
 
 Disclaimer
-     
+
      All project files are provided "as is" with no guarantee of
      their correctness.  The authors are not liable for any outcome
      that is the result of using this source.  The source for Pocket

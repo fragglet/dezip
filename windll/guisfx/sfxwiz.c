@@ -1,6 +1,19 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 #include <windows.h>
 #include <stdio.h>
 #ifdef WIN32
+#  if defined(__LCC__)
+#    include <string.h>
+#    include <commdlg.h>
+#    include <dlgs.h>
+#  endif
    #include <shlobj.h>
 #else
    #include <mem.h>
@@ -36,7 +49,7 @@ HWND hWnd;
 #endif
 
 #ifndef _MAX_PATH
-#define _MAX_PATH PATH_MAX
+#define _MAX_PATH 260
 #endif
 
 int WINAPI password(LPSTR p, int n, LPCSTR m, LPCSTR name);
@@ -196,7 +209,7 @@ HWND hTemp;
             EndDialog(hwndDlg, FALSE);
             break;
          case IDOK:
-            getcwd(szTarget, PATH_MAX);
+            getcwd(szTarget, MAX_PATH);
             EndDialog(hwndDlg, TRUE);
             break;
          }
@@ -225,10 +238,10 @@ BOOL FAR PASCAL InitDialogProc (HWND hDlg, WORD wMsg, WORD wParam, LONG lParam) 
          SetDlgItemText(hDlg,ID_TARGET,(LPSTR)szTarget);
 
 #ifdef WIN32
-         GetCurrentDirectory(PATH_MAX, szHomeDir);
+         GetCurrentDirectory(MAX_PATH, szHomeDir);
          SetCurrentDirectory(szTarget);
 #else
-         getcwd(szHomeDir, PATH_MAX);
+         getcwd(szHomeDir, MAX_PATH);
          chdir(szTarget);
          setdisk(toupper(szTarget[0]) - 'A');
 #endif
@@ -259,9 +272,9 @@ BOOL FAR PASCAL InitDialogProc (HWND hDlg, WORD wMsg, WORD wParam, LONG lParam) 
                 ofn.nFilterIndex = 1;
 
                 ofn.lpstrFile = szTemp;
-                ofn.nMaxFile = PATH_MAX;
+                ofn.nMaxFile = MAX_PATH;
                 ofn.lpstrFileTitle = NULL;
-                ofn.nMaxFileTitle = PATH_MAX; /* ignored ! */
+                ofn.nMaxFileTitle = MAX_PATH; /* ignored ! */
                 ofn.lpstrTitle = (LPSTR)"Set Extraction Directory";
                 ofn.lpstrInitialDir = NULL;
                 ofn.Flags = OFN_ENABLEHOOK |
@@ -309,12 +322,13 @@ BOOL FAR PASCAL InitDialogProc (HWND hDlg, WORD wMsg, WORD wParam, LONG lParam) 
                lpDCL->fQuiet = 0; // If not zero, no status messages will come through
                lpDCL->ntflag = 0;
                lpDCL->nvflag = 0;
-               lpDCL->nUflag = 0;
                lpDCL->nzflag = 0;
                lpDCL->ndflag = 1;
-               lpDCL->noflag = 0;
                lpDCL->naflag = 0;
+               lpDCL->nfflag = 0;
+               lpDCL->noflag = 0;
                lpDCL->PromptToOverwrite = 1;
+               lpDCL->ExtractOnlyNewer = 0;
                lpDCL->lpszZipFN = zfn;
                lpDCL->lpszExtractDir = NULL;
                iReturn = Wiz_SingleEntryUnzip(0, NULL, 0, NULL, lpDCL, lpUserFunctions);
@@ -513,7 +527,7 @@ ptr = strrchr(szThisApp, '\\');
 //    NULL,               /* address of search path               */
 //    szThisApp,          /* address of filename                  */
 //    NULL,               /* address of extension                 */
-//    PATH_MAX,           /* size, in characters, of buffer       */
+//    MAX_PATH,           /* size, in characters, of buffer       */
 //    szThisApp,          /* address of buffer for found filename */
 //    &ptr                /* address of pointer to file component */
 //   ) != 0)

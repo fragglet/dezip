@@ -9,6 +9,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Glenn Andrews          MS-DOS makefiles; prototyping bugfix; bogus main() fix
   Andrei Arkhipov        Solaris 2.x package files
   Joel Aycock            descrip.mms bugfix
+  Vance Baarda           Novell Netware 4.x NLM port
   Eric Baatz             Borland version() info; Solaris zipgrep packaging fix
   Bob Babcock            DOS volume-label code (FCBs)
   Charles Bailey         VMS_SEVERITY fix; VMSWILD () extension
@@ -22,6 +23,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Carlton Brewster       mapname bugfix
   Rodney Brown           stdin-/dev/null bugfix; VMS error levels; CRC optimiz.
   Stan Brown             "zipinfo -M"/isatty(1) bugfix
+  Jens von Buelow        port to MPE/iX, a Unix variant running on HP 3000
   John Bush              first full Amiga port; FileDate; Amiga fixes; etc.
   Christian Carey        Unix makefile bugfix for install target (create dirs)
   Valter Cavecchia       Unix makefile entry
@@ -39,6 +41,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Kim DeVaughn           Unix makefile entry
   Arjan de Vet           various things, but I don't remember exactly what...
   Frank Donahoe          djgpp v2.x makefile; documentation updates
+  Jean-Michel Dubois     THEOS port
   James Dugal            ZMEM stuff; unshrink bugfix; file perms stuff; etc.
   Jim Dumser             -z stuff; umask, opendir/Borland, UID fixes; etc.
   Peter Eckel            DOS buffer-overrun fix
@@ -158,6 +161,8 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   "Moby" Dick O'Connor   Unix makefile entry
   Thomas Opheys          Watcom C stat() bugfix
   Humberto Ortiz-Zuazaga Linux port; permissions bugfix; missing declarations
+  Keith Owens            MVS support and extensions
+  Fernando Papa          inflate memory leaks
   Rafael Pappalardo      Convex CRYPT bugfix; Convex Makefile entry, useful info
   Trevor Paquette        Unix makefile entry
   Keith Petersen         Pyramid fixes; former Info-ZIP list maintainer
@@ -177,6 +182,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Greg Roelofs           maintainer/principal author; ZipInfo; unshrink; etc.
   Kai Uwe Rommel         "real" OS/2 port; many new compilers; bugfixes; etc.
   Paul Roub              first self-extracting code
+  Shimazaki Ryo          human68k port updates
   Steve Salisbury        Win32 fixes; dual-mode SFX instruct.; variable INBUFSIZ
   Darren Salt            Acorn filetype <-> "Acorn NFS filetype" translation
   Georg Sassen           Amiga DICE compiler support
@@ -231,4 +237,4 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Meiwei Wu              open() return bugfix
   Clay Zahrobsky         .zip/wildcard bugfix
   Eli Zaretskii          improvements to DOS-mode VFAT support; djgpp 2.x fixes
-  Martin Zinser          VMS .hlp file for unzipsfx; MAKESFX.COM command file
+  Martin P.J. Zinser     VMS .hlp file for unzipsfx; MAKESFX.COM command file

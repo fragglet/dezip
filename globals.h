@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   globals.h
@@ -153,17 +161,20 @@ typedef struct Globals {
     /* internal flags and general globals */
 #ifdef MORE
     int height;           /* check for SIGWINCH, etc., eventually... */
-#endif                    /* (take line-wrapping into account?) */
+    int lines;            /* count of lines displayed on current screen */
+# if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
+    int width;
+    int chars;            /* count of screen characters in current line */
+# endif
+#endif /* MORE */
 #if (defined(IZ_CHECK_TZ) && defined(USE_EF_UT_TIME))
     int tz_is_valid;      /* indicates that timezone info can be used */
-#endif
-#ifdef WINDLL
-    int prompt_always;    /* prompt to overwrite if TRUE */
 #endif
     int noargs;           /* did true command line have *any* arguments? */
     unsigned filespecs;   /* number of real file specifications to be matched */
     unsigned xfilespecs;  /* number of excluded filespecs to be matched */
     int process_all_files;
+    int overwrite_mode;   /* 0 - query, 1 - always, 2 - never */
     int create_dirs;      /* used by main(), mapname(), checkdir() */
     int extract_flag;
     int newzip;           /* reset in extract.c; used in crypt.c */
@@ -281,11 +292,11 @@ typedef struct Globals {
 #endif /* !FUNZIP */
     ulg keys[3];       /* crypt static: keys defining pseudo-random sequence */
 
-#if (!defined(DOS_FLX_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
+#if (!defined(DOS_FLX_H68_NLM_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
 #if (!defined(MACOS) && !defined(ATARI) && !defined(VMS))
     int echofd;        /* ttyio static: file descriptor whose echo is off */
 #endif /* !(MACOS || ATARI || VMS) */
-#endif /* !(DOS_FLX_H68_OS2_W32 || AMIGA || RISCOS) */
+#endif /* !(DOS_FLX_H68_NLM_OS2_W32 || AMIGA || RISCOS) */
 
     unsigned hufts;    /* track memory usage */
 

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   acorn.c
@@ -27,10 +35,12 @@
 
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
+static int has_mimemap = -1;   /* used in mimemap() */
 
 extern int mkdir(const char *path, int mode);
 static int has_NFS_ext(const char *name);
 static int uxtime2acornftime(unsigned *pexadr, unsigned *pldadr, time_t ut);
+static int mimemap(const char *name);
 
 
 #ifndef SFX
@@ -41,23 +51,25 @@ static int uxtime2acornftime(unsigned *pexadr, unsigned *pldadr, time_t ut);
 
 char *do_wild(__G__ wildspec)
     __GDEF
-    char *wildspec;         /* only used first time on a given dir */
+    ZCONST char *wildspec;  /* only used first time on a given dir */
 {
-    static DIR *dir = (DIR *)NULL;
-    static char *dirname, *wildname, matchname[FILNAMSIZ];
-    static int firstcall=TRUE, have_dirname, dirnamelen;
+    static DIR *wild_dir = (DIR *)NULL;
+    static ZCONST char *wildname;
+    static char *dirname, matchname[FILNAMSIZ];
+    static int notfirstcall=FALSE, have_dirname, dirnamelen;
     struct dirent *file;
-
 
     /* Even when we're just returning wildspec, we *always* do so in
      * matchname[]--calling routine is allowed to append four characters
      * to the returned string, and wildspec may be a pointer to argv[].
      */
-    if (firstcall) {        /* first call:  must initialize everything */
-        firstcall = FALSE;
+    if (!notfirstcall) {    /* first call:  must initialize everything */
+        notfirstcall = TRUE;
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, '.')) == (char *)NULL) {
+        if ((wildname = (ZCONST char *)strrchr(wildspec, '.')) ==
+            (ZCONST char *)NULL)
+        {
             dirname = ".";
             dirnamelen = 1;
             have_dirname = FALSE;
@@ -76,8 +88,8 @@ char *do_wild(__G__ wildspec)
             have_dirname = TRUE;
         }
 
-        if ((dir = opendir(dirname)) != (DIR *)NULL) {
-            while ((file = readdir(dir)) != (struct dirent *)NULL) {
+        if ((wild_dir = opendir(dirname)) != (DIR *)NULL) {
+            while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
                 if (file->d_name[0] == '/' && wildname[0] != '/')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
                 if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
@@ -90,8 +102,8 @@ char *do_wild(__G__ wildspec)
                 }
             }
             /* if we get to here directory is exhausted, so close it */
-            closedir(dir);
-            dir = (DIR *)NULL;
+            closedir(wild_dir);
+            wild_dir = (DIR *)NULL;
         }
 
         /* return the raw wildspec in case that works (e.g., directory not
@@ -101,8 +113,8 @@ char *do_wild(__G__ wildspec)
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == (DIR *)NULL) {
-        firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
+    if (wild_dir == (DIR *)NULL) {
+        notfirstcall = FALSE; /* nothing left to try--reset for new wildspec */
         if (have_dirname)
             free(dirname);
         return (char *)NULL;
@@ -112,7 +124,7 @@ char *do_wild(__G__ wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != (struct dirent *)NULL)
+    while ((file = readdir(wild_dir)) != (struct dirent *)NULL)
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
@@ -122,9 +134,9 @@ char *do_wild(__G__ wildspec)
             return matchname;
         }
 
-    closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = (DIR *)NULL;
-    firstcall = TRUE;  /* reset for new wildspec */
+    closedir(wild_dir); /* have read at least one dir entry; nothing left */
+    wild_dir = (DIR *)NULL;
+    notfirstcall = FALSE;   /* reset for new wildspec */
     if (have_dirname)
         free(dirname);
     return (char *)NULL;
@@ -135,7 +147,6 @@ char *do_wild(__G__ wildspec)
 
 
 
-
 /**************************/
 /* Function has_NFS_ext() */
 /**************************/
@@ -143,6 +154,7 @@ char *do_wild(__G__ wildspec)
 static int has_NFS_ext(const char* name)
 {
   int i = strlen(name) - 4;
+
   return (i >= 0 && name[i] == ',' && (i > 0 || name[i-1]=='/') &&
           isxdigit(name[i+1]) && isxdigit(name[i+2]) && isxdigit(name[i+3]));
 } /* end function has_NFS_ext() */
@@ -163,9 +175,16 @@ int mapattr(__G)
             tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
             G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
             break;
+        case THEOS_:
+            tmp &= 0xF1FFFFFFL;
+            if ((tmp & 0xF0000000L) != 0x40000000L)
+                tmp &= 0x01FFFFFFL;     /* not a dir, mask all ftype bits */
+            else
+                tmp &= 0x41FFFFFFL;     /* leave directory bit as set */
+            /* fall through! */
+        case ACORN_:
         case UNIX_:
         case VMS_:
-        case ACORN_:
         case ATARI_:
         case BEOS_:
         case QDOS_:
@@ -225,12 +244,35 @@ int mapattr(__G)
             /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
+            /* PKWARE's PKZip for Unix marks entries as FS_FAT_, but stores the
+             * Unix attributes in the upper 16 bits of the external attributes
+             * field, just like Info-ZIP's Zip for Unix.  We try to use that
+             * value, after a check for consistency with the MSDOS attribute
+             * bits (see below).
+             */
+            G.pInfo->file_attr = (unsigned)(tmp >> 16);
+            /* fall through! */
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
         case TOPS20_:
         default:
-            tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
+            /* Ensure that DOS subdir bit is set when the entry's name ends
+             * in a '/'.  Some third-party Zip programs fail to set the subdir
+             * bit for directory entries.
+             */
+            if ((tmp | 0x10) == 0) {
+                extent fnlen = strlen(G.filename);
+                if (fnlen > 0 && G.filename[fnlen-1] == '/')
+                    tmp |= 0x10;
+            }
+            /* read-only bit --> write perms; subdir bit --> dir exec bit */
+            tmp = !(tmp & 1) << 1  |  (tmp & 0x10) >> 4;
+            if ((G.pInfo->file_attr & 0700) == (unsigned)(0400 | tmp<<6))
+                /* keep previous G.pInfo->file_attr setting, when its "owner"
+                 * part appears to be consistent with DOS attribute flags!
+                 */
+                break;
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
     } /* end switch (host-OS-created-by) */
@@ -243,9 +285,11 @@ int mapattr(__G)
       int ftype=strtol(G.filename+strlen(G.filename)-3,NULL,16)&0xFFF;
 
       G.pInfo->file_attr = (G.pInfo->file_attr & 0x000FFFFF) | (ftype<<20);
-    }
-    else if (G.crec.internal_file_attributes & 1) {
-      G.pInfo->file_attr = (G.pInfo->file_attr & 0x000FFFFF) | (0xFFFu<<20);
+    } else {
+      int type = mimemap(G.filename);
+      if (type == -1)
+        type = (G.crec.internal_file_attributes & 1) ? 0xFFF : 0xFFD;
+      G.pInfo->file_attr = (G.pInfo->file_attr & 0x000FFFFF) | (type<<20);
     }
 
     return 0;
@@ -253,6 +297,34 @@ int mapattr(__G)
 } /* end function mapattr() */
 
 
+
+/************************/
+/*  Function mimemap()  */
+/************************/
+
+static int mimemap(const char *name)
+{
+  const char *ext = name;
+  int type;
+
+  if (has_mimemap < 0)
+    has_mimemap =
+         !(SWI_OS_CLI("%RMEnsure MimeMap 0.05 RMLoad System:Modules.MimeMap")
+           || SWI_OS_CLI("%RMEnsure MimeMap 0.05"));
+
+  if (!has_mimemap)
+    return -1; /* no MimeMap module; fall back on text flag test */
+
+  do {
+    while (*ext && *ext!='.')
+      ext++;
+    if (!*ext)
+      return -1; /* no suitable extension; fallback */
+    type = SWI_MimeMap_Translate(ext++);
+  } while (type == -1);
+
+  return type;
+}
 
 
 
@@ -330,11 +402,11 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 break;
 
             case ' ':             /* change spaces to hard-spaces */
-                *pp++ = 160;
+                *pp++ = 160;      /* (ISO 8859-1 Latin-1 codepage) */
                 break;
 
-            case ':':             /* change ':' to '¦' */
-                *pp++ = '¦';
+            case ':':             /* change ':' to '¦' (vertical broken bar) */
+                *pp++ = '\xA6';   /* (position 166 in ISO 8859-1 code table) */
                 break;
 
             case '&':             /* change '&' to 'E' */
@@ -591,34 +663,45 @@ int checkdir(__G__ pathcomp, flag)
             rootlen = 0;
             return 0;
         }
+        if (rootlen > 0)        /* rootpath was already set, nothing to do */
+            return 0;
         if ((rootlen = strlen(pathcomp)) > 0) {
-            if (pathcomp[rootlen-1] == '.') {    /****** was '/' ********/
-                pathcomp[--rootlen] = '\0';
-            }
-            if (rootlen > 0 && (stat(pathcomp, &G.statbuf) ||
-                                !S_ISDIR(G.statbuf.st_mode))) {
-                /* path does not exist */
-                if (!G.create_dirs /* || isshexp(pathcomp) */ ) {
-                    rootlen = 0;
-                    return 2;   /* skip (or treat as stored file) */
-                }
-                /* create the directory (could add loop here to scan pathcomp
-                 * and create more than one level, but why really necessary?) */
-                if (mkdir(pathcomp, 0777) == -1) {
-                    Info(slide, 1, ((char *)slide,
-                      "checkdir:  cannot create extraction directory: %s\n",
-                      pathcomp));
-                    rootlen = 0;   /* path didn't exist, tried to create, and */
-                    return 3;  /* failed:  file exists, or 2+ levels required */
-                }
-            }
-            if ((rootpath = (char *)malloc(rootlen+2)) == (char *)NULL) {
+            char *tmproot;
+
+            if ((tmproot = (char *)malloc(rootlen+2)) == (char *)NULL) {
                 rootlen = 0;
                 return 10;
             }
-            strcpy(rootpath, pathcomp);
-            rootpath[rootlen++] = '.';   /*********** was '/' *************/
-            rootpath[rootlen] = '\0';
+            strcpy(tmproot, pathcomp);
+            if (tmproot[rootlen-1] == '.') {    /****** was '/' ********/
+                tmproot[--rootlen] = '\0';
+            }
+            if (rootlen > 0 && (stat(tmproot, &G.statbuf) ||
+                                !S_ISDIR(G.statbuf.st_mode)))
+            {   /* path does not exist */
+                if (!G.create_dirs /* || isshexp(tmproot) */ ) {
+                    free(tmproot);
+                    rootlen = 0;
+                    return 2;   /* skip (or treat as stored file) */
+                }
+                /* create the directory (could add loop here scanning tmproot
+                 * to create more than one level, but why really necessary?) */
+                if (mkdir(tmproot, 0777) == -1) {
+                    Info(slide, 1, ((char *)slide,
+                      "checkdir:  cannot create extraction directory: %s\n",
+                      tmproot));
+                    free(tmproot);
+                    rootlen = 0;  /* path didn't exist, tried to create, and */
+                    return 3; /* failed:  file exists, or 2+ levels required */
+                }
+            }
+            tmproot[rootlen++] = '.';   /*********** was '/' *************/
+            tmproot[rootlen] = '\0';
+            if ((rootpath = (char *)realloc(tmproot, rootlen+1)) == NULL) {
+                free(tmproot);
+                rootlen = 0;
+                return 10;
+            }
             Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
         return 0;
@@ -670,21 +753,20 @@ int mkdir(path, mode)
 
 int isRISCOSexfield(void *extra_field)
 {
- if (extra_field!=NULL) {
-   extra_block *block=(extra_block *)extra_field;
-   return(block->ID==EF_SPARK && (block->size==24 || block->size==20) &&
-          block->ID_2==SPARKID_2);
- }
- else
-   return FALSE;
+  if (extra_field!=NULL) {
+    extra_block *block=(extra_block *)extra_field;
+    return (block->ID==EF_SPARK && (block->size==24 || block->size==20) &&
+            block->ID_2==SPARKID_2);
+  } else
+    return FALSE;
 }
 
 void setRISCOSexfield(char *path, void *extra_field)
 {
- if (extra_field!=NULL) {
-   extra_block *block=(extra_block *)extra_field;
-   SWI_OS_File_1(path,block->loadaddr,block->execaddr,block->attr);
- }
+  if (extra_field!=NULL) {
+    extra_block *block=(extra_block *)extra_field;
+    SWI_OS_File_1(path,block->loadaddr,block->execaddr,block->attr);
+  }
 }
 
 void printRISCOSexfield(int isdir, void *extra_field)
@@ -695,12 +777,10 @@ void printRISCOSexfield(int isdir, void *extra_field)
  if (isdir) {
 /*   I prefer not to print this string... should change later... */
 /*   printf("  The file is a directory.\n");*/
- }
- else if ((block->loadaddr & 0xFFF00000) != 0xFFF00000) {
+ } else if ((block->loadaddr & 0xFFF00000) != 0xFFF00000) {
    printf("  Load address: %.8X\n",block->loadaddr);
    printf("  Exec address: %.8X\n",block->execaddr);
- }
- else {
+ } else {
    /************* should change this to use OS_FSControl 18 to get filetype string ************/
    char tmpstr[16];
    char ftypestr[32];
@@ -709,8 +789,7 @@ void printRISCOSexfield(int isdir, void *extra_field)
    if (SWI_OS_ReadVarVal(tmpstr,ftypestr,32,&flen)==NULL) {
      ftypestr[flen]=0;
      printf("  Filetype: %s (&%.3X)\n",ftypestr,(block->loadaddr & 0x000FFF00) >> 8);
-   }
-   else {
+   } else {
      printf("  Filetype: &%.3X\n",(block->loadaddr & 0x000FFF00) >> 8);
    }
  }
@@ -759,50 +838,49 @@ static int uxtime2acornftime(unsigned *pexadr, unsigned *pldadr, time_t ut)
 void close_outfile(__G)
     __GDEF
 {
- fclose(G.outfile);
+  fclose(G.outfile);
 
- if (isRISCOSexfield(G.extra_field)) {
-   setRISCOSexfield(G.filename, G.extra_field);
- }
- else {
-   unsigned int loadaddr, execaddr;
-   int attr;
-   int mode=G.pInfo->file_attr&0xffff;   /* chmod equivalent mode */
+  if (isRISCOSexfield(G.extra_field)) {
+    setRISCOSexfield(G.filename, G.extra_field);
+  } else {
+    unsigned int loadaddr, execaddr;
+    int attr;
+    int mode=G.pInfo->file_attr&0xffff;   /* chmod equivalent mode */
 
-   time_t m_time;
+    time_t m_time;
 #ifdef USE_EF_UT_TIME
-   iztimes z_utime;
+    iztimes z_utime;
 #endif
 
 #ifdef USE_EF_UT_TIME
-   if (G.extra_field &&
+    if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
-       G.tz_is_valid &&
+        G.tz_is_valid &&
 #endif
-       (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                         G.lrec.last_mod_dos_datetime, &z_utime, NULL)
-        & EB_UT_FL_MTIME))
-   {
-       TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-         z_utime.mtime));
-       m_time = z_utime.mtime;
-   } else
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
+    {
+        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+          z_utime.mtime));
+        m_time = z_utime.mtime;
+    } else
 #endif /* USE_EF_UT_TIME */
-       m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+        m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
 
-   /* set the file's modification time */
-   SWI_OS_File_5(G.filename, NULL, &loadaddr, NULL, NULL, &attr);
+    /* set the file's modification time */
+    SWI_OS_File_5(G.filename, NULL, &loadaddr, NULL, NULL, &attr);
 
-   uxtime2acornftime(&execaddr, &loadaddr, m_time);
+    uxtime2acornftime(&execaddr, &loadaddr, m_time);
 
-   loadaddr = (loadaddr & 0xfff000ffU) |
-              ((G.pInfo->file_attr&0xfff00000) >> 12);
+    loadaddr = (loadaddr & 0xfff000ffU) |
+               ((G.pInfo->file_attr&0xfff00000) >> 12);
 
-   attr=(attr&0xffffff00) | ((mode&0400) >> 8) | ((mode&0200) >> 6) |
-                            ((mode&0004) << 2) | ((mode&0002) << 4);
+    attr=(attr&0xffffff00) | ((mode&0400) >> 8) | ((mode&0200) >> 6) |
+                             ((mode&0004) << 2) | ((mode&0002) << 4);
 
-   SWI_OS_File_1(G.filename, loadaddr, execaddr, attr);
- }
+    SWI_OS_File_1(G.filename, loadaddr, execaddr, attr);
+  }
 
 } /* end function close_outfile() */
 

@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   unshrink.c                     version 1.21                     23 Nov 95
@@ -57,8 +65,9 @@
   ---------------------------------------------------------------------------*/
 
 
+#define __UNSHRINK_C    /* identifies this source module */
 #define UNZIP_INTERNAL
-#include "unzip.h"       /* defines LZW_CLEAN by default */
+#include "unzip.h"      /* defines LZW_CLEAN by default */
 
 
 #ifndef LZW_CLEAN
@@ -219,12 +228,14 @@ int unshrink(__G)
                 OUTDBG(*p)
                 if (++G.outcnt == outbufsiz) {
                     Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
-                    if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0)
-                        fprintf(stderr, "unshrink:  flush() error (%d)\n",
-                          error);
-                    Trace((stderr, "done with flush()\n"));
+                    if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0) {
+                        Trace((stderr, "unshrink:  flush() error (%d)\n",
+                          error));
+                        return error;
+                    }
                     G.outptr = realbuf;
                     G.outcnt = 0L;
+                    Trace((stderr, "done with flush()\n"));
                 }
             }
         }
@@ -253,8 +264,10 @@ int unshrink(__G)
 
     if (G.outcnt > 0L) {
         Trace((stderr, "doing final flush(), outcnt = %lu\n", G.outcnt));
-        if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0)
-            fprintf(stderr, "unshrink:  flush() error (%d)\n", error);
+        if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0) {
+            Trace((stderr, "unshrink:  flush() error (%d)\n", error));
+            return error;
+        }
         Trace((stderr, "done with flush()\n"));
     }
 

@@ -94,6 +94,9 @@ unzipsfx.exe:   $(OBJX)
 $(OBJX)
 |
 
+uzexampl.exe:   uzexampl.obj
+	$(CC) $(LDFLAGS) -euzexampl.exe uzexampl.obj version.lib
+
 clean:
 	rem Ignore any errors in the following...
 	-del *.obj
@@ -162,3 +165,6 @@ win32x.obj:     win32/win32.c $(UNZIP_H)
 
 ntx.obj:        win32/nt.c $(UNZIP_H)
 	$(CC) -c $(SXFLAGS) -DSFX -ontx.obj win32/nt.c
+
+uzexampl.obj:   windll/uzexampl.c windll/uzexampl.h
+	$(CC) -c $(UNFLAGS) -I./windll -ouzexampl.obj windll/uzexampl.c

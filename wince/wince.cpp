@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        WINCE.CPP
@@ -40,7 +48,7 @@
 //              sprintf
 //              _stricmp
 //              _strupr
-//              strrchr
+//              strrchr                 (non-_MBCS only)
 //              localtime
 //              isupper
 //              stat
@@ -72,7 +80,7 @@ extern "C" {
 void DebugOut(LPCTSTR szFormat, ...) {
    TCHAR szBuffer[512] = TEXT("PUNZIP: ");
 
-   va_list pArgs; 
+   va_list pArgs;
    va_start(pArgs, szFormat);
    _vsntprintf(szBuffer + 8, countof(szBuffer) - 10, szFormat, pArgs);
    va_end(pArgs);
@@ -119,7 +127,7 @@ int __cdecl chmod(const char *filename, int pmode) {
    DWORD dwAttribs = (pmode & _S_IWRITE) ? FILE_ATTRIBUTE_NORMAL : FILE_ATTRIBUTE_READONLY;
 
    TCHAR szPath[_MAX_PATH];
-   mbstowcs(szPath, filename, countof(szPath));
+   MBSTOTSTR(szPath, filename, countof(szPath));
    return (SetFileAttributes(szPath, dwAttribs) ? 0 : -1);
 }
 
@@ -140,10 +148,10 @@ int __cdecl isatty(int handle) {
 //******************************************************************************
 //-- Called from extract.c, fileio.c, process.c
 long __cdecl lseek(int handle, long offset, int origin) {
-   // SEEK_SET, SEEK_CUR, SEEK_END are equal to FILE_BEGIN, FILE_CURRENT, FILE_END   
+   // SEEK_SET, SEEK_CUR, SEEK_END are equal to FILE_BEGIN, FILE_CURRENT, FILE_END
    return SetFilePointer((HANDLE)handle, offset, NULL, origin);
 }
-                 
+
 //******************************************************************************
 //-- Called from fileio.c
 int __cdecl open(const char *filename, int oflag, ...) {
@@ -151,7 +159,7 @@ int __cdecl open(const char *filename, int oflag, ...) {
    // The Info-Zip code currently only opens existing ZIP files for read using open().
 
    TCHAR szPath[_MAX_PATH];
-   mbstowcs(szPath, filename, countof(szPath));
+   MBSTOTSTR(szPath, filename, countof(szPath));
    HANDLE hFile = CreateFile(szPath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
                              NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
    return ((hFile == INVALID_HANDLE_VALUE) ? -1 : (int)hFile);
@@ -178,7 +186,7 @@ int __cdecl unlink(const char *filename) {
    // Called to delete files before an extract overwrite.
 
    TCHAR szPath[_MAX_PATH];
-   mbstowcs(szPath, filename, countof(szPath));
+   MBSTOTSTR(szPath, filename, countof(szPath));
    return (DeleteFile(szPath) ? 0: -1);
 }
 
@@ -238,7 +246,7 @@ FILE * __cdecl fopen(const char *filename, const char *mode) {
    }
 
    TCHAR szPath[_MAX_PATH];
-   mbstowcs(szPath, filename, countof(szPath));
+   MBSTOTSTR(szPath, filename, countof(szPath));
    HANDLE hFile = CreateFile(szPath, dwAccess, FILE_SHARE_READ | FILE_SHARE_WRITE,
                              NULL, dwCreate, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -256,14 +264,18 @@ FILE * __cdecl fopen(const char *filename, const char *mode) {
 //******************************************************************************
 //-- Called from unshrink.c
 int __cdecl fprintf(FILE *stream, const char *format, ...) {
-   
+
    // All standard output/error in Info-ZIP is handled through fprintf()
    if ((stream == stdout) || (stream == stderr)) {
       return 1;
    }
 
    // "stream" always equals "stderr" or "stdout" - log error if we see otherwise.
+#ifdef UNICODE
    DebugOut(TEXT("WARNING: fprintf(0x%08X, \"%S\", ...) called."), stream, format);
+#else
+   DebugOut(TEXT("WARNING: fprintf(0x%08X, \"%s\", ...) called."), stream, format);
+#endif
    return 0;
 }
 
@@ -281,18 +293,18 @@ int __cdecl putc(int c, FILE *stream) {
 }
 
 //******************************************************************************
-//-- Called from intrface.c, extract.c, fileio.c, list.c, process.c
+//-- Called from intrface.cpp, extract.c, fileio.c, list.c, process.c
 int __cdecl sprintf(char *buffer, const char *format, ...) {
 
    WCHAR wszBuffer[512], wszFormat[512];
 
-   mbstowcs(wszFormat, format, countof(wszFormat));
+   MBSTOTSTR(wszFormat, format, countof(wszFormat));
    BOOL fPercent = FALSE;
    for (WCHAR *pwsz = wszFormat; *pwsz; pwsz++) {
       if (*pwsz == L'%') {
          fPercent = !fPercent;
-      } else if (fPercent && (((*pwsz >= L'a') && (*pwsz <= L'z')) || 
-                              ((*pwsz >= L'A') && (*pwsz <= L'Z')))) 
+      } else if (fPercent && (((*pwsz >= L'a') && (*pwsz <= L'z')) ||
+                              ((*pwsz >= L'A') && (*pwsz <= L'Z'))))
       {
          if (*pwsz == L's') {
             *pwsz = L'S';
@@ -303,12 +315,12 @@ int __cdecl sprintf(char *buffer, const char *format, ...) {
       }
    }
 
-   va_list pArgs; 
+   va_list pArgs;
    va_start(pArgs, format);
    _vsntprintf(wszBuffer, countof(wszBuffer), wszFormat, pArgs);
    va_end(pArgs);
 
-   wcstombs(buffer, wszBuffer, countof(wszBuffer));
+   TSTRTOMBS(buffer, wszBuffer, countof(wszBuffer));
 
    return 0;
 }
@@ -317,7 +329,7 @@ int __cdecl sprintf(char *buffer, const char *format, ...) {
 //***** STRING.H functions
 //******************************************************************************
 
-//-- Called from winmain.c
+//-- Called from winmain.cpp
 int __cdecl _stricmp(const char *string1, const char *string2) {
    while (*string1 && ((*string1 | 0x20) == (*string2 | 0x20))) {
       string1++;
@@ -327,7 +339,7 @@ int __cdecl _stricmp(const char *string1, const char *string2) {
 }
 
 //******************************************************************************
-//-- Called from winmain.c
+//-- Called from intrface.cpp and winmain.cpp
 char* __cdecl _strupr(char *string) {
    while (*string) {
       if ((*string >= 'a') && (*string <= 'z')) {
@@ -338,8 +350,9 @@ char* __cdecl _strupr(char *string) {
    return string;
 }
 
+#ifndef _MBCS
 //******************************************************************************
-//-- Called from _interface.c and winmain.c
+//-- Called from winmain.cpp
 char* __cdecl strrchr(const char *string, int c) {
 
    // Walk to end of string.
@@ -355,6 +368,7 @@ char* __cdecl strrchr(const char *string, int c) {
 
    return NULL;
 }
+#endif /* !_MBCS */
 
 //******************************************************************************
 //***** CTYPE.H functions
@@ -369,10 +383,10 @@ int __cdecl isupper(int c) {
 //***** STAT.H functions
 //******************************************************************************
 
-//-- Called fileio.c, process.c, intrface.c
+//-- Called fileio.c, process.c, intrface.cpp
 int __cdecl stat(const char *path, struct stat *buffer) {
 
-   // stat() is called on both the ZIP files and extracred files.
+   // stat() is called on both the ZIP files and extracted files.
 
    // Clear our stat buffer to be safe.
    ZeroMemory(buffer, sizeof(struct stat));
@@ -382,7 +396,7 @@ int __cdecl stat(const char *path, struct stat *buffer) {
    ZeroMemory(&w32fd, sizeof(w32fd));
 
    TCHAR szPath[_MAX_PATH];
-   mbstowcs(szPath, path, countof(szPath));
+   MBSTOTSTR(szPath, path, countof(szPath));
    HANDLE hFind = FindFirstFile(szPath, &w32fd);
 
    // Bail out now if we could not find the file/directory.
@@ -423,7 +437,7 @@ int __cdecl stat(const char *path, struct stat *buffer) {
 // The macro below is a reduced version of the above macro.  It is valid for
 // years between 1901 and 2099 which easily includes all years representable
 // by the current implementation of time_t.
-#define IS_LEAP_YEAR(y) (((y) & 3) == 0) 
+#define IS_LEAP_YEAR(y) (((y) & 3) == 0)
 
 #define BASE_DOW          4                  // 1/1/1970 was a Thursday.
 #define SECONDS_IN_A_DAY  (24L * 60L * 60L)  // Number of seconds in one day.
@@ -444,7 +458,7 @@ struct tm * __cdecl localtime(const time_t *timer) {
 
    // Return value for localtime().  Source currently never references
    // more than one "tm" at a time, so the single return structure is ok.
-   static struct tm g_tm; 
+   static struct tm g_tm;
    ZeroMemory(&g_tm, sizeof(g_tm));
 
    // Get our time zone information.
@@ -466,7 +480,7 @@ struct tm * __cdecl localtime(const time_t *timer) {
    //          since January 1, 1601
 
    // Compute the FILETIME for the given local time.
-   DWORDLONG dwl = ((DWORDLONG)116444736000000000 + 
+   DWORDLONG dwl = ((DWORDLONG)116444736000000000 +
                    ((DWORDLONG)localTime * (DWORDLONG)10000000));
    FILETIME ft = *(FILETIME*)&dwl;
 
@@ -510,7 +524,7 @@ void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi) {
 //******************************************************************************
 time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST) {
 
-   // We only handle years within the range that time_t supports.  We need to 
+   // We only handle years within the range that time_t supports.  We need to
    // handle the very end of 1969 since the local time could be up to 13 hours
    // into the previous year.  In this case, our code will actually return a
    // negative value, but it will be compared to another negative value and is
@@ -540,7 +554,7 @@ time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST)
    // Compute the number of days since the beginning of this year to the
    // beginning of the month.  We will add to this value to get the actual
    // year day.
-   long yearDay = IS_LEAP_YEAR(year) ? M2LYD[pst->wMonth - 1] : 
+   long yearDay = IS_LEAP_YEAR(year) ? M2LYD[pst->wMonth - 1] :
                                        M2YD [pst->wMonth - 1];
 
    // Check for day-in-month format.
@@ -560,7 +574,7 @@ time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST)
       // is 5 (which means the last instance of the day in the month). Check
       // if the year-day has exceeded the month and adjust accordingly.
       if ((pst->wDay == 5) &&
-          (yearDay >= (IS_LEAP_YEAR(year) ? M2LYD[pst->wMonth] : 
+          (yearDay >= (IS_LEAP_YEAR(year) ? M2LYD[pst->wMonth] :
                                             M2YD [pst->wMonth])))
       {
          yearDay -= 7;
@@ -574,11 +588,11 @@ time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST)
    }
 
    // Tally up all our days, hours, minutes, and seconds since 1970.
-   long seconds = ((SECONDS_IN_A_DAY * (daysToYear + yearDay)) + 
-                   (3600L * (long)pst->wHour) + 
+   long seconds = ((SECONDS_IN_A_DAY * (daysToYear + yearDay)) +
+                   (3600L * (long)pst->wHour) +
                    (60L * (long)pst->wMinute) +
                    (long)pst->wSecond);
-   
+
    // If we are checking for the end of DST, then we need to add the DST bias
    // since we are in DST when we chack this time stamp.
    if (!fStartDST) {
@@ -605,7 +619,7 @@ BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime) {
    //          since January 1, 1601
 
    // Compute the FILETIME for the given local time.
-   DWORDLONG dwl = ((DWORDLONG)116444736000000000 + 
+   DWORDLONG dwl = ((DWORDLONG)116444736000000000 +
                    ((DWORDLONG)localTime * (DWORDLONG)10000000));
    FILETIME ft = *(FILETIME*)&dwl;
 
@@ -614,7 +628,7 @@ BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime) {
    ZeroMemory(&st, sizeof(st));
    FileTimeToSystemTime(&ft, &st);
 
-   // Get our start and end daylisght savings times. 
+   // Get our start and end daylight savings times.
    time_t timeStart = GetTransitionTimeT(ptzi, (int)st.wYear, TRUE);
    time_t timeEnd   = GetTransitionTimeT(ptzi, (int)st.wYear, FALSE);
 

@@ -1,9 +1,10 @@
 /*
- Copyright (C) 1996 Mike White
- Permission is granted to any individual or institution to use, copy, or
- redistribute this software so long as all of the original files are included,
- that it is not sold for profit, and that this copyright notice is retained.
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
 
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
 /* Windows Info-ZIP Unzip DLL module
  *
@@ -29,18 +30,18 @@
 
 #include <windows.h>
 #ifdef __RSXNT__
-#  include "win32/rsxntwin.h"
+#  include "../win32/rsxntwin.h"
 #endif
 #ifdef __BORLANDC__
 #include <dir.h>
 #endif
 #define UNZIP_INTERNAL
-#include "unzip.h"
-#include "crypt.h"
-#include "version.h"
-#include "windll.h"
-#include "structs.h"
-#include "consts.h"
+#include "../unzip.h"
+#include "../crypt.h"
+#include "../version.h"
+#include "../windll/windll.h"
+#include "../windll/structs.h"
+#include "../consts.h"
 
 /* Added type casts to prevent potential "type mismatch" error messages. */
 #ifdef REENTRANT
@@ -133,14 +134,15 @@ return 1;
 /* DLL calls */
 
 /*
-    ExtractOnlyNewer  = true if you are to extract only newer
+    ExtractOnlyNewer  = true for "update" without interaction
+                        (extract only newer/new files, without queries)
     SpaceToUnderscore = true if convert space to underscore
     PromptToOverwrite = true if prompt to overwrite is wanted
     fQuiet    = quiet flag. 1 = few messages, 2 = no messages, 0 = all messages
     ncflag    = write to stdout if true
     ntflag    = test zip file
     nvflag    = verbose listing
-    nUflag    = "update" (extract only newer/new files)
+    nfflag    = "freshen" (replace existing files by newer versions)
     nzflag    = display zip file comment
     ndflag    = all args are files/dir to be extracted
     noflag    = overwrite all files
@@ -162,19 +164,18 @@ LPDCL C;
 
     uO.jflag = !C->ndflag;
     uO.cflag = C->ncflag;
-    uO.overwrite_all = C->noflag;
-    uO.tflag = C->ntflag ;
+    uO.tflag = C->ntflag;
     uO.vflag = C->nvflag;
     uO.zflag = C->nzflag;
-    uO.uflag = C->nUflag;
     uO.aflag = C->naflag;
     uO.C_flag = C->C_flag;
-    uO.uflag = C->ExtractOnlyNewer;
-    G.prompt_always = C->PromptToOverwrite;
+    uO.overwrite_all = C->noflag || !C->PromptToOverwrite;
+    uO.overwrite_none = FALSE;
+    uO.uflag = C->ExtractOnlyNewer || C->nfflag;
+    uO.fflag = C->nfflag;
 #ifdef WIN32
     uO.X_flag = C->fPrivilege;
 #endif
-    uO.overwrite_none = !uO.overwrite_all;
     uO.sflag = C->SpaceToUnderscore; /* Translate spaces to underscores? */
     if (C->nZIflag)
       {
@@ -560,7 +561,9 @@ static int WINAPI Wiz_StatReportCB(zvoid *pG, int fnflag, ZCONST char *zfn,
         break;
       case UZ_ST_FINISH_MEMBER:
         if ((G.lpUserFunctions->ServCallBk != NULL) &&
-            (*G.lpUserFunctions->ServCallBk)(efn, *((unsigned long *)details)))
+            (*G.lpUserFunctions->ServCallBk)(efn,
+                                             (details == NULL ? 0L :
+                                              *((unsigned long *)details))))
             rval = UZ_ST_BREAK;
         break;
       case UZ_ST_IN_PROGRESS:

@@ -40,7 +40,7 @@ a) common files (documentation etc.):
   00binary.vms         this file
   readme.vms           general VMS info about using UnZip and zipfiles
   readme               what UnZip is; general information
-  copying              copyrights and distribution policy
+  license              Info-ZIP copyright and distribution policy
   where                pointer to Zip/UnZip support archives
   makesfx.com          command file to create self-extracting archives
   unzip.doc            UnZip manual page, human-readable format

@@ -1,5 +1,13 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /* inflate.c -- put in the public domain by Mark Adler
-   version c16b, 29 March 1998 */
+   version c16d, 05 July 1999 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -93,6 +101,10 @@
                                     PK_MEM2 to PK_MEM3
     c16  20 Apr 97  J. Altman       added memzero(v[]) in huft_build()
    c16b  29 Mar 98  C. Spieler      modified DLL code for slide redirection
+   c16c  04 Apr 99  C. Spieler      fixed memory leaks when processing gets
+                                    stopped because of input data errors
+   c16d  05 Jul 99  C. Spieler      take care of FLUSH() return values and
+                                    stop processing in case of errors
  */
 
 
@@ -143,6 +155,9 @@
            1  incomplete table
            2  bad input
            3  not enough memory
+         the following return codes are passed through from FLUSH() errors
+           50 (PK_DISK)   "overflow of output space"
+           80 (IZ_CTRLC)  "canceled by user's request"
  */
 
 
@@ -214,6 +229,8 @@
     prototypes are normally found in <string.h> and <stdlib.h>.
  */
 
+#define __INFLATE_C     /* identifies this source module */
+
 /* #define DEBUG */
 #define INFMOD          /* tell inflate.h to include code to be compiled */
 #include "inflate.h"
@@ -239,7 +256,9 @@
 #endif
 
 #ifndef FLUSH           /* default is to simply write the buffer to stdout */
-#  define FLUSH(n) fwrite(redirSlide, 1, n, stdout)  /* return value not used */
+#  define FLUSH(n) \
+    (((extent)fwrite(redirSlide, 1, (extent)(n), stdout) == (extent)(n)) ? \
+     0 : PKDISK)
 #endif
 /* Warning: the fwrite above might not work on 16-bit compilers, since
    0x8000 might be interpreted as -32,768 by the library function. */
@@ -272,6 +291,7 @@
 int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
     __GDEF
 {
+    int retval = 0;     /* return code: 0 = "no error" */
     int err=Z_OK;
 
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
@@ -332,11 +352,11 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
         while (G.dstrm.avail_out > 0) {
             err = inflate(&G.dstrm, Z_PARTIAL_FLUSH);
 
-            if (err == Z_DATA_ERROR)
-                return 2;
-            else if (err == Z_MEM_ERROR)
-                return 3;
-            else if (err != Z_OK && err != Z_STREAM_END)
+            if (err == Z_DATA_ERROR) {
+                retval = 2; goto uzinflate_cleanup_exit;
+            } else if (err == Z_MEM_ERROR) {
+                retval = 3; goto uzinflate_cleanup_exit;
+            } else if (err != Z_OK && err != Z_STREAM_END)
                 Trace((stderr, "oops!  (inflate(first loop) err = %d)\n", err));
 
 #ifdef FUNZIP
@@ -347,15 +367,19 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
                 break;
 
             if (G.dstrm.avail_in <= 0) {
-                if (fillinbuf(__G) == 0)
-                    return 2;  /* no "END-condition" yet, but no more data */
+                if (fillinbuf(__G) == 0) {
+                    /* no "END-condition" yet, but no more data */
+                    retval = 2; goto uzinflate_cleanup_exit;
+                }
 
                 G.dstrm.next_in = G.inptr;
                 G.dstrm.avail_in = G.incnt;
             }
             Trace((stderr, "     avail_in = %d\n", G.dstrm.avail_in));
         }
-        FLUSH(wsize - G.dstrm.avail_out);   /* flush slide[] */
+        /* flush slide[] */
+        if ((retval = FLUSH(wsize - G.dstrm.avail_out)) != 0)
+            goto uzinflate_cleanup_exit;
         Trace((stderr, "inside loop:  flushing %ld bytes (ptr diff = %ld)\n",
           (long)(wsize - G.dstrm.avail_out),
           (long)(G.dstrm.next_out-(Bytef *)redirSlide)));
@@ -367,20 +391,23 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
     Trace((stderr, "beginning final loop:  err = %d\n", err));
     while (err != Z_STREAM_END) {
         err = inflate(&G.dstrm, Z_PARTIAL_FLUSH);
-        if (err == Z_DATA_ERROR)
-            return 2;
-        else if (err == Z_MEM_ERROR)
-            return 3;
-        else if (err == Z_BUF_ERROR) {              /* DEBUG */
-            Trace((stderr, "zlib inflate() did not detect stream end (%s, %s)\n"
-              , G.zipfn, G.filename));
+        if (err == Z_DATA_ERROR) {
+            retval = 2; goto uzinflate_cleanup_exit;
+        } else if (err == Z_MEM_ERROR) {
+            retval = 3; goto uzinflate_cleanup_exit;
+        } else if (err == Z_BUF_ERROR) {                /* DEBUG */
+            Trace((stderr,
+                   "zlib inflate() did not detect stream end (%s, %s)\n",
+                   G.zipfn, G.filename));
             break;
         } else if (err != Z_OK && err != Z_STREAM_END) {
             Trace((stderr, "oops!  (inflate(final loop) err = %d)\n", err));
             DESTROYGLOBALS()
             EXIT(PK_MEM3);
         }
-        FLUSH(wsize - G.dstrm.avail_out);   /* final flush of slide[] */
+        /* final flush of slide[] */
+        if ((retval = FLUSH(wsize - G.dstrm.avail_out)) != 0)
+            goto uzinflate_cleanup_exit;
         Trace((stderr, "final loop:  flushing %ld bytes (ptr diff = %ld)\n",
           (long)(wsize - G.dstrm.avail_out),
           (long)(G.dstrm.next_out-(Bytef *)redirSlide)));
@@ -393,11 +420,12 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
     G.inptr = (uch *)G.dstrm.next_in;
     G.incnt = (G.inbuf + INBUFSIZ) - G.inptr;  /* reset for other routines */
 
+uzinflate_cleanup_exit:
     err = inflateReset(&G.dstrm);
     if (err != Z_OK)
         Trace((stderr, "oops!  (inflateReset() err = %d)\n", err));
 
-    return 0;
+    return retval;
 }
 
 
@@ -498,9 +526,10 @@ unsigned bk;                    /* bits in bit buffer */
 #ifndef CHECK_EOF
 #  define NEEDBITS(n) {while(k<(n)){b|=((ulg)NEXTBYTE)<<k;k+=8;}}
 #else
-#  define NEEDBITS(n) {while(k<(n)){int c=NEXTBYTE;if(c==EOF)return 1;\
+#  define NEEDBITS(n) {while(k<(n)){int c=NEXTBYTE;\
+    if(c==EOF){retval=1;goto cleanup_and_exit;}\
     b|=((ulg)c)<<k;k+=8;}}
-#endif                      /* Piet Plomp:  change "return 1" to "break" */
+#endif
 
 #define DUMPBITS(n) {b>>=(n);k-=(n);}
 
@@ -558,6 +587,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   unsigned ml, md;      /* masks for bl and bd bits */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* make local copies of globals */
@@ -586,7 +616,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       redirSlide[w++] = (uch)t->v.n;
       if (w == wsize)
       {
-        FLUSH(w);
+        if ((retval = FLUSH(w)) != 0) goto cleanup_and_exit;
         w = 0;
       }
     }
@@ -641,7 +671,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
           } while (--e);
         if (w == wsize)
         {
-          FLUSH(w);
+          if ((retval = FLUSH(w)) != 0) goto cleanup_and_exit;
           w = 0;
         }
       } while (n);
@@ -655,8 +685,9 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   G.bk = k;
 
 
+cleanup_and_exit:
   /* done */
-  return 0;
+  return retval;
 }
 
 #endif /* ASM_INFLATECODES */
@@ -671,6 +702,7 @@ static int inflate_stored(__G)
   unsigned w;           /* current window position */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* make local copies of globals */
@@ -702,7 +734,7 @@ static int inflate_stored(__G)
     redirSlide[w++] = (uch)b;
     if (w == wsize)
     {
-      FLUSH(w);
+      if ((retval = FLUSH(w)) != 0) goto cleanup_and_exit;
       w = 0;
     }
     DUMPBITS(8)
@@ -713,7 +745,9 @@ static int inflate_stored(__G)
   G.wp = w;                       /* restore global window pointer */
   G.bb = b;                       /* restore global bit buffer */
   G.bk = k;
-  return 0;
+
+cleanup_and_exit:
+  return retval;
 }
 
 
@@ -763,14 +797,14 @@ static int inflate_fixed(__G)
                         &G.fixed_td, &G.fixed_bd)) > 1)
     {
       huft_free(G.fixed_tl);
-      G.fixed_tl = (struct huft *)NULL;
+      G.fixed_td = G.fixed_tl = (struct huft *)NULL;
       return i;
     }
   }
 
   /* decompress until an end-of-block code */
   return inflate_codes(__G__ G.fixed_tl, G.fixed_td,
-                             G.fixed_bl, G.fixed_bd) != 0;
+                             G.fixed_bl, G.fixed_bd);
 }
 
 
@@ -798,6 +832,7 @@ static int inflate_dynamic(__G)
 #endif
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* make local bit buffer */
@@ -837,14 +872,14 @@ static int inflate_dynamic(__G)
 
   /* build decoding table for trees--single level, 7 bit lookup */
   bl = 7;
-  i = huft_build(__G__ ll, 19, 19, NULL, NULL, &tl, &bl);
-  if (bl == 0)                        /* no bit lengths */
-    i = 1;
-  if (i)
+  retval = huft_build(__G__ ll, 19, 19, NULL, NULL, &tl, &bl);
+  if (bl == 0)                  /* no bit lengths */
+    retval = 1;
+  if (retval)
   {
-    if (i == 1)
+    if (retval == 1)
       huft_free(tl);
-    return i;                   /* incomplete code set */
+    return retval;              /* incomplete code set */
   }
 
 
@@ -906,52 +941,45 @@ static int inflate_dynamic(__G)
 
   /* build the decoding tables for literal/length and distance codes */
   bl = lbits;
-  i = huft_build(__G__ ll, nl, 257, cplens, cplext, &tl, &bl);
-  if (bl == 0)                        /* no literals or lengths */
-    i = 1;
-  if (i)
+  retval = huft_build(__G__ ll, nl, 257, cplens, cplext, &tl, &bl);
+  if (bl == 0)                  /* no literals or lengths */
+    retval = 1;
+  if (retval)
   {
-    if (i == 1) {
+    if (retval == 1) {
       if (!uO.qflag)
         MESSAGE((uch *)"(incomplete l-tree)  ", 21L, 1);
       huft_free(tl);
     }
-    return i;                   /* incomplete code set */
+    return retval;              /* incomplete code set */
   }
   bd = dbits;
-  i = huft_build(__G__ ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
-  if (bd == 0 && nl > 257)    /* lengths but no distances */
-  {
-    if (!uO.qflag)
-      MESSAGE((uch *)"(incomplete d-tree)  ", 21L, 1);
-    huft_free(tl);
-    return 1;
-  }
-  if (i == 1) {
+  retval = huft_build(__G__ ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
 #ifdef PKZIP_BUG_WORKAROUND
-    i = 0;
-#else
-    if (!uO.qflag)
-      MESSAGE((uch *)"(incomplete d-tree)  ", 21L, 1);
-    huft_free(td);
+  if (retval == 1)
+    retval = 0;
 #endif
-  }
-  if (i)
+  if (bd == 0 && nl > 257)    /* lengths but no distances */
+    retval = 1;
+  if (retval)
   {
+    if (retval == 1) {
+      if (!uO.qflag)
+        MESSAGE((uch *)"(incomplete d-tree)  ", 21L, 1);
+      huft_free(td);
+    }
     huft_free(tl);
-    return i;
+    return retval;
   }
-
 
   /* decompress until an end-of-block code */
-  if (inflate_codes(__G__ tl, td, bl, bd))
-    return 1;
+  retval = inflate_codes(__G__ tl, td, bl, bd);
 
-
+cleanup_and_exit:
   /* free the decoding tables, return */
   huft_free(tl);
   huft_free(td);
-  return 0;
+  return retval;
 }
 
 
@@ -964,6 +992,7 @@ static int inflate_block(__G__ e)
   unsigned t;           /* block type */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
+  int retval = 0;       /* error code returned: initialized to "no error" */
 
 
   /* make local bit buffer */
@@ -998,7 +1027,10 @@ static int inflate_block(__G__ e)
 
 
   /* bad block type */
-  return 2;
+  retval = 2;
+
+cleanup_and_exit:
+  return retval;
 }
 
 
@@ -1039,15 +1071,11 @@ int inflate(__G)
 #endif
   } while (!e);
 
-
-  /* flush out redirSlide */
-  FLUSH(G.wp);
-
-
-  /* return success */
   Trace((stderr, "\n%u bytes in Huffman tables (%d/entry)\n",
          h * sizeof(struct huft), sizeof(struct huft)));
-  return 0;
+
+  /* flush out redirSlide and return (success, unless final FLUSH failed) */
+  return (FLUSH(G.wp));
 }
 
 

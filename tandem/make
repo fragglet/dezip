@@ -2,32 +2,51 @@
 #FRAME
 load /keep 1/ commacs
 
-#PUSH file prev options OK model unzip accel
+#PUSH file prev memory OK model unzip lib accel unlicensed licensed options
 #PUSH #DEFAULTS
 
 load /keep 1/ macros
 
 #SET OK -1
 
-#SET options [#REST]
-[#IF NOT [#EMPTYV options] |THEN| #CHARINSV options 1 ","]
-#OUTPUT Compiler Options: [options]
+[#IF [#ARGUMENT /VALUE memory/ KEYWORD /WORDLIST LARGE SMALL/ OTHERWISE ]]
+[#IF [#ARGUMENT /VALUE model/ KEYWORD /WORDLIST NOWIDE WIDE/ OTHERWISE ]]
+[#IF [#ARGUMENT /VALUE unlicensed/ KEYWORD /WORDLIST UNLICENSED/ OTHERWISE ]]
 
-[#IF [#MATCH *WIDE* [options]]
+[#IF [#EMPTYV memory] |THEN| #SET memory LARGE]
+[#IF [#EMPTYV model] |THEN| #SET model NOWIDE]
+
+[#IF model '=' "WIDE"
 |THEN|
-  #SET model WIDE
   #SET unzip UNZIPW
 |ELSE|
-  #SET model LARGE
   #SET unzip UNZIPL
 ]
+#SET lib [unzip]B
 #SET accel UNZIP
+#SET options [options], [model]
 
-#OUTPUT Making UNZIP using [model] memory model
+[#IF unlicensed '=' "UNLICENSED"
+|THEN|
+  #SET unzip [unzip]U
+  #SET accel [accel]U
+  #SET lib   [lib]U
+|ELSE|
+  #SET licensed LICENSED
+  #SET options [options], define [licensed]
+]
+
+#OUTPUT Pointer Model   : [model]
+#OUTPUT Memory Model    : [memory]
+#OUTPUT Axcel Object    : [accel]
+#OUTPUT Run Object      : [unzip]
+#OUTPUT Library Object  : [lib]
+#OUTPUT Compile Options : [options]
+#OUTPUT
 
 #SET file [#FILENAMES /MAXIMUM 1/ *C]
-[#loop |while| NOT [#EMPTYV file]
-|do|
+[#LOOP |while| NOT [#EMPTYV file]
+|DO|
   #SETV prev file
   CC [file] $T.#UNZIP [options]
   [#IF [tacl^completioncode] > 1 |THEN| #set OK 0 ]
@@ -43,7 +62,7 @@ load /keep 1/ macros
 VOLUME ,"NUNU"
 
 [#IF OK |THEN|
-  BBUNZIP [unzip] [model]
+  BBUNZIP [unzip] [memory]
   [#IF [tacl^completioncode] > 0 |THEN| #SET OK 0]
 ]
 
@@ -56,6 +75,19 @@ VOLUME ,"NUNU"
 [#IF OK
   |THEN| #OUTPUT Successfully produced Accelerated Object [accel]
          secure^file [accel] "UUUU" SUPER.DAVES
+         [#IF [#INTERACTIVE] |THEN|
+           [#IF licensed '=' "LICENSED" |THEN|
+             #OUTPUT [accel] will not run without being LICENSED
+             [#IF [#FILEINFO /LICENSED/ [accel]]
+             |THEN|
+               #OUTPUT [accel] already LICENSED
+             |ELSE|
+               [#IF [#MATCH Y* [#INPUT [accel] License [accel] ?]] |THEN|
+                 fup^license [accel]
+               ]
+             ]
+           ]
+         ]
   |ELSE| #OUTPUT Failed to produce Accelerated Object [accel]
 ]
 

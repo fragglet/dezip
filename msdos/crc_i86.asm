@@ -1,4 +1,12 @@
-; Not copyrighted by Christian Spieler, 02 Apr 1997.
+;===========================================================================
+; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+;
+; See the accompanying file LICENSE, version 2000-Apr-09 or later
+; (the contents of which are also included in zip.h) for terms of use.
+; If, for some reason, all these files are missing, the Info-ZIP license
+; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+;===========================================================================
+; Created by Christian Spieler, last modified 24 Dec 1998.
 ;
         TITLE   crc_i86.asm
         NAME    crc_i86
@@ -17,6 +25,19 @@
 ; the data buffer is now accessed by aligned word-wide read operations.
 ; This new optimization may be turned off by defining the macro switch
 ; NO_16_BIT_LOADS.
+;
+; In December 1998, the loop branch commands were changed from "loop dest"
+; into "dec cx; jnz dest". On modern systems (486 and newer), the latter
+; code is usually much faster (e.g. 1 clock cycle compared to 5 for "loop"
+; on Pentium MMX). For the 286, the penalty of "dec cx; jnz" is one clock
+; cycle (12 vs. 11 cycles); on an 8088 the cycle counts are 22 (dec cx; jnz)
+; vs. 18 (loop). I decided to optimize for newer CPU models by default, because
+; I expect that old 80286 or 8088 dinosaurier machines may be rarely used
+; nowadays. In case you want optimum performance for these old CPU models
+; you should define the OPTIMIZE_286_88 macro switch on the assembler's
+; command line.
+; Likewise, "jcxz" was replaced by "jz", because the latter is faster on
+; 486 and newer CPUs (without any penalty on 80286 and older CPU models).
 ;
 ; The code in this module should work with all kinds of C memory models
 ; (except Borland's __HUGE__ model), as long as the following
@@ -146,7 +167,7 @@ endif
 ;
 ifdef __586
         Use_286_code    EQU     1
-        Align_Size      EQU     16      ; paragraph alignment on Pentium
+        Align_Size      EQU     4       ; dword alignment on Pentium
         Alig_PARA       EQU     1       ; paragraph aligned code segment
 else
 ifdef __486
@@ -378,12 +399,17 @@ else
         shr     cx,1
         shr     cx,1
 endif
-        jcxz    No_Fours
+        jz      No_Fours
 ;
         align   Align_Size              ; align destination of branch
 Next_Four:
         Do_4
+ifndef OPTIMIZE_286_88
+        dec     cx                      ; on 286, "loop Next_Four" needs 11
+        jnz     Next_Four               ;  clocks, one less than this code
+else
         loop    Next_Four
+endif
 ;
 No_Fours:
 if @DataSize
@@ -393,12 +419,17 @@ else
 endif
         and     cx,00003H
 endif ; !NO_UNROLLED_LOOPS
-        jcxz    done
+        jz      done
 ;
         align   Align_Size              ; align destination of branch
 Next_Byte:
         Do_1
-        loop    Next_Byte
+ifndef OPTIMIZE_286_88
+        dec     cx                      ; on 286, "loop Next_Four" needs 11
+        jnz     Next_Byte               ;  clocks, one less than this code
+else
+        loop    Next_Four
+endif
 ;
 done:
 if @DataSize

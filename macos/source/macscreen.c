@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   macscreen.c
@@ -132,6 +140,9 @@ void screenOpen(char *Title) {
     return;
 }
 
+
+
+
 void screenControl(char *options, int setting) {
     int n = 0;
 
@@ -160,6 +171,9 @@ void screenControl(char *options, int setting) {
     return;
 }
 
+
+
+
 void screenClose(void) {
     DisposePtr((Ptr)screenLine);
 
@@ -167,6 +181,9 @@ void screenClose(void) {
 
     return;
 }
+
+
+
 
 void screenUpdate(WindowPtr window) {
     GrafPort *savePort;
@@ -193,6 +210,9 @@ void screenUpdate(WindowPtr window) {
     return;
 }
 
+
+
+
 static void screenNewline(void) {
     MoveTo(5, currentPosition += fontHeight);
     if (currentPosition > maxPosition) {
@@ -213,6 +233,9 @@ static void screenNewline(void) {
 
     return;
 }
+
+
+
 
 static char waitChar(void) {
     WindowPtr whichWindow;
@@ -239,6 +262,9 @@ static char waitChar(void) {
     }
 }
 
+
+
+
 static void screenPause(void) {
     if (pausePosition == 0) {
         if (screenOptions & pauseOption) {
@@ -258,6 +284,9 @@ static void screenPause(void) {
 
     return;
 }
+
+
+
 
 void screenDisplay(char *s) {
     GrafPort *savePort;
@@ -291,6 +320,9 @@ void screenDisplay(char *s) {
 
     return;
 }
+
+
+
 
 void screenDump(char *s, long n) {
     GrafPort *savePort;
@@ -326,6 +358,9 @@ void screenDump(char *s, long n) {
     return;
 }
 
+
+
+
 char *macfgets(char *s, int n, FILE *stream) {
     GrafPort *savePort;
     char c, *t = s;
@@ -350,6 +385,9 @@ char *macfgets(char *s, int n, FILE *stream) {
     return(s);
 }
 
+
+
+
 int macfprintf(FILE *stream, char *format, ...)
 {
     char buffer[bufferSize];
@@ -366,6 +404,9 @@ int macfprintf(FILE *stream, char *format, ...)
 
     return rc;
 }
+
+
+
 
 int macprintf(char *format, ...)
 {

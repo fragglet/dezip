@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   globals.c
@@ -164,6 +172,9 @@ Uz_Globs *globalsCtor()
     uO.aflag=1;
     uO.C_flag=1;
 #endif
+#ifdef TANDEM
+    uO.aflag=1;     /* default to '-a' auto create Text Files as type 101 */
+#endif
 
     uO.lflag=(-1);
     G.wildzipfn = "";
@@ -182,11 +193,11 @@ Uz_Globs *globalsCtor()
     G.decr_passwd = UzpPassword;
 #endif /* !FUNZIP */
 
-#if (!defined(DOS_FLX_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
+#if (!defined(DOS_FLX_H68_NLM_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
 #if (!defined(MACOS) && !defined(ATARI) && !defined(VMS))
     G.echofd = -1;
 #endif /* !(MACOS || ATARI || VMS) */
-#endif /* !(DOS_FLX_H68_OS2_W32 || AMIGA || RISCOS) */
+#endif /* !(DOS_FLX_H68_NLM_OS2_W32 || AMIGA || RISCOS) */
 
 #ifdef SYSTEM_SPECIFIC_CTOR
     SYSTEM_SPECIFIC_CTOR(__G);

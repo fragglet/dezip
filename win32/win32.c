@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   win32.c
@@ -31,7 +39,10 @@
              mapname()
              map2fat()
              checkdir()
+             dateformat()
              version()
+             screenlines()
+             screencolumns()
              zstat_win32()
              getch_win32()
 
@@ -39,16 +50,16 @@
 
 
 #define UNZIP_INTERNAL
-#include "unzip.h"
+#include "../unzip.h"
 #include <windows.h>    /* must be AFTER unzip.h to avoid struct G problems */
 #ifdef __RSXNT__
-#  include "win32/rsxntwin.h"
+#  include "../win32/rsxntwin.h"
 #endif
-#include "win32/nt.h"
+#include "../win32/nt.h"
 
 #ifndef FUNZIP          /* most of this file is not used with fUnZip */
 
-#if (defined(__GO32__) || defined(__EMX__) || defined(__CYGWIN32__))
+#if (defined(__GO32__) || defined(__EMX__) || defined(__CYGWIN__))
 #  define MKDIR(path,mode)   mkdir(path,mode)
 #else
 #  define MKDIR(path,mode)   mkdir(path)
@@ -58,7 +69,7 @@
 #  undef HAVE_WORKING_DIRENT_H
 #endif
 /* The emxrtl dirent support of (__GO32__ || __EMX__) converts to lowercase! */
-#if defined(__CYGWIN32__)
+#if defined(__CYGWIN__)
 #  define HAVE_WORKING_DIRENT_H
 #endif
 
@@ -529,20 +540,28 @@ static int show_NTFileTime(FILE *hdo, char *TTmsg, int isloc, FILETIME *pft)
 #if (defined(USE_EF_UT_TIME) || defined(NT_TZBUG_WORKAROUND) || \
      defined(TIMESTAMP))
 
-#if ((defined(__GNUC__) || defined(ULONG_LONG_MAX)) && !defined(HAVE_INT64))
-   typedef long long            LLONG64;
-   typedef unsigned long long   ULLNG64;
-#  define HAVE_INT64
-#endif
-#if (defined(__WATCOMC__) && (__WATCOMC__ >= 1100) && !defined(HAVE_INT64))
-   typedef __int64              LLONG64;
-   typedef unsigned __int64     ULLNG64;
-#  define HAVE_INT64
-#endif
-#if (defined(_MSC_VER) && (_MSC_VER >= 1100) && !defined(HAVE_INT64))
-   typedef __int64              LLONG64;
-   typedef unsigned __int64     ULLNG64;
-#  define HAVE_INT64
+#ifndef IZ_USE_INT64
+#  if (defined(__GNUC__) || defined(ULONG_LONG_MAX))
+     typedef long long            LLONG64;
+     typedef unsigned long long   ULLNG64;
+#    define IZ_USE_INT64
+#  elif (defined(__WATCOMC__) && (__WATCOMC__ >= 1100))
+     typedef __int64              LLONG64;
+     typedef unsigned __int64     ULLNG64;
+#    define IZ_USE_INT64
+#  elif (defined(_MSC_VER) && (_MSC_VER >= 1100))
+     typedef __int64              LLONG64;
+     typedef unsigned __int64     ULLNG64;
+#    define IZ_USE_INT64
+#  elif (defined(__IBMC__) && (__IBMC__ >= 350))
+     typedef __int64              LLONG64;
+     typedef unsigned __int64     ULLNG64;
+#    define IZ_USE_INT64
+#  elif defined(HAVE_INT64)
+     typedef __int64              LLONG64;
+     typedef unsigned __int64     ULLNG64;
+#    define IZ_USE_INT64
+#  endif
 #endif
 
 /*****************************/
@@ -555,7 +574,7 @@ static int show_NTFileTime(FILE *hdo, char *TTmsg, int isloc, FILETIME *pft)
 
 static void utime2FileTime(time_t ut, FILETIME *pft)
 {
-#ifdef HAVE_INT64
+#ifdef IZ_USE_INT64
     ULLNG64 NTtime;
 
     /* NT_QUANTA_PER_UNIX is small enough so that "ut * NT_QUANTA_PER_UNIX"
@@ -566,7 +585,7 @@ static void utime2FileTime(time_t ut, FILETIME *pft)
     pft->dwLowDateTime = (DWORD)NTtime;
     pft->dwHighDateTime = (DWORD)(NTtime >> 32);
 
-#else /* !HAVE_INT64 (64-bit integer arithmetics may not be supported) */
+#else /* !IZ_USE_INT64 (64-bit integer arithmetics may not be supported) */
     unsigned int b1, b2, carry = 0;
     unsigned long r0, r1, r2, r3;
     long r4;            /* signed, to catch environments with signed time_t */
@@ -589,7 +608,7 @@ static void utime2FileTime(time_t ut, FILETIME *pft)
         carry++;
     pft->dwHighDateTime = r4 + (r2 >> 16) + (r3 >> 16)
                             + UNIX_TIME_ZERO_HI + carry;
-#endif /* ?HAVE_INT64 */
+#endif /* ?IZ_USE_INT64 */
 
 } /* end function utime2FileTime() */
 
@@ -646,12 +665,13 @@ extern ZCONST ush ydays[];              /* defined in fileio.c */
 
 static int FileTime2utime(const FILETIME *pft, time_t *ut)
 {
-#ifdef HAVE_INT64
+#ifdef IZ_USE_INT64
     ULLNG64 NTtime;
 
     NTtime = ((ULLNG64)pft->dwLowDateTime +
               ((ULLNG64)pft->dwHighDateTime << 32));
 
+#ifndef TIME_T_TYPE_DOUBLE
     /* underflow and overflow handling */
 #ifdef CHECK_UTIME_SIGNED_UNSIGNED
     if ((time_t)0x80000000L < (time_t)0L)
@@ -681,15 +701,17 @@ static int FileTime2utime(const FILETIME *pft, time_t *ut)
             return FALSE;
         }
     }
+#endif /* !TIME_T_TYPE_DOUBLE */
 
     NTtime -= ((ULLNG64)UNIX_TIME_ZERO_LO +
                ((ULLNG64)UNIX_TIME_ZERO_HI << 32));
     *ut = (time_t)(NTtime / (unsigned long)NT_QUANTA_PER_UNIX);
     return TRUE;
-#else /* !HAVE_INT64 (64-bit integer arithmetics may not be supported) */
+#else /* !IZ_USE_INT64 (64-bit integer arithmetics may not be supported) */
     time_t days;
     SYSTEMTIME w32tm;
 
+#ifndef TIME_T_TYPE_DOUBLE
     /* underflow and overflow handling */
 #ifdef CHECK_UTIME_SIGNED_UNSIGNED
     if ((time_t)0x80000000L < (time_t)0L)
@@ -722,6 +744,7 @@ static int FileTime2utime(const FILETIME *pft, time_t *ut)
             return FALSE;
         }
     }
+#endif /* !TIME_T_TYPE_DOUBLE */
 
     FileTimeToSystemTime(pft, &w32tm);
 
@@ -736,7 +759,7 @@ static int FileTime2utime(const FILETIME *pft, time_t *ut)
     *ut = (time_t)(86400L * days + 3600L * (time_t)w32tm.wHour +
                    (time_t)(60 * w32tm.wMinute + w32tm.wSecond));
     return TRUE;
-#endif /* ?HAVE_INT64 */
+#endif /* ?IZ_USE_INT64 */
 } /* end function FileTime2utime() */
 
 
@@ -778,6 +801,7 @@ static int VFatFileTime2utime(const FILETIME *pft, time_t *ut)
     return (((*ut)&1) == (time_t)0);
 #else /* HAVE_MKTIME */
     FileTimeToSystemTime(&lft, &w32tm);
+#ifndef TIME_T_TYPE_DOUBLE
     /* underflow and overflow handling */
     /* TODO: The range checks are not accurate, the actual limits may
      *       be off by one daylight-saving-time shift (typically 1 hour),
@@ -814,6 +838,7 @@ static int VFatFileTime2utime(const FILETIME *pft, time_t *ut)
             return FALSE;
         }
     }
+#endif /* !TIME_T_TYPE_DOUBLE */
     ltm.tm_year = w32tm.wYear - 1900;
     ltm.tm_mon = w32tm.wMonth - 1;
     ltm.tm_mday = w32tm.wDay;
@@ -845,7 +870,7 @@ static time_t UTCtime2Localtime(time_t utctime)
 {
     time_t utc = utctime;
     struct tm *tm;
-    unsigned years, months, days, hours, minutes, seconds;
+    int years, months, days, hours, minutes, seconds;
 
 
 #ifdef __BORLANDC__   /* Borland C++ 5.x crashes when trying to reference tm */
@@ -871,8 +896,8 @@ static time_t UTCtime2Localtime(time_t utctime)
     /* now set `days' to the number of days since 1 Jan 1970 */
     days += 365 * (years - 1970) + nleap(years);
 
-    return (time_t)(86400L * (ulg)days + 3600L * (ulg)hours +
-                    (ulg)(60 * minutes + seconds));
+    return (time_t)(86400L * (time_t)days +
+                    (time_t)(3600L * hours + (60 * minutes + seconds)));
 
 } /* end function UTCtime2Localtime() */
 
@@ -1269,11 +1294,14 @@ static int IsVolumeOldFAT(__GPRO__ const char *name)
 
 char *do_wild(__G__ wildspec)
     __GDEF
-    char *wildspec;         /* only used first time on a given dir */
+    ZCONST char *wildspec;  /* only used first time on a given dir */
 {
- /* static zDIR *wild_dir = NULL;                               */
- /* static char *dirname, *wildname, matchname[FILNAMSIZ]; */
- /* static int firstcall=TRUE, have_dirname, dirnamelen;   */
+/* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in w32cfg.h:
+    static zDIR *wild_dir = NULL;
+    static ZCONST char *wildname;
+    static char *dirname, matchname[FILNAMSIZ];
+    static int notfirstcall=FALSE, have_dirname, dirnamelen;
+*/
     char *fnamestart;
     struct zdirent *file;
 
@@ -1292,8 +1320,8 @@ char *do_wild(__G__ wildspec)
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((G.wildname = strrchr(wildspec, '/')) == NULL &&
-            (G.wildname = strrchr(wildspec, ':')) == NULL) {
+        if ((G.wildname = MBSRCHR(wildspec, '/')) == (ZCONST char *)NULL &&
+            (G.wildname = MBSRCHR(wildspec, ':')) == (ZCONST char *)NULL) {
             G.dirname = ".";
             G.dirnamelen = 1;
             G.have_dirname = FALSE;
@@ -1308,7 +1336,7 @@ char *do_wild(__G__ wildspec)
                 return G.matchname; /* but maybe filespec was not a wildcard */
             }
             strncpy(G.dirname, wildspec, G.dirnamelen);
-            G.dirname[G.dirnamelen] = '\0';    /* terminate for strcpy below */
+            G.dirname[G.dirnamelen] = '\0';   /* terminate for strcpy below */
             G.have_dirname = TRUE;
         }
         Trace((stderr, "do_wild:  dirname = [%s]\n", G.dirname));
@@ -1322,14 +1350,14 @@ char *do_wild(__G__ wildspec)
             while ((file = Readdir((zDIR *)G.wild_dir)) != NULL) {
                 Trace((stderr, "do_wild:  Readdir returns %s\n", file->d_name));
                 strcpy(fnamestart, file->d_name);
-                if (strrchr(fnamestart, '.') == (char *)NULL)
+                if (MBSRCHR(fnamestart, '.') == (char *)NULL)
                     strcat(fnamestart, ".");
                 if (match(fnamestart, G.wildname, 1) &&  /* 1 == ignore case */
                     /* skip "." and ".." directory entries */
                     strcmp(fnamestart, ".") && strcmp(fnamestart, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
                     /* remove trailing dot */
-                    fnamestart += strlen(fnamestart) - 1;
+                    fnamestart = plastchar(fnamestart, strlen(fnamestart));
                     if (*fnamestart == '.')
                         *fnamestart = '\0';
                     return G.matchname;
@@ -1367,12 +1395,12 @@ char *do_wild(__G__ wildspec)
     while ((file = Readdir((zDIR *)G.wild_dir)) != NULL) {
         Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
         strcpy(fnamestart, file->d_name);
-        if (strrchr(fnamestart, '.') == (char *)NULL)
+        if (MBSRCHR(fnamestart, '.') == (char *)NULL)
             strcat(fnamestart, ".");
         if (match(fnamestart, G.wildname, 1)) {     /* 1 == ignore case */
             Trace((stderr, "do_wild:  match() succeeds\n"));
             /* remove trailing dot */
-            fnamestart += strlen(fnamestart) - 1;
+            fnamestart = plastchar(fnamestart, strlen(fnamestart));
             if (*fnamestart == '.')
                 *fnamestart = '\0';
             return G.matchname;
@@ -1441,10 +1469,11 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     G.fnlen = strlen(G.filename);
 
     if (renamed) {
-        cp = G.filename - 1;    /* point to beginning of renamed name... */
-        while (*++cp)
+        cp = G.filename;    /* point to beginning of renamed name... */
+        if (*cp) do {
             if (*cp == '\\')    /* convert backslashes to forward */
                 *cp = '/';
+        } while (*PREINCSTR(cp));
         cp = G.filename;
         /* use temporary rootpath if user gave full pathname */
         if (G.filename[0] == '/') {
@@ -1471,7 +1500,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     pp = pathcomp;              /* point to translation buffer */
     if (!renamed) {             /* cp already set if renamed */
         if (uO.jflag)           /* junking directories */
-            cp = (char *)strrchr(G.filename, '/');
+            cp = (char *)MBSRCHR(G.filename, '/');
         if (cp == NULL)         /* no '/' or not junking dirs */
             cp = G.filename;    /* point to internal zipfile-member pathname */
         else
@@ -1482,7 +1511,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     Begin main loop through characters in filename.
   ---------------------------------------------------------------------------*/
 
-    while ((workch = (uch)*cp++) != 0) {
+    for (; (workch = (uch)*cp) != 0; INCSTR(cp)) {
 
         switch (workch) {
         case '/':             /* can assume -j flag not given */
@@ -1518,7 +1547,14 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         default:
             /* allow European characters in filenames: */
             if (isprint(workch) || workch >= 127)
+#ifdef _MBCS
+            {
+                memcpy(pp, cp, CLEN(cp));
+                INCSTR(pp);
+            }
+#else
                 *pp++ = (char)workch;
+#endif
         } /* end switch */
     } /* end while loop */
 
@@ -1539,7 +1575,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     fore exiting.
   ---------------------------------------------------------------------------*/
 
-    if (G.filename[G.fnlen-1] == '/') {
+    if (lastchar(G.filename, G.fnlen) == '/') {
         checkdir(__G__ G.filename, GETPATH);
         if (G.created_dir) {
 #ifdef __RSXNT__        /* RSXNT/EMX C rtl uses OEM charset */
@@ -1703,7 +1739,7 @@ static void map2fat(pathcomp, pEndFAT)
      * a dot inserted between existing characters.
      */
     if (last_dot == NULL) {       /* no dots:  check for underscores... */
-        char *plu = strrchr(pBegin, '_');   /* pointer to last underscore */
+        char *plu = MBSRCHR(pBegin, '_');   /* pointer to last underscore */
 
         if (plu == NULL) {   /* no dots, no underscores:  truncate at 8 chars */
             *pEndFAT += 8;        /* (or could insert '.' and keep 11...?) */
@@ -1784,7 +1820,7 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == APPEND_DIR) {
         char *p = pathcomp;
-        int too_long=FALSE;
+        int too_long = FALSE;
 
         Trace((stderr, "appending dir segment [%s]\n", pathcomp));
         while ((*G.endHPFS = *p++) != '\0')     /* copy to HPFS filename */
@@ -2015,46 +2051,56 @@ int checkdir(__G__ pathcomp, flag)
             G.rootlen = 0;
             return 0;
         }
+        if (G.rootlen > 0)      /* rootpath was already set, nothing to do */
+            return 0;
         if ((G.rootlen = strlen(pathcomp)) > 0) {
-            int had_trailing_pathsep=FALSE, has_drive=FALSE, xtra=2;
+            int had_trailing_pathsep=FALSE, has_drive=FALSE, add_dot=FALSE;
+            char *tmproot;
 
-            if (isalpha((uch)pathcomp[0]) && pathcomp[1] == ':')
+            if ((tmproot = (char *)malloc(G.rootlen+3)) == (char *)NULL) {
+                G.rootlen = 0;
+                return 10;
+            }
+            strcpy(tmproot, pathcomp);
+            if (isalpha((uch)tmproot[0]) && tmproot[1] == ':')
                 has_drive = TRUE;   /* drive designator */
-            if (pathcomp[G.rootlen-1] == '/' || pathcomp[G.rootlen-1] == '\\') {
-                pathcomp[--G.rootlen] = '\0';
+            if (tmproot[G.rootlen-1] == '/' || tmproot[G.rootlen-1] == '\\') {
+                tmproot[--G.rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
             if (has_drive && (G.rootlen == 2)) {
                 if (!had_trailing_pathsep)   /* i.e., original wasn't "x:/" */
-                    xtra = 3;      /* room for '.' + '/' + 0 at end of "x:" */
+                    add_dot = TRUE;    /* relative path: add '.' before '/' */
             } else if (G.rootlen > 0) {   /* need not check "x:." and "x:/" */
-                if (SSTAT(pathcomp, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
+                if (SSTAT(tmproot, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
                 {
                     /* path does not exist */
-                    if (!G.create_dirs /* || iswild(pathcomp) */ ) {
+                    if (!G.create_dirs /* || iswild(tmproot) */ ) {
+                        free(tmproot);
                         G.rootlen = 0;
                         return 2;   /* treat as stored file */
                     }
-                    /* create directory (could add loop here to scan pathcomp
-                     * and create more than one level, but really necessary?) */
-                    if (MKDIR(pathcomp, 0777) == -1) {
+                    /* create directory (could add loop here scanning tmproot
+                     * to create more than one level, but really necessary?) */
+                    if (MKDIR(tmproot, 0777) == -1) {
                         Info(slide, 1, ((char *)slide,
                           "checkdir:  cannot create extraction directory: %s\n",
-                          FnFilter1(pathcomp)));
-                        G.rootlen = 0; /* path didn't exist, tried to create, */
-                        return 3;  /* failed:  file exists, or need 2+ levels */
+                          FnFilter1(tmproot)));
+                        free(tmproot);
+                        G.rootlen = 0;/* path didn't exist, tried to create, */
+                        return 3; /* failed:  file exists, or need 2+ levels */
                     }
                 }
             }
-            if ((G.rootpath = (char *)malloc(G.rootlen+xtra)) == NULL) {
+            if (add_dot)                    /* had just "x:", make "x:." */
+                tmproot[G.rootlen++] = '.';
+            tmproot[G.rootlen++] = '/';
+            tmproot[G.rootlen] = '\0';
+            if ((G.rootpath = (char *)realloc(tmproot, G.rootlen+1)) == NULL) {
+                free(tmproot);
                 G.rootlen = 0;
                 return 10;
             }
-            strcpy(G.rootpath, pathcomp);
-            if (xtra == 3)                  /* had just "x:", make "x:." */
-                G.rootpath[G.rootlen++] = '.';
-            G.rootpath[G.rootlen++] = '/';
-            G.rootpath[G.rootlen] = '\0';
             Trace((stderr, "rootpath now = [%s]\n", FnFilter1(G.rootpath)));
         }
         return 0;
@@ -2083,6 +2129,30 @@ int checkdir(__G__ pathcomp, flag)
 
 
 #ifndef SFX
+
+/*************************/
+/* Function dateformat() */
+/*************************/
+
+int dateformat()
+{
+  TCHAR df[2];  /* LOCALE_IDATE has a maximum value of 2 */
+
+  if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IDATE, df, 2) != 0) {
+    switch (df[0])
+    {
+      case '0':
+        return DF_MDY;
+      case '1':
+        return DF_DMY;
+      case '2':
+        return DF_YMD;
+    }
+  }
+  return DF_MDY;
+}
+
+
 #ifndef WINDLL
 
 /************************/
@@ -2141,9 +2211,15 @@ void version(__G)
 #  elif (__BORLANDC__ == 0x0500)   /* __BCPLUSPLUS__ = 0x0340 */
       " 5.0",
 #  elif (__BORLANDC__ == 0x0520)   /* __BCPLUSPLUS__ = 0x0520 */
-      " 5.2 (C++ Builder)",        /* GRR:  assume this will stay sync'd? */
+      " 5.2 (C++ Builder 1.0)",
+#  elif (__BORLANDC__ == 0x0530)   /* __BCPLUSPLUS__ = 0x0530 */
+      " 5.3 (C++ Builder 3.0)",
+#  elif (__BORLANDC__ == 0x0540)   /* __BCPLUSPLUS__ = 0x0540 */
+      " 5.4 (C++ Builder 4.0)",
+#  elif (__BORLANDC__ == 0x0550)   /* __BCPLUSPLUS__ = 0x0550 */
+      " 5.5 (C++ Builder 5.0)",
 #  else
-      " later than 5.2",
+      " later than 5.5",
 #  endif
 #elif defined(__LCC__)
       "LCC-Win32", "",
@@ -2164,7 +2240,7 @@ void version(__G)
 #    else
       "rsxnt(unknown) / gcc ",
 #    endif
-#  elif defined(__CYGWIN32__)
+#  elif defined(__CYGWIN__)
       "cygnus win32 / gcc ",
 #  elif defined(__MINGW32__)
       "mingw32 / gcc ",
@@ -2176,7 +2252,7 @@ void version(__G)
       "unknown compiler (SDK?)", "",
 #endif /* ?compilers */
 
-      "Windows 95 / Windows NT", "\n(32-bit)",
+      "\nWindows 95 / Windows NT", " (32-bit)",
 
 #ifdef __DATE__
       " on ", __DATE__
@@ -2193,6 +2269,32 @@ void version(__G)
 
 #endif /* !WINDLL */
 #endif /* !SFX */
+
+
+
+#ifdef MORE
+
+int screenlines()
+{
+    HANDLE hstdout;
+    CONSOLE_SCREEN_BUFFER_INFO scr;
+
+    hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    GetConsoleScreenBufferInfo(hstdout, &scr);
+    return scr.srWindow.Bottom - scr.srWindow.Top + 1;
+}
+
+int screencolumns()
+{
+    HANDLE hstdout;
+    CONSOLE_SCREEN_BUFFER_INFO scr;
+
+    hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    GetConsoleScreenBufferInfo(hstdout, &scr);
+    return scr.srWindow.Right - scr.srWindow.Left + 1;
+}
+
+#endif /* MORE */
 
 
 

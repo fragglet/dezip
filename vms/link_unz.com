@@ -1,16 +1,16 @@
 $ ! LINK_UNZ.COM
 $ !
-$ !	Command procedure to (re)link the VMS versions of
-$ !	UnZip/ZipInfo and UnZipSFX
+$ !     Command procedure to (re)link the VMS versions of
+$ !     UnZip/ZipInfo and UnZipSFX
 $ !
-$ !	last updated:  11 September 1997
+$ !     last updated:  11 September 1997
 $ !
-$ !	Command args:
-$ !	- select compiler environment: "VAXC", "DECC", "GNUC"
-$ !	- select installation of CLI interface version of unzip:
-$ !	  "VMSCLI" or "CLI"
-$ !	- force installation of UNIX interface version of unzip
-$ !	  (override LOCAL_UNZIP environment): "NOVMSCLI" or "NOCLI"
+$ !     Command args:
+$ !     - select compiler environment: "VAXC", "DECC", "GNUC"
+$ !     - select installation of CLI interface version of unzip:
+$ !       "VMSCLI" or "CLI"
+$ !     - force installation of UNIX interface version of unzip
+$ !       (override LOCAL_UNZIP environment): "NOVMSCLI" or "NOCLI"
 $ !
 $ !
 $ on error then goto error
@@ -22,11 +22,11 @@ $!##################### Read settings from environment ########################
 $!
 $ if f$type(LOCAL_UNZIP).eqs.""
 $ then
-$	local_unzip = ""
-$ else	! Trim blanks and append comma if missing
-$	local_unzip = f$edit(local_unzip, "TRIM")
-$	if f$extract(f$length(local_unzip)-1, 1, local_unzip).nes."," then -
-		local_unzip = local_unzip + ","
+$       local_unzip = ""
+$ else  ! Trim blanks and append comma if missing
+$       local_unzip = f$edit(local_unzip, "TRIM")
+$       if f$extract(f$length(local_unzip)-1, 1, local_unzip).nes."," then -
+                local_unzip = local_unzip + ","
 $ endif
 $! Check for the presence of "VMSCLI" in local_unzip. If yes, we will define
 $! the foreign command for "unzip" to use the executable containing the
@@ -39,7 +39,7 @@ $   CLI_IS_DEFAULT = 1
 $   ! Remove "VMSCLI" macro from local_unzip. The UnZip executable including
 $   ! the CLI interface is now created unconditionally.
 $   local_unzip = f$extract(0, pos_cli, local_unzip) + -
-$		f$extract(pos_cli+7, len_local_unzip-(pos_cli+7), local_unzip)
+$               f$extract(pos_cli+7, len_local_unzip-(pos_cli+7), local_unzip)
 $ else
 $   CLI_IS_DEFAULT = 0
 $ endif
@@ -87,9 +87,9 @@ $ argloop_out:
 $!
 $ if CLI_IS_DEFAULT
 $ then
-$	UNZEXEC = unzx_cli
+$       UNZEXEC = unzx_cli
 $ else
-$	UNZEXEC = unzx_unx
+$       UNZEXEC = unzx_unx
 $ endif
 $!
 $!#######################################################################
@@ -102,92 +102,92 @@ $ here = f$parse(workdir,,,"device") + f$parse(workdir,,,"directory")
 $ axp = f$getsyi("HW_MODEL").ge.1024
 $ if axp
 $ then
-$	! Alpha AXP
-$	ARCH_NAME == "Alpha"
-$	ARCH_PREF = "AXP_"
-$	HAVE_DECC_VAX = 0
-$	USE_DECC_VAX = 0
-$	IF (f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'OLB").eqs."")
-$	THEN
-$	  say "Cannot find any AXP object library for UnZip."
-$	  say "  You must keep all binary files of the object distribution"
-$	  say "  in the current directory !"
-$	  goto error
-$	ENDIF
-$	if MAY_USE_GNUC
-$	then say "GNU C has not yet been ported to OpenVMS AXP."
-$	     say "You must use DEC C to build UnZip."
-$	     goto error
-$	endif
-$	ARCH_CC_P = ARCH_PREF
-$	opts = ""
-$	say "Linking on AXP using DEC C"
+$       ! Alpha AXP
+$       ARCH_NAME == "Alpha"
+$       ARCH_PREF = "AXP_"
+$       HAVE_DECC_VAX = 0
+$       USE_DECC_VAX = 0
+$       IF (f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'OLB").eqs."")
+$       THEN
+$         say "Cannot find any AXP object library for UnZip."
+$         say "  You must keep all binary files of the object distribution"
+$         say "  in the current directory !"
+$         goto error
+$       ENDIF
+$       if MAY_USE_GNUC
+$       then say "GNU C has not yet been ported to OpenVMS AXP."
+$            say "You must use DEC C to build UnZip."
+$            goto error
+$       endif
+$       ARCH_CC_P = ARCH_PREF
+$       opts = ""
+$       say "Linking on AXP using DEC C"
 $ else
-$	! VAX
-$	ARCH_NAME == "VAX"
-$	ARCH_PREF = "VAX_"
+$       ! VAX
+$       ARCH_NAME == "VAX"
+$       ARCH_PREF = "VAX_"
 $       ! check which object libraries are present:
-$	HAVE_DECC_VAX = -
-		(f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'DECC_OLB").nes."")
-$	HAVE_VAXC_VAX = -
-		(f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'VAXC_OLB").nes."")
-$	HAVE_GNUC_VAX = -
-		(f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'GNUC_OLB").nes."")
-$	IF .not.HAVE_DECC_VAX .and. .not.HAVE_VAXC_VAX .and. .not.HAVE_GNUC_VAX
-$	THEN
-$	  say "Cannot find any VAX object library for UnZip."
-$	  say "  You must keep all binary files of the object distribution"
-$	  say "  in the current directory !"
-$	  goto error
-$	ENDIF
-$	IF HAVE_DECC_VAX .AND. MAY_USE_DECC
-$	THEN
-$!	  We use DECC:
-$	  USE_DECC_VAX = 1
-$	  ARCH_CC_P = "''ARCH_PREF'DECC_"
-$	  opts = ""
-$	  say "Linking on VAX using DEC C"
-$	ELSE
-$!	  We use VAXC (or GNU C):
-$	  USE_DECC_VAX = 0
-$	  opts = ",SYS$DISK:[.VMS]VAXCSHR.OPT/OPTIONS"
-$	  if HAVE_GNUC_VAX .and. (.not.HAVE_VAXC_VAX .or. MAY_USE_GNUC)
-$	  then
-$		ARCH_CC_P = "''ARCH_PREF'GNUC_"
-$		opts = ",GNU_CC:[000000]GCCLIB.OLB/LIB ''opts'"
-$		say "Linking on VAX using GNU C"
-$	  else
-$		ARCH_CC_P = "''ARCH_PREF'VAXC_"
-$		say "Linking on VAX using VAX C"
-$	  endif
-$	ENDIF
+$       HAVE_DECC_VAX = -
+                (f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'DECC_OLB").nes."")
+$       HAVE_VAXC_VAX = -
+                (f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'VAXC_OLB").nes."")
+$       HAVE_GNUC_VAX = -
+                (f$search("SYS$DISK:[]UNZIP.''ARCH_PREF'GNUC_OLB").nes."")
+$       IF .not.HAVE_DECC_VAX .and. .not.HAVE_VAXC_VAX .and. .not.HAVE_GNUC_VAX
+$       THEN
+$         say "Cannot find any VAX object library for UnZip."
+$         say "  You must keep all binary files of the object distribution"
+$         say "  in the current directory !"
+$         goto error
+$       ENDIF
+$       IF HAVE_DECC_VAX .AND. MAY_USE_DECC
+$       THEN
+$         ! We use DECC:
+$         USE_DECC_VAX = 1
+$         ARCH_CC_P = "''ARCH_PREF'DECC_"
+$         opts = ""
+$         say "Linking on VAX using DEC C"
+$       ELSE
+$         ! We use VAXC (or GNU C):
+$         USE_DECC_VAX = 0
+$         opts = ",SYS$DISK:[.VMS]VAXCSHR.OPT/OPTIONS"
+$         if HAVE_GNUC_VAX .and. (.not.HAVE_VAXC_VAX .or. MAY_USE_GNUC)
+$         then
+$               ARCH_CC_P = "''ARCH_PREF'GNUC_"
+$               opts = ",GNU_CC:[000000]GCCLIB.OLB/LIB ''opts'"
+$               say "Linking on VAX using GNU C"
+$         else
+$               ARCH_CC_P = "''ARCH_PREF'VAXC_"
+$               say "Linking on VAX using VAX C"
+$         endif
+$       ENDIF
 $ endif
 $ LFLAGS = "/notrace"
 $ if (opts .nes. "") .and. (f$search("[.vms]vaxcshr.opt") .eqs. "")
-$ then	create [.vms]vaxcshr.opt
-$	open/append tmp [.vms]vaxcshr.opt
-$	write tmp "SYS$SHARE:VAXCRTL.EXE/SHARE"
-$	close tmp
+$ then  create [.vms]vaxcshr.opt
+$       open/append tmp [.vms]vaxcshr.opt
+$       write tmp "SYS$SHARE:VAXCRTL.EXE/SHARE"
+$       close tmp
 $ endif
-$ tmp = f$verify(1)	! Turn echo on to see what's happening
+$ tmp = f$verify(1)     ! Turn echo on to see what's happening
 $ !
 $ link'LFLAGS'/exe='unzx_unx'.'ARCH_CC_P'exe -
-	unzip.'ARCH_CC_P'olb;/incl=(unzip)/lib -
-	'opts', [.VMS]unzip.opt/opt
+        unzip.'ARCH_CC_P'olb;/incl=(unzip)/lib -
+        'opts', [.VMS]unzip.opt/opt
 $ !
 $ link'LFLAGS'/exe='unzx_cli'.'ARCH_CC_P'exe -
-	unzipcli.'ARCH_CC_P'olb;/incl=(unzip)/lib, -
-	unzip.'ARCH_CC_P'olb;/lib -
-	'opts', [.VMS]unzip.opt/opt
+        unzipcli.'ARCH_CC_P'olb;/incl=(unzip)/lib, -
+        unzip.'ARCH_CC_P'olb;/lib -
+        'opts', [.VMS]unzip.opt/opt
 $ !
 $ link'LFLAGS'/exe='unzsfx_unx'.'ARCH_CC_P'exe -
-	unzipsfx.'ARCH_CC_P'olb;/lib/incl=unzip -
-	'opts', [.VMS]unzipsfx.opt/opt
+        unzipsfx.'ARCH_CC_P'olb;/lib/incl=unzip -
+        'opts', [.VMS]unzipsfx.opt/opt
 $ !
 $ link'LFLAGS'/exe='unzsfx_cli'.'ARCH_CC_P'exe -
-	unzsxcli.'ARCH_CC_P'olb;/lib/incl=unzip, -
-	unzipsfx.'ARCH_CC_P'olb;/lib -
-	'opts', [.VMS]unzipsfx.opt/opt
+        unzsxcli.'ARCH_CC_P'olb;/lib/incl=unzip, -
+        unzipsfx.'ARCH_CC_P'olb;/lib -
+        'opts', [.VMS]unzipsfx.opt/opt
 $ !
 $ ! Next line:  put similar lines (full pathname for unzip.'ARCH_CC_P'exe) in
 $ ! login.com.  Remember to include the leading "$" before disk name.

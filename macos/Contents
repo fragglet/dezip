@@ -12,7 +12,9 @@ Contents of the "macos" sub-archive for UnZip 5.4 and later:
 
   source/        subdirectory containing all sources:
                   a) UnZip specific code
-    mac.c           Mac-specific filesystem code
+    macbin3.c       macbinary III code, used for extraction of ZipIt archives
+    macbin3.h       macbinary III header, macbinary docu + public prototyping
+    macos.c         Mac-specific filesystem code
     maccfg.h        Mac-specific configuration and global declarations
     macdir.c        Macintosh Posix-style directory emulation ("dirent")
     macdir.h        header file for directory emulation

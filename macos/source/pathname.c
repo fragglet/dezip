@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in zip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   pathname.c
@@ -13,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sound.h>
 
 #include "pathname.h"
 #include "helpers.h"
@@ -48,6 +57,8 @@ unsigned short GetVolumeFromPath(const char *FullPath, char *VolumeName)
 const char *VolEnd, *tmpPtr1;
 char *tmpPtr2 = VolumeName;
 
+AssertStr(FullPath,"GetVolumeFromPath")
+
 for (VolEnd = FullPath; *VolEnd != '\0' && *VolEnd != ':'; VolEnd++)
       ;
 if (*VolEnd == '\0') return 0;
@@ -64,32 +75,201 @@ return (unsigned short) strlen(VolumeName);
 
 
 
+/***********************************/
+/* Function FindNewExtractFolder() */
+/***********************************/
+
+char *FindNewExtractFolder(char *ExtractPath)
+{
+char buffer[NAME_MAX], *tmpPtr, *namePtr;
+short count = 0, folderCount = 0;
+OSErr err;
+FSSpec Spec;
+long theDirID;
+Boolean isDirectory;
+unsigned short namelen, pathlen = strlen(ExtractPath);
+
+AssertStr(ExtractPath,"FindNewExtractFolder ExtractPath == NULL")
+
+for (tmpPtr = ExtractPath; *tmpPtr; tmpPtr++)
+    if (*tmpPtr == ':')
+        {
+        folderCount++;
+        namePtr = tmpPtr;
+        }
+
+if (folderCount > 1)
+    namelen = strlen(namePtr);
+else
+    namelen = strlen(ExtractPath);
+
+for (count = 0; count < 99; count++)
+    {
+    memset(buffer,0,sizeof(buffer));
+
+    if (namelen >= 28)
+        ExtractPath[pathlen-2] = 0x0;
+    else
+        ExtractPath[pathlen-1] = 0x0;
+
+    sprintf(buffer,"%s%d",ExtractPath,count);
+    GetCompletePath(ExtractPath, buffer, &Spec,&err);
+    err = FSpGetDirectoryID(&Spec, &theDirID, &isDirectory);
+    if (err == -43) break;
+    }
+
+/* Foldernames must always end with a colon  */
+sstrcat(ExtractPath,":");
+return ExtractPath;
+}
+
+
+
+/*
+**  creates an archive file name
+**
+*/
+
+void createArchiveName(char *thePath)
+{
+char *tmpPtr, *namePtr;
+short folderCount = 0;
+unsigned short namelen, pathlen = strlen(thePath);
+
+if (thePath[pathlen-1] == ':') thePath[pathlen-1] = 0x0;
+
+for (tmpPtr = thePath; *tmpPtr; tmpPtr++)
+    if (*tmpPtr == ':')
+        {
+        folderCount++;
+        namePtr = tmpPtr;
+        }
+
+namelen = strlen(namePtr);
+
+    /* we have to eliminate illegal chars:
+     * The name space for Mac filenames and Zip filenames (unix style names)
+     * do both include all printable extended-ASCII characters.  The only
+     * difference we have to take care of is the single special character
+     * used as path delimiter:
+     * ':' on MacOS and '/' on Unix and '\' on Dos.
+     * So, to convert between Mac filenames and Unix filenames without any
+     * loss of information, we simply interchange ':' and '/'.  Additionally,
+     * we try to convert the coding of the extended-ASCII characters into
+     * InfoZip's standard ISO 8859-1 codepage table.
+     */
+  MakeCompatibleString(namePtr, '/', '_', '.', '-', -1);
+
+ /* Avoid filenames like: "Archive..zip"  */
+if (thePath[pathlen-1] == '.')
+    {
+    thePath[pathlen-1] = 0;
+    }
+
+if (folderCount >= 1)
+    { /* path contains at least one folder */
+
+    if (namelen >= 28)
+        {
+        pathlen = pathlen-4;
+        }
+
+    thePath[pathlen]   = '.';
+    thePath[pathlen+1] = 'z';
+    thePath[pathlen+2] = 'i';
+    thePath[pathlen+3] = 'p';
+    thePath[pathlen+4] = 0x0;
+    return;
+    }
+else
+    {  /* path contains no folder */
+    FindDesktopFolder(thePath);
+    createArchiveName(thePath);
+    }
+}
+
+
+
+/*
+** finds the desktop-folder on a volume with
+** largest amount of free-space.
+*/
+
+void FindDesktopFolder(char *Path)
+{
+char buffer[255];
+FSSpec  volumes[50];        /* 50 Volumes should be enough */
+short   actVolCount, volIndex = 1, VolCount = 0;
+OSErr   err;
+short     i, foundVRefNum;
+FSSpec spec;
+UnsignedWide freeBytes;
+UnsignedWide totalBytes;
+UnsignedWide MaxFreeBytes;
+
+err = OnLine(volumes, 50, &actVolCount, &volIndex);
+printerr("OnLine:", (err != -35) && (err != 0), err, __LINE__, __FILE__, "");
+
+MaxFreeBytes.hi = 0;
+MaxFreeBytes.lo = 0;
+
+for (i=0; i < actVolCount; i++)
+    {
+    XGetVInfo(volumes[i].vRefNum,
+              volumes[i].name,
+              &volumes[i].vRefNum,
+              &freeBytes,
+              &totalBytes);
+
+    if (MaxFreeBytes.hi < freeBytes.hi) {
+        MaxFreeBytes.hi = freeBytes.hi;
+        MaxFreeBytes.lo = freeBytes.lo;
+        foundVRefNum = volumes[i].vRefNum;
+    }
+
+    if ((freeBytes.hi == 0) && (MaxFreeBytes.lo < freeBytes.lo)) {
+        MaxFreeBytes.hi = freeBytes.hi;
+        MaxFreeBytes.lo = freeBytes.lo;
+        foundVRefNum = volumes[i].vRefNum;
+    }
+
+}
+
+ FSpFindFolder(foundVRefNum, kDesktopFolderType,
+            kDontCreateFolder,&spec);
+
+ GetFullPathFromSpec(buffer, &spec , &err);
+ sstrcat(buffer,Path);
+ sstrcpy(Path,buffer);
+}
+
+
 /*
 **  return the path without the filename
 **
 */
 
-char *TruncFilename(char *CompletePath, const char *name, FSSpec *Spec,
-                    OSErr *err)
+char *TruncFilename(char *DirPath, const char *FilePath)
 {
 char *tmpPtr;
-char *dirPtr;
-short fullPathLength = 0;
+char *dirPtr = NULL;
 
-strcpy(CompletePath, name);
+AssertStr(DirPath,"TruncFilename")
+Assert_it(Spec,"TruncFilename","")
 
-for (tmpPtr = CompletePath; *tmpPtr; tmpPtr++)
-    if (*tmpPtr == ':') dirPtr = tmpPtr;
+sstrcpy(DirPath, FilePath);
 
-*++dirPtr = '\0';
+for (tmpPtr = DirPath; *tmpPtr; tmpPtr++)
+    if (*tmpPtr == ':')
+        dirPtr = tmpPtr;
 
-fullPathLength = strlen(CompletePath);
-printerr("Warning path length exceeds limit: ", fullPathLength >= NAME_MAX,
-         fullPathLength, __LINE__, __FILE__, " chars ");
+if (dirPtr)
+    *++dirPtr = '\0';
+else
+    printerr("TruncFilename: FilePath has no Folders", -1,
+         -1, __LINE__, __FILE__, FilePath);
 
-*err = FSpLocationFromFullPath(fullPathLength, CompletePath, Spec);
-
-return CompletePath;
+return DirPath;
 }
 
 
@@ -99,16 +279,32 @@ return CompletePath;
 **
 */
 
-char *GetFilename(char *CompletePath, const char *name)
+char *GetFilename(char *FileName, const char *FilePath)
 {
 const char *tmpPtr;
 const char *dirPtr = NULL;
 
+Assert_it(FileName,"GetFilename","")
+Assert_it(FilePath,"GetFilename","")
 
-for (tmpPtr = name; *tmpPtr; tmpPtr++)
-    if (*tmpPtr == ':') dirPtr = tmpPtr;
+for (tmpPtr = FilePath; *tmpPtr; tmpPtr++)
+    {
+    if (*tmpPtr == ':')
+        {
+        dirPtr = tmpPtr;
+        }
+    }
 
-return strcpy(CompletePath, (dirPtr == NULL ? name : ++dirPtr));
+if (dirPtr)
+    {
+    ++dirPtr;  /* jump over the ':' */
+    }
+else
+    {
+    return strcpy(FileName, FilePath); /* FilePath has no Folders */
+    }
+
+return strcpy(FileName, dirPtr);
 }
 
 
@@ -127,9 +323,9 @@ FSSpec      spec;
     printerr("FSMakeFSSpecCompat:", (*err != -43) && (*err != 0), *err,
              __LINE__, __FILE__, "");
     if ( (*err == noErr) || (*err == fnfErr) )
-    {
+        {
         return GetFullPathFromSpec(CompletePath, &spec, err);
-    }
+        }
 
 return NULL;
 }
@@ -145,20 +341,23 @@ char *Real2RfDfFilen(char *RfDfFilen, const char *RealPath,
                     short CurrentFork, short MacZipMode, Boolean DataForkOnly)
 {
 
+AssertStr(RealPath,"Real2RfDfFilen")
+AssertStr(RfDfFilen,"Real2RfDfFilen")
+
 if (DataForkOnly) /* make no changes */
     {
-    return strcpy(RfDfFilen, RealPath);
+    return sstrcpy(RfDfFilen, RealPath);
     }
 
 switch (MacZipMode)
     {
     case JohnnyLee_EF:
         {
-        strcpy(RfDfFilen, RealPath);
+        sstrcpy(RfDfFilen, RealPath);
         if (CurrentFork == DataFork)            /* data-fork  */
-            return strcat(RfDfFilen, "d");
+            return sstrcat(RfDfFilen, "d");
         if (CurrentFork == ResourceFork)        /* resource-fork */
-            return strcat(RfDfFilen, "r");
+            return sstrcat(RfDfFilen, "r");
         break;
         }
 
@@ -168,14 +367,14 @@ switch (MacZipMode)
             {
             case DataFork:
                 {
-                strcpy(RfDfFilen, RealPath);
+                sstrcpy(RfDfFilen, RealPath);
                 return RfDfFilen;  /* data-fork  */
                 break;
                 }
             case ResourceFork:
                 {
-                strcpy(RfDfFilen, ResourceMark);
-                strcat(RfDfFilen, RealPath);  /* resource-fork */
+                sstrcpy(RfDfFilen, ResourceMark);
+                sstrcat(RfDfFilen, RealPath);  /* resource-fork */
                 return RfDfFilen;
                 break;
                 }
@@ -212,17 +411,27 @@ char *RfDfFilen2Real(char *RealFn, const char *RfDfFilen, short MacZipMode,
 short   length;
 int     result;
 
-if (DataForkOnly)
+AssertStr(RfDfFilen,"RfDfFilen2Real")
+
+if (DataForkOnly ||
+    (MacZipMode == UnKnown_EF) ||
+    (MacZipMode < JohnnyLee_EF))
     {
     *CurrentFork = DataFork;
-    return strcpy(RealFn,RfDfFilen);
+    return sstrcpy(RealFn,RfDfFilen);
+    }
+
+result = strncmp(RfDfFilen, ResourceMark, sizeof(ResourceMark)-2);
+if (result == 0)
+    {
+    MacZipMode = NewZipMode_EF;
     }
 
 switch (MacZipMode)
     {
     case JohnnyLee_EF:
         {
-        strcpy(RealFn, RfDfFilen);
+        sstrcpy(RealFn, RfDfFilen);
         length = strlen(RealFn);       /* determine Fork type */
         if (RealFn[length-1] == 'd') *CurrentFork = DataFork;
         else *CurrentFork = ResourceFork;
@@ -237,7 +446,7 @@ switch (MacZipMode)
         if (result != 0)
             {
             *CurrentFork = DataFork;
-            strcpy(RealFn, RfDfFilen);
+            sstrcpy(RealFn, RfDfFilen);
             return RealFn;  /* data-fork  */
             }
         else
@@ -245,7 +454,7 @@ switch (MacZipMode)
             *CurrentFork = ResourceFork;
             if (strlen(RfDfFilen) > (sizeof(ResourceMark) - 1))
                 {
-                strcpy(RealFn, &RfDfFilen[sizeof(ResourceMark)-1]);
+                sstrcpy(RealFn, &RfDfFilen[sizeof(ResourceMark)-1]);
                 }
             else RealFn[0] = '\0';
             return RealFn;  /* resource-fork */
@@ -254,6 +463,7 @@ switch (MacZipMode)
         }
     default:
         {
+        *CurrentFork = NoFork;
         printerr("RfDfFilen2Real():", -1, MacZipMode,
                  __LINE__, __FILE__, RfDfFilen);
         return NULL;  /* function should never reach this point */
@@ -296,24 +506,26 @@ return (char *)&AppName[1];
 **
 */
 
-char *GetFullPathFromSpec(char *CompletePath, FSSpec *Spec, OSErr *err)
+char *GetFullPathFromSpec(char *FullPath, FSSpec *Spec, OSErr *err)
 {
 Handle hFullPath;
 short len;
 
-memset(CompletePath, 0, sizeof(CompletePath));
-*err = 0;
+Assert_it(Spec,"GetFullPathFromSpec","")
+
 *err = FSpGetFullPath(Spec, &len, &hFullPath);
 printerr("FSpGetFullPath:", (*err != -43) && (*err != 0), *err,
          __LINE__, __FILE__, "");
-strncpy(CompletePath, *hFullPath, len);
-DisposeHandle(hFullPath);   /* we don't need it any more */
 
-CompletePath[len] = '\0';  /* make c-string */
+memmove(FullPath, (Handle) *hFullPath, len);
+FullPath[len] = '\0';  /* make c-string */
+
+DisposeHandle((Handle)hFullPath);   /* we don't need it any more */
+
 printerr("Warning path length exceeds limit: ", len >= NAME_MAX, len,
          __LINE__, __FILE__, " chars ");
 
-return CompletePath;
+return FullPath;
 }
 
 
@@ -352,37 +564,102 @@ char *GetCompletePath(char *CompletePath, const char *name, FSSpec *Spec,
                       OSErr *err)
 {
 Boolean hasDirName = false;
+char currentdir[NAME_MAX];
 char *tmpPtr;
+unsigned short pathlen;
+
+AssertStr(name,"GetCompletePath")
+Assert_it(Spec,"GetCompletePath","")
+Assert_it((CompletePath != name),"GetCompletePath","")
 
 for (tmpPtr = name; *tmpPtr; tmpPtr++)
     if (*tmpPtr == ':') hasDirName = true;
-
 
 if (name[0] != ':')   /* case c: path including volume name or only filename */
     {
     if (hasDirName)
         {   /* okey, starts with volume name, so it must be a complete path */
-        strcpy(CompletePath, name);
+        sstrcpy(CompletePath, name);
         }
     else
         {   /* only filename: add cwd and return */
-        getcwd(CompletePath, NAME_MAX);
-        strcat(CompletePath, name);
+        getcwd(currentdir, NAME_MAX);
+        sstrcat(currentdir, name);
+        sstrcpy(CompletePath, currentdir);
         }
     }
-else if (name[1] == ':')    /* it's case b: */
+else if (name[1] == ':')    /* it's case b: "::folder2:filename"  */
     {
+    printerr("GetCompletePath ", -1, *err, __LINE__, __FILE__, "not implemented");
             /* it's not yet implemented; do we really need this case ?*/
     return NULL;
     }
-else                        /* it's case a: */
+else                        /* it's case a: ":subfolder:filename" */
     {
     getcwd(CompletePath, NAME_MAX);     /* we don't need a second colon */
     CompletePath[strlen(CompletePath)-1] = '\0';
-    strcat(CompletePath, name);
+    sstrcat(CompletePath, name);
     }
 
-*err = FSpLocationFromFullPath((short)strlen(CompletePath),
-                               CompletePath, Spec);
+pathlen = strlen(CompletePath);
+*err = FSpLocationFromFullPath(pathlen, CompletePath, Spec);
+
 return CompletePath;
+}
+
+
+
+char *MakeFilenameShorter(const char *LongFilename)
+{
+static char filename[35];  /* contents should be never longer than 32 chars */
+static unsigned char Num = 0; /* change the number for every call */
+                              /* this var will rollover without a problem */
+char tempLongFilename[1024], charnum[5];
+char *last_dotpos         = tempLongFilename;
+unsigned long full_length = strlen(LongFilename);
+unsigned long ext_length  = 0;
+unsigned long num_to_cut  = 0;
+long firstpart_length;
+char *tmpPtr;
+short MaxLength = 31;
+
+if (full_length <= MaxLength) /* filename is not long */
+    {
+    return strcpy(filename,LongFilename);
+    }
+
+Num++;
+strcpy(tempLongFilename,LongFilename);
+
+/* Look for the last extension pos */
+for (tmpPtr = tempLongFilename; *tmpPtr; tmpPtr++)
+    if (*tmpPtr == '.') last_dotpos = tmpPtr;
+
+ext_length = strlen(last_dotpos);
+firstpart_length = last_dotpos - tempLongFilename;
+
+if (ext_length > 6)  /* up to 5 chars are treated as a */
+    {                /* normal extension like ".html" or ".class"  */
+    firstpart_length = 0;
+    }
+
+num_to_cut = full_length - MaxLength;
+
+/* number the files to make the names unique */
+sprintf(charnum,"~%x", Num);
+num_to_cut += strlen(charnum);
+
+if (firstpart_length == 0)
+    {
+    firstpart_length = full_length;
+    tempLongFilename[firstpart_length - num_to_cut] = 0;
+    sprintf(filename,"%s%s", tempLongFilename, charnum);
+    }
+else
+    {
+    tempLongFilename[firstpart_length - num_to_cut] = 0;
+    sprintf(filename,"%s%s%s", tempLongFilename, charnum, last_dotpos);
+    }
+
+return filename;
 }

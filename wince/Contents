@@ -1,8 +1,7 @@
-Contents of the "WinCE" subdirectory for UnZip 5.3 and later:
+Contents of the "WinCE" subdirectory for UnZip 5.41 and later:
 
    Contents     This file.
    README       Information about the Windows CE port and its author.
-   punzip.dsp   Visual C++ 5.0 project for WinCE (SH3 and MIPS) and WinNT.
    punzip.h     Main header file for the entire Pocket UnZip project.
    winmain.cpp  Contains the entire user interface and all Windows code.
    winmain.h    Header for winmain.cpp.
@@ -24,3 +23,7 @@ Contents of the "WinCE" subdirectory for UnZip 5.3 and later:
    toolbar.bmp  Windows NT toolbar bitmap (16 bits/pixel).
    punzip.htp   Windows CE help file (rename to punzip.html for WinNT).
    inc\         Contains dummy headers that are called by Info-ZIP code.
+   vc5\
+     punzip.dsp   Visual C++ 5.0 project for WinCE (SH3 and MIPS) and WinNT.
+   vc6\
+     punzip.dsp   Visual C++ 6.0 project for WinCE (SH3 and MIPS) and WinNT.

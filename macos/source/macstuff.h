@@ -2,12 +2,12 @@
 #define _MACSTUFF_H       1
 
 /*
-These Functions are part of MoreFiles version 1.4.8
+These Functions were originally part of More Files version 1.4.8
 
 More Files fixes many of the broken or underfunctional
 parts of the file system.
 
-MoreFiles
+More Files
 
 A collection of File Manager and related routines
 
@@ -18,17 +18,42 @@ Copyright  1992-1998 Apple Computer, Inc.
 Portions copyright  1995 Jim Luther
 All rights reserved.
 
+The Package "More Files" is distributed under the following
+license terms:
+
+         "You may incorporate this sample code into your
+          applications without restriction, though the
+          sample code has been provided "AS IS" and the
+          responsibility for its operation is 100% yours.
+          However, what you are not permitted to do is to
+          redistribute the source as "DSC Sample Code" after
+          having made changes. If you're going to
+          redistribute the source, we require that you make
+          it clear in the source that the code was descended
+          from Apple Sample Code, but that you've made
+          changes."
+
+
+The following changes are made by Info-ZIP:
+
+- The only changes are made by pasting the functions
+  (mostly found in MoreFilesExtras.c / MoreFiles.c)
+  directly into macstuff.c / macstuff.h and slightly
+  reformatting the text (replacement of TABs by spaces,
+  removal/replacement of non-ASCII characters).
+  The code itself is NOT changed.
+
+This file has been modified by Info-ZIP for use in MacZip.
+This file is NOT part of the original package More Files.
 
 More Files can be found on the MetroWerks CD and Developer CD from
-Apple.  You can also down load the latest version from:
+Apple. You can also download the latest version from:
 
-    http://members.aol.com/JumpLong/MoreFiles_1.4.7.sit.hqx
+    http://members.aol.com/JumpLong/#MoreFiles
 
 Jim Luther's Home-page:
     http://members.aol.com/JumpLong/
 
-I'm including the files in the Info-Zip project directly.
-(see macstuff.c / macstuff.h)
 
 */
 
@@ -981,15 +1006,103 @@ pascal  OSErr   GetDirName(short vRefNum,
 */
 
 
+/*****************************************************************************/
 
+pascal  OSErr   GetVolFileSystemID(ConstStr255Param pathname,
+                                   short vRefNum,
+                                   short *fileSystemID);
+/*   Get a volume's file system ID.
+    The GetVolFileSystemID function returned the file system ID of
+    a mounted volume. The file system ID identifies the file system
+    that handles requests to a particular volume. Here's a partial list
+    of file system ID numbers (only Apple's file systems are listed):
+        FSID    File System
+        -----   -----------------------------------------------------
+        $0000   Macintosh HFS or MFS
+        $0100   ProDOS File System
+        $0101   PowerTalk Mail Enclosures
+        $4147   ISO 9660 File Access (through Foreign File Access)
+        $4242   High Sierra File Access (through Foreign File Access)
+        $464D   QuickTake File System (through Foreign File Access)
+        $4953   Macintosh PC Exchange (MS-DOS)
+        $4A48   Audio CD Access (through Foreign File Access)
+        $4D4B   Apple Photo Access (through Foreign File Access)
 
+    See the Technical Note "FL 35 - Determining Which File System
+    Is Active" and the "Guide to the File System Manager" for more
+    information.
+
+    pathName        input:  Pointer to a full pathname or nil.  If you pass
+                            in a partial pathname, it is ignored. A full
+                            pathname to a volume must contain at least
+                            one colon character (:) and must not start with
+                            a colon character.
+    vRefNum         input:  Volume specification (volume reference number,
+                            working directory number, drive number, or 0).
+    fileSystemID    output: The volume's file system ID.
+
+    Result Codes
+        noErr               0       No error
+        nsvErr              -35     No such volume
+        paramErr            -50     No default volume, or pb was NULL
+*/
+
+/*****************************************************************************/
+
+pascal  OSErr GetDInfo(short vRefNum,
+                       long dirID,
+                       ConstStr255Param name,
+                       DInfo *fndrInfo);
+/*   Get the finder information for a directory.
+    The GetDInfo function gets the finder information for a directory.
+
+    vRefNum         input:  Volume specification.
+    dirID           input:  Directory ID.
+    name            input:  Pointer to object name, or nil when dirID
+                            specifies a directory that's the object.
+    fndrInfo        output: If the object is a directory, then its DInfo.
+
+    Result Codes
+        noErr               0       No error
+        nsvErr              -35     No such volume
+        ioErr               -36     I/O error
+        bdNamErr            -37     Bad filename
+        fnfErr              -43     File not found
+        paramErr            -50     No default volume
+        dirNFErr            -120    Directory not found or incomplete pathname
+        afpAccessDenied     -5000   User does not have the correct access
+        afpObjectTypeErr    -5025   Directory not found or incomplete pathname
+
+    __________
+
+    Also see:   FSpGetDInfo, FSpGetFInfoCompat
+*/
+
+/*****************************************************************************/
+
+pascal  OSErr FSpGetDInfo(const FSSpec *spec,
+                          DInfo *fndrInfo);
+/*   Get the finder information for a directory.
+    The FSpGetDInfo function gets the finder information for a directory.
+
+    spec        input:  An FSSpec record specifying the directory.
+    fndrInfo    output: If the object is a directory, then its DInfo.
+
+    Result Codes
+        noErr               0       No error
+        nsvErr              -35     No such volume
+        ioErr               -36     I/O error
+        bdNamErr            -37     Bad filename
+        fnfErr              -43     File not found
+        paramErr            -50     No default volume
+        dirNFErr            -120    Directory not found or incomplete pathname
+        afpAccessDenied     -5000   User does not have the correct access
+        afpObjectTypeErr    -5025   Directory not found or incomplete pathname
+
+    __________
+
+    Also see:   FSpGetFInfoCompat, GetDInfo
+*/
 
 
 #endif    /*  _MACSTUFF_H  */
-
-
-
-
-
-
-

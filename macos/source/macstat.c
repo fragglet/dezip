@@ -1,3 +1,11 @@
+/*
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 /*---------------------------------------------------------------------------
 
   macstat.c
@@ -17,17 +25,23 @@
 #include <stdio.h>
 #include <sound.h>
 
+#define UNZIP_INTERNAL
+#include "unzip.h"
+
 #include "macstat.h"
 #include "helpers.h"
 #include "pathname.h"
 #include "macstuff.h"
 #include "mactime.h"
 
+
 /*****************************************************************************/
 /*  Global Vars                                                              */
 /*****************************************************************************/
 
 extern int errno;
+extern MACINFO newExtraField;  /* contains all extra-field data */
+extern short MacZipMode;
 
 
 /*****************************************************************************/
@@ -45,17 +59,24 @@ int UZmacstat(const char *path, struct stat *buf)
 {
     Boolean isDirectory;
     long dirID;
-    char fullpath[1024];
+    char fullpath[NAME_MAX], UnmangledPath[NAME_MAX];
     CInfoPBRec fpb;
     HVolumeParam vpb;
     FSSpec fileSpec;
-    OSErr err;
+    OSErr err, err2;
+    short CurrentFork;
+
+    AssertStr(path,path)
+    Assert_it(buf,"","")
 
     memset(buf,0,sizeof(buf));   /* zero out all fields */
 
+    RfDfFilen2Real(UnmangledPath, path, MacZipMode,
+                   (newExtraField.flags & EB_M3_FL_NOCHANGE), &CurrentFork);
     GetCompletePath(fullpath, path, &fileSpec, &err);
-    printerr("GetCompletePath:", (err != -43) && (err != 0) && (err != -120),
-             err, __LINE__, __FILE__, path);
+    err2 = PrintUserHFSerr((err != -43) && (err != 0) && (err != -120),
+                           err, path);
+    printerr("GetCompletePath:", err2, err2, __LINE__, __FILE__, path);
 
     if (err != noErr) {
         errno = err;
@@ -120,7 +141,12 @@ int UZmacstat(const char *path, struct stat *buf)
             buf->st_uid = -1;
             buf->st_gid = -1;
             buf->st_rdev = 0;
-            buf->st_size = fpb.hFileInfo.ioFlLgLen;
+
+            if (CurrentFork == ResourceFork)
+                buf->st_size = fpb.hFileInfo.ioFlRLgLen;
+            else
+                buf->st_size = fpb.hFileInfo.ioFlLgLen;
+
             buf->st_blksize = vpb.ioVAlBlkSiz;
             buf->st_blocks = (buf->st_size + buf->st_blksize - 1)
                             / buf->st_blksize;

@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Atari           ("real" makes only)
-# Version:  5.32                                                 5 October 1997
+# Version:  5.41                                               16 February 1999
 #==============================================================================
 
 
@@ -83,7 +83,7 @@ INSTALLEDMAN = $(MANDIR)/unzip.$(manext) $(MANDIR)/funzip.$(manext) \
 #
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, no, it's a lot ugly:
-MANS = unix/unzip.1 unix/unzipsfx.1 unix/zipinfo.1 unix/funzip.1
+MANS = man/unzip.1 man/unzipsfx.1 man/zipinfo.1 man/funzip.1
 DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc
 
 
@@ -196,10 +196,10 @@ install:	$(UNZIPS) $(MANS)
 	$(INSTALL) $(UNZIPS) $(BINDIR)
 	$(RM) $(BINDIR)/zipinfo$E
 	$(LN) $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E
-	$(INSTALL) unix/unzip.1 $(MANDIR)/unzip.$(manext)
-	$(INSTALL) unix/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
-	$(INSTALL) unix/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
-	$(INSTALL) unix/funzip.1 $(MANDIR)/funzip.$(manext)
+	$(INSTALL) man/unzip.1 $(MANDIR)/unzip.$(manext)
+	$(INSTALL) man/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
+	$(INSTALL) man/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
+	$(INSTALL) man/funzip.1 $(MANDIR)/funzip.$(manext)
 	$(CHMOD) 755  $(INSTALLEDBIN)
 	$(CHMOD) 644  $(INSTALLEDMAN)
 

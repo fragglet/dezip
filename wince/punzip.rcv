@@ -3,7 +3,7 @@
 // File:        PUNZIP.RCV
 //
 // Description: Resources that Microsoft Visual C++ does not edit directly.  
-//              This file sets all the version defines and decalres the Version
+//              This file sets all the version defines and declares the Version
 //              Info resource.  This file is included by both the C compiler and
 //              the resource compiler.
 //
@@ -46,20 +46,25 @@
 #else
 #include <winver.h>
 #endif
+#include "../version.h"
 
 //******************************************************************************
 //***** User Modifiable Version Defines
 //******************************************************************************
 
 #define VERSION_MAJOR        1
-#define VERSION_MINOR        0
+#define VERSION_MINOR        1
 #define VERSION_PRIVATE      0
 #define VERSION_PATCH        0
 
-#define VERSION_STRING       "1.0"
+#define VERSION_STRING       "1.1"
 
 // Set VER_FF_PRERELEASE to VS_FF_PRERELEASE for beta and 0 for release.
+#ifdef BETA
+#define VER_FF_PRERELEASE VS_FF_PRERELEASE
+#else
 #define VER_FF_PRERELEASE 0
+#endif
 
 //******************************************************************************
 //***** Fixed Version Defines
@@ -68,7 +73,7 @@
 #define VER_INTERNALNAME_STR "PUNZIP"
 #define VER_PRODUCT_STR      "Pocket UnZip\256"
 #define VER_DEVELOPER_STR    "Steve P. Miller (stevemil@pobox.com)"
-#define VER_COMMENT_STR      "Pocket UnZip is built on top of Info-ZIP's UnZip 5.30 source code."
+#define VER_COMMENT_STR      "Pocket UnZip is built on top of Info-ZIP's UnZip " UZ_VER_STRING UZ_BETALEVEL " source code from " UZ_VERSION_DATE "."
 
 #define VER_FILENAME_STR     VER_INTERNALNAME_STR ".EXE"
 #define VER_VERSION          VERSION_MAJOR,VERSION_MINOR,VERSION_PRIVATE,VERSION_PATCH
@@ -77,8 +82,14 @@
 #define VER_COPYRIGHT_STR    "Copyright \251 1997 Steve P. Miller.  All Rights Reserved."
 
 
+#ifdef UNICODE
+   #define VER_CODEPAGE " Unicode)"
+#else
+   #define VER_CODEPAGE " Ansi)"
+#endif
+
 #if defined(_X86_) || defined(_M_IX86)
-   #define VER_ARCH " (Intel x86)"
+   #define VER_ARCH " (i386," VER_CODEPAGE 
 #elif defined(_MIPS_) || defined(_M_MRX000)
    #define VER_ARCH " (MIPS)"
 #elif defined(_SH3_)
@@ -155,7 +166,11 @@ VS_VERSION_INFO VERSIONINFO
    BEGIN
       BLOCK "StringFileInfo"
       BEGIN
+#ifdef UNICODE
          BLOCK "040904B0"     // 0x0409 = U.S. English, 0x04B0 = Unicode
+#else
+         BLOCK "040904E4"     // 0x0409 = U.S. English, 0x04E4 = Ansi 1252
+#endif
          BEGIN 
              VALUE "CompanyName",     VER_COMPANY_STR "\0"
              VALUE "FileDescription", VER_FULLPRODUCT_STR "\0"
@@ -171,8 +186,13 @@ VS_VERSION_INFO VERSIONINFO
     
       BLOCK "VarFileInfo" 
       BEGIN 
+#ifdef UNICODE
          // English language (0x0409) and the Unicode codepage (1200)
          VALUE "Translation", 0x0409, 1200
+#else
+         // English language (0x0409) and the Western Europe codepage (1252)
+         VALUE "Translation", 0x0409, 1252
+#endif
       END
    END
 
