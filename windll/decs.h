@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -19,6 +19,10 @@
 
 #define Wiz_Match match
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void    WINAPI Wiz_NoPrinting(int f);
 int     WINAPI Wiz_Validate(LPSTR archive, int AllCodes);
 BOOL    WINAPI Wiz_Init(zvoid *, LPUSERFUNCTIONS);
@@ -33,5 +37,9 @@ int     WINAPI Wiz_UnzipToMemory(LPSTR zip, LPSTR file,
 int     WINAPI Wiz_Grep(LPSTR archive, LPSTR file, LPSTR pattern,
                         int cmd, int SkipBin,
                         LPUSERFUNCTIONS lpUserFunctions);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __decs_h */

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -222,6 +222,9 @@ int getch_win32  OF((void));
 #include <mbstring.h>
 #endif
 #include <excpt.h>
+#ifndef Cdecl
+#define Cdecl __cdecl
+#endif
 #include "wince/wince.h"     // Our WinCE specific code and our debug function.
 #ifdef POCKET_UNZIP
 #include "wince/resource.h"  // Our resource constants

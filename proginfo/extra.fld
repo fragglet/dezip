@@ -20,7 +20,7 @@ format unless otherwise specified.  Note that "Short" means two bytes,
 of their native sizes.  Unless specifically noted, all integer fields should
 be interpreted as unsigned (non-negative) numbers.
 
-Christian Spieler, 20010517
+Christian Spieler, 20040507
 
                         -------------------------
 
@@ -32,24 +32,32 @@ Christian Spieler, 20010517
 
           0x0001        ZIP64 extended information extra field
           0x0007        AV Info
+          0x0008        Reserved for future Unicode file name data (PFS)
           0x0009        OS/2 extended attributes      (also Info-ZIP)
           0x000a        NTFS (Win9x/WinNT FileTimes)
           0x000c        OpenVMS                       (also Info-ZIP)
           0x000d        Unix
+          0x000e        Reserved for file stream and fork descriptors
           0x000f        Patch Descriptor
           0x0014        PKCS#7 Store for X.509 Certificates
           0x0015        X.509 Certificate ID and Signature for
                         individual file
           0x0016        X.509 Certificate ID for Central Directory
+          0x0017        Strong Encryption Header
+          0x0018        Record Management Controls
+          0x0019        PKCS#7 Encryption Recipient Certificate List
+          0x0065        IBM S/390 (Z390), AS/400 (I400) attributes
+                        - uncompressed
+          0x0066        Reserved for IBM S/390 (Z390), AS/400 (I400)
+                        attributes - compressed
 
           The Header ID mappings defined by Info-ZIP and third parties are:
 
-          0x0065        IBM S/390 attributes - uncompressed
-          0x0066        IBM S/390 attributes - compressed
           0x07c8        Info-ZIP Macintosh (old, J. Lee)
           0x2605        ZipIt Macintosh (first version)
           0x2705        ZipIt Macintosh v 1.3.5 and newer (w/o full filename)
-          0x334d        Info-ZIP Macintosh (new, D. Haase's 'Mac3' field )
+          0x2805        ZipIt Macintosh 1.3.5+
+          0x334d        Info-ZIP Macintosh (new, D. Haase's 'Mac3' field)
           0x4154        Tandem NSK
           0x4341        Acorn/SparkFS (David Pilling)
           0x4453        Windows NT security descriptor (binary ACL)
@@ -63,18 +71,52 @@ Christian Spieler, 20010517
           0x4f4c        Xceed original location extra field
           0x5356        AOS/VS (binary ACL)
           0x5455        extended timestamp
-          0x5855        Info-ZIP Unix (original; also OS/2, NT, etc.)
           0x554e        Xceed unicode extra field
+          0x5855        Info-ZIP Unix (original; also OS/2, NT, etc.)
           0x6542        BeOS (BeBox, PowerMac, etc.)
           0x6854        Theos
+          0x7441        AtheOS (AtheOS/Syllable attributes)
           0x756e        ASi Unix
           0x7855        Info-ZIP Unix (new)
           0xfb4a        SMS/QDOS
 
 The following are detailed descriptions of the known extra-field block types:
 
-         -OS/2 Extended Attributes Extra Field:
-          ====================================
+         -ZIP64 Extended Information Extra Field (0x0001):
+          ===============================================
+
+          The following is the layout of the ZIP64 extended
+          information "extra" block. If one of the size or
+          offset fields in the Local or Central directory
+          record is too small to hold the required data,
+          a ZIP64 extended information record is created.
+          The order of the fields in the ZIP64 extended
+          information record is fixed, but the fields will
+          only appear if the corresponding Local or Central
+          directory record field is set to 0xFFFF or 0xFFFFFFFF.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value      Size       Description
+          -----      ----       -----------
+  (ZIP64) 0x0001     2 bytes    Tag for this "extra" block type
+          Size       2 bytes    Size of this "extra" block
+          Original
+          Size       8 bytes    Original uncompressed file size
+          Compressed
+          Size       8 bytes    Size of compressed data
+          Relative Header
+          Offset     8 bytes    Offset of local header record
+          Disk Start
+          Number     4 bytes    Number of the disk on which
+                                this file starts
+
+          This entry in the Local header must include BOTH original
+          and compressed file sizes.
+
+
+         -OS/2 Extended Attributes Extra Field (0x0009):
+          =============================================
 
           The following is the layout of the OS/2 extended attributes "extra"
           block.  (Last Revision 19960922)
@@ -103,9 +145,10 @@ The following are detailed descriptions of the known extra-field block types:
           The value of CType is interpreted according to the "compression
           method" section above; i.e., 0 for stored, 8 for deflated, etc.
 
-          The OS/2 extended attribute structure (FEA2LIST) is compressed and
-          then stored in its entirety within this structure.  There will only
-          ever be one block of data in the variable-length field.
+          The OS/2 extended attribute structure (FEA2LIST) is
+          compressed and then stored in its entirety within this
+          structure.  There will only ever be one "block" of data in
+          the variable-length field.
 
 
          -OS/2 Access Control List Extra Field:
@@ -144,8 +187,8 @@ The following are detailed descriptions of the known extra-field block types:
           extended for other operating systems as needed.
 
 
-         -Windows NT Security Descriptor Extra Field:
-          ==========================================
+         -Windows NT Security Descriptor Extra Field (0x4453):
+          ===================================================
 
           The following is the layout of the NT Security Descriptor (another
           type of ACL) extra block.  (Last Revision 19960922)
@@ -181,8 +224,8 @@ The following are detailed descriptions of the known extra-field block types:
           format.
 
 
-         -PKWARE Win95/WinNT Extra Field:
-          ==============================
+         -PKWARE Win95/WinNT Extra Field (0x000a):
+          =======================================
 
           The following description covers PKWARE's "NTFS" attributes
           "extra" block, introduced with the release of PKZIP 2.50 for
@@ -207,7 +250,7 @@ The following are detailed descriptions of the known extra-field block types:
           .
           TagN          Short       NTFS attribute tag value #N
           SizeN         Short       Size of attribute #N, in bytes
-          (var.)        SubSize1    Attribute #N data
+          (var.)        SubSizeN    Attribute #N data
 
           For NTFS, values for Tag1 through TagN are as follows:
           (currently only one set of attributes is defined for NTFS)
@@ -229,11 +272,11 @@ The following are detailed descriptions of the known extra-field block types:
           which is "01-Jan-1601 00:00:00 UTC".
 
 
-         -PKWARE OpenVMS Extra Field:
-          ==========================
+         -PKWARE OpenVMS Extra Field (0x000c):
+          ===================================
 
-          The following is the layout of PKWARE's OpenVMS attributes "extra"
-          block.  (Last Revision 12/17/91)
+          The following is the layout of PKWARE's OpenVMS attributes
+          "extra" block.  (Last Revision 12/17/91)
 
           Note: all fields stored in Intel low-byte/high-byte order.
 
@@ -358,23 +401,53 @@ The following are detailed descriptions of the known extra-field block types:
           Creator       Byte[4]     four-byte Mac creator string
 
 
-         -ZipIt Macintosh Extra Field (short):
-          ===================================
+         -ZipIt Macintosh Extra Field (short, for files):
+          ==============================================
 
           The following is the layout of a shortened variant of the
           ZipIt extra block for Macintosh (without "full name" entry).
-          This variant is used by ZipIt 1.3.5 and newer for entries that
-          do not need a "full Mac filename" record.
-          The local-header and central-header versions are identical.
-          (Last Revision 19980903)
+          This variant is used by ZipIt 1.3.5 and newer for entries of
+          files (not directories) that do not have a MacBinary encoded
+          file.  The local-header and central-header versions are identical.
+          (Last Revision 20030602)
 
           Value         Size        Description
           -----         ----        -----------
   (Mac2b) 0x2705        Short       tag for this extra block type
-          TSize         Short       total data size for this block (12)
+          TSize         Short       total data size for this block (min. 12)
           "ZPIT"        beLong      extra-field signature
           FileType      Byte[4]     four-byte Mac file type string
           Creator       Byte[4]     four-byte Mac creator string
+          fdFlags       beShort     attributes from FInfo.frFlags,
+                                    may be omitted
+          0x0000        beShort     reserved, may be omitted
+
+
+         -ZipIt Macintosh Extra Field (short, for directories):
+          ====================================================
+
+          The following is the layout of a shortened variant of the
+          ZipIt extra block for Macintosh used only for directory
+          entries. This variant is used by ZipIt 1.3.5 and newer to
+          save some optional Mac-specific information about directories.
+          The local-header and central-header versions are identical.
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Mac2c) 0x2805        Short       tag for this extra block type
+          TSize         Short       total data size for this block (12)
+          "ZPIT"        beLong      extra-field signature
+          frFlags       beShort     attributes from DInfo.frFlags, may
+                                    be omitted
+          View          beShort     ZipIt view flag, may be omitted
+
+
+          The View field specifies ZipIt-internal settings as follows:
+
+          Bits of the Flags:
+              bit 0           if set, the folder is shown expanded (open)
+                              when the archive contents are viewed in ZipIt.
+              bits 1-15       reserved, zero;
 
 
          -Info-ZIP Macintosh Extra Field (new):
@@ -573,8 +646,8 @@ The following are detailed descriptions of the known extra-field block types:
           flData is an uncompressed fldata_t struct.
 
 
-         -PKWARE Unix Extra Field:
-          ========================
+         -PKWARE Unix Extra Field (0x000d):
+          ================================
 
           The following is the layout of PKWARE's Unix "extra" block.
           It was introduced with the release of PKZIP for Unix 2.50.
@@ -613,8 +686,8 @@ The following are detailed descriptions of the known extra-field block types:
           only the two tag bytes are different.]
 
 
-         -PATCH Descriptor Extra Field:
-          ============================
+         -PATCH Descriptor Extra Field (0x000f):
+          =====================================
 
           The following is the layout of the Patch Descriptor "extra"
           block.
@@ -637,8 +710,8 @@ The following are detailed descriptions of the known extra-field block types:
 
           Bits          Description
           ----          ----------------
-          0             Use for autodetection
-          1             Treat as selfpatch
+          0             Use for auto detection
+          1             Treat as a self-patch
           2-3           RESERVED
           4-5           Action (see below)
           6-7           RESERVED
@@ -666,28 +739,33 @@ The following are detailed descriptions of the known extra-field block types:
           ignore       2
           fail         3
 
+          Patch support is provided by PKPatchMaker(tm) technology and is
+          covered under U.S. Patents and Patents Pending.
 
-         -PKCS#7 Store for X.509 Certificates:
-          ===================================
 
-          This field is contains the information about each
-          certificate a file is signed with.  This field should only
-          appear in the first central directory record, and will be
-          ignored in any other record.
+         -PKCS#7 Store for X.509 Certificates (0x0014):
+          ============================================
+
+          This field contains information about each of the certificates
+          files may be signed with.  When the Central Directory Encryption
+          feature is enabled for a ZIP file, this record will appear in
+          the Archive Extra Data Record, otherwise it will appear in the
+          first central directory record and will be ignored in any
+          other record.
 
           Note: all fields stored in Intel low-byte/high-byte order.
 
-          Value         Size        Description
-          -----         ----        -----------
-  (Store) 0x0014        2 bytes     Tag for this "extra" block type
-          SSize         2 bytes     Size of the store data
-          SData         (variable)  Data about the store
+          Value     Size     Description
+          -----     ----     -----------
+  (Store) 0x0014    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of the store data
+          SData     TSize    Data about the store
 
           SData
-          Value         Size        Description
-          -----         ----        -----------
-          Version       2 bytes     Version number, 0x0001 for now
-          StoreD        (variable)  Actual store data
+          Value     Size        Description
+          -----     ----        -----------
+          Version   2 bytes     Version number, 0x0001 for now
+          StoreD    (variable)  Actual store data
 
           The StoreD member is suitable for passing as the pbData
           member of a CRYPT_DATA_BLOB to the CertOpenStore() function
@@ -698,13 +776,13 @@ The following are detailed descriptions of the known extra-field block types:
           PKCS_7_ANS_ENCODING | X509_ASN_ENCODING.
 
 
-         -X.509 Certificate ID and Signature for individual file:
-          ======================================================
+         -X.509 Certificate ID and Signature for individual file (0x0015):
+          ===============================================================
 
-          This field contains the information about which certificate
-          in the PKCS#7 Store was used to sign the particular file.
-          It also contains the signature data.  This field can appear
-          multiple times, but can only appear once per certificate.
+          This field contains the information about which certificate in
+          the PKCS#7 store was used to sign a particular file.  It also
+          contains the signature data.  This field can appear multiple
+          times, but can only appear once per certificate.
 
           Note: all fields stored in Intel low-byte/high-byte order.
 
@@ -748,13 +826,15 @@ The following are detailed descriptions of the known extra-field block types:
           hash created with the given AlgID.
 
 
-         -X.509 Certificate ID and Signature for central directory:
-          ========================================================
+         -X.509 Certificate ID and Signature for central directory (0x0016):
+          =================================================================
 
-          This field contains the information about which certificate
-          in the PKCS#7 Store was used to sign the central directory.
-          It should only appear with the first central directory
-          record, along with the store.  The data structure is the
+          This field contains the information about which certificate in
+          the PKCS#7 store was used to sign the central directory structure.
+          When the Central Directory Encryption feature is enabled for a
+          ZIP file, this record will appear in the Archive Extra Data Record,
+          otherwise it will appear in the first central directory record,
+          along with the store.  The data structure is the
           same as the CID, except that SigSize will be 0, and there
           will be no Sig member.
 
@@ -767,44 +847,105 @@ The following are detailed descriptions of the known extra-field block types:
 
           Note: all fields stored in Intel low-byte/high-byte order.
 
-          Value         Size        Description
-          -----         ----        -----------
-  (CDID)  0x0016        2 bytes     Tag for this "extra" block type
-          CSize         2 bytes     Size of Method
-          Method       (variable)
+          Value     Size     Description
+          -----     ----     -----------
+  (CDID)  0x0016    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of data that follows
+          TData     TSize    Data
 
 
-         -ZIP64 Extended Information Extra Field:
-          ======================================
+         -Strong Encryption Header (0x0017) (EFS):
+          ===============================
 
-          The following is the layout of the ZIP64 extended
-          information "extra" block. If one of the size or
-          offset fields in the Local or Central directory
-          record is too small to hold the required data,
-          a ZIP64 extended information record is created.
-          The order of the fields in the ZIP64 extended
-          information record is fixed, but the fields will
-          only appear if the corresponding Local or Central
-          directory record field is set to 0xFFFF or 0xFFFFFFFF.
+          Value     Size     Description
+          -----     ----     -----------
+          0x0017    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of data that follows
+          Format    2 bytes  Format definition for this record
+          AlgID     2 bytes  Encryption algorithm identifier
+          Bitlen    2 bytes  Bit length of encryption key
+          Flags     2 bytes  Processing flags
+          CertData  TSize-8  Certificate decryption extra field data
+                             (refer to the explanation for CertData
+                              in the section describing the
+                              Certificate Processing Method under
+                              the Strong Encryption Specification)
+
+
+         -Record Management Controls (0x0018):
+          ===================================
+
+          Value     Size     Description
+          -----     ----     -----------
+(Rec-CTL) 0x0018    2 bytes  Tag for this "extra" block type
+          CSize     2 bytes  Size of total extra block data
+          Tag1      2 bytes  Record control attribute 1
+          Size1     2 bytes  Size of attribute 1, in bytes
+          Data1     Size1    Attribute 1 data
+            .
+            .
+            .
+          TagN      2 bytes  Record control attribute N
+          SizeN     2 bytes  Size of attribute N, in bytes
+          DataN     SizeN    Attribute N data
+
+
+         -PKCS#7 Encryption Recipient Certificate List (0x0019): (EFS)
+          =====================================================
+
+          This field contains the information about each of the certificates
+          that files may be encrypted with. This field should only appear
+          in the archive extra data record. This field is not required and
+          serves only to aide archive modifications by preserving public
+          encryption data. Individual security requirements may dictate
+          that this data be omitted to deter information exposure.
 
           Note: all fields stored in Intel low-byte/high-byte order.
 
-          Value      Size       Description
-          -----      ----       -----------
-  (ZIP64) 0x0001     2 bytes    Tag for this "extra" block type
-          Size       2 bytes    Size of this "extra" block
-          Original
-          Size       8 bytes    Original uncompresseed file size
-          Compressed
-          Size       8 bytes    Size of compressed data
-          Relative Header
-          Offset     8 bytes    Offset of local header record
-          Disk Start
-          Number     4 bytes    Number of the disk on which
-                                this file starts
+          Value     Size     Description
+          -----     ----     -----------
+ (CStore) 0x0019    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of the store data
+          TData     TSize    Data about the store
 
-          This entry in the Local header must include BOTH original
-          and compressed file sizes.
+          TData:
+
+          Value     Size     Description
+          -----     ----     -----------
+          Version   2 bytes  Format version number - must 0x0001 at this time
+          CStore    (var)    PKCS#7 data blob
+
+
+         -MVS Extra Field (PKWARE, 0x0065):
+          ================================
+
+          The following is the layout of the MVS "extra" block.
+          Note: Some fields are stored in Big Endian format.
+          All text is in EBCDIC format unless otherwise specified.
+
+          Value       Size          Description
+          -----       ----          -----------
+  (MVS)   0x0065      2 bytes       Tag for this "extra" block type
+          TSize       2 bytes       Size for the following data block
+          ID          4 bytes       EBCDIC "Z390" 0xE9F3F9F0 or
+                                    "T4MV" for TargetFour
+          (var)       TSize-4       Attribute data
+
+
+         -OS/400 Extra Field (0x0065):
+          ===========================
+
+          The following is the layout of the OS/400 "extra" block.
+          Note: Some fields are stored in Big Endian format.
+          All text is in EBCDIC format unless otherwise specified.
+
+          Value       Size          Description
+          -----       ----          -----------
+  (OS400) 0x0065      2 bytes       Tag for this "extra" block type
+          TSize       2 bytes       Size for the following data block
+          ID          4 bytes       EBCDIC "I400" 0xC9F4F0F0 or
+                                    "T4MV" for TargetFour
+          (var)       TSize-4       Attribute data
 
 
          -Extended Timestamp Extra Field:
@@ -1048,6 +1189,63 @@ The following are detailed descriptions of the known extra-field block types:
           field may contain anything--text, flags, bitmaps, etc.
 
 
+         -AtheOS Extra Field:
+          ==================
+
+          The following is the layout of the file-attributes extra block for
+          AtheOS.  This field is a very close spin-off from the BeOS e.f.
+          The only differences are:
+           - a new extra field signature
+           - numeric field in the attributes data are stored in little-endian
+             format ("i386" was initial hardware for AtheOS)
+          (Last Revision 20040908)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+ (AtheOS) 0x7441        Short       tag for this extra block type ("At")
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed file attribute data size
+          Flags         Byte        info bits
+          (CType)       Short       compression type
+          (CRC)         Long        CRC value for uncompressed file attribs
+          Attribs       variable    file attribute data
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+ (AtheOS) 0x7441        Short       tag for this extra block type ("At")
+          TSize         Short       total data size for this block (5)
+          BSize         Long        size of uncompr. local EF block data
+          Flags         Byte        info bits
+
+          The least significant bit of Flags in both headers indicates whether
+          the LOCAL extra field is uncompressed (and therefore whether CType
+          and CRC are omitted):
+
+                bit 0           if set, Attribs is uncompressed (no CType, CRC)
+                bits 1-7        reserved; if set, assume error or unknown data
+
+          Currently the only supported compression types are deflated (type 8)
+          and stored (type 0); the latter is not used by Info-ZIP's Zip but is
+          supported by UnZip.
+
+          Attribs is a AtheOS-specific block of data in little-endian format
+          with the following structure (if compressed, uncompress it first):
+
+              Value     Size        Description
+              -----     ----        -----------
+              Name      variable    attribute name (null-terminated string)
+              Type      Long        attribute type (32-bit unsigned integer)
+              Size      Long Long   data size for this sub-block (64 bits)
+              Data      variable    attribute data
+
+          The attribute structure is repeated for every attribute.  The Data
+          field may contain anything--text, flags, bitmaps, etc.
+
+
          -SMS/QDOS Extra Field:
           ====================
 
@@ -1202,8 +1400,8 @@ The following are detailed descriptions of the known extra-field block types:
           reserved      3 Bytes     reserved for future use
 
 
-         -FWKCS MD5 Extra Field:
-          =====================
+         -FWKCS MD5 Extra Field (0x4b46):
+          ==============================
 
           The FWKCS Contents_Signature System, used in automatically
           identifying files independent of filename, optionally adds

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -83,12 +83,12 @@
 static int store_info OF((__GPRO));
 #ifdef SET_DIR_ATTRIB
 static int extract_or_test_entrylist OF((__GPRO__ unsigned numchunk,
-                ulg *pfilnum, ulg *pnum_bad_pwd, LONGINT *pold_extra_bytes,
+                ulg *pfilnum, ulg *pnum_bad_pwd, Z_OFF_T *pold_extra_bytes,
                 unsigned *pnum_dirs, direntry **pdirlist,
                 int error_in_archive));
 #else
 static int extract_or_test_entrylist OF((__GPRO__ unsigned numchunk,
-                ulg *pfilnum, ulg *pnum_bad_pwd, LONGINT *pold_extra_bytes,
+                ulg *pfilnum, ulg *pnum_bad_pwd, Z_OFF_T *pold_extra_bytes,
                 int error_in_archive));
 #endif
 static int extract_or_test_member OF((__GPRO));
@@ -107,7 +107,7 @@ static int extract_or_test_member OF((__GPRO));
    static void set_deferred_symlink OF((__GPRO__ slinkentry *slnk_entry));
 #endif
 #ifdef SET_DIR_ATTRIB
-   static int dircomp OF((ZCONST zvoid *a, ZCONST zvoid *b));
+   static int Cdecl dircomp OF((ZCONST zvoid *a, ZCONST zvoid *b));
 #endif
 
 
@@ -181,6 +181,8 @@ static ZCONST char Far SkipVolumeLabel[] =
      "warning:  cannot alloc memory to sort dir times/perms/etc.\n";
    static ZCONST char Far DirlistSetAttrFailed[] =
      "warning:  set times/attribs failed for %s\n";
+   static ZCONST char Far DirlistFailAttrSum[] =
+     "     failed setting attrib/times for %lu dir entries";
 #endif
 
 #ifdef SYMLINKS         /* messages of the deferred symlinks handler */
@@ -299,7 +301,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
      __GDEF
 {
     unsigned i, j;
-    long cd_bufstart;
+    Z_OFF_T cd_bufstart;
     uch *cd_inptr;
     int cd_incnt;
     ulg filnum=0L, blknum=0L;
@@ -308,7 +310,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
     int *fn_matched=NULL, *xn_matched=NULL;
     unsigned members_processed;
     ulg num_skipped=0L, num_bad_pwd=0L;
-    LONGINT old_extra_bytes = 0L;
+    Z_OFF_T old_extra_bytes = 0L;
 #ifdef SET_DIR_ATTRIB
     unsigned num_dirs=0;
     direntry *dirlist=(direntry *)NULL, **sorted_dirlist=(direntry **)NULL;
@@ -472,7 +474,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
                 else {  /* check if this entry matches an `include' argument */
                     do_this_file = FALSE;
                     for (i = 0; i < G.filespecs; i++)
-                        if (match(G.filename, G.pfnames[i], uO.C_flag)) {
+                        if (match(G.filename, G.pfnames[i], uO.C_flag WISEP)) {
                             do_this_file = TRUE;  /* ^-- ignore case or not? */
                             if (fn_matched)
                                 fn_matched[i] = TRUE;
@@ -481,7 +483,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
                 }
                 if (do_this_file) {  /* check if this is an excluded file */
                     for (i = 0; i < G.xfilespecs; i++)
-                        if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                        if (match(G.filename, G.pxnames[i], uO.C_flag WISEP)) {
                             do_this_file = FALSE; /* ^-- ignore case or not? */
                             if (xn_matched)
                                 xn_matched[i] = TRUE;
@@ -535,11 +537,11 @@ int extract_or_test_files(__G)    /* return PK-type error code */
          */
 
 #ifdef USE_STRM_INPUT
-        fseek((FILE *)G.zipfd, (LONGINT)cd_bufstart, SEEK_SET);
+        fseek((FILE *)G.zipfd, cd_bufstart, SEEK_SET);
         G.cur_zipfile_bufstart = ftell((FILE *)G.zipfd);
 #else /* !USE_STRM_INPUT */
         G.cur_zipfile_bufstart =
-          lseek(G.zipfd, (LONGINT)cd_bufstart, SEEK_SET);
+          lseek(G.zipfd, cd_bufstart, SEEK_SET);
 #endif /* ?USE_STRM_INPUT */
         read(G.zipfd, (char *)G.inbuf, INBUFSIZ);  /* been here before... */
         G.inptr = cd_inptr;
@@ -594,6 +596,8 @@ int extract_or_test_files(__G)    /* return PK-type error code */
                 free(d);
             }
         } else {
+            ulg ndirs_fail = 0;
+
             if (num_dirs == 1)
                 sorted_dirlist[0] = dirlist;
             else {
@@ -611,6 +615,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
 
                 Trace((stderr, "dir = %s\n", d->fn));
                 if ((error = set_direc_attribs(__G__ d)) != PK_OK) {
+                    ndirs_fail++;
                     Info(slide, 0x201, ((char *)slide,
                       LoadFarString(DirlistSetAttrFailed), d->fn));
                     if (!error_in_archive)
@@ -619,13 +624,14 @@ int extract_or_test_files(__G)    /* return PK-type error code */
                 free(d);
             }
             free(sorted_dirlist);
+            if (!uO.tflag && QCOND2) {
+                if (ndirs_fail > 0)
+                    Info(slide, 0, ((char *)slide,
+                      LoadFarString(DirlistFailAttrSum), ndirs_fail));
+            }
         }
     }
 #endif /* SET_DIR_ATTRIB */
-
-#if (defined(WIN32) && defined(NTSD_EAS))
-    process_defer_NT(__G);  /* process any deferred items for this .zip file */
-#endif
 
 /*---------------------------------------------------------------------------
     Check for unmatched filespecs on command line and print warning if any
@@ -869,7 +875,7 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
     mapattr(__G);   /* GRR:  worry about return value later */
 
     G.pInfo->diskstart = G.crec.disk_number_start;
-    G.pInfo->offset = (long)G.crec.relative_offset_local_header;
+    G.pInfo->offset = (Z_OFF_T)G.crec.relative_offset_local_header;
     return 1;
 
 } /* end function store_info() */
@@ -892,7 +898,7 @@ static int extract_or_test_entrylist(__G__ numchunk,
     unsigned numchunk;
     ulg *pfilnum;
     ulg *pnum_bad_pwd;
-    LONGINT *pold_extra_bytes;
+    Z_OFF_T *pold_extra_bytes;
 #ifdef SET_DIR_ATTRIB
     unsigned *pnum_dirs;
     direntry **pdirlist;
@@ -902,7 +908,7 @@ static int extract_or_test_entrylist(__G__ numchunk,
     unsigned i;
     int renamed, query;
     int skip_entry;
-    long bufstart, inbuf_offset, request;
+    Z_OFF_T bufstart, inbuf_offset, request;
     int error, errcode;
 
 /* possible values for local skip_entry flag: */
@@ -932,10 +938,10 @@ static int extract_or_test_entrylist(__G__ numchunk,
         bufstart = request - inbuf_offset;
 
         Trace((stderr, "\ndebug: request = %ld, inbuf_offset = %ld\n",
-          request, inbuf_offset));
+          (long)request, (long)inbuf_offset));
         Trace((stderr,
           "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
-          bufstart, G.cur_zipfile_bufstart));
+          (long)bufstart, (long)G.cur_zipfile_bufstart));
         if (request < 0) {
             Info(slide, 0x401, ((char *)slide, LoadFarStringSmall(SeekMsg),
               G.zipfn, LoadFarString(ReportMsg)));
@@ -949,10 +955,10 @@ static int extract_or_test_entrylist(__G__ numchunk,
                 inbuf_offset = request % INBUFSIZ;
                 bufstart = request - inbuf_offset;
                 Trace((stderr, "debug: request = %ld, inbuf_offset = %ld\n",
-                  request, inbuf_offset));
+                  (long)request, (long)inbuf_offset));
                 Trace((stderr,
                   "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
-                  bufstart, G.cur_zipfile_bufstart));
+                  (long)bufstart, (long)G.cur_zipfile_bufstart));
                 /* try again */
                 if (request < 0) {
                     Trace((stderr,
@@ -972,16 +978,16 @@ static int extract_or_test_entrylist(__G__ numchunk,
         if (bufstart != G.cur_zipfile_bufstart) {
             Trace((stderr, "debug: bufstart != cur_zipfile_bufstart\n"));
 #ifdef USE_STRM_INPUT
-            fseek((FILE *)G.zipfd, (LONGINT)bufstart, SEEK_SET);
+            fseek((FILE *)G.zipfd, bufstart, SEEK_SET);
             G.cur_zipfile_bufstart = ftell((FILE *)G.zipfd);
 #else /* !USE_STRM_INPUT */
             G.cur_zipfile_bufstart =
-              lseek(G.zipfd, (LONGINT)bufstart, SEEK_SET);
+              lseek(G.zipfd, bufstart, SEEK_SET);
 #endif /* ?USE_STRM_INPUT */
-            if ((G.incnt = read(G.zipfd,(char *)G.inbuf,INBUFSIZ)) <= 0)
+            if ((G.incnt = read(G.zipfd, (char *)G.inbuf, INBUFSIZ)) <= 0)
             {
                 Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
-                  *pfilnum, "lseek", bufstart));
+                  *pfilnum, "lseek", (long)bufstart));
                 error_in_archive = PK_BADERR;
                 continue;   /* can still do next file */
             }
@@ -995,13 +1001,13 @@ static int extract_or_test_entrylist(__G__ numchunk,
         /* should be in proper position now, so check for sig */
         if (readbuf(__G__ G.sig, 4) == 0) {  /* bad offset */
             Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
-              *pfilnum, "EOF", request));
+              *pfilnum, "EOF", (long)request));
             error_in_archive = PK_BADERR;
             continue;   /* but can still try next one */
         }
         if (strncmp(G.sig, local_hdr_sig, 4)) {
             Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
-              *pfilnum, LoadFarStringSmall(LocalHdrSig), request));
+              *pfilnum, LoadFarStringSmall(LocalHdrSig), (long)request));
             /*
                 GRRDUMP(G.sig, 4)
                 GRRDUMP(local_hdr_sig, 4)
@@ -1020,14 +1026,15 @@ static int extract_or_test_entrylist(__G__ numchunk,
                     (readbuf(__G__ G.sig, 4) == 0)) {  /* bad offset */
                     if (error != PK_BADERR)
                       Info(slide, 0x401, ((char *)slide,
-                        LoadFarString(OffsetMsg), *pfilnum, "EOF", request));
+                        LoadFarString(OffsetMsg), *pfilnum, "EOF",
+                        (long)request));
                     error_in_archive = PK_BADERR;
                     continue;   /* but can still try next one */
                 }
                 if (strncmp(G.sig, local_hdr_sig, 4)) {
                     Info(slide, 0x401, ((char *)slide,
                       LoadFarString(OffsetMsg), *pfilnum,
-                      LoadFarStringSmall(LocalHdrSig), request));
+                      LoadFarStringSmall(LocalHdrSig), (long)request));
                     error_in_archive = PK_BADERR;
                     continue;
                 }
@@ -1074,14 +1081,19 @@ static int extract_or_test_entrylist(__G__ numchunk,
             G.pInfo->cfilname = (char Far *)NULL;
         }
 #endif /* !SFX */
-        if ((G.lrec.compression_method == STORED) &&
-            (G.lrec.ucsize != G.lrec.csize)) {
-            Info(slide, 0x401, ((char *)slide,
-              LoadFarStringSmall2(WrnStorUCSizCSizDiff),
-              FnFilter1(G.filename), G.lrec.ucsize, G.lrec.csize));
-            G.lrec.ucsize = G.lrec.csize;
-            if (error_in_archive < PK_WARN)
-                error_in_archive = PK_WARN;
+        if (G.lrec.compression_method == STORED) {
+            ulg csiz_decrypted = G.lrec.csize;
+
+            if (G.pInfo->encrypted)
+                csiz_decrypted -= 12;
+            if (G.lrec.ucsize != csiz_decrypted) {
+                Info(slide, 0x401, ((char *)slide,
+                  LoadFarStringSmall2(WrnStorUCSizCSizDiff),
+                  FnFilter1(G.filename), G.lrec.ucsize, csiz_decrypted));
+                G.lrec.ucsize = csiz_decrypted;
+                if (error_in_archive < PK_WARN)
+                    error_in_archive = PK_WARN;
+            }
         }
         if (G.extra_field != (uch *)NULL) {
             free(G.extra_field);
@@ -1435,7 +1447,7 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
      * to disk, prepare to restore the link */
     if (S_ISLNK(G.pInfo->file_attr) &&
         (G.pInfo->hostnum == UNIX_ || G.pInfo->hostnum == ATARI_ ||
-         G.pInfo->hostnum == BEOS_) &&
+         G.pInfo->hostnum == ATHEOS_ || G.pInfo->hostnum == BEOS_) &&
         !uO.tflag && !uO.cflag && (G.lrec.ucsize > 0))
         G.symlnk = TRUE;
     else
@@ -1777,6 +1789,7 @@ static int TestExtraField(__G__ ef, ef_len)
             case EF_ACL:
             case EF_MAC3:
             case EF_BEOS:
+            case EF_ATHEOS:
                 switch (ebID) {
                   case EF_OS2:
                   case EF_ACL:
@@ -1792,6 +1805,7 @@ static int TestExtraField(__G__ ef, ef_len)
                         eb_cmpr_offs = EB_MAC3_HLEN;
                     break;
                   case EF_BEOS:
+                  case EF_ATHEOS:
                     if (ebLen >= EB_BEOS_HLEN &&
                         (*(ef+(EB_HEADSIZE+EB_FLGS_OFFS)) & EB_BE_FL_UNCMPR) &&
                         (makelong(ef+EB_HEADSIZE) == ebLen - EB_BEOS_HLEN))
@@ -2345,7 +2359,7 @@ char *fnfilter(raw, space)         /* convert name to safely printable form */
 /*  Function dircomp()  */
 /************************/
 
-static int dircomp(a, b)   /* used by qsort(); swiped from Zip */
+static int Cdecl dircomp(a, b)  /* used by qsort(); swiped from Zip */
     ZCONST zvoid *a, *b;
 {
     /* order is significant:  this sorts in reverse order (deepest first) */

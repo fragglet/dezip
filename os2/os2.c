@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -958,7 +958,8 @@ char *do_wild(__G__ wildspec)
         G.os2.notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
-            strcpy(G.os2.matchname, wildspec);
+            strncpy(G.os2.matchname, wildspec, FILNAMSIZ);
+            G.os2.matchname[FILNAMSIZ-1] = '\0';
             G.os2.have_dirname = FALSE;
             G.os2.wild_dir = NULL;
             return G.os2.matchname;
@@ -977,7 +978,8 @@ char *do_wild(__G__ wildspec)
             if ((G.os2.dirname = (char *)malloc(G.os2.dirnamelen+1)) == NULL) {
                 Info(slide, 1, ((char *)slide,
                   LoadFarString(CantAllocateWildcard)));
-                strcpy(G.os2.matchname, wildspec);
+                strncpy(G.os2.matchname, wildspec, FILNAMSIZ);
+                G.os2.matchname[FILNAMSIZ-1] = '\0';
                 return G.os2.matchname;   /* but maybe filespec was not a wildcard */
             }
             strncpy(G.os2.dirname, wildspec, G.os2.dirnamelen);
@@ -999,7 +1001,8 @@ char *do_wild(__G__ wildspec)
                 strcpy(fnamestart, file->d_name);
                 if (strrchr(fnamestart, '.') == (char *)NULL)
                     strcat(fnamestart, ".");
-                if (match(fnamestart, G.os2.wildname, 1) &&  /* 1 == ignore case */
+                if (match(fnamestart, G.os2.wildname, 1 WISEP) &&
+                                                      /* 1 == ignore case */
                     /* skip "." and ".." directory entries */
                     strcmp(fnamestart, ".") && strcmp(fnamestart, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
@@ -1023,7 +1026,8 @@ char *do_wild(__G__ wildspec)
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(G.os2.matchname, wildspec);
+        strncpy(G.os2.matchname, wildspec, FILNAMSIZ);
+        G.os2.matchname[FILNAMSIZ-1] = '\0';
         return G.os2.matchname;
     }
 
@@ -1050,7 +1054,7 @@ char *do_wild(__G__ wildspec)
         strcpy(fnamestart, file->d_name);
         if (strrchr(fnamestart, '.') == (char *)NULL)
             strcat(fnamestart, ".");
-        if (match(fnamestart, G.os2.wildname, 1)) {     /* 1 == ignore case */
+        if (match(fnamestart, G.os2.wildname, 1 WISEP)) { /* 1==ignore case */
             Trace((stderr, "do_wild:  match() succeeds\n"));
             /* remove trailing dot */
             fnamestart += strlen(fnamestart) - 1;
@@ -1377,7 +1381,7 @@ int mapname(__G__ renamed)
         != (RO_extra_block *)NULL)
     {
         /* file *must* have a RISC OS extra field */
-        long ft = (long)makelong((ef_spark->loadaddr);
+        long ft = (long)makelong(ef_spark->loadaddr);
         /*32-bit*/
         if (lastcomma) {
             pp = lastcomma + 1;

@@ -201,6 +201,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Tom Schmidt            Unix makefile entry; Xenix and SunOS 3 target bugfixes
   Hugh Schmidt           VMS stuff
   Doug Schuessler        Tandem/NSK port fixes
+  Steven M. Schweda      VMS: adapt new 7+ features, I/O performance enhanced
   Martin Schulz          original Atari port, symlinks bugfix
   Charles Scripter       various bug reports and bugfixes
   Chris Seaman           Unix time stuff
@@ -213,6 +214,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Miki Shapiro           DLL: zipfilehandle leak (unhandled lseek errors)
   Timur Shaporev         inflate optimizations
   Eric Siegerman         bugfix for Unix' port attribute mapper
+  Paul Slootman          partial fix >2G handling on 64bit file offset systems
   Dave Smith             Tandem/NSK port
   Fred Smith             Coherent 4.0 fixes
   Nick Smith             return code for user abort (control-C)

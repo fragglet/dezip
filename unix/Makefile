@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.51                                                    01 Mar 2004
+# Version:  5.52                                                    04 Feb 2005
 #==============================================================================
 
 
@@ -113,7 +113,7 @@ INSTALLEDMAN = $(MANDIR)/funzip.$(manext) $(MANDIR)/unzip.$(manext) \
 
 # Solaris 2.x stuff:
 PKGDIR = IZunzip
-VERSION = Version 5.5
+VERSION = Version 5.52
 
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, OK, it's a lot ugly:
@@ -711,7 +711,7 @@ cyber_sgi:	unix_make
 # Info-ZIP recommends using "win32/Makefile.gcc" instead.
 cygwin:		unix_make
 	$(MAKE) unzips CC=gcc LD=gcc AS=gcc\
-	 CF="-O3 -I. -DUNIX -DFORCE_UNIX_OVER_WIN32 -DASM_CRC $(LOC)"\
+	 CF="-O3 -I. -DUNIX -DASM_CRC $(LOC)"\
 	 AF="-Di386 $(AF)" CRC32=crc_gcc\
 	 E=".exe" CP="cp" LN="ln -s"
 
@@ -832,7 +832,7 @@ linux_shlibz:	unix_make
 
 # LynxOS-x86 2.3.0 and newer, a real-time BSD-like OS; uses gcc.
 lynx:		unix_make
-	$(MAKE) unzips CC=gcc CF="$(CF) -DLynx -DLYNX -DBSD"
+	$(MAKE) unzips CC=gcc CF="$(CF) -DLynx -DLYNX -DBSD -DUNIX"
 
 # Macintosh MacOS X (Unix-compatible enviroment), using standard compiler
 macosx:	unix_make
@@ -852,7 +852,7 @@ minix:		unix_make
 # MPE/iX, the Unix variant for HP 3000 systems.
 mpeix:		unix_make
 	$(MAKE) unzips CC=c89\
-	 CF="$(CF) -D_POSIX_SOURCE -DHAVE_TERMIOS_H -DPASSWD_FROM_STDIN -DNO_PARAM_H"\
+	 CF="$(CF) -DUNIX -D_POSIX_SOURCE -DHAVE_TERMIOS_H -DPASSWD_FROM_STDIN -DNO_PARAM_H"\
 	 LF2=-lbsd CP=cp LN="ln -s"
 
 # NeXT info.
@@ -891,7 +891,7 @@ os390:		unix_make
 	set -x; \
 	$(MAKE) -f unix/Makefile unzips \
 	 CC=c89 LD="\$$(CC) -Wl,EDIT=NO" \
-	 CF="$(CF) -DSYSV -DOS390 -DEBCDIC -DNO_PARAM_H \
+	 CF="$(CF) -DSYSV -DUNIX -DOS390 -DEBCDIC -DNO_PARAM_H \
 	 -D_ALL_SOURCE $(HOST_VERSINFO)" LF2=""
 
 # Sequent Symmetry running Dynix/ptx (sort of SysV.3):  needs to link
@@ -927,7 +927,7 @@ regulus:	unix_make
 
 # IBM RS/6000 under AIX 3.2
 rs6000:		unix_make
-	$(MAKE) unzips CF="$(CF) -DBSD -D_BSD" LF2="-lbsd"
+	$(MAKE) unzips CF="$(CF) -DBSD -D_BSD -DUNIX" LF2="-lbsd"
 
 # SCO cross compile from Unix to DOS. Tested with Xenix/386 and OpenDeskTop.
 # Should work with Xenix/286 as well. (davidsen)  Note that you *must* remove

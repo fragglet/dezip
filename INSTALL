@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 07 Mar 2004.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 27 Feb 2005.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -117,13 +117,16 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         in general.  All other regular expressions (including "?" and
         "[range_of_chars]") retain their Unix-like behavior.
 
-      WILD_STOP_AT_DIR
-        Modifies the pattern matching routine so that both '?' (single-char
+      WILD_STOP_AT_DIR   (incompatible with WINDLL!)
+        Enables an additional option "-W".  When this qualifier is specified,
+        the pattern matching routine is modified so that both '?' (single-char
         wildcard) and '*' (multi-char wildcard) do not match the directory
         separator character '/'. Examples:
           "*.c" matches "foo.c" but not "mydir/foo.c"
           "*/*.c" matches "bar/foo.c" but not "baz/bar/foo.c"
           "??*/*" matches "ab/foo" and "abc/foo" but not "a/foo" or "a/b/foo"
+        To enable matching across directory separator chars, two consecutive
+        multi-char wildcards "**" should be specified.
         This modified behaviour is equivalent to the pattern matching style
         used by the shells of some of UnZip's supported target OSs (one
         example is Acorn RISC OS).
@@ -138,10 +141,9 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         Use VMS-style "slash options" (/FOOBAR) instead of the default Unix-
         style hyphenated options (-f).  This capability does not affect options
         stored in environment variables (UNZIP_OPTS or ZIPINFO_OPTS); those use
-        the Unix style regardless. Beginning with UnZip 5.32, the supplied
-        VMS Makefiles and make procedures generate both VMS-style and default
-        "UNIX style" executables; you should NOT add VMSCLI to the custom
-        options.
+        the Unix style regardless.  Beginning with UnZip 5.32, the supplied
+        VMS build methods generate both VMS-style and default "UNIX-style"
+        executables; you should NOT add VMSCLI to the custom options.
 
       CHECK_VERSIONS   (VMS only)
         UnZip "extra fields" are used to store VMS (RMS) filesystem info,
@@ -150,8 +152,8 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         stored extra-field VMS version(s) do(es) not match the version of
         VMS currently being used.  This is a common occurrence in zipfiles
         received from other sites, but since the format of the filesystem
-        does not seem to have changed in years (including on Alpha and Open-
-        VMS systems), the warnings are not enabled by default.
+        does not seem to have changed in years (including on Alpha and
+        IA64 systems), the warnings are not enabled by default.
 
       RETURN_CODES   (VMS only)
         VMS interprets return codes according to a rigid set of guidelines,
@@ -161,14 +163,21 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         RETURN_CODES for human-readable explanations.
 
       VMS_TEXT_CONV   (everybody except VMS)
-        VMS text files archived with the "-V" option are only semi-readable at
-        best when extracted on other systems.  Defining this option enables
-        UnZip's -aa option to attempt to convert such files to native text
-        format.  Non-VMS UnZips don't actually detect the precise VMS format
-        of the files, however, but instead rely on some reasonably good
-        heuristics (i.e., guesses).  Therefore this option is not enabled by
-        default, but it can be extremely useful on those rare occasions when
-        a VMS text file must be extracted as normal text.
+        VMS Stream_LF-format text files archived with the "-V" option
+        (/VMS) should be readable when extracted on other systems.
+  They may
+        get some junk appended, depending on Zip version and precise options
+        used for archiving them, but appart from that problem they should
+        be fine.  Text files with other formats (like the default VFC, with
+        its embedded byte counts) may be only semi-readable at best when
+        extracted on other systems.  Defining this option enables UnZip's
+        -aa option to detect and convert VMS VFC-record text files into
+        native text format.  Non-VMS UnZips now use a rudimentary VMS extra
+        field analyser to relyably determine such text files. (Earlier
+        versions of UnZip applied some heuristics instead.)
+        Therefore this option is now enabled by default for the main program
+        (but not the SFX stub), because it can be extremely useful on those
+        rare occasions when a VMS text file must be extracted as normal text.
 
       USE_DJGPP_ENV   (MS-DOS DJGPP 2.0x only)
         Regular DJGPP v2.0x compiled programs which use ENVIRONMENT are
@@ -198,6 +207,27 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         but if/when other compilers build in similar support, define this
         macro to enable its use.  See also msdos/doscfg.h.  [Note that djgpp
         2.0's LFN support is flaky; users should upgrade to 2.01 or later.]
+
+      NO_W32TIMES_IZFIX (Win32 including WinDLL, and WinCE)
+        By specifying this option, you can disable Info-ZIP's special timestamp
+        adjustment to get stable time stamps on NTFS disks that do not change
+        depending on the current time being normal vs. daylight saving time.
+        When this option is set, UnZip behaves exactly like other programs;
+        file timestamps on NTFS partitions are created so that their >current<
+        local time representation displayed by directory listings (cmd.exe "dir"
+        command or Windows Explorer listings) is the same as shown by UnZip's
+        listing. But the actual UTC timestamp values stored in the NTFS
+        file attributes vary depending on whether extraction is done at
+        summer or winter time.
+        This option is not recommended because it sacrifies the timestamp
+        comparison checks when extracting or modifying archives in "update
+        only newer" mode.
+        However, for environments where consistency of >displayed< dates
+        of files extracted to NTFS vs. FAT disks is considered more important
+        than correctly working update/freshen tasks of Zip&UnZip, this
+        option may be used.
+        >> DO NOT DISTRIBUTE OR PUBLISH executables that were compiled with
+        this option! <<
 
       NOTIMESTAMP
         This option disables the -T option, which basically does exactly what
@@ -311,16 +341,17 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         support in the master source tree. This feature will become a default
         option in the future 6.0 release of UnZip.
 
-      LZW_CLEAN   (now default)
-      USE_UNSHRINK
+      LZW_CLEAN
+      USE_UNSHRINK (now default, as of January 2005)
         The "shrinking" algorithm from PKZIP 1.0 is an LZW variant.  Unisys
         patented the Lempel-Ziv-Welch algorithm in 1985 and has publicly
         claimed that decompression is covered by it.  (IBM also patented the
-        same thing in a filing 3 weeks prior to Unisys's.)  Therefore un-
-        shrinking is disabled by default, but those with LZW licenses can
-        enable it by defining USE_UNSHRINK.  (Unshrinking was used by PKZIP
-        1.0 and 1.1, and Zip 1.0 and 1.1.  All newer archives use only the
-        deflation method.)
+        same thing in a filing 3 weeks prior to Unisys's.)  In 2004, the
+        Unisys and IBM patents expired worldwide, so unshrinking is now
+        enabled again by default.  If you do not wish to include the LZW
+        method, you may still disable it by defining LZW_CLEAN.
+        (Unshrinking was used by PKZIP 1.0 and 1.1, and Zip 1.0 and 1.1.
+        All newer archives use only the deflation method.)
 
       COPYRIGHT_CLEAN   (now default)
       USE_SMITH_CODE
@@ -328,9 +359,10 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         Smith's unzip 2.0 (as in, "substantially similar") is in unreduce.c.
         Since reducing was only used by very early PKZIP beta versions (0.9x),
         support for it is now omitted by default (COPYRIGHT_CLEAN).  To in-
-        clude unreducing capability, define USE_SMITH_CODE.  Note that this
-        subjects UnZip to any and all restrictions in Smith's copyright; see
-        the UnZip COPYING file for details.
+        clude unreducing capability, define USE_SMITH_CODE and replace the
+        stub unreduce.c source file by the separatly distributed full source
+        code module.  Note that this subjects UnZip to any and all restrictions
+        in Smith's copyright; see the UnZip COPYING.OLD file for details.
 
       USE_CRYPT
         Enable decryption support for all binaries.  The default setting
@@ -388,7 +420,7 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         (One of these days we'll make a configure script that automates this
         procedure better.)
 
-      VMS
+      VMS (OpenVMS):
         For a one-time build of the default UnZip, simply run the supplied
         command file MAKE_UNZ.COM.  To use either DEC C on an Alpha or the
         default compiler (DEC C if available, else VAX C) on a VAX, type

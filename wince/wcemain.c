@@ -17,7 +17,7 @@
 #include "unzip.h"      /* includes, typedefs, macros, prototypes, etc. */
 
 
-int WINAPI WinMain( HINSTANCE hInstance, 
+int WINAPI WinMain( HINSTANCE hInstance,
                     HINSTANCE hPrevInstance,
                     LPTSTR    lpCmdLine,
                     int       nCmdShow)
@@ -25,15 +25,15 @@ int WINAPI WinMain( HINSTANCE hInstance,
     int r;
     int i;
     LPTSTR argArray[10];
-    int argBuffSize = lstrlen(lpCmdLine) + 1; 
-    void* argBuff = malloc(argBuffSize); 
+    int argBuffSize = lstrlen(lpCmdLine) + 1;
+    void* argBuff = malloc(argBuffSize);
     char* argv[10];
 
 
     /* Parse the command line into an argument array */
     int argc = 0;
     LPTSTR argPtr = lpCmdLine;
-    LPTSTR nextParam = NULL; 
+    LPTSTR nextParam = NULL;
     LPTSTR closingQuote = NULL;
     unsigned short* endOfCmdLine = lpCmdLine + lstrlen(lpCmdLine);
     TCHAR Blank = _T(' ');
@@ -48,10 +48,10 @@ int WINAPI WinMain( HINSTANCE hInstance,
     /* Create the argument array, we have to convert this from wchar
      * (unicode) to mbcs (single byte ascii)
      */
-    while(argPtr != NULL) 
+    while(argPtr != NULL)
     {
         /* Look for the first non blank character */
-        while((memcmp(argPtr,&Blank,sizeof(TCHAR)) == 0) && 
+        while((memcmp(argPtr,&Blank,sizeof(TCHAR)) == 0) &&
               (argPtr < endOfCmdLine))
         {
             argPtr++;
@@ -84,7 +84,7 @@ int WINAPI WinMain( HINSTANCE hInstance,
         argc++;
 
         /* Look for the next blank */
-        argPtr = _tcschr(nextParam,_T(' '));  
+        argPtr = _tcschr(nextParam,_T(' '));
         if (argPtr != NULL)
         {
             /* Terminate the perameter. */
@@ -107,7 +107,7 @@ int WINAPI WinMain( HINSTANCE hInstance,
 
         int i;
         char* ptrArgBuff;
-		
+
         /* Clear the asci argument buffer */
         memset(argBuff,'\0',argBuffSize);
         /* Command line parameters give ? */

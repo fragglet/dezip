@@ -7,11 +7,11 @@ can't really complain.  At least we've got a filesystem that can use
 symlinks!
 
 This port requires GNU C and allows you to build an unzip/zipinfo/funzip
-that supports long filenames (on appropriate filesystems, thanks to the 
+that supports long filenames (on appropriate filesystems, thanks to the
 MiNT library), as well as symlinks.  It also does "proper" (ie, DOS-style)
-translation of text-file end-of-line characters.  The programs also build 
-as shared-text binaries, so you can start unzipping several files at once 
-in the background and only a small part of unzip will be duplicated in 
+translation of text-file end-of-line characters.  The programs also build
+as shared-text binaries, so you can start unzipping several files at once
+in the background and only a small part of unzip will be duplicated in
 memory.
 
 I build unzip with the MiNT library, GNU C 2.5.8 (2.5.7 and lower have a
@@ -25,7 +25,7 @@ a minix filesystem; if you want to install it on a DOS filesystem, use
 "cp" instead of "ln" for zipinfo.  [Or, to save disk space, make a script/
 command-file which invokes "unzip -Z ...". --CN]  This is such a good
 idea that I'm annoyed that Greg thought of it and I didn't...  ;-)  If
-you're using a shell worth your while, you can alias zipinfo to 
+you're using a shell worth your while, you can alias zipinfo to
 'unzip -Z' and then forget all about this paragraph.
 
 If you want to compile this using Turbo C (aka Pure C in North America)

@@ -4,7 +4,7 @@
 #   J. Lee 8/95 (johnnyl@microsoft.com)
 #   C. Spieler 03/99
 #
-# Last revised:  15 Apr 2004
+# Last revised:  20 Feb 2005
 #
 # Tested with VC++ 2.0 for NT for MIPS and Alpha, Visual C++ 2.2 for Intel CPUs
 # Revision tested with VC++ 5.0 and 6.0 for Intel CPUs
@@ -31,8 +31,8 @@ APPLY_ASMCRC=0
 !endif
 
 !ifndef APPLY_ASMCRC
-#default to generic C code for now...
-APPLY_ASMCRC=0
+#default ASM CRC code (inline asm in C source) for now...
+APPLY_ASMCRC=1
 !endif
 
 !ifndef USE_IZTIMEZONE
@@ -221,10 +221,6 @@ LINKOPT_SIZE = -opt:nowin98
 # How to link
 .obj.exe:
 	$(link) $(ldebug) $(conflags) $(conlibs_iz) $** -out:$@
-.obj.dll:
-	$(link) $(ldebug) $(dlllflags) $(conlibs_izdll) $** -out:$@
-.obj.lib:
-	$(link) -lib $** -out:$@
 
 
 # Default target is all command-line executables
@@ -244,13 +240,14 @@ unzip32.dll:	$(OBJD) windll.res $(WINDLL_DEF)
 	$(link) $(ldebug) $(dlllflags) $(conlibs_izdll) -def:$(WINDLL_DEF) \
 		$(OBJD) windll.res -out:$@
 unzsfx32.lib:	$(OBLX)
-	$(link) -lib $(OBLX) -out:$@
+	$(link) -lib $** -out:$@
 SFXWiz32.exe:	$(OBGX) sfxwiz.res unzsfx32.lib
 	$(link) $(ldebug) $(guilflags) $(guilibs_iz) \
 		$(OBGX) sfxwiz.res unzsfx32.lib $(LINKOPT_SIZE) -out:$@
 uzexampl.exe:	uzexampl.obj
 	$(link) $(ldebug) $(conflags) $(conlibs) version.lib $** -out:$@
 $(OB)unzip32.lib:	$(OBJB)
+	$(link) -lib $** -out:$@
 
 crc32.obj:	crc32.c $(UNZIP_H) zip.h
 crctab.obj:	crctab.c $(UNZIP_H) zip.h

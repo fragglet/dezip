@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -56,7 +56,6 @@
 /* private prototypes */
 
 static BOOL Initialize(VOID);
-static BOOL DeferSet(char *resource, PVOLUMECAPS VolumeCaps, uch *buffer);
 static VOID GetRemotePrivilegesSet(CHAR *FileName, PDWORD dwRemotePrivileges);
 static VOID InitLocalPrivileges(VOID);
 
@@ -85,23 +84,6 @@ VOLUMECAPS g_VolumeCaps;
 CRITICAL_SECTION VolumeCapsLock;
 
 
-/* our deferred set structure linked list element, used for making a copy
-   of input data which is used at a later time to process the original input
-   at a time when it makes more sense. eg, applying security to newly created
-   directories, after all files have been placed in such directories. */
-
-CRITICAL_SECTION SetDeferLock;
-
-typedef struct _DEFERRED_SET {
-    struct _DEFERRED_SET *Next;
-    uch *buffer;                /* must point to DWORD aligned block */
-    PVOLUMECAPS VolumeCaps;
-    char *resource;
-} DEFERRED_SET, *PDEFERRED_SET, *LPDEFERRED_SET;
-
-PDEFERRED_SET pSetHead = NULL;
-PDEFERRED_SET pSetTail;
-
 static BOOL Initialize(VOID)
 {
     HANDLE hMutex;
@@ -129,8 +111,6 @@ static BOOL Initialize(VOID)
 
     /* initialize module level resources */
 
-    InitializeCriticalSection( &SetDeferLock );
-
     InitializeCriticalSection( &VolumeCapsLock );
     memset(&g_VolumeCaps, 0, sizeof(VOLUMECAPS));
 
@@ -143,93 +123,6 @@ static BOOL Initialize(VOID)
     return TRUE;
 }
 
-static BOOL DeferSet(char *resource, PVOLUMECAPS VolumeCaps, uch *buffer)
-{
-    PDEFERRED_SET psd;
-    DWORD cbDeferSet;
-    DWORD cbResource;
-    DWORD cbBuffer;
-
-    if(!bInitialized) if(!Initialize()) return FALSE;
-
-    cbResource = lstrlenA(resource) + 1;
-    cbBuffer = GetSecurityDescriptorLength((PSECURITY_DESCRIPTOR)buffer);
-    cbDeferSet = sizeof(DEFERRED_SET) + cbBuffer + sizeof(VOLUMECAPS) +
-      cbResource;
-
-    psd = (PDEFERRED_SET)HeapAlloc(GetProcessHeap(), 0, cbDeferSet);
-    if(psd == NULL) return FALSE;
-
-    psd->Next = NULL;
-    psd->buffer = (uch *)(psd+1);
-    psd->VolumeCaps = (PVOLUMECAPS)((char *)psd->buffer + cbBuffer);
-    psd->resource = (char *)((char *)psd->VolumeCaps + sizeof(VOLUMECAPS));
-
-    memcpy(psd->buffer, buffer, cbBuffer);
-    memcpy(psd->VolumeCaps, VolumeCaps, sizeof(VOLUMECAPS));
-    psd->VolumeCaps->bProcessDefer = TRUE;
-    memcpy(psd->resource, resource, cbResource);
-
-    /* take defer lock */
-    EnterCriticalSection( &SetDeferLock );
-
-    /* add element at tail of list */
-
-    if(pSetHead == NULL) {
-        pSetHead = psd;
-    } else {
-        pSetTail->Next = psd;
-    }
-
-    pSetTail = psd;
-
-    /* release defer lock */
-    LeaveCriticalSection( &SetDeferLock );
-
-    return TRUE;
-}
-
-BOOL ProcessDefer(PDWORD dwDirectoryCount, PDWORD dwBytesProcessed,
-                  PDWORD dwDirectoryFail, PDWORD dwBytesFail)
-{
-    PDEFERRED_SET This;
-    PDEFERRED_SET Next;
-
-    *dwDirectoryCount = 0;
-    *dwBytesProcessed = 0;
-
-    *dwDirectoryFail = 0;
-    *dwBytesFail = 0;
-
-    if(!bInitialized) return TRUE; /* nothing to do */
-
-    EnterCriticalSection( &SetDeferLock );
-
-    This = pSetHead;
-
-    while(This) {
-
-        if(SecuritySet(This->resource, This->VolumeCaps, This->buffer)) {
-            (*dwDirectoryCount)++;
-            *dwBytesProcessed +=
-              GetSecurityDescriptorLength((PSECURITY_DESCRIPTOR)This->buffer);
-        } else {
-            (*dwDirectoryFail)++;
-            *dwBytesFail +=
-              GetSecurityDescriptorLength((PSECURITY_DESCRIPTOR)This->buffer);
-        }
-
-        Next = This->Next;
-        HeapFree(GetProcessHeap(), 0, This);
-        This = Next;
-    }
-
-    pSetHead = NULL;
-
-    LeaveCriticalSection( &SetDeferLock );
-
-    return TRUE;
-}
 
 BOOL ValidateSecurity(uch *securitydata)
 {
@@ -347,9 +240,7 @@ static VOID GetRemotePrivilegesSet(char *FileName, PDWORD dwRemotePrivileges)
 
 BOOL GetVolumeCaps(
     char *rootpath,         /* filepath, or NULL */
-#ifndef NTSD_DEV
     char *name,             /* filename associated with rootpath */
-#endif /* !NTSD_DEV */
     PVOLUMECAPS VolumeCaps  /* result structure describing capabilities */
     )
 {
@@ -482,7 +373,6 @@ BOOL GetVolumeCaps(
         if(bSuccess) {
 
             lstrcpynA(g_VolumeCaps.RootPath, TempRootPath, cchTempRootPath+1);
-            g_VolumeCaps.bProcessDefer = FALSE;
             g_VolumeCaps.dwFileSystemFlags = dwFileSystemFlags;
             g_VolumeCaps.bRemote = bRemote;
             g_VolumeCaps.dwRemotePrivileges = dwRemotePrivileges;
@@ -525,12 +415,8 @@ BOOL SecuritySet(char *resource, PVOLUMECAPS VolumeCaps, uch *securitydata)
     /* defer directory processing */
 
     if(VolumeCaps->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-        if(!VolumeCaps->bProcessDefer) {
-            return DeferSet(resource, VolumeCaps, securitydata);
-        } else {
-            /* opening a directory requires FILE_FLAG_BACKUP_SEMANTICS */
-            dwFlags |= FILE_FLAG_BACKUP_SEMANTICS;
-        }
+        /* opening a directory requires FILE_FLAG_BACKUP_SEMANTICS */
+        dwFlags |= FILE_FLAG_BACKUP_SEMANTICS;
     }
 
     /* evaluate the input security descriptor and act accordingly */

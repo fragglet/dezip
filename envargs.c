@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -38,6 +38,9 @@
 #  define ISspace(c) isspace((unsigned)c)
 #endif /* ?__EMX__ */
 
+#ifndef RISCOS
+extern char *getenv();
+#endif
 static int count_args OF((ZCONST char *));
 
 
@@ -48,9 +51,6 @@ int envargs(Pargc, Pargv, envstr, envstr2)
     char ***Pargv;
     ZCONST char *envstr, *envstr2;
 {
-#ifndef RISCOS
-    char *getenv();
-#endif
     char *envptr;       /* value returned by getenv */
     char *bufptr;       /* copy of env info */
     int argc = 0;       /* internal arg count */

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -191,9 +191,11 @@ static ZCONST char Far OS_QDOS[] = "SMS/QDOS";
 static ZCONST char Far OS_Acorn[] = "Acorn RISC OS";
 static ZCONST char Far OS_MVS[] = "MVS";
 static ZCONST char Far OS_VFAT[] = "Win32 VFAT";
+static ZCONST char Far OS_AtheOS[] = "AtheOS";
 static ZCONST char Far OS_BeOS[] = "BeOS";
 static ZCONST char Far OS_Tandem[] = "Tandem NSK";
 static ZCONST char Far OS_Theos[] = "Theos";
+static ZCONST char Far OS_MacDarwin[] = "Mac OS/X (Darwin)";
 #ifdef OLD_THEOS_EXTRA
   static ZCONST char Far OS_TheosOld[] = "Theos (Old)";
 #endif /* OLD_THEOS_EXTRA */
@@ -209,6 +211,8 @@ static ZCONST char Far MthdToken[] = "tokenized";
 static ZCONST char Far MthdDeflate[] = "deflated";
 static ZCONST char Far MthdDeflat64[] = "deflated (enhanced-64k)";
 static ZCONST char Far MthdDCLImplode[] = "imploded (PK DCL)";
+static ZCONST char Far MthdPKRes11[] = "unkn. #11 (PK reserved)";
+static ZCONST char Far MthdBZip2[] = "bzipped";
 
 static ZCONST char Far DeflNorm[] = "normal";
 static ZCONST char Far DeflMax[] = "maximum";
@@ -322,6 +326,7 @@ static ZCONST char Far efVMCMS[] = "VM/CMS";
 static ZCONST char Far efMVS[] = "MVS";
 static ZCONST char Far efACL[] = "OS/2 ACL";
 static ZCONST char Far efNTSD[] = "Security Descriptor";
+static ZCONST char Far efAtheOS[] = "AtheOS";
 static ZCONST char Far efBeOS[] = "BeOS";
 static ZCONST char Far efQDOS[] = "SMS/QDOS";
 static ZCONST char Far efAOSVS[] = "AOS/VS";
@@ -367,6 +372,8 @@ static ZCONST char Far MacOS_RF[] = "Resource-fork";
 static ZCONST char Far MacOS_DF[] = "Data-fork";
 static ZCONST char Far MacOSMAC3flags[] = ".\n\
     File is marked as %s, File Dates are in %d Bit";
+static ZCONST char Far AtheOSdata[] = ".\n\
+    The local extra field has %lu bytes of %scompressed AtheOS file attributes";
 static ZCONST char Far BeOSdata[] = ".\n\
     The local extra field has %lu bytes of %scompressed BeOS file attributes";
  /* The associated file has type code `%c%c%c%c' and creator code `%c%c%c%c'" */
@@ -531,6 +538,14 @@ int zi_opts(__G__ pargc, pargv)
                     else
                         uO.lflag = 10;
                     break;
+#ifdef WILD_STOP_AT_DIR
+                case ('W'):    /* Wildcard interpretation (stop at '/'?) */
+                    if (negative)
+                        uO.W_flag = FALSE, negative = 0;
+                    else
+                        uO.W_flag = TRUE;
+                    break;
+#endif /* WILD_STOP_AT_DIR */
                 case 'z':      /* print zipfile comment */
                     if (negative)
                         uO.zflag = negative = 0;
@@ -774,17 +789,21 @@ int zipinfo(__G)   /* return PK-type error code */
         if (!G.process_all_files) {   /* check if specified on command line */
             unsigned i;
 
-            do_this_file = FALSE;
-            for (i = 0; i < G.filespecs; i++)
-                if (match(G.filename, G.pfnames[i], uO.C_flag)) {
-                    do_this_file = TRUE;
-                    if (fn_matched)
-                        fn_matched[i] = TRUE;
-                    break;       /* found match, so stop looping */
-                }
+            if (G.filespecs == 0)
+                do_this_file = TRUE;
+            else {  /* check if this entry matches an `include' argument */
+                do_this_file = FALSE;
+                for (i = 0; i < G.filespecs; i++)
+                    if (match(G.filename, G.pfnames[i], uO.C_flag WISEP)) {
+                        do_this_file = TRUE;
+                        if (fn_matched)
+                            fn_matched[i] = TRUE;
+                        break;       /* found match, so stop looping */
+                    }
+            }
             if (do_this_file) {  /* check if this is an excluded file */
                 for (i = 0; i < G.xfilespecs; i++)
-                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                    if (match(G.filename, G.pxnames[i], uO.C_flag WISEP)) {
                         do_this_file = FALSE;  /* ^-- ignore case in match */
                         if (xn_matched)
                             xn_matched[i] = TRUE;
@@ -943,11 +962,14 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     static ZCONST char Far *os[NUM_HOSTS] = {
         OS_FAT, OS_Amiga, OS_VMS, OS_Unix, OS_VMCMS, OS_AtariST, OS_HPFS,
         OS_Macintosh, OS_ZSystem, OS_CPM, OS_TOPS20, OS_NTFS, OS_QDOS,
-        OS_Acorn, OS_VFAT, OS_MVS, OS_BeOS, OS_Tandem, OS_Theos
+        OS_Acorn, OS_VFAT, OS_MVS, OS_BeOS, OS_Tandem, OS_Theos, OS_MacDarwin,
+        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        OS_AtheOS
     };
     static ZCONST char Far *method[NUM_METHODS] = {
         MthdNone, MthdShrunk, MthdRedF1, MthdRedF2, MthdRedF3, MthdRedF4,
-        MthdImplode, MthdToken, MthdDeflate, MthdDeflat64, MthdDCLImplode
+        MthdImplode, MthdToken, MthdDeflate, MthdDeflat64, MthdDCLImplode,
+        MthdPKRes11, MthdBZip2
     };
     static ZCONST char Far *dtypelng[4] = {
         DeflNorm, DeflMax, DeflFast, DeflSFast
@@ -1026,7 +1048,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     Info(slide, 0, ((char *)slide, LoadFarString(EncodeSWVer), hostver/10,
       hostver%10));
 
-    if (extnum >= NUM_HOSTS) {
+    if ((extnum >= NUM_HOSTS) || (os[extnum] == NULL)) {
         sprintf(unkn, LoadFarString(UnknownNo),
                 (int)G.crec.version_needed_to_extract[1]);
         varmsg_str = unkn;
@@ -1392,6 +1414,9 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                 case EF_MVS:
                     ef_fieldname = efMVS;
                     break;
+                case EF_ATHEOS:
+                    ef_fieldname = efAtheOS;
+                    break;
                 case EF_BEOS:
                     ef_fieldname = efBeOS;
                     break;
@@ -1617,13 +1642,19 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     }
                     break;
 #endif /* CMS_MVS */
+                case EF_ATHEOS:
                 case EF_BEOS:
                     if (eb_datalen >= EB_BEOS_HLEN) {
                         ulg eb_uc = makelong(ef_ptr);
                         unsigned eb_is_uc =
                           *(ef_ptr+EB_FLGS_OFFS) & EB_BE_FL_UNCMPR;
 
-                        Info(slide, 0, ((char *)slide, LoadFarString(BeOSdata),
+                        if (eb_id == EF_ATHEOS)
+                            ef_fieldname = AtheOSdata;
+                        else
+                            ef_fieldname = BeOSdata;
+                        Info(slide, 0, ((char *)slide,
+                          LoadFarString(ef_fieldname),
                           eb_uc, eb_is_uc ? "un" : nullStr));
                         if (eb_is_uc) {
                             if (*pEndprev > 0L)
@@ -1763,14 +1794,15 @@ static int zi_short(__G)   /* return PK-type error code */
     static ZCONST char Far os[NUM_HOSTS+1][4] = {
         "fat", "ami", "vms", "unx", "cms", "atr", "hpf", "mac", "zzz",
         "cpm", "t20", "ntf", "qds", "aco", "vft", "mvs", "be ", "nsk",
-        "ths", "???"
+        "ths", "osx", "???", "???", "???", "???", "???", "???", "???",
+        "???", "???", "???", "ath", "???"
     };
 #ifdef OLD_THEOS_EXTRA
     static ZCONST char Far os_TheosOld[] = "tho";
 #endif
     static ZCONST char Far method[NUM_METHODS+1][5] = {
         "stor", "shrk", "re:1", "re:2", "re:3", "re:4", "i#:#", "tokn",
-        "def#", "d64#", "dcli", "u###"
+        "def#", "d64#", "dcli", "u011", "bzp2", "u###"
     };
 
 

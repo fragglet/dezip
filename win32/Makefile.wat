@@ -1,5 +1,5 @@
 # WMAKE makefile for Windows 95 and Windows NT (Intel only)
-# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 17 Feb 02.
+# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 24 Jan 05.
 # Makes UnZip.exe, fUnZip.exe, and UnZipSFX.exe.
 #
 # Invoke from UnZip source dir with "WMAKE -F WIN32\MAKEFILE.WAT [targets]"
@@ -33,9 +33,9 @@ OBDIR = ob32w
 !endif
 O = $(OBDIR)\   # comment here so backslash won't continue the line
 
-!ifdef LAWSUIT
-cvars = $+$(cvars)$- -DUSE_UNSHRINK
-avars = $+$(avars)$- -DUSE_UNSHRINK
+!ifdef NO_LZW
+cvars = $+$(cvars)$- -DLZW_CLEAN
+avars = $+$(avars)$- -DLZW_CLEAN
 # "$+$(foo)$-" means expand foo as it has been defined up to now; normally,
 # this Make defers inner expansion until the outer macro is expanded.
 !endif

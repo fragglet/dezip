@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -449,9 +449,14 @@ int UZinflate(__G__ is_defl64)
         } else if (err == Z_MEM_ERROR) {
             retval = 3; goto uzinflate_cleanup_exit;
         } else if (err == Z_BUF_ERROR) {                /* DEBUG */
+#ifdef FUNZIP
+            Trace((stderr,
+                   "zlib inflate() did not detect stream end\n"));
+#else
             Trace((stderr,
                    "zlib inflate() did not detect stream end (%s, %s)\n",
                    G.zipfn, G.filename));
+#endif
             if ((!repeated_buf_err) && (G.dstrm.avail_in == 0)) {
                 /* when detecting this problem for the first time,
                    try to provide one fake byte beyond "EOF"... */

@@ -1,4 +1,4 @@
-Contents of the "WinCE" subdirectory for UnZip 5.51 and later:
+Contents of the "WinCE" subdirectory for UnZip 5.52 and later:
 
    Contents     This file.
    README       Information about the Windows CE port and its author.
@@ -30,8 +30,9 @@ Contents of the "WinCE" subdirectory for UnZip 5.51 and later:
    vc6\
      punzip.dsp   Visual C++ 6.0 project for WinCE (SH3 and MIPS) and WinNT.
    vcEMbed3\
-     punzip.dsp   Visual C++ Embedded Tools 3.0 project for pUnZip (WinCE).
+     punzip.vcp   Visual C++ Embedded Tools 3.0 project for pUnZip (WinCE).
      unzipcmd.vcp Visual C++ Embedded Tools 3.0 project for WinCE cmdline tool.
+     unzipwce.vcw Visual C++ Embedded Tools 3.0 workspace for all WinCE tools.
 
 Please note that Info-ZIP's source distribution for UnZip contains all text
 files in UNIX format (LF line terminators). But the Microsoft tools require

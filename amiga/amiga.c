@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -41,7 +41,6 @@
 
 #define PERMS   0777
 #define MKDIR(path,mode) mkdir(path)
-
 
 #ifndef S_ISCRIPT          /* not having one implies you have none */
 #  define S_IARCHIVE 0020  /* not modified since this bit was last set */
@@ -119,7 +118,8 @@ char *do_wild(__G__ wildspec)
                 (lok = Lock((char *)wildspec, ACCESS_READ))) {
             if (lok) UnLock(lok);       /* ^^ we ignore wildcard chars if */
             G.dirnamelen = 0;           /* the name matches a real file   */
-            strcpy(G.matchname, wildspec);
+            strncpy(G.matchname, wildspec, FILNAMSIZ);
+            G.matchname[FILNAMSIZ-1] = '\0';
             return G.matchname;
         }
 
@@ -135,16 +135,17 @@ char *do_wild(__G__ wildspec)
             if ((G.dirname = (char *)malloc(G.dirnamelen+1)) == NULL) {
                 Info(slide, 1, ((char *)slide,
                      "warning:  cannot allocate wildcard buffers\n"));
-                strcpy(G.matchname, wildspec);
+                strncpy(G.matchname, wildspec, FILNAMSIZ);
+                G.matchname[FILNAMSIZ-1] = '\0';
                 return G.matchname; /* but maybe filespec was not a wildcard */
             }
             strncpy(G.dirname, wildspec, G.dirnamelen);
-            G.dirname[G.dirnamelen] = 0;
+            G.dirname[G.dirnamelen] = '\0';
         }
 
         if ((G.wild_dir = opendir(G.dirname)) != NULL) {
             while ((file = readdir(G.wild_dir)) != NULL) {
-                if (match(file->d_name, G.wildname, 1)) {  /* ignore case */
+                if (match(file->d_name, G.wildname, 1 WISEP)) {/* ignore case */
                     strcpy(G.matchname, G.dirname);
                     strcpy(G.matchname + G.dirnamelen, file->d_name);
                     return G.matchname;
@@ -157,7 +158,8 @@ char *do_wild(__G__ wildspec)
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(G.matchname, wildspec);
+        strncpy(G.matchname, wildspec, FILNAMSIZ);
+        G.matchname[FILNAMSIZ-1] = '\0';
         return G.matchname;
     }
 
@@ -174,7 +176,7 @@ char *do_wild(__G__ wildspec)
      * matchname already.
      */
     while ((file = readdir(G.wild_dir)) != NULL)
-        if (match(file->d_name, G.wildname, 1)) {   /* 1 == ignore case */
+        if (match(file->d_name, G.wildname, 1 WISEP)) { /* 1 == ignore case */
             /* strcpy(G.matchname, dirname); */
             strcpy(G.matchname + G.dirnamelen, file->d_name);
             return G.matchname;
@@ -217,6 +219,7 @@ int mapattr(__G)      /* Amiga version */
         case VMS_:    /* user, group, and other; if writable, set delete bit */
         case ACORN_:
         case ATARI_:
+        case ATHEOS_:
         case BEOS_:
         case QDOS_:
         case TANDEM_:

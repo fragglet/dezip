@@ -8,24 +8,38 @@ For UnZip 6.0/6.1/who knows:
      16-bit ports - plain DOS and OS/2 1.x)
 
         top of the list for 6.0!
+        UnZip 6.0 is now under development, first betas for Win32 and Unix
+        are available
 
    o add multi-part zipfile handling
 
         major feature for 6.0!
 
+        could happen for 6.0 - 10/8/2004 EG
+
+   o better support for multilingual uses and different codepages;
+     support unicode (UTF-8 coded) filenames and comment texts
+
+        a requested feature getting more and more important,
+        maybe in 6.1
+
    o add new low-level, binary API; rewrite "normal" (command-line) UnZip
      to use it
 
-        very soon (maybe 6.1)
+        maybe soon (maybe 6.1)
 
    o use (simple!) configure script in combination with Unix Makefile
 
         very soon (6.0 or 6.1)
 
+        may be needed in 6.0 to autodetect large file support - 10/8/2004 EG
+
    o add precautions against extracting files outside the tree below
      the current directory resp. the specified extraction folder.
      (automatically remove absolute path specs from zip entries; emit
       warnings when traversing outside the extraction tree...)
+
+        done as of version 5.51
 
    o MSDOS/WIN32/others: detection of "reserved" names (= names of character
      devices, or system extensions that look like a characters device driver)

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -103,6 +103,8 @@ typedef struct {
 /* static int created_dir;      */      /* used in mapname(), checkdir() */
 /* static int renamed_fullpath; */      /* ditto */
 
+static unsigned filtattr OF((__GPRO__ unsigned perms));
+
 
 #ifndef SFX
 #ifdef NO_DIR                  /* for AT&T 3B1 */
@@ -163,7 +165,7 @@ struct dirent *readdir(dirp)
 
 
 /**********************/
-/* Function do_wild() */   /* for porting:  dir separator; match(ignore_case) */
+/* Function do_wild() */   /* for porting: dir separator; match(ignore_case) */
 /**********************/
 
 char *do_wild(__G__ wildspec)
@@ -186,7 +188,8 @@ char *do_wild(__G__ wildspec)
         G.notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
-            strcpy(G.matchname, wildspec);
+            strncpy(G.matchname, wildspec, FILNAMSIZ);
+            G.matchname[FILNAMSIZ-1] = '\0';
             G.have_dirname = FALSE;
             G.wild_dir = NULL;
             return G.matchname;
@@ -204,7 +207,8 @@ char *do_wild(__G__ wildspec)
             if ((G.dirname = (char *)malloc(G.dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 0x201, ((char *)slide,
                   "warning:  cannot allocate wildcard buffers\n"));
-                strcpy(G.matchname, wildspec);
+                strncpy(G.matchname, wildspec, FILNAMSIZ);
+                G.matchname[FILNAMSIZ-1] = '\0';
                 return G.matchname; /* but maybe filespec was not a wildcard */
             }
             strncpy(G.dirname, wildspec, G.dirnamelen);
@@ -219,7 +223,7 @@ char *do_wild(__G__ wildspec)
                   FnFilter1(file->d_name)));
                 if (file->d_name[0] == '.' && G.wildname[0] != '.')
                     continue; /* Unix:  '*' and '?' do not match leading dot */
-                if (match(file->d_name, G.wildname, 0) && /* 0 == case sens. */
+                if (match(file->d_name, G.wildname, 0 WISEP) &&/*0=case sens.*/
                     /* skip "." and ".." directory entries */
                     strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
@@ -240,7 +244,8 @@ char *do_wild(__G__ wildspec)
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(G.matchname, wildspec);
+        strncpy(G.matchname, wildspec, FILNAMSIZ);
+        G.matchname[FILNAMSIZ-1] = '\0';
         return G.matchname;
     }
 
@@ -261,7 +266,7 @@ char *do_wild(__G__ wildspec)
           FnFilter1(file->d_name)));
         if (file->d_name[0] == '.' && G.wildname[0] != '.')
             continue;   /* Unix:  '*' and '?' do not match leading dot */
-        if (match(file->d_name, G.wildname, 0)) { /* 0 == don't ignore case */
+        if (match(file->d_name, G.wildname, 0 WISEP)) { /* 0 == case sens. */
             Trace((stderr, "do_wild:  match() succeeds\n"));
             if (G.have_dirname) {
                 /* strcpy(G.matchname, G.dirname); */
@@ -282,6 +287,39 @@ char *do_wild(__G__ wildspec)
 } /* end function do_wild() */
 
 #endif /* !SFX */
+
+
+
+
+#ifndef S_ISUID
+# define S_ISUID        0004000 /* set user id on execution */
+#endif
+#ifndef S_ISGID
+# define S_ISGID        0002000 /* set group id on execution */
+#endif
+#ifndef	S_ISVTX
+# define S_ISVTX        0001000 /* save swapped text even after use */
+#endif
+
+/************************/
+/*  Function filtattr() */
+/************************/
+/* This is used to clear or keep the SUID and GID bits on file permissions.
+ * It's possible that a file in an archive could have one of these bits set
+ * and, unknown to the person unzipping, could allow others to execute the
+ * file as the user or group.  The new option -K bypasses this check.
+ */
+
+static unsigned filtattr(__G__ perms)
+    __GDEF
+    unsigned perms;
+{
+    /* keep setuid/setgid/tacky perms? */
+    if (!uO.K_flag)
+        perms &= ~(S_ISUID | S_ISGID | S_ISVTX);
+
+    return (0xffff & perms);
+} /* end function filtattr() */
 
 
 
@@ -315,6 +353,7 @@ int mapattr(__G)
         case VMS_:
         case ACORN_:
         case ATARI_:
+        case ATHEOS_:
         case BEOS_:
         case QDOS_:
         case TANDEM_:
@@ -333,7 +372,7 @@ int mapattr(__G)
                  * Later, we might implement extraction of the permission
                  * bits from the VMS extra field. But for now, the work-around
                  * should be sufficient to provide "readable" extracted files.
-                 * (For ASI Unix e.f., an experimental remap from the e.f.
+                 * (For ASI Unix e.f., an experimental remap of the e.f.
                  * mode value IS already provided!)
                  */
                 ush ebID;
@@ -513,6 +552,7 @@ int mapname(__G__ renamed)
                 *pp++ = '_';  /* these rules apply equally to FAT and NTFS */
                 break;
 #endif
+
             case ';':             /* VMS version (or DEC-20 attrib?) */
                 lastsemi = pp;
                 *pp++ = ';';      /* keep for now; remove VMS ";##" */
@@ -563,7 +603,7 @@ int mapname(__G__ renamed)
             }
 #ifndef NO_CHMOD
             /* set approx. dir perms (make sure can still read/write in dir) */
-            if (chmod(G.filename, (0xffff & G.pInfo->file_attr) | 0700))
+            if (chmod(G.filename, filtattr(__G__ G.pInfo->file_attr) | 0700))
                 perror("chmod (directory attributes) error");
 #endif
             /* set dir time (note trailing '/') */
@@ -1117,7 +1157,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
   ---------------------------------------------------------------------------*/
 
 #ifndef NO_CHMOD
-    if (chmod(G.filename, 0xffff & G.pInfo->file_attr))
+    if (chmod(G.filename, filtattr(__G__ G.pInfo->file_attr)))
         perror("chmod (file attributes) error");
 #endif
 
@@ -1183,7 +1223,7 @@ int set_direc_attribs(__G__ d)
             errval = PK_WARN;
     }
 #ifndef NO_CHMOD
-    if (chmod(d->fn, 0xffff & UxAtt(d)->perms)) {
+    if (chmod(d->fn, filtattr(__G__ UxAtt(d)->perms))) {
         Info(slide, 0x201, ((char *)slide,
           LoadFarString(DirlistChmodFailed), FnFilter1(d->fn)));
         /* perror("chmod (file attributes) error"); */

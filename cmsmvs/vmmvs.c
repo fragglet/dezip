@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -238,7 +238,7 @@ extent getVMMVSexfield(type, ef_block, datalen)
 #ifndef SFX
 
 /**********************/
-/* Function do_wild() */   /* for porting:  dir separator; match(ignore_case) */
+/* Function do_wild() */   /* for porting: dir separator; match(ignore_case) */
 /**********************/
 
 char *do_wild(__G__ wld)
@@ -250,7 +250,8 @@ char *do_wild(__G__ wld)
 
     if (First == 0) {
        First = 1;
-       strcpy( filename, wld );
+       strncpy(filename, wld, sizeof(filename));
+       filename[sizeof(filename)-1] = '\0';
        return filename;
     }
     else

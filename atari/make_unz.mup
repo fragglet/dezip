@@ -5,4 +5,4 @@ make370 SHELL=/bin/mupfel.ttp CFLAGS="-g -D__NO_INLINE__ -DATARI" E=.sym unzip.s
 #make370 SHELL=/bin/mupfel.ttp CFLAGS="-O -DATARI" -n unzips > make_all.mup
 #fixstk 32K pgp.ttp
 prgflags 017 007 *.ttp
-  
+

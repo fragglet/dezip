@@ -2,8 +2,8 @@ There are now several entry points to the dll.
 
 There is a single "unzipping" entry point of:
 
-int Wiz_SingleEntryUnzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
-                         LPDCL lpDCL, LPUSERFUNCTIONS lpUserFunc)
+int WINAPI Wiz_SingleEntryUnzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
+                                LPDCL lpDCL, LPUSERFUNCTIONS lpUserFunc)
 
 where the arguments are:
 
@@ -22,43 +22,79 @@ lpDCL      = pointer to a structure with the flags for setting the
 lpUserFunc = pointer to a structure that contains pointers to functions
              in the calling application, as well as sizes passed back to
              the calling application etc. See below for a detailed description
-             of all the parameters
+             of all the parameters.
 
 The DCL structure is shown below:
 
 typedef struct {
-int ExtractOnlyNewer;   = true for "update" without interaction
+int ExtractOnlyNewer    = true for "update" without interaction
                           (extract only newer/new files, without queries)
-int SpaceToUnderscore;  = true if convert space to underscore
-int PromptToOverwrite;  = true if prompt to overwrite is wanted
-int fQuiet;             = quiet flag. 1 = few messages, 2 = no messages, 0 = all messages
+int SpaceToUnderscore   = true if convert space to underscore
+int PromptToOverwrite   = true if prompt to overwrite is wanted
+int fQuiet              = quiet flag:
+                           0 = all messages, 1 = few messages, 2 = no messages
 int ncflag              = write to stdout if true
 int ntflag              = test zip file
 int nvflag              = verbose listing
 int nfflag              = "freshen" (replace existing files by newer versions)
 int nzflag              = display zip file comment
-int ndflag              = retain (create) subdirectories when extracting
-ndflag                  = controls (sub)directory recreation during extraction
+int ndflag              = controls (sub)directory recreation during extraction
                           0 = junk paths from filenames
                           1 = "safe" usage of paths in filenames (skip "../")
                           2 = allow also unsafe path components (dir traversal)
-int noflag              = true if you are to always over-write files, false if not
+int noflag              = true if you are to always overwrite existing files
 int naflag              = do end-of-line translation
-int nZIflag;            = get zip info if true
-int C_flag;             = be case insensitive if TRUE
-int fPrivilege          = 1 => restore Acl's, 2 => Use privileges
+int nZIflag             = get ZipInfo if TRUE
+int C_flag              = be case insensitive if TRUE
+int fPrivilege          = 1 => restore ACLs in user mode,
+                          2 => try to use privileges for restoring ACLs
 LPSTR lpszZipFN         = zip file name
-LPSTR lpszExtractDir    = Directory to extract to. This should be NULL if you
+LPSTR lpszExtractDir    = directory to extract to. This should be NULL if you
                           are extracting to the current directory.
 } DCL, far * LPDCL;
 
-REMARK:
-The three extract-mode flags ExtractOnlyNewer, PromptToOverwrite, and noflag
-are considered to exclude each other. exactly ONE of these flags should be
-selected (= set to TRUE).
-The fflag switch is a modifier for ExtractOnlyNewer that prevents the
-creation of new files; it should only be used in conjunction with the
-ExtractOnlyNewer switch.
+REMARKS:
+The four extract-mode flags ExtractOnlyNewer, nfflag, PromptToOverwrite, and
+noflag control which of the selected archive entries are actually processed.
+They are mapped to UnZip's command line qualifiers "-u", "-f", "-o", "-n"
+according to the following decision matrix:
+ _____________________________________________________________________
+ | UnZip 1)|| Extract-  | nfflag | noflag | PrompTo-  | lpUserFunc   |
+ | options || OnlyNewer |        |        | Overwrite | ->replape()  |
+ =====================================================================
+ | none 2) ||   false   |  false |  false |   true    |queryfunc() 5)|
+ | -o      ||   false   |  false |  true  |   false   |     N/A      |
+ | -n      ||   false   |  false |  false |   false   |     N/A      |
+ |---------||-----------|--------|--------|-----------|--------------|
+ | -u      ||   true    |  false |  false |   true    |queryfunc() 5)|
+ | -uo     ||   true    |  false |  true  |   false   |     N/A      |
+ | -un  3) ||   true    |  false |  false |   false   |     N/A      |
+ |---------||-----------|--------|--------|-----------|--------------|
+ | -f      ||    N/A    |  true  |  false |   true    |queryfunc() 5)|
+ | -fo     ||    N/A    |  true  |  true  |   false   |     N/A      |
+ | -fn  4) ||    N/A    |  true  |  false |   false   |     N/A      |
+ ---------------------------------------------------------------------
+ Legend: true:  integer number <> 0
+         false: integer number 0
+	 N/A:   not applicable, could be set to any value
+ NOTES:
+ 1) The UnZip options are explained in the generic UnZip manual, see
+    "unzip.txt" or "man/unzip.1".
+ 2) no options from the set "ufno" are specified.
+ 3) -un is functionally equivalent to -n
+ 4) -fn is functionally equivalent to "do nothing", so this combination
+    does not make sense.
+ 5) queryfunc() is a callback function provided by the caller of the
+    unzip dll that may return one of the following result keys:
+     IDM_REPLACE_NO, IDM_REPLACE_YES,
+     IDM_REPLACE_ALL, IDM_REPLACE_NONE,
+     IDM_REPLACE_RENAME
+     (IDM_REPLACE_TEXT, IDM_REPLACE_HELP are defined but not used)
+    UnZip's internal code treats a "NULL" lpUserFunc->replace() function
+    pointer as "{return IDM_REPLACE_NONE}". However, currently, the windll
+    interface checks for this function pointer to be not NULL and signals
+    a fatal error if this condition is not fulfilled.
+
 
 The typedef's for the function pointers in the structure USERFUNCTIONS
 are shown immediately below.
@@ -249,8 +285,8 @@ follows (explanations for each function are shown further below):
         do {
           .
           .
-          Wiz_SetOpts(pG, C); /* Set up unzipping options */
-          /* zvoid *pG, LPDCL C */
+          Wiz_SetOpts(pG, lpDCL); /* Set up unzipping options */
+          /* zvoid *pG, LPDCL lpDCL */
           .
           .
           Wiz_Unzip(pG, ifnc, ifnv, xfnc, xfnv); /* Unzip files */
@@ -278,6 +314,6 @@ the "series" of calls, make sure that Wiz_SetOpts and Wiz_Unzip are always
 used together! When successfully called, Wiz_SetOpts has allocated some
 internal structures which are in turn free'd by Wiz_Unzip.
 
-Last revised March 02, 2003.
+Last revised February 27, 2005.
 
 Mike White, Christian Spieler

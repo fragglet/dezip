@@ -1,10 +1,10 @@
-This is the README file for the 22 May 2004 public release of the
+This is the README file for the 28 February 2005 public release of the
 Info-ZIP group's portable UnZip zipfile-extraction program (and related
 utilities).
 
-unzip551.zip       portable UnZip, version 5.51, source code distribution
-unzip551.tar.Z     same as above, but compress'd tar format
-unzip551.tar.gz    same as above, but gzip'd tar format
+unzip552.zip       portable UnZip, version 5.52, source code distribution
+unzip552.tar.Z     same as above, but compress'd tar format
+unzip552.tar.gz    same as above, but gzip'd tar format
 
 __________________________________________________________________________
 
@@ -53,6 +53,26 @@ vms/descrip.mms.
 
 CHANGES AND NEW FEATURES
 ------------------------
+The 5.52 maintenance release fixes a few minor problems found in the 5.51
+release, closes some more security holes, adds a new AtheOS port, and
+contains a Win32 extra-field code cleanup that was not finished earlier.
+The most important changes are:
+
+   - (re)enabled unshrinking support by default, the LZW patents have expired
+   - fixed an extraction size bug for encrypted stored entries (12 excess bytes
+     were written with 5.51)
+   - fixed false "uncompressed size mismatch" messages when extracting
+     encrypted archive entries
+   - do not restore SUID/SGID/Tacky attribute bits on Unix (BeOS, AtheOS)
+     unless explicitely requested by new "-K" command line qualifier
+   - optional support for "-W" qualifier to modify the pattern matching syntax
+     (with -W: "*" stops at directory delimiter, "**" matches unlimited)
+   - prevent buffer overflow caused by bogus extra-long Zipfile specification
+   - performance enhancements for VMS port
+   - fixed windll interface handling of its extraction mode qualifiers
+     nfflag, ExtractOnlyNewer, noflag, PromptToOverwrite; added detailed
+     explanation of their meanings and interactions to the windll documentation
+
 The 5.51 maintenance release adds a command-line CE port, intended for
 batch processing. With the integration of this port, the pUnZip port
 has been revised and "revitalized".

@@ -154,6 +154,7 @@ void UZ_EXP UzpVersion2(UzpVer2 *version)
 
 
 
+#ifndef SFX
 #ifndef WINDLL
 
 int UZ_EXP UzpAltMain(int argc, char *argv[], UzpInit *init)
@@ -332,6 +333,7 @@ int UZ_EXP UzpFileTree(char *name, cbList(callBack), char *cpInclude[],
 }
 
 #endif /* OS2DLL */
+#endif /* !SFX */
 
 
 
@@ -348,6 +350,7 @@ void setFileNotFound(__G)
 }
 
 
+#ifndef SFX
 
 int unzipToMemory(__GPRO__ char *zip, char *file, UzpBuffer *retstr)
 {
@@ -372,6 +375,7 @@ int unzipToMemory(__GPRO__ char *zip, char *file, UzpBuffer *retstr)
     return r;                   /* returns `PK_???' error values */
 }
 
+#endif /* !SFX */
 
 
 int redirect_outfile(__G)
@@ -455,6 +459,7 @@ int close_redirect(__G)
 
 
 
+#ifndef SFX
 #ifndef __16BIT__
 #ifndef WINDLL
 
@@ -566,7 +571,6 @@ int UZ_EXP UzpGrep(char *archive, char *file, char *pattern, int cmd,
 
 
 
-
 int UZ_EXP UzpValidate(char *archive, int AllCodes)
 {
     int retcode;
@@ -640,4 +644,5 @@ int UZ_EXP UzpValidate(char *archive, int AllCodes)
         return FALSE;
 }
 
+#endif /* !SFX */
 #endif /* DLL */

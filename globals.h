@@ -181,8 +181,8 @@ typedef struct Globals {
     int create_dirs;      /* used by main(), mapname(), checkdir() */
     int extract_flag;
     int newzip;           /* reset in extract.c; used in crypt.c */
-    LONGINT   real_ecrec_offset;
-    LONGINT   expect_ecrec_offset;
+    Z_OFF_T   real_ecrec_offset;
+    Z_OFF_T   expect_ecrec_offset;
     long csize;           /* used by decompr. (NEXTBYTE): must be signed */
     long used_csize;      /* used by extract_or_test_member(), explode() */
 
@@ -247,9 +247,9 @@ typedef struct Globals {
 #else
     int       zipfd;                /* zipfile file handle */
 #endif
-    LONGINT   ziplen;
-    LONGINT   cur_zipfile_bufstart; /* extract_or_test, readbuf, ReadByte */
-    LONGINT   extra_bytes;          /* used in unzip.c, misc.c */
+    Z_OFF_T   ziplen;
+    Z_OFF_T   cur_zipfile_bufstart; /* extract_or_test, readbuf, ReadByte */
+    Z_OFF_T   extra_bytes;          /* used in unzip.c, misc.c */
     uch       *extra_field;         /* Unix, VMS, Mac, OS/2, Acorn, ... */
     uch       *hold;
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -64,6 +64,12 @@
 
 #define read_only   file_attr       /* for readability only */
 #define EB_MAX_OF_VARDATA   1300    /* max possible datasize of extra-field */
+
+#ifdef WILD_STOP_AT_DIR
+#  define WESEP     , (oU.W_flag ? ':' : '\0')
+#else
+#  define WESEP
+#endif
 
 
 /*****************************************************************************/
@@ -182,7 +188,7 @@ static ZCONST char Far FilenameToLong[] =
 #ifndef SFX
 
 /**********************/
-/* Function do_wild() */   /* for porting:  dir separator; match(ignore_case) */
+/* Function do_wild() */   /* for porting: dir separator; match(ignore_case) */
 /**********************/
 
 char *do_wild(__G__ wildspec)
@@ -213,7 +219,8 @@ char *do_wild(__G__ wildspec)
         if (MacUnzip_Noisy) printf("%s \n\n", GetUnZipInfoVersions());
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, ':')) == (ZCONST char *)NULL) {
+        if ((wildname = (ZCONST char *)strrchr(wildspec, ':')) ==
+            (ZCONST char *)NULL) {
             dirname = ":";
             dirnamelen = 1;
             have_dirname = FALSE;
@@ -224,7 +231,8 @@ char *do_wild(__G__ wildspec)
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 0x201, ((char *)slide,
                   LoadFarString(CantAllocateWildcard)));
-                strcpy(matchname, wildspec);
+                strncpy(matchname, wildspec, FILNAMSIZ);
+                matchname[FILNAMSIZ-1] = '\0';
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
             strncpy(dirname, wildspec, dirnamelen);
@@ -234,7 +242,7 @@ char *do_wild(__G__ wildspec)
 
         if ((wild_dir = opendir(dirname)) != (DIR *)NULL) {
             while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
-                if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
+                if (match(file->d_name, wildname, 0 WESEP)) { /* 0=case sens.*/
                     if (have_dirname) {
                         strcpy(matchname, dirname);
                         strcpy(matchname+dirnamelen, file->d_name);
@@ -250,7 +258,8 @@ char *do_wild(__G__ wildspec)
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(matchname, wildspec);
+        strncpy(matchname, wildspec, FILNAMSIZ);
+        matchname[FILNAMSIZ-1] = '\0';
         return matchname;
     }
 
@@ -267,7 +276,7 @@ char *do_wild(__G__ wildspec)
      * matchname already.
      */
     while ((file = readdir(wild_dir)) != (struct dirent *)NULL)
-        if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
+        if (match(file->d_name, wildname, 0 WESEP)) {   /* 0 == case sens. */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
                 strcpy(matchname+dirnamelen, file->d_name);
@@ -1182,7 +1191,7 @@ short macread(short nFRefNum, char *pb, unsigned cb)
 long macwrite(short nFRefNum, char *pb, unsigned cb)
 {
     long    lcb = cb;
-    OSErr   err;
+    OSErr   err = 0;
     FILE    *stream;
 
     if ( (nFRefNum == 1) || (nFRefNum == 2) )
@@ -1191,7 +1200,7 @@ long macwrite(short nFRefNum, char *pb, unsigned cb)
         pb[cb] = '\0';           /* terminate C-string */
                                  /* assumes writable buffer (e.g., slide[]) */
                                  /* with room for one more char at end of buf */
-        lcb = fprintf(stream, pb);
+        lcb = fprintf(stream, "%s", pb);
         }
     else
         err = FSWrite( nFRefNum, &lcb, pb );
@@ -1967,5 +1976,3 @@ else
     }
 
 }
-
-

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -113,10 +113,11 @@ int dateformat()
 /* match from Phase One Systems */
 
 /* Returns non-zero if string matches the literal mask */
-int match(string, pattern, ignore_case)
+int match(string, pattern, ignore_case __WDL)
     ZCONST char *string;
     ZCONST char *pattern;
     int ignore_case;            /* unused in this variant of match()! */
+    __WDLDEF
 {
     int matched, k;
 
@@ -132,7 +133,7 @@ int match(string, pattern, ignore_case)
                 return(1);
             k=0;
             do {
-                matched = match(string+k, pattern+1, ignore_case);
+                matched = match(string+k, pattern+1, ignore_case __WDL);
                 k++;
             } while ( (!matched) && *(string+k));
             return(matched);
@@ -196,7 +197,8 @@ char *do_wild(__G__ wildspec)
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 0x201, ((char *)slide,
                   "warning:  cannot allocate wildcard buffers\n"));
-                strcpy(matchname, wildspec);
+                strncpy(matchname, wildspec, FILNAMSIZ);
+                matchname[FILNAMSIZ-1] = '\0';
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
             strncpy(dirname, wildspec, dirnamelen);
@@ -208,7 +210,7 @@ char *do_wild(__G__ wildspec)
             while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n",
                   FnFilter1(file->d_name)));
-                if (match(file->d_name, wildname, 1)) {   /* 1 == ignore case */
+                if (match(file->d_name, wildname, 1 WISEP)) { /*1=ignore case*/
                     Trace((stderr, "do_wild:  match() succeeds\n"));
                     if (have_dirname) {
                         strcpy(matchname, dirname);
@@ -225,7 +227,8 @@ char *do_wild(__G__ wildspec)
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(matchname, wildspec);
+        strncpy(matchname, wildspec, FILNAMSIZ);
+        matchname[FILNAMSIZ-1] = '\0';
         return matchname;
     }
 
@@ -246,7 +249,7 @@ char *do_wild(__G__ wildspec)
           FnFilter1(file->d_name)));
         if (file->d_name[0] == '.' && wildname[0] != '.')
             continue;   /* Unix:  '*' and '?' do not match leading dot */
-        if (match(file->d_name, wildname, 1)) {   /* 1 == ignore case */
+        if (match(file->d_name, wildname, 1 WISEP)) {   /* 1 == ignore case */
             Trace((stderr, "do_wild:  match() succeeds\n"));
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
@@ -293,6 +296,7 @@ int mapattr(__G)
         case VMS_:
         case ACORN_:
         case ATARI_:
+        case ATHEOS_:
         case BEOS_:
         case QDOS_:
         case TANDEM_:
@@ -604,7 +608,7 @@ int mapname(__G__ renamed)
         != (RO_extra_block *)NULL)
     {
         /* file *must* have a RISC OS extra field */
-        long ft = (long)makelong((ef_spark->loadaddr);
+        long ft = (long)makelong(ef_spark->loadaddr);
         /*32-bit*/
         if (lastcomma) {
             pp = lastcomma + 1;

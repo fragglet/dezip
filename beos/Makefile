@@ -2,7 +2,7 @@
 #
 # Makefile for Info-ZIP's unzip, unzipsfx, and funzip on BeOS
 #
-# Copyright (c) 1998-2001 Info-ZIP
+# Copyright (c) 1998-2004 Info-ZIP
 #             Chris Herborth (chrish@qnx.com)
 #
 # This is the new New and Improved Makefile for BeOS; it will:
@@ -72,7 +72,7 @@ M = beos
 
 # defaults for crc32 stuff and system-dependent headers
 CRC32 = crc32
-OSDEP_H = beos/beos.h
+OSDEP_H = beos/beocfg.h
 
 # object files
 OBJS1 = unzip$O $(CRC32)$O crctab$O crypt$O envargs$O explode$O
@@ -327,14 +327,14 @@ ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
 	$(CC) -c $(CF) -DFUNZIP ttyiof.c
 	$(RM) ttyiof.c
 
-beos$O:		beos/beos.c $(UNZIP_H) unzvers.h		# BeOS only
+beos$O:		beos/beos.c $(UNZIP_H) unzvers.h beos/beos.h	# BeOS only
 	$(CC) -c $(CF) beos/beos.c
 
 beosmain$O:	beos/beosmain.cpp $(UNZIP_H) unzvers.h		# BeOS only
 	$(CCPP) -c $(CPPF) beos/beosmain.cpp
 
 # version() not used by unzipsfx, so no unzvers.h dependency
-beos_$O:	beos/beos.c $(UNZIP_H)				# unzipsfx only
+beos_$O:	beos/beos.c $(UNZIP_H) beos/beos.h		# unzipsfx only
 	$(CP) beos/beos.c beos_.c
 	$(CC) -c $(CF) -Ibeos -DSFX beos_.c
 	$(RM) beos_.c

@@ -1,4 +1,4 @@
-Contents of the UnZip 5.51 source archive.  The OS-specific subdirectories
+Contents of the UnZip 5.52 source archive.  The OS-specific subdirectories
 at the end contain their own Contents listings:
 
   Contents      this file
@@ -58,6 +58,7 @@ at the end contain their own Contents listings:
   amiga/        support files for compiling under AmigaDOS
   aosvs/        support files for compiling under Data General AOS/VS
   atari/        support files for compiling under Atari TOS
+  atheos/       support files for compiling under AtheOS/Syllable
   beos/         support files for compiling under BeOS
   cmsmvs/       support files for compiling under VM/CMS and MVS
   flexos/       support files for compiling under FlexOS

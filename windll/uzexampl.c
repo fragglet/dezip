@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -66,13 +66,14 @@ DWORD dwPlatformId = 0xFFFFFFFF;
 
 /* Forward References */
 int WINAPI DisplayBuf(LPSTR, unsigned long);
-int WINAPI GetReplaceDlgRetVal(char *);
-int WINAPI password(char *, int, const char *, const char *);
+int WINAPI GetReplaceDlgRetVal(LPSTR);
+int WINAPI password(LPSTR, int, LPCSTR, LPCSTR);
 void WINAPI ReceiveDllMessage(unsigned long, unsigned long, unsigned,
     unsigned, unsigned, unsigned, unsigned, unsigned,
     char, LPSTR, LPSTR, unsigned long, char);
 _DLL_UNZIP pWiz_SingleEntryUnzip;
-void FreeUpMemory(void);
+
+static void FreeUpMemory(void);
 
 int main(int argc, char **argv)
 {
@@ -308,7 +309,7 @@ FreeLibrary(hUnzipDll);
 return 1;
 }
 
-int WINAPI GetReplaceDlgRetVal(char *filename)
+int WINAPI GetReplaceDlgRetVal(LPSTR filename)
 {
 /* This is where you will decide if you want to replace, rename etc existing
    files.
@@ -316,7 +317,7 @@ int WINAPI GetReplaceDlgRetVal(char *filename)
 return 1;
 }
 
-void FreeUpMemory(void)
+static void FreeUpMemory(void)
 {
 if (hDCL)
    {
@@ -366,7 +367,7 @@ printf("%s\n", psLBEntry);
    this is actually implemented in WiZ. If you have an encrypted file,
    this will probably give you great pain.
  */
-int WINAPI password(char *p, int n, const char *m, const char *name)
+int WINAPI password(LPSTR p, int n, LPCSTR m, LPCSTR name)
 {
 return 1;
 }
@@ -375,5 +376,5 @@ return 1;
 int WINAPI DisplayBuf(LPSTR buf, unsigned long size)
 {
 printf("%s", (char *)buf);
-return (unsigned int) size;
+return (int)(unsigned int) size;
 }

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -155,6 +155,10 @@
 #  endif
 #endif
 
+#ifndef Cdecl
+#  define Cdecl __cdecl
+#endif
+
 /* the following definitions are considered as "obsolete" by Microsoft and
  * might be missing in some versions of <windows.h>
  */
@@ -189,9 +193,6 @@
 #endif
 #if (defined(W32_USE_IZ_TIMEZONE) && !defined(HAVE_MKTIME))
 #  define HAVE_MKTIME           /* use mktime() in time conversion routines */
-#endif
-#if (!defined(NT_TZBUG_WORKAROUND) && !defined(NO_NT_TZBUG_WORKAROUND))
-#  define NT_TZBUG_WORKAROUND
 #endif
 #if (!defined(NO_EF_UT_TIME) && !defined(USE_EF_UT_TIME))
 #  define USE_EF_UT_TIME
@@ -313,23 +314,21 @@ int getch_win32  OF((void));
 #  endif
 #endif /* !__RSXNT__ */
 
-#if (defined(NT_TZBUG_WORKAROUND) || defined(W32_STATROOT_FIX))
-#  define W32_STAT_BANDAID
-#  if (defined(NT_TZBUG_WORKAROUND) && defined(REENTRANT))
-#    define __W32STAT_GLOBALS__     Uz_Globs *pG,
-#    define __W32STAT_G__           pG,
-#  else
-#    define __W32STAT_GLOBALS__
-#    define __W32STAT_G__
-#  endif
-#  ifdef SSTAT
-#    undef SSTAT
-#  endif
-#  ifdef WILD_STAT_BUG
-#    define SSTAT(path, pbuf) (iswild(path) || zstat_win32(__W32STAT_G__ path, pbuf))
-#  else
-#    define SSTAT(path, pbuf) zstat_win32(__W32STAT_G__ path, pbuf)
-#  endif
+#define W32_STAT_BANDAID
+#if defined(REENTRANT)
+#  define __W32STAT_GLOBALS__       Uz_Globs *pG,
+#  define __W32STAT_G__             pG,
+#else
+#  define __W32STAT_GLOBALS__
+#  define __W32STAT_G__
+#endif
+#ifdef SSTAT
+#  undef SSTAT
+#endif
+#ifdef WILD_STAT_BUG
+#  define SSTAT(path, pbuf) (iswild(path) || zstat_win32(__W32STAT_G__ path, pbuf))
+#else
+#  define SSTAT(path, pbuf) zstat_win32(__W32STAT_G__ path, pbuf)
 #endif
 
 #ifdef __WATCOMC__
@@ -342,6 +341,8 @@ int getch_win32  OF((void));
 #    define far
 #    undef near
 #    define near
+#    undef Cdecl
+#    define Cdecl
 
 /* gaah -- Watcom's docs claim that _get_osfhandle exists, but it doesn't.  */
 #    define _get_osfhandle _os_handle
@@ -355,7 +356,7 @@ int getch_win32  OF((void));
 #  endif /* __386__ */
 
 #  ifndef EPIPE
-#    define EPIPE -1
+#    define EPIPE 29    /* Watcom 11.0c(+) errno.h contains this define */
 #  endif
 #  define PIPE_ERROR (errno == EPIPE)
 #endif /* __WATCOMC__ */

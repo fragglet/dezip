@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -115,7 +115,8 @@ int list_files(__G)    /* return PK-type error code */
     static ZCONST char dtype[]="NXFS";  /* see zi_short() */
     static ZCONST char Far method[NUM_METHODS+1][8] =
         {"Stored", "Shrunk", "Reduce1", "Reduce2", "Reduce3", "Reduce4",
-         "Implode", "Token", "Defl:#", "Def64#", "ImplDCL", "Unk:###"};
+         "Implode", "Token", "Defl:#", "Def64#", "ImplDCL", "PKres11",
+         "BZip2", "Unk:###"};
 
 
 
@@ -209,15 +210,19 @@ int list_files(__G)    /* return PK-type error code */
         if (!G.process_all_files) {   /* check if specified on command line */
             unsigned i;
 
-            do_this_file = FALSE;
-            for (i = 0; i < G.filespecs; i++)
-                if (match(G.filename, G.pfnames[i], uO.C_flag)) {
-                    do_this_file = TRUE;
-                    break;       /* found match, so stop looping */
-                }
+            if (G.filespecs == 0)
+                do_this_file = TRUE;
+            else {  /* check if this entry matches an `include' argument */
+                do_this_file = FALSE;
+                for (i = 0; i < G.filespecs; i++)
+                    if (match(G.filename, G.pfnames[i], uO.C_flag WISEP)) {
+                        do_this_file = TRUE;
+                        break;       /* found match, so stop looping */
+                    }
+            }
             if (do_this_file) {  /* check if this is an excluded file */
                 for (i = 0; i < G.xfilespecs; i++)
-                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                    if (match(G.filename, G.pxnames[i], uO.C_flag WISEP)) {
                         do_this_file = FALSE;  /* ^-- ignore case in match */
                         break;
                     }
@@ -565,15 +570,19 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
         if (!G.process_all_files) {   /* check if specified on command line */
             unsigned i;
 
-            do_this_file = FALSE;
-            for (i = 0; i < G.filespecs; i++)
-                if (match(G.filename, G.pfnames[i], uO.C_flag)) {
-                    do_this_file = TRUE;
-                    break;       /* found match, so stop looping */
-                }
+            if (G.filespecs == 0)
+                do_this_file = TRUE;
+            else {  /* check if this entry matches an `include' argument */
+                do_this_file = FALSE;
+                for (i = 0; i < G.filespecs; i++)
+                    if (match(G.filename, G.pfnames[i], uO.C_flag WISEP)) {
+                        do_this_file = TRUE;
+                        break;       /* found match, so stop looping */
+                    }
+            }
             if (do_this_file) {  /* check if this is an excluded file */
                 for (i = 0; i < G.xfilespecs; i++)
-                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                    if (match(G.filename, G.pxnames[i], uO.C_flag WISEP)) {
                         do_this_file = FALSE;  /* ^-- ignore case in match */
                         break;
                     }

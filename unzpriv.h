@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -92,16 +92,21 @@
     OS-dependent configuration for UnZip internals
   ---------------------------------------------------------------------------*/
 
-/* Some "free" compiler distributions for Win32/i386 systems try to
- * support both Unix and Win32 environments.
+/* Some compiler distributions for Win32/i386 systems try to emulate
+ * a Unix (POSIX-compatible) environment.
  */
 #if (defined(WIN32) && defined(UNIX))
-#  ifdef FORCE_UNIX_OVER_WIN32
-     /* UNIX emulation was explicitely requested... */
-#    undef WIN32
-#  else
-     /* Info-ZIP prefers to support the "native" file system features... */
+   /* UnZip does not support merging both ports in a single executable. */
+#  if (defined(FORCE_WIN32_OVER_UNIX) && defined(FORCE_UNIX_OVER_WIN32))
+     /* conflicting choice requests -> we prefer the Win32 environment */
+#    undef FORCE_UNIX_OVER_WIN32
+#  endif
+#  ifdef FORCE_WIN32_OVER_UNIX
+     /* native Win32 support was explicitely requested... */
 #    undef UNIX
+#  else
+     /* use the POSIX (Unix) emulation features by default... */
+#    undef WIN32
 #  endif
 #endif
 
@@ -196,9 +201,13 @@
   ---------------------------------------------------------------------------*/
 
 #ifdef EFT
-#  define LONGINT off_t  /* Amdahl UTS nonsense ("extended file types") */
+#  define Z_OFF_T off_t  /* Amdahl UTS nonsense ("extended file types") */
 #else
-#  define LONGINT long
+#if (defined(UNIX) && defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 64))
+#  define Z_OFF_T off_t /* 64bit offsets to support 2GB < zipfile size < 4GB */
+#else
+#  define Z_OFF_T long
+#endif
 #endif
 
 #ifdef MODERN
@@ -211,7 +220,7 @@
    typedef size_t extent;
 #else /* !MODERN */
 #  ifndef AOS_VS         /* mostly modern? */
-     LONGINT lseek();
+     Z_OFF_T lseek();
 #    ifdef VAXC          /* not fully modern, but has stdlib.h and void */
 #      include <stdlib.h>
 #    else
@@ -310,38 +319,19 @@
 #endif
 
 /*---------------------------------------------------------------------------
+    AtheOS section:
+  ---------------------------------------------------------------------------*/
+
+#ifdef __ATHEOS__
+#  include "atheos/athcfg.h"
+#endif
+
+/*---------------------------------------------------------------------------
     BeOS section:
   ---------------------------------------------------------------------------*/
 
 #ifdef __BEOS__
-#  include <sys/types.h>          /* [cjh]:  This is pretty much a generic  */
-#  include <sys/stat.h>           /* POSIX 1003.1 system; see beos/ for     */
-#  include <fcntl.h>              /* extra code to deal with our extra file */
-#  include <sys/param.h>          /* attributes. */
-#  include <unistd.h>
-#  include <utime.h>
-#  define DIRENT
-#  include <time.h>
-#  ifndef DATE_FORMAT
-#    define DATE_FORMAT DF_MDY  /* GRR:  customize with locale.h somehow? */
-#  endif
-#  define lenEOL        1
-#  define PutNativeEOL  *q++ = native(LF);
-#  define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
-#  define SCREENWIDTH 80
-#  if (!defined(NO_EF_UT_TIME) && !defined(USE_EF_UT_TIME))
-#    define USE_EF_UT_TIME
-#  endif
-#  define SET_SYMLINK_ATTRIBS
-#  define SET_DIR_ATTRIB
-#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
-#    define TIMESTAMP
-#  endif
-#  define RESTORE_UIDGID
-#  define NO_STRNICMP             /* not in the x86 headers at least */
-#  define INT_SPRINTF
-#  define SYMLINKS
-#  define MAIN main_stub          /* now that we're using a wrapper... */
+#  include "beos/beocfg.h"
 #endif
 
 /*---------------------------------------------------------------------------
@@ -657,6 +647,22 @@
 #    define TIMESTAMP
 #  endif
 #  define RESTORE_UIDGID
+#  ifdef __DECC
+     /* File open callback ID values. */
+#    define OPENR_ID 1
+     /* File open callback ID storage. */
+     extern int openr_id;
+     /* File open callback function. */
+     extern int acc_cb();
+     /* Option macros for open().
+      * General: Stream access
+      *
+      * Callback function (DEC C only) sets deq, mbc, mbf, rah, wbh, ...
+      */
+#    define OPNZIP_RMS_ARGS "ctx=stm", "acc", acc_cb, &openr_id
+#  else /* !__DECC */ /* (So, GNU C, VAX C, ...)*/
+#    define OPNZIP_RMS_ARGS "ctx=stm"
+#  endif /* ?__DECC */
 #endif /* VMS */
 
 /*---------------------------------------------------------------------------
@@ -739,12 +745,16 @@
 #  define DOS_T20_VMS
 #endif
 
-#if (defined(__BEOS__) || defined(UNIX))
-#  define BEO_UNX
+#if (defined(__ATHEOS__) || defined(__BEOS__))
+#  define ATH_BEO
 #endif
 
-#if (defined(BEO_UNX) || defined(THEOS))
-#  define BEO_THS_UNX
+#if (defined(ATH_BEO) || defined(UNIX))
+#  define ATH_BEO_UNX
+#endif
+
+#if (defined(ATH_BEO_UNX) || defined(THEOS))
+#  define ATH_BEO_THS_UNX
 #endif
 
 /* clean up with a few defaults */
@@ -789,7 +799,7 @@
 #endif
 
 
-#if (defined(DOS_FLX_NLM_OS2_W32) || defined(BEO_UNX) || defined(RISCOS))
+#if (defined(DOS_FLX_NLM_OS2_W32) || defined(ATH_BEO_UNX) || defined(RISCOS))
 #  ifndef HAVE_UNLINK
 #    define HAVE_UNLINK
 #  endif
@@ -1008,6 +1018,10 @@
 #  define Far
 #endif
 
+#ifndef Cdecl
+#  define Cdecl
+#endif
+
 #ifndef MAIN
 #  define MAIN  main
 #endif
@@ -1047,8 +1061,11 @@
 #  define COPYRIGHT_CLEAN
 #endif
 
+/* The LZW patent is expired worldwide since 2004-Jul-07, so USE_UNSHRINK
+ * is now enabled by default.  See unshrink.c.
+ */
 #if (!defined(LZW_CLEAN) && !defined(USE_UNSHRINK))
-#  define LZW_CLEAN
+#  define USE_UNSHRINK
 #endif
 
 #ifndef O_BINARY
@@ -1378,7 +1395,10 @@
 #define BEOS_             16   /* hybrid POSIX/database filesystem */
 #define TANDEM_           17   /* Tandem NSK */
 #define THEOS_            18   /* THEOS */
-#define NUM_HOSTS         19   /* index of last system + 1 */
+#define MAC_OSX_          19   /* Mac OS/X (Darwin) */
+#define ATHEOS_           30   /* AtheOS */
+#define NUM_HOSTS         31   /* index of last system + 1 */
+/* don't forget to update zipinfo.c appropiately if NUM_HOSTS changes! */
 
 #define STORED            0    /* compression methods */
 #define SHRUNK            1
@@ -1391,7 +1411,9 @@
 #define DEFLATED          8
 #define ENHDEFLATED       9
 #define DCLIMPLODED      10
-#define NUM_METHODS      11    /* index of last method + 1 */
+#define PKRESMOD11       11
+#define BZIP2ED          12
+#define NUM_METHODS      13    /* index of last method + 1 */
 /* don't forget to update list_files(), extract.c and zipinfo.c appropriately
  * if NUM_METHODS changes */
 
@@ -1424,6 +1446,7 @@
 #define EF_MVS       0x470f    /* Info-ZIP's MVS ("\017G") */
 #define EF_ACL       0x4c41    /* (OS/2) access control list ("AL") */
 #define EF_NTSD      0x4453    /* NT security descriptor ("SD") */
+#define EF_ATHEOS    0x7441    /* AtheOS ("At") */
 #define EF_BEOS      0x6542    /* BeOS ("Be") */
 #define EF_QDOS      0xfb4a    /* SMS/QDOS ("J\373") */
 #define EF_AOSVS     0x5356    /* AOS/VS ("VS") */
@@ -1462,8 +1485,8 @@
 #define EB_FLGS_OFFS      4    /* offset of flags area in generic compressed
                                   extra field blocks (BEOS, MAC, and others) */
 #define EB_OS2_HLEN       4    /* size of OS2/ACL compressed data header */
-#define EB_BEOS_HLEN      5    /* length of BeOS e.f attribute header */
-#define EB_BE_FL_UNCMPR   0x01 /* "BeOS attributes uncompressed" bit flag */
+#define EB_BEOS_HLEN      5    /* length of BeOS&AtheOS e.f attribute header */
+#define EB_BE_FL_UNCMPR   0x01 /* "BeOS&AtheOS attribs uncompr." bit flag */
 #define EB_MAC3_HLEN      14   /* length of Mac3 attribute block header */
 #define EB_SMARTZIP_HLEN  64   /* fixed length of the SmartZip extra field */
 #define EB_M3_FL_DATFRK   0x01 /* "this entry is data fork" flag */
@@ -1543,6 +1566,17 @@
 #  define QCOND2    (!uO.qflag)
 #endif
 
+#ifdef WILD_STOP_AT_DIR
+#  define __WDLPRO  , int sepc
+#  define __WDL     , sepc
+#  define __WDLDEF  int sepc;
+#  define WISEP     , (uO.W_flag ? '/' : '\0')
+#else
+#  define __WDLPRO
+#  define __WDL
+#  define __WDLDEF
+#  define WISEP
+#endif
 
 
 
@@ -1596,10 +1630,10 @@ typedef struct iztimes {
 #endif /* SYMLINKS */
 
 typedef struct min_info {
-    long offset;
-    ulg crc;                 /* crc (needed if extended header) */
+    Z_OFF_T offset;
     ulg compr_size;          /* compressed size (needed if extended header) */
     ulg uncompr_size;        /* uncompressed size (needed if extended header) */
+    ulg crc;                 /* crc (needed if extended header) */
     ush diskstart;           /* no of volume where this entry starts */
     uch hostver;
     uch hostnum;
@@ -1700,14 +1734,23 @@ typedef struct VMStimbuf {
 #      define ZIPFILE_COMMENT_LENGTH            20
 
 
+/* The following structs are used to hold all header data of a zip entry.
+   Traditionally, the structs' layouts followed the data layout of the
+   corresponding zipfile header structures.  However, the zipfile header
+   layouts were designed in the old ages of 16-bit CPUs, they are subject
+   to structure padding and/or alignment issues on newer systems with a
+   "natural word width" of more than 2 bytes.
+   Please note that the structure members are now reordered by size
+   (top-down), to prevent internal padding and optimize memory usage!
+ */
    typedef struct local_file_header {                 /* LOCAL */
+       ulg csize;
+       ulg ucsize;
+       ulg last_mod_dos_datetime;
+       ulg crc32;
        uch version_needed_to_extract[2];
        ush general_purpose_bit_flag;
        ush compression_method;
-       ulg last_mod_dos_datetime;
-       ulg crc32;
-       ulg csize;
-       ulg ucsize;
        ush filename_length;
        ush extra_field_length;
    } local_file_hdr;
@@ -1860,7 +1903,7 @@ void     defer_leftover_input OF((__GPRO));
 unsigned readbuf              OF((__GPRO__ char *buf, register unsigned len));
 int      readbyte             OF((__GPRO));
 int      fillinbuf            OF((__GPRO));
-int      seek_zipf            OF((__GPRO__ LONGINT abs_offset));
+int      seek_zipf            OF((__GPRO__ Z_OFF_T abs_offset));
 #ifdef FUNZIP
    int   flush                OF((__GPRO__ ulg size));  /* actually funzip.c */
 #else
@@ -2108,7 +2151,7 @@ int      envargs         OF((int *Pargc, char ***Pargv,
 void     mksargs         OF((int *argcp, char ***argvp));       /* envargs.c */
 
 int      match           OF((ZCONST char *s, ZCONST char *p,
-                             int ic));                            /* match.c */
+                             int ic __WDLPRO));                   /* match.c */
 int      iswild          OF((ZCONST char *p));                    /* match.c */
 
 #ifdef DYNALLOC_CRCTAB
@@ -2129,12 +2172,12 @@ int      mapname         OF((__GPRO__ int renamed));                /* local */
 int      checkdir        OF((__GPRO__ char *pathcomp, int flag));   /* local */
 char    *do_wild         OF((__GPRO__ ZCONST char *wildzipfn));     /* local */
 char    *GetLoadPath     OF((__GPRO));                              /* local */
-#if (defined(MORE) && (defined(BEO_UNX) || defined(QDOS) || defined(VMS)))
+#if (defined(MORE) && (defined(ATH_BEO_UNX) || defined(QDOS) || defined(VMS)))
    int screensize        OF((int *tt_rows, int *tt_cols));          /* local */
 # if defined(VMS)
    int screenlinewrap    OF((void));                                /* local */
 # endif
-#endif /* MORE && (BEO_UNX || QDOS || VMS) */
+#endif /* MORE && (ATH_BEO_UNX || QDOS || VMS) */
 #ifdef OS2_W32
    int   SetFileSize     OF((FILE *file, ulg filesize));            /* local */
 #endif
@@ -2142,7 +2185,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
    void  close_outfile   OF((__GPRO));                              /* local */
 #endif
 #ifdef SET_SYMLINK_ATTRIBS
-   int  set_symlnk_attribs  OF((__GPRO__ slinkentry *slnk_entry))   /* local */
+   int  set_symlnk_attribs  OF((__GPRO__ slinkentry *slnk_entry));  /* local */
 #endif
 #ifdef SET_DIR_ATTRIB
    int   defer_dir_attribs  OF((__GPRO__ direntry **pd));           /* local */
@@ -2292,7 +2335,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #else
 #  define FLUSH(w)  ((G.mem_mode) ? memflush(__G__ redirSlide,(ulg)(w)) \
                                   : flush(__G__ redirSlide,(ulg)(w),0))
-#  define NEXTBYTE  (--G.incnt >= 0 ? (int)(*G.inptr++) : readbyte(__G))
+#  define NEXTBYTE  (G.incnt-- > 0 ? (int)(*G.inptr++) : readbyte(__G))
 #endif
 
 

@@ -1,5 +1,5 @@
 	Module		VMS_UNZIP_CLD
-	Ident		"02-008"
+	Ident		"02-009"
 
 Define	Verb		UNZIP
 	Parameter	P1, Label=ZIPFILE, Prompt="Zip file"
@@ -19,7 +19,8 @@ Define	Verb		UNZIP
 	Qualifier	TEST, Negatable
 	Qualifier	PIPE, Nonnegatable
 	Qualifier	PASSWORD, VALUE(REQUIRED), Nonnegatable
-	Qualifier	TRAVERSE_DIRS, Negatable     
+	Qualifier	TIMESTAMP, Nonnegatable
+	Qualifier	TRAVERSE_DIRS, Negatable
 	Qualifier	UPPERCASE, Negatable
 	Qualifier	UPDATE, Negatable
 	Qualifier	VERSION, Negatable

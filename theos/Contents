@@ -4,6 +4,9 @@ Contents of the "theos" subdirectory for UnZip 5.41 and later:
   makefile      makefile for UnZip for THEOS architectures
   theos.c       Theos-specific support routines
   thscfg.h
+  charconv.h
+  oldstat.h
+  stat.h
   _fprintf.c
   _isatty.c
   _opendir.c

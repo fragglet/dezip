@@ -1,7 +1,7 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
-  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  See the accompanying file LICENSE, version 2005-Feb-10 or later
   (the contents of which are also included in zip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
@@ -193,7 +193,7 @@ struct iosb
  *  apply structure padding, since this is explicitely forbidden in
  *  the specification (APPNOTE.TXT) for the PK VMS extra field.
  */
-struct PK_info
+typedef struct PK_info
 {
     ush tag_ra; ush len_ra;     byte ra[ATR$S_RECATTR];
     ush tag_uc; ush len_uc;     byte uc[ATR$S_UCHAR];
@@ -206,7 +206,7 @@ struct PK_info
     ush tag_ui; ush len_ui;     byte ui[ATR$S_UIC];
     ush tag_fp; ush len_fp;     byte fp[ATR$S_FPRO];
     ush tag_rp; ush len_rp;     byte rp[ATR$S_RPRO];
-};
+} PK_info_t;
 #else /* !VMS_ORIGINAL_PK_LAYOUT */
 /*  The Info-ZIP support for the PK VMS extra field uses a reordered
  *  field layout to achieve ``natural alignment'' of the PK_info structure
@@ -216,7 +216,7 @@ struct PK_info
  *  should use the field tag to identify the ATR$ field rather than
  *  assuming a fixed order of ATR$ fields in the PK VMS extra field.)
  */
-struct PK_info
+typedef struct PK_info
 {
     ush tag_ra; ush len_ra;     byte ra[ATR$S_RECATTR];
     ush tag_uc; ush len_uc;     byte uc[ATR$S_UCHAR];
@@ -229,7 +229,7 @@ struct PK_info
     ush tag_fp; ush len_fp;     byte fp[ATR$S_FPRO];
     ush tag_rp; ush len_rp;     byte rp[ATR$S_RPRO];
     ush tag_jr; ush len_jr;     byte jr[ATR$S_JOURNAL];
-};
+} PK_info_t;
 #endif /* ?VMS_ORIGINAL_PK_LAYOUT */
 
 #if defined(__DECC) || defined(__DECCXX)
@@ -267,22 +267,5 @@ struct PK_header
 };
 
 #define PK_HEADER_SIZE  8
-
-#ifdef VMS_ZIP
-/* File description structure for Zip low level I/O */
-struct ioctx
-{
-    struct iosb         iosb;
-    ulg                 vbn;
-    ulg                 size;
-    ulg                 rest;
-    int                 status;
-    ush                 chan;
-    ush                 chan_pad;       /* alignment member */
-    long                acllen;
-    uch                 aclbuf[ATR$S_READACL];
-    struct PK_info      PKi;
-};
-#endif /* VMS_ZIP */
 
 #endif /* !__vms_h */

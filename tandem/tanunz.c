@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -57,7 +57,7 @@ static ZCONST char Far CannotCreateFile[] = "error:  cannot create %s\n";
 
 #ifndef SFX
 /**********************/
-/* Function do_wild() */  /* for porting: dir separator; match(ignore_case)*/
+/* Function do_wild() */  /* for porting: dir separator; match(ignore_case) */
 /**********************/
 
 char *do_wild(__G__ wildspec)
@@ -81,7 +81,8 @@ char *do_wild(__G__ wildspec)
         notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
-            strcpy(matchname, wildspec);
+            strncpy(matchname, wildspec, FILNAMSIZ);
+            matchname[FILNAMSIZ-1] = '\0';
             have_dirname = FALSE;
             wild_dir = NULL;
             return matchname;
@@ -92,7 +93,8 @@ char *do_wild(__G__ wildspec)
         if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
             Info(slide, 0x201, ((char *)slide,
               "warning:  cannot allocate wildcard buffers\n"));
-             strcpy(matchname, wildspec);
+             strncpy(matchname, wildspec, FILNAMSIZ);
+             matchname[FILNAMSIZ-1] = '\0';
              return matchname;   /* but maybe filespec was not a wildcard */
         }
         strcpy(dirname, wildspec);
@@ -105,7 +107,7 @@ char *do_wild(__G__ wildspec)
                   FnFilter1(file->d_name)));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix: '*' and '?' do not match leading dot */
-                if (match(file->d_name, wildname, 0) &&  /* 0 == case sens. */
+                if (match(file->d_name, wildname, 0 WISEP) && /* 0=case sens.*/
                     /* skip "." and ".." directory entries */
                     strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
                     Trace((stderr, "do_wild: match() succeeds\n"));
@@ -124,7 +126,8 @@ char *do_wild(__G__ wildspec)
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(matchname, wildspec);
+        strncpy(matchname, wildspec, FILNAMSIZ);
+        matchname[FILNAMSIZ-1] = '\0';
         return matchname;
     }
 
@@ -145,7 +148,7 @@ char *do_wild(__G__ wildspec)
           FnFilter1(file->d_name)));
         if (file->d_name[0] == '.' && wildname[0] != '.')
             continue;   /* Unix:  '*' and '?' do not match leading dot */
-        if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
+        if (match(file->d_name, wildname, 0 WISEP)) {   /* 0 == case sens. */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
                 strcpy(matchname+dirnamelen, file->d_name);
@@ -367,6 +370,7 @@ int mapattr(__G)
         case VMS_:
         case ACORN_:
         case ATARI_:
+        case ATHEOS_:
         case BEOS_:
         case QDOS_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);

@@ -86,7 +86,7 @@ DO i = 1 TO file.0
 	       IF wp>0 THEN
 		  scan = WordIndex(file,wp)
 	       ELSE
-	       	  scan = 0
+		  scan = 0
 	    END
 	    ELSE
 	       scan = Pos(string,file,scan+1)

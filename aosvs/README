@@ -3,13 +3,13 @@
 > From: Dave Lovelace <davel@cyberspace.org>
 > Subject: Re: zip on Data General AOS/VS
 > Date: Wed, 17 May 1995 11:02:03 -0400 (EDT)
-> 
+>
 > The diffs for zip & unzip are both in the same file.  I've also included the
 > extra source files which I wrote, the CLI macros which I used to compile
 > & link the things, & my own history of what I did.  Note that some of the
 > changes I made reversed earlier changes, & this was written for my own
 > use (or for others here if I leave or die or something).  I hope it will help.
-> 
+>
 > This was compiled using DG's C compiler for AOS/VS, rev 4.10.  It has been
 > compiled only on an MV-5500 running AOS/VS rev 7.70, but the resulting
 > programs have been distributed & run on several different MVs running various
@@ -71,7 +71,7 @@ added a define of PROTO to the MAKE.AOS_VS.CLI and REMAKE.CLI macros.
 
 I found and fixed the bug that prevented the (creation) times from
 being set on files with explicit paths.  (The Unix-style paths didn't
-work as inputs to the AOS/VS ?CREATE system call.)  
+work as inputs to the AOS/VS ?CREATE system call.)
 
 Additional known bugs:
 

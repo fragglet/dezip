@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -42,7 +42,7 @@
 
   Match the pattern (wildcard) against the string (fixed):
 
-     match(string, pattern, ignore_case);
+     match(string, pattern, ignore_case, sepc);
 
   returns TRUE if string matches pattern, FALSE otherwise.  In the pattern:
 
@@ -105,20 +105,26 @@
 
 #if 0                /* GRR:  add this to unzip.h someday... */
 #if !(defined(MSDOS) && defined(DOSWILD))
-#define match(s,p,ic)   (recmatch((ZCONST uch *)p,(ZCONST uch *)s,ic) == 1)
-int recmatch OF((ZCONST uch *pattern, ZCONST uch *string, int ignore_case));
+#ifdef WILD_STOP_AT_DIR
+#define match(s,p,ic,sc) (recmatch((ZCONST uch *)p,(ZCONST uch *)s,ic,sc) == 1)
+#else
+#define match(s,p,ic)    (recmatch((ZCONST uch *)p,(ZCONST uch *)s,ic) == 1)
+#endif
+int recmatch OF((ZCONST uch *pattern, ZCONST uch *string,
+                 int ignore_case __WDLPRO));
 #endif
 #endif /* 0 */
 static int recmatch OF((ZCONST uch *pattern, ZCONST uch *string,
-                        int ignore_case));
+                        int ignore_case __WDLPRO));
 
 
 
 /* match() is a shell to recmatch() to return only Boolean values. */
 
-int match(string, pattern, ignore_case)
+int match(string, pattern, ignore_case __WDL)
     ZCONST char *string, *pattern;
     int ignore_case;
+    __WDLDEF
 {
 #if (defined(MSDOS) && defined(DOSWILD))
     char *dospattern;
@@ -147,20 +153,21 @@ int match(string, pattern, ignore_case)
             }
             dospattern[j-1] = '\0';                    /* nuke the end "." */
         }
-        j = recmatch((uch *)dospattern, (uch *)string, ignore_case);
+        j = recmatch((uch *)dospattern, (uch *)string, ignore_case __WDL);
         free(dospattern);
         return j == 1;
     } else
 #endif /* MSDOS && DOSWILD */
-    return recmatch((uch *)pattern, (uch *)string, ignore_case) == 1;
+    return recmatch((uch *)pattern, (uch *)string, ignore_case __WDL) == 1;
 }
 
 
 
-static int recmatch(p, s, ic)
+static int recmatch(p, s, ic __WDL)
     ZCONST uch *p;        /* sh pattern to match */
     ZCONST uch *s;        /* string to which to match it */
     int ic;               /* true for case insensitivity */
+    __WDLDEF              /* directory sepchar for WildStopAtDir mode, or 0 */
 /* Recursively compare the sh pattern p with the string s and return 1 if
  * they match, and 0 or 2 if they don't or if there is a syntax error in the
  * pattern.  This routine recurses on itself no more deeply than the number
@@ -175,11 +182,12 @@ static int recmatch(p, s, ic)
     if (c == 0)
         return *s == 0;
 
-    /* '?' (or '%') matches any character (but not an empty string).
-     * If WILD_STOP_AT_DIR is defined, it won't match '/' */
+    /* '?' (or '%') matches any character (but not an empty string). */
     if (c == WILDCHAR)
 #ifdef WILD_STOP_AT_DIR
-        return (*s && *s != '/') ? recmatch(p, s + CLEN(s), ic) : 0;
+        /* If uO.W_flag is non-zero, it won't match '/' */
+        return (*s && (!sepc || *s != (uch)sepc))
+               ? recmatch(p, s + CLEN(s), ic, sepc) : 0;
 #else
         return *s ? recmatch(p, s + CLEN(s), ic) : 0;
 #endif
@@ -191,32 +199,35 @@ static int recmatch(p, s, ic)
 #endif /* AMIGA */
     if (c == '*') {
 #ifdef WILD_STOP_AT_DIR
+        if (sepc) {
+          /* check for single "*" or double "**" */
 #  ifdef AMIGA
-        if ((c = p[0]) == '#' && p[1] == '?') /* "#?" is Amiga-ese for "*" */
+          if ((c = p[0]) == '#' && p[1] == '?') /* "#?" is Amiga-ese for "*" */
             c = '*', p++;
-        if (c != '*') {
+          if (c != '*') {
 #  else /* !AMIGA */
-        if (*p != '*') {
+          if (*p != '*') {
 #  endif /* ?AMIGA */
-            /* single '*': this doesn't match slashes */
-            for (; *s && *s != '/'; INCSTR(s))
-                if ((c = recmatch(p, s, ic)) != 0)
+            /* single "*": this doesn't match the dirsep character */
+            for (; *s && *s != (uch)sepc; INCSTR(s))
+                if ((c = recmatch(p, s, ic, sepc)) != 0)
                     return (int)c;
             /* end of pattern: matched if at end of string, else continue */
-            if (*p == 0)
+            if (*p == '\0')
                 return (*s == 0);
-            /* continue to match if at '/' in pattern, else give up */
-            return (*p == '/' || (*p == '\\' && p[1] == '/'))
-                   ? recmatch(p, s, ic) : 2;
+            /* continue to match if at sepc in pattern, else give up */
+            return (*p == (uch)sepc || (*p == '\\' && p[1] == (uch)sepc))
+                   ? recmatch(p, s, ic, sepc) : 2;
+          }
+          /* "**": this matches slashes */
+          ++p;        /* move p behind the second '*' */
+          /* and continue with the non-W_flag code variant */
         }
-        /* '**': this matches slashes */
-        ++p;        /* move p behind the second '*' */
-        /* continue with the non-WILD_STOP_AT_DIR code variant */
 #endif /* WILD_STOP_AT_DIR */
         if (*p == 0)
             return 1;
         for (; *s; INCSTR(s))
-            if ((c = recmatch(p, s, ic)) != 0)
+            if ((c = recmatch(p, s, ic __WDL)) != 0)
                 return (int)c;
         return 2;       /* 2 means give up--match will return false */
     }
@@ -252,11 +263,11 @@ static int recmatch(p, s, ic)
                 if (*(p+1) != '-')
                     for (c = c ? c : *p; c <= *p; c++)  /* compare range */
                         if ((unsigned)Case(c) == cc) /* typecast for MSC bug */
-                            return r ? 0 : recmatch(q + 1, s + 1, ic);
+                            return r ? 0 : recmatch(q + 1, s + 1, ic __WDL);
                 c = e = 0;   /* clear range, escape flags */
             }
         }
-        return r ? recmatch(q + CLEN(q), s + CLEN(s), ic) : 0;
+        return r ? recmatch(q + CLEN(q), s + CLEN(s), ic __WDL) : 0;
                                         /* bracket match failed */
     }
 
@@ -266,9 +277,11 @@ static int recmatch(p, s, ic)
 
     /* just a character--compare it */
 #ifdef QDOS
-    return QMatch(Case((uch)c), Case(*s)) ? recmatch(p, s + CLEN(s), ic) : 0;
+    return QMatch(Case((uch)c), Case(*s)) ?
+           recmatch(p, s + CLEN(s), ic __WDL) : 0;
 #else
-    return Case((uch)c) == Case(*s) ? recmatch(p, s + CLEN(s), ic) : 0;
+    return Case((uch)c) == Case(*s) ?
+           recmatch(p, s + CLEN(s), ic __WDL) : 0;
 #endif
 
 } /* end function recmatch() */

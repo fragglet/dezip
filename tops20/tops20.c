@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -43,6 +43,7 @@ int mapattr(__G)        /* just like Unix except no umask() */
         case VMS_:
         case ACORN_:
         case ATARI_:
+        case ATHEOS_:
         case BEOS_:
         case QDOS_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);

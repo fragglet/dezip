@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -8,7 +8,7 @@
 */
 /*
  * crc_i386.S, optimized CRC calculation function for Zip and UnZip,
- * created by Paul Kienitz and Christian Spieler.  Last revised 24 Dec 98.
+ * created by Paul Kienitz and Christian Spieler.  Last revised 16 Jan 2005.
  *
  * GRR 961110:  incorporated Scott Field optimizations from win32/crc_i386.asm
  *              => overall 6% speedup in "unzip -tq" on 9MB zipfile (486-66)
@@ -24,6 +24,9 @@
  *              (This default is based on the assumption that most users
  *              do not yet work on a Pentium Pro or Pentium II machine ...)
  *
+ * COS 050116:  Enabled the 686 build by default, because there are hardly any
+ *              pre-686 CPUs in serious use nowadays. (See SPC 970402 above.)
+ *
  * FLAT memory model assumed.  Calling interface:
  *   - args are pushed onto the stack from right to left,
  *   - return value is given in the EAX register,
@@ -34,7 +37,7 @@
  * This source generates the function
  * ulg crc32(ulg crc, ZCONST uch *buf, extent len).
  *
- * The loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
+ * Loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
  * This results in shorter code at the expense of reduced performance.
  */
 
@@ -65,6 +68,11 @@
  */
 
                 .file   "crc_i386.S"
+
+#if !defined(PRE_686) && !defined(__686)
+   /* Optimize for Pentium Pro and compatible CPUs by default. */
+#  define __686
+#endif
 
 #if defined(NO_STD_STACKFRAME) && defined(USE_STD_STACKFRAME)
 #  undef USE_STACKFRAME

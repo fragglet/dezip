@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -834,8 +834,8 @@ int finish_REXX_redirect(__GPRO)
     G.redirect_size = 0;
     break;
   case 3:
-    WriteToNextVariable(__G__ G.filename,strlen(G.filename));
-    sprintf(G.os2.output_var+G.os2.stem_len,G.filename);
+    WriteToNextVariable(__G__ G.filename, strlen(G.filename));
+    strcpy(G.os2.output_var+G.os2.stem_len, G.filename);
     WriteToVariable(__G__ G.os2.output_var, G.redirect_buffer, G.redirect_size);
     DosFreeMem(G.redirect_buffer);
     G.redirect_buffer = NULL;

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -7,7 +7,7 @@
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
 #define module_name VMS_UNZIP_CMDLINE
-#define module_ident "02-008"
+#define module_ident "02-009"
 /*
 **
 **  Facility:   UNZIP
@@ -24,6 +24,8 @@
 **
 **  Modified by:
 **
+**      02-009          Steven Schweda          28-JAN-2005 16:16
+**              Added /TIMESTAMP (-T) qualifier.
 **      02-008          Christian Spieler       08-DEC-2001 23:44
 **              Added support for /TRAVERSE_DIRS argument
 **      02-007          Christian Spieler       24-SEP-2001 21:12
@@ -144,6 +146,7 @@ $DESCRIPTOR(cli_super_quiet,    "QUIET.SUPER");         /* -qq */
 $DESCRIPTOR(cli_test,           "TEST");                /* -t */
 $DESCRIPTOR(cli_pipe,           "PIPE");                /* -p */
 $DESCRIPTOR(cli_password,       "PASSWORD");            /* -P */
+$DESCRIPTOR(cli_timestamp,      "TIMESTAMP");           /* -T */
 $DESCRIPTOR(cli_uppercase,      "UPPERCASE");           /* -U */
 $DESCRIPTOR(cli_update,         "UPDATE");              /* -u */
 $DESCRIPTOR(cli_version,        "VERSION");             /* -V */
@@ -470,6 +473,13 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
         *ptr++ = '-';
     if (status != CLI$_ABSENT)
         *ptr++ = 't';
+
+    /*
+    **  Set archive timestamp according to its newest file.
+    */
+    status = cli$present(&cli_timestamp);
+    if (status & 1)
+        *ptr++ = 'T';
 
     /*
     **  Traverse directories (don't skip "../" path components)
@@ -826,9 +836,9 @@ check_cli (struct dsc$descriptor_s *qual)
 
 int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
 {
-    extern char UnzipSFXBanner[];
+    extern ZCONST char UnzipSFXBanner[];
 #ifdef BETA
-    extern char BetaVersion[];
+    extern ZCONST char BetaVersion[];
 #endif
     int flag;
 
@@ -862,9 +872,9 @@ Modifying options are /TEXT, /BINARY, /JUNK, /[NO]OVERWRITE, /QUIET,\n\
 
 int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
 {
-    extern char UnzipUsageLine1[];
+    extern ZCONST char UnzipUsageLine1[];
 #ifdef BETA
-    extern char BetaVersion[];
+    extern ZCONST char BetaVersion[];
 #endif
     int flag;
 

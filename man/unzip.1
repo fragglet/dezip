@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -20,12 +20,12 @@
 .in -4n
 ..
 .\" =========================================================================
-.TH UNZIP 1L "22 May 2004 (v5.51)" "Info-ZIP"
+.TH UNZIP 1L "28 February 2005 (v5.52)" "Info-ZIP"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
 .SH SYNOPSIS
-\fBunzip\fP [\fB\-Z\fP] [\fB\-cflptuvz\fP[\fBabjnoqsCLMVX$/:\fP]]
+\fBunzip\fP [\fB\-Z\fP] [\fB\-cflptTuvz\fP[\fBabjnoqsCKLMVWX$/:\fP]]
 \fIfile\fP[\fI.zip\fP] [\fIfile(s)\fP\ .\|.\|.]
 [\fB\-x\fP\ \fIxfile(s)\fP\ .\|.\|.] [\fB\-d\fP\ \fIexdir\fP]
 .PD
@@ -58,7 +58,8 @@ matches any single character found inside the brackets; ranges are specified
 by a beginning character, a hyphen, and an ending character.  If an exclamation
 point or a caret (`!' or `^') follows the left bracket, then the range of
 characters within the brackets is complemented (that is, anything \fIexcept\fP
-the characters inside the brackets is considered a match).
+the characters inside the brackets is considered a match).  To specify a
+verbatim left bracket, the three-character sequence ``[[]'' has to be used.
 .RE
 .IP
 (Be sure to quote any character that might otherwise be interpreted or
@@ -76,8 +77,9 @@ above.  Again, be sure to quote expressions that would otherwise be expanded
 or modified by the operating system.
 .IP [\fB\-x\fP\ \fIxfile(s)\fP]
 An optional list of archive members to be excluded from processing.
-Since wildcard characters match directory separators (`/'), this option
-may be used to exclude any files that are in subdirectories.  For
+Since wildcard characters normally match (`/') directory separators
+(for exeptions see the option \fb\-W\fp\), this option may be used
+to exclude any files that are in subdirectories.  For
 example, ``\fCunzip foo *.[ch] -x */*\fR'' would extract all C source files
 in the main directory, but none in any subdirectories.  Without the \fB\-x\fP
 option, all C source files in all directories within the zipfile would be
@@ -169,18 +171,25 @@ be verbose or print diagnostic version info.  This option has evolved and
 now behaves as both an option and a modifier.  As an option it has two
 purposes:  when a zipfile is specified with no other options, \fB\-v\fP lists
 archive files verbosely, adding to the basic \fB\-l\fP info the compression
-method, compressed size, compression ratio and 32-bit CRC.  When no zipfile
-is specified (that is, the complete command is simply ``\fCunzip \-v\fR''), a
-diagnostic screen is printed.  In addition to the normal header with release
-date and version, \fIunzip\fP lists the home Info-ZIP ftp site and where to
-find a list of other ftp and non-ftp sites; the target operating system for
-which it was compiled, as well as (possibly) the hardware on which it was
-compiled, the compiler and version used, and the compilation date; any special
-compilation options that might affect the program's operation (see also
-\fBDECRYPTION\fP below); and any options stored in environment variables
-that might do the same (see \fBENVIRONMENT OPTIONS\fP below).  As a
-modifier it works in conjunction with other options (e.g., \fB\-t\fP) to
-produce more verbose or debugging output; this is not yet fully implemented
+method, compressed size, compression ratio and 32-bit CRC.  In contrast to
+most of the competing utilities, \fIunzip\fP removes the 12 additional header
+bytes of encrypted entries from the compressed size numbers.  Therefore,
+compressed size and compression ratio figures are independent of the entry's
+encryption status and show the correct compression performance.  (The complete
+size of the encryped compressed data stream for zipfile entries is reported
+by the more verbose \fIzipinfo\fP(1L) reports, see the separate manual.)
+When no zipfile is specified (that is, the complete command is simply
+``\fCunzip \-v\fR''), a diagnostic screen is printed.  In addition to
+the normal header with release date and version, \fIunzip\fP lists the
+home Info-ZIP ftp site and where to find a list of other ftp and non-ftp
+sites; the target operating system for which it was compiled, as well
+as (possibly) the hardware on which it was compiled, the compiler and
+version used, and the compilation date; any special compilation options
+that might affect the program's operation (see also \fBDECRYPTION\fP below);
+and any options stored in environment variables that might do the same
+(see \fBENVIRONMENT OPTIONS\fP below).  As a modifier it works in
+conjunction with other options (e.g., \fB\-t\fP) to produce more
+verbose or debugging output; this is not yet fully implemented
 but will be in future releases.
 .TP
 .B \-z
@@ -230,21 +239,29 @@ of each overwritten file with a tilde appended (e.g., the old copy of
 behavior of \fIemacs\fP(1) in many locations.
 .TP
 .B \-C
-match filenames case-insensitively.  \fIunzip\fP's philosophy is ``you get
-what you ask for'' (this is also responsible for the \fB\-L\fP/\fB\-U\fP
-change; see the relevant options below).  Because some file systems are fully
-case-sensitive (notably those under the Unix operating system) and because
+use case-insensitive matching for the selection of archive entries
+from the command-line list of extract selection patterns.
+\fIunzip\fP's philosophy is ``you get what you ask for'' (this is
+also responsible for the \fB\-L\fP/\fB\-U\fP change; see the relevant
+options below).  Because some file systems are fully case-sensitive
+(notably those under the Unix operating system) and because
 both ZIP archives and \fIunzip\fP itself are portable across platforms,
-\fIunzip\fP's default behavior is to match both wildcard and literal filenames
-case-sensitively.  That is, specifying ``\fCmakefile\fR'' on the command line
-will \fIonly\fP match ``makefile'' in the archive, not ``Makefile'' or
-``MAKEFILE'' (and similarly for wildcard specifications).  Since this does
-not correspond to the behavior of many other operating/file systems (for
-example, OS/2 HPFS, which preserves mixed case but is not sensitive to it),
-the \fB\-C\fP option may be used to force all filename matches to be
-case-insensitive.  In the example above, all three files would then match
-``\fCmakefile\fR'' (or ``\fCmake*\fR'', or similar).  The \fB\-C\fP option
-affects files in both the normal file list and the excluded-file list (xlist).
+\fIunzip\fP's default behavior is to match both wildcard and literal
+filenames case-sensitively.  That is, specifying ``\fCmakefile\fR''
+on the command line will \fIonly\fP match ``makefile'' in the archive,
+not ``Makefile'' or ``MAKEFILE'' (and similarly for wildcard specifications).
+Since this does not correspond to the behavior of many other
+operating/file systems (for example, OS/2 HPFS, which preserves
+mixed case but is not sensitive to it), the \fB\-C\fP option may be
+used to force all filename matches to be case-insensitive.  In the
+example above, all three files would then match ``\fCmakefile\fR''
+(or ``\fCmake*\fR'', or similar).  The \fB\-C\fP option affects
+file specs in both the normal file list and the excluded-file list (xlist).
+.IP
+Please note that the \fB\-L\fP option does neither affect the search for
+the zipfile(s) nor the matching of archive entries to existing files on
+the extraction path.  On a case-sensitive file system, \fIunzip\fP will
+never try to overwrite a file ``FOO'' when extracting an entry ``foo''!
 .TP
 .B \-E
 [MacOS only] display contents of MacOS extra field during restore operation.
@@ -276,6 +293,10 @@ restored, just the file's data.
 .B \-J
 [MacOS only] ignore MacOS extra fields.  All Macintosh specific info
 is skipped. Data-fork and resource-fork are restored as separate files.
+.TP
+.B \-K
+[AtheOS, BeOS, Unix only] retain SUID/SGID/Tacky file attributes.  Without
+this flag, these attribute bits are cleared for security reasons.
 .TP
 .B \-L
 convert to lowercase any filename originating on an uppercase-only operating
@@ -358,6 +379,31 @@ numbers are stripped, but this option allows them to be retained.  (On
 file systems that limit filenames to particularly short lengths, the version
 numbers may be truncated or stripped regardless of this option.)
 .TP
+.B \-W
+[only when WILD_STOP_AT_DIR compile-time option enabled]
+modifies the pattern matching routine so that both `?' (single-char wildcard)
+and `*' (multi-char wildcard) do not match the directory separator character
+`/'.  (The two-character sequence ``**'' acts as a multi-char wildcard that
+includes the directory separator in its matched characters.)  Examples:
+.PP
+.EX
+    "*.c" matches "foo.c" but not "mydir/foo.c"
+    "**.c" matches both "foo.c" and "mydir/foo.c"
+    "*/*.c" matches "bar/foo.c" but not "baz/bar/foo.c"
+    "??*/*" matches "ab/foo" and "abc/foo"
+            but not "a/foo" or "a/b/foo"
+.EE
+.IP
+This modified behaviour is equivalent to the pattern matching style
+used by the shells of some of UnZip's supported target OSs (one
+example is Acorn RISC OS).  This option may not be available on systems
+where the Zip archive's interal directory separator character `/' is
+allowed as regular character in native operating system filenames.
+(Currently, UnZip uses the same pattern matching rules for both wildcard
+zipfile specifications and zip entry selection patterns in most ports.
+For systems allowing `/' as regular filename character, the -W option
+would not work as expected on a wildcard zipfile specification.)
+.TP
 .B \-X
 [VMS, Unix, OS/2, NT] restore owner/protection info (UICs) under VMS, or user
 and group info (UID/GID) under Unix, or access control lists (ACLs) under
@@ -401,9 +447,8 @@ root directory (``/'').  To achieve this, it is necessary to set the
 extraction target folder to root (e.g. \fB\-d / \fP).  However, when the
 \fB\-:\fP option is specified, it is still possible to implicitly write to
 the root directory by specifiying enough ``../'' path components within the
-zip file.
+zip archive.
 Use this option with extreme caution.
-
 .PD
 .\" =========================================================================
 .SH "ENVIRONMENT OPTIONS"
@@ -466,9 +511,10 @@ of all four possible \fIunzip\fP and \fIzipinfo\fP environment variables.
 The timezone variable (TZ) should be set according to the local timezone
 in order for the \fB\-f\fP and \fB\-u\fP to operate correctly.  See the
 description of \fB\-f\fP above for details.  This variable may also be
-necessary in order for timestamps on extracted files to be set correctly.
-Under Windows 95/NT \fIunzip\fP should know the correct timezone even if
-TZ is unset, assuming the timezone is correctly set in the Control Panel.
+necessary to get timestamps of extracted files to be set correctly.
+The WIN32 (Win9x/ME/NT4/2K/XP/2K3) port of \fIunzip\fP gets the timezone
+configuration from the registry, assuming it is correctly set in the
+Control Panel.  The TZ variable is ignored for this port.
 .PD
 .\" =========================================================================
 .SH DECRYPTION
@@ -807,15 +853,16 @@ or
 .\" =========================================================================
 .SH AUTHORS
 The primary Info-ZIP authors (current semi-active members of the Zip-Bugs
-workgroup) are:  Onno van der Linden (Zip);
-Christian Spieler (UnZip maintenance coordination, VMS, MS-DOS, Win32,
-shared code, general Zip and UnZip integration and optimization);
-Mike White (Windows GUI, Windows DLLs); Kai Uwe Rommel (OS/2);
-Paul Kienitz (Amiga, Win32); Chris Herborth (BeOS, QNX, Atari);
-Jonathan Hudson (SMS/QDOS); Sergio Monesi (Acorn RISC OS); Harald
-Denker (Atari, MVS); John Bush (Solaris, Amiga); Hunter Goatley (VMS); Steve
-Salisbury (Win32); Steve Miller (Windows CE GUI), Johnny Lee (MS-DOS,
-Win32); and Dave Smith (Tandem NSK).
+workgroup) are:  Ed Gordon (Zip, general maintenance, shared code, Zip64,
+Win32, Unix); Christian Spieler (UnZip maintenance coordination, VMS, MS-DOS,
+Win32, shared code, general Zip and UnZip integration and optimization);
+Onno van der Linden (Zip); Mike White (Win32, Windows GUI, Windows DLLs);
+Kai Uwe Rommel (OS/2, Win32); Steven M. Schweda (VMS, support of new features);
+Paul Kienitz (Amiga, Win32); Chris Herborth (BeOS, QNX, Atari); Jonathan Hudson
+(SMS/QDOS); Sergio Monesi (Acorn RISC OS); Harald Denker (Atari, MVS);
+John Bush (Solaris, Amiga); Hunter Goatley (VMS, Info-ZIP Site maintenance);
+Steve Salisbury (Win32); Steve Miller (Windows CE GUI), Johnny Lee (MS-DOS,
+Win32, Zip64); and Dave Smith (Tandem NSK).
 .PP
 The following people were former members of the Info-ZIP development group
 and provided major contributions to key parts of the current code:
@@ -877,5 +924,7 @@ Info-ZIP (Zip-Bugs subgroup, SPC)
 .IP "v5.5\t17 Feb 02"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .IP "v5.51\t22 May 04"
+Info-ZIP (Zip-Bugs subgroup, SPC)
+.IP "v5.52\t28 Feb 05"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .PD

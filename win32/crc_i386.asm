@@ -1,5 +1,5 @@
 ;===========================================================================
-; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+; Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 ;
 ; See the accompanying file LICENSE, version 2000-Apr-09 or later
 ; (the contents of which are also included in zip.h) for terms of use.
@@ -7,7 +7,7 @@
 ; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 ;===========================================================================
 ; crc_i386.asm, optimized CRC calculation function for Zip and UnZip,
-; created by Paul Kienitz and Christian Spieler.  Last revised 24 Dec 98.
+; created by Paul Kienitz and Christian Spieler.  Last revised 16 Jan 2005.
 ;
 ; Revised 06-Oct-96, Scott Field (sfield@microsoft.com)
 ;   fixed to assemble with masm by not using .model directive which makes
@@ -37,16 +37,20 @@
 ;   by default. (This default is based on the assumption that most users
 ;   do not yet work on a Pentium Pro or Pentium II machine ...)
 ;
-; FLAT memory model assumed.
-;
-; The loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
-; This results in shorter code at the expense of reduced performance.
-;
 ; Revised 25-Mar-98, Cosmin Truta (cosmint@cs.ubbcluj.ro)
 ;   Working without .model directive caused tasm32 version 5.0 to produce
 ;   bad object code. The optimized alignments can be optionally disabled
 ;   by defining NO_ALIGN, thus allowing to use .model flat. There is no need
 ;   to define this macro if using other versions of tasm.
+;
+; Revised 16-Jan-2005, Cosmin Truta (cosmint@cs.ubbcluj.ro)
+;   Enabled the 686 build by default, because there are hardly any pre-686 CPUs
+;   in serious use nowadays. (See the 12-Oct-97 note above.)
+;
+; FLAT memory model assumed.
+;
+; Loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
+; This results in shorter code at the expense of reduced performance.
 ;
 ;==============================================================================
 ;
@@ -59,6 +63,12 @@
 
     IFDEF NO_ALIGN
         .model flat
+    ENDIF
+
+    IFNDEF PRE_686
+    IFNDEF __686
+__686   EQU     1 ; optimize for Pentium Pro, Pentium II and compatible CPUs
+    ENDIF
     ENDIF
 
 extrn   _get_crc_table:near    ; ZCONST ulg near *get_crc_table(void);

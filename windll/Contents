@@ -1,4 +1,4 @@
-Contents of the "windll" subdirectory for UnZip 5.4 and later:
+Contents of the "windll" subdirectory for UnZip 5.52 and later:
 
   Contents       this file
   decs.h         Exported function declarations.
@@ -35,6 +35,8 @@ Contents of the "windll" subdirectory for UnZip 5.4 and later:
     SFXWiz32.dsp   MS Visual C++ 5.0 project file for 32-bit GUISFX stub
     SFXWiz32.dsw   MS Visual C++ 5.0 workspace file for 32-bit GUISFX stub
     unzsfx32.dsp   MS Visual C++ 5.0 project for 32-bit sfxunzip static lib
+  vc5\
+    unzip32.dsw    MS Visual C++ 5.0 workspace file for all windll projects
 
   vc6\dll\       directory with DLL project for Visual C++ 6.0
   vc6\lib\       directory with LIB project for Visual C++ 6.0
@@ -42,6 +44,8 @@ Contents of the "windll" subdirectory for UnZip 5.4 and later:
     SFXWiz32.dsp   MS Visual C++ 6.0 project file for 32-bit GUISFX stub
     SFXWiz32.dsw   MS Visual C++ 6.0 workspace file for 32-bit GUISFX stub
     unzsfx32.dsp   MS Visual C++ 6.0 project for 32-bit sfxunzip static lib
+  vc6\
+    unzip32.dsw    MS Visual C++ 6.0 workspace file for all windll projects
 
 
 If you want to build the UnZip DLL or the WinGUI SFX stub from the command
@@ -58,4 +62,4 @@ The UnZip DLL and SFXWiz have been successfully built with Borland C++ 5.5.1
 from the command line. However, we do not currently have the resources to
 supply project files for the Borland IDE environment (C Builder 5.x - 6.x).
 For compilation with Borland C++, please use the appropiate targets supplied
-in the Borland Makefile in the Win32 subdirectory.
+with the Borland Makefile in the Win32 subdirectory.

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -49,8 +49,8 @@
 
   Version:  unzip5??.{tar.Z | tar.gz | zip} for Unix, VMS, OS/2, MS-DOS, Amiga,
               Atari, Windows 3.x/95/NT/CE, Macintosh, Human68K, Acorn RISC OS,
-              BeOS, SMS/QDOS, VM/CMS, MVS, AOS/VS, Tandem NSK, Theos and
-              TOPS-20.
+              AtheOS, BeOS, SMS/QDOS, VM/CMS, MVS, AOS/VS, Tandem NSK, Theos
+              and TOPS-20.
 
   Copyrights:  see accompanying file "LICENSE" in UnZip source distribution.
                (This software is free but NOT IN THE PUBLIC DOMAIN.)
@@ -148,8 +148,8 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 #ifndef SFX
 #ifdef VMS
    static ZCONST char Far Example3[] = "vms.c";
-   static ZCONST char Far Example2[] = "  unzip\
- \"-V\" foo \"Bar\" => must quote uppercase options and filenames in VMS\n";
+   static ZCONST char Far Example2[] = "  unzip \"-V\" foo \"Bar\"\
+ (Quote names to preserve case, unless SET PROC/PARS=EXT)\n";
 #else /* !VMS */
    static ZCONST char Far Example3[] = "ReadMe";
 #ifdef RISCOS
@@ -236,15 +236,16 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
    static ZCONST char Far local3[] = "\n";
 #endif
 #else /* !VMS */
-#ifdef BEO_UNX
+#ifdef ATH_BEO_UNX
    static ZCONST char Far local2[] = " -X  restore UID/GID info";
 #ifdef MORE
    static ZCONST char Far local3[] = "\
-                                             -M  pipe through \"more\" pager\n";
+  -K  keep setuid/setgid/tacky permissions   -M  pipe through \"more\" pager\n";
 #else
-   static ZCONST char Far local3[] = "\n";
+   static ZCONST char Far local3[] = "\
+  -K  keep setuid/setgid/tacky permissions\n";
 #endif
-#else /* !BEO_UNX */
+#else /* !ATH_BEO_UNX */
 #ifdef TANDEM
    static ZCONST char Far local2[] = "\
  -X  restore Tandem User ID                 -r  remove file extensions\n\
@@ -281,7 +282,7 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 #endif /* ?MACOS */
 #endif /* ?AMIGA */
 #endif /* ?TANDEM */
-#endif /* ?BEO_UNX */
+#endif /* ?ATH_BEO_UNX */
 #endif /* ?VMS */
 #endif /* ?DOS_FLX_OS2_W32 */
 #endif /* !SFX */
@@ -403,6 +404,9 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef NTSD_EAS
      static ZCONST char Far NTSDExtAttrib[] = "NTSD_EAS";
 #  endif
+#  if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
+     static ZCONST char Far W32NoIZTimeFix[] = "NO_W32TIMES_IZFIX";
+#  endif
 #  ifdef OLD_THEOS_EXTRA
      static ZCONST char Far OldTheosExtra[] =
      "OLD_THEOS_EXTRA (handle also old Theos port extra field)";
@@ -500,30 +504,30 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 /* UnzipUsageLine1[] is also used in vms/cmdline.c:  do not make it static */
    ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  For more details see: unzip -v.\n\n";
-#ifdef COPYRIGHT_CLEAN
+# ifdef COPYRIGHT_CLEAN
    static ZCONST char Far UnzipUsageLine1v[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  Maintained by C. Spieler.  Send\n\
 bug reports using http://www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
-#else
+# else
    static ZCONST char Far UnzipUsageLine1v[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  UnReduce (c) 1989 by S. H. Smith.\n\
 Send bug reports using //www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
-#endif /* ?COPYRIGHT_CLEAN */
+# endif /* ?COPYRIGHT_CLEAN */
 #else /* !VMS */
-#ifdef COPYRIGHT_CLEAN
+# ifdef COPYRIGHT_CLEAN
    static ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  Maintained by C. Spieler.  Send\n\
 bug reports using http://www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
-#else
+# else
    static ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  UnReduce (c) 1989 by S. H. Smith.\n\
 Send bug reports using //www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
-#endif /* ?COPYRIGHT_CLEAN */
-#define UnzipUsageLine1v        UnzipUsageLine1
+# endif /* ?COPYRIGHT_CLEAN */
+# define UnzipUsageLine1v       UnzipUsageLine1
 #endif /* ?VMS */
 
 static ZCONST char Far UnzipUsageLine2v[] = "\
@@ -1254,15 +1258,24 @@ int uz_opts(__G__ pargc, pargv)
                     else
                         uO.jflag = TRUE;
                     break;
-#if (defined(__BEOS__) || defined(MACOS))
-                case ('J'):    /* Junk BeOS or MacOS file attributes */
+#if (defined(ATH_BEO) || defined(MACOS))
+                case ('J'):    /* Junk AtheOS, BeOS or MacOS file attributes */
                     if( negative ) {
                         uO.J_flag = FALSE, negative = 0;
                     } else {
                         uO.J_flag = TRUE;
                     }
                     break;
-#endif /* __BEOS__ || MACOS */
+#endif /* ATH_BEO || MACOS */
+#ifdef ATH_BEO_UNX
+                case ('K'):
+                    if (negative) {
+                        uO.K_flag = FALSE, negative = 0;
+                    } else {
+                        uO.K_flag = TRUE;
+                    }
+                    break;
+#endif /* ATH_BEO_UNX */
 #ifndef SFX
                 case ('l'):
                     if (negative) {
@@ -1444,6 +1457,14 @@ int uz_opts(__G__ pargc, pargv)
                         uO.V_flag = TRUE;
                     break;
 #endif /* !CMS_MVS */
+#ifdef WILD_STOP_AT_DIR
+                case ('W'):    /* Wildcard interpretation (stop at '/'?) */
+                    if (negative)
+                        uO.W_flag = FALSE, negative = 0;
+                    else
+                        uO.W_flag = TRUE;
+                    break;
+#endif /* WILD_STOP_AT_DIR */
                 case ('x'):    /* extract:  default */
 #ifdef SFX
                     /* when 'x' is the only option in this argument, and the
@@ -1592,7 +1613,8 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 
 #ifdef SFX
 #  ifdef VMS
-#    define LOCAL "X.  Quote uppercase options"
+#    define LOCAL "X.\n\
+(Must quote upper-case options, like \"-V\", unless SET PROC/PARSE=EXTEND.)"
 #  endif
 #  ifdef UNIX
 #    define LOCAL "X"
@@ -1675,8 +1697,9 @@ int usage(__G__ error)   /* return PK-type error code */
         Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine3),
           QUOT,QUOT, QUOT,QUOT, LoadFarStringSmall(ZipInfoUsageLine4)));
 #ifdef VMS
-        Info(slide, flag, ((char *)slide, "\nRemember that non-lowercase\
- filespecs must be quoted in VMS (e.g., \"Makefile\").\n"));
+        Info(slide, flag, ((char *)slide, "\n\
+You must quote non-lowercase options and filespecs, unless SET PROC/PARSE=EXT.\
+\n"));
 #endif
 
 #endif /* !NO_ZIPINFO */
@@ -1727,6 +1750,13 @@ int usage(__G__ error)   /* return PK-type error code */
 
 #ifndef SFX
 
+#ifndef _WIN32_WCE /* Win CE does not support environment variables */
+#if (!defined(MODERN) || defined(NO_STDLIB_H))
+/* Declare getenv() to be sure (might be missing in some environments) */
+extern char *getenv();
+#endif
+#endif
+
 /********************************/
 /* Function show_version_info() */
 /********************************/
@@ -1739,7 +1769,7 @@ static void show_version_info(__G)
           (UZ_MAJORVER*100 + UZ_MINORVER*10 + UZ_PATCHLEVEL)));
     else {
 #ifndef _WIN32_WCE /* Win CE does not support environment variables */
-        char *envptr, *getenv();
+        char *envptr;
 #endif
         int numopts = 0;
 
@@ -1815,6 +1845,11 @@ static void show_version_info(__G)
           LoadFarStringSmall(NTSDExtAttrib)));
         ++numopts;
 #endif
+#if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
+        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
+          LoadFarStringSmall(W32NoIZTimeFix)));
+        ++numopts;
+#endif
 #ifdef OLD_THEOS_EXTRA
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(OldTheosExtra)));
@@ -1885,18 +1920,18 @@ static void show_version_info(__G)
           LoadFarStringSmall(Use_MultiVol)));
         ++numopts;
 #endif
-#  if (defined(__DJGPP__) && (__DJGPP__ >= 2))
-#    ifdef USE_DJGPP_ENV
+#if (defined(__DJGPP__) && (__DJGPP__ >= 2))
+#  ifdef USE_DJGPP_ENV
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_DJGPP_Env)));
         ++numopts;
-#    endif
-#    ifdef USE_DJGPP_GLOB
+#  endif
+#  ifdef USE_DJGPP_GLOB
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_DJGPP_Glob)));
         ++numopts;
-#    endif
-#  endif /* __DJGPP__ && (__DJGPP__ >= 2) */
+#  endif
+#endif /* __DJGPP__ && (__DJGPP__ >= 2) */
 #ifdef USE_VFAT
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_VFAT_support)));

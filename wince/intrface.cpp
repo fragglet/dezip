@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -85,6 +85,8 @@
 // 08/01/99  Johnny Lee, Christian Spieler, Steve Miller, and others
 //                         Adapted to UnZip 5.41 (Version 1.1)
 // 12/01/02  Chr. Spieler  Updated interface for UnZip 5.50
+// 02/23/05  Chr. Spieler  Modified and optimized utimeToFileTime() to support
+//                         the NO_W32TIMES_IZFIX compilation option
 //
 //*****************************************************************************
 
@@ -114,8 +116,9 @@
 //    NO_STDDEF_H
 //    NO_NTSD_EAS
 //
-//    USE_SMITH_CODE       (optional - See COPYING document)
-//    USE_UNSHRINK         (optional - See COPYING document)
+//    USE_SMITH_CODE       (optional - See INSTALL document)
+//    LZW_CLEAN            (optional - See INSTALL document)
+//    NO_W32TIMES_IZFIX    (optional - See INSTALL document)
 //
 //    DEBUG                (When building for Debug)
 //    _DEBUG               (When building for Debug)
@@ -1038,9 +1041,10 @@ static void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem)
 {
 
    // time_t    is a 32-bit value for the seconds since January 1, 1970
-   // FILETIME  is a 64-bit value for the number of 100-nanosecond intervals since
-   //           January 1, 1601
-   // DWORDLONG is a 64-bit int that we can use to perform large math operations.
+   // FILETIME  is a 64-bit value for the number of 100-nanosecond intervals
+   //           since January 1, 1601
+   // DWORDLONG is a 64-bit unsigned int that we can use to perform large math
+   //           operations.
 
 
    // time_t has minimum of 1/1/1970.  Many file systems, such as FAT, have a
@@ -1051,13 +1055,7 @@ static void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem)
       ut = 0x12CFF780;
    }
 
-   // Compute the FILETIME for the given time_t.
-   DWORDLONG dwl = ((DWORDLONG)116444736000000000 +
-                   ((DWORDLONG)ut * (DWORDLONG)10000000));
-
-   // Store the return value.
-   *pft = *(FILETIME*)&dwl;
-
+#ifndef NO_W32TIMES_IZFIX
    // Now for the next fix for old file systems.  If we are in Daylight Savings
    // Time (DST) and the file is not in DST, then we need subtract off the DST
    // bias from the filetime.  This is due to a bug in Windows (NT, CE, and 95)
@@ -1065,39 +1063,60 @@ static void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem)
    // is in DST, even if the file is not in DST.  This only effects old file
    // systems since they store local times instead of UTC times.  Newer file
    // systems like NTFS and CEFS store UTC times.
-
-   if (fOldFileSystem) {
-
-      // We use the CRT's localtime() and Win32's FileTimeToLocalTime()
-      // functions to compute the DST bias.  This works because localtime()
+   if (fOldFileSystem)
+#endif
+   {
+      // We use the CRT's localtime() and Win32's LocalTimeToFileTime()
+      // functions to compute a FILETIME value that always shows the correct
+      // local time in Windows' file listings.  This works because localtime()
       // correctly adds the DST bias only if the file time is in DST.
       // FileTimeToLocalTime() always adds the DST bias to the time.
       // Therefore, if the functions return different results, we know we
       // are dealing with a non-DST file during a system DST.
 
-      FILETIME ftCRT, ftWin32;
+      FILETIME lftCRT;
 
       // Get the CRT result - result is a "tm" struct.
       struct tm *ptmCRT = localtime(&ut);
 
-      // Convert the "tm" struct to a FILETIME.
-      SYSTEMTIME stCRT;
-      ZeroMemory(&stCRT, sizeof(stCRT));
-      stCRT.wYear   = ptmCRT->tm_year + 1900;
-      stCRT.wMonth  = ptmCRT->tm_mon + 1;
-      stCRT.wDay    = ptmCRT->tm_mday;
-      stCRT.wHour   = ptmCRT->tm_hour;
-      stCRT.wMinute = ptmCRT->tm_min;
-      stCRT.wSecond = ptmCRT->tm_sec;
-      SystemTimeToFileTime(&stCRT, &ftCRT);
-
-      // Get the Win32 result - result is a FILETIME.
-      if (FileTimeToLocalFileTime(pft, &ftWin32)) {
-
-         // Subtract the difference from our current filetime.
-         *(DWORDLONG*)pft -= *(DWORDLONG*)&ftWin32 - *(DWORDLONG*)&ftCRT;
+      // Check if localtime() returned something useful; continue with the
+      // "NewFileSystem" code in case of an error. This failsafe method
+      // should give an "almost" correct filetime result.
+      if (ptmCRT != (struct tm *)NULL) {
+         // Convert the "tm" struct to a FILETIME.
+         SYSTEMTIME stCRT;
+         ZeroMemory(&stCRT, sizeof(stCRT));
+         if (fOldFileSystem && (ptmCRT->tm_year < 80)) {
+            stCRT.wYear   = 1980;
+            stCRT.wMonth  = 1;
+            stCRT.wDay    = 1;
+            stCRT.wHour   = 0;
+            stCRT.wMinute = 0;
+            stCRT.wSecond = 0;
+         } else {
+            stCRT.wYear   = ptmCRT->tm_year + 1900;
+            stCRT.wMonth  = ptmCRT->tm_mon + 1;
+            stCRT.wDay    = ptmCRT->tm_mday;
+            stCRT.wHour   = ptmCRT->tm_hour;
+            stCRT.wMinute = ptmCRT->tm_min;
+            stCRT.wSecond = ptmCRT->tm_sec;
+         }
+         SystemTimeToFileTime(&stCRT, &lftCRT);
+         LocalFileTimeToFileTime(&lftCRT, pft);
+         // we are finished!
+         return;
       }
    }
+   // For "Modern" file system that stores timestamps in UTC (or as second
+   // chance in case of localtime() errors) the conversion of time_t into
+   // 64-bit FILETIME is a simple arithmetic rescaling calculation.
+   // Compute the FILETIME for the given time_t.
+   DWORDLONG dwl = ((DWORDLONG)116444736000000000 +
+                   ((DWORDLONG)ut * (DWORDLONG)10000000));
+
+   // Store the return value.
+   *pft = *(FILETIME*)&dwl;
+
 }
 
 //******************************************************************************
@@ -1706,7 +1725,8 @@ int checkdir(__GPRO__ char *pathcomp, int flag) {
 #ifdef POCKET_UNZIP
 //******************************************************************************
 // Called from EXTRACT.C and LIST.C
-int match(ZCONST char *string, ZCONST char *pattern, int ignore_case) {
+int match(ZCONST char *string, ZCONST char *pattern, int ignore_case __WDLPRO)
+{
    // match() for the other ports compares a file in the Zip file with some
    // command line file pattern.  In our case, we always pass in exact matches,
    // so we can simply do a string compare to see if we have a match.

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -55,6 +55,12 @@
 #if (defined(DOS_H68_OS2_W32) || defined(FLEXOS))
 #  ifndef DOS_FLX_H68_OS2_W32
 #    define DOS_FLX_H68_OS2_W32
+#  endif
+#endif
+
+#if (defined(__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
+#  ifndef ATH_BEO_UNX
+#    define ATH_BEO_UNX
 #  endif
 #endif
 

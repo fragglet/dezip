@@ -2,17 +2,46 @@
 # Currently supported implementations: Cygnus/Win32 and MinGW32.
 #
 # First version: Cosmin Truta, Dec 1997.
-# Last revision: Cosmin Truta, 28-Feb-2004.
+# Last revision: Christian Spieler, 20-Feb-2005.
 #
 # To use, do "make -f win32/makefile.gcc".
 
 
 ### Optional section
 
+# The following options allow to override the default assembler code usage
+ifdef NOASM
+APPLY_ASMCRC=0
+endif
+ifdef USEASM
+APPLY_ASMCRC=1
+endif
+
+# default is ASM CRC code (from .S source) for now...
+ifndef APPLY_ASMCRC
+APPLY_ASMCRC=1
+endif
+
 # Optional nonstandard preprocessor flags (as -DUSE_ZLIB or -DUSE_SMITH_CODE)
 # should be added to the environment via "set LOCAL_UNZIP=-DFOO" or added
 # to the declaration of LOCFLAGS here:
+ifneq ($(APPLY_ASMCRC),0)
+LOCFLAGS = -DASM_CRC $(LOCAL_UNZIP)
+else
 LOCFLAGS = $(LOCAL_UNZIP)
+endif
+
+# Some gcc distributions for Win32 (e.g. CygWin) try to emulate a POSIX-
+# compatible (Unix-style) environment.  This Makefile defaults to a
+# "native Win32" build.  To build POSIX-mode binaries, it is recommended
+# to use the Makefile of the Unix port.  However, by defining the variable
+# "USE_POSIX", building binaries for the POSIX environment can be enabled
+# here as well.
+ifdef USE_POSIX
+CC_ENVIR_OPT = -DUNIX -DFORCE_UNIX_OVER_WIN32
+else
+CC_ENVIR_OPT = -DWIN32 -DFORCE_WIN32_OVER_UNIX
+endif
 
 
 ### Compiler-specific section
@@ -51,9 +80,9 @@ AS_RELEASE_OPT =
 LD_RELEASE_OPT = -s
 
 # Prefered target CPU (instruction scheduling optimized for...)
-#ifndef CC_CPU_OPT
+ifndef CC_CPU_OPT
 CC_CPU_OPT = -mcpu=pentiumpro
-#endif
+endif
 
 # Smallest code  (-Os is new since EGC 1.1, use -O1 for 2.8.1 and earlier)
 CC_SIZE_OPT = -Os $(CC_CPU_OPT)
@@ -65,7 +94,7 @@ CC_SPEED_OPT = -O2 $(CC_CPU_OPT)
 CC_OUT_OPT = -o
 
 # Other specific options
-CC_SPECIFIC_OPT = -c -DASM_CRC -DWIN32
+CC_SPECIFIC_OPT = -c -DASM_CRC $(CC_ENVIR_OPT)
 AS_SPECIFIC_OPT = -c
 LD_SPECIFIC_OPT = -o $@
 

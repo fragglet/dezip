@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -277,7 +277,8 @@ char *do_wild(__G__ wildspec)
         notfirstcall = TRUE;
 
         if (!iswild(wildspec)) {
-            strcpy(matchname, wildspec);
+            strncpy(matchname, wildspec, FILNAMSIZ);
+            matchname[FILNAMSIZ-1] = '\0';
             have_dirname = FALSE;
             wild_dir = NULL;
             return matchname;
@@ -296,7 +297,8 @@ char *do_wild(__G__ wildspec)
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 1, ((char *)slide,
                   LoadFarString(CantAllocateWildcard)));
-                strcpy(matchname, wildspec);
+                strncpy(matchname, wildspec, FILNAMSIZ);
+                matchname[FILNAMSIZ-1] = '\0';
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
 /* GRR:  can't strip trailing char for opendir since might be "d:/" or "d:"
@@ -319,7 +321,8 @@ char *do_wild(__G__ wildspec)
                 strcpy(fnamestart, file->d_name);
                 if (strrchr(fnamestart, '.') == (char *)NULL)
                     strcat(fnamestart, ".");
-                if (match(fnamestart, wildname, 1) &&  /* 1 == ignore case */
+                /* 1 == ignore case (for case-insensitive DOS-FS) */
+                if (match(fnamestart, wildname, 1 WISEP) &&
                     /* skip "." and ".." directory entries */
                     strcmp(fnamestart, ".") && strcmp(fnamestart, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
@@ -343,7 +346,8 @@ char *do_wild(__G__ wildspec)
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(matchname, wildspec);
+        strncpy(matchname, wildspec, FILNAMSIZ);
+        matchname[FILNAMSIZ-1] = '\0';
         return matchname;
     }
 
@@ -370,7 +374,7 @@ char *do_wild(__G__ wildspec)
         strcpy(fnamestart, file->d_name);
         if (strrchr(fnamestart, '.') == (char *)NULL)
             strcat(fnamestart, ".");
-        if (match(fnamestart, wildname, 1)) {   /* 1 == ignore case */
+        if (match(fnamestart, wildname, 1 WISEP)) { /* 1 == ignore case */
             Trace((stderr, "do_wild:  match() succeeds\n"));
             /* remove trailing dot */
             fnamestart += strlen(fnamestart) - 1;

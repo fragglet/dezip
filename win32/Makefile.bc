@@ -4,7 +4,7 @@
 #
 # Tested with Borland C++ 5.5 (may work with older C++Builder 3.0, too)
 #
-# Last revised: 28 Feb 2004 (Cosmin Truta)
+# Last revised: 20 Feb 2005 (Christian Spieler)
 #
 #
 
@@ -28,8 +28,16 @@ USE_ASMCRC=1
 !endif
 !endif
 
+# Specify USEMASM=1 or USETASM=1 in case you have one of these x86 assemblers
+# to use the assembler instead of the inline ASM C code.
+#USEMASM=1
+#USETASM=1
+# For the Turbo Assembler, you may choose between the (old) 16-bit version
+# and the 32-bit program which is faster provides more resources.
+#USETASM16=1
+
 !ifndef USE_ASMCRC
-# default to generic C code for now...
+# default to ASM CRC C code for now (BCC needs TASM32 to support inline asm)...
 USE_ASMCRC = 0
 !endif
 
@@ -266,7 +274,7 @@ zipinfo.obj:    zipinfo.c $(UNZIP_H)
 crc_i386.obj:   win32/crc_i386.asm
 	masm -ml win32/crc_i386.asm,$@;
 !else
-!ifndef ASMOVERBCC32
+!ifdef USETASM
 crc_i386.obj:   win32/crc_i386.asm
 	$(AS) $(ASFLAGS) win32\crc_i386.asm, $@ ;
 !else

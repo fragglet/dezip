@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -741,7 +741,7 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
         }
 #endif /* !SFX */
         if ((G.extra_bytes = G.real_ecrec_offset-G.expect_ecrec_offset) <
-            (LONGINT)0)
+            (Z_OFF_T)0)
         {
             Info(slide, 0x401, ((char *)slide, LoadFarString(MissingBytes),
               G.zipfn, (long)(-G.extra_bytes)));
@@ -915,7 +915,7 @@ static int find_ecrec(__G__ searchlen)          /* return PK-class error */
     long searchlen;
 {
     int i, numblks, found=FALSE;
-    LONGINT tail_len;
+    Z_OFF_T tail_len;
     ec_byte_rec byterec;
 
 
@@ -1155,7 +1155,7 @@ int process_cdir_file_hdr(__G)    /* return PK-type error code */
                 break;
 
             default:     /* AMIGA_, FS_HPFS_, FS_NTFS_, MAC_, UNIX_, ATARI_, */
-                break;   /*  FS_VFAT_, BEOS_ (Z_SYSTEM_), THEOS_: */
+                break;   /*  FS_VFAT_, ATHEOS_, BEOS_ (Z_SYSTEM_), THEOS_: */
                          /*  no conversion */
         }
     else if (uO.L_flag > 1)   /* let -LL force lower case for all names */

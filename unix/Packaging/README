@@ -1,8 +1,8 @@
-Solaris packaging 
+Solaris packaging
 -----------------
 
 To generate a Solaris package for Info-ZIP UnZip utilities,
-first see the top level INSTALL and README files.  Do a 
+first see the top level INSTALL and README files.  Do a
 "make solaris", which will automatically build two Solaris
 installable package files for the package, IZunzip.
 

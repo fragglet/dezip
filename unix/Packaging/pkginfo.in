@@ -1,7 +1,7 @@
 PKG=IZunzip
 NAME=Info-ZIP UnZip Utilities
 CATEGORY=application
-VENDOR=Info-ZIP 
+VENDOR=Info-ZIP
 EMAIL=Zip-Bugs@lists.wku.edu
 HOTLINE=Zip-Bugs@lists.wku.edu
 DESC=Copyrighted FREEWARE.  See README, WHERE, and LICENSE docs in pkg's doc dir.

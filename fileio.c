@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -114,11 +114,11 @@ static int disk_error OF((__GPRO));
 /****************************/
 
 static ZCONST char Far CannotOpenZipfile[] =
-  "error:  cannot open zipfile [ %s ]\n        %s";
+  "error:  cannot open zipfile [ %s ]\n        %s\n";
 
 #if (!defined(VMS) && !defined(AOS_VS) && !defined(CMS_MVS) && !defined(MACOS))
 #if (!defined(TANDEM))
-#if (defined(BEO_THS_UNX) || defined(DOS_FLX_NLM_OS2_W32))
+#if (defined(ATH_BEO_THS_UNX) || defined(DOS_FLX_NLM_OS2_W32))
    static ZCONST char Far CannotDeleteOldFile[] =
      "error:  cannot delete old %s\n";
 #ifdef UNIXBACKUP
@@ -126,7 +126,7 @@ static ZCONST char Far CannotOpenZipfile[] =
      "error:  cannot rename old %s\n";
    static ZCONST char Far BackupSuffix[] = "~";
 #endif
-#endif /* BEO_THS_UNX || DOS_FLX_NLM_OS2_W32 */
+#endif /* ATH_BEO_THS_UNX || DOS_FLX_NLM_OS2_W32 */
 #ifdef NOVELL_BUG_FAILSAFE
    static ZCONST char Far NovellBug[] =
      "error:  %s: stat() says does not exist, but fopen() found anyway\n";
@@ -189,7 +189,7 @@ int open_input_file(__G)    /* return 1 if open failed */
      */
 
 #ifdef VMS
-    G.zipfd = open(G.zipfn, O_RDONLY, 0, "ctx=stm");
+    G.zipfd = open(G.zipfn, O_RDONLY, 0, OPNZIP_RMS_ARGS);
 #else /* !VMS */
 #ifdef MACOS
     G.zipfd = open(G.zipfn, 0);
@@ -245,7 +245,7 @@ int open_outfile(__G)         /* return 1 if fail */
 #ifdef QDOS
     QFilename(__G__ G.filename);
 #endif
-#if (defined(DOS_FLX_NLM_OS2_W32) || defined(BEO_THS_UNX))
+#if (defined(DOS_FLX_NLM_OS2_W32) || defined(ATH_BEO_THS_UNX))
 #ifdef BORLAND_STAT_BUG
     /* Borland 5.0's stat() barfs if the filename has no extension and the
      * file doesn't exist. */
@@ -354,7 +354,7 @@ int open_outfile(__G)         /* return 1 if fail */
               FnFilter1(G.filename)));
         }
     }
-#endif /* DOS_FLX_NLM_OS2_W32 || BEO_THS_UNX */
+#endif /* DOS_FLX_NLM_OS2_W32 || ATH_BEO_THS_UNX */
 #ifdef RISCOS
     if (SWI_OS_File_7(G.filename,0xDEADDEAD,0xDEADDEAD,G.lrec.ucsize)!=NULL) {
         Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
@@ -657,7 +657,7 @@ int fillinbuf(__G) /* like readbyte() except returns number of bytes in inbuf */
 
 int seek_zipf(__G__ abs_offset)
     __GDEF
-    LONGINT abs_offset;
+    Z_OFF_T abs_offset;
 {
 /*
  *  Seek to the block boundary of the block which includes abs_offset,
@@ -678,9 +678,9 @@ int seek_zipf(__G__ abs_offset)
  *  PK_EOF if seeking past end of zipfile
  *  PK_OK when seek was successful
  */
-    LONGINT request = abs_offset + G.extra_bytes;
-    LONGINT inbuf_offset = request % INBUFSIZ;
-    LONGINT bufstart = request - inbuf_offset;
+    Z_OFF_T request = abs_offset + G.extra_bytes;
+    Z_OFF_T inbuf_offset = request % INBUFSIZ;
+    Z_OFF_T bufstart = request - inbuf_offset;
 
     if (request < 0) {
         Info(slide, 1, ((char *)slide, LoadFarStringSmall(SeekMsg),
@@ -691,10 +691,10 @@ int seek_zipf(__G__ abs_offset)
           "fpos_zip: abs_offset = %ld, G.extra_bytes = %ld\n",
           abs_offset, G.extra_bytes));
 #ifdef USE_STRM_INPUT
-        fseek(G.zipfd, (LONGINT)bufstart, SEEK_SET);
+        fseek(G.zipfd, bufstart, SEEK_SET);
         G.cur_zipfile_bufstart = ftell(G.zipfd);
 #else /* !USE_STRM_INPUT */
-        G.cur_zipfile_bufstart = lseek(G.zipfd, (LONGINT)bufstart, SEEK_SET);
+        G.cur_zipfile_bufstart = lseek(G.zipfd, bufstart, SEEK_SET);
 #endif /* ?USE_STRM_INPUT */
         Trace((stderr,
           "       request = %ld, (abs+extra) = %ld, inbuf_offset = %ld\n",

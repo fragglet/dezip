@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -63,7 +63,7 @@
 #define VERSION_MAJOR        1
 #define VERSION_MINOR        1
 #define VERSION_PRIVATE      0
-#define VERSION_PATCH        0
+#define VERSION_PATCH        UZ_PATCHLEVEL
 
 #define VERSION_STRING       "1.1"
 
@@ -87,7 +87,7 @@
 #define VER_VERSION          VERSION_MAJOR,VERSION_MINOR,VERSION_PRIVATE,VERSION_PATCH
 
 #define VER_COMPANY_STR      VER_DEVELOPER_STR
-#define VER_COPYRIGHT_STR    "Copyright \251 1997-2003 Info-ZIP.  All Rights Reserved."
+#define VER_COPYRIGHT_STR    "Copyright \251 1997-2005 Info-ZIP.  All Rights Reserved."
 
 
 #ifdef UNICODE

@@ -56,7 +56,7 @@ ARGUMENTS
               cessed.  Regular expressions (wildcards) similar to
               those  in  Unix  egrep(1)  may  be  used  to  match
 
-Info-ZIP               22 May 2004 (v5.51)                      1
+Info-ZIP             28 February 2005 (v5.52)                   1
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -115,7 +115,7 @@ OPTIONS
        and  update  existing  files  upon  extraction),  -t (test
        archive) and  -z  (print  archive  comment).   All  normal
 
-Info-ZIP               22 May 2004 (v5.51)                      2
+Info-ZIP             28 February 2005 (v5.52)                   2
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -174,7 +174,7 @@ AUTORUN COMMAND
        When  unzipsfxP recognizes the ``$AUTORUN$>'' token at the
        beginning of the Zip archive comment, the remainder of the
 
-Info-ZIP               22 May 2004 (v5.51)                      3
+Info-ZIP             28 February 2005 (v5.52)                   3
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -232,7 +232,7 @@ EXAMPLES
 
            letters -tqq
 
-Info-ZIP               22 May 2004 (v5.51)                      4
+Info-ZIP             28 February 2005 (v5.52)                   4
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -291,7 +291,7 @@ LIMITATIONS
        user's path.  The situation is  not  known  for  AmigaDOS,
        Atari TOS, MacOS, etc.
 
-Info-ZIP               22 May 2004 (v5.51)                      5
+Info-ZIP             28 February 2005 (v5.52)                   5
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -338,5 +338,5 @@ AUTHORS
        in the UnZip source distribution  for  the  full  list  of
        Info-ZIP contributors.
 
-Info-ZIP               22 May 2004 (v5.51)                      6
+Info-ZIP             28 February 2005 (v5.52)                   6
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -162,50 +162,53 @@ return TRUE;
                         (extract only newer/new files, without queries)
     SpaceToUnderscore = true if convert space to underscore
     PromptToOverwrite = true if prompt to overwrite is wanted
-    fQuiet    = quiet flag. 1 = few messages, 2 = no messages, 0 = all messages
-    ncflag    = write to stdout if true
-    ntflag    = test zip file
-    nvflag    = verbose listing
-    nfflag    = "freshen" (replace existing files by newer versions)
-    nzflag    = display zip file comment
-    ndflag    = controls (sub)directory recreation during extraction
-                0 = junk paths from filenames
-                1 = "safe" usage of paths in filenames (skip "../" components)
-                2 = allow also unsafe path components (directory traversal)
-    noflag    = overwrite all files
-    naflag    = do end-of-line translation
-    nZIflag   = get Zip Info if TRUE
-    C_flag    = be case insensitive if TRUE
-    fPrivilege = restore ACL's if > 0, use privileges if 2
-    lpszZipFN = zip file name
-    lpszExtractDir = directory to extract to; NULL means: current directory
-*/
+    fQuiet            = quiet flag:
+                         0 = all messages, 1 = few messages, 2 = no messages
+    ncflag            = write to stdout if true
+    ntflag            = test zip file
+    nvflag            = verbose listing
+    nfflag            = "freshen" (replace existing files by newer versions)
+    nzflag            = display zip file comment
+    ndflag            = controls (sub)directory recreation during extraction
+                        0 = junk paths from filenames
+                        1 = "safe" usage of paths in filenames (skip "../")
+                        2 = allow also unsafe path components (dir traversal)
+    noflag            = true if you are to always overwrite existing files
+    naflag            = do end-of-line translation
+    nZIflag           = get ZipInfo if TRUE
+    C_flag            = be case insensitive if TRUE
+    fPrivilege        = 1 => restore ACLs in user mode,
+                        2 => try to use privileges for restoring ACLs
+    lpszZipFN         = zip file name
+    lpszExtractDir    = directory to extract to. This should be NULL if you
+                        are extracting to the current directory.
+ */
 
-BOOL WINAPI Wiz_SetOpts(pG, C)
+BOOL WINAPI Wiz_SetOpts(pG, lpDCL)
 zvoid *pG;
-LPDCL C;
+LPDCL lpDCL;
 {
-    uO.qflag = C->fQuiet;  /* Quiet flag */
+    uO.qflag = lpDCL->fQuiet;  /* Quiet flag */
     G.pfnames = (char **)&fnames[0];    /* assign default file name vector */
     G.pxnames = (char **)&fnames[1];
 
-    uO.jflag = (C->ndflag == 0);
-    uO.ddotflag = (C->ndflag >= 2);
-    uO.cflag = C->ncflag;
-    uO.tflag = C->ntflag;
-    uO.vflag = C->nvflag;
-    uO.zflag = C->nzflag;
-    uO.aflag = C->naflag;
-    uO.C_flag = C->C_flag;
-    uO.overwrite_all = C->noflag || !C->PromptToOverwrite;
-    uO.overwrite_none = FALSE;
-    uO.uflag = C->ExtractOnlyNewer || C->nfflag;
-    uO.fflag = C->nfflag;
+    uO.jflag = (lpDCL->ndflag == 0);
+    uO.ddotflag = (lpDCL->ndflag >= 2);
+    uO.cflag = lpDCL->ncflag;
+    uO.tflag = lpDCL->ntflag;
+    uO.vflag = lpDCL->nvflag;
+    uO.zflag = lpDCL->nzflag;
+    uO.aflag = lpDCL->naflag;
+    uO.C_flag = lpDCL->C_flag;
+    uO.overwrite_all = lpDCL->noflag;
+    uO.overwrite_none = !(lpDCL->noflag || lpDCL->PromptToOverwrite);
+    uO.uflag = lpDCL->ExtractOnlyNewer || lpDCL->nfflag;
+    uO.fflag = lpDCL->nfflag;
 #ifdef WIN32
-    uO.X_flag = C->fPrivilege;
+    uO.X_flag = lpDCL->fPrivilege;
 #endif
-    uO.sflag = C->SpaceToUnderscore; /* Translate spaces to underscores? */
-    if (C->nZIflag)
+    uO.sflag = lpDCL->SpaceToUnderscore; /* Translate spaces to underscores? */
+    if (lpDCL->nZIflag)
       {
       uO.zipinfo_mode = TRUE;
       uO.hflag = TRUE;
@@ -224,16 +227,16 @@ LPDCL C;
 #endif
                      );
 
-    if (C->lpszExtractDir != NULL && G.extract_flag)
+    if (lpDCL->lpszExtractDir != NULL && G.extract_flag)
        {
 #ifndef CRTL_CP_IS_ISO
-       char *pExDirRoot = (char *)malloc(strlen(C->lpszExtractDir)+1);
+       char *pExDirRoot = (char *)malloc(strlen(lpDCL->lpszExtractDir)+1);
 
        if (pExDirRoot == NULL)
            return FALSE;
-       ISO_TO_INTERN(C->lpszExtractDir, pExDirRoot);
+       ISO_TO_INTERN(lpDCL->lpszExtractDir, pExDirRoot);
 #else
-#  define pExDirRoot C->lpszExtractDir
+#  define pExDirRoot lpDCL->lpszExtractDir
 #endif
        uO.exdir = pExDirRoot;
        }
@@ -250,7 +253,7 @@ LPDCL C;
        return FALSE;
 
     G.wildzipfn = GlobalLock(hwildZipFN);
-    lstrcpy(G.wildzipfn, C->lpszZipFN);
+    lstrcpy(G.wildzipfn, lpDCL->lpszZipFN);
     _ISO_INTERN(G.wildzipfn);
 
     return TRUE;    /* set up was OK */
@@ -425,7 +428,7 @@ return retcode;
 
 
 int WINAPI Wiz_SingleEntryUnzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
-   LPDCL C, LPUSERFUNCTIONS lpUserFunc)
+   LPDCL lpDCL, LPUSERFUNCTIONS lpUserFunc)
 {
 int retcode;
 CONSTRUCTGLOBALS();
@@ -436,21 +439,22 @@ if (!Wiz_Init((zvoid *)&G, lpUserFunc))
    return PK_BADERR;
    }
 
-if (C->lpszZipFN == NULL) /* Something has screwed up, we don't have a filename */
+if (lpDCL->lpszZipFN == NULL)
    {
+   /* Something has screwed up, we don't have a filename */
    DESTROYGLOBALS();
    return PK_NOZIP;
    }
 
-if (!Wiz_SetOpts((zvoid *)&G, C))
+if (!Wiz_SetOpts((zvoid *)&G, lpDCL))
    {
    DESTROYGLOBALS();
    return PK_MEM;
    }
 
 #ifdef SFX
-G.zipfn = C->lpszZipFN;
-G.argv0 = C->lpszZipFN;
+G.zipfn = lpDCL->lpszZipFN;
+G.argv0 = lpDCL->lpszZipFN;
 #endif
 
 /* Here is the actual call to "unzip" the files (or whatever else you

@@ -17,5 +17,5 @@
 @cc -c -q unshri
 @cc -c -q zipinf
 @cc -c -q tops20
-@cc -o unzip unzip.rel crc32.rel crctab.rel crypt.rel envarg.rel explod.rel extrac.rel fileio.rel global.rel inflat.rel match.rel proces.rel ttyio.rel unredu.rel unshri.rel zipinf.rel tops20.rel -ltmx 
+@cc -o unzip unzip.rel crc32.rel crctab.rel crypt.rel envarg.rel explod.rel extrac.rel fileio.rel global.rel inflat.rel match.rel proces.rel ttyio.rel unredu.rel unshri.rel zipinf.rel tops20.rel -ltmx
 @kmic

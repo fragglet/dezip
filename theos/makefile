@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.5                                                13 February 2001
+# Version:  5.52                                               27 February 2005
 #==============================================================================
 
 
@@ -75,6 +75,7 @@ LOBJX = $(OBJX)
 OBJF = funzip.o $(CRC32).o cryptf.o globalsf.o inflatef.o ttyiof.o _sprintf.o \
        _fprintf.o _isatty.o
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
+EBCDIC_H = ebcdic.h theos/charconv.h
 
 UNZIPS = unzip.command funzip.command unzipsfx.command zipinfo.command
 
@@ -87,7 +88,7 @@ crypt.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 envargs.o:	envargs.c $(UNZIP_H)
 explode.o:	explode.c $(UNZIP_H)
 extract.o:	extract.c $(UNZIP_H) crypt.h
-fileio.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileio.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h EBCDIC_H
 funzip.o:	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
 globals.o:	globals.c $(UNZIP_H)
 inflate.o:	inflate.c inflate.h $(UNZIP_H)
@@ -109,7 +110,7 @@ crypt_.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
 extract_.o:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
 	$(CC) $(CF) -DSFX -Fo$@ extract.c
 
-fileio_.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx only
+fileio_.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h EBCDIC_H	# unzipsfx only
 	$(CC) $(CF) -DSFX -Fo$@ fileio.c
 
 globals_.o:	globals.c $(UNZIP_H)				# unzipsfx only

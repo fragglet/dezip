@@ -35,12 +35,14 @@ A) Hard limits of the Zip archive format:
    In 2001, PKWARE has published version 4.5 of the Zip format specification
    (together with the release of PKZIP for Windows 4.5).  This specification
    defines new extra field blocks that allow to break the size limits of the
-   standard zipfile structures.  In this extended Zip format, the size limits
-   of zip entries (and the complete zip archive) have been extended to
-   (2^64 - 1) Bytes and the maximum number of archive entries to (2^32-1).
-   Currently, these extensions are not supported by Info-ZIP software,
-   but it is planned to provide implementation for selected environments
-   with the next major release. (This may take a while, though.)
+   standard zipfile structures.  In this extended "Zip64" format, the limits
+   on the size of zip entries and the size of the complete zip archive are
+   extended to (2^64 - 1) Bytes; the maximum number of archive entries and
+   split volumes are enlarged to (2^64 - 1) respective (2^32 - 1).
+   Currently, these extensions are not yet supported by the released Info-ZIP
+   software. However, new major releases (Zip 3.0 and UnZip 6.0) are under
+   development and will support Zip64 archives on selected environments.
+   (Beta releases are already available for Unix, VMS and Win32.)
 
 B) Implementation limits of UnZip:
 
@@ -201,10 +203,16 @@ D) Some technical remarks:
     performance, stability and maintainability.  Therefore, it is
     quite unlikely that this will ever happen for Zip/UnZip.
 
-    Anyway, the Zip archive format is more and more showing its age...
-    The effort to lift the 2GByte limits should be better invested in
-    creating a successor for the Zip archive format and tools.
+    The argumentation above is somewhat out-dated. The new releases
+    Zip 3 and UnZip 6 will support archive sizes larger than 4GB on
+    systems where the required underlying support for 64-bit file offsets
+    and file sizes is available from the OS (and the C runtime environment).
+    However, this new support will partially break compatibility with
+    older "legacy" systems.  And it should be expected that the portability
+    and readability of the UnZip and Zip code may be reduced due to the
+    extensive use of non-standard language extension needed for 64-bit
+    support on the major target systems.
 
-Please report any problems to:  Zip-Bugs@lists.wku.edu
+Please report any problems to:  Zip-Bugs at www.info-zip.org
 
-Last updated:  26 January 2002, Christian Spieler
+Last updated:  22 February 2005, Christian Spieler

@@ -1,6 +1,6 @@
 # Makefile for UnZip, fUnZip and UnZipSFX using LCC-Win32.
 # By E-Yen Tan (3 June 1998).
-# Last updated 27 December 2001 (Christian Spieler).
+# Last updated 30 May 2004 (Christian Spieler).
 #
 # This version includes rules to build the 32-bit windll DLL.
 
@@ -286,7 +286,7 @@ windll$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(CC) -c $(CFLAGS_DL) $(OUT)$@ windll/windll.c
 
 windll32.res:	windll/windll.rc unzvers.h
-	- lrc -v -m -r $(DLLFLAG) -DWIN32 -o$@ windll/windll.rc
+	- lrc -v -r $(DLLFLAG) -DWIN32 -o$@ windll/windll.rc
 
 # SFX Lib compilation section
 apig$(OBJ):	api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
@@ -332,4 +332,4 @@ sfxwiz$(OBJ):	windll/guisfx/sfxwiz.c windll/guisfx/dialog.h $(WINDLL_IMP_H)
 	$(CC) -c $(CFLAGS_GX) $(OUT)$@ windll/guisfx/sfxwiz.c
 
 sfxwiz.res:	windll/guisfx/sfxwiz.rc
-	- lrc -v -m -r -Iwindll/guisfx -DWIN32 -o$@ windll/guisfx/sfxwiz.rc
+	- lrc -v -r -Iwindll/guisfx -DWIN32 -o$@ windll/guisfx/sfxwiz.rc

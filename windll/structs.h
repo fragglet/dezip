@@ -1,13 +1,13 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
-#ifndef __structs_h
-#define __structs_h
+#ifndef __unzip_structs_h
+#define __unzip_structs_h
 
 #ifndef Far
 #  define Far far
@@ -26,13 +26,17 @@
 #  endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef DEFINED_ONCE
 #define DEFINED_ONCE
 
 typedef int (WINAPI DLLPRNT) (LPSTR, unsigned long);
 typedef int (WINAPI DLLPASSWORD) (LPSTR, int, LPCSTR, LPCSTR);
 typedef int (WINAPI DLLSERVICE) (LPCSTR, unsigned long);
-#endif
+#endif /* DEFINED_ONCE */
 typedef void (WINAPI DLLSND) (void);
 typedef int (WINAPI DLLREPLACE)(LPSTR);
 typedef void (WINAPI DLLMESSAGE)(unsigned long, unsigned long, unsigned,
@@ -73,6 +77,10 @@ LPSTR lpszZipFN;
 LPSTR lpszExtractDir;
 } DCL, far * LPDCL;
 
+#ifdef __cplusplus
+}
+#endif
+
 /* return codes of the (DLLPASSWORD)() callback function */
 #define IDM_REPLACE_NO     100
 #define IDM_REPLACE_TEXT   101
@@ -82,4 +90,4 @@ LPSTR lpszExtractDir;
 #define IDM_REPLACE_RENAME 105
 #define IDM_REPLACE_HELP   106
 
-#endif /* __structs_h */
+#endif /* __unzip_structs_h */

@@ -6,8 +6,8 @@
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
-/* Write out a fragment of assembly source giving offsets in "Uz_Globs"
- * and "struct huft":
+/* Write out a fragment of assembly or C preprocessor source giving offsets
+ * in "Uz_Globs" and "struct huft".  Used by Amiga and Human68k ports.
  */
 
 #define UNZIP_INTERNAL
@@ -23,8 +23,8 @@ static int ccp_setflag(const char *flagname);
 
 static int asm_setflag(const char *flagname)
 {
-    static const char asm_flagdef[] = "%-15s EQU     1\n";
-    return printf(asm_flagdef, flagname);
+    static const char asm_flagdef[] = "   IFND %s\n%-15s EQU     1\n   ENDC\n";
+    return printf(asm_flagdef, flagname, flagname);
 }
 static int ccp_setflag(const char *flagname)
 {

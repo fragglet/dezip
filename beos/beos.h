@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -30,10 +30,10 @@ data      - compressed or uncompressed file attribute data
 If flag & EB_BE_FL_UNCMPR, the data is not compressed; this optimisation is
 necessary to prevent wasted space for files with small attributes (which
 appears to be quite common on the Advanced Access DR9 release).  In this
-case, there should be ( ef_size - EB_L_BE_LEN ) bytes of data, and full_size
-should equal ( ef_size - EB_L_BE_LEN ).
+case, there should be ( ef_size - EB_BEOS_HLEN ) bytes of data, and full_size
+should equal ( ef_size - EB_BEOS_HLEN ).
 
-If the data is compressed, there will be ( ef_size - EB_L_BE_LEN ) bytes of
+If the data is compressed, there will be ( ef_size - EB_BEOS_HLEN ) bytes of
 compressed data, and full_size bytes of uncompressed data.
 
 If a file has absolutely no attributes, there will not be a 'Be' extra field.

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -37,14 +37,39 @@
 #ifdef VMS                      /* VMS only! */
 
 #define UNZIP_INTERNAL
+
 #include "unzip.h"
 #include "vms.h"
 #include "vmsdefs.h"
+
 #ifdef MORE
 #  include <ttdef.h>
 #endif
-#include <lib$routines.h>
 #include <unixlib.h>
+
+#include <lib$routines.h>
+#include <stsdef.h>
+
+/* On VAX, define Goofy VAX Type-Cast to obviate /standard = vaxc.
+   Otherwise, lame system headers on VAX cause compiler warnings.
+   (GNU C may define vax but not __VAX.)
+*/
+#ifdef vax
+#  define __VAX 1
+#endif
+
+#ifdef __VAX
+#  define GVTC (unsigned int)
+#else
+#  define GVTC
+#endif
+
+/* With GNU C, some FAB bits may be declared only as masks, not as
+ * structure bits.
+ */
+#ifdef __GNUC__
+#  define OLD_FABDEF 1
+#endif
 
 #define ASYNCH_QIO              /* Use asynchronous PK-style QIO writes */
 
@@ -131,6 +156,149 @@ static void uxtime2vmstime(time_t utimeval, long int binval[2]);
 #endif /* TIMESTAMP */
 static void vms_msg(__GPRO__ char *string, int status);
 
+/* 2004-11-23 SMS.
+ *
+ *       get_rms_defaults().
+ *
+ *    Get user-specified values from (DCL) SET RMS_DEFAULT.  FAB/RAB
+ *    items of particular interest are:
+ *
+ *       fab$w_deq         default extension quantity (blocks) (write).
+ *       rab$b_mbc         multi-block count.
+ *       rab$b_mbf         multi-buffer count (used with rah and wbh).
+ */
+
+#define DIAG_FLAG (uO.vflag >= 2)
+
+/* Default RMS parameter values.
+ * The default extend quantity (deq) should not matter much here, as the
+ * initial allocation should always be set according to the known file
+ * size, and no extension should be needed.
+ */
+
+#define RMS_DEQ_DEFAULT 16384   /* About 1/4 the max (65535 blocks). */
+#define RMS_MBC_DEFAULT 127     /* The max, */
+#define RMS_MBF_DEFAULT 2       /* Enough to enable rah and wbh. */
+
+/* GETJPI item descriptor structure. */
+typedef struct
+{
+    short buf_len;
+    short itm_cod;
+    void *buf;
+    int *ret_len;
+} jpi_item_t;
+
+/* Durable storage */
+static int rms_defaults_known = 0;
+
+/* JPI item buffers. */
+static unsigned short rms_ext;
+static char rms_mbc;
+static unsigned char rms_mbf;
+
+/* Active RMS item values. */
+unsigned short rms_ext_active;
+char rms_mbc_active;
+unsigned char rms_mbf_active;
+
+/* GETJPI item lengths. */
+static int rms_ext_len;         /* Should come back 2. */
+static int rms_mbc_len;         /* Should come back 1. */
+static int rms_mbf_len;         /* Should come back 1. */
+
+/* Desperation attempts to define unknown macros.  Probably doomed.
+ * If these get used, expect sys$getjpiw() to return %x00000014 =
+ * %SYSTEM-F-BADPARAM, bad parameter value.
+ * They keep compilers with old header files quiet, though.
+ */
+#ifndef JPI$_RMS_EXTEND_SIZE
+#  define JPI$_RMS_EXTEND_SIZE 542
+#endif /* ndef JPI$_RMS_EXTEND_SIZE */
+
+#ifndef JPI$_RMS_DFMBC
+#  define JPI$_RMS_DFMBC 535
+#endif /* ndef JPI$_RMS_DFMBC */
+
+#ifndef JPI$_RMS_DFMBFSDK
+#  define JPI$_RMS_DFMBFSDK 536
+#endif /* ndef JPI$_RMS_DFMBFSDK */
+
+/* GETJPI item descriptor set. */
+
+struct
+{
+    jpi_item_t rms_ext_itm;
+    jpi_item_t rms_mbc_itm;
+    jpi_item_t rms_mbf_itm;
+    int term;
+} jpi_itm_lst =
+     { { 2, JPI$_RMS_EXTEND_SIZE, &rms_ext, &rms_ext_len },
+       { 1, JPI$_RMS_DFMBC, &rms_mbc, &rms_mbc_len },
+       { 1, JPI$_RMS_DFMBFSDK, &rms_mbf, &rms_mbf_len },
+       0
+     };
+
+static int get_rms_defaults()
+{
+    int sts;
+
+    /* Get process RMS_DEFAULT values. */
+
+    sts = sys$getjpiw(0, 0, 0, &jpi_itm_lst, 0, 0, 0);
+    if ((sts& STS$M_SEVERITY) != STS$M_SUCCESS)
+    {
+        /* Failed.  Don't try again. */
+        rms_defaults_known = -1;
+    }
+    else
+    {
+        /* Fine, but don't come back. */
+        rms_defaults_known = 1;
+    }
+
+    /* Limit the active values according to the RMS_DEFAULT values. */
+
+    if (rms_defaults_known > 0)
+    {
+        /* Set the default values. */
+        rms_ext_active = RMS_DEQ_DEFAULT;
+        rms_mbc_active = RMS_MBC_DEFAULT;
+        rms_mbf_active = RMS_MBF_DEFAULT;
+
+        /* Default extend quantity.  Use the user value, if set. */
+        if (rms_ext > 0)
+        {
+            rms_ext_active = rms_ext;
+        }
+
+        /* Default multi-block count.  Use the user value, if set. */
+        if (rms_mbc > 0)
+        {
+            rms_mbc_active = rms_mbc;
+        }
+
+        /* Default multi-buffer count.  Use the user value, if set. */
+        if (rms_mbf > 0)
+        {
+            rms_mbf_active = rms_mbf;
+        }
+    }
+
+    if (DIAG_FLAG)
+    {
+        fprintf(stderr, "Get RMS defaults.  getjpi sts = %%x%08x.\n", sts);
+
+        if (rms_defaults_known > 0)
+        {
+            fprintf(stderr,
+              "               Default: deq = %6d, mbc = %3d, mbf = %3d.\n",
+              rms_ext, rms_mbc, rms_mbf);
+        }
+    }
+    return sts;
+}
+
 
 int check_format(__G)
     __GDEF
@@ -207,6 +375,12 @@ int check_format(__G)
 int open_outfile(__G)           /* return 1 (PK_WARN) if fail */
     __GDEF
 {
+    /* Get process RMS_DEFAULT values, if not already done. */
+    if (rms_defaults_known == 0)
+    {
+        get_rms_defaults();
+    }
+
     switch (find_vms_attrs(__G))
     {
         case VAT_NONE:
@@ -335,6 +509,9 @@ static int create_default_output(__GPRO)      /* return 1 (PK_WARN) if fail */
         outfab = &fileblk;
         outfab->fab$l_xab = NULL;
 
+        outrab = &rab;
+        rab.rab$l_fab = outfab;
+
         if (text_output)
         {   /* Default format for output `real' text file */
 
@@ -358,15 +535,78 @@ static int create_default_output(__GPRO)      /* return 1 (PK_WARN) if fail */
         outfab->fab$l_fna = G.filename;
         outfab->fab$b_fns = strlen(outfab->fab$l_fna);
 
-        {
-            set_default_datetime_XABs(__G);
-
-            dattim.xab$l_nxt = outfab->fab$l_xab;
-            outfab->fab$l_xab = (void *) &dattim;
-        }
+        set_default_datetime_XABs(__G);
+        dattim.xab$l_nxt = outfab->fab$l_xab;
+        outfab->fab$l_xab = (void *) &dattim;
 
         outfab->fab$w_ifi = 0;  /* Clear IFI. It may be nonzero after ZIP */
         outfab->fab$b_fac = FAB$M_BRO | FAB$M_PUT;  /* {block|record} output */
+
+        /* 2004-11-23 SMS.
+         * If RMS_DEFAULT values have been determined, and have not been
+         * set by the user, then set some FAB/RAB parameters for faster
+         * output.  User-specified RMS_DEFAULT values override the
+         * built-in default values, so if the RMS_DEFAULT values could
+         * not be determined, then these (possibly unwise) values could
+         * not be overridden, and hence will not be set.  Honestly,
+         * this seems to be excessively cautious, but only old VMS
+         * versions will be affected.
+         */
+
+        /* If RMS_DEFAULT (and adjusted active) values are available,
+         * then set the FAB/RAB parameters.  If RMS_DEFAULT values are
+         * not available, then suffer with the default behavior.
+         */
+        if (rms_defaults_known > 0)
+        {
+            /* Set the FAB/RAB parameters accordingly. */
+            outfab-> fab$w_deq = rms_ext_active;
+            outrab-> rab$b_mbc = rms_mbc_active;
+            outrab-> rab$b_mbf = rms_mbf_active;
+
+#ifdef OLD_FABDEF
+
+            /* Truncate at EOF on close, as we may over-extend. */
+            outfab-> fab$l_fop |= FAB$M_TEF ;
+
+            /* If using multiple buffers, enable write-behind. */
+            if (rms_mbf_active > 1)
+            {
+                outrab-> rab$l_rop |= RAB$M_WBH;
+            }
+        }
+
+        /* Set the initial file allocation according to the file
+         * size.  Also set the "sequential access only" flag, as
+         * otherwise, on a file system with highwater marking
+         * enabled, allocating space for a large file may lock the
+         * disk for a long time (minutes).
+         */
+        outfab-> fab$l_alq = (unsigned) (G.lrec.ucsize+ 511)/ 512;
+        outfab-> fab$l_fop |= FAB$M_SQO;
+
+#else /* !OLD_FABDEF */
+
+            /* Truncate at EOF on close, as we may over-extend. */
+            outfab-> fab$v_tef = 1;
+
+            /* If using multiple buffers, enable write-behind. */
+            if (rms_mbf_active > 1)
+            {
+                outrab-> rab$v_wbh = 1;
+            }
+        }
+
+        /* Set the initial file allocation according to the file
+         * size.  Also set the "sequential access only" flag, as
+         * otherwise, on a file system with highwater marking
+         * enabled, allocating space for a large file may lock the
+         * disk for a long time (minutes).
+         */
+        outfab-> fab$l_alq = (unsigned) (G.lrec.ucsize+ 511)/ 512;
+        outfab-> fab$v_sqo = 1;
+
+#endif /* ?OLD_FABDEF */
 
         ierr = sys$create(outfab);
         if (ierr == RMS$_FEX)
@@ -386,8 +626,6 @@ static int create_default_output(__GPRO)      /* return 1 (PK_WARN) if fail */
             return PK_WARN;
         }
 
-        outrab = &rab;
-        rab.rab$l_fab = outfab;
         if (!text_output)
         {
             rab.rab$l_rop |= (RAB$M_BIO | RAB$M_ASY);
@@ -452,10 +690,8 @@ static int create_rms_output(__GPRO)          /* return 1 (PK_WARN) if fail */
         outfab->fab$l_fna = G.filename;
         outfab->fab$b_fns = strlen(outfab->fab$l_fna);
 
-        if (!(xabdat && xabrdt))        /* Use date/time info
-                                         *  from zipfile if
-                                         *  no attributes given
-                                         */
+        /* If no XAB date/time, use attributes from non-VMS fields. */
+        if (!(xabdat && xabrdt))
         {
             set_default_datetime_XABs(__G);
 
@@ -468,6 +704,17 @@ static int create_rms_output(__GPRO)          /* return 1 (PK_WARN) if fail */
 
         outfab->fab$w_ifi = 0;  /* Clear IFI. It may be nonzero after ZIP */
         outfab->fab$b_fac = FAB$M_BIO | FAB$M_PUT;      /* block-mode output */
+
+        /* 2004-11-23 SMS.
+         * Set the "sequential access only" flag, as otherwise, on a
+         * file system with highwater marking enabled, allocating space
+         * for a large file may lock the disk for a long time (minutes).
+         */
+#ifdef OLD_FABDEF
+        outfab-> fab$l_fop |= FAB$M_SQO;
+#else /* !OLD_FABDEF */
+        outfab-> fab$v_sqo = 1;
+#endif /* ?OLD_FABDEF */
 
         ierr = sys$create(outfab);
         if (ierr == RMS$_FEX)
@@ -688,7 +935,15 @@ static int create_qio_output(__GPRO)          /* return 1 (PK_WARN) if fail */
             pka_fib.FIB$W_FID[i]=0;
         }
 
-        pka_fib.FIB$L_ACCTL = FIB$M_WRITE;
+        /* 2004-11-23 SMS.
+         * Set the "sequential access only" flag, as otherwise, on a
+         * file system with highwater marking enabled, allocating space
+         * for a large file may lock the disk for a long time (minutes).
+         * (The "no other readers" flag is also required, if you want
+         * the "sequential access only" flag to have any effect.)
+         */
+        pka_fib.FIB$L_ACCTL = FIB$M_WRITE | FIB$M_SEQONLY | FIB$M_NOREAD;
+
         /* Allocate space for the file */
         pka_fib.FIB$W_EXCTL = FIB$M_EXTEND;
         if ( pka_uchar & FCH$M_CONTIG )
@@ -948,7 +1203,7 @@ static int find_vms_attrs(__G)
                 {
                     pka_atr[pka_idx].atr$w_size = fld->size;
                     pka_atr[pka_idx].atr$w_type = fld->tag;
-                    pka_atr[pka_idx].atr$l_addr = &fld->value;
+                    pka_atr[pka_idx].atr$l_addr = GVTC &fld->value;
                     ++pka_idx;
                 }
                 len -= fld->size + PK_FLDHDR_SIZE;
@@ -1144,6 +1399,15 @@ static int WriteQIO(__G__ buf, len)
     return PK_COOL;
 }
 
+/*
+   2004-10-01 SMS.  Changed to clear the extra byte written out by qio()
+   and sys$write() when an odd byte count is incremented to the next
+   even value, either explicitly (qio), or implicitly (sys$write), on
+   the theory that a reliable NUL beats left-over garbage.  Alpha and
+   VAX object files seem frequently to have even more than one byte of
+   extra junk past EOF, so this may not help them.
+*/
+
 static int _flush_qio(__G__ rawbuf, size, final_flag)
                                                 /* Asynchronous version */
     __GDEF
@@ -1177,9 +1441,22 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
         }
     }
 
-    return (final_flag & (curbuf->bufcnt > 0)) ?
-        WriteQIO(curbuf->buf, (curbuf->bufcnt+1)&(~1)) : /* even byte count! */
-        PK_COOL;
+    if (final_flag && (curbuf->bufcnt > 0))
+    {
+        unsigned bufcnt_even;
+
+        /* Round up to an even byte count. */
+        bufcnt_even = (curbuf->bufcnt+1) & (~1);
+        /* If there is one, clear the extra byte. */
+        if (bufcnt_even > curbuf->bufcnt)
+            curbuf->buf[curbuf->bufcnt] = '\0';
+
+        return WriteQIO(curbuf->buf, bufcnt_even);
+    }
+    else
+    {
+        return PK_COOL;
+    }
 }
 
 #else /* !ASYNCH_QIO */
@@ -1197,10 +1474,18 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
     {
         if ( loccnt > 0 )
         {
+            unsigned loccnt_even;
+
+            /* Round up to an even byte count. */
+            loccnt_even = (loccnt+1) & (~1);
+            /* If there is one, clear the extra byte. */
+            if (loccnt_even > loccnt)
+                locbuf[ loccnt] = '\0';
+
             status = sys$qiow(0, pka_devchn, IO$_WRITEVBLK,
                               &pka_io_sb, 0, 0,
                               locbuf,
-                              (loccnt+1)&(~1), /* Round up to even byte count */
+                              loccnt_even,
                               pka_vbn,
                               0, 0, 0);
             if (!ERR(status))
@@ -1351,7 +1636,7 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
                 return PK_DISK;
             size -= 2+reclen;
             inptr += 2+reclen;
-            if ( reclen & 1)
+            if ( reclen & 1 )
             {
                 --size;
                 ++inptr;
@@ -1645,6 +1930,13 @@ static int WriteBuffer(__G__ buf, len)
             vms_msg(__G__ "[ WriteBuffer: sys$wait failed ]\n", status);
             vms_msg(__G__ "", outrab->rab$l_stv);
         }
+
+        /* If odd byte count, then this must be the final record.
+           Clear the extra byte past EOF to help keep the file clean.
+        */
+        if (len & 1)
+            buf[len] = '\0';
+
         outrab->rab$w_rsz = len;
         outrab->rab$l_rbf = (char *) buf;
 
@@ -1973,16 +2265,16 @@ int stamp_file(fname, modtime)
     static struct fjndef jnl;
 
     static struct atrdef Atr[] = {
-        {sizeof(pka_rattr), ATR$C_RECATTR, &pka_rattr},
-        {sizeof(pka_uchar), ATR$C_UCHAR, &pka_uchar},
-        {sizeof(Cdate), ATR$C_CREDATE, &Cdate[0]},
-        {sizeof(Rdate), ATR$C_REVDATE, &Rdate[0]},
-        {sizeof(Edate), ATR$C_EXPDATE, &Edate[0]},
-        {sizeof(Bdate), ATR$C_BAKDATE, &Bdate[0]},
-        {sizeof(revisions), ATR$C_ASCDATES, &revisions},
-        {sizeof(prot), ATR$C_FPRO, &prot},
-        {sizeof(uic), ATR$C_UIC, &uic},
-        {sizeof(jnl), ATR$C_JOURNAL, &jnl},
+        {sizeof(pka_rattr), ATR$C_RECATTR, GVTC &pka_rattr},
+        {sizeof(pka_uchar), ATR$C_UCHAR, GVTC &pka_uchar},
+        {sizeof(Cdate), ATR$C_CREDATE, GVTC &Cdate[0]},
+        {sizeof(Rdate), ATR$C_REVDATE, GVTC &Rdate[0]},
+        {sizeof(Edate), ATR$C_EXPDATE, GVTC &Edate[0]},
+        {sizeof(Bdate), ATR$C_BAKDATE, GVTC &Bdate[0]},
+        {sizeof(revisions), ATR$C_ASCDATES, GVTC &revisions},
+        {sizeof(prot), ATR$C_FPRO, GVTC &prot},
+        {sizeof(uic), ATR$C_UIC, GVTC &uic},
+        {sizeof(jnl), ATR$C_JOURNAL, GVTC &jnl},
         {0, 0, 0}
     };
 
@@ -2176,6 +2468,14 @@ static void vms_msg(__GPRO__ char *string, int status)
 
 #ifndef SFX
 
+/* 2004-11-23 SMS.
+ * Changed to return the resulting file name even when sys$search()
+ * fails.  Before, if the user specified "fred.zip;4" and there was
+ * none, the error message would complain:
+ *    cannot find either fred.zip;4 or fred.zip;4.zip.
+ * when it wasn't really looking for "fred.zip;4.zip".
+ */
+
 char *do_wild( __G__ wld )
     __GDEF
     ZCONST char *wld;
@@ -2210,12 +2510,25 @@ char *do_wild( __G__ wld )
 
         if ( !OK(sys$parse(&fab)) )
             return (char *)NULL;     /* Initialization failed */
+
         first_call = 0;
-        if ( !OK(sys$search(&fab)) )
+
+        /* 2004-11-23 SMS.
+         * Don't do this.  I see no good reason to lie about the file
+         * being sought just because it wasn't found.  If you find one,
+         * please explain it here when you change this code back.  I'll
+         * admit that the full file spec from sys$parse() may be ugly,
+         * but at least it's never misleading.
+         */
+        status = sys$search(&fab);
+        if ( !OK(status) )
         {
+#if 0
             strcpy( filenam, wld );
             return filenam;
+#endif /* 0 */
         }
+
     }
     else
     {
@@ -2225,7 +2538,7 @@ char *do_wild( __G__ wld )
             return (char *)NULL;
         }
     }
-    filenam[nam.nam$b_rsl] = 0;
+    filenam[nam.nam$b_rsl] = 0;         /* Add the NUL terminator. */
     return filenam;
 
 } /* end function do_wild() */
@@ -2255,8 +2568,10 @@ static ulg unix_to_vms[8]={ /* Map from UNIX rwx to VMS rwed */
                     /* and DESCRIP.MMS */
 
 #ifdef SETDFPROT
-extern int SYS$SETDFPROT();
-#endif
+# ifndef sys$setdfprot
+extern int sys$setdfprot();
+# endif /* !sys$setdfprot */
+#endif /* SETDFPROT */
 
 
 int mapattr(__G)
@@ -2280,7 +2595,7 @@ int mapattr(__G)
 
 #ifdef SETDFPROT    /* Undef this if linker cat't resolve SYS$SETDFPROT */
         defprot = (ulg)0L;
-        if ( !ERR(SYS$SETDFPROT(0,&defprot)) )
+        if ( !ERR(sys$setdfprot(0, &defprot)) )
         {
             sysdef = defprot & ( (1L<<XAB$S_SYS)-1 ) << XAB$V_SYS;
             owndef = defprot & ( (1L<<XAB$S_OWN)-1 ) << XAB$V_OWN;
@@ -2320,6 +2635,7 @@ int mapattr(__G)
                     /* GRR:  Yup.  Bad decision on my part... */
         case ACORN_:
         case ATARI_:
+        case ATHEOS_:
         case BEOS_:
         case QDOS_:
         case TANDEM_:
@@ -3258,17 +3574,43 @@ int screenlinewrap()
 /*  Function version()  */
 /************************/
 
+/* 2004-11-23 SMS.
+ * Changed to include the "-x" part of the VMS version.
+ * Added the IA64 system type name.
+ * Prepared for VMS versions after 9.  (We should live so long.)
+ */
+
 void version(__G)
     __GDEF
 {
     int len;
 #ifdef VMS_VERSION
+    char *chrp1;
+    char *chrp2;
     char buf[40];
+    char vms_vers[16];
+    int ver_maj;
 #endif
 #ifdef __DECC_VER
     char buf2[40];
     int  vtyp;
 #endif
+
+#ifdef VMS_VERSION
+    /* Truncate the version string at the first (trailing) space. */
+    strncpy(vms_vers, VMS_VERSION, sizeof(vms_vers));
+    vms_vers[sizeof(vms_vers)-1] = '\0';
+    chrp1 = strchr( vms_vers, ' ');
+    if (chrp1 != NULL)
+        *chrp1 = '\0';
+
+    /* Determine the major version number. */
+    ver_maj = 0;
+    chrp1 = strchr(&vms_vers[ 1], '.');
+    for (chrp2 = &vms_vers[1];
+         chrp2 < chrp1;
+         ver_maj = ver_maj * 10 + *(chrp2++) - '0');
+#endif /* VMS_VERSION */
 
 /*  DEC C in ANSI mode does not like "#ifdef MACRO" inside another
     macro when MACRO is equated to a value (by "#define MACRO 1").   */
@@ -3290,21 +3632,24 @@ void version(__G)
       "",
 #    endif
 #  else
-#  ifdef VAXC
+#    ifdef VAXC
       "VAX C", "",
-#  else
+#    else
       "unknown compiler", "",
-#  endif
+#    endif
 #  endif
 #endif
 
 #ifdef VMS_VERSION
 #  if defined(__alpha)
-      "OpenVMS",   /* version has trailing spaces ("V6.1   "), so truncate: */
-      (sprintf(buf, " (%.4s for Alpha)", VMS_VERSION), buf),
+      "OpenVMS",
+      (sprintf(buf, " (%s Alpha)", vms_vers), buf),
+#  elif defined(__IA64)
+      "OpenVMS",
+      (sprintf(buf, " (%s IA64)", vms_vers), buf),
 #  else /* VAX */
-      (VMS_VERSION[1] >= '6') ? "OpenVMS" : "VMS",
-      (sprintf(buf, " (%.4s for VAX)", VMS_VERSION), buf),
+      (ver_maj >= 6) ? "OpenVMS" : "VMS",
+      (sprintf(buf, " (%s VAX)", vms_vers), buf),
 #  endif
 #else
       "VMS",
@@ -3323,4 +3668,223 @@ void version(__G)
 } /* end function version() */
 
 #endif /* !SFX */
+
+
+
+#ifdef __DECC
+
+/* 2004-11-20 SMS.
+ *
+ *       acc_cb(), access callback function for DEC C open().
+ *
+ *    Set some RMS FAB/RAB items, with consideration of user-specified
+ * values from (DCL) SET RMS_DEFAULT.  Items of particular interest are:
+ *
+ *       fab$w_deq         default extension quantity (blocks) (write).
+ *       rab$b_mbc         multi-block count.
+ *       rab$b_mbf         multi-buffer count (used with rah and wbh).
+ *
+ *    See also the OPEN* macros in VMSCFG.H.  Currently, no notice is
+ * taken of the caller-ID value, but options could be set differently
+ * for read versus write access.  (I assume that specifying fab$w_deq,
+ * for example, for a read-only file has no ill effects.)
+ */
+
+/* Global storage. */
+
+int openr_id = OPENR_ID;        /* Callback id storage, read. */
+
+/* acc_cb() */
+
+int acc_cb(int *id_arg, struct FAB *fab, struct RAB *rab)
+{
+    int sts;
+
+    /* Get process RMS_DEFAULT values, if not already done. */
+    if (rms_defaults_known == 0)
+    {
+        get_rms_defaults();
+    }
+
+    /* If RMS_DEFAULT (and adjusted active) values are available, then set
+     * the FAB/RAB parameters.  If RMS_DEFAULT values are not available,
+     * suffer with the default parameters.
+     */
+    if (rms_defaults_known > 0)
+    {
+        /* Set the FAB/RAB parameters accordingly. */
+        fab-> fab$w_deq = rms_ext_active;
+        rab-> rab$b_mbc = rms_mbc_active;
+        rab-> rab$b_mbf = rms_mbf_active;
+
+        /* Truncate at EOF on close, as we'll probably over-extend. */
+        fab-> fab$v_tef = 1;
+
+        /* If using multiple buffers, enable read-ahead and write-behind. */
+        if (rms_mbf_active > 1)
+        {
+            rab-> rab$v_rah = 1;
+            rab-> rab$v_wbh = 1;
+        }
+
+        if (DIAG_FLAG)
+        {
+            fprintf(stderr,
+              "Open callback.  ID = %d, deq = %6d, mbc = %3d, mbf = %3d.\n",
+              *id_arg, fab-> fab$w_deq, rab-> rab$b_mbc, rab-> rab$b_mbf);
+        }
+    }
+
+    /* Declare success. */
+    return 0;
+}
+
+
+
+/*
+ * 2004-09-19 SMS.
+ *
+ *----------------------------------------------------------------------
+ *
+ *       decc_init()
+ *
+ *    On non-VAX systems, uses LIB$INITIALIZE to set a collection of C
+ *    RTL features without using the DECC$* logical name method.
+ *
+ *----------------------------------------------------------------------
+ */
+
+#ifdef __CRTL_VER
+#if !defined(__VAX) && (__CRTL_VER >= 70301000)
+
+#include <unixlib.h>
+
+/*--------------------------------------------------------------------*/
+
+/* Global storage. */
+
+/*    Flag to sense if decc_init() was called. */
+
+static int decc_init_done = -1;
+
+/*--------------------------------------------------------------------*/
+
+/* decc_init()
+
+      Uses LIB$INITIALIZE to set a collection of C RTL features without
+      requiring the user to define the corresponding logical names.
+*/
+
+/* Structure to hold a DECC$* feature name and its desired value. */
+
+typedef struct
+{
+   char *name;
+   int value;
+} decc_feat_t;
+
+/* Array of DECC$* feature names and their desired values. */
+
+decc_feat_t decc_feat_array[] = {
+
+   /* Preserve command-line case with SET PROCESS/PARSE_STYLE=EXTENDED */
+ { "DECC$ARGV_PARSE_STYLE", 1 },
+
+#if 0  /* Possibly useful in the future. */
+
+   /* Preserve case for file names on ODS5 disks. */
+ { "DECC$EFS_CASE_PRESERVE", 1 },
+
+   /* Enable multiple dots (and most characters) in ODS5 file names,
+      while preserving VMS-ness of ";version". */
+ { "DECC$EFS_CHARSET", 1 },
+
+#endif /* 0 */
+
+   /* List terminator. */
+ { (char *)NULL, 0 } };
+
+
+/* LIB$INITIALIZE initialization function. */
+
+static void decc_init(void)
+{
+    int feat_index;
+    int feat_value;
+    int feat_value_max;
+    int feat_value_min;
+    int i;
+    int sts;
+
+    /* Set the global flag to indicate that LIB$INITIALIZE worked. */
+
+    decc_init_done = 1;
+
+    /* Loop through all items in the decc_feat_array[]. */
+
+    for (i = 0; decc_feat_array[i].name != NULL; i++)
+    {
+        /* Get the feature index. */
+        feat_index = decc$feature_get_index(decc_feat_array[i].name);
+        if (feat_index >= 0)
+        {
+            /* Valid item.  Collect its properties. */
+            feat_value = decc$feature_get_value(feat_index, 1);
+            feat_value_min = decc$feature_get_value(feat_index, 2);
+            feat_value_max = decc$feature_get_value(feat_index, 3);
+
+            if ((decc_feat_array[i].value >= feat_value_min) &&
+                (decc_feat_array[i].value <= feat_value_max))
+            {
+                /* Valid value.  Set it if necessary. */
+                if (feat_value != decc_feat_array[i].value)
+                {
+                    sts = decc$feature_set_value(
+                              feat_index,
+                              1,
+                              decc_feat_array[ i].value);
+                }
+            }
+            else
+            {
+                /* Invalid DECC feature value. */
+                printf(" INVALID DECC FEATURE VALUE, %d: %d <= %s <= %d.\n",
+                  feat_value,
+                  feat_value_min, decc_feat_array[i].name, feat_value_max);
+            }
+        }
+        else
+        {
+            /* Invalid DECC feature name. */
+            printf(" UNKNOWN DECC FEATURE: %s.\n", decc_feat_array[i].name);
+        }
+    }
+}
+
+/* Get "decc_init()" into a valid, loaded LIB$INITIALIZE PSECT. */
+
+#pragma nostandard
+
+/* Establish the LIB$INITIALIZE PSECT, with proper alignment and
+   attributes.
+*/
+globaldef {"LIB$INITIALIZ"} readonly _align (LONGWORD)
+   int spare[ 8] = { 0 };
+globaldef {"LIB$INITIALIZE"} readonly _align (LONGWORD)
+   void (*x_decc_init)() = decc_init;
+
+/* Fake reference to ensure loading the LIB$INITIALIZE PSECT. */
+
+#pragma extern_model save
+int lib$initialize(void);
+#pragma extern_model strict_refdef
+int dmy_lib$initialize = (int)lib$initialize;
+#pragma extern_model restore
+
+#pragma standard
+
+#endif /* !defined( __VAX) && (__CRTL_VER >= 70301000) */
+#endif /* __CRTL_VER */
+#endif /* __DECC */
+
 #endif /* VMS */
