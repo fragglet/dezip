@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -34,7 +34,7 @@
 .in -4n
 ..
 .\" =========================================================================
-.TH ZIPINFO 1L "17 February 2002 (v2.4)" "Info-ZIP"
+.TH ZIPINFO 1L "22 May 2004 (v2.41)" "Info-ZIP"
 .SH NAME
 zipinfo \- list detailed information about a ZIP archive
 .PD
@@ -428,18 +428,21 @@ zipinfo \-v storage | more
 .PP
 Finally, to see the most recently modified files in the archive, use
 the \fB\-T\fP option in conjunction with an external sorting utility
-such as Unix \fIsort\fP(1) (and \fItail\fP(1) as well, in this example):
+such as Unix \fIsort\fP(1) (and \fIsed\fP(1) as well, in this example):
 .PP
 .EX
-zipinfo \-T storage | sort -n +6 | tail -15
+zipinfo \-T storage | sort -nr -k 7 | sed 15q
 .EE
 .PP
-The \fB\-n\fP option to \fIsort\fP(1) tells it to sort numerically
-rather than in ASCII order, and the \fB\+6\fP option tells it to sort
-on the sixth field after the first one (i.e., the seventh field).  This
+The \fB\-nr\fP option to \fIsort\fP(1) tells it to sort numerically
+in reverse order rather than in textual order, and the \fB\-k\ 7\fP option
+tells it to sort on the seventh field.  This
 assumes the default short-listing format; if \fB\-m\fP or \fB\-l\fP is
-used, the proper \fIsort\fP(1) option would be \fB\+7\fP.  The \fItail\fP(1)
-command filters out all but the last 15 lines of the listing.  Future
+used, the proper \fIsort\fP(1) option would be \fB\-k\ 8\fP.
+Older versions of \fIsort\fP(1) do not support the \fB\-k\fP option,
+but you can use the traditional \fB\+\fP option instead, e.g.,
+\fB\+6\fP instead of \fB\-k\ 7\fP.  The \fIsed\fP(1)
+command filters out all but the first 15 lines of the listing.  Future
 releases of \fIzipinfo\fP may incorporate date/time and filename sorting
 as built-in options.
 .PD

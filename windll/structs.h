@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -72,5 +72,14 @@ int fPrivilege;
 LPSTR lpszZipFN;
 LPSTR lpszExtractDir;
 } DCL, far * LPDCL;
+
+/* return codes of the (DLLPASSWORD)() callback function */
+#define IDM_REPLACE_NO     100
+#define IDM_REPLACE_TEXT   101
+#define IDM_REPLACE_YES    102
+#define IDM_REPLACE_ALL    103
+#define IDM_REPLACE_NONE   104
+#define IDM_REPLACE_RENAME 105
+#define IDM_REPLACE_HELP   106
 
 #endif /* __structs_h */

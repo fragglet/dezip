@@ -2,7 +2,7 @@
 
   unzip.h (new)
 
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   This header file contains the public macros and typedefs required by
   both the UnZip sources and by any application using the UnZip API.  If
@@ -11,12 +11,12 @@
 
   ---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------
-This is version 2000-Apr-09 of the Info-ZIP copyright and license.
+This is version 2004-May-22 of the Info-ZIP copyright and license.
 The definitive version of this document should be available at
 ftp://ftp.info-zip.org/pub/infozip/license.html indefinitely.
 
 
-Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
 For the purposes of this copyright and license, "Info-ZIP" is defined as
 the following set of individuals:
@@ -41,9 +41,14 @@ freely, subject to the following restrictions:
     1. Redistributions of source code must retain the above copyright notice,
        definition, disclaimer, and this list of conditions.
 
-    2. Redistributions in binary form must reproduce the above copyright
-       notice, definition, disclaimer, and this list of conditions in
-       documentation and/or other materials provided with the distribution.
+    2. Redistributions in binary form (compiled executables) must reproduce
+       the above copyright notice, definition, disclaimer, and this list of
+       conditions in documentation and/or other materials provided with the
+       distribution.  The sole exception to this condition is redistribution
+       of a standard UnZipSFX binary (including SFXWiz) as part of a
+       self-extracting archive; that is permitted without inclusion of this
+       license, as long as the normal SFX banner has not been removed from
+       the binary or disabled.
 
     3. Altered versions--including, but not limited to, ports to new operating
        systems, existing ports with new graphical interfaces, and dynamic,
@@ -58,8 +63,8 @@ freely, subject to the following restrictions:
        Zip-Bugs or Info-ZIP e-mail addresses or of the Info-ZIP URL(s).
 
     4. Info-ZIP retains the right to use the names "Info-ZIP," "Zip," "UnZip,"
-       "WiZ," "Pocket UnZip," "Pocket Zip," and "MacZip" for its own source and
-       binary releases.
+       "UnZipSFX," "WiZ," "Pocket UnZip," "Pocket Zip," and "MacZip" for its
+       own source and binary releases.
   ---------------------------------------------------------------------------*/
 
 #ifndef __unzip_h   /* prevent multiple inclusions */
@@ -98,6 +103,11 @@ freely, subject to the following restrictions:
 #    define UNIX
 #  endif
 #endif /* M_XENIX || COHERENT || __hpux */
+#if (defined(__NetBSD__) || defined(__FreeBSD__))
+#  ifndef UNIX
+#    define UNIX
+#  endif
+#endif /* __NetBSD__ || __FreeBSD__ */
 #if (defined(CONVEX) || defined(MINIX) || defined(_AIX) || defined(__QNX__))
 #  ifndef UNIX
 #    define UNIX
@@ -125,6 +135,15 @@ freely, subject to the following restrictions:
 #endif
 #if ((defined(__WINNT__) || defined(__WINNT)) && !defined(WIN32))
 #  define WIN32
+#endif
+
+#if defined(_WIN32_WCE)
+#  ifndef WIN32         /* WinCE is treated as a variant of the Win32 API */
+#    define WIN32
+#  endif
+#  ifndef UNICODE       /* WinCE requires UNICODE wide character support */
+#    define UNICODE
+#  endif
 #endif
 
 #ifdef __COMPILER_KCC__
@@ -178,11 +197,12 @@ freely, subject to the following restrictions:
 #  define MACOS
 #endif
 
-/* use prototypes and ANSI libraries if __STDC__, or Microsoft or Borland C, or
- * Silicon Graphics, or Convex?, or IBM C Set/2, or GNU gcc/emx, or Watcom C,
- * or Macintosh, or Windows NT, or Sequent, or Atari or IBM RS/6000.
+/* use prototypes and ANSI libraries if __STDC__, or MS-DOS, or OS/2, or Win32,
+ * or IBM C Set/2, or Borland C, or Watcom C, or GNU gcc (emx or Cygwin),
+ * or Macintosh, or Sequent, or Atari, or IBM RS/6000, or Silicon Graphics,
+ * or Convex?, or BeOS.
  */
-#if (defined(__STDC__) || defined(MSDOS) || defined(WIN32) || defined(__EMX__))
+#if (defined(__STDC__) || defined(MSDOS) || defined(OS2) || defined(WIN32))
 #  ifndef PROTO
 #    define PROTO
 #  endif
@@ -191,6 +211,14 @@ freely, subject to the following restrictions:
 #  endif
 #endif
 #if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
+#  ifndef PROTO
+#    define PROTO
+#  endif
+#  ifndef MODERN
+#    define MODERN
+#  endif
+#endif
+#if (defined(__EMX__) || defined(__CYGWIN__))
 #  ifndef PROTO
 #    define PROTO
 #  endif
@@ -264,7 +292,7 @@ freely, subject to the following restrictions:
 #  endif
 #  include <windows.h>
 #  include "windll/structs.h"
-#  ifdef IZ_HASDEFINEd_WIN32LEAN
+#  ifdef IZ_HASDEFINED_WIN32LEAN
 #    undef WIN32_LEAN_AND_MEAN
 #    undef IZ_HASDEFINED_WIN32LEAN
 #  endif
@@ -434,6 +462,9 @@ typedef struct _UzpOpts {
     int overwrite_all;  /* -o: OK to overwrite files without prompting */
 #endif /* !FUNZIP */
     int qflag;          /* -q: produce a lot less output */
+#ifdef TANDEM
+    int rflag;          /* -r: remove file extensions */
+#endif
 #ifndef FUNZIP
 #if (defined(MSDOS) || defined(FLEXOS) || defined(OS2) || defined(WIN32))
     int sflag;          /* -s: convert spaces in filenames to underscores */
@@ -451,9 +482,10 @@ typedef struct _UzpOpts {
     int V_flag;         /* -V: don't strip VMS version numbers */
 #if (defined(__BEOS__) || defined(TANDEM) || defined(THEOS) || defined(UNIX))
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
-#endif
+#else
 #if (defined(OS2) || defined(VMS) || defined(WIN32))
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
+#endif
 #endif
     int zflag;          /* -z: display the zipfile comment (only, for unzip) */
 #if (!defined(RISCOS) && !defined(CMS_MVS) && !defined(TANDEM))

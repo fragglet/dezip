@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -31,6 +31,8 @@
              getNTfiletime()
              SetFileSize()
              close_outfile()
+             defer_dir_attribs()
+             set_direc_attribs()
              stamp_file()
              isfloppy()
              NTQueryVolInfo()
@@ -42,6 +44,7 @@
              map2fat()
              checkdir()
              dateformat()
+             dateseparator()
              version()
              screensize()
              zstat_win32()
@@ -102,11 +105,33 @@
 #  endif /* ?HAVE_WORKING_DIRENT_H */
 #endif /* !SFX */
 
+#ifdef SET_DIR_ATTRIB
+typedef struct NTdirattr {      /* struct for holding unix style directory */
+    struct NTdirattr *next;     /*  info until can be sorted and set at end */
+    char *fn;                   /* filename of directory */
+    FILETIME Modft;    /* File time type defined in NT, `last modified' time */
+    FILETIME Accft;    /* NT file time type, `last access' time */
+    FILETIME Creft;    /* NT file time type, `file creation' time */
+    int gotTime;
+    unsigned perms;             /* same as min_info.file_attr */
+#ifdef NTSD_EAS
+    unsigned SDlen;             /* length of SD data in buf */
+#endif
+    char buf[1];                /* buffer stub for directory SD and name */
+} NTdirattr;
+#define NtAtt(d)  ((NTdirattr *)d)    /* typecast shortcut */
+#endif /* SET_DIR_ATTRIB */
+
 
 /* Function prototypes */
 #ifdef NTSD_EAS
    static int  SetSD(__GPRO__ char *path, PVOLUMECAPS VolumeCaps,
                      uch *eb_ptr, unsigned eb_len);
+#ifdef NTSD_DEV /* under construction... */
+   static int  FindSDExtraFields(__GPRO__ char *path,
+                                 uch *ef_ptr, unsigned ef_len,
+                                 uch **ebSD_ptr, unsigned *ebSD_len);
+#endif
    static int  EvalExtraFields(__GPRO__ char *path, uch *ef_ptr,
                                unsigned ef_len);
 #endif
@@ -361,6 +386,102 @@ static int SetSD(__G__ path, VolumeCaps, eb_ptr, eb_len)
 
 
 
+#ifdef NTSD_DEV /* under construction... */
+/*********************************/   /* scan extra fields for something */
+/*  Function FindSDExtraFields() */   /*  we happen to know */
+/*********************************/
+
+static int FindSDExtraFields(__G__ path, ef_ptr, ef_len, ebSD_ptr, ebSD_len)
+    __GDEF
+    char *path;
+    uch *ef_ptr;
+    unsigned ef_len;
+    uch **ebSD_ptr;
+    unsigned *ebSD_len;
+{
+    int rc = FALSE;
+
+    if (!uO.X_flag)
+        return FALSE;  /* user said don't process ACLs; for now, no other
+                          extra block types are handled here */
+
+    while (ef_len >= EB_HEADSIZE)
+    {
+        unsigned eb_id = makeword(EB_ID + ef_ptr);
+        unsigned eb_len = makeword(EB_LEN + ef_ptr);
+
+        if (eb_len > (ef_len - EB_HEADSIZE)) {
+            /* discovered some extra field inconsistency! */
+            Trace((stderr,
+              "EvalExtraFields: block length %u > rest ef_size %u\n", eb_len,
+              ef_len - EB_HEADSIZE));
+            break;
+        }
+
+        switch (eb_id)
+        {
+            /* process security descriptor extra data if:
+                 Caller is WinNT AND
+                 Target local/remote drive supports acls AND
+                 Target file is not a directory (else we defer processing
+                   until later)
+             */
+            case EF_NTSD:
+                if (!IsWinNT())
+                    break; /* OS not capable of handling NTFS attributes */
+
+                if (eb_len < EB_NTSD_L_LEN)
+                    break; /* not a valid NTSD extra field */
+
+                /* check if we know how to handle this version */
+                if (*(ef_ptr + (EB_HEADSIZE+EB_NTSD_VERSION))
+                    > (uch)EB_NTSD_MAX_VER)
+                    break;
+
+                *ebSD_ptr = ef_ptr;
+                *ebSD_len = eb_len;
+                rc = TRUE;
+                break;
+
+#ifdef DEBUG
+            case EF_OS2:
+            case EF_AV:
+            case EF_PKVMS:
+            case EF_PKW32:
+            case EF_PKUNIX:
+            case EF_IZVMS:
+            case EF_IZUNIX:
+            case EF_IZUNIX2:
+            case EF_TIME:
+            case EF_MAC3:
+            case EF_JLMAC:
+            case EF_ZIPIT:
+            case EF_VMCMS:
+            case EF_MVS:
+            case EF_ACL:
+            case EF_BEOS:
+            case EF_QDOS:
+            case EF_AOSVS:
+            case EF_SPARK:
+            case EF_MD5:
+            case EF_ASIUNIX:
+                break;          /* shut up for other known e.f. blocks  */
+#endif /* DEBUG */
+
+            default:
+                Trace((stderr,
+                  "EvalExtraFields: unknown extra field block, ID=%u\n",
+                  eb_id));
+                break;
+        }
+
+        ef_ptr += (eb_len + EB_HEADSIZE);
+        ef_len -= (eb_len + EB_HEADSIZE);
+    }
+
+    return rc;
+}
+#endif /* NTSD_DEV, under construction... */
 /********************************/   /* scan extra fields for something */
 /*  Function EvalExtraFields()  */   /*  we happen to know */
 /********************************/
@@ -419,18 +540,8 @@ static int EvalExtraFields(__G__ path, ef_ptr, ef_len)
                     rc = PK_OK;
                 break;
 
-#if 0
-            /* perhaps later we can add support for unzipping OS/2 EAs to NT */
-            case EF_OS2:
-                rc = SetEAs(__G__ path, ef_ptr);
-                break;
-
-#else /* ! 0 */
 #ifdef DEBUG
             case EF_OS2:
-#endif /* DEBUG */
-#endif /* ? 0 */
-#ifdef DEBUG
             case EF_AV:
             case EF_PKVMS:
             case EF_PKW32:
@@ -550,7 +661,7 @@ static int show_NTFileTime(FILE *hdo, char *TTmsg, int isloc, FILETIME *pft)
 #else
 #define FTTrace(x)
 #endif /* DEBUG_TIME */
-/* end of TIME_DEBUG insertion */
+/* end of DEBUG_TIME insertion */
 
 #if (defined(USE_EF_UT_TIME) || defined(NT_TZBUG_WORKAROUND) || \
      defined(TIMESTAMP))
@@ -1159,7 +1270,7 @@ void close_outfile(__G)
 
     if ( hFile == INVALID_HANDLE_VALUE )
         Info(slide, 1, ((char *)slide,
-          "\nCreateFile error %d when trying set file time\n",
+          "\nCreateFile() error %d when trying set file time\n",
           (int)GetLastError()));
     else {
         if (gotTime) {
@@ -1179,6 +1290,157 @@ void close_outfile(__G)
 #undef Ansi_Fname
 
 } /* end function close_outfile() */
+
+
+
+
+#ifdef SET_DIR_ATTRIB
+/* messages of code for setting directory attributes */
+static ZCONST char Far DirlistUidGidFailed[] =
+  "warning:  cannot set UID %d and/or GID %d for %s\n";
+static ZCONST char Far DirlistUtimeFailed[] =
+  "warning:  cannot set modification, access times for %s\n";
+#  ifndef NO_CHMOD
+  static ZCONST char Far DirlistChmodFailed[] =
+    "warning:  cannot set permissions for %s\n";
+#  endif
+
+
+int defer_dir_attribs(__G__ pd)
+    __GDEF
+    direntry **pd;
+{
+    NTdirattr *d_entry;
+#ifdef NTSD_EAS
+#ifdef NTSD_DEV /* under construction... */
+    uch *ebSDptr;
+#endif /* NTSD_DEV, under construction... */
+    unsigned ebSDlen;
+#endif
+
+    /* Win9x does not support setting directory time stamps. */
+    if (!IsWinNT()) {
+        *pd = (direntry *)NULL;
+        return PK_OK;
+    }
+
+#ifdef NTSD_EAS
+    ebSDlen = 0;
+    /* set extended attributes from extra fields */
+    if (G.extra_field) { /* zipfile e.f. may have extended attribs */
+#ifdef NTSD_DEV /* under construction... */
+        if (!FindSDExtraFields(__G__ G.filename, G.extra_field,
+                               G.lrec.extra_field_length,
+                               &ebSDptr, &ebSDlen)) {
+            ebSDlen = 0;
+        }
+#if 0
+        if (err == IZ_EF_TRUNC) {
+            if (uO.qflag)
+                Info(slide, 1, ((char *)slide, "%-22s ",
+                  FnFilter1(G.filename)));
+            Info(slide, 1, ((char *)slide, LoadFarString(TruncNTSD),
+              makeword(G.extra_field+2)-10, uO.qflag? "\n":""));
+        }
+#endif
+#else /* old legacy code, to be replaced by construction above [SPC] */
+        int err = EvalExtraFields(__G__ G.filename, G.extra_field,
+                                  G.lrec.extra_field_length);
+
+        if (err == IZ_EF_TRUNC) {
+            if (uO.qflag)
+                Info(slide, 1, ((char *)slide, "%-22s ",
+                  FnFilter1(G.filename)));
+            Info(slide, 1, ((char *)slide, LoadFarString(TruncNTSD),
+              makeword(G.extra_field+2)-10, uO.qflag? "\n":""));
+        }
+#endif /* ?NTSD_DEV, under construction... */
+    }
+#endif /* NTSD_EAS */
+
+    d_entry = (NTdirattr *)malloc(sizeof(NTdirattr)
+#ifdef NTSD_EAS
+                                  + ebSDlen
+#endif
+                                  + strlen(G.filename));
+    *pd = (direntry *)d_entry;
+    if (d_entry == (NTdirattr *)NULL) {
+        return PK_MEM;
+    }
+#ifdef NTSD_EAS
+#ifdef NTSD_DEV /* under construction... */
+    if (ebSDlen > 0)
+        memcpy(d_entry->buf, ebSDptr, ebSDlen);
+#endif /* NTSD_DEV, under construction... */
+    d_entry->fn = d_entry->buf + ebSDlen;
+#else
+    d_entry->fn = d_entry->buf;
+#endif
+    strcpy(d_entry->fn, G.filename);
+
+    d_entry->perms = G.pInfo->file_attr;
+
+    d_entry->gotTime = getNTfiletime(__G__ &(d_entry->Modft),
+                                     &(d_entry->Accft), &(d_entry->Creft));
+    return PK_OK;
+} /* end function defer_dir_attribs() */
+
+
+int set_direc_attribs(__G__ d)
+    __GDEF
+    direntry *d;
+{
+    int errval;
+    HANDLE hFile;      /* File handle defined in NT    */
+#ifdef __RSXNT__
+    char *ansi_name;
+#endif
+
+    /* Win9x does not support setting directory time stamps. */
+    if (!IsWinNT())
+        return PK_OK;
+
+    errval = PK_OK;
+#ifdef __RSXNT__        /* RSXNT/EMX C rtl uses OEM charset */
+    ansi_name = (char *)alloca(strlen(d->fn) + 1);
+    INTERN_TO_ISO(d->fn, ansi_name);
+#   define Ansi_Dirname  ansi_name
+#else
+#   define Ansi_Dirname  d->fn
+#endif
+
+    hFile = CreateFile(Ansi_Dirname, GENERIC_WRITE,
+                       FILE_SHARE_READ|FILE_SHARE_WRITE, NULL,
+                       OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        Info(slide, 1, ((char *)slide,
+          "\nCreateFile() error %d when trying set file time\n",
+          (int)GetLastError()));
+        if (!errval)
+            errval = PK_WARN;
+    } else {
+        if (NtAtt(d)->gotTime) {
+            FILETIME *pModft = (NtAtt(d)->gotTime & EB_UT_FL_MTIME)
+                              ? &(NtAtt(d)->Modft) : NULL;
+            FILETIME *pAccft = (NtAtt(d)->gotTime & EB_UT_FL_ATIME)
+                              ? &(NtAtt(d)->Accft) : NULL;
+            FILETIME *pCreft = (NtAtt(d)->gotTime & EB_UT_FL_CTIME)
+                              ? &(NtAtt(d)->Creft) : NULL;
+
+            if (!SetFileTime(hFile, pCreft, pAccft, pModft)) {
+                Info(slide, 0, ((char *)slide, "\nSetFileTime failed: %d\n",
+                  (int)GetLastError()));
+                if (!errval)
+                    errval = PK_WARN;
+            }
+        }
+        CloseHandle(hFile);
+    }
+
+    return errval;
+} /* end function set_direc_attribs() */
+
+#endif /* SET_DIR_ATTRIB */
 
 
 
@@ -1588,72 +1850,69 @@ int mapname(__G__ renamed)
     for (; (workch = (uch)*cp) != 0; INCSTR(cp)) {
 
         switch (workch) {
-        case '/':             /* can assume -j flag not given */
-            *pp = '\0';
-            maskDOSdevice(__G__ pathcomp);
-            if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                 > MPN_INF_TRUNC)
-                return error;
-            pp = pathcomp;    /* reset conversion buffer for next piece */
-            lastsemi = NULL;  /* leave directory semi-colons alone */
-            break;
-
-        case '.':
-            if (pp == pathcomp) {       /* nothing appended yet... */
-                if (cp[1] == '/') {     /* don't bother appending "./" to */
-                    ++cp;               /*  the path: skip behind the '/' */
-                    break;
-                } else if (!uO.ddotflag && cp[1] == '.' && cp[2] == '/') {
-                    /* "../" dir traversal detected */
-                    cp += 2;            /*  skip over behind the '/' */
-                    killed_ddot = TRUE; /*  set "show message" flag */
-                    break;
+            case '/':             /* can assume -j flag not given */
+                *pp = '\0';
+                maskDOSdevice(__G__ pathcomp);
+                if (strcmp(pathcomp, ".") == 0) {
+                    /* don't bother appending "./" to the path */
+                    *pathcomp = '\0';
+                } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+                    /* "../" dir traversal detected, skip over it */
+                    *pathcomp = '\0';
+                    killed_ddot = TRUE;     /* set "show message" flag */
                 }
-            }
-            *pp++ = '.';
-            break;
+                /* when path component is not empty, append it now */
+                if (*pathcomp != '\0' &&
+                    ((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
+                    return error;
+                pp = pathcomp;    /* reset conversion buffer for next piece */
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
+                break;
 
-        case ':':             /* drive names not stored in zipfile, */
-        case '<':             /*  so no colons allowed */
-        case '>':             /* no redirection symbols allowed either */
-        case '|':             /* no pipe signs allowed */
-        case '"':             /* no double quotes allowed */
-        case '?':             /* no wildcards allowed */
-        case '*':
-            *pp++ = '_';      /* these rules apply equally to FAT and NTFS */
-            break;
-        case ';':             /* start of VMS version? */
-            lastsemi = pp;    /* remove VMS version later... */
-            *pp++ = ';';      /*  but keep semicolon for now */
-            break;
+            case ':':             /* drive spec not stored, so no colon allowed */
+            case '\\':            /* '\\' may come as normal filename char (not */
+            case '<':             /*  dir sep char!) from unix-like file system */
+            case '>':             /* no redirection symbols allowed either */
+            case '|':             /* no pipe signs allowed */
+            case '"':             /* no double quotes allowed */
+            case '?':             /* no wildcards allowed */
+            case '*':
+                *pp++ = '_';      /* these rules apply equally to FAT and NTFS */
+                break;
+            case ';':             /* start of VMS version? */
+                lastsemi = pp;    /* remove VMS version later... */
+                *pp++ = ';';      /*  but keep semicolon for now */
+                break;
 
 #ifdef ACORN_FTYPE_NFS
-        case ',':             /* NFS filetype extension */
-            lastcomma = pp;
-            *pp++ = ',';      /* keep for now; may need to remove */
-            break;            /*  later, if requested */
+            case ',':             /* NFS filetype extension */
+                lastcomma = pp;
+                *pp++ = ',';      /* keep for now; may need to remove */
+                break;            /*  later, if requested */
 #endif
 
-        case ' ':             /* keep spaces unless specifically */
-            /* NT cannot create filenames with spaces on FAT volumes */
-            if (uO.sflag || IsVolumeOldFAT(__G__ G.filename))
-                *pp++ = '_';
-            else
-                *pp++ = ' ';
-            break;
+            case ' ':             /* keep spaces unless specifically */
+                /* NT cannot create filenames with spaces on FAT volumes */
+                if (uO.sflag || IsVolumeOldFAT(__G__ G.filename))
+                    *pp++ = '_';
+                else
+                    *pp++ = ' ';
+                break;
 
-        default:
-            /* allow European characters in filenames: */
-            if (isprint(workch) || workch >= 127)
+            default:
+                /* allow European characters in filenames: */
+                if (isprint(workch) || workch >= 127)
 #ifdef _MBCS
-            {
-                memcpy(pp, cp, CLEN(cp));
-                INCSTR(pp);
-            }
+                {
+                    memcpy(pp, cp, CLEN(cp));
+                    INCSTR(pp);
+                }
 #else
-                *pp++ = (char)workch;
+                    *pp++ = (char)workch;
 #endif
         } /* end switch */
+
     } /* end while loop */
 
     /* Show warning when stripping insecure "parent dir" path components */
@@ -1700,23 +1959,18 @@ int mapname(__G__ renamed)
                       (int)GetLastError(), FnFilter1(G.filename)));
             }
 
-#ifdef NTSD_EAS
-            /* set extra fields, both stored-in-zipfile and .LONGNAME flavors */
-            if (G.extra_field) { /* zipfile e.f. may have extended attribs */
-                int err = EvalExtraFields(__G__ G.filename, G.extra_field,
-                                          G.lrec.extra_field_length);
-
-                if (err == IZ_EF_TRUNC) {
-                    if (uO.qflag)
-                        Info(slide, 1, ((char *)slide, "%-22s ",
-                          FnFilter1(G.filename)));
-                    Info(slide, 1, ((char *)slide, LoadFarString(TruncNTSD),
-                      makeword(G.extra_field+2)-10, uO.qflag? "\n":""));
-                }
-            }
-#endif /* NTSD_EAS */
             /* set dir time (note trailing '/') */
             return (error & ~MPN_MASK) | MPN_CREATED_DIR;
+        } else if (IS_OVERWRT_ALL) {
+            /* overwrite attributes of existing directory on user's request */
+
+            /* set file attributes: */
+            if(G.pInfo->file_attr & (0x7F & ~FILE_ATTRIBUTE_DIRECTORY)) {
+                if (!SetFileAttributes(Ansi_Fname, G.pInfo->file_attr & 0x7F))
+                    Info(slide, 1, ((char *)slide,
+                      "\nwarning (%d): could not set file attributes for %s\n",
+                      (int)GetLastError(), FnFilter1(G.filename)));
+            }
         }
         /* dir existed already; don't look for data to extract */
         return (error & ~MPN_MASK) | MPN_INF_SKIP;
@@ -2349,6 +2603,22 @@ int dateformat()
 }
 
 
+/****************************/
+/* Function dateseparator() */
+/****************************/
+
+char dateseparator()
+{
+  TCHAR df[2];  /* use only if it is one character */
+
+  if ((GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDATE, df, 2) != 0) &&
+      (df[0] != '\0'))
+    return df[0];
+  else
+    return '-';
+}
+
+
 #ifndef WINDLL
 
 /************************/
@@ -2398,26 +2668,28 @@ void version(__G)
       " 2.0",
 #  elif (__BORLANDC__ == 0x0400)
       " 3.0",
-#  elif (__BORLANDC__ == 0x0410)   /* __BCPLUSPLUS__ = 0x0310 */
+#  elif (__BORLANDC__ == 0x0410)   /* __TURBOC__ = 0x0310 */
       " 3.1",
-#  elif (__BORLANDC__ == 0x0452)   /* __BCPLUSPLUS__ = 0x0320 */
+#  elif (__BORLANDC__ == 0x0452)   /* __TURBOC__ = 0x0320 */
       " 4.0 or 4.02",
-#  elif (__BORLANDC__ == 0x0460)   /* __BCPLUSPLUS__ = 0x0340 */
+#  elif (__BORLANDC__ == 0x0460)   /* __TURBOC__ = 0x0340 */
       " 4.5",
-#  elif (__BORLANDC__ == 0x0500)   /* __BCPLUSPLUS__ = 0x0340 */
+#  elif (__BORLANDC__ == 0x0500)   /* __TURBOC__ = 0x0340 */
       " 5.0",
-#  elif (__BORLANDC__ == 0x0520)   /* __BCPLUSPLUS__ = 0x0520 */
+#  elif (__BORLANDC__ == 0x0520)   /* __TURBOC__ = 0x0520 */
       " 5.2 (C++ Builder 1.0)",
-#  elif (__BORLANDC__ == 0x0530)   /* __BCPLUSPLUS__ = 0x0530 */
+#  elif (__BORLANDC__ == 0x0530)   /* __TURBOC__ = 0x0530 */
       " 5.3 (C++ Builder 3.0)",
-#  elif (__BORLANDC__ == 0x0540)   /* __BCPLUSPLUS__ = 0x0540 */
+#  elif (__BORLANDC__ == 0x0540)   /* __TURBOC__ = 0x0540 */
       " 5.4 (C++ Builder 4.0)",
 #  elif (__BORLANDC__ == 0x0550)   /* __TURBOC__ = 0x0550 */
       " 5.5 (C++ Builder 5.0)",
 #  elif (__BORLANDC__ == 0x0551)   /* __TURBOC__ = 0x0551 */
       " 5.5.1 (C++ Builder 5.0.1)",
+#  elif (__BORLANDC__ == 0x0560)   /* __TURBOC__ = 0x0560 */
+      " 6.0 (C++ Builder 6.0)",
 #  else
-      " later than 5.5.1",
+      " later than 6.0",
 #  endif
 #elif defined(__LCC__)
       "LCC-Win32", "",

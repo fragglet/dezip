@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -43,6 +43,7 @@
 extern "C" {
 #endif
 
+#ifdef POCKET_UNZIP
 //******************************************************************************
 //***** Types and Structures
 //******************************************************************************
@@ -95,11 +96,16 @@ typedef struct _DECRYPT_INFO {
 //***** Function Prototypes
 //******************************************************************************
 
+// Our exposed interface functions to the Info-ZIP core.
 int  DoListFiles(LPCSTR szZipFile);
 BOOL DoExtractOrTestFiles(LPCSTR szZipFile, EXTRACT_INFO *pei);
 int  DoGetComment(LPCSTR szZipFile);
 BOOL SetExtractToDirectory(LPTSTR szDirectory);
 
+// "Internal" callbacks from Info-ZIP code.
+// (The "official" callback functions are declared in the UnZip DLL headers,
+// see "unzip.h".)
+void WINAPI Wiz_NoPrinting(int f);
 int  win_fprintf(zvoid *pG, FILE *file, unsigned int dwCount, char far *buffer);
 
 
@@ -124,6 +130,7 @@ GLOBAL_DECLARE jmp_buf         dll_error_return;
 GLOBAL_DECLARE LPDCL           lpDCL           GLOBAL_INIT(NULL);
 GLOBAL_DECLARE LPUSERFUNCTIONS lpUserFunctions GLOBAL_INIT(NULL);
 
+#endif // POCKET_UNZIP
 
 #ifdef __cplusplus
 } // extern "C"

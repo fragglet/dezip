@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -30,6 +30,7 @@
 #include <windowsx.h>
 
 #include "../windll/structs.h"
+#include "../windll/decs.h"
 
 /* Defines */
 
@@ -47,7 +48,6 @@ extern int hFile;                 /* file handle             */
 
 /* Global functions */
 
-extern _DLL_UNZIP pWiz_SingleEntryUnzip;
 int WINAPI DisplayBuf(LPSTR, unsigned long);
 
 /* Procedure Calls */

@@ -45,7 +45,7 @@ Contents of the "windll" subdirectory for UnZip 5.4 and later:
 
 
 If you want to build the UnZip DLL or the WinGUI SFX stub from the command
-line, you mai use the MSC Makefile supplied in the subdirectory of the
+line, you may use the MSC Makefile supplied in the subdirectory of the
 Win32 command line port.
 
 Note that Borland C++ 5.0 is full of bugs; version 4.5 or 5.01 is recommended
@@ -54,3 +54,8 @@ is required to avoid crashes (possibly due to a bug in the stat() function in
 the normal Borland compiler).  This does have the advantage of giving you a
 smaller code size than the 4.52 compiler.  Borland C++ 5.01 has resolved many
 of the problems seen with 5.0 and can be used reliably.
+The UnZip DLL and SFXWiz have been successfully built with Borland C++ 5.5.1
+from the command line. However, we do not currently have the resources to
+supply project files for the Borland IDE environment (C Builder 5.x - 6.x).
+For compilation with Borland C++, please use the appropiate targets supplied
+in the Borland Makefile in the Win32 subdirectory.

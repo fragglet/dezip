@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -515,49 +515,41 @@ int mapname(__G__ renamed)
                     last_dot = (char *)NULL;
                 }
 #endif
-                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                     > MPN_INF_TRUNC)
+                if (strcmp(pathcomp, ".") == 0) {
+                    /* don't bother appending "./" to the path */
+                    *pathcomp = '\0';
+                } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+                    /* "../" dir traversal detected, skip over it */
+                    *pathcomp = '\0';
+                    killed_ddot = TRUE;     /* set "show message" flag */
+                }
+                /* when path component is not empty, append it now */
+                if (*pathcomp != '\0' &&
+                    ((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
                 break;
 
-            case '.':
-                if (pp == pathcomp) {     /* nothing appended yet... */
-                    if (*cp == '/') {     /* don't bother appending "./" to */
-                        ++cp;             /*  the path: skip behind the '/' */
-                    } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
-                        if (!uO.ddotflag) {  /* "../" dir traversal detected */
-                            cp += 2;         /*  skip over behind the '/' */
-                            killed_ddot = TRUE;
-                        } else {
-                            *pp++ = '.';  /*  add first dot, */
-                            *pp++ = '.';  /*  second dot, and */
-                            ++cp;         /*  skip over to the '/' */
-                        }
 #ifdef MAYBE_PLAIN_FAT
+            case '.':
 # ifdef USE_LFN
-                    } else if (use_lfn) { /* LFN filenames may contain many */
-                        *pp++ = '.';      /*  dots, so simply copy it ... */
-# endif
-                    } else {              /* null filename body not allowed */
-                        *pp++ = '_';      /*  for FAT, so map .exrc -> _exrc */
-                    }                     /*  (_.exr would keep max 3 chars) */
-# ifdef USE_LFN
-                } else if (use_lfn) {     /* LFN filenames may contain many */
-                    *pp++ = '.';          /*  dots, so simply copy it ... */
-# endif
-                } else {                  /* found dot within path component */
-                    last_dot = pp;        /*  point at last dot so far... */
-                    *pp++ = '_';          /*  convert to underscore for now */
-                }
-#else /* !MAYBE_PLAIN_FAT */
-                    } else
-                        *pp++ = '.';
+                if (use_lfn) {          /* LFN filenames may contain many */
+                    *pp++ = '.';        /*  dots, so simply copy it ... */
                 } else
-                    *pp++ = '.';
-#endif /* ?MAYBE_PLAIN_FAT */
+# endif
+                if (pp == pathcomp && *cp == '.' && cp[1] == '/') {
+                    /* nothing appended yet.., and found "../" */
+                    *pp++ = '.';        /*  add first dot, */
+                    *pp++ = '.';        /*  second dot, and */
+                    ++cp;               /*  skip over to the '/' */
+                } else {                /* found dot within path component */
+                    last_dot = pp;      /*  point at last dot so far... */
+                    *pp++ = '_';        /*  convert to underscore for now */
+                }
                 break;
+#endif /* MAYBE_PLAIN_FAT */
 
             /* drive names are not stored in zipfile, so no colons allowed;
              *  no brackets or most other punctuation either (all of which
@@ -1930,7 +1922,7 @@ static ptr_table table[MAX_PTR];
  * a protected system like OS/2. Use Microsoft C instead.
  */
 
-zvoid far *zcalloc (unsigned items, unsigned size)
+zvoid far *zcalloc(unsigned items, unsigned size)
 {
     zvoid far *buf;
     ulg bsize = (ulg)items*size;
@@ -1951,7 +1943,7 @@ zvoid far *zcalloc (unsigned items, unsigned size)
     return buf;
 }
 
-zvoid zcfree (zvoid far *ptr)
+zvoid zcfree(zvoid far *ptr)
 {
     int n;
     if (*(ush*)&ptr != 0) { /* object < 64K */
@@ -1979,12 +1971,12 @@ zvoid zcfree (zvoid far *ptr)
 #  define _hfree   hfree
 #endif
 
-zvoid far *zcalloc (unsigned items, unsigned size)
+zvoid far *zcalloc(unsigned items, unsigned size)
 {
     return (zvoid far *)_halloc((long)items, size);
 }
 
-zvoid zcfree (zvoid far *ptr)
+zvoid zcfree(zvoid far *ptr)
 {
     _hfree((void huge *)ptr);
 }

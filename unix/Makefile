@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.5                                                16 February 2002
+# Version:  5.51                                                    01 Mar 2004
 #==============================================================================
 
 
@@ -47,7 +47,7 @@ LD = $(CC)#	must match, else "unresolved symbol:  ___main" is possible)
 AS = as
 LOC = $(LOCAL_UNZIP)
 AF = $(LOC)
-CF = -O -I. $(LOC)
+CF = -O -I. -DUNIX $(LOC)
 LF = -o unzip
 LF2 = -s
 
@@ -124,9 +124,9 @@ DOCS = funzip.txt unzip.txt unzipsfx.txt zipgrep.txt zipinfo.txt
 SYSTEMSG = generic generic2 generic3 generic_zlib generic_shlib
 SYSTEMS1 = 386i 3Bx 7300 7300_gcc aix aix_rt amdahl amdahl_eft apollo aviion
 SYSTEMS2 = bsd bsdi bsdi_noasm bull coherent convex cray cray_opt cyber_sgi
-SYSTEMS3 = dec dnix encore eta freebsd gcc gould hk68 hp hpux isc isc_gcc
-SYSTEMS4 = isi linux linux_dos linux_noasm linux_shlib linux_shlibz lynx
-SYSTEMS5 = maxosx macosx_gcc minix mips mpeix next next10 next2x next3x
+SYSTEMS3 = cygwin dec dnix encore eta freebsd gcc gould hk68 hp hpux
+SYSTEMS4 = isc isc_gcc isi linux linux_dos linux_noasm linux_shlib linux_shlibz
+SYSTEMS5 = lynx macosx macosx_gcc minix mips mpeix next next10 next2x next3x
 SYSTEMS6 = nextfat osf1 pixel ptx pyramid qnxnto realix regulus rs6000 sco
 SYSTEMS7 = sco_dos sco_sl sco_x286 sequent sgi solaris solaris_pkg stardent
 SYSTEMS8 = stellar sunos3 sunos4 sysv sysv_gcc sysv6300 tahoe ti_sysv ultrix
@@ -385,9 +385,9 @@ crc_gcc.pic.o:	crc_i386.S					# 32bit, GNU AS
 	$(AS) $(AF) -x assembler-with-cpp -c -o $@ crc_i386.S
 
 crc_sysv$O:	crc_i386.S					# 32bit, SysV AS
-	$(CC) -E $(AF) crc_i386.S >crc_i386.s
-	$(AS) -o $@ crc_i386.s
-	$(RM) crc_i386.s
+	$(CC) -E $(AF) crc_i386.S > crc_i386s.s
+	$(AS) -o $@ crc_i386s.s
+	$(RM) crc_i386s.s
 
 msdos$O:	msdos/msdos.c $(UNZIP_H) unzvers.h		# DOS only
 	$(CC) -c $(CF) msdos/msdos.c
@@ -424,7 +424,7 @@ clean:
 	@echo ""
 	rm -f $(UNZIPS) $(OBJS) $(OBJF) $(OBJX) api$O apihelp$O crc_gcc$O \
 	  crc_sysv$O unzipstb$O crypt_.c extract_.c globals_.c inflate_.c \
-	  ttyio_.c crc_i386.s msdos_.c process_.c unix_.c unzipsfx.c
+	  ttyio_.c crc_i386s.s msdos_.c process_.c unix_.c unzipsfx.c
 	rm -rf ./$(PKGDIR)
 
 # Package generation interface (by J.Bush).  Originally tested under Sun
@@ -566,7 +566,7 @@ generic_shlib:	unix_make
 	@echo\
  'which is UnZip linked with the DLL).  This target is an example only.'
 	@echo ""
-	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -fPIC -DDLL $(LOC)"
+	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -fPIC -DDLL -DUNIX $(LOC)"
 	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.4 $(OBJSDLL)
 	$(RM) libunzip.so.0 libunzip.so
 	$(LN) -s libunzip.so.0.4 libunzip.so.0
@@ -681,13 +681,13 @@ apollo:		unix_make
 bsdi:		unix_make
 	@echo 'NOTE:  use bsdi_noasm target for non-Intel BSD/OS compiles.'
 	$(MAKE) unzips CC=gcc2 LD=shlicc2 AS=gcc2\
-	 CF="-O3 -Wall -I. -DASM_CRC -DBSD $(LOC)" CRC32=crc_gcc
+	 CF="-O3 -Wall -I. -DASM_CRC -DUNIX -DBSD $(LOC)" CRC32=crc_gcc
 
 # BSDI BSD/OS
 bsdi_noasm:	unix_make
 #	@echo 'NOTE:  use bsd target for non-Intel BSD/OS compiles.'
 	$(MAKE) unzips CC=gcc2 LD=shlicc2 AS=gcc2\
-	 CF="-O3 -Wall -I. -DBSD $(LOC)"
+	 CF="-O3 -Wall -I. -DUNIX -DBSD $(LOC)"
 
 # Coherent 3.x/4.x, Mark Williams C.  ``For Coherent's CC, it needs either
 # -T0 or -T150000 (or bigger) added to the CFLAGS, otherwise the compiler
@@ -706,6 +706,15 @@ cyber_sgi:	unix_make
 	$(MAKE) unzips CF="$(CF) -I/usr/include/bsd"\
 	 LF="-lbsd $(LF)" SL="-lbsd $(SL)"
 
+# The Cygwin environment on a Win32 system, treated as an UNIX emulator.
+# This port does not offer full access to the Windows file system.
+# Info-ZIP recommends using "win32/Makefile.gcc" instead.
+cygwin:		unix_make
+	$(MAKE) unzips CC=gcc LD=gcc AS=gcc\
+	 CF="-O3 -I. -DUNIX -DFORCE_UNIX_OVER_WIN32 -DASM_CRC $(LOC)"\
+	 AF="-Di386 $(AF)" CRC32=crc_gcc\
+	 E=".exe" CP="cp" LN="ln -s"
+
 # 680x0, DIAB dnix 5.2/5.3 (a Swedish System V clone)
 #
 # Options for the dnix cc:
@@ -719,7 +728,7 @@ dnix:		unix_make
 freebsd:		unix_make
 	@echo 'NOTE:  use bsd target for non-Intel FreeBSD compiles (if any).'
 	$(MAKE) unzips CC=gcc LD=gcc AS=gcc\
-	 CF="-O3 -Wall -I. -DASM_CRC -DBSD $(LOC)"\
+	 CF="-O3 -Wall -I. -DASM_CRC -DUNIX -DBSD $(LOC)"\
 	 AF="-Di386 $(AF)" CRC32=crc_gcc
 
 # Generic BSDish Unix gcc.  ``The -O3 only works with later versions of gcc;
@@ -823,7 +832,7 @@ linux_shlibz:	unix_make
 
 # LynxOS-x86 2.3.0 and newer, a real-time BSD-like OS; uses gcc.
 lynx:		unix_make
-	$(MAKE) unzips CC=gcc CF="$(CF) -DLynx -DLYNX -DBSD -DUNIX"
+	$(MAKE) unzips CC=gcc CF="$(CF) -DLynx -DLYNX -DBSD"
 
 # Macintosh MacOS X (Unix-compatible enviroment), using standard compiler
 macosx:	unix_make
@@ -843,7 +852,7 @@ minix:		unix_make
 # MPE/iX, the Unix variant for HP 3000 systems.
 mpeix:		unix_make
 	$(MAKE) unzips CC=c89\
-	 CF="$(CF) -DUNIX -D_POSIX_SOURCE -DHAVE_TERMIOS_H -DPASSWD_FROM_STDIN -DNO_PARAM_H"\
+	 CF="$(CF) -D_POSIX_SOURCE -DHAVE_TERMIOS_H -DPASSWD_FROM_STDIN -DNO_PARAM_H"\
 	 LF2=-lbsd CP=cp LN="ln -s"
 
 # NeXT info.
@@ -882,7 +891,7 @@ os390:		unix_make
 	set -x; \
 	$(MAKE) -f unix/Makefile unzips \
 	 CC=c89 LD="\$$(CC) -Wl,EDIT=NO" \
-	 CF="$(CF) -DSYSV -DUNIX -DOS390 -DEBCDIC -DNO_PARAM_H \
+	 CF="$(CF) -DSYSV -DOS390 -DEBCDIC -DNO_PARAM_H \
 	 -D_ALL_SOURCE $(HOST_VERSINFO)" LF2=""
 
 # Sequent Symmetry running Dynix/ptx (sort of SysV.3):  needs to link
@@ -918,7 +927,7 @@ regulus:	unix_make
 
 # IBM RS/6000 under AIX 3.2
 rs6000:		unix_make
-	$(MAKE) unzips CF="$(CF) -DBSD -D_BSD -DUNIX" LF2="-lbsd"
+	$(MAKE) unzips CF="$(CF) -DBSD -D_BSD" LF2="-lbsd"
 
 # SCO cross compile from Unix to DOS. Tested with Xenix/386 and OpenDeskTop.
 # Should work with Xenix/286 as well. (davidsen)  Note that you *must* remove
@@ -954,7 +963,7 @@ sunos3:		unix_make
 
 # Generic System V + GNU C
 sysv_gcc:	unix_make
-	$(MAKE) unzips CC=gcc LD=gcc CF="-O2 -I. -DSYSV $(LOC)" LF2=""
+	$(MAKE) unzips CC=gcc LD=gcc CF="-O2 -I. -DUNIX -DSYSV $(LOC)" LF2=""
 	$(STRIP) $(UNZIPS)
 
 # AT&T 6300+, System V.2 Unix:  run-time out-of-memory error if don't use -Ml;

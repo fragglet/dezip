@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -81,8 +81,21 @@ __inline void DebugOut(LPCTSTR szFormat, ...) {}
 
 #if defined(_WIN32_WCE)
 
+#if defined(__WINCE_CPP)
+   // internal, suppress "import linkage" specifier
+#  define ZCRTIMP
+#else
+   // do not use import linkage specifier either; symbols are provided locally
+#  define ZCRTIMP
+#endif
+
 #ifndef ZeroMemory
 #define ZeroMemory(Destination,Length) memset(Destination, 0, Length)
+#endif
+
+#ifdef _MBCS
+   // WinCE C RTL does not provide the setlocale function
+#  define setlocale(category, locale)
 #endif
 
 // A few forgotten defines in Windows CE's TCHAR.H
@@ -90,53 +103,70 @@ __inline void DebugOut(LPCTSTR szFormat, ...) {}
 #define _stprintf wsprintf
 #endif
 
+#if _WIN32_WCE < 211 //sr551b functions in stdlib CE300
 #ifndef _vsntprintf
 #define _vsntprintf(d,c,f,a) wvsprintf(d,f,a)
 #endif
-
+#ifndef _vsnwprintf
+#define _vsnwprintf(d,c,f,a) wvsprintf(d,f,a)
+#endif
+#endif //end sr551b
 
 //******************************************************************************
 //***** SYS\TYPES.H functions
 //******************************************************************************
 
+#ifndef _OFF_T_DEFINED
 typedef long _off_t;
+#define _OFF_T_DEFINED
+#endif
+#ifndef _TIME_T_DEFINED
 typedef long time_t;
-
+#define _TIME_T_DEFINED
+#endif
 
 //******************************************************************************
 //***** CTYPE.H functions
 //******************************************************************************
-
-_CRTIMP int __cdecl isupper(int);
+#if _WIN32_WCE < 300
+ZCRTIMP int __cdecl isupper(int);
+#endif
 _CRTIMP int __cdecl tolower(int);
-
+// This is a coarse approximation to ASCII isalpha(), it returns TRUE not only
+// on all ASCII letters but also on punctuation chars in the range of 0x40-0x7F
+#define isalpha(c) (((c) & 0xC0) == 0xC0)
 
 //******************************************************************************
 //***** FCNTL.H functions
 //******************************************************************************
 
+#ifndef _O_RDONLY       // do not redefine existing FCNTL.H constants
+
 #define _O_RDONLY 0x0000   // open for reading only
-//#define _O_WRONLY  0x0001   // open for writing only
-//#define _O_RDWR    0x0002   // open for reading and writing
-//#define _O_APPEND  0x0008   // writes done at eof
+#define _O_WRONLY 0x0001   // open for writing only
+#define _O_RDWR   0x0002   // open for reading and writing
+#define _O_APPEND 0x0008   // writes done at eof
 
-//#define _O_CREAT   0x0100   // create and open file
-//#define _O_TRUNC   0x0200   // open and truncate
-//#define _O_EXCL    0x0400   // open only if file doesn't already exist
+#define _O_CREAT  0x0100   // create and open file
+#define _O_TRUNC  0x0200   // open and truncate
+#define _O_EXCL   0x0400   // open only if file doesn't already exist
 
 
-//#define _O_TEXT    0x4000   // file mode is text (translated)
+//# define _O_TEXT    0x4000   // file mode is text (translated)
 #define _O_BINARY 0x8000   // file mode is binary (untranslated)
 
+#endif // _O_RDONLY (and alikes...) undefined
+
+#ifndef O_RDONLY        // do not redefine existing FCNTL.H constants
 
 #define O_RDONLY  _O_RDONLY
-//#define O_WRONLY   _O_WRONLY
-//#define O_RDWR     _O_RDWR
-//#define O_APPEND   _O_APPEND
-//#define O_CREAT    _O_CREAT
-//#define O_TRUNC    _O_TRUNC
-//#define O_EXCL     _O_EXCL
-//#define O_TEXT     _O_TEXT
+#define O_WRONLY  _O_WRONLY
+#define O_RDWR    _O_RDWR
+#define O_APPEND  _O_APPEND
+#define O_CREAT   _O_CREAT
+#define O_TRUNC   _O_TRUNC
+#define O_EXCL    _O_EXCL
+#define O_TEXT    _O_TEXT
 #define O_BINARY  _O_BINARY
 //#define O_RAW      _O_BINARY
 //#define O_TEMPORARY   _O_TEMPORARY
@@ -144,25 +174,31 @@ _CRTIMP int __cdecl tolower(int);
 //#define O_SEQUENTIAL  _O_SEQUENTIAL
 //#define O_RANDOM   _O_RANDOM
 
+#endif // O_RDONLY (and other old-fashioned constants) undefined
+
 //******************************************************************************
 //***** IO.H functions
 //******************************************************************************
 
-_CRTIMP int __cdecl chmod(const char *, int);
-_CRTIMP int __cdecl close(int);
-_CRTIMP int __cdecl isatty(int);
-_CRTIMP long __cdecl lseek(int, long, int);
-_CRTIMP int __cdecl open(const char *, int, ...);
-_CRTIMP int __cdecl read(int, void *, unsigned int);
-_CRTIMP int __cdecl setmode(int, int);
-_CRTIMP int __cdecl unlink(const char *);
+ZCRTIMP int __cdecl chmod(const char *, int);
+ZCRTIMP int __cdecl close(int);
+ZCRTIMP int __cdecl isatty(int);
+ZCRTIMP long __cdecl lseek(int, long, int);
+ZCRTIMP int __cdecl open(const char *, int, ...);
+ZCRTIMP int __cdecl read(int, void *, unsigned int);
+#if _WIN32_WCE < 211
+ZCRTIMP int __cdecl setmode(int, int);
+#else
+# define setmode _setmode
+#endif
+ZCRTIMP int __cdecl unlink(const char *);
 
 
 //******************************************************************************
 //***** STDIO.H functions
 //******************************************************************************
 
-
+#if _WIN32_WCE < 211 //sr551b functions in stdlib CE300
 //typedef struct _iobuf FILE;
 typedef int FILE;
 
@@ -172,23 +208,59 @@ typedef int FILE;
 
 #define EOF    (-1)
 
-_CRTIMP int __cdecl fflush(FILE *);
-_CRTIMP char * __cdecl fgets(char *, int, FILE *);
-_CRTIMP int __cdecl fileno(FILE *);
-_CRTIMP FILE * __cdecl fopen(const char *, const char *);
-_CRTIMP int __cdecl fprintf(FILE *, const char *, ...);
-_CRTIMP int __cdecl fclose(FILE *);
-_CRTIMP int __cdecl putc(int, FILE *);
-_CRTIMP int __cdecl sprintf(char *, const char *, ...);
+ZCRTIMP int __cdecl fflush(FILE *);
+ZCRTIMP char * __cdecl fgets(char *, int, FILE *);
+ZCRTIMP int __cdecl fileno(FILE *);
+ZCRTIMP FILE * __cdecl fopen(const char *, const char *);
+ZCRTIMP int __cdecl fprintf(FILE *, const char *, ...);
+ZCRTIMP int __cdecl fclose(FILE *);
+ZCRTIMP int __cdecl putc(int, FILE *);
+ZCRTIMP int __cdecl sprintf(char *, const char *, ...);
+#endif // _WIN32_WCE < 211
+#if _WIN32_WCE >= 211
+// CE falsely uses (FILE *) pointer args for UNIX style I/O functions that
+// normally expect numeric file handles (e.g. setmode())
+# undef fileno
+# define fileno(strm)  (strm)
+#endif // _WIN32_WCE < 211
+#ifndef POCKET_UNZIP
+ZCRTIMP void __cdecl perror(const char* errorText);
+#endif
+#ifdef USE_FWRITE
+ZCRTIMP void __cdecl setbuf(FILE *, char *);
+#endif
 
+
+//******************************************************************************
+//***** STDLIB.H functions
+//******************************************************************************
+
+#ifdef _MBCS
+#ifndef MB_CUR_MAX
+# define MB_CUR_MAX 2
+#endif
+ZCRTIMP int __cdecl mblen(const char *mbc, size_t mbszmax);
+#endif /* _MBCS */
+#if _WIN32_WCE >= 211
+# define errno ((int)GetLastError())
+#endif
+#ifdef _WIN32_WCE_EMULATION
+  // The emulation runtime library lacks a required element for setjmp/longjmp,
+  // disable the recovery functionality for now.
+# undef setjmp
+# define setjmp(buf) 0
+# undef longjmp
+# define longjmp(buf, rv)
+#endif
 
 //******************************************************************************
 //***** STRING.H functions
 //******************************************************************************
 
-_CRTIMP int     __cdecl _stricmp(const char *, const char *);
-_CRTIMP char *  __cdecl _strupr(char *);
-_CRTIMP char *  __cdecl strrchr(const char *, int);
+ZCRTIMP int     __cdecl _stricmp(const char *, const char *);
+ZCRTIMP char *  __cdecl _strupr(char *);
+ZCRTIMP char *  __cdecl strerror(int errnum);
+ZCRTIMP char *  __cdecl strrchr(const char *, int);
 
 
 //******************************************************************************
@@ -210,8 +282,11 @@ struct tm {
 #define _TM_DEFINED
 #endif
 
-_CRTIMP struct tm * __cdecl localtime(const time_t *);
-
+ZCRTIMP struct tm * __cdecl localtime(const time_t *);
+// tzset is not supported on native WCE, define it as a NOP macro
+#ifndef tzset
+# define tzset()
+#endif
 
 //******************************************************************************
 //***** SYS\STAT.H functions
@@ -248,7 +323,7 @@ struct stat {
 #define S_IWRITE _S_IWRITE
 #define S_IEXEC  _S_IEXEC
 
-_CRTIMP int __cdecl stat(const char *, struct stat *);
+ZCRTIMP int __cdecl stat(const char *, struct stat *);
 
 
 //******************************************************************************

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -1459,31 +1459,37 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                         *q = '\0';
                         if (compr > 3)
                             compr = 3;
-                        if (strncmp((char *)ef_ptr, "VFAB", 4) == 0)
-                            p = "FAB";
-                        else if (strncmp((char *)ef_ptr, "VALL", 4) == 0)
-                            p = "XABALL";
-                        else if (strncmp((char *)ef_ptr, "VFHC", 4) == 0)
-                            p = "XABFHC";
-                        else if (strncmp((char *)ef_ptr, "VDAT", 4) == 0)
-                            p = "XABDAT";
-                        else if (strncmp((char *)ef_ptr, "VRDT", 4) == 0)
-                            p = "XABRDT";
-                        else if (strncmp((char *)ef_ptr, "VPRO", 4) == 0)
-                            p = "XABPRO";
-                        else if (strncmp((char *)ef_ptr, "VKEY", 4) == 0)
-                            p = "XABKEY";
-                        else if (strncmp((char *)ef_ptr, "VMSV", 4) == 0) {
-                            p = "version";
-                            if (eb_datalen >= 16) {
-                                q[0] = ' ';
-                                q[1] = '(';
-                                strncpy(q+2, (char *)ef_ptr+EB_IZVMS_HLEN, 4);
-                                q[6] = ')';
-                                q[7] = '\0';
-                            }
-                        } else
-                            p = "unknown";
+                        switch (makelong(ef_ptr)) {
+                            case 0x42414656: /* "VFAB" */
+                                p = "FAB"; break;
+                            case 0x4C4C4156: /* "VALL" */
+                                p = "XABALL"; break;
+                            case 0x43484656: /* "VFHC" */
+                                p = "XABFHC"; break;
+                            case 0x54414456: /* "VDAT" */
+                                p = "XABDAT"; break;
+                            case 0x54445256: /* "VRDT" */
+                                p = "XABRDT"; break;
+                            case 0x4F525056: /* "VPRO" */
+                                p = "XABPRO"; break;
+                            case 0x59454B56: /* "VKEY" */
+                                p = "XABKEY"; break;
+                            case 0x56534D56: /* "VMSV" */
+                                p = "version";
+                                if (eb_datalen >= 16) {
+                                    /* put termitation first, for A_TO_N() */
+                                    q[7] = '\0';
+                                    q[0] = ' ';
+                                    q[1] = '(';
+                                    strncpy(q+2,
+                                            (char *)ef_ptr+EB_IZVMS_HLEN, 4);
+                                    A_TO_N(q+2);
+                                    q[6] = ')';
+                                }
+                                break;
+                            default:
+                                p = "unknown";
+                        }
                         Info(slide, 0, ((char *)slide,
                           LoadFarString(izVMSdata),
                           LoadFarStringSmall(izVMScomp[compr]),
@@ -1549,7 +1555,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
                 case EF_ZIPIT2:
                     if (eb_datalen >= 5 &&
-                        strncmp((char *)ef_ptr, "ZPIT", 4) == 0) {
+                        makelong(ef_ptr) == 0x5449505A /* "ZPIT" */) {
 
                         if (eb_datalen >= 12) {
                             zi_showMacTypeCreator(__G__ &ef_ptr[4]);
@@ -1558,13 +1564,14 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
                 case EF_ZIPIT:
                     if (eb_datalen >= 5 &&
-                        strncmp((char *)ef_ptr, "ZPIT", 4) == 0) {
+                        makelong(ef_ptr) == 0x5449505A /* "ZPIT" */) {
                         unsigned fnlen = ef_ptr[4];
 
                         if ((unsigned)eb_datalen >= fnlen + (5 + 8)) {
                             uch nullchar = ef_ptr[fnlen+5];
 
                             ef_ptr[fnlen+5] = '\0'; /* terminate filename */
+                            A_TO_N(ef_ptr+5);
                             Info(slide, 0, ((char *)slide,
                               LoadFarString(ZipItFname), (char *)ef_ptr+5));
                             ef_ptr[fnlen+5] = nullchar;
@@ -1574,7 +1581,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
                 case EF_JLMAC:
                     if (eb_datalen >= 40 &&
-                        strncmp((char *)ef_ptr, "JLEE", 4) == 0)
+                        makelong(ef_ptr) == 0x45454C4A /* "JLEE" */)
                     {
                         zi_showMacTypeCreator(__G__ &ef_ptr[4]);
 
@@ -1586,11 +1593,12 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
                 case EF_SMARTZIP:
                     if ((eb_datalen == EB_SMARTZIP_HLEN) &&
-                        strncmp((char *)ef_ptr, "dZip", 4) == 0) {
+                        makelong(ef_ptr) == 0x70695A64 /* "dZip" */) {
                         char filenameBuf[32];
                         zi_showMacTypeCreator(__G__ &ef_ptr[4]);
                         memcpy(filenameBuf, &ef_ptr[33], 31);
                         filenameBuf[ef_ptr[32]] = '\0';
+                        A_TO_N(filenameBuf);
                         Info(slide, 0, ((char *)slide,
                              LoadFarString(ZipItFname), filenameBuf));
                     }
@@ -2081,13 +2089,15 @@ static void zi_showMacTypeCreator(__G__ ebfield)
     uch *ebfield;
 {
     /* not every Type / Creator character is printable */
-    if (isprint(ebfield[0]) && isprint(ebfield[1]) &&
-        isprint(ebfield[2]) && isprint(ebfield[3]) &&
-        isprint(ebfield[4]) && isprint(ebfield[5]) &&
-        isprint(ebfield[6]) && isprint(ebfield[7])) {
+    if (isprint(native(ebfield[0])) && isprint(native(ebfield[1])) &&
+        isprint(native(ebfield[2])) && isprint(native(ebfield[3])) &&
+        isprint(native(ebfield[4])) && isprint(native(ebfield[5])) &&
+        isprint(native(ebfield[6])) && isprint(native(ebfield[7]))) {
        Info(slide, 0, ((char *)slide, LoadFarString(MacOSdata),
-            ebfield[0], ebfield[1], ebfield[2], ebfield[3],
-            ebfield[4], ebfield[5], ebfield[6], ebfield[7]));
+            native(ebfield[0]), native(ebfield[1]),
+            native(ebfield[2]), native(ebfield[3]),
+            native(ebfield[4]), native(ebfield[5]),
+            native(ebfield[6]), native(ebfield[7])));
     } else {
        Info(slide, 0, ((char *)slide, LoadFarString(MacOSdata1),
             (((ulg)ebfield[0]) << 24) +

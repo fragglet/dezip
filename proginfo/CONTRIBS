@@ -49,6 +49,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Jim Dumser             -z stuff; umask, opendir/Borland, UID fixes; etc.
   Peter Eckel            DOS buffer-overrun fix
   Mark Edwards           mapname.c, misc.c fixes; Unix makefile entry
+  Paul Eggert            man pages update for POSIX compatibility
   Gershon Elber          Unix makefile entry
   Patrick Ellis          VMS usage fix (`-' vs. `/' options)
   Shane Erstad           Borland makefile bugfix
@@ -91,6 +92,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Ron Henderson          -a bugfix
   Chris Herborth         new Atari port; Atari fixes
   Greg Hill              docs update
+  Lon Hohberger          security fix; security advice in man-page
   John Hollow            "WHERE" file path corrections
   Jason Hood             DOS screen-width support
   Phil Howard            Unix makefile entry
@@ -98,6 +100,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Joe Isuzu              Unix makefile entry
   Kimio Itoh             ZipInfo DIR_END bugfix for MSVC 4.0
   Aubrey Jaffer          pixel, v7 targets
+  "jelmer"               directory traversal security fix
   Graham Jenkins         Sequent Dynix/ptx bugfix
   Peter Jones            Unix makefile entry
   Larry Jones            ZMEM stuff; unimplod fix; crc_i386.S improvements; etc.
@@ -107,7 +110,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Bob Kemp               NOTINT16 rewrite; Unix makefile entry
   J. Kercheval           filmatch.c, on which second match.c was based
   Paul Kienitz           continuing general Amiga porting; Aztec C support; ASM
-  Raymond L. King        WINDLL VB example maintance
+  Raymond L. King        WINDLL VB example maintenance
   Mike Kincer            AIX "ps2" bugfix
   David Kirschbaum       mapname port; general-purpose meddling; Python jokes
   Paul Klahr             Regulus port
@@ -184,6 +187,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Wally Reiher           timezone bugfix
   Stephen Ritcey         vms/README installation correction
   Phil Ritzenthaler      ANSIfication bugfix
+  Simon Roberts          Windows CE 2.1x/3.0 cmdline port
   David Robinson         MSC 6.0 stat() bugfix
   Jochen Roderburg       floating-point BSD4_4 fix, Borland _timezone fix; etc.
   Greg Roelofs           maintainer/principal author; ZipInfo; unshrink; etc.
@@ -226,7 +230,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Mike Strock            Win32 MSVC 5.0 "build file"; typo fixes
   E-Yen Tan              djgpp1/GNUmake 3.71 bug work-around; DOS makefile.emx
   Brian Tillman          "WHERE" file VMS fix; make_unz.com portability bugfix
-  Cosmin Truta           Cygnus Win32 support, Borland C & ASM fixes
+  Cosmin Truta           Cygwin support; various C & ASM fixes
   Onno van der Linden    many fixes, esp. Intel Unix and 386 DOS
   Jim Van Zandt          one of original man pages
   Geraldo Veiga          Pyramid strrchr/rindex
@@ -241,6 +245,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Paul Wells             original Amiga port for SAS/C and Lattice C (?)
   Mike White             Windows GUI port version 3; 16- and 32-bit Windows DLLs
   Rainer Wilcke          HP/UX termios bugfix; man-page fixes
+  Charles Wilson         Cygwin support
   Greg Woods             man-pages bugfixes
   Mark Wright            original Netware 3.11 NLM port
   Randy Wright           Unix makefile entry

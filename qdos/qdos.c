@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -487,7 +487,6 @@ int mapname(__G__ renamed)
     char pathcomp[FILNAMSIZ];      /* path-component buffer */
     char *pp, *cp=(char *)NULL;    /* character pointers */
     char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;             /* flags */
     int killed_ddot = FALSE;       /* is set when skipping "../" pathcomp */
     int error = MPN_OK;
     register unsigned workch;      /* hold the character being tested */
@@ -526,18 +525,14 @@ int mapname(__G__ renamed)
 
     while ((workch = (uch)*cp++) != 0) {
 
-        if (quote) {                 /* if character quoted, */
-            *pp++ = (char)workch;    /*  include it literally */
-            quote = FALSE;
-        } else
-            switch (workch) {
+        switch (workch) {
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
-                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                     > MPN_INF_TRUNC)
+                if (((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
                 break;
 
             case '.':
@@ -560,15 +555,11 @@ int mapname(__G__ renamed)
                 *pp++ = ';';      /* keep for now; remove VMS ";##" */
                 break;            /*  later, if requested */
 
-            case '\026':          /* control-V quote for special chars */
-                quote = TRUE;     /* set flag for next character */
-                break;
-
             default:
                 /* allow European characters in filenames: */
                 if (isprint(workch) || (128 <= workch && workch <= 254))
                     *pp++ = (char)workch;
-            } /* end switch */
+        } /* end switch */
 
     } /* end while loop */
 
@@ -967,7 +958,10 @@ static void qfix(__G__ ef_ptr, ef_len)
 void close_outfile(__G)
     __GDEF
 {
-    iztimes zt;
+    union {
+        iztimes t3;             /* mtime, atime, ctime */
+        struct utimbuf t2;      /* modtime, actime */
+    } zt;
 #ifdef USE_EF_UT_TIME
     unsigned eb_izux_flg;
 #endif
@@ -1000,32 +994,31 @@ void close_outfile(__G)
     eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
                    G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
 #ifdef IZ_CHECK_TZ
-                   (G.tz_is_valid ? &zt : NULL),
+                   (G.tz_is_valid ? &(zt.t3) : NULL),
 #else
-                   &zt,
+                   &(zt.t3),
 #endif
                    z_uidgid) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
-          zt.mtime));
+          zt.t3.mtime));
     } else {
-        zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+        zt.t3.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
     if (eb_izux_flg & EB_UT_FL_ATIME) {
         TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
-          zt.atime));
+          zt.t3.atime));
     } else {
-        zt.atime = zt.mtime;
-
+        zt.t3.atime = zt.t3.mtime;
         TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
-          zt.mtime));
+          zt.t3.mtime));
     }
 #else
-    zt.atime = zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+    zt.t3.atime = zt.t3.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
 #endif
 
     /* set the file's access and modification times */
-    if (utime(G.filename, (struct utimbuf *)&zt)) {
+    if (utime(G.filename, &(zt.t2))) {
         Info(slide, 0x201, ((char *)slide,
           "warning:  cannot set the time for %s\n", FnFilter1(G.filename)));
     }

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -12,10 +12,10 @@
 
   UnZip - a zipfile extraction utility.  See below for make instructions, or
   read the comments in Makefile and the various Contents files for more de-
-  tailed explanations.  To report a bug, send a *complete* description to
-  Zip-Bugs@lists.wku.edu; include machine type, operating system and ver-
-  sion, compiler and version, and reasonably detailed error messages or prob-
-  lem report.  To join Info-ZIP, see the instructions in README.
+  tailed explanations.  To report a bug, submit a *complete* description via
+  //www.info-zip.org/zip-bug.html; include machine type, operating system and
+  version, compiler and version, and reasonably detailed error messages or
+  problem report.  To join Info-ZIP, see the instructions in README.
 
   UnZip 5.x is a greatly expanded and partially rewritten successor to 4.x,
   which in turn was almost a complete rewrite of version 3.x.  For a detailed
@@ -71,7 +71,7 @@
 /* Local type declarations */
 /***************************/
 
-#ifdef REENTRANT
+#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
 typedef struct _sign_info
     {
         struct _sign_info *previous;
@@ -84,7 +84,7 @@ typedef struct _sign_info
 /* Local Functions */
 /*******************/
 
-#ifdef REENTRANT
+#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
 static int setsignalhandler OF((__GPRO__ savsigs_info **p_savedhandler_chain,
                                 int signal_type, void (*newhandler)(int)));
 #endif
@@ -103,6 +103,7 @@ static void  show_version_info  OF((__GPRO));
 /* constant local variables: */
 
 #ifndef SFX
+#ifndef _WIN32_WCE /* Win CE does not support environment variables */
    static ZCONST char Far EnvUnZip[] = ENV_UNZIP;
    static ZCONST char Far EnvUnZip2[] = ENV_UNZIP2;
    static ZCONST char Far EnvZipInfo[] = ENV_ZIPINFO;
@@ -112,9 +113,10 @@ static void  show_version_info  OF((__GPRO));
 #endif /* RISCOS */
   static ZCONST char Far NoMemArguments[] =
     "envargs:  cannot get memory for arguments";
-#endif
+#endif /* !_WIN32_WCE */
+#endif /* !SFX */
 
-#ifdef REENTRANT
+#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
   static ZCONST char Far CantSaveSigHandler[] =
     "error:  cannot save signal handler settings\n";
 #endif
@@ -244,12 +246,14 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 #endif
 #else /* !BEO_UNX */
 #ifdef TANDEM
-   static ZCONST char Far local2[] = " -X  restore Tandem User ID";
+   static ZCONST char Far local2[] = "\
+ -X  restore Tandem User ID                 -r  remove file extensions\n\
+  -b  create 'C' (180) text files          ";
 #ifdef MORE
-   static ZCONST char Far local3[] = "\
-  -b  create 'C' (180) text files            -M  pipe through \"more\" pager\n";
+   static ZCONST char Far local3[] = " \
+                                            -M  pipe through \"more\" pager\n";
 #else
-   static ZCONST char Far local3[] = " -b  create 'C' (180) text files\n";
+   static ZCONST char Far local3[] = "\n";
 #endif
 #else /* !TANDEM */
 #ifdef AMIGA
@@ -340,7 +344,7 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  else
      static ZCONST char Far UnzipSFXBanner[] =
 #  endif
-     "UnZipSFX %d.%d%d%s of %s, by Info-ZIP (Zip-Bugs@lists.wku.edu).\n";
+     "UnZipSFX %d.%d%d%s of %s, by Info-ZIP (http://www.info-zip.org).\n";
 #  ifdef SFX_EXDIR
      static ZCONST char Far UnzipSFXOpts[] =
     "Valid options are -tfupcz and -d <exdir>; modifiers are -abjnoqCL%sV%s.\n";
@@ -352,9 +356,11 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
    static ZCONST char Far CompileOptions[] =
      "UnZip special compilation options:\n";
    static ZCONST char Far CompileOptFormat[] = "\t%s\n";
+#ifndef _WIN32_WCE /* Win CE does not support environment variables */
    static ZCONST char Far EnvOptions[] =
      "\nUnZip and ZipInfo environment options:\n";
    static ZCONST char Far EnvOptFormat[] = "%16s:  %s\n";
+#endif
    static ZCONST char Far None[] = "[none]";
 #  ifdef ACORN_FTYPE_NFS
      static ZCONST char Far AcornFtypeNFS[] = "ACORN_FTYPE_NFS";
@@ -497,24 +503,24 @@ UnZip %d.%d%d%s of %s, by Info-ZIP.  For more details see: unzip -v.\n\n";
 #ifdef COPYRIGHT_CLEAN
    static ZCONST char Far UnzipUsageLine1v[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  Maintained by C. Spieler.  Send\n\
-bug reports to the authors at Zip-Bugs@lists.wku.edu; see README for details.\
+bug reports using http://www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
 #else
    static ZCONST char Far UnzipUsageLine1v[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  UnReduce (c) 1989 by S. H. Smith.\n\
-Send bug reports to authors at Zip-Bugs@lists.wku.edu; see README for details.\
+Send bug reports using //www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
 #endif /* ?COPYRIGHT_CLEAN */
 #else /* !VMS */
 #ifdef COPYRIGHT_CLEAN
    static ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  Maintained by C. Spieler.  Send\n\
-bug reports to the authors at Zip-Bugs@lists.wku.edu; see README for details.\
+bug reports using http://www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
 #else
    static ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Info-ZIP.  UnReduce (c) 1989 by S. H. Smith.\n\
-Send bug reports to authors at Zip-Bugs@lists.wku.edu; see README for details.\
+Send bug reports using //www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
 #endif /* ?COPYRIGHT_CLEAN */
 #define UnzipUsageLine1v        UnzipUsageLine1
@@ -643,6 +649,7 @@ int unzip(__G__ argc, argv)
     int i;
 #endif
     int retcode, error=FALSE;
+#ifndef NO_EXCEPT_SIGNALS
 #ifdef REENTRANT
     savsigs_info *oldsighandlers = NULL;
 #   define SET_SIGHANDLER(sigtype, newsighandler) \
@@ -653,6 +660,7 @@ int unzip(__G__ argc, argv)
 #   define SET_SIGHANDLER(sigtype, newsighandler) \
       signal((sigtype), (newsighandler))
 #endif
+#endif /* NO_EXCEPT_SIGNALS */
 
     SETLOCALE(LC_CTYPE,"");
 
@@ -688,7 +696,7 @@ int unzip(__G__ argc, argv)
 /*---------------------------------------------------------------------------
     Set signal handler for restoring echo, warn of zipfile corruption, etc.
   ---------------------------------------------------------------------------*/
-
+#ifndef NO_EXCEPT_SIGNALS
 #ifdef SIGINT
     SET_SIGHANDLER(SIGINT, handler);
 #endif
@@ -701,6 +709,7 @@ int unzip(__G__ argc, argv)
 #ifdef SIGSEGV
     SET_SIGHANDLER(SIGSEGV, handler);
 #endif
+#endif /* NO_EXCEPT_SIGNALS */
 
 #if (defined(WIN32) && defined(__RSXNT__))
     for (i = 0 ; i < argc; i++) {
@@ -826,19 +835,23 @@ int unzip(__G__ argc, argv)
         (argc > 1 && strncmp(argv[1], "-Z", 2) == 0))
     {
         uO.zipinfo_mode = TRUE;
+#ifndef _WIN32_WCE /* Win CE does not support environment variables */
         if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvZipInfo),
                              LoadFarStringSmall2(EnvZipInfo2))) != PK_OK)
             perror(LoadFarString(NoMemArguments));
         else
+#endif
             error = zi_opts(__G__ &argc, &argv);
     } else
-#endif /* NO_ZIPINFO */
+#endif /* !NO_ZIPINFO */
     {
         uO.zipinfo_mode = FALSE;
+#ifndef _WIN32_WCE /* Win CE does not support environment variables */
         if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvUnZip),
                              LoadFarStringSmall2(EnvUnZip2))) != PK_OK)
             perror(LoadFarString(NoMemArguments));
         else
+#endif
             error = uz_opts(__G__ &argc, &argv);
     }
 
@@ -868,11 +881,13 @@ int unzip(__G__ argc, argv)
         extern char *_toslash(char *);
         _toslash(*G.pfnames);
 #else /* !__human68k__ */
-        char *q;
+        char *q = *G.pfnames;
 
-        for (q = *G.pfnames;  *q;  ++q)
+        while (*q != '\0') {
             if (*q == '\\')
                 *q = '/';
+            INCSTR(q);
+        }
         ++G.pfnames;
 #endif /* ?__human68k__ */
     }
@@ -992,7 +1007,7 @@ int unzip(__G__ argc, argv)
     retcode = process_zipfiles(__G);
 
 cleanup_and_exit:
-#ifdef REENTRANT
+#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
     /* restore all signal handlers back to their state at function entry */
     while (oldsighandlers != NULL) {
         savsigs_info *thissigsav = oldsighandlers;
@@ -1016,7 +1031,7 @@ cleanup_and_exit:
 
 
 
-#ifdef REENTRANT
+#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
 /*******************************/
 /* Function setsignalhandler() */
 /*******************************/
@@ -1048,7 +1063,7 @@ static int setsignalhandler(__G__ p_savedhandler_chain, signal_type,
 
 } /* end function setsignalhandler() */
 
-#endif /* REENTRANT */
+#endif /* REENTRANT && !NO_EXCEPT_SIGNALS */
 
 
 
@@ -1366,6 +1381,14 @@ int uz_opts(__G__ pargc, pargv)
                     qlflag ^= strtol(s, &s, 10);
                     break;    /* we XOR this as we can config qlflags */
 #endif
+#ifdef TANDEM
+                case ('r'):    /* remove file extensions */
+                    if (negative)
+                        uO.rflag = FALSE, negative = 0;
+                    else
+                        uO.rflag = TRUE;
+                    break;
+#endif /* TANDEM */
 #ifdef DOS_FLX_NLM_OS2_W32
                 case ('s'):    /* spaces in filenames:  allow by default */
                     if (negative)
@@ -1715,7 +1738,9 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, "%d\n",
           (UZ_MAJORVER*100 + UZ_MINORVER*10 + UZ_PATCHLEVEL)));
     else {
+#ifndef _WIN32_WCE /* Win CE does not support environment variables */
         char *envptr, *getenv();
+#endif
         int numopts = 0;
 
         Info(slide, 0, ((char *)slide, LoadFarString(UnzipUsageLine1v),
@@ -1879,7 +1904,7 @@ static void show_version_info(__G)
 #endif
 #ifdef USE_ZLIB
         sprintf((char *)(slide+256), LoadFarStringSmall(UseZlib),
-          ZLIB_VERSION, zlib_version);
+          ZLIB_VERSION, zlibVersion());
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           (char *)(slide+256)));
         ++numopts;
@@ -1919,6 +1944,7 @@ static void show_version_info(__G)
               LoadFarString(CompileOptFormat),
               LoadFarStringSmall(None)));
 
+#ifndef _WIN32_WCE /* Win CE does not support environment variables */
         Info(slide, 0, ((char *)slide, LoadFarString(EnvOptions)));
         envptr = getenv(LoadFarStringSmall(EnvUnZip));
         Info(slide, 0, ((char *)slide, LoadFarString(EnvOptFormat),
@@ -1973,6 +1999,7 @@ static void show_version_info(__G)
           (envptr == (char *)NULL || *envptr == 0)?
           LoadFarStringSmall2(None) : envptr));
 #endif /* RISCOS */
+#endif /* !_WIN32_WCE */
     }
 } /* end function show_version() */
 

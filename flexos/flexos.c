@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -315,26 +315,28 @@ int mapname(__G__ renamed)
                 *pp = '\0';
                 map2fat(pathcomp, last_dot);   /* 8.3 truncation (in place) */
                 last_dot = (char *)NULL;
-                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                     > MPN_INF_TRUNC)
+                if (strcmp(pathcomp, ".") == 0) {
+                    /* don't bother appending "./" to the path */
+                    *pathcomp = '\0';
+                } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+                    /* "../" dir traversal detected, skip over it */
+                    *pathcomp = '\0';
+                    killed_ddot = TRUE;     /* set "show message" flag */
+                }
+                /* when path component is not empty, append it now */
+                if (*pathcomp != '\0' &&
+                    ((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
                 break;
 
             case '.':
                 if (pp == pathcomp) {     /* nothing appended yet... */
-                    if (*cp == '/') {     /* don't bother appending a "./" */
-                        ++cp;             /*  component to the path:  skip */
-                        break;            /*  to next char after the '/' */
-                    } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
-                        if (!uO.ddotflag) { /* "../" dir traversal detected */
-                            cp += 2;        /*  skip over behind the '/' */
-                            killed_ddot = TRUE;
-                            break;
-                        } else {
-                            *pp++ = '.';  /* add first dot, unchanged... */
-                            ++cp;         /* skip second dot, since it will */
+                    if (*cp == '.' && cp[1] == '/') {   /* "../" */
+                        *pp++ = '.';      /* add first dot, unchanged... */
+                        ++cp;             /* skip second dot, since it will */
                     } else {              /*  be "added" at end of if-block */
                         *pp++ = '_';      /* FAT doesn't allow null filename */
                         dotname = TRUE;   /*  bodies, so map .exrc -> _.exrc */

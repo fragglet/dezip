@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 28 Apr 2001.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 07 Mar 2004.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -210,15 +210,21 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
       DATE_FORMAT=DF_DMY or DF_MDY or DF_YMD
         This option controls the order in which date components are printed
         in listings:  day-month-year or month-day-year or year-month-day.
-        For DOS derivatives the format is automatically obtained from the
-        operating system; most others default to DF_MDY.
+        For DOS, FlexOS, OS2, Theos and Win32, the format is automatically
+        obtained from the operating system; most others default to DF_MDY.
+
+      DATE_SEPCHAR='-' or '.' or '/' etc.
+        This option controls the character that separates the date components
+        shown in (non-ZipInfo-mode) listings.  The Win32 port obtains the
+        separator automatically from the operating system's locale settings;
+        all others default to '-'.
 
       ACORN_FTYPE_NFS  (needs support for long filenames with embedded commas)
         This option enables a -F option that instructs UnZip to interpret the
         filetype information extracted from Acorn RiscOS extra field blocks.
         The filetype IDs are translated into "NFS filetype extensions" and
         appended to the names of the extracted files. This feature facilitates
-        maintance of Unix-based NFS volumes that are exported to Acorn RiscOS
+        maintenance of Unix-based NFS volumes that are exported to Acorn RiscOS
         systems.
 
       QLZIP  (Unix only)

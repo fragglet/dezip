@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -72,7 +72,7 @@ int envargs(Pargc, Pargv, envstr, envstr2)
     bufptr = malloc(1 + strlen(envptr));
     if (bufptr == (char *)NULL)
         return PK_MEM;
-#if (defined(WIN32) || defined(WINDLL))
+#if ((defined(WIN32) || defined(WINDLL)) && !defined(_WIN32_WCE))
 # ifdef WIN32
     if (IsWinNT()) {
         /* SPC: don't know codepage of 'real' WinNT console */
@@ -82,12 +82,12 @@ int envargs(Pargc, Pargv, envstr, envstr2)
         OEM_TO_INTERN(envptr, bufptr);
     }
 # else /* !WIN32 */
-    /* DOS environment uses OEM codepage */
+    /* DOS (Win 3.x) environment uses OEM codepage */
     OEM_TO_INTERN(envptr, bufptr);
 # endif
-#else /* !(WIN32 || WINDLL) */
+#else /* !((WIN32 || WINDLL) && !_WIN32_WCE) */
     strcpy(bufptr, envptr);
-#endif /* ?(WIN32 || WINDLL) */
+#endif /* ?((WIN32 || WINDLL) && !_WIN32_WCE) */
 
     /* count the args so we can allocate room for them */
     argc = count_args(bufptr);

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -117,6 +117,8 @@
    c17b  16 Feb 02  C. Spieler      changed type of "extra bits" arrays and
                                     corresponding huft_buid() parameter e from
                                     ush into uch, to save space
+   c17c   9 Mar 02  C. Spieler      fixed NEEDBITS() "read beyond EOF" problem
+                                    with CHECK_EOF enabled
  */
 
 
@@ -340,6 +342,7 @@ int UZinflate(__G__ is_defl64)
 {
     int retval = 0;     /* return code: 0 = "no error" */
     int err=Z_OK;
+    int repeated_buf_err;
 
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
     if (G.redirect_slide)
@@ -357,17 +360,19 @@ int UZinflate(__G__ is_defl64)
     if (!G.inflInit) {
         unsigned i;
         int windowBits;
+        /* local buffer for efficiency */
+        ZCONST char *zlib_RtVersion = zlibVersion();
 
         /* only need to test this stuff once */
-        if (zlib_version[0] != ZLIB_VERSION[0]) {
+        if (zlib_RtVersion[0] != ZLIB_VERSION[0]) {
             Info(slide, 0x21, ((char *)slide,
               "error:  incompatible zlib version (expected %s, found %s)\n",
-              ZLIB_VERSION, zlib_version));
+              ZLIB_VERSION, zlib_RtVersion));
             return 3;
-        } else if (strcmp(zlib_version, ZLIB_VERSION) != 0)
+        } else if (strcmp(zlib_RtVersion, ZLIB_VERSION) != 0)
             Info(slide, 0x21, ((char *)slide,
               "warning:  different zlib version (expected %s, using %s)\n",
-              ZLIB_VERSION, zlib_version));
+              ZLIB_VERSION, zlib_RtVersion));
 
         /* windowBits = log2(wsize) */
         for (i = (unsigned)wsize, windowBits = 0;
@@ -413,7 +418,7 @@ int UZinflate(__G__ is_defl64)
 #endif /* ?FUNZIP */
                 break;
 
-            if (G.dstrm.avail_in <= 0) {
+            if (G.dstrm.avail_in == 0) {
                 if (fillinbuf(__G) == 0) {
                     /* no "END-condition" yet, but no more data */
                     retval = 2; goto uzinflate_cleanup_exit;
@@ -422,7 +427,7 @@ int UZinflate(__G__ is_defl64)
                 G.dstrm.next_in = G.inptr;
                 G.dstrm.avail_in = G.incnt;
             }
-            Trace((stderr, "     avail_in = %d\n", G.dstrm.avail_in));
+            Trace((stderr, "     avail_in = %u\n", G.dstrm.avail_in));
         }
         /* flush slide[] */
         if ((retval = FLUSH(wsize - G.dstrm.avail_out)) != 0)
@@ -436,6 +441,7 @@ int UZinflate(__G__ is_defl64)
 
     /* no more input, so loop until we have all output */
     Trace((stderr, "beginning final loop:  err = %d\n", err));
+    repeated_buf_err = FALSE;
     while (err != Z_STREAM_END) {
         err = inflate(&G.dstrm, Z_PARTIAL_FLUSH);
         if (err == Z_DATA_ERROR) {
@@ -446,7 +452,14 @@ int UZinflate(__G__ is_defl64)
             Trace((stderr,
                    "zlib inflate() did not detect stream end (%s, %s)\n",
                    G.zipfn, G.filename));
-            break;
+            if ((!repeated_buf_err) && (G.dstrm.avail_in == 0)) {
+                /* when detecting this problem for the first time,
+                   try to provide one fake byte beyond "EOF"... */
+                G.dstrm.next_in = "";
+                G.dstrm.avail_in = 1;
+                repeated_buf_err = TRUE;
+            } else
+                break;
         } else if (err != Z_OK && err != Z_STREAM_END) {
             Trace((stderr, "oops!  (inflate(final loop) err = %d)\n", err));
             DESTROYGLOBALS();
@@ -461,7 +474,7 @@ int UZinflate(__G__ is_defl64)
         G.dstrm.next_out = redirSlide;
         G.dstrm.avail_out = wsize;
     }
-    Trace((stderr, "total in = %ld, total out = %ld\n", G.dstrm.total_in,
+    Trace((stderr, "total in = %lu, total out = %lu\n", G.dstrm.total_in,
       G.dstrm.total_out));
 
     G.inptr = (uch *)G.dstrm.next_in;
@@ -489,7 +502,7 @@ uzinflate_cleanup_exit:
 #  endif
 #endif /* !OF */
 int inflate_codes OF((__GPRO__ struct huft *tl, struct huft *td,
-                      int bl, int bd));
+                      unsigned bl, unsigned bd));
 static int inflate_stored OF((__GPRO));
 static int inflate_fixed OF((__GPRO));
 static int inflate_dynamic OF((__GPRO));
@@ -581,7 +594,7 @@ static ZCONST uch cpdext32[] = {
 /* moved to consts.h (included in unzip.c), resp. funzip.c */
 #if 0
 /* And'ing with mask_bits[n] masks the lower n bits */
-ZCONST ush near mask_bits[] = {
+ZCONST unsigned near mask_bits[17] = {
     0x0000,
     0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
@@ -599,7 +612,7 @@ ZCONST ush near mask_bits[] = {
    where NEEDBITS makes sure that b has at least j bits in it, and
    DUMPBITS removes the bits from b.  The macros use the variable k
    for the number of bits in b.  Normally, b and k are register
-   variables for speed and are initialized at the begining of a
+   variables for speed and are initialized at the beginning of a
    routine that uses these macros from a global bit buffer and count.
 
    In order to not ask for more bits than there are in the compressed
@@ -607,6 +620,22 @@ ZCONST ush near mask_bits[] = {
    enough bits to make up the end-of-block code (value 256).  Then no
    bytes need to be "returned" to the buffer at the end of the last
    block.  See the huft_build() routine.
+
+   Actually, the precautions mentioned above are not sufficient to
+   prevent fetches of bits beyound the end of the last block in every
+   case. When the last code fetched before the end-of-block code was
+   a very short distance code (shorter than "distance-prefetch-bits" -
+   "end-of-block code bits"), this last distance code fetch already
+   exausts the available data.  To prevent failure of extraction in this
+   case, the "read beyond EOF" check delays the raise of the "invalid
+   data" error until an actual overflow of "used data" is detected.
+   This error condition is only fulfilled when the "number of available
+   bits" counter k is found to be negative in the NEEDBITS() macro.
+
+   An alternate fix for that problem adjusts the size of the distance code
+   base table so that it does not exceed the length of the end-of-block code
+   plus the minimum length of a distance code. This alternate fix can be
+   enabled by defining the preprocessor symbol FIX_PAST_EOB_BY_TABLEADJUST.
  */
 
 /* These have been moved to globals.h */
@@ -622,9 +651,15 @@ unsigned bk;                    /* bits in bit buffer */
 #ifndef CHECK_EOF
 #  define NEEDBITS(n) {while(k<(n)){b|=((ulg)NEXTBYTE)<<k;k+=8;}}
 #else
+# ifdef FIX_PAST_EOB_BY_TABLEADJUST
 #  define NEEDBITS(n) {while(k<(n)){int c=NEXTBYTE;\
     if(c==EOF){retval=1;goto cleanup_and_exit;}\
     b|=((ulg)c)<<k;k+=8;}}
+# else
+#  define NEEDBITS(n) {while((int)k<(int)(n)){int c=NEXTBYTE;\
+    if(c==EOF){if((int)k>=0)break;retval=1;goto cleanup_and_exit;}\
+    b|=((ulg)c)<<k;k+=8;}}
+# endif
 #endif
 
 #define DUMPBITS(n) {b>>=(n);k-=(n);}
@@ -663,8 +698,10 @@ unsigned bk;                    /* bits in bit buffer */
  */
 
 
-static ZCONST int lbits = 9;    /* bits in base literal/length lookup table */
-static ZCONST int dbits = 6;    /* bits in base distance lookup table */
+/* bits in base literal/length lookup table */
+static ZCONST unsigned lbits = 9;
+/* bits in base distance lookup table */
+static ZCONST unsigned dbits = 6;
 
 
 #ifndef ASM_INFLATECODES
@@ -672,7 +709,7 @@ static ZCONST int dbits = 6;    /* bits in base distance lookup table */
 int inflate_codes(__G__ tl, td, bl, bd)
      __GDEF
 struct huft *tl, *td;   /* literal/length and distance decoder tables */
-int bl, bd;             /* number of bits decoded by tl[] and td[] */
+unsigned bl, bd;        /* number of bits decoded by tl[] and td[] */
 /* inflate (decompress) the codes in a deflated (compressed) block.
    Return an error code or zero if it all goes ok. */
 {
@@ -698,7 +735,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   md = mask_bits[bd];
   while (1)                     /* do until end of block */
   {
-    NEEDBITS((unsigned)bl)
+    NEEDBITS(bl)
     t = tl + ((unsigned)b & ml);
     while (1) {
       DUMPBITS(t->b)
@@ -722,7 +759,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
         DUMPBITS(e)
 
         /* decode distance of block to copy */
-        NEEDBITS((unsigned)bd)
+        NEEDBITS(bd)
         t = td + ((unsigned)b & md);
         while (1) {
           DUMPBITS(t->b)
@@ -936,15 +973,15 @@ static int inflate_dynamic(__G)
   __GDEF
 /* decompress an inflated type 2 (dynamic Huffman codes) block. */
 {
-  int i;                /* temporary variables */
+  unsigned i;           /* temporary variables */
   unsigned j;
   unsigned l;           /* last length */
   unsigned m;           /* mask for bit lengths table */
   unsigned n;           /* number of lengths to get */
   struct huft *tl;      /* literal/length code table */
   struct huft *td;      /* distance code table */
-  int bl;               /* lookup bits for tl */
-  int bd;               /* lookup bits for td */
+  unsigned bl;          /* lookup bits for tl */
+  unsigned bd;          /* lookup bits for td */
   unsigned nb;          /* number of bit length codes */
   unsigned nl;          /* number of literal/length codes */
   unsigned nd;          /* number of distance codes */
@@ -1002,9 +1039,9 @@ static int inflate_dynamic(__G)
   n = nl + nd;
   m = mask_bits[bl];
   i = l = 0;
-  while ((unsigned)i < n)
+  while (i < n)
   {
-    NEEDBITS((unsigned)bl)
+    NEEDBITS(bl)
     j = (td = tl + ((unsigned)b & m))->b;
     DUMPBITS(j)
     j = td->v.n;
@@ -1072,7 +1109,14 @@ static int inflate_dynamic(__G)
     }
     return retval;              /* incomplete code set */
   }
+#ifdef FIX_PAST_EOB_BY_TABLEADJUST
+  /* Adjust the requested distance base table size so that a distance code
+     fetch never tries to get bits behind an immediatly following end-of-block
+     code. */
+  bd = (dbits <= bl+1 ? dbits : bl+1);
+#else
   bd = dbits;
+#endif
 #ifdef USE_DEFLATE64
   retval = huft_build(__G__ ll + nl, nd, 0, cpdist, G.cpdext, &td, &bd);
 #else
@@ -1280,7 +1324,7 @@ int huft_build(__G__ b, n, s, d, e, t, m)
   ZCONST ush *d;        /* list of base values for non-simple codes */
   ZCONST uch *e;        /* list of extra bits for non-simple codes */
   struct huft **t;      /* result: starting table */
-  int *m;               /* maximum lookup bits, returns actual */
+  unsigned *m;          /* maximum lookup bits, returns actual */
 /* Given a list of code lengths and a maximum table size, make a set of
    tables to decode that set of codes.  Return zero on success, one if
    the given code set is incomplete (the tables are still built in this
@@ -1333,13 +1377,13 @@ int huft_build(__G__ b, n, s, d, e, t, m)
     if (c[j])
       break;
   k = j;                        /* minimum code length */
-  if ((unsigned)*m < j)
+  if (*m < j)
     *m = j;
   for (i = BMAX; i; i--)
     if (c[i])
       break;
   g = i;                        /* maximum code length */
-  if ((unsigned)*m > i)
+  if (*m > i)
     *m = i;
 
 
@@ -1392,7 +1436,7 @@ int huft_build(__G__ b, n, s, d, e, t, m)
         w += l[h++];            /* add bits already decoded */
 
         /* compute minimum size table less than or equal to *m bits */
-        z = (z = g - w) > (unsigned)*m ? *m : z;        /* upper limit */
+        z = (z = g - w) > *m ? *m : z;                  /* upper limit */
         if ((f = 1 << (j = k - w)) > a + 1)     /* try a k-w bit table */
         {                       /* too few codes for k-w bit table */
           f -= a + 1;           /* deduct codes from patterns left */

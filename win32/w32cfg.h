@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -13,13 +13,9 @@
 #ifndef __w32cfg_h
 #define __w32cfg_h
 
-#if (defined(__CYGWIN32__) && !defined(__CYGWIN__))
-#  define __CYGWIN__            /* compatibility for CygWin B19 and older */
-#endif
-
 #ifdef __CYGWIN__
-/* Those Idiots at Cygnus have started to set "Unix" identifiers
- * for a Win32 compiler ...
+/* We treat the file system underneath the Cygwin Unix emulator environment
+ * as "native VFAT/NTFS" and use the WIN32 API for its special attributes...
  */
 #  ifdef UNIX
 #    undef UNIX
@@ -35,7 +31,7 @@
 #  define _MBCS
 #endif
 #if (defined(__CYGWIN__) && defined(_MBCS))
-#  undef _MBCS                  /* CygWin RTL lacks support for __mb_cur_max */
+#  undef _MBCS                  /* Cygwin RTL lacks support for __mb_cur_max */
 #endif
 #if (defined(__DJGPP__) && !defined(__EMX__) && defined(_MBCS))
 #  undef _MBCS                  /* __mb_cur_max missing for RSXNTdj 1.6 beta */
@@ -175,6 +171,10 @@
 #  undef DATE_FORMAT
 #endif
 #define DATE_FORMAT   dateformat()
+#ifdef DATE_SEPCHAR
+#  undef DATE_SEPCHAR
+#endif
+#define DATE_SEPCHAR  dateseparator()
 #define lenEOL        2
 #define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 
@@ -195,6 +195,9 @@
 #endif
 #if (!defined(NO_EF_UT_TIME) && !defined(USE_EF_UT_TIME))
 #  define USE_EF_UT_TIME
+#endif
+#if (!defined(NO_DIR_ATTRIB) && !defined(SET_DIR_ATTRIB))
+#  define SET_DIR_ATTRIB
 #endif
 #if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #  define TIMESTAMP
@@ -293,7 +296,8 @@ int getch_win32  OF((void));
  * from the registry.
  */
 #ifdef USE_EF_UT_TIME
-# if (defined(__WATCOMC__) || defined(W32_USE_IZ_TIMEZONE))
+# if (defined(__WATCOMC__) || defined(__CYGWIN__) || \
+      defined(W32_USE_IZ_TIMEZONE))
 #   define iz_w32_prepareTZenv()
 # else
 #   define iz_w32_prepareTZenv()        putenv("TZ=")

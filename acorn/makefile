@@ -1,5 +1,5 @@
 # Makefile for UnZip, UnZipSFX, ZipInfo and fUnZip (5.5 or later)
-# last modified:  15 Jan 2002
+# last modified:  01 Mar 2004
 
 # add -g to CC to debug
 # add -d to BIND to debug
@@ -16,9 +16,9 @@ E    =
 #   LFLAGS2   flags after obj file list (libraries, etc)
 #
 LIB      =
-CBASE    = -throwback -apcs 3/26 -wn -DNO_STRNICMP
+CBASE    = -throwback -wn -DNO_STRNICMP
 CFLAGS   = $(CBASE) -IC:,@.
-ASMFLAGS = -Throwback -Stamp -NoCache -CloseExec -quit -apcs 3/26
+ASMFLAGS = -Throwback -Stamp -NoCache -CloseExec -quit
 LFLAGS1  =
 LFLAGS2  = $(LIB) C:o.Stubs
 
@@ -27,9 +27,9 @@ OBJS1 = unzip.o crc32.o crctab.o crypt.o envargs.o explode.o
 OBJS2 = extract.o fileio.o globals.o inflate.o list.o match.o
 OBJS3 = process.o ttyio.o unreduce.o unshrink.o zipinfo.o
 OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) riscos.o swiven.o acorn.o
-OBJF  = funzip.o crc32.o crypt_.o globals_.o inflate_.o ttyio_.o \
+OBJF  = funzip.o crc32.o cryptf.o globalsf.o inflatef.o ttyiof.o \
         riscos.o swiven.o
-OBJX  = unzipsfx.o crc32.o crctab.o crypt.o extract_.o fileio.o globals.o \
+OBJX  = unzipsfx.o crc32.o crctab.o crypt_.o extract_.o fileio_.o globals.o \
         inflate.o match.o process_.o ttyio.o acorn_.o swiven.o riscos_.o
 
 UNZIP_H = unzip.h unzpriv.h globals.h acorn/riscos.h acorn/swiven.h
@@ -71,9 +71,11 @@ unzip.o:        unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.o:      zipinfo.c $(UNZIP_H)
 
 crypt_.o:       crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
-        $(CC) $(CFLAGS) -DFUNZIP -c c.crypt -o o.crypt_
+        $(CC) $(CFLAGS) -DSFX -c c.crypt -o o.crypt_
 extract_.o:     extract.c $(UNZIP_H) crypt.h
         $(CC) $(CFLAGS) -DSFX -c c.extract -o o.extract_
+fileio_.o:      fileio.c $(UNZIP_H) crypt.h
+        $(CC) $(CFLAGS) -DSFX -c c.fileio -o o.fileio_
 globals_.o:     globals.c $(UNZIP_H)
         $(CC) $(CFLAGS) -DFUNZIP -c c.globals -o o.globals_
 inflate_.o:     inflate.c inflate.h $(UNZIP_H) crypt.h
@@ -85,6 +87,15 @@ ttyio_.o:       ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 
 unzipsfx.o:     unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
         $(CC) $(CFLAGS) -DSFX -c c.unzip -o o.unzipsfx
+
+o.cryptf:       c.crypt $(UNZIP_H) h.zip h.crypt h.ttyio
+        $(CC) $(CFLAGS) -DFUNZIP -c c.crypt -o o.cryptf
+o.globalsf:     c.globals $(UNZIP_H)
+        $(CC) $(CFLAGS) -DFUNZIP -c c.globals -o o.globalsf
+o.inflatef:     c.inflate h.inflate $(UNZIP_H) h.crypt
+        $(CC) $(CFLAGS) -DFUNZIP -c c.inflate -o o.inflatef
+o.ttyiof:       c.ttyio $(UNZIP_H) h.zip h.crypt h.ttyio
+        $(CC) $(CFLAGS) -DFUNZIP -c c.ttyio -o o.ttyiof
 
 acorn.o:       acorn/acorn.c $(UNZIP_H)
         $(CC) $(CFLAGS) -c acorn/acorn.c

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -56,9 +56,6 @@
 /* private prototypes */
 
 static BOOL Initialize(VOID);
-#if 0   /* currently unused */
-static BOOL Shutdown(VOID);
-#endif
 static BOOL DeferSet(char *resource, PVOLUMECAPS VolumeCaps, uch *buffer);
 static VOID GetRemotePrivilegesSet(CHAR *FileName, PDWORD dwRemotePrivileges);
 static VOID InitLocalPrivileges(VOID);
@@ -145,19 +142,6 @@ static BOOL Initialize(VOID)
 
     return TRUE;
 }
-
-#if 0   /* currently not used ! */
-static BOOL Shutdown(VOID)
-{
-    /* really need to free critical sections, disable enabled privilges, etc,
-       but doing so brings up possibility of race conditions if those resources
-       are about to be used.  The easiest way to handle this is let these
-       resources be freed when the process terminates... */
-
-    return TRUE;
-}
-#endif /* never */
-
 
 static BOOL DeferSet(char *resource, PVOLUMECAPS VolumeCaps, uch *buffer)
 {
@@ -363,7 +347,9 @@ static VOID GetRemotePrivilegesSet(char *FileName, PDWORD dwRemotePrivileges)
 
 BOOL GetVolumeCaps(
     char *rootpath,         /* filepath, or NULL */
+#ifndef NTSD_DEV
     char *name,             /* filename associated with rootpath */
+#endif /* !NTSD_DEV */
     PVOLUMECAPS VolumeCaps  /* result structure describing capabilities */
     )
 {
@@ -424,7 +410,7 @@ BOOL GetVolumeCaps(
                end */
 
             if(slash == 1 && TempRootPath[cchTempRootPath] != '\\') {
-                TempRootPath[cchTempRootPath] = TempRootPath[0]; /* '\' */
+                TempRootPath[cchTempRootPath] = TempRootPath[0]; /* '\\' */
                 TempRootPath[cchTempRootPath+1] = '\0';
                 cchTempRootPath++;
             }
@@ -547,7 +533,7 @@ BOOL SecuritySet(char *resource, PVOLUMECAPS VolumeCaps, uch *securitydata)
         }
     }
 
-    /* evaluate the input security desriptor and act accordingly */
+    /* evaluate the input security descriptor and act accordingly */
 
     if(!IsValidSecurityDescriptor(sd))
         return FALSE;

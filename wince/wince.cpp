@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -53,6 +53,8 @@
 //              isupper
 //              stat
 //              localtime
+//
+// Internal helper functions:
 //              SafeGetTimeZoneInformation
 //              GetTransitionTimeT
 //              IsDST
@@ -66,7 +68,9 @@
 
 
 extern "C" {
-#include "punzip.h"
+#define __WINCE_CPP
+#define UNZIP_INTERNAL
+#include "unzip.h"
 }
 #include <tchar.h> // Must be outside of extern "C" block
 
@@ -112,9 +116,10 @@ void DebugOut(LPCTSTR szFormat, ...) {
 //***** Local Function Prototyopes
 //******************************************************************************
 
-void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi);
-time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST);
-BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime);
+static void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi);
+static time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi,
+                                 int year, BOOL fStartDST);
+static BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime);
 
 //******************************************************************************
 //***** IO.H functions
@@ -154,14 +159,45 @@ long __cdecl lseek(int handle, long offset, int origin) {
 
 //******************************************************************************
 //-- Called from fileio.c
-int __cdecl open(const char *filename, int oflag, ...) {
+int __cdecl open(const char *filename, int oflags, ...) {
 
-   // The Info-Zip code currently only opens existing ZIP files for read using open().
+   // The Info-Zip code currently only opens existing ZIP files for read
+   // using open().
+
+   DWORD dwAccess = 0;
+   DWORD dwCreate = 0;
+
+   switch (oflags & (_O_RDONLY | _O_WRONLY | _O_RDWR)) {
+      case _O_RDONLY:
+         dwAccess = GENERIC_READ;
+         break;
+      case _O_WRONLY:
+         dwAccess = GENERIC_WRITE;
+         break;
+      case _O_RDWR:
+         dwAccess = GENERIC_READ | GENERIC_WRITE;
+         break;
+   }
+   switch (oflags & (O_CREAT | O_TRUNC)) {
+      case _O_CREAT:
+         dwCreate = OPEN_ALWAYS;
+         break;
+      case _O_CREAT | _O_TRUNC:
+         dwCreate = CREATE_ALWAYS;
+         break;
+      default:
+         dwCreate = OPEN_EXISTING;
+         break;
+   }
 
    TCHAR szPath[_MAX_PATH];
    MBSTOTSTR(szPath, filename, countof(szPath));
-   HANDLE hFile = CreateFile(szPath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                             NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+   HANDLE hFile = CreateFile(szPath, dwAccess,
+                             FILE_SHARE_READ | FILE_SHARE_WRITE,
+                             NULL, dwCreate, FILE_ATTRIBUTE_NORMAL, NULL);
+   if ((hFile != INVALID_HANDLE_VALUE) && ((oflags & O_APPEND) == O_APPEND)) {
+      SetFilePointer(hFile, 0, NULL, FILE_END);
+   }
    return ((hFile == INVALID_HANDLE_VALUE) ? -1 : (int)hFile);
 }
 
@@ -172,12 +208,14 @@ int __cdecl read(int handle, void *buffer, unsigned int count) {
    return (ReadFile((HANDLE)handle, buffer, count, &dwRead, NULL) ? dwRead : -1);
 }
 
+#if _WIN32_WCE < 211
 //******************************************************************************
 //-- Called from extract.c
 int __cdecl setmode(int handle, int mode) {
    //TEXT/BINARY translation - currently always called with O_BINARY.
    return O_BINARY;
 }
+#endif
 
 //******************************************************************************
 //-- Called from fileio.c
@@ -193,7 +231,11 @@ int __cdecl unlink(const char *filename) {
 //******************************************************************************
 //***** STDIO.H functions
 //******************************************************************************
-
+#if _WIN32_WCE < 211
+// Old versions of Win CE prior to 2.11 do not support stdio library functions.
+// We provide simplyfied replacements that are more or less copies of the
+// UNIX style low level I/O API functions. Only unbuffered I/O in binary mode
+// is supported.
 //-- Called from fileio.c
 int __cdecl fflush(FILE *stream) {
    return (FlushFileBuffers((HANDLE)stream) ? 0 : EOF);
@@ -247,7 +289,8 @@ FILE * __cdecl fopen(const char *filename, const char *mode) {
 
    TCHAR szPath[_MAX_PATH];
    MBSTOTSTR(szPath, filename, countof(szPath));
-   HANDLE hFile = CreateFile(szPath, dwAccess, FILE_SHARE_READ | FILE_SHARE_WRITE,
+   HANDLE hFile = CreateFile(szPath, dwAccess,
+                             FILE_SHARE_READ | FILE_SHARE_WRITE,
                              NULL, dwCreate, FILE_ATTRIBUTE_NORMAL, NULL);
 
    if (hFile == INVALID_HANDLE_VALUE) {
@@ -262,7 +305,7 @@ FILE * __cdecl fopen(const char *filename, const char *mode) {
 }
 
 //******************************************************************************
-//-- Called from unshrink.c
+//-- Called from many sources when compiled for DEBUG
 int __cdecl fprintf(FILE *stream, const char *format, ...) {
 
    // All standard output/error in Info-ZIP is handled through fprintf()
@@ -324,6 +367,40 @@ int __cdecl sprintf(char *buffer, const char *format, ...) {
 
    return 0;
 }
+#endif /* _WIN32_WCE < 211 */
+
+#ifndef POCKET_UNZIP
+//******************************************************************************
+//-- Called from unzip.c
+void __cdecl perror(const char* errorText)
+{
+    OutputDebugString((LPCTSTR)errorText);
+}
+#endif // !POCKET_UNZIP
+
+#ifdef USE_FWRITE
+//******************************************************************************
+//-- Called from fileio.c
+void __cdecl setbuf(FILE *, char *)
+{
+    // We are using fwrite and the call to setbuf was to set the stream
+    // unbuffered which is the default behaviour, we have nothing to do.
+}
+#endif // USE_FWRITE
+
+//******************************************************************************
+//***** STDLIB.H functions
+//******************************************************************************
+
+#ifdef _MBCS
+int __cdecl mblen(const char *mbc, size_t mbszmax)
+{
+    // very simple cooked-down version of mblen() without any error handling
+    // (Windows CE does not support multibyte charsets with a maximum char
+    // length > 2 bytes)
+    return (IsDBCSLeadByte((BYTE)*mbc) ? 2 : 1);
+}
+#endif /* _MBCS */
 
 //******************************************************************************
 //***** STRING.H functions
@@ -350,6 +427,12 @@ char* __cdecl _strupr(char *string) {
    return string;
 }
 
+//******************************************************************************
+//-- Called from fileio.c ("open_input_file()")
+char* __cdecl strerror(int errnum) {
+   return "[errmsg not available]";
+}
+
 #ifndef _MBCS
 //******************************************************************************
 //-- Called from winmain.cpp
@@ -374,10 +457,11 @@ char* __cdecl strrchr(const char *string, int c) {
 //***** CTYPE.H functions
 //******************************************************************************
 
-//-- Called from fileio.c
+#if _WIN32_WCE < 300
 int __cdecl isupper(int c) {
    return ((c >= 'A') && (c <= 'Z'));
 }
+#endif
 
 //******************************************************************************
 //***** STAT.H functions
@@ -501,7 +585,8 @@ struct tm * __cdecl localtime(const time_t *timer) {
 }
 
 //******************************************************************************
-void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi) {
+static void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi)
+{
 
    ZeroMemory(ptzi, sizeof(TIME_ZONE_INFORMATION));
 
@@ -522,8 +607,9 @@ void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi) {
 }
 
 //******************************************************************************
-time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST) {
-
+static time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi,
+                                 int year, BOOL fStartDST)
+{
    // We only handle years within the range that time_t supports.  We need to
    // handle the very end of 1969 since the local time could be up to 13 hours
    // into the previous year.  In this case, our code will actually return a
@@ -603,7 +689,7 @@ time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST)
 }
 
 //******************************************************************************
-BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime) {
+static BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime) {
 
    // If either of the months is 0, then this usually means that the time zone
    // does not use DST.  Unfortunately, Windows CE since it has a bug where it
@@ -649,3 +735,79 @@ BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime) {
 }
 
 #endif // _WIN32_WCE
+
+//******************************************************************************
+//***** Functions to supply timezone information from the Windows registry to
+//***** Info-ZIP's private RTL "localtime() et al." replacements in timezone.c.
+//******************************************************************************
+
+//******************************************************************************
+// Copied from win32.c
+#ifdef W32_USE_IZ_TIMEZONE
+#include "timezone.h"
+#define SECSPERMIN      60
+#define MINSPERHOUR     60
+#define SECSPERHOUR     (SECSPERMIN * MINSPERHOUR)
+static void conv_to_rule(LPSYSTEMTIME lpw32tm, struct rule * ZCONST ptrule);
+
+static void conv_to_rule(LPSYSTEMTIME lpw32tm, struct rule * ZCONST ptrule)
+{
+    if (lpw32tm->wYear != 0) {
+        ptrule->r_type = JULIAN_DAY;
+        ptrule->r_day = ydays[lpw32tm->wMonth - 1] + lpw32tm->wDay;
+    } else {
+        ptrule->r_type = MONTH_NTH_DAY_OF_WEEK;
+        ptrule->r_mon = lpw32tm->wMonth;
+        ptrule->r_day = lpw32tm->wDayOfWeek;
+        ptrule->r_week = lpw32tm->wDay;
+    }
+    ptrule->r_time = (long)lpw32tm->wHour * SECSPERHOUR +
+                     (long)(lpw32tm->wMinute * SECSPERMIN) +
+                     (long)lpw32tm->wSecond;
+}
+
+int GetPlatformLocalTimezone(register struct state * ZCONST sp,
+        void (*fill_tzstate_from_rules)(struct state * ZCONST sp_res,
+                                        ZCONST struct rule * ZCONST start,
+                                        ZCONST struct rule * ZCONST end))
+{
+    TIME_ZONE_INFORMATION tzinfo;
+    DWORD res;
+
+    /* read current timezone settings from registry if TZ envvar missing */
+    res = GetTimeZoneInformation(&tzinfo);
+    if (res != TIME_ZONE_ID_INVALID)
+    {
+        struct rule startrule, stoprule;
+
+        conv_to_rule(&(tzinfo.StandardDate), &stoprule);
+        conv_to_rule(&(tzinfo.DaylightDate), &startrule);
+        sp->timecnt = 0;
+        sp->ttis[0].tt_abbrind = 0;
+        if ((sp->charcnt =
+             WideCharToMultiByte(CP_ACP, 0, tzinfo.StandardName, -1,
+                                 sp->chars, sizeof(sp->chars), NULL, NULL))
+            == 0)
+            sp->chars[sp->charcnt++] = '\0';
+        sp->ttis[1].tt_abbrind = sp->charcnt;
+        sp->charcnt +=
+            WideCharToMultiByte(CP_ACP, 0, tzinfo.DaylightName, -1,
+                                sp->chars + sp->charcnt,
+                                sizeof(sp->chars) - sp->charcnt, NULL, NULL);
+        if ((sp->charcnt - sp->ttis[1].tt_abbrind) == 0)
+            sp->chars[sp->charcnt++] = '\0';
+        sp->ttis[0].tt_gmtoff = - (tzinfo.Bias + tzinfo.StandardBias)
+                                * MINSPERHOUR;
+        sp->ttis[1].tt_gmtoff = - (tzinfo.Bias + tzinfo.DaylightBias)
+                                * MINSPERHOUR;
+        sp->ttis[0].tt_isdst = 0;
+        sp->ttis[1].tt_isdst = 1;
+        sp->typecnt = (startrule.r_mon == 0 && stoprule.r_mon == 0) ? 1 : 2;
+
+        if (sp->typecnt > 1)
+            (*fill_tzstate_from_rules)(sp, &startrule, &stoprule);
+        return TRUE;
+    }
+    return FALSE;
+}
+#endif /* W32_USE_IZ_TIMEZONE */

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -17,6 +17,7 @@
              mapname()
              checkdir()
              close_outfile()
+             defer_dir_attribs()
              set_direc_attribs()
              stamp_file()
              version()
@@ -35,6 +36,20 @@
 /* standard function doesn't work with a trailing / */
 #define opendir(a) _opendir(a)
 extern DIR* _opendir(const char* dirpath);
+
+#ifdef SET_DIR_ATTRIB
+typedef struct uxdirattr {      /* struct for holding unix style directory */
+    struct uxdirattr *next;     /*  info until can be sorted and set at end */
+    char *fn;                   /* filename of directory */
+    union {
+        iztimes t3;             /* mtime, atime, ctime */
+        ztimbuf t2;             /* modtime, actime */
+    } u;
+    unsigned perms;             /* same as min_info.file_attr */
+    char fnbuf[1];              /* buffer stub for directory name */
+} uxdirattr;
+#define UxAtt(d)  ((uxdirattr *)d)    /* typecast shortcut */
+#endif /* SET_DIR_ATTRIB */
 
 #ifdef ACORN_FTYPE_NFS
 /* Acorn bits for NFS filetyping */
@@ -512,42 +527,37 @@ int mapname(__G__ renamed)
     while ((workch = (uch)*cp++) != 0) {
 
         switch (workch) {
-        case '/':             /* can assume -j flag not given */
-            *pp = '\0';
-            if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                 > MPN_INF_TRUNC)
-                return error;
-            pp = pathcomp;    /* reset conversion buffer for next piece */
-            lastsemi = (char *)NULL; /* leave directory semi-colons alone */
-            break;
-
-        case '.':
-            if (pp == pathcomp) {       /* nothing appended yet... */
-                if (*cp == '/') {       /* don't bother appending "./" to */
-                    ++cp;               /*  the path: skip behind the '/' */
-                    break;
-                } else if (!uO.ddotflag && *cp == '.' && cp[1] == '/') {
-                    /* "../" dir traversal detected */
-                    cp += 2;            /*  skip over behind the '/' */
-                    killed_ddot = TRUE; /*  set "show message" flag */
-                    break;
+            case '/':             /* can assume -j flag not given */
+                *pp = '\0';
+                if (strcmp(pathcomp, ".") == 0) {
+                    /* don't bother appending "./" to the path */
+                    *pathcomp = '\0';
+                } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+                    /* "../" dir traversal detected, skip over it */
+                    *pathcomp = '\0';
+                    killed_ddot = TRUE;     /* set "show message" flag */
                 }
-            }
-            *pp++ = '.';
-            break;
+                /* when path component is not empty, append it now */
+                if (*pathcomp != '\0' &&
+                    ((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
+                    return error;
+                pp = pathcomp;    /* reset conversion buffer for next piece */
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
+                break;
 
 #ifdef ACORN_FTYPE_NFS
-        case ',':             /* NFS filetype extension */
-            lastcomma = pp;
-            *pp++ = ',';      /* keep for now; may need to remove */
-            break;            /*  later, if requested */
+            case ',':             /* NFS filetype extension */
+                lastcomma = pp;
+                *pp++ = ',';      /* keep for now; may need to remove */
+                break;            /*  later, if requested */
 #endif
 
-        default:
-            if (isfnsym(workch) || workch == '.')
-                *pp++ = (char)workch;
-            else
-                *pp++ = '_';
+            default:
+                if (isfnsym(workch) || workch == '.')
+                    *pp++ = (char)workch;
+                else
+                    *pp++ = '_';
         } /* end switch */
 
     } /* end while loop */
@@ -973,6 +983,54 @@ int screenlines()
 
 
 
+#if (!defined(MTS) || defined(SET_DIR_ATTRIB))
+static void get_extattribs OF((__GPRO__ iztimes *pzt));
+
+static int get_extattribs(__G__ pzt)
+    __GDEF
+    iztimes *pzt;
+{
+/*---------------------------------------------------------------------------
+    Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
+    time:  adjust base year from 1980 to 1970, do usual conversions from
+    yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
+    light savings time differences.  If we have a Unix extra field, however,
+    we're laughing:  both mtime and atime are ours.
+  ---------------------------------------------------------------------------*/
+#ifdef USE_EF_UT_TIME
+    unsigned eb_izux_flg;
+
+    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
+#ifdef IZ_CHECK_TZ
+                   (G.tz_is_valid ? pzt : NULL),
+#else
+                   pzt,
+#endif
+                   z_uidgid) : 0);
+    if (eb_izux_flg & EB_UT_FL_MTIME) {
+        TTrace((stderr, "\nget_extattribs:  Unix e.f. modif. time = %ld\n",
+          pzt->mtime));
+    } else {
+        pzt->mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+    }
+    if (eb_izux_flg & EB_UT_FL_ATIME) {
+        TTrace((stderr, "get_extattribs:  Unix e.f. access time = %ld\n",
+          pzt->atime));
+    } else {
+        pzt->atime = pzt->mtime;
+        TTrace((stderr, "\nget_extattribs:  modification/access times = %ld\n",
+          pzt->mtime));
+    }
+#else
+    pzt->mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+    pzt->atime = pzt->mtime;
+#endif
+}
+#endif /* !MTS || SET_DIR_ATTRIB */
+
+
+
 #ifndef MTS
 
 /****************************/
@@ -982,9 +1040,10 @@ int screenlines()
 void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
-    iztimes zt;
-    ush z_uidgid[2];
-    unsigned eb_izux_flg;
+    union {
+        iztimes t3;             /* mtime, atime, ctime */
+        ztimbuf t2;             /* modtime, actime */
+    } zt;
 
 /*---------------------------------------------------------------------------
     If symbolic links are supported, allocate a storage area, put the uncom-
@@ -995,42 +1054,10 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 
     fclose(G.outfile);
 
-/*---------------------------------------------------------------------------
-    Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
-    time:  adjust base year from 1980 to 1970, do usual conversions from
-    yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
-    light savings time differences.  If we have a Unix extra field, however,
-    we're laughing:  both mtime and atime are ours.
-  ---------------------------------------------------------------------------*/
+    get_extattribs(__G__ &(zt.t3));
 
-#ifdef USE_EF_UT_TIME
-    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
-                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
-#ifdef IZ_CHECK_TZ
-                   (G.tz_is_valid ? &zt : NULL),
-#else
-                   &zt,
-#endif
-                   z_uidgid) : 0);
-    if (eb_izux_flg & EB_UT_FL_MTIME) {
-        TTrace((stderr, "\nclose_outfile:  Theos e.f. modif. time = %ld\n",
-          zt.mtime));
-    } else {
-        zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
-    }
-    if (eb_izux_flg & EB_UT_FL_ATIME) {
-        TTrace((stderr, "close_outfile:  Theos e.f. access time = %ld\n",
-          zt.atime));
-    } else {
-        zt.atime = zt.mtime;
-        TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
-          zt.mtime));
-    }
-#else
-    zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
-#endif
     /* set the file's access and modification times */
-    if (utime(G.filename, (ztimbuf *)&zt)) {
+    if (utime(G.filename, &(zt.t2))) {
         if (uO.qflag)
             Info(slide, 0x201, ((char *)slide,
               "warning:  cannot set times for %s\n", FnFilter1(G.filename)));
@@ -1084,19 +1111,40 @@ static ZCONST char Far DirlistUtimeFailed[] =
 #  endif
 
 
+int defer_dir_attribs(__G__ pd)
+    __GDEF
+    direntry **pd;
+{
+    uxdirattr *d_entry;
+
+    d_entry = (uxdirattr *)malloc(sizeof(uxdirattr) + strlen(G.filename));
+    *pd = (direntry *)d_entry;
+    if (d_entry == (uxdirattr *)NULL) {
+        return PK_MEM;
+    }
+    d_entry->fn = d_entry->fnbuf;
+    strcpy(d_entry->fn, G.filename);
+
+    d_entry->perms = G.pInfo->file_attr;
+
+    get_extattribs(__G__ &(d_entry->u.t3));
+    return PK_OK;
+} /* end function defer_dir_attribs() */
+
+
 int set_direc_attribs(__G__ d)
     __GDEF
-    dirtime *d;
+    direntry *d;
 {
     int errval = PK_OK;
 
-    if (utime(d->fn, &d->u.t2)) {
+    if (utime(d->fn, &UxAtt(d)->u.t2)) {
         Info(slide, 0x201, ((char *)slide,
           LoadFarString(DirlistUtimeFailed), FnFilter1(d->fn)));
         if (!errval)
             errval = PK_WARN;
     }
-    if (chmod(d->fn, 0xffff & d->perms)) {
+    if (chmod(d->fn, 0xffff & UxAtt(d)->perms)) {
         Info(slide, 0x201, ((char *)slide,
           LoadFarString(DirlistChmodFailed), FnFilter1(d->fn)));
         /* perror("chmod (file attributes) error"); */
@@ -1104,7 +1152,7 @@ int set_direc_attribs(__G__ d)
             errval = PK_WARN;
     }
     return errval;
-} /* end function set_directory_attributes() */
+} /* end function set_direc_attribs() */
 
 #endif /* SET_DIR_ATTRIB */
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -30,11 +30,8 @@
 /*
    Logic of selecting "full crypt" code:
    a) default behaviour:
-      - dummy crypt code when used to compile Zip
-        (because we do not distribute encrypting versions of Zip from US
-        servers)
       - dummy crypt code when compiling UnZipSFX stub, to minimize size
-      - full crypt code when used to compile UnZip and fUnZip
+      - full crypt code when used to compile Zip, UnZip and fUnZip
    b) USE_CRYPT defined:
       - always full crypt code
    c) NO_CRYPT defined:
@@ -47,10 +44,10 @@
 #if defined(USE_CRYPT)
 #  define CRYPT  1  /* full version */
 #else
-#if (!defined(ZIP) && !defined(SFX))
-#  define CRYPT  1  /* full version */
+#if !defined(SFX)
+#  define CRYPT  1  /* full version for zip and main unzip*/
 #else
-#  define CRYPT  0  /* dummy version */
+#  define CRYPT  0  /* dummy version for unzip sfx */
 #endif
 #endif /* ?USE_CRYPT */
 #endif /* ?NO_CRYPT */

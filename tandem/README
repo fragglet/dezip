@@ -48,7 +48,14 @@ Recent changes:
 16/07/01  5.50g  Fixed bug in tandem.c for incorrect use of slist_items rather
                  than vlist_items
 18/07/01         Allow edit files to be created with original extents
-
+25/07/02  5.51b  Add "-r" remove file extensions command line option
+07/08/02  5.51b  Non-Tandem non-text files now set to code 0 (not 100)
+21/10/02  5.51b  Tandem Enscribe files containing text set to code 101
+03/01/03  5.51b  Fix bug in extract of Text files - caused by Deflate64 changes
+                 which made various buffers 64k and mismatches with unsigned.
+                 Added NO_DEFLATE64 to MAKE and made this the default for
+                 non-WIDE mode. If DEFLATE64 is used and non-WIDE then it drops
+                 down to MED_MEM model for OUTBUFSIZ logic.
 
 A few notes about the files on this subvol
 

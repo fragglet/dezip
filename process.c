@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -77,7 +77,7 @@ static ZCONST char Far CannotAllocateBuffers[] =
      "%s:  cannot find zipfile directory in one of %s or\n\
         %s%s.zip, and cannot find %s, period.\n";
    static ZCONST char Far CannotFindEitherZipfile[] =
-     "%s:  cannot find %s, %s.zip or %s.\n";
+     "%s:  cannot find or open %s, %s.zip or %s.\n";
 # else /* !UNIX */
 # ifndef AMIGA
    static ZCONST char Far CannotFindWildcardMatch[] =
@@ -348,23 +348,26 @@ int process_zipfiles(__G)    /* return PK-type error code */
     if ((NumWinFiles + NumWarnFiles + NumLoseFiles) == 0  &&
         (NumMissDirs + NumMissFiles) == 1  &&  lastzipfn != (char *)NULL)
     {
-        NumMissDirs = NumMissFiles = 0;
-        if (error_in_archive == PK_NOZIP)
-            error_in_archive = PK_COOL;
-
 #if (!defined(UNIX) && !defined(AMIGA)) /* filenames with wildcard characters */
-        if (iswild(G.wildzipfn))
-            Info(slide, 0x401, ((char *)slide,
-              LoadFarString(CannotFindWildcardMatch), uO.zipinfo_mode?
-              LoadFarStringSmall(Zipnfo) : LoadFarStringSmall(Unzip),
-              G.wildzipfn));
-        else
+        if (iswild(G.wildzipfn)) {
+            if (iswild(lastzipfn)) {
+                NumMissDirs = NumMissFiles = 0;
+                error_in_archive = PK_COOL;
+                Info(slide, 0x401, ((char *)slide,
+                  LoadFarString(CannotFindWildcardMatch), uO.zipinfo_mode?
+                  LoadFarStringSmall(Zipnfo) : LoadFarStringSmall(Unzip),
+                  G.wildzipfn));
+            }
+        } else
 #endif
         {
             char *p = lastzipfn + strlen(lastzipfn);
 
             G.zipfn = lastzipfn;
             strcpy(p, ZSUFX);
+
+            NumMissDirs = NumMissFiles = 0;
+            error_in_archive = PK_COOL;
 
 #if defined(UNIX) || defined(QDOS)
    /* only Unix has case-sensitive filesystems */
@@ -474,6 +477,14 @@ int process_zipfiles(__G)    /* return PK-type error code */
 void free_G_buffers(__G)     /* releases all memory allocated in global vars */
     __GDEF
 {
+#ifndef SFX
+    unsigned i;
+#endif
+
+#ifdef SYSTEM_SPECIFIC_DTOR
+    SYSTEM_SPECIFIC_DTOR(__G);
+#endif
+
     inflate_free(__G);
     checkdir(__G__ (char *)NULL, END);
 
@@ -507,6 +518,15 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
     if (G.inbuf)
         free(G.inbuf);
     G.inbuf = G.outbuf = (uch *)NULL;
+
+#ifndef SFX
+    for (i = 0; i < DIR_BLKSIZ; i++) {
+        if (G.info[i].cfilname != (char Far *)NULL) {
+            zffree(G.info[i].cfilname);
+            G.info[i].cfilname = (char Far *)NULL;
+        }
+    }
+#endif
 
 #ifdef MALLOC_WORK
     if (G.area.Slide) {

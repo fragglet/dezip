@@ -1,4 +1,4 @@
-Contents of the UnZip 5.50 source archive.  The OS-specific subdirectories
+Contents of the UnZip 5.51 source archive.  The OS-specific subdirectories
 at the end contain their own Contents listings:
 
   Contents      this file
@@ -7,7 +7,8 @@ at the end contain their own Contents listings:
   COPYING.OLD   historic copyrights and distribution policy (obsolete)
   INSTALL       how to compile and install UnZip and related utilities
   WHERE         where Zip/UnZip and encryption/decryption support can be found
-  History.550   new features and fixes in this release
+  History.550   new features and fixes of the last major release
+  History.551   new features and fixes in this maintenance release
   ToDo          rough priority list of new features to be added in next release
   BUGS          known bugs, problems, and (possible) other features to be added
   unzip.txt     UnZip manual page, human-readable format

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -137,6 +137,9 @@
 
 #ifdef USE_ZLIB
 #  include "zlib.h"
+#  ifdef zlib_version           /* This name is used internally in unzip */
+#    undef zlib_version         /*  and must not be defined as a macro. */
+#  endif
 #endif
 
 
@@ -268,6 +271,8 @@ typedef struct Globals {
     int      no_ecrec;             /* process static */
 #ifdef SYMLINKS
     int      symlnk;
+    slinkentry *slink_head;        /* pointer to head of symlinks list */
+    slinkentry *slink_last;        /* pointer to last entry in symlinks list */
 #endif
 #ifdef NOVELL_BUG_FAILSAFE
     int      dne;                  /* true if stat() says file doesn't exist */
@@ -307,23 +312,23 @@ typedef struct Globals {
     int inflInit;             /* inflate static: zlib inflate() initialized */
     z_stream dstrm;           /* inflate global: decompression stream */
 #else
-    struct huft *fixed_tl;    /* inflate static */
-    struct huft *fixed_td;    /* inflate static */
-    int fixed_bl, fixed_bd;   /* inflate static */
+    struct huft *fixed_tl;              /* inflate static */
+    struct huft *fixed_td;              /* inflate static */
+    unsigned fixed_bl, fixed_bd;        /* inflate static */
 #ifdef USE_DEFLATE64
-    struct huft *fixed_tl64;    /* inflate static */
-    struct huft *fixed_td64;    /* inflate static */
-    int fixed_bl64, fixed_bd64; /* inflate static */
-    struct huft *fixed_tl32;    /* inflate static */
-    struct huft *fixed_td32;    /* inflate static */
-    int fixed_bl32, fixed_bd32; /* inflate static */
-    ZCONST ush *cplens;         /* inflate static */
-    ZCONST uch *cplext;         /* inflate static */
-    ZCONST uch *cpdext;         /* inflate static */
+    struct huft *fixed_tl64;            /* inflate static */
+    struct huft *fixed_td64;            /* inflate static */
+    unsigned fixed_bl64, fixed_bd64;    /* inflate static */
+    struct huft *fixed_tl32;            /* inflate static */
+    struct huft *fixed_td32;            /* inflate static */
+    unsigned fixed_bl32, fixed_bd32;    /* inflate static */
+    ZCONST ush *cplens;                 /* inflate static */
+    ZCONST uch *cplext;                 /* inflate static */
+    ZCONST uch *cpdext;                 /* inflate static */
 #endif
     unsigned wp;              /* inflate static: current position in slide */
     ulg bb;                   /* inflate static: bit buffer */
-    unsigned bk;              /* inflate static: bits in bit buffer */
+    unsigned bk;              /* inflate static: bits count in bit buffer */
 #endif /* ?USE_ZLIB */
 
 #ifndef FUNZIP

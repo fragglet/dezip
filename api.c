@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -44,13 +44,19 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #ifdef WINDLL
-#  include "windll/windll.h"
+#  ifdef POCKET_UNZIP
+#    include "wince/intrface.h"
+#  else
+#    include "windll/windll.h"
+#  endif
 #endif
 #include "unzvers.h"
 
 #ifdef DLL      /* This source file supplies DLL-only interface code. */
 
+#ifndef POCKET_UNZIP    /* WinCE pUnZip defines this elsewhere. */
 jmp_buf dll_error_return;
+#endif
 
 /*---------------------------------------------------------------------------
     Documented API entry points
@@ -114,7 +120,12 @@ void UZ_EXP UzpVersion2(UzpVer2 *version)
     strcpy(version->date, UZ_VERSION_DATE);
 
 #ifdef ZLIB_VERSION
-    strcpy(version->zlib_version, ZLIB_VERSION);
+    /* Although ZLIB_VERSION is a compile-time constant, we implement an
+       "overrun-safe" copy because its actual value is not under our control.
+     */
+    strncpy(version->zlib_version, ZLIB_VERSION,
+            sizeof(version->zlib_version) - 1);
+    version->zlib_version[sizeof(version->zlib_version) - 1] = '\0';
     version->flag |= 2;
 #else
     version->zlib_version[0] = '\0';
@@ -178,9 +189,10 @@ int UZ_EXP UzpAltMain(int argc, char *argv[], UzpInit *init)
 
 void UZ_EXP UzpFreeMemBuffer(UzpBuffer *retstr)
 {
-    if (retstr->strptr != NULL) {
+    if (retstr != NULL && retstr->strptr != NULL) {
         free(retstr->strptr);
         retstr->strptr = NULL;
+        retstr->strlength = 0;
     }
 }
 
@@ -371,18 +383,27 @@ int redirect_outfile(__G)
 #ifndef NO_SLIDE_REDIR
     G.redirect_slide = !G.pInfo->textmode;
 #endif
-    G.redirect_size = (G.pInfo->textmode ?
-                       G.lrec.ucsize * lenEOL : G.lrec.ucsize);
+#if (lenEOL != 1)
+    if (G.pInfo->textmode) {
+        G.redirect_size = G.lrec.ucsize * lenEOL;
+        if (G.redirect_size < G.lrec.ucsize)
+            G.redirect_size = ((G.lrec.ucsize > (ulg)-2L) ?
+                               G.lrec.ucsize : (ulg)-2L);
+    } else
+#endif
+    {
+        G.redirect_size = G.lrec.ucsize;
+    }
+#ifdef __16BIT__
+    if ((ulg)((extent)G.redirect_size) != G.redirect_size)
+        return FALSE;
+#endif
 #ifdef OS2
     DosAllocMem((void **)&G.redirect_buffer, G.redirect_size+1,
       PAG_READ|PAG_WRITE|PAG_COMMIT);
     G.redirect_pointer = G.redirect_buffer;
 #else
-#ifdef __16BIT__
-    if ((ulg)((extent)G.redirect_size) != G.redirect_size)
-        return FALSE;
-#endif
-    G.redirect_pointer = 
+    G.redirect_pointer =
       G.redirect_buffer = malloc((extent)(G.redirect_size+1));
 #endif
     if (!G.redirect_buffer)
@@ -395,10 +416,22 @@ int redirect_outfile(__G)
 
 int writeToMemory(__GPRO__ ZCONST uch *rawbuf, extent size)
 {
-    if ((uch *)rawbuf != G.redirect_pointer)
+    int errflg = FALSE;
+
+    if ((uch *)rawbuf != G.redirect_pointer) {
+        extent redir_avail = (G.redirect_buffer + G.redirect_size) -
+                             G.redirect_pointer;
+
+        /* Check for output buffer overflow */
+        if (size > redir_avail) {
+           /* limit transfer data to available space, set error return flag */
+           size = redir_avail;
+           errflg = TRUE;
+        }
         memcpy(G.redirect_pointer, rawbuf, size);
+    }
     G.redirect_pointer += size;
-    return 0;
+    return errflg;
 }
 
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -260,7 +260,7 @@ static int recmatch(p, s, ic)
                                         /* bracket match failed */
     }
 
-    /* if escape ('\'), just compare next character */
+    /* if escape ('\\'), just compare next character */
     if (c == '\\' && (c = *p++) == 0)     /* if \ at end, then syntax error */
         return 0;
 

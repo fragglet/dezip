@@ -1,17 +1,17 @@
 ;===========================================================================
-; Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+; Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 ;
 ; See the accompanying file LICENSE, version 2000-Apr-09 or later
 ; (the contents of which are also included in unzip.h) for terms of use.
 ; If, for some reason, all these files are missing, the Info-ZIP license
 ; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 ;===========================================================================
-; flate.a created by Paul Kienitz, 20 June 94.  Last modified 03 Mar 2001.
+; flate.a created by Paul Kienitz, 20 June 94.  Last modified 23 Mar 2002.
 ;
 ; 68000 assembly language version of inflate_codes(), for Amiga.  Prototype:
 ;
 ;   int inflate_codes(__GPRO__ struct huft *tl, struct huft *td,
-;                     int bl, int bd);
+;                     unsigned bl, unsigned bd);
 ;
 ; Where __GPRO__ expands to "Uz_Globs *G," if REENTRANT is defined,
 ; otherwise to nothing.  In the latter case G is a global variable.
@@ -110,7 +110,7 @@ G_PUSH           MACRO
                  ENDM
                 ENDC    ; REENT_G
 
-;;      xref    _mask_bits      ; const ush mask_bits[17];
+;;      xref    _mask_bits      ; const unsigned mask_bits[17];
                 IFDEF   FUNZIP
                  IF     CRYPT
         xref    _encrypted      ; int -- boolean flag
@@ -264,22 +264,27 @@ FLUSH            MACRO  _1
 ;
 ; Without NO_CHECK_EOF, NEEDBITS reads like this:
 ;
-;   {while(k<(n)){int c=NEXTBYTE;if(c==EOF)return 1;b|=((ulg)c)<<k;k+=8;}}
+;   {while((int)k<(int)(n)){int c=NEXTBYTE;
+;                           if(c==EOF){if((int)k>=0)break;return 1};
+;                           b|=((ulg)c)<<k;k+=8;}}
 ;
-; NEEDBITS clobbers d0, d1, a0, and a1, none of which can be used as the arg
-; to the macro specifying the number of bits.  The arg can be a shortword memory
+; NEEDBITS clobbers d0, d1, a0, and a1, none of which can be used as the arg to
+; the macro specifying the number of bits.  The arg can be a shortword memory
 ; address, or d2-d7.  The result is copied into d1 as a word ready for masking.
-; DUMPBITS has no side effects; the arg must be a d-register (or immediate in the
-; range 1-8?) and only the lower byte is significant.
+; DUMPBITS has no side effects; the arg must be a d-register (or immediate in
+; the range 1-8?) and only the lower byte is significant.
 
 NEEDBITS        MACRO   _1
 @nb:    cmp.w           _1,k            ; assert 0 < k <= 32 ... arg may be 0
-        bhs.s           @ne
+        bge.s           @ne             ; signed compare!
 @loop:
         NEXTBYTE                        ; returns in d0.l
                  IFNDEF NO_CHECK_EOF
         cmp.w           #EOF,d0
-        beq             error_return
+        bne.s           @nok
+        tst.w           k
+        bge.s           @ne
+        bra             error_return
                  ENDC   ; !NO_CHECK_EOF
 @nok:   lsl.l           k,d0
         or.l            d0,b
@@ -300,7 +305,6 @@ longmasks:      dc.l    $00000000,$00000001,$00000003,$00000007,$0000000F
                 dc.l    $0000001F,$0000003F,$0000007F,$000000FF,$000001FF
                 dc.l    $000003FF,$000007FF,$00000FFF,$00001FFF,$00003FFF
                 dc.l    $00007FFF,$0000FFFF,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-    xdef longmasks  ; XXX
 
 
 ; ******************************************************************************

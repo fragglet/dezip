@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -69,7 +69,7 @@ int UZmacstat(const char *path, struct stat *buf)
     AssertStr(path,path)
     Assert_it(buf,"","")
 
-    memset(buf,0,sizeof(buf));   /* zero out all fields */
+    memset(buf, 0, sizeof(struct stat));        /* zero out all fields */
 
     RfDfFilen2Real(UnmangledPath, path, MacZipMode,
                    (newExtraField.flags & EB_M3_FL_NOCHANGE), &CurrentFork);

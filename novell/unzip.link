@@ -1,7 +1,7 @@
 format novell NLM 'unzip utility'
 name unzip
 option caseexact
-option copyright 'Copyright 1990-2000 Info-ZIP (Zip-Bugs@lists.wku.edu).'
+option copyright 'Copyright 1990-2002 Info-ZIP (Zip-Bugs@lists.wku.edu).'
 option map = unzip.map
 option nodefaultlibs
 option quiet
@@ -9,7 +9,7 @@ option screenname 'none'
 option stack = 32k
 option symfile = unzip.sym
 option threadname 'unzip'
-option version = 5.5.0
+option version = 5.5.1
 module clib
 import @c:/novell/ndk/nwsdk/imports/clib.imp
 import @c:/novell/ndk/nwsdk/imports/nlmlib.imp

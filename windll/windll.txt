@@ -179,6 +179,10 @@ int WINAPI Wiz_UnzipToMemory(LPSTR zip, LPSTR file, LPUSERFUNCTIONS lpUserFunc,
    extract in file. UzpUnzipToMemory will create a buffer and return it in
    *retstr. 0 on return indicates failure.
 
+void WINAPI UzpFreeMemBuffer(UzpBuffer *retstr)
+   Use this routine to release the return data space allocated by the function
+   Wiz_UnzipToMemory().
+
 int WINAPI Wiz_Grep(LPSTR archive, LPSTR file, LPSTR pattern, int cmd,
                     int SkipBin, LPUSERFUNCTIONS lpUserFunc)
 
@@ -274,6 +278,6 @@ the "series" of calls, make sure that Wiz_SetOpts and Wiz_Unzip are always
 used together! When successfully called, Wiz_SetOpts has allocated some
 internal structures which are in turn free'd by Wiz_Unzip.
 
-Last revised January 12, 2002.
+Last revised March 02, 2003.
 
 Mike White, Christian Spieler

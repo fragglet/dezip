@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -2452,7 +2452,6 @@ int mapname(__G__ renamed)
     char *pp, *cp=(char *)NULL;    /* character pointers */
     char *lastsemi = NULL;         /* pointer to last semi-colon in pathcomp */
     char *last_dot = NULL;         /* last dot not converted to underscore */
-    int quote = FALSE;             /* flag:  next char is literal */
     int dotname = FALSE;           /* flag:  path component begins with dot */
     int killed_ddot = FALSE;       /* is set when skipping "../" pathcomp */
     int error = MPN_OK;
@@ -2497,15 +2496,11 @@ int mapname(__G__ renamed)
 
     while ((workch = (uch)*cp++) != 0) {
 
-        if (quote) {              /* if character quoted, */
-            *pp++ = (char)workch; /*  include it literally */
-            quote = FALSE;
-        } else
-            switch (workch) {
+        switch (workch) {
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
-                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                     > MPN_INF_TRUNC)
+                if (((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
                 last_dot = NULL;  /* directory names must not contain dots */
@@ -2553,7 +2548,7 @@ int mapname(__G__ renamed)
                 else
                     *pp++ = '_';  /* convert everything else to underscore */
                 break;
-            } /* end switch */
+        } /* end switch */
 
     } /* end while loop */
 

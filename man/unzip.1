@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -20,7 +20,7 @@
 .in -4n
 ..
 .\" =========================================================================
-.TH UNZIP 1L "17 February 2002 (v5.5)" "Info-ZIP"
+.TH UNZIP 1L "22 May 2004 (v5.51)" "Info-ZIP"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
@@ -396,7 +396,14 @@ version 5.50) prevents \fIunzip\fP from accidentally writing files to
 \fB\-:\fP option lets \fIunzip\fP switch back to its previous, more liberal
 behaviour, to allow exact extraction of (older) archives that used ``../''
 components to create multiple directory trees at the level of the current
-extraction folder.
+extraction folder.  This option does not enable writing explicitly to the
+root directory (``/'').  To achieve this, it is necessary to set the
+extraction target folder to root (e.g. \fB\-d / \fP).  However, when the
+\fB\-:\fP option is specified, it is still possible to implicitly write to
+the root directory by specifiying enough ``../'' path components within the
+zip file.
+Use this option with extreme caution.
+
 .PD
 .\" =========================================================================
 .SH "ENVIRONMENT OPTIONS"
@@ -732,16 +739,17 @@ Archives encrypted with 8-bit passwords (e.g., passwords with accented
 European characters) may not be portable across systems and/or other
 archivers.  See the discussion in \fBDECRYPTION\fP above.
 .PP
-\fIunzip\fP's \fB\-M\fP (``more'') option is overly simplistic in its handling
-of screen output; as noted above, it fails to detect the wrapping of long lines
-and may thereby cause lines at the top of the screen to be scrolled off before
-being read.  \fIunzip\fP should detect and treat each occurrence of line-wrap
-as one additional line printed.  This requires knowledge of the screen's width
-as well as its height.  In addition, \fIunzip\fP should detect the true screen
-geometry on all systems.
+\fIunzip\fP's \fB\-M\fP (``more'') option tries to take into account automatic
+wrapping of long lines. However, the code may fail to detect the correct
+wrapping locations. First, TAB characters (and similar control sequences) are
+not taken into account, they are handled as ordinary printable characters.
+Second, depending on the actual system / OS port, \fIunzip\fP may not detect
+the true screen geometry but rather rely on "commonly used" default dimensions.
+The correct handling of tabs would require the implementation of a query for
+the actual tabulator setup on the output console.
 .PP
 Dates, times and permissions of stored directories are not restored except
-under Unix.
+under Unix. (On Windows NT and successors, timestamps are now restored.)
 .PP
 [MS-DOS] When extracting or testing files from an archive on a defective
 floppy diskette, if the ``Fail'' option is chosen from DOS's ``Abort, Retry,
@@ -799,16 +807,22 @@ or
 .\" =========================================================================
 .SH AUTHORS
 The primary Info-ZIP authors (current semi-active members of the Zip-Bugs
-workgroup) are:  Greg ``Cave Newt'' Roelofs (UnZip); Onno van der Linden (Zip);
-Jean-loup Gailly (compression); Mark Adler (decompression, fUnZip); Christian
-Spieler (UnZip maintance coordination, VMS, MS-DOS, Windows 95, NT,
+workgroup) are:  Onno van der Linden (Zip);
+Christian Spieler (UnZip maintenance coordination, VMS, MS-DOS, Win32,
 shared code, general Zip and UnZip integration and optimization);
 Mike White (Windows GUI, Windows DLLs); Kai Uwe Rommel (OS/2);
-Paul Kienitz (Amiga, Windows 95); Chris Herborth (BeOS, QNX, Atari);
+Paul Kienitz (Amiga, Win32); Chris Herborth (BeOS, QNX, Atari);
 Jonathan Hudson (SMS/QDOS); Sergio Monesi (Acorn RISC OS); Harald
 Denker (Atari, MVS); John Bush (Solaris, Amiga); Hunter Goatley (VMS); Steve
-Salisbury (Windows 95, NT); Steve Miller (Windows CE GUI), Johnny Lee (MS-DOS,
-Windows 95, NT); and Dave Smith (Tandem NSK).
+Salisbury (Win32); Steve Miller (Windows CE GUI), Johnny Lee (MS-DOS,
+Win32); and Dave Smith (Tandem NSK).
+.PP
+The following people were former members of the Info-ZIP development group
+and provided major contributions to key parts of the current code:
+Greg ``Cave Newt'' Roelofs (UnZip, unshrink decompression);
+Jean-loup Gailly (deflate compression);
+Mark Adler (inflate decompression, fUnZip).
+.PP
 The author of the original unzip code upon which Info-ZIP's was based
 is Samuel H. Smith; Carl Mascott did the first Unix port; and David P.
 Kirschbaum organized and led Info-ZIP in its early days with Keith Petersen
@@ -861,5 +875,7 @@ Info-ZIP (Zip-Bugs subgroup, SPC)
 .IP "v5.42\t14 Jan 01"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .IP "v5.5\t17 Feb 02"
+Info-ZIP (Zip-Bugs subgroup, SPC)
+.IP "v5.51\t22 May 04"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .PD

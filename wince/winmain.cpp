@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -1327,8 +1327,8 @@ void OnGetDispInfo(LV_DISPINFO *plvdi) {
 
       case 0: // Name
 
-         // Copy the string to a new string while removing all non-printables.
-         fnfilter(pFile->szPathAndMethod, (uch*)szBuffer);
+         // Copy the string to a temporary buffer.
+         strcpy(szBuffer, pFile->szPathAndMethod);
 
          // Change all forward slashes to back slashes in the buffer
          ForwardSlashesToBackSlashesA(szBuffer);
@@ -1913,7 +1913,7 @@ void AddTextToEdit(LPCSTR szText) {
       // If our out buffer is full, then dump it to the edit box.
       if ((pszOut - szOut) > 253) {
          *pszOut = TEXT('\0');
-         SendMessage(g_hWndEdit, EM_SETSEL, 65536, 65536);
+         SendMessage(g_hWndEdit, EM_SETSEL, -1, -1);
          SendMessage(g_hWndEdit, EM_REPLACESEL, FALSE, (LPARAM)szOut);
          pszOut = szOut;
       }
@@ -1922,7 +1922,7 @@ void AddTextToEdit(LPCSTR szText) {
    // One final flush of any partially full out buffer.
    if (pszOut > szOut) {
       *pszOut = TEXT('\0');
-      SendMessage(g_hWndEdit, EM_SETSEL, 65536, 65536);
+      SendMessage(g_hWndEdit, EM_SETSEL, -1, -1);
       SendMessage(g_hWndEdit, EM_REPLACESEL, FALSE, (LPARAM)szOut);
    }
 }
@@ -3153,7 +3153,7 @@ BOOL CALLBACK DlgProcBrowser(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 #ifdef _WIN32_WCE
 void SubclassSaveAsDlg() {
 
-   // Get our cuurent thread ID so we can compare it to other thread IDs.
+   // Get our current thread ID so we can compare it to other thread IDs.
    DWORD dwThreadId = GetCurrentThreadId();
 
    // Get the the top window in the z-order that is a child of the desktop.
@@ -3285,7 +3285,7 @@ BOOL CALLBACK DlgProcExtractProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
          SetDlgItemText(hDlg, IDC_BYTES_TOTAL,
                         FormatValue(szBuffer, pei->dwByteCount));
 
-         // Luanch our Extract/Test thread and wait for WM_PRIVATE
+         // Launch our Extract/Test thread and wait for WM_PRIVATE
          DoExtractOrTestFiles(g_szZipFile, pei);
 
          return TRUE;
@@ -3385,7 +3385,7 @@ BOOL CALLBACK DlgProcViewProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lP
          SendDlgItemMessage(hDlg, IDC_FILE_PROGRESS, PBM_SETRANGE, 0,
                             MAKELPARAM(0, PROGRESS_MAX));
 
-         // Luanch our Extract thread and wait for WM_PRIVATE message.
+         // Launch our Extract thread and wait for WM_PRIVATE message.
          DoExtractOrTestFiles(g_szZipFile, pei);
 
          return TRUE;
@@ -3494,7 +3494,7 @@ int PromptToReplace(LPCSTR szPath) {
          TEXT("A file named \"%s\" has already been extracted for viewing.  ")
 #endif
          TEXT("That file might be opened and locked for viewing by another application.\n\n")
-         TEXT("Would you like to attempt to overwirite it with the new file?"),
+         TEXT("Would you like to attempt to overwrite it with the new file?"),
          GetFileFromPath(szPath));
 
       // Display prompt.
@@ -3827,7 +3827,7 @@ BOOL CALLBACK DlgProcAbout(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
          //  not applicable, because they are defined as a set of concatenated
          //  string constants. These strings need to be converted to UNICODE
          //  at runtime, sigh.)
-         TCHAR szBuffer[80];
+         TCHAR szBuffer[128];
          SetDlgItemText(hDlg, IDC_PRODUCT, TEXT(VER_PRODUCT_STR));
 #ifdef UNICODE
          _stprintf(szBuffer, TEXT("Freeware Version %S"), VER_FULLVERSION_STR);

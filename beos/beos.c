@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -18,6 +18,7 @@
              mapname()
              checkdir()
              close_outfile()
+             defer_dir_attribs()
              set_direc_attribs()
              stamp_file()
              version()
@@ -55,6 +56,22 @@ static void printBeOSexfield OF((int isdir, uch *extra_field));
 #ifdef BEOS_ASSIGN_FILETYPE
 static void assign_MIME( const char * );
 #endif
+
+#ifdef SET_DIR_ATTRIB
+typedef struct uxdirattr {      /* struct for holding unix style directory */
+    struct uxdirattr *next;     /*  info until can be sorted and set at end */
+    char *fn;                   /* filename of directory */
+    union {
+        iztimes t3;             /* mtime, atime, ctime */
+        ztimbuf t2;             /* modtime, actime */
+    } u;
+    unsigned perms;             /* same as min_info.file_attr */
+    int have_uidgid;            /* flag */
+    ush uidgid[2];
+    char fnbuf[1];              /* buffer stub for directory name */
+} uxdirattr;
+#define UxAtt(d)  ((uxdirattr *)d)    /* typecast shortcut */
+#endif /* SET_DIR_ATTRIB */
 
 #ifdef ACORN_FTYPE_NFS
 /* Acorn bits for NFS filetyping */
@@ -339,7 +356,6 @@ int mapname(__G__ renamed)
     char *lastcomma=(char *)NULL;  /* pointer to last comma in pathcomp */
     RO_extra_block *ef_spark;      /* pointer Acorn FTYPE ef block */
 #endif
-    int quote = FALSE;             /* flags */
     int killed_ddot = FALSE;       /* is set when skipping "../" pathcomp */
     int error = MPN_OK;
     register unsigned workch;      /* hold the character being tested */
@@ -378,33 +394,24 @@ int mapname(__G__ renamed)
 
     while ((workch = (uch)*cp++) != 0) {
 
-        if (quote) {                 /* if character quoted, */
-            *pp++ = (char)workch;    /*  include it literally */
-            quote = FALSE;
-        } else
-            switch (workch) {
+        switch (workch) {
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
-                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                     > MPN_INF_TRUNC)
+                if (strcmp(pathcomp, ".") == 0) {
+                    /* don't bother appending "./" to the path */
+                    *pathcomp = '\0';
+                } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+                    /* "../" dir traversal detected, skip over it */
+                    *pathcomp = '\0';
+                    killed_ddot = TRUE;     /* set "show message" flag */
+                }
+                /* when path component is not empty, append it now */
+                if (*pathcomp != '\0' &&
+                    ((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
-                break;
-
-            case '.':
-                if (pp == pathcomp) {   /* nothing appended yet... */
-                    if (*cp == '/') {   /* don't bother appending "./" to */
-                        ++cp;           /*  the path: skip behind the '/' */
-                        break;
-                    } else if (!uO.ddotflag && *cp == '.' && cp[1] == '/') {
-                        /* "../" dir traversal detected */
-                        cp += 2;        /*  skip over behind the '/' */
-                        killed_ddot = TRUE; /*  set "show message" flag */
-                        break;
-                    }
-                }
-                *pp++ = '.';
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
                 break;
 
             case ';':             /* VMS version (or DEC-20 attrib?) */
@@ -419,15 +426,11 @@ int mapname(__G__ renamed)
                 break;            /*  later, if requested */
 #endif
 
-            case '\026':          /* control-V quote for special chars */
-                quote = TRUE;     /* set flag for next character */
-                break;
-
             default:
                 /* allow European characters in filenames: */
                 if (isprint(workch) || (128 <= workch && workch <= 254))
                     *pp++ = (char)workch;
-            } /* end switch */
+        } /* end switch */
 
     } /* end while loop */
 
@@ -791,6 +794,59 @@ int checkdir(__G__ pathcomp, flag)
 
 
 
+static int get_extattribs OF((__GPRO__ iztimes *pzt, ush z_uidgid[2]));
+
+static int get_extattribs(__G__ pzt, z_uidgid)
+    __GDEF
+    iztimes *pzt;
+    ush z_uidgid[2];
+{
+/*---------------------------------------------------------------------------
+    Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
+    time:  adjust base year from 1980 to 1970, do usual conversions from
+    yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
+    light savings time differences.  If we have a Unix extra field, however,
+    we're laughing:  both mtime and atime are ours.  On the other hand, we
+    then have to check for restoration of UID/GID.
+  ---------------------------------------------------------------------------*/
+    int have_uidgid_flg;
+    unsigned eb_izux_flg;
+
+    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
+#ifdef IZ_CHECK_TZ
+                   (G.tz_is_valid ? pzt : NULL),
+#else
+                   pzt,
+#endif
+                   z_uidgid) : 0);
+    if (eb_izux_flg & EB_UT_FL_MTIME) {
+        TTrace((stderr, "\nget_extattribs:  Unix e.f. modif. time = %ld\n",
+          pzt->mtime));
+    } else {
+        pzt->mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+    }
+    if (eb_izux_flg & EB_UT_FL_ATIME) {
+        TTrace((stderr, "get_extattribs:  Unix e.f. access time = %ld\n",
+          pzt->atime));
+    } else {
+        pzt->atime = pzt->mtime;
+        TTrace((stderr, "\nget_extattribs:  modification/access times = %ld\n",
+          pzt->mtime));
+    }
+
+    /* if -X option was specified and we have UID/GID info, restore it */
+    have_uidgid_flg =
+#ifdef RESTORE_UIDGID
+            (uO.X_flag && (eb_izux_flg & EB_UX2_VALID));
+#else
+            0;
+#endif
+    return have_uidgid_flg;
+}
+
+
+
 
 /****************************/
 /* Function close_outfile() */
@@ -799,57 +855,92 @@ int checkdir(__G__ pathcomp, flag)
 void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
-    iztimes zt;
+    union {
+        iztimes t3;             /* mtime, atime, ctime */
+        struct utimbuf t2;      /* modtime, actime */
+    } zt;
     ush z_uidgid[2];
-    unsigned eb_izux_flg;
+    int have_uidgid_flg;
+
+    fclose(G.outfile);
 
 /*---------------------------------------------------------------------------
-    If symbolic links are supported, allocate a storage area, put the uncom-
-    pressed "data" in it, and create the link.  Since we know it's a symbolic
-    link to start with, we shouldn't have to worry about overflowing unsigned
-    ints with unsigned longs.
+    If symbolic links are supported, allocate storage for a symlink control
+    structure, put the uncompressed "data" and other required info in it, and
+    add the structure to the "deferred symlinks" chain.  Since we know it's a
+    symbolic link to start with, we shouldn't have to worry about overflowing
+    unsigned ints with unsigned longs.
   ---------------------------------------------------------------------------*/
 
 #ifdef SYMLINKS
     if (G.symlnk) {
         unsigned ucsize = (unsigned)G.lrec.ucsize;
-        char *linktarget = (char *)malloc((unsigned)G.lrec.ucsize+1);
-
-        fclose(G.outfile);                      /* close "data" file... */
-        G.outfile = fopen(G.filename, FOPR);    /* ...and reopen for reading */
-        if (!linktarget || fread(linktarget, 1, ucsize, G.outfile) !=
-                           (int)ucsize)
-        {
-            Info(slide, 0x201, ((char *)slide,
-              "warning:  symbolic link (%s) failed\n", FnFilter1(G.filename)));
-            if (linktarget)
-                free(linktarget);
-            fclose(G.outfile);
-            return;
-        }
-        fclose(G.outfile);                  /* close "data" file for good... */
-        unlink(G.filename);                 /* ...and delete it */
-        linktarget[ucsize] = '\0';
-        if (QCOND2)
-            Info(slide, 0, ((char *)slide, "-> %s ", FnFilter1(linktarget)));
-        if (symlink(linktarget, G.filename))  /* create the real link */
-            perror("symlink error");
+        unsigned BeOSef_len = 0;
+        extent slnk_entrysize;
+        uch *BeOS_exfld;
+        slinkentry *slnk_entry;
 
         if (!uO.J_flag) {
             /* Symlinks can have attributes, too. */
-            void *ptr = scanBeOSexfield( G.extra_field,
-                                         G.lrec.extra_field_length );
-            if (ptr) {
-                setBeOSexfield( G.filename, ptr );
+            BeOS_exfld = scanBeOSexfield(G.extra_field,
+                                         G.lrec.extra_field_length);
+            if (BeOS_exfld) {
+                BeOSef_len = makeword(EB_LEN + BeOS_exfld) + EB_HEADSIZE;
             }
         }
 
-        free(linktarget);
-        return;                             /* can't set time on symlinks */
+       slnk_entrysize = sizeof(slinkentry) + BeOSef_len + ucsize +
+                        strlen(G.filename);
+
+        if ((unsigned)slnk_entrysize < ucsize) {
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  symbolic link (%s) failed: mem alloc overflow\n",
+              FnFilter1(G.filename)));
+            return;
+        }
+
+        if ((slnk_entry = (slinkentry *)malloc(slnk_entrysize)) == NULL) {
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  symbolic link (%s) failed: no mem\n",
+              FnFilter1(G.filename)));
+            return;
+        }
+        slnk_entry->next = NULL;
+        slnk_entry->targetlen = ucsize;
+        slnk_entry->attriblen = BeOSef_len;
+        slnk_entry->target = slnk_entry->buf + BeOSef_len;
+        slnk_entry->fname = slnk_entry->target + ucsize + 1;
+        strcpy(slnk_entry->fname, G.filename);
+        if (BeOSef_len > 0)
+            memcpy(slnk_entry->buf, BeOS_exfld, BeOSef_len);
+
+        /* reopen the "link data" file for reading */
+        G.outfile = fopen(G.filename, FOPR);
+
+        if (!G.outfile ||
+            fread(slnk_entry->target, 1, ucsize, G.outfile) != (int)ucsize)
+        {
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  symbolic link (%s) failed\n",
+              FnFilter1(G.filename)));
+            free(slnk_entry);
+            fclose(G.outfile);
+            return;
+        }
+        fclose(G.outfile);                  /* close "link" file for good... */
+        slnk_entry->target[ucsize] = '\0';
+        if (QCOND2)
+            Info(slide, 0, ((char *)slide, "-> %s ",
+              FnFilter1(slnk_entry->target)));
+        /* add this symlink record to the list of deferred symlinks */
+        if (G.slink_last != NULL)
+            G.slink_last->next = slnk_entry;
+        else
+            G.slink_head = slnk_entry;
+        G.slink_last = slnk_entry;
+        return;
     }
 #endif /* SYMLINKS */
-
-    fclose(G.outfile);
 
     /* handle the BeOS extra field if present */
     if (!uO.J_flag) {
@@ -876,40 +967,10 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         perror("chmod (file attributes) error");
 #endif
 
-/*---------------------------------------------------------------------------
-    Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
-    time:  adjust base year from 1980 to 1970, do usual conversions from
-    yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
-    light savings time differences.  If we have a Unix extra field, however,
-    we're laughing:  both mtime and atime are ours.  On the other hand, we
-    then have to check for restoration of UID/GID.
-  ---------------------------------------------------------------------------*/
-
-    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
-                   G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
-#ifdef IZ_CHECK_TZ
-                   (G.tz_is_valid ? &zt : NULL),
-#else
-                   &zt,
-#endif
-                   z_uidgid) : 0);
-    if (eb_izux_flg & EB_UT_FL_MTIME) {
-        TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
-          zt.mtime));
-    } else {
-        zt.mtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
-    }
-    if (eb_izux_flg & EB_UT_FL_ATIME) {
-        TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
-          zt.atime));
-    } else {
-        zt.atime = zt.mtime;
-        TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
-          zt.mtime));
-    }
+    have_uidgid_flg = get_extattribs(__G__ &(zt.t3), z_uidgid);
 
     /* if -X option was specified and we have UID/GID info, restore it */
-    if (uO.X_flag && eb_izux_flg & EB_UX2_VALID) {
+    if (have_uidgid_flg) {
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
         if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
         {
@@ -925,13 +986,13 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     }
 
     /* set the file's access and modification times */
-    if (utime(G.filename, (struct utimbuf *)&zt)) {
+    if (utime(G.filename, &(zt.t2))) {
         if (uO.qflag)
             Info(slide, 0x201, ((char *)slide,
-              "warning:  cannot set time for %s\n", FnFilter1(G.filename)));
+              "warning:  cannot set times for %s\n", FnFilter1(G.filename)));
         else
             Info(slide, 0x201, ((char *)slide,
-              " (warning) cannot set time"));
+              " (warning) cannot set times"));
     }
 
 } /* end function close_outfile() */
@@ -939,41 +1000,79 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 
 
 
+#ifdef SYMLINKS
+int set_symlnk_attribs(__G__ slnk_entry)
+    __GDEF
+    slinkentry *slnk_entry;
+{
+    if (slnk_entry->attriblen > 0)
+        setBeOSexfield(slnk_entry->fname, (uch *)slnk_entry->buf);
+    /* currently, no error propagation... */
+    return PK_OK;
+}
+#endif /* SYMLINKS */
+
+
+
+
 #ifdef SET_DIR_ATTRIB
 /* messages of code for setting directory attributes */
-static char Far DirlistUidGidFailed[] =
+static ZCONST char Far DirlistUidGidFailed[] =
   "warning:  cannot set UID %d and/or GID %d for %s\n";
-static char Far DirlistUtimeFailed[] =
+static ZCONST char Far DirlistUtimeFailed[] =
   "warning:  cannot set modification, access times for %s\n";
 #  ifndef NO_CHMOD
-  static char Far DirlistChmodFailed[] =
+  static ZCONST char Far DirlistChmodFailed[] =
     "warning:  cannot set permissions for %s\n";
 #  endif
 
 
+int defer_dir_attribs(__G__ pd)
+    __GDEF
+    direntry **pd;
+{
+    uxdirattr *d_entry;
+
+    d_entry = (uxdirattr *)malloc(sizeof(uxdirattr) + strlen(G.filename));
+    *pd = (direntry *)d_entry;
+    if (d_entry == (uxdirattr *)NULL) {
+        return PK_MEM;
+    }
+    d_entry->fn = d_entry->fnbuf;
+    strcpy(d_entry->fn, G.filename);
+
+    d_entry->perms = G.pInfo->file_attr;
+
+    d_entry->have_uidgid = get_extattribs(__G__ &(d_entry->u.t3),
+                                          d_entry->uidgid);
+    return PK_OK;
+} /* end function defer_dir_attribs() */
+
+
 int set_direc_attribs(__G__ d)
     __GDEF
-    dirtime *d;
+    direntry *d;
 {
     int errval = PK_OK;
 
-    if (d->have_uidgid &&
-        chown(d->fn, (uid_t)d->uidgid[0], (gid_t)d->uidgid[1]))
+    if (UxAtt(d)->have_uidgid &&
+        chown(UxAtt(d)->fn, (uid_t)UxAtt(d)->uidgid[0],
+              (gid_t)UxAtt(d)->uidgid[1]))
     {
         Info(slide, 0x201, ((char *)slide,
           LoadFarString(DirlistUidGidFailed),
-          d->uidgid[0], d->uidgid[1], d->fn));
+          UxAtt(d)->uidgid[0], UxAtt(d)->uidgid[1], FnFilter1(d->fn)));
         if (!errval)
             errval = PK_WARN;
     }
-    if (utime(d->fn, (const struct utimbuf *)&d->u.t2)) {
+    if (utime(d->fn, (const struct utimbuf *)&UxAtt(d)->u.t2)) {
         Info(slide, 0x201, ((char *)slide,
           LoadFarString(DirlistUtimeFailed), FnFilter1(d->fn)));
         if (!errval)
             errval = PK_WARN;
     }
 #ifndef NO_CHMOD
-    if (chmod(d->fn, 0xffff & d->perms)) {
+    if (chmod(d->fn, 0xffff & UxAtt(d)->perms)) {
         Info(slide, 0x201, ((char *)slide,
           LoadFarString(DirlistChmodFailed), FnFilter1(d->fn)));
         /* perror("chmod (file attributes) error"); */
@@ -982,7 +1081,7 @@ int set_direc_attribs(__G__ d)
     }
 #endif /* !NO_CHMOD */
     return errval;
-} /* end function set_directory_attributes() */
+} /* end function set_direc_attribs() */
 
 #endif /* SET_DIR_ATTRIB */
 

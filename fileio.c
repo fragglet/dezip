@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -49,6 +49,7 @@
              fLoadFarStringSmall()    (SMALL_MEM only)
              fLoadFarStringSmall2()   (SMALL_MEM only)
              zfstrcpy()               (SMALL_MEM only)
+             zfstrcmp()               (SMALL_MEM && !(SFX || FUNZIP) only)
 
   ---------------------------------------------------------------------------*/
 
@@ -57,7 +58,11 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #ifdef WINDLL
-#  include "windll/windll.h"
+#  ifdef POCKET_UNZIP
+#    include "wince/intrface.h"
+#  else
+#    include "windll/windll.h"
+#  endif
 #  include <setjmp.h>
 #endif
 #include "crypt.h"
@@ -109,7 +114,7 @@ static int disk_error OF((__GPRO));
 /****************************/
 
 static ZCONST char Far CannotOpenZipfile[] =
-  "error:  cannot open zipfile [ %s ]\n";
+  "error:  cannot open zipfile [ %s ]\n        %s";
 
 #if (!defined(VMS) && !defined(AOS_VS) && !defined(CMS_MVS) && !defined(MACOS))
 #if (!defined(TANDEM))
@@ -213,7 +218,7 @@ int open_input_file(__G)    /* return 1 if open failed */
 #endif
     {
         Info(slide, 0x401, ((char *)slide, LoadFarString(CannotOpenZipfile),
-          G.zipfn));
+          G.zipfn, strerror(errno)));
         return 1;
     }
     return 0;
@@ -434,7 +439,7 @@ int open_outfile(__G)         /* return 1 if fail */
 #endif /* USE_FWRITE */
 #ifdef OS2_W32
     /* preallocate the final file size to prevent file fragmentation */
-    SetFileSize(G.outfile, G.pInfo->uncompr_size);
+    SetFileSize(G.outfile, G.lrec.ucsize);
 #endif
     return 0;
 
@@ -735,7 +740,7 @@ int flush(__G__ rawbuf, size, unshrink)
         if (ret != PK_OK)
             return ret;
         size -= 0x8000L;
-        rawbuf += (unsigned)0x8000;
+        rawbuf += (extent)0x8000;
     }
     return partflush(__G__ rawbuf, size, unshrink);
 } /* end function flush() */
@@ -797,9 +802,13 @@ static int partflush(__G__ rawbuf, size, unshrink)
          * DEC Ultrix cc), write() is used anyway.
          */
 #ifdef DLL
-        if (G.redirect_data)
+        if (G.redirect_data) {
+#ifdef NO_SLIDE_REDIR
+            if (writeToMemory(__G__ rawbuf, (extent)size)) return PK_ERR;
+#else
             writeToMemory(__G__ rawbuf, (extent)size);
-        else
+#endif
+        } else
 #endif
         if (!uO.cflag && WriteError(rawbuf, size, G.outfile))
             return disk_error(__G);
@@ -837,21 +846,16 @@ static int partflush(__G__ rawbuf, size, unshrink)
 #ifdef VMS_TEXT_CONV
         if (G.VMS_line_state >= 0)
         {
-            /* GRR: really want to check for actual VMS extra field, and
-             *      ideally for variable-length record format */
-/*
-            printf("\n>>>>>> GRR:  file is VMS text and has an extra field\n");
- */
-
             p = rawbuf;
             q = transbuf;
-            while (p < rawbuf+(unsigned)size) {
+            while ((extent)(p-rawbuf) < (extent)size) {
                 switch (G.VMS_line_state) {
 
                     /* 0: ready to read line length */
                     case 0:
                         G.VMS_line_length = 0;
-                        if (p == rawbuf+(unsigned)size-1) {    /* last char */
+                        if ((extent)(p-rawbuf) == (extent)size-1) {
+                            /* last char */
                             G.VMS_line_length = (unsigned)(*p++);
                             G.VMS_line_state = 1;
                         } else {
@@ -872,7 +876,7 @@ static int partflush(__G__ rawbuf, size, unshrink)
                     /* 2: ready to read VMS_line_length chars */
                     case 2:
                         {
-                            extent remaining = rawbuf+(unsigned)size-p;
+                            extent remaining = (extent)size+(rawbuf-p);
                             extent outroom;
 
                             if (G.VMS_line_length < remaining) {
@@ -880,16 +884,16 @@ static int partflush(__G__ rawbuf, size, unshrink)
                                 G.VMS_line_state = 3;
                             }
 
-                            outroom = transbuf+(unsigned)transbufsiz-q;
+                            outroom = transbuf+(extent)transbufsiz-q;
                             if (remaining >= outroom) {
                                 remaining -= outroom;
                                 for (;outroom > 0; p++, outroom--)
                                     *q++ = native(*p);
 #ifdef DLL
-                                if (G.redirect_data)
-                                    writeToMemory(__G__ transbuf,
-                                      (extent)(q-transbuf));
-                                else
+                                if (G.redirect_data) {
+                                    if (writeToMemory(__G__ transbuf,
+                                          (extent)(q-transbuf))) return PK_ERR;
+                                } else
 #endif
                                 if (!uO.cflag && WriteError(transbuf,
                                     (extent)(q-transbuf), G.outfile))
@@ -908,12 +912,12 @@ static int partflush(__G__ rawbuf, size, unshrink)
 
                     /* 3: ready to PutNativeEOL */
                     case 3:
-                        if (q > transbuf+(unsigned)transbufsiz-lenEOL) {
+                        if (q > transbuf+(extent)transbufsiz-lenEOL) {
 #ifdef DLL
-                            if (G.redirect_data)
-                                writeToMemory(__G__ transbuf,
-                                  (extent)(q-transbuf));
-                            else
+                            if (G.redirect_data) {
+                                if (writeToMemory(__G__ transbuf,
+                                      (extent)(q-transbuf))) return PK_ERR;
+                            } else
 #endif
                             if (!uO.cflag &&
                                 WriteError(transbuf, (extent)(q-transbuf),
@@ -950,10 +954,11 @@ static int partflush(__G__ rawbuf, size, unshrink)
             if (*p == LF && G.didCRlast)
                 ++p;
             G.didCRlast = FALSE;
-            for (q = transbuf;  p < rawbuf+(unsigned)size;  ++p) {
+            for (q = transbuf;  (extent)(p-rawbuf) < (extent)size;  ++p) {
                 if (*p == CR) {           /* lone CR or CR/LF: treat as EOL  */
                     PutNativeEOL
-                    if (p == rawbuf+(unsigned)size-1) /* last char in buffer */
+                    if ((extent)(p-rawbuf) == (extent)size-1)
+                        /* last char in buffer */
                         G.didCRlast = TRUE;
                     else if (p[1] == LF)  /* get rid of accompanying LF */
                         ++p;
@@ -970,7 +975,7 @@ static int partflush(__G__ rawbuf, size, unshrink)
                 if (!unshrink)
 # endif
                     /* check for danger of buffer overflow and flush */
-                    if (q > transbuf+(unsigned)transbufsiz-lenEOL) {
+                    if (q > transbuf+(extent)transbufsiz-lenEOL) {
                         Trace((stderr,
                           "p - rawbuf = %u   q-transbuf = %u   size = %lu\n",
                           (unsigned)(p-rawbuf), (unsigned)(q-transbuf), size));
@@ -995,9 +1000,10 @@ static int partflush(__G__ rawbuf, size, unshrink)
           (unsigned)(p-rawbuf), (unsigned)(q-transbuf), size));
         if (q > transbuf) {
 #ifdef DLL
-            if (G.redirect_data)
-                writeToMemory(__G__ transbuf, (extent)(q-transbuf));
-            else
+            if (G.redirect_data) {
+                if (writeToMemory(__G__ transbuf, (extent)(q-transbuf)))
+                    return PK_ERR;
+            } else
 #endif
             if (!uO.cflag && WriteError(transbuf, (extent)(q-transbuf),
                 G.outfile))
@@ -1992,11 +1998,11 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 length -= eol + 1 - G.autorun_command;
                 while (eol >= G.autorun_command && isspace(*eol))
                     *eol-- = '\0';
-#ifdef WIN32
+#if (defined(WIN32) && !defined(_WIN32_WCE))
                 /* Win9x console always uses OEM character coding, and
                    WinNT console is set to OEM charset by default, too */
                 INTERN_TO_OEM(G.autorun_command, G.autorun_command);
-#endif /* WIN32 */
+#endif /* (WIN32 && !_WIN32_WCE) */
             }
         }
         if (option == CHECK_AUTORUN_Q)  /* don't display the remainder */
@@ -2060,11 +2066,11 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 /* translate to ANSI (RTL internal codepage may be OEM) */
                 INTERN_TO_ISO((char *)G.outbuf, (char *)G.outbuf);
 #else /* !WINDLL */
-#ifdef WIN32
+#if (defined(WIN32) && !defined(_WIN32_WCE))
                 /* Win9x console always uses OEM character coding, and
                    WinNT console is set to OEM charset by default, too */
                 INTERN_TO_OEM((char *)G.outbuf, (char *)G.outbuf);
-#endif /* WIN32 */
+#endif /* (WIN32 && !_WIN32_WCE) */
 #endif /* ?WINDLL */
             } else {
                 A_TO_N(G.outbuf);   /* translate string to native */
@@ -2547,6 +2553,23 @@ char Far * Far zfstrcpy(char Far *s1, const char Far *s2)
     while ((*s1++ = *s2++) != '\0');
     return p;
 }
+
+#if (!(defined(SFX) || defined(FUNZIP)))
+/*************************/
+/*  Function zfstrcmp()  */   /* portable clone of _fstrcmp() */
+/*************************/
+
+int Far zfstrcmp(const char Far *s1, const char Far *s2)
+{
+    int ret;
+
+    while ((ret = (int)(uch)*s1 - (int)(uch)*s2) == 0
+           && *s2 != '\0') {
+        ++s2; ++s1;
+    }
+    return ret;
+}
+#endif /* !(SFX || FUNZIP) */
 #endif /* !_MSC_VER || (_MSC_VER < 600) */
 
 #endif /* SMALL_MEM */

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -10,7 +10,7 @@
 //
 // File:        WINMAIN.H
 //
-// Description: This module contains all the Windows specific decalrations for
+// Description: This module contains all the Windows specific declarations for
 //              Pocket UnZip.  See WINMAIN.CPP for a more detailed description
 //              and the actual implementation.
 //
@@ -77,6 +77,10 @@ extern "C" {
 #define IMAGE_APPLICATION                  2
 #define IMAGE_GENERIC                      3
 
+
+#ifndef OFN_NOVALIDATE
+#define OFN_NOVALIDATE               0x00000100
+#endif
 
 #ifndef LVS_EX_FULLROWSELECT
 #define LVS_EX_FULLROWSELECT      0x00000020

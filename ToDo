@@ -95,7 +95,7 @@ For UnZip 6.0/6.1/who knows:
 
         who knows (zip -F, -FF already exist)
 
-Some maintance or OS specific topics for 6.0 release:
+Some maintenance or OS specific topics for 6.0 release:
 
    * add "unix-style-path -> partitioned-dataset filename" conversion
      to MVS port

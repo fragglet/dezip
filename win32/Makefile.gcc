@@ -1,8 +1,8 @@
 # Makefile for UnZip, fUnZip and UnZipSFX for native Win32-Intel ports of gcc.
 # Currently supported implementations: Cygnus/Win32 and MinGW32.
 #
-# First version: Cosmin Truta <cosmint@cs.ubbcluj.ro>, Dec 1997.
-# Last revision: Christian Spieler, 10-Nov-2001
+# First version: Cosmin Truta, Dec 1997.
+# Last revision: Cosmin Truta, 28-Feb-2004.
 #
 # To use, do "make -f win32/makefile.gcc".
 
@@ -52,7 +52,7 @@ LD_RELEASE_OPT = -s
 
 # Prefered target CPU (instruction scheduling optimized for...)
 #ifndef CC_CPU_OPT
-CC_CPU_OPT = -mcpu=pentium
+CC_CPU_OPT = -mcpu=pentiumpro
 #endif
 
 # Smallest code  (-Os is new since EGC 1.1, use -O1 for 2.8.1 and earlier)
@@ -169,8 +169,8 @@ WINDLL_IMP_H = windll/decs.h windll/structs.h
 # Default target is all the executables
 unzips: unzip$(EXE) funzip$(EXE) unzipsfx$(EXE)
 dll:    unzip32.dll
-dllsample: uzexampl.exe
-guisfx: SFXWiz32.exe
+dllsample: uzexampl$(EXE)
+guisfx: SFXWiz32$(EXE)
 lib:    libunzip32.a
 all:    unzips dll dllsample guisfx lib
 
@@ -451,4 +451,6 @@ windllb$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 
 clean:
 	$(RM) *$(OBJ)
-	$(RM) *$(EXE)
+	$(RM) unzip$(EXE) funzip$(EXE) unzipsfx$(EXE)
+	$(RM) unzip32.dll uzexampl$(EXE) SFXWiz32$(EXE)
+	$(RM) libunzip32.a libunzsfx32.a

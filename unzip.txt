@@ -54,7 +54,7 @@ ARGUMENTS
               archive; just specify  the  .exe  suffix  (if  any)
               explicitly.
 
-Info-ZIP             17 February 2002 (v5.5)                    1
+Info-ZIP               22 May 2004 (v5.51)                      1
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -113,7 +113,7 @@ OPTIONS
        -A     [OS/2,  Unix DLL] print extended help for the DLL's
               programming interface (API).
 
-Info-ZIP             17 February 2002 (v5.5)                    2
+Info-ZIP               22 May 2004 (v5.51)                      2
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -172,7 +172,7 @@ UNZIP(1L)                                               UNZIP(1L)
               sponds to zip's -go option except that  it  can  be
               used   on   wildcard  zipfiles  (e.g.,  ``unzip  -T
 
-Info-ZIP             17 February 2002 (v5.5)                    3
+Info-ZIP               22 May 2004 (v5.51)                      3
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -231,7 +231,7 @@ MODIFIERS
               set,  and  NT  supports  Unicode.)  Note that zip's
               identification  of  text  files  is  by  no   means
 
-Info-ZIP             17 February 2002 (v5.5)                    4
+Info-ZIP               22 May 2004 (v5.51)                      4
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -290,7 +290,7 @@ UNZIP(1L)                                               UNZIP(1L)
 
        -E     [MacOS only] display contents of MacOS extra  field
 
-Info-ZIP             17 February 2002 (v5.5)                    5
+Info-ZIP               22 May 2004 (v5.51)                      5
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -349,7 +349,7 @@ UNZIP(1L)                                               UNZIP(1L)
 
        -M     pipe  all  output through an internal pager similar
 
-Info-ZIP             17 February 2002 (v5.5)                    6
+Info-ZIP               22 May 2004 (v5.51)                      6
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -408,7 +408,7 @@ UNZIP(1L)                                               UNZIP(1L)
               extracting  or testing, the extraction methods, any
               file or zipfile comments that may be stored in  the
 
-Info-ZIP             17 February 2002 (v5.5)                    7
+Info-ZIP               22 May 2004 (v5.51)                      7
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -467,7 +467,7 @@ UNZIP(1L)                                               UNZIP(1L)
               disks)  to be labelled as well.  By default, volume
               labels are ignored.
 
-Info-ZIP             17 February 2002 (v5.5)                    8
+Info-ZIP               22 May 2004 (v5.51)                      8
 
 UNZIP(1L)                                               UNZIP(1L)
 
@@ -491,7 +491,15 @@ UNZIP(1L)                                               UNZIP(1L)
               behaviour, to allow  exact  extraction  of  (older)
               archives  that  used  ``../''  components to create
               multiple directory trees at the level of  the  cur-
-              rent extraction folder.
+              rent  extraction  folder.   This  option  does  not
+              enable writing explicitly  to  the  root  directory
+              (``/'').   To  achieve this, it is necessary to set
+              the extraction target folder to root (e.g. -d /  ).
+              However,  when  the  -:  option is specified, it is
+              still possible to  implicitly  write  to  the  root
+              directory by specifiying enough ``../'' path compo-
+              nents within the zip file.  Use  this  option  with
+              extreme caution.
 
 ENVIRONMENT OPTIONS
        unzip's  default  behavior  may  be  modified  via options
@@ -515,6 +523,10 @@ ENVIRONMENT OPTIONS
          OS/2 or MS-DOS:
               set UNZIP=-qq
 
+Info-ZIP               22 May 2004 (v5.51)                      9
+
+UNZIP(1L)                                               UNZIP(1L)
+
          VMS (quotes for lowercase):
               define UNZIP_OPTS ""-qq""
 
@@ -524,10 +536,6 @@ ENVIRONMENT OPTIONS
        override an environment option, one may  use  the  ``minus
        operator'' to remove it.  For instance, to override one of
        the quiet-flags in the example above, use the command
-
-Info-ZIP             17 February 2002 (v5.5)                    9
-
-UNZIP(1L)                                               UNZIP(1L)
 
            unzip --q[other options] zipfile
 
@@ -573,6 +581,11 @@ DECRYPTION
        tions  have been liberated, and our source archives do now
        include full crypt code.  In case you need binary  distri-
        butions with crypt support enabled, see the file ``WHERE''
+
+Info-ZIP               22 May 2004 (v5.51)                     10
+
+UNZIP(1L)                                               UNZIP(1L)
+
        in any Info-ZIP source or binary  distribution  for  loca-
        tions both inside and outside the US.
 
@@ -582,10 +595,6 @@ DECRYPTION
        check unzip's diagnostic screen (see the -v option  above)
        for  ``[decryption]''  as  one  of the special compilation
        options.
-
-Info-ZIP             17 February 2002 (v5.5)                   10
-
-UNZIP(1L)                                               UNZIP(1L)
 
        As noted above, the -P option may  be  used  to  supply  a
        password  on  the command line, but at a cost in security.
@@ -631,6 +640,11 @@ UNZIP(1L)                                               UNZIP(1L)
        words  at  all.   UnZip 5.3 (or newer) attempts to use the
        default character set first (e.g., Latin-1),  followed  by
        the alternate one (e.g., OEM code page) to test passwords.
+
+Info-ZIP               22 May 2004 (v5.51)                     11
+
+UNZIP(1L)                                               UNZIP(1L)
+
        On EBCDIC systems, if both of these fail, EBCDIC  encoding
        will be tested as a last resort.  (EBCDIC is not tested on
        non-EBCDIC systems, because there are no  known  archivers
@@ -641,10 +655,6 @@ EXAMPLES
        To use unzip to extract all members of  the  archive  let-
        ters.zip  into  the  current  directory and subdirectories
        below it, creating any subdirectories as necessary:
-
-Info-ZIP             17 February 2002 (v5.5)                   11
-
-UNZIP(1L)                                               UNZIP(1L)
 
            unzip letters
 
@@ -690,6 +700,10 @@ UNZIP(1L)                                               UNZIP(1L)
 
            unzip -C source.zip "*.[fch]" makefile -d /tmp
 
+Info-ZIP               22 May 2004 (v5.51)                     12
+
+UNZIP(1L)                                               UNZIP(1L)
+
        To extract any such files but convert any uppercase MS-DOS
        or  VMS names to lowercase and convert the line-endings of
        all of the files to the local standard (without respect to
@@ -700,11 +714,6 @@ UNZIP(1L)                                               UNZIP(1L)
        To extract only newer versions of the files already in the
        current directory, without querying (NOTE:  be careful  of
        unzipping   in   one   timezone   a   zipfile  created  in
-
-Info-ZIP             17 February 2002 (v5.5)                   12
-
-UNZIP(1L)                                               UNZIP(1L)
-
        another--ZIP archives other than those created by Zip  2.1
        or  later contain no timezone information, and a ``newer''
        file from an eastern timezone may, in fact, be older):
@@ -749,6 +758,11 @@ TIPS
        and  ii  for  ``unzip -Z'' (or ``zipinfo'').  One may then
        simply type ``tt zipfile'' to test an  archive,  something
        that  is  worth  making a habit of doing.  With luck unzip
+
+Info-ZIP               22 May 2004 (v5.51)                     13
+
+UNZIP(1L)                                               UNZIP(1L)
+
        will report ``No errors detected  in  compressed  data  of
        zipfile.zip,''  after  which  one  may  breathe  a sigh of
        relief.
@@ -759,11 +773,6 @@ TIPS
 
 DIAGNOSTICS
        The exit status (or error  level)  approximates  the  exit
-
-Info-ZIP             17 February 2002 (v5.5)                   13
-
-UNZIP(1L)                                               UNZIP(1L)
-
        codes defined by PKWARE and takes on the following values,
        except under VMS:
 
@@ -809,6 +818,10 @@ UNZIP(1L)                                               UNZIP(1L)
 
               11     no matching files were found.
 
+Info-ZIP               22 May 2004 (v5.51)                     14
+
+UNZIP(1L)                                               UNZIP(1L)
+
               50     the disk is (or was) full during extraction.
 
               51     the  end  of the ZIP archive was encountered
@@ -818,11 +831,6 @@ UNZIP(1L)                                               UNZIP(1L)
                      trol-C (or similar)
 
               81     testing  or  extraction of one or more files
-
-Info-ZIP             17 February 2002 (v5.5)                   14
-
-UNZIP(1L)                                               UNZIP(1L)
-
                      failed due to unsupported compression  meth-
                      ods or unsupported decryption.
 
@@ -859,71 +867,78 @@ BUGS
        across systems and/or other archivers.  See the discussion
        in DECRYPTION above.
 
-       unzip's  -M  (``more'') option is overly simplistic in its
-       handling of screen output; as noted  above,  it  fails  to
-       detect  the  wrapping  of long lines and may thereby cause
-       lines at the top of the screen to be scrolled  off  before
-       being read.  unzip should detect and treat each occurrence
-       of  line-wrap  as  one  additional  line  printed.    This
-       requires  knowledge  of  the screen's width as well as its
-       height.  In addition, unzip should detect the true  screen
-       geometry on all systems.
+       unzip's  -M  (``more'')  option tries to take into account
+       automatic wrapping of long lines. However,  the  code  may
+       fail  to detect the correct wrapping locations. First, TAB
+       characters (and similar control sequences) are  not  taken
+       into account, they are handled as ordinary printable char-
+       acters.  Second, depending on the actual system / OS port,
+       unzip  may  not detect the true screen geometry but rather
+       rely on "commonly used" default dimensions.   The  correct
+       handling  of  tabs  would  require the implementation of a
 
-       Dates, times and permissions of stored directories are not
-       restored except under Unix.
-
-       [MS-DOS] When extracting or testing files from an  archive
-       on  a defective floppy diskette, if the ``Fail'' option is
-       chosen from DOS's ``Abort, Retry, Fail?''  message,  older
-       versions of unzip may hang the system, requiring a reboot.
-       This problem  appears  to  be  fixed,  but  control-C  (or
-
-Info-ZIP             17 February 2002 (v5.5)                   15
+Info-ZIP               22 May 2004 (v5.51)                     15
 
 UNZIP(1L)                                               UNZIP(1L)
 
-       control-Break) can still be used to terminate unzip.
+       query for the actual tabulator setup on  the  output  con-
+       sole.
 
-       Under  DEC Ultrix, unzip would sometimes fail on long zip-
+       Dates, times and permissions of stored directories are not
+       restored except under Unix. (On Windows NT and successors,
+       timestamps are now restored.)
+
+       [MS-DOS]  When extracting or testing files from an archive
+       on a defective floppy diskette, if the ``Fail'' option  is
+       chosen  from  DOS's ``Abort, Retry, Fail?'' message, older
+       versions of unzip may hang the system, requiring a reboot.
+       This  problem  appears to be fixed, but control-C (or con-
+       trol-Break) can still be used to terminate unzip.
+
+       Under DEC Ultrix, unzip would sometimes fail on long  zip-
        files (bad CRC, not always reproducible).  This was appar-
-       ently  due  either  to a hardware bug (cache memory) or an
-       operating system bug (improper handling of page  faults?).
-       Since  Ultrix  has been abandoned in favor of Digital Unix
+       ently due either to a hardware bug (cache  memory)  or  an
+       operating  system bug (improper handling of page faults?).
+       Since Ultrix has been abandoned in favor of  Digital  Unix
        (OSF/1), this may not be an issue anymore.
 
-       [Unix] Unix special files  such  as  FIFO  buffers  (named
+       [Unix]  Unix  special  files  such  as FIFO buffers (named
        pipes),  block  devices  and  character  devices  are  not
-       restored even if they are somehow represented in the  zip-
-       file,  nor  are hard-linked files relinked.  Basically the
-       only file types  restored  by  unzip  are  regular  files,
+       restored  even if they are somehow represented in the zip-
+       file, nor are hard-linked files relinked.   Basically  the
+       only  file  types  restored  by  unzip  are regular files,
        directories and symbolic (soft) links.
 
-       [OS/2]  Extended  attributes  for existing directories are
-       only updated if  the  -o  (``overwrite  all'')  option  is
-       given.   This  is  a  limitation  of the operating system;
-       because directories only have a creation  time  associated
-       with  them,  unzip  has  no  way  to determine whether the
-       stored attributes are newer or older than those  on  disk.
+       [OS/2] Extended attributes for  existing  directories  are
+       only  updated  if  the  -o  (``overwrite  all'') option is
+       given.  This is a  limitation  of  the  operating  system;
+       because  directories  only have a creation time associated
+       with them, unzip has  no  way  to  determine  whether  the
+       stored  attributes  are newer or older than those on disk.
        In practice this may mean a two-pass approach is required:
-       first unpack the archive normally (with or without  fresh-
-       ening/updating  existing  files),  then overwrite just the
+       first  unpack the archive normally (with or without fresh-
+       ening/updating existing files), then  overwrite  just  the
        directory entries (e.g., ``unzip -o foo */'').
 
-       [VMS] When  extracting  to  another  directory,  only  the
-       [.foo]  syntax  is  accepted for the -d option; the simple
+       [VMS]  When  extracting  to  another  directory,  only the
+       [.foo] syntax is accepted for the -d  option;  the  simple
        Unix foo syntax is silently ignored (as is the less common
        VMS foo.dir syntax).
 
        [VMS]  When  the  file  being  extracted  already  exists,
-       unzip's query only allows skipping, overwriting or  renam-
-       ing;  there should additionally be a choice for creating a
-       new version of  the  file.   In  fact,  the  ``overwrite''
-       choice  does  create a new version; the old version is not
+       unzip's  query only allows skipping, overwriting or renam-
+       ing; there should additionally be a choice for creating  a
+       new  version  of  the  file.   In  fact, the ``overwrite''
+       choice does create a new version; the old version  is  not
        overwritten or deleted.
 
 SEE ALSO
-       funzip(1L),  zip(1L),  zipcloak(1L),   zipgrep(1L),   zip-
+       funzip(1L),   zip(1L),   zipcloak(1L),  zipgrep(1L),  zip-
        info(1L), zipnote(1L), zipsplit(1L)
+
+Info-ZIP               22 May 2004 (v5.51)                     16
+
+UNZIP(1L)                                               UNZIP(1L)
 
 URL
        The Info-ZIP home page is currently at
@@ -932,33 +947,33 @@ URL
            ftp://ftp.info-zip.org/pub/infozip/ .
 
 AUTHORS
-       The  primary Info-ZIP authors (current semi-active members
-       of  the  Zip-Bugs  workgroup)  are:   Greg  ``Cave  Newt''
-       Roelofs  (UnZip);  Onno  van  der  Linden (Zip); Jean-loup
-       Gailly (compression); Mark Adler (decompression,  fUnZip);
-
-Info-ZIP             17 February 2002 (v5.5)                   16
-
-UNZIP(1L)                                               UNZIP(1L)
-
-       Christian  Spieler (UnZip maintance coordination, VMS, MS-
-       DOS, Windows 95, NT, shared code, general  Zip  and  UnZip
-       integration  and  optimization);  Mike White (Windows GUI,
+       The primary Info-ZIP authors (current semi-active  members
+       of  the  Zip-Bugs  workgroup)  are:   Onno  van der Linden
+       (Zip); Christian Spieler (UnZip maintenance  coordination,
+       VMS,  MS-DOS,  Win32,  shared  code, general Zip and UnZip
+       integration and optimization); Mike  White  (Windows  GUI,
        Windows DLLs); Kai Uwe Rommel (OS/2); Paul Kienitz (Amiga,
-       Windows  95);  Chris Herborth (BeOS, QNX, Atari); Jonathan
-       Hudson (SMS/QDOS); Sergio Monesi (Acorn RISC  OS);  Harald
-       Denker  (Atari,  MVS);  John Bush (Solaris, Amiga); Hunter
-       Goatley (VMS); Steve Salisbury  (Windows  95,  NT);  Steve
-       Miller  (Windows  CE GUI), Johnny Lee (MS-DOS, Windows 95,
-       NT); and Dave Smith (Tandem NSK).  The author of the orig-
-       inal  unzip code upon which Info-ZIP's was based is Samuel
-       H. Smith; Carl Mascott did the first Unix port; and  David
-       P.   Kirschbaum  organized  and  led Info-ZIP in its early
-       days with Keith Petersen hosting the original mailing list
-       at  WSMR-SimTel20.  The full list of contributors to UnZip
-       has grown quite large; please refer to the  CONTRIBS  file
-       in the UnZip source distribution for a relatively complete
-       version.
+       Win32); Chris Herborth (BeOS, QNX, Atari); Jonathan Hudson
+       (SMS/QDOS);  Sergio  Monesi (Acorn RISC OS); Harald Denker
+       (Atari, MVS); John Bush (Solaris, Amiga);  Hunter  Goatley
+       (VMS);  Steve  Salisbury (Win32); Steve Miller (Windows CE
+       GUI), Johnny Lee (MS-DOS, Win32); and Dave  Smith  (Tandem
+       NSK).
+
+       The  following  people were former members of the Info-ZIP
+       development group and provided major contributions to  key
+       parts  of  the  current  code:  Greg ``Cave Newt'' Roelofs
+       (UnZip, unshrink decompression); Jean-loup Gailly (deflate
+       compression);  Mark Adler (inflate decompression, fUnZip).
+
+       The author of the original unzip  code  upon  which  Info-
+       ZIP's  was  based is Samuel H. Smith; Carl Mascott did the
+       first Unix port; and David P.   Kirschbaum  organized  and
+       led Info-ZIP in its early days with Keith Petersen hosting
+       the original mailing list at WSMR-SimTel20.  The full list
+       of  contributors  to  UnZip  has grown quite large; please
+       refer to the CONTRIBS file in the UnZip  source  distribu-
+       tion for a relatively complete version.
 
 VERSIONS
        v1.2   15 Mar 89   Samuel H. Smith
@@ -979,9 +994,15 @@ VERSIONS
        v5.31  31 May 97   Info-ZIP (Zip-Bugs subgroup, GRR)
        v5.32   3 Nov 97   Info-ZIP (Zip-Bugs subgroup, GRR)
        v5.4   28 Nov 98   Info-ZIP (Zip-Bugs subgroup, SPC)
+
+Info-ZIP               22 May 2004 (v5.51)                     17
+
+UNZIP(1L)                                               UNZIP(1L)
+
        v5.41  16 Apr 00   Info-ZIP (Zip-Bugs subgroup, SPC)
        v5.42  14 Jan 01   Info-ZIP (Zip-Bugs subgroup, SPC)
        v5.5   17 Feb 02   Info-ZIP (Zip-Bugs subgroup, SPC)
+       v5.51  22 May 04   Info-ZIP (Zip-Bugs subgroup, SPC)
 
-Info-ZIP             17 February 2002 (v5.5)                   17
+Info-ZIP               22 May 2004 (v5.51)                     18
 

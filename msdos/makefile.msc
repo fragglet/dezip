@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # Makefile for UnZip 5.5 and later                      Greg Roelofs and others
-# Version:  Microsoft C (5.x and later)                               04 Mar 01
+# Version:  Microsoft C (5.x and later)                               20 Oct 03
 #------------------------------------------------------------------------------
 
 # Users of MSC 6/7 and NMAKE can use the Unix Makefile (target msc_dos),
@@ -42,7 +42,6 @@ SXMODEL=S	# small model for UnZipSFX (without Deflate64 support)
 
 # name of Flag to select memory model for assembler compiles, supported
 # values are __SMALL__ , __MEDIUM__ , __COMPACT__ , __LARGE__ :
-#ASUNMODEL=__SMALL__	# keep in sync with UNMODEL definition !!
 # for MSC 5.1 and 8.x use:
 ASUNMODEL=__LARGE__	# keep in sync with UNMODEL definition !!
 ASFUMODEL=__COMPACT__	# keep in sync with FUMODEL definition !!

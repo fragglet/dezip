@@ -1,6 +1,6 @@
 _______________________________________________________________________________
 
-   This is the Windows CE Info-ZIP port README, last updated 10 February 2001.
+   This is the Windows CE Info-ZIP port README, last updated 17 September 2003.
 _______________________________________________________________________________
 
    Copyright and Disclaimer
@@ -114,6 +114,10 @@ Windows CE devices and which binary they run:
      Hitachi Ltd.             Hitachi SH-3    SH-3
      LG Electronics Inc.      Hitachi SH-3    SH-3
 
+The revision of this port made for UnZip 5.51 does now also provide a project
+file for use with Microsoft's free "Visual C++ embedded 3.0" development system
+for Windows CE.
+
 Pocket UnZip should build out of the box.  If you have just unzipped the
 Info-ZIP's UnZip sources, you should have a root directory with the core
 Info-ZIP files in it and several subdirectories under it for the various
@@ -155,3 +159,59 @@ to (as well as join) the following mailing list:
      Info-Zip@lists.wku.edu
 
 See the main UnZip README file for info on how to join the latter list.
+
+_______________________________________________________________________________
+
+Beginning with UnZip 5.51, the source distribution contains a second port for
+WinCE, providing a "command line UnZip tool" for batch processing on Windows CE
+systems.
+This port was contributed in September 2002 by:
+    Simon Roberts
+    IBM Global Services, EMEA
+    Phone: (INT 44- 2392 )(UK  02392 ) 563937: Tie-line(UK): 25-3937
+    Notes: Simon Roberts/UK/IBM@IBMGB
+    Internet: Simon_Roberts@uk.ibm.com
+
+The tight integration of this contribution into the main UnZip distribution
+code required some reorganization and was carried out by the UnZip maintenance
+coordinator Christian Spieler.
+
+The build of the Win CE command line program requires compiling
+and linking together the following source modules:
+
+    wince/wcemain.c             main entry point
+    unzip.c                     unzip command line interface
+    crc32.c                     CRC-32 calculation
+    crctab.c                    lookup table for CRC-32
+    crypt.c                     decryption support
+    extract.c                   general archive extraction handling
+    fileio.c                    internal I/O helper routines
+    globals.c                   global communication resources setup
+    list.c                      archive listing
+    match.c                     wildcard pattern matching
+    process.c                   general archives processing code
+    ttyio.c                     interactive console I/O
+    explode.c                   decompression for "Imploded" data (LZ77)
+    inflate.c                   decompression for "Deflate" methods
+    unreduce.c                  decompression for "Reduced" data
+    unshrink.c                  decompression for "Shrunk" data (LZW)
+    wince/intrface.cpp          WinCE specific UnZip code
+    wince/wince.cpp             WinCE specific C RTL lib replacements
+
+These source modules depend on the following header files:
+
+    zip.h                       wrapper for unzip.h used by some modules
+    unzip.h                     main UnZip project header
+    unzpriv.h                   extended defines for project internals
+    globals.h                   global resource structures
+    wince/wcecfg.h              Windows CE specific configuration
+    wince/wince.h               WinCE C(++) library roundups
+
+    consts.h                    global constant data
+    crypt.h                     decryption interface
+    ebcdic.h                    ASCII <--> EBCDIC translation
+    tables.h                    codepage translation tables
+    ttyio.h                     console I/O interface
+    unzvers.h                   version/release information
+    wince/intrface.h            public entities in wince/intrface.cpp
+

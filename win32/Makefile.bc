@@ -4,7 +4,7 @@
 #
 # Tested with Borland C++ 5.5 (may work with older C++Builder 3.0, too)
 #
-# Last revised:  11 Nov 2001 (CS)
+# Last revised: 28 Feb 2004 (Cosmin Truta)
 #
 #
 
@@ -239,6 +239,7 @@ clean:
 	-del unzip.exe
 	-del funzip.exe
 	-del unzipsfx.exe
+	-del *.tds
 
 # individual file dependencies
 

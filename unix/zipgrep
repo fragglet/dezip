@@ -38,6 +38,8 @@ if test -n "$opt"; then
 fi
 
 res=0
+IFS='
+'
 for i in `unzip -Z1 "$zipfile" ${1+"$@"}`; do
   if test $list -eq 1; then
 

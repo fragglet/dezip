@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -54,6 +54,15 @@
 #  endif
 #endif /* __osf__ */
 
+#ifdef __CYGWIN__
+#  include <unistd.h>
+#  define DIRENT
+#  define HAVE_TERMIOS_H
+#  ifndef timezone
+#    define timezone _timezone
+#  endif
+#endif
+
 #ifdef BSD
 #  include <sys/time.h>
 #  include <sys/timeb.h>
@@ -71,6 +80,11 @@
 #    include <utime.h>
 #    define GOT_UTIMBUF
 #  endif
+#endif
+#if (defined(__DGUX__) && !defined(GOT_UTIMBUF))
+   /* DG/UX requires this because of a non-standard struct utimebuf */
+#  include <utime.h>
+#  define GOT_UTIMBUF
 #endif
 
 #if (defined(V7) || defined(pyr_bsd))

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -526,7 +526,6 @@ int mapname(__G__ renamed)
     char *lastcomma=(char *)NULL;  /* pointer to last comma in pathcomp */
     RO_extra_block *ef_spark;      /* pointer Acorn FTYPE ef block */
 #endif
-    int quote = FALSE;             /* flags */
     int killed_ddot = FALSE;       /* is set when skipping "../" pathcomp */
     int error = MPN_OK;
     register unsigned workch;      /* hold the character being tested */
@@ -565,33 +564,24 @@ int mapname(__G__ renamed)
 
     while ((workch = (uch)*cp++) != 0) {
 
-        if (quote) {                 /* if character quoted, */
-            *pp++ = (char)workch;    /*  include it literally */
-            quote = FALSE;
-        } else
-            switch (workch) {
+        switch (workch) {
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
-                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                     > MPN_INF_TRUNC)
+                if (strcmp(pathcomp, ".") == 0) {
+                    /* don't bother appending "./" to the path */
+                    *pathcomp = '\0';
+                } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+                    /* "../" dir traversal detected, skip over it */
+                    *pathcomp = '\0';
+                    killed_ddot = TRUE;     /* set "show message" flag */
+                }
+                /* when path component is not empty, append it now */
+                if (*pathcomp != '\0' &&
+                    ((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
-                break;
-
-            case '.':
-                if (pp == pathcomp) {   /* nothing appended yet... */
-                    if (*cp == '/') {   /* don't bother appending "./" to */
-                        ++cp;           /*  the path: skip behind the '/' */
-                        break;
-                    } else if (!uO.ddotflag && *cp == '.' && cp[1] == '/') {
-                        /* "../" dir traversal detected */
-                        cp += 2;        /*  skip over behind the '/' */
-                        killed_ddot = TRUE; /*  set "show message" flag */
-                        break;
-                    }
-                }
-                *pp++ = '.';
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
                 break;
 
             case ';':             /* VMS version (or DEC-20 attrib?) */
@@ -606,10 +596,6 @@ int mapname(__G__ renamed)
                 break;            /*  later, if requested */
 #endif
 
-            case '\026':          /* control-V quote for special chars */
-                quote = TRUE;     /* set flag for next character */
-                break;
-
 #ifdef MTS
             case ' ':             /* change spaces to underscore under */
                 *pp++ = '_';      /*  MTS; leave as spaces under Unix */
@@ -620,7 +606,7 @@ int mapname(__G__ renamed)
                 /* allow European characters in filenames: */
                 if (isprint(workch) || (128 <= workch && workch <= 254))
                     *pp++ = (char)workch;
-            } /* end switch */
+        } /* end switch */
 
     } /* end while loop */
 
@@ -988,43 +974,70 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
 
+    fclose(G.outfile);
+
 /*---------------------------------------------------------------------------
-    If symbolic links are supported, allocate a storage area, put the uncom-
-    pressed "data" in it, and create the link.  Since we know it's a symbolic
-    link to start with, we shouldn't have to worry about overflowing unsigned
-    ints with unsigned longs.
+    If symbolic links are supported, allocate storage for a symlink control
+    structure, put the uncompressed "data" and other required info in it, and
+    add the structure to the "deferred symlinks" chain.  Since we know it's a
+    symbolic link to start with, we shouldn't have to worry about overflowing
+    unsigned ints with unsigned longs.
   ---------------------------------------------------------------------------*/
 
 #ifdef SYMLINKS
     if (G.symlnk) {
         unsigned ucsize = (unsigned)G.lrec.ucsize;
-        char *linktarget = (char *)malloc((unsigned)G.lrec.ucsize+1);
+        extent slnk_entrysize = sizeof(slinkentry) + ucsize +
+                                strlen(G.filename);
+        slinkentry *slnk_entry;
 
-        fclose(G.outfile);                      /* close "data" file... */
-        G.outfile = fopen(G.filename, FOPR);    /* ...and reopen for reading */
-        if (!linktarget || fread(linktarget, 1, ucsize, G.outfile) !=
-                           (int)ucsize)
+        if ((unsigned)slnk_entrysize < ucsize) {
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  symbolic link (%s) failed: mem alloc overflow\n",
+              FnFilter1(G.filename)));
+            return;
+        }
+
+        if ((slnk_entry = (slinkentry *)malloc(slnk_entrysize)) == NULL) {
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  symbolic link (%s) failed: no mem\n",
+              FnFilter1(G.filename)));
+            return;
+        }
+        slnk_entry->next = NULL;
+        slnk_entry->targetlen = ucsize;
+        slnk_entry->attriblen = 0;      /* don't set attributes for symlinks */
+        slnk_entry->target = slnk_entry->buf;
+        slnk_entry->fname = slnk_entry->target + ucsize + 1;
+        strcpy(slnk_entry->fname, G.filename);
+
+        /* reopen the "link data" file for reading */
+        G.outfile = fopen(G.filename, FOPR);
+
+        if (!G.outfile ||
+            fread(slnk_entry->target, 1, ucsize, G.outfile) != (int)ucsize)
         {
             Info(slide, 0x201, ((char *)slide,
-              "warning:  symbolic link (%s) failed\n", FnFilter1(G.filename)));
-            if (linktarget)
-                free(linktarget);
+              "warning:  symbolic link (%s) failed\n",
+              FnFilter1(G.filename)));
+            free(slnk_entry);
             fclose(G.outfile);
             return;
         }
-        fclose(G.outfile);                  /* close "data" file for good... */
-        unlink(G.filename);                 /* ...and delete it */
-        linktarget[ucsize] = '\0';
+        fclose(G.outfile);                  /* close "link" file for good... */
+        slnk_entry->target[ucsize] = '\0';
         if (QCOND2)
-            Info(slide, 0, ((char *)slide, "-> %s ", FnFilter1(linktarget)));
-        if (symlink(linktarget, G.filename))  /* create the real link */
-            perror("symlink error");
-        free(linktarget);
-        return;                             /* can't set time on symlinks */
+            Info(slide, 0, ((char *)slide, "-> %s ",
+              FnFilter1(slnk_entry->target)));
+        /* add this symlink record to the list of deferred symlinks */
+        if (G.slink_last != NULL)
+            G.slink_last->next = slnk_entry;
+        else
+            G.slink_head = slnk_entry;
+        G.slink_last = slnk_entry;
+        return;
     }
 #endif /* SYMLINKS */
-
-    fclose(G.outfile);
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the

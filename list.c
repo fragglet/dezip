@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -59,13 +59,13 @@
    static ZCONST char Far CaseConversion[] =
      "%s (\"^\" ==> case\n%s   conversion)\n";
    static ZCONST char Far LongHdrStats[] =
-     "%8lu  %-7s%8lu %4s  %02u-%02u-%02u %02u:%02u  %08lx %c";
+     "%8lu  %-7s%8lu %4s  %02u%c%02u%c%02u %02u:%02u  %08lx %c";
    static ZCONST char Far LongFileTrailer[] =
      "--------          -------  ---                       \
      -------\n%8lu         %8lu %4s                            %lu file%s\n";
 #ifdef OS2_EAS
    static ZCONST char Far ShortHdrStats[] =
-     "%9lu %6lu %6lu  %02u-%02u-%02u %02u:%02u  %c";
+     "%9lu %6lu %6lu  %02u%c%02u%c%02u %02u:%02u  %c";
    static ZCONST char Far ShortFileTrailer[] = " --------  -----  -----       \
             -------\n%9lu %6lu %6lu                   %lu file%s\n";
    static ZCONST char Far OS2ExtAttrTrailer[] =
@@ -74,7 +74,7 @@
      "%lu file%s %lu bytes of access control lists attached.\n";
 #else
    static ZCONST char Far ShortHdrStats[] =
-     "%9lu  %02u-%02u-%02u %02u:%02u  %c";
+     "%9lu  %02u%c%02u%c%02u %02u:%02u  %c";
    static ZCONST char Far ShortFileTrailer[] = " --------       \
             -------\n%9lu                   %lu file%s\n";
 #endif /* ?OS2_EAS */
@@ -97,6 +97,7 @@ int list_files(__G)    /* return PK-type error code */
     int longhdr=(uO.vflag>1);
 #endif
     int date_format;
+    char dt_sepchar;
     ulg j, members=0L;
     unsigned methnum;
 #ifdef USE_EF_UT_TIME
@@ -137,6 +138,7 @@ int list_files(__G)    /* return PK-type error code */
 
     G.pInfo = &info;
     date_format = DATE_FORMAT;
+    dt_sepchar = DATE_SEPCHAR;
 
 #ifndef WINDLL
     if (uO.qflag < 2) {
@@ -345,17 +347,20 @@ int list_files(__G)    /* return PK-type error code */
                 sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
             if (longhdr)
                 Info(slide, 0, ((char *)slide, LoadFarString(LongHdrStats),
-                  G.crec.ucsize, methbuf, csiz, cfactorstr, mo, dy,
-                  yr, hh, mm, G.crec.crc32, (G.pInfo->lcflag? '^':' ')));
+                  G.crec.ucsize, methbuf, csiz, cfactorstr,
+                  mo, dt_sepchar, dy, dt_sepchar, yr, hh, mm,
+                  G.crec.crc32, (G.pInfo->lcflag? '^':' ')));
             else
 #ifdef OS2_EAS
                 Info(slide, 0, ((char *)slide, LoadFarString(ShortHdrStats),
                   G.crec.ucsize, ea_size, acl_size,
-                  mo, dy, yr, hh, mm, (G.pInfo->lcflag? '^':' ')));
+                  mo, dt_sepchar, dy, dt_sepchar, yr, hh, mm,
+                  (G.pInfo->lcflag? '^':' ')));
 #else
                 Info(slide, 0, ((char *)slide, LoadFarString(ShortHdrStats),
                   G.crec.ucsize,
-                  mo, dy, yr, hh, mm, (G.pInfo->lcflag? '^':' ')));
+                  mo, dt_sepchar, dy, dt_sepchar, yr, hh, mm,
+                  (G.pInfo->lcflag? '^':' ')));
 #endif
             fnprint(__G);
 #endif /* ?WINDLL */

@@ -56,7 +56,7 @@ ARGUMENTS
               matches are found, the specification is assumed  to
               be  a literal filename; and if that also fails, the
 
-Info-ZIP             17 February 2002 (v2.4)                    1
+Info-ZIP               22 May 2004 (v2.41)                      1
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -115,7 +115,7 @@ OPTIONS
               forward-searching  or  editing  capability.   Also,
               zipinfo  doesn't  notice  if long lines wrap at the
 
-Info-ZIP             17 February 2002 (v2.4)                    2
+Info-ZIP               22 May 2004 (v2.41)                      2
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -174,7 +174,7 @@ DETAILED DESCRIPTION
        character  (`T'  or  `B').   The second character may also
        take on four values, depending  on  whether  there  is  an
 
-Info-ZIP             17 February 2002 (v2.4)                    3
+Info-ZIP               22 May 2004 (v2.41)                      3
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -233,7 +233,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
 
        The medium and long listings are almost identical  to  the
 
-Info-ZIP             17 February 2002 (v2.4)                    4
+Info-ZIP               22 May 2004 (v2.41)                      4
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -292,7 +292,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
        lists  file  comments and the zipfile comment, if any, and
        the type and number of bytes in any stored  extra  fields.
 
-Info-ZIP             17 February 2002 (v2.4)                    5
+Info-ZIP               22 May 2004 (v2.41)                      5
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -351,7 +351,7 @@ ENVIRONMENT OPTIONS
 
        As   suggested  above,  the  default  variable  names  are
 
-Info-ZIP             17 February 2002 (v2.4)                    6
+Info-ZIP               22 May 2004 (v2.41)                      6
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -410,7 +410,7 @@ EXAMPLES
        environment  variable  specified no footers and that has a
        higher precedence than the  default  behavior  of  -s,  an
 
-Info-ZIP             17 February 2002 (v2.4)                    7
+Info-ZIP               22 May 2004 (v2.41)                      7
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -449,30 +449,32 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
 
        Finally, to see the most recently modified  files  in  the
        archive, use the -T option in conjunction with an external
-       sorting utility such as Unix sort(1) (and tail(1) as well,
+       sorting utility such as Unix sort(1) (and sed(1) as  well,
        in this example):
 
-           zipinfo -T storage | sort -n +6 | tail -15
+           zipinfo -T storage | sort -nr -k 7 | sed 15q
 
-       The  -n  option  to  sort(1)  tells it to sort numerically
-       rather than in ASCII order, and the +6 option tells it  to
-       sort  on  the  sixth  field after the first one (i.e., the
-       seventh field).  This assumes  the  default  short-listing
-       format;  if  -m  or  -l is used, the proper sort(1) option
-       would be +7.  The tail(1) command filters out all but  the
-       last  15 lines of the listing.  Future releases of zipinfo
-       may incorporate date/time and filename sorting as built-in
+       The  -nr option to sort(1) tells it to sort numerically in
+       reverse order rather than in textual order, and  the  -k 7
+       option  tells  it  to  sort  on  the  seventh field.  This
+       assumes the default short-listing format; if -m or  -l  is
+       used, the proper sort(1) option would be -k 8.  Older ver-
+       sions of sort(1) do not support the -k option, but you can
+       use  the traditional + option instead, e.g., +6 instead of
+       -k 7.  The sed(1) command filters out all but the first 15
+       lines  of  the  listing.   Future  releases of zipinfo may
+       incorporate date/time and  filename  sorting  as  built-in
        options.
 
 TIPS
        The  author  finds it convenient to define an alias ii for
-       zipinfo on systems that allow aliases (or, on  other  sys-
-       tems,  copy/rename the executable, create a link or create
 
-Info-ZIP             17 February 2002 (v2.4)                    8
+Info-ZIP               22 May 2004 (v2.41)                      8
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
+       zipinfo on systems that allow aliases (or, on  other  sys-
+       tems,  copy/rename the executable, create a link or create
        a command file with the name ii).  The ii usage  parallels
        the  common  ll  alias  for long listings in Unix, and the
        similarity between the outputs of  the  two  commands  was
@@ -509,5 +511,5 @@ AUTHOR
        others.  Please refer to the CONTRIBS file  in  the  UnZip
        source distribution for a more complete list.
 
-Info-ZIP             17 February 2002 (v2.4)                    9
+Info-ZIP               22 May 2004 (v2.41)                      9
 

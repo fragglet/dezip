@@ -1,10 +1,10 @@
-This is the README file for the 17 February 2002 public release of the
+This is the README file for the 22 May 2004 public release of the
 Info-ZIP group's portable UnZip zipfile-extraction program (and related
 utilities).
 
-unzip550.zip       portable UnZip, version 5.5, source code distribution
-unzip550.tar.Z     same as above, but compress'd tar format
-unzip550.tar.gz    same as above, but gzip'd tar format
+unzip551.zip       portable UnZip, version 5.51, source code distribution
+unzip551.tar.Z     same as above, but compress'd tar format
+unzip551.tar.gz    same as above, but gzip'd tar format
 
 __________________________________________________________________________
 
@@ -53,6 +53,23 @@ vms/descrip.mms.
 
 CHANGES AND NEW FEATURES
 ------------------------
+The 5.51 maintenance release adds a command-line CE port, intended for
+batch processing. With the integration of this port, the pUnZip port
+has been revised and "revitalized".
+The most important changes for the general public are a number of
+bug fixes, mostly related to security issues:
+
+   - repair a serious bug in the textmode output conversion code for the 16-bit
+     ports (16-bit MSDOS, OS/2 1.x, some variants of AMIGA, possibly others)
+     which was introduced by the Deflate64 support of release 5.5
+   - fix a long standing bug in the the inflate decompression method that
+     prevented correct extraction in some rare cases
+   - fixed holes in parent dir traversal security code (e.g.: ".^C." slipped
+     through the previous version of the check code)
+   - fixed security hole: check naming consistency in local and central header
+   - fixed security hole: prevent extracted symlinks from redirecting file
+     extraction paths
+
 The main addition in the 5.5 release is support for PKWARE's new Deflate64(tm)
 algorithm, which appeared first in PKZIP 4.0 (published November 2000).
 As usual, some other bugfixes and clean-ups have been integrated:
@@ -69,7 +86,7 @@ As usual, some other bugfixes and clean-ups have been integrated:
    - fixed file handle leak for the DLL code
    - repaired OS2 & WinNT ACL extraction which was broken in 5.42
 
-The 5.42 maintance release fixes more bugs and cleans up the redistribution
+The 5.42 maintenance release fixes more bugs and cleans up the redistribution
 conditions:
 
    - removal of unreduce.c and amiga/timelib.c code to get rid of the last
@@ -80,7 +97,7 @@ conditions:
    - repaired screensize detection in MORE paging code
      (was broken for DOS/OS2/WIN32 in 5.41)
 
-The 5.41 maintance release adds another new port and fixes some bugs.
+The 5.41 maintenance release adds another new port and fixes some bugs.
 
    - new BSD-like LICENSE
    - new Novell Netware NLM port
@@ -158,7 +175,7 @@ and contains the most up-to-date information about coming releases,
 links to binaries, and common problems.
 (See http://www.info-zip.org/pub/infozip/FAQ.html for the latter.)
 Files may also be retrieved via ftp://ftp.info-zip.org/pub/infozip/ .
-Thanks to Walnut Creek CD-ROM for hosting our primary site.
+Thanks to LEO (Munich, Germany) for hosting our primary site.
 
 
 DISTRIBUTION
@@ -224,23 +241,28 @@ this has happened).
 BETA TESTING:  JOINING INFO-ZIP
 -------------------------------
 If you'd like to keep up to date with our UnZip (and companion Zip utility)
-development, join the ranks of beta testers, add your own thoughts and con-
-tributions, or simply lurk, send a two-line mail message containing the
-commands HELP and LIST (on separate lines in the body of the message, not
-on the subject line) to mxserver@lists.wku.edu.  You'll receive two messages
-listing the various Info-ZIP mailing-list formats that are available (and
-also various unrelated lists) and instructions on how to subscribe to one
-or more of them (courtesy of Hunter Goatley).  As of 1997, subscribing to
-the announcements list required a command of the form
+development, join the ranks of beta testers, add your own thoughts and
+contributions, or simply lurk, you may join one of our mailing lists.
+There is an announcements-only list (Info-ZIP-announce) and a general
+discussion/testing list (Info-ZIP). You must be a subscriber to post, and
+you can subscribe via the links on our Frequently Asked Questions page:
 
-        SUBSCRIBE Info-ZIP-announce "Joe Isuzu"
+        http://www.info-zip.org/pub/infozip/FAQ.html#lists
 
-The discussion list is called Info-ZIP; it can be set for either normal or
-digest-style delivery.
+(Please note that as of late May 2004, the lists are unavailable pending
+a move to a new site; we hope to have them restored shortly.  In the
+interim ...)  Feel free to use our bug-reporting web page for bug reports
+and to ask questions not answered on the FAQ page above:
+
+	http://www.info-zip.org/zip-bug.html
+
+There is also a closed mailing list for internal discussions of our core
+development team. This list is now kept secret to prevent us from being
+flooded with spam messages.
 
 
 -- Greg Roelofs (sometimes known as Cave Newt), principal UnZip developer
    guy, with inspiration from David Kirschbaum, was Author of this text.
 
--- Christian Spieler (shorthand: SPC), current UnZip maintance coordinator,
+-- Christian Spieler (shorthand: SPC), current UnZip maintenance coordinator,
    applied the most recent changes.

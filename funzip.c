@@ -8,7 +8,7 @@
 */
 /* funzip.c -- by Mark Adler */
 
-#define VERSION "3.94 of 20 January 2002"
+#define VERSION "3.94 of 17 February 2002"
 
 
 /* Copyright history:
@@ -94,6 +94,7 @@
     -     16 Apr 00  -               public release with UnZip 5.41
     -     14 Jan 01  -               public release with UnZip 5.42
    3.94   20 Feb 01  C. Spieler      added support for Deflate64(tm)
+          23 Mar 02  C. Spieler      changed mask_bits[] type to "unsigned"
  */
 
 
@@ -181,7 +182,7 @@ ulg outsiz;                     /* total bytes written to out */
 int encrypted;                  /* flag to turn on decryption */
 
 /* Masks for inflate.c */
-ZCONST ush near mask_bits[] = {
+ZCONST unsigned near mask_bits[17] = {
     0x0000,
     0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -216,7 +216,7 @@ namelen = strlen(namePtr);
      * do both include all printable extended-ASCII characters.  The only
      * difference we have to take care of is the single special character
      * used as path delimiter:
-     * ':' on MacOS and '/' on Unix and '\' on Dos.
+     * ':' on MacOS and '/' on Unix and '\\' on Dos.
      * So, to convert between Mac filenames and Unix filenames without any
      * loss of information, we simply interchange ':' and '/'.  Additionally,
      * we try to convert the coding of the extended-ASCII characters into

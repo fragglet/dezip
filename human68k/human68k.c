@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -309,27 +309,21 @@ int mapname(__G__ renamed)
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
                 map2fat(pathcomp, last_dot);   /* 18.3 trunc. (in place) */
-                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
-                     > MPN_INF_TRUNC)
+                if (strcmp(pathcomp, ".") == 0) {
+                    /* don't bother appending "./" to the path */
+                    *pathcomp = '\0';
+                } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+                    /* "../" dir traversal detected, skip over it */
+                    *pathcomp = '\0';
+                    killed_ddot = TRUE;     /* set "show message" flag */
+                }
+                /* when path component is not empty, append it now */
+                if (*pathcomp != '\0' &&
+                    ((error = checkdir(__G__ pathcomp, APPEND_DIR))
+                     & MPN_MASK) > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
-                break;
-
-            case '.':
-                if (pp == pathcomp) {     /* nothing appended yet... */
-                    if (*cp == '/') {     /* don't bother appending "./" to */
-                        ++cp;             /*  the path: skip behind the '/' */
-                        break;
-                    } else if (!uO.ddotflag && *cp == '.' && cp[1] == '/') {
-                        /* "../" dir traversal detected */
-                        cp += 2;        /*  skip over behind the '/' */
-                        killed_ddot = TRUE; /*  set "show message" flag */
-                        break;
-                    }
-                }
-                last_dot = pp;
-                *pp++ = '.';
+                lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
                 break;
 
             /* drive names are not stored in zipfile, so no colons allowed;

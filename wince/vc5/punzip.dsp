@@ -2211,6 +2211,10 @@ SOURCE=..\resource.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\wcecfg.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\wince.cpp
 
 !IF  "$(CFG)" == "punzip - Win32 Release"

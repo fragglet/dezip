@@ -297,7 +297,7 @@ add^list TTYIOX
 |THEN|
   #OUTPUT %2% is older than %1%
   #OUTPUT Accelerating %1% to %2%
-  AXCEL /IN [general_seg_subvol].DUMMY, OUTV buf/ %1%,%2%
+  AXCEL /OUTV buf/ %1%,%2%
   #OUTPUTV buf
   [#CASE [tacl^completioncode]
   | 0         | #OUTPUT Accelerated %2% OK

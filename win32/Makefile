@@ -4,13 +4,13 @@
 #   J. Lee 8/95 (johnnyl@microsoft.com)
 #   C. Spieler 03/99
 #
-# Last revised:  10 Feb 2001
+# Last revised:  15 Apr 2004
 #
 # Tested with VC++ 2.0 for NT for MIPS and Alpha, Visual C++ 2.2 for Intel CPUs
 # Revision tested with VC++ 5.0 and 6.0 for Intel CPUs
 #
 
-# Nmake macros for building Windows NT applications
+# Nmake macros for building Win32 applications
 # To build with debug info use 'nmake debug=1'
 !IFNDEF debug
 NODEBUG=1
@@ -22,6 +22,12 @@ APPLY_ASMCRC=0
 !ifdef USEASM
 APPLY_ASMCRC=1
 !endif
+!endif
+
+!ifdef USEZLIB
+!undef DLLSTANDALONE
+!undef USEASM
+APPLY_ASMCRC=0
 !endif
 
 !ifndef APPLY_ASMCRC
@@ -106,10 +112,12 @@ CFVARS_ASM = -DNO_ASM
 LOCAL_UNZIP = -DW32_USE_IZ_TIMEZONE $(LOCAL_UNZIP)
 !endif
 
+!ifdef USEZLIB
+LOCAL_UNZIP = -DUSE_ZLIB $(LOCAL_UNZIP)
+!endif
+
 #CF_LOC = -nologo -J -D_MBCS $(CFVARS_ASM) -DREENTRANT
 CF_LOC = -nologo -J -D_MBCS $(CFVARS_ASM) $(LOCAL_UNZIP)
-
-cvars = $(cvars) $(CF_LOC)
 
 !if $(APPLY_ASMCRC) != 0
 CRC32 = crc_i386
@@ -154,31 +162,57 @@ cdbgsz = -O1
 cdbgsz = $(cdebug)
 !ENDIF
 
-!IFDEF PROFILEINFO
+!ifdef PROFILEINFO
 ldebug = $(ldebug) /PROFILE
 !endif
 
+!IFDEF USEZLIB
+# Using zlib as decompression core implies linking all executables
+# against the DLL version of the C runtime library.
+cvars_iz = $(cvarsdll) $(CF_LOC)
+cvars_izdll = $(cvarsdll) $(CF_LOC)
+conlibs_iz = $(conlibsdll) zlib.lib
+conlibs_izdll = $(conlibsdll) zdll.lib
+guilibs_iz = $(guilibsdll) zlib.lib
+!ELSE
+# With the default setup (using Info-ZIP's own inflate code), the
+# executables are linked against the single-thread static C-RTL library to
+# get self-contained programs.
+cvars_iz = $(cvars) $(CF_LOC)
+conlibs_iz = $(conlibs)
+guilibs_iz = $(guilibs)
+
 !IFDEF DLLSTANDALONE
-# the standalone variant of unzip32.dll is linked against the
-# multithread-safe static C runtime library
-cvars_izdll = $(cvarsmt)
+# The standalone variant of unzip32.dll is linked against the
+# multithread-safe static C runtime library.
+cvars_izdll = $(cvarsmt) $(CF_LOC)
 conlibs_izdll = $(conlibsmt)
 !ELSE
-# the (normal) variant of unzip32.dll is linked against the import library
-# of multithread-safe C runtime dll
+# The (normal) variant of unzip32.dll is linked against the import library
+# of the multithread-safe C runtime dll.
 # -> smaller dll size; efficient use of shared resources,
 #    but requires the C RTL DLL msvcrt.dll to be installed at runtime
-cvars_izdll = $(cvarsdll)
+cvars_izdll = $(cvarsdll) $(CF_LOC)
 conlibs_izdll = $(conlibsdll)
 !ENDIF
 
-CFLAGS_UN = $(cdebug) $(cflags) $(cvars)
-CFLAGS_SX = $(cdbgsz) $(cflags) $(cvars) -DSFX
-CFLAGS_FU = $(cdebug) $(cflags) $(cvars) -DFUNZIP
+!ENDIF # !USEZLIB
+
+CFLAGS_UN = $(cdebug) $(cflags) $(cvars_iz)
+CFLAGS_SX = $(cdbgsz) $(cflags) $(cvars_iz) -DSFX
+CFLAGS_FU = $(cdebug) $(cflags) $(cvars_iz) -DFUNZIP
 CFLAGS_DL = $(cdebug) $(cflags) $(cvars_izdll) -DWINDLL -DDLL
-CFLAGS_SL = $(cdbgsz) $(cflags) $(cvars) -DWINDLL -DDLL -DUNZIPLIB -DSFX
-CFLAGS_GX = $(cdbgsz) $(cflags) $(cvars) -DSFX
-CFLAGS_LB = $(cdebug) $(cflags) $(cvars) -DWINDLL -DDLL -DUNZIPLIB
+CFLAGS_SL = $(cdbgsz) $(cflags) $(cvars_iz) -DWINDLL -DDLL -DUNZIPLIB -DSFX
+CFLAGS_GX = $(cdbgsz) $(cflags) $(cvars_iz) -DSFX
+CFLAGS_LB = $(cdebug) $(cflags) $(cvars_iz) -DWINDLL -DDLL -DUNZIPLIB
+
+# You may define VC6LINK if your linker recognizes "-opt:nowin98" alignment
+# qualifier. (VC6 or newer). This option reduces the executable size of the
+# SFX stubs (Instead, you might apply the free executable compressor "upx"
+# which is far more efficient in reducing the stub's file size.)
+!IFDEF VC6LINK
+LINKOPT_SIZE = -opt:nowin98
+!ENDIF
 
 # How to compile sources
 .c.obj:
@@ -186,24 +220,25 @@ CFLAGS_LB = $(cdebug) $(cflags) $(cvars) -DWINDLL -DDLL -DUNZIPLIB
 
 # How to link
 .obj.exe:
-   $(link) $(ldebug) $(conflags) $(conlibs) $** -out:$@
+	$(link) $(ldebug) $(conflags) $(conlibs_iz) $** -out:$@
 .obj.dll:
-   $(link) $(ldebug) $(dlllflags) $(conlibs_izdll) $** -out:$@
+	$(link) $(ldebug) $(dlllflags) $(conlibs_izdll) $** -out:$@
 .obj.lib:
-   $(link) -lib $** -out:$@
+	$(link) -lib $** -out:$@
 
 
-# Default target is all the executables
-unzips : unzip.exe funzip.exe unzipsfx.exe
+# Default target is all command-line executables
+unzips: unzip.exe funzip.exe unzipsfx.exe
 guisfx: SFXWiz32.exe
-dll : unzip32.dll
-dllsample : uzexampl.exe
-lib : $(OBDIR) $(OB)unzip32.lib
-all : unzips guisfx dll dllsample lib
+dll: unzip32.dll
+dllsample: uzexampl.exe
+lib: $(OBDIR) $(OB)unzip32.lib
+all: unzips guisfx dll dllsample lib
 
 
 unzip.exe:	$(OBJU)
 unzipsfx.exe:	$(OBJX)
+	$(link) $(ldebug) $(conflags) $(conlibs_iz) $** $(LINKOPT_SIZE) -out:$@
 funzip.exe:	$(OBJF)
 unzip32.dll:	$(OBJD) windll.res $(WINDLL_DEF)
 	$(link) $(ldebug) $(dlllflags) $(conlibs_izdll) -def:$(WINDLL_DEF) \
@@ -211,12 +246,11 @@ unzip32.dll:	$(OBJD) windll.res $(WINDLL_DEF)
 unzsfx32.lib:	$(OBLX)
 	$(link) -lib $(OBLX) -out:$@
 SFXWiz32.exe:	$(OBGX) sfxwiz.res unzsfx32.lib
-	$(link) $(ldebug) $(guilflags) $(guilibs) \
-		$(OBGX) sfxwiz.res unzsfx32.lib -out:$@
+	$(link) $(ldebug) $(guilflags) $(guilibs_iz) \
+		$(OBGX) sfxwiz.res unzsfx32.lib $(LINKOPT_SIZE) -out:$@
 uzexampl.exe:	uzexampl.obj
 	$(link) $(ldebug) $(conflags) $(conlibs) version.lib $** -out:$@
 $(OB)unzip32.lib:	$(OBJB)
-	$(link) -lib $(OBJB) -out:$@
 
 crc32.obj:	crc32.c $(UNZIP_H) zip.h
 crctab.obj:	crctab.c $(UNZIP_H) zip.h
@@ -491,9 +525,18 @@ $(OBDIR):
 	-mkdir $@
 
 clean:
-	del $(OBJU) unzip.exe
-	del $(OBJF) funzip.exe
-	del $(OBJX) unzipsfx.exe
-	del $(OBJD) windll.res unzip32.dll unzip32.lib unzip32.exp
-        del $(OBJB) $(OB)unzip32.lib
-	del $(OBLX) unzsfx32.lib
+	-del *.obj
+	-del unzip.exe
+	-del funzip.exe
+	-del unzipsfx.exe
+	-del sfxwiz.res
+	-del SFXWiz32.exe
+	-del windll.res
+	-del unzip32.dll
+	-del unzip32.lib
+	-del unzip32.exp
+	-del uzexampl.exe
+	-del unzsfx32.lib
+	-del $(OBDIR)\*.obj
+	-del $(OBDIR)\unzip32.lib
+	-rmdir $(OBDIR)
