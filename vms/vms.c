@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------
 
-  vms.c (version 2.2-5)                                    Igor Mandrichenko
+  vms.c                                        Igor Mandrichenko and others
 
   This file contains routines to extract VMS file attributes from a zipfile
   extra field and create a file with these attributes.  The code was almost
@@ -43,6 +43,24 @@
             Changed close_outfile() to return void for compatibility;
             fixed declaration of second parameter to flush() (ulg size);
             changed str[n]icmp() to STR[N]ICMP().
+     2.2-6 Christian Spieler  9 Apr 94
+            Numerous bug fixes/improvements.
+     2.2-7 Cave Newt       11 Apr 94
+            Fixed version-number/semicolon bug.
+     2.3   Cave Newt       21 Jun 94
+            Added prototype version() routine.
+     2.3-1 Cave Newt       1 Jul 94
+            *Really* fixed version-number/semicolon bug.
+     2.3-2 Rodney Brown    10 Jul 94
+            Added VMS status/severity level (define RETURN_SEVERITY)
+     2.3-3 Charles Bailey  10 Aug 94
+            Fixed severity levels.
+     2.3-4 CN, CS, IM, RB  16 Aug 94
+            Further severity tweaks; do_wild() bugfix (CS)
+     2.3-5 CS, CN, IM, GH  18 Aug 94
+            Further do_wild() modifications and fixes.
+     2.3-6 Christian Spieler  23 Aug 94
+            Added lots of typecasts and fixed some initializations for DEC C.
 
   ---------------------------------------------------------------------------*/
 
@@ -52,8 +70,6 @@
 #include "vms.h"		/* now includes VMSmunch.h */
 
 #define BUFS512 8192*2		/* Must be a multiple of 512 */
-
-#define	BUFSIZ	BUFS512
 
 #define	OK(s)	((s)&1)		/* VMS success or warning status */
 #define	STRICMP(s1,s2)	STRNICMP(s1,s2,2147483647)
@@ -84,7 +100,7 @@ static int  text_output = 0,
 
 static uch rfm;
 
-static uch locbuf[BUFSIZ];
+static uch locbuf[BUFS512];
 static int loccnt = 0;
 static uch *locptr;
 static char got_eol = 0;
@@ -105,6 +121,9 @@ static int  (*_flush_routine)(),
 static int get_vms_version();
 static int replace();
 static uch *extract_block();
+static void init_buf_ring();
+static void decompress_bits();
+static void UpdateCRC();
 static void message();
 static void free_up();
 
@@ -116,7 +135,7 @@ struct bufdsc
 };
 
 static struct bufdsc b1, b2, *curbuf;
-static uch buf1[BUFSIZ];
+static uch buf1[BUFS512];
 
 int check_format()
 {
@@ -274,7 +293,7 @@ static int create_default_output()
 	memcpy(&rdt.xab$q_rdt, &dattim.xab$q_cdt, sizeof(rdt.xab$q_rdt));
 
 	dattim.xab$l_nxt = outfab->fab$l_xab;
-	outfab->fab$l_xab = &dattim;
+	outfab->fab$l_xab = (void *) &dattim;
     }
 
     outfab->fab$w_ifi = 0;	/* Clear IFI. It may be nonzero after ZIP */
@@ -367,11 +386,9 @@ static int create_rms_output()
     rab = cc$rms_rab;		/* fill FAB & RAB with default values */
     fileblk = cc$rms_fab;
 
-    text_output = pInfo->textmode || cflag;	/* extract the file in text
-    						 * (variable-length) format */
+    text_output = cflag;	/* extract the file in text (variable-length)
+				 * format; ignore -a when attributes saved */
     hostnum = pInfo -> hostnum;
-
-    text_output = cflag;	/* Ignore -a when attributes saved */
 
     if (cflag)
     {
@@ -420,7 +437,7 @@ static int create_rms_output()
 	if (xabdat == 0L)
 	{
 	    dattim.xab$l_nxt = outfab->fab$l_xab;
-	    outfab->fab$l_xab = &dattim;
+	    outfab->fab$l_xab = (void *) &dattim;
 	}
     }
 
@@ -545,7 +562,7 @@ static ulg		pka_uchar;
 static struct fatdef	pka_rattr;
 
 static struct dsc$descriptor	pka_fibdsc =
-{   sizeof(pka_fib), DSC$K_DTYPE_Z, DSC$K_CLASS_S, &pka_fib	};
+{   sizeof(pka_fib), DSC$K_DTYPE_Z, DSC$K_CLASS_S, (void *) &pka_fib	};
 
 static struct dsc$descriptor_s	pka_devdsc =
 {   0, DSC$K_DTYPE_T, DSC$K_CLASS_S, &nam.nam$t_dvi[1]	};
@@ -572,9 +589,9 @@ static int create_qio_output()
 
     nam = cc$rms_nam;
     fileblk.fab$l_nam = &nam;
-    nam.nam$l_esa = &exp_nam;
+    nam.nam$l_esa = exp_nam;
     nam.nam$b_ess = sizeof(exp_nam);
-    nam.nam$l_rsa = &res_nam;
+    nam.nam$l_rsa = res_nam;
     nam.nam$b_rss = sizeof(res_nam);
 
     if( ERR(status = sys$parse(&fileblk)) )
@@ -707,7 +724,12 @@ int find_vms_attrs()
     int len;
     int	type=VAT_NONE;
 
-    outfab = xabfhc = xabdat = xabrdt = xabpro = first_xab = last_xab = 0L;
+    outfab = NULL;
+    xabfhc = NULL;
+    xabdat = NULL;
+    xabrdt = NULL;
+    xabpro = NULL;
+    first_xab = last_xab = NULL;
 
     if (scan == NULL)
 	return PK_COOL;
@@ -715,10 +737,10 @@ int find_vms_attrs()
 
 #define LINK(p) {	/* Link xaballs and xabkeys into chain */	\
                 if( first_xab == 0L )                   \
-                        first_xab = p;                  \
+                        first_xab = (void *) p;         \
                 if( last_xab != 0L )                    \
-                        last_xab -> xab$l_nxt = p;      \
-                last_xab = p;                           \
+                        last_xab -> xab$l_nxt = (void *) p;             \
+                last_xab = (void *) p;                  \
                 p -> xab$l_nxt = 0;                     \
         }
     /* End of macro LINK */
@@ -737,7 +759,7 @@ int find_vms_attrs()
 	    type = VAT_IZ;	    
 
 	    blk = (struct IZ_block *)hdr;
-	    block_id = &blk->bid;
+	    block_id = (uch *) &blk->bid;
 	    if (EQL_L(block_id, FABSIG))
 	    {
 		outfab = (struct FAB *) extract_block(blk, 0,
@@ -785,14 +807,14 @@ int find_vms_attrs()
 
 		get_vms_version(verbuf, 80);
 		vers = extract_block(blk, &verlen, 0, 0);
-		if ((m = strrchr(vers, '-')) != NULL)
+		if ((m = strrchr((char *) vers, '-')) != NULL)
 		    *m = 0;	/* Cut out release number */
-		if (strcmp(verbuf, vers) && qflag < 2)
+		if (strcmp(verbuf, (char *) vers) && qflag < 2)
 		{
 		    printf("[ Warning: VMS version mismatch.");
 
 		    printf("   This version %s --", verbuf);
-		    strncpy(verbuf, vers, verlen);
+		    strncpy(verbuf, (char *) vers, verlen);
 		    verbuf[verlen] = 0;
 		    printf(" version made by %s ]\n", verbuf);
 		}
@@ -863,17 +885,17 @@ int find_vms_attrs()
 	    if (xabfhc != 0L)
 	    {
 		xabfhc->xab$l_nxt = outfab->fab$l_xab;
-		outfab->fab$l_xab = xabfhc;
+		outfab->fab$l_xab = (void *) xabfhc;
 	    }
 	    if (xabdat != 0L)
 	    {
 		xabdat->xab$l_nxt = outfab->fab$l_xab;
-		outfab->fab$l_xab = xabdat;
+		outfab->fab$l_xab = (void *) xabdat;
 	    }
 	    if (first_xab != 0L)	/* Link xaball,xabkey subchain */
 	    {
 		last_xab->xab$l_nxt = outfab->fab$l_xab;
-		outfab->fab$l_xab = first_xab;
+		outfab->fab$l_xab = (void *) first_xab;
 	    }
 	}
         else
@@ -896,7 +918,7 @@ static void free_up()
     {
 	struct XAB *x;
 
-	x = first_xab->xab$l_nxt;
+	x = (struct XAB *) first_xab->xab$l_nxt;
 	free(first_xab);
 	first_xab = x;
     }
@@ -1086,19 +1108,19 @@ static int _flush_blocks(rawbuf, size, final_flag)   /* Asynchronous version */
 
     while (size > 0)
     {
-	if (curbuf->bufcnt < BUFSIZ)
+	if (curbuf->bufcnt < BUFS512)
 	{
 	    int ncpy;
 
-	    ncpy = size > (BUFSIZ - curbuf->bufcnt) ?
-			    BUFSIZ - curbuf->bufcnt :
+	    ncpy = size > (BUFS512 - curbuf->bufcnt) ?
+			    BUFS512 - curbuf->bufcnt :
 			    size;
 	    memcpy(curbuf->buf + curbuf->bufcnt, rawbuf + off, ncpy);
 	    size -= ncpy;
 	    curbuf->bufcnt += ncpy;
 	    off += ncpy;
 	}
-	if (curbuf->bufcnt == BUFSIZ)
+	if (curbuf->bufcnt == BUFS512)
 	{
 	    status = WriteBuffer(curbuf->buf, curbuf->bufcnt);
 	    if (status)
@@ -1227,7 +1249,7 @@ static int _flush_varlen(rawbuf, size, final_flag)
 	{	reclen = *(ush*)locbuf;
 		if( (nneed = reclen + 2 - loccnt) > 0 )
 		{	if( nneed > size )
-			{	if( size+loccnt > BUFSIZ )
+			{	if( size+loccnt > BUFS512 )
 				{	fprintf(stderr,"[ Record too long (%d bytes) ]\n",reclen );
 					return PK_DISK;
 				}
@@ -1414,7 +1436,7 @@ static int _flush_stream(rawbuf, size, final_flag)
 
 	    eol_off = find_eol(rawbuf,size,&eol_len);
 
-	    if( loccnt+eol_off > BUFSIZ )
+	    if( loccnt+eol_off > BUFS512 )
 	    {	/*
 		 *  No room in locbuf. Dump it and clear
 		 */
@@ -1490,7 +1512,7 @@ static int _flush_stream(rawbuf, size, final_flag)
     rest = size - start;
 
     if (rest > 0)
-    {	if( rest > BUFSIZ )
+    {	if( rest > BUFS512 )
 	{   int	recsize;
 
 	    recsize = rest - (got_eol ? 1:0 );
@@ -1522,7 +1544,7 @@ static int WriteBuffer(buf, len)
 	message("", outrab->rab$l_stv);
     }
     outrab->rab$w_rsz = len;
-    outrab->rab$l_rbf = buf;
+    outrab->rab$l_rbf = (char *) buf;
 
     if (ERR(status = sys$write(outrab)))
     {
@@ -1547,7 +1569,7 @@ static int WriteRecord(rec, len)
 	message("", outrab->rab$l_stv);
     }
     outrab->rab$w_rsz = len;
-    outrab->rab$l_rbf = rec;
+    outrab->rab$l_rbf = (char *) rec;
 
     if (ERR(status = sys$put(outrab)))
     {
@@ -1567,6 +1589,8 @@ void close_outfile()
     status = (*_flush_routine)(0, 0, 1);     
     if (status)
         return /* PK_DISK */;
+    if (cflag)
+        return;         /* Don't close stdout */
     /* return */ (*_close_routine)();
 }
 
@@ -1581,17 +1605,17 @@ static int _close_rms()
     if (xabrdt != 0L)
     {
 	xabrdt->xab$l_nxt = 0L;
-	outfab->fab$l_xab = xabrdt;
+	outfab->fab$l_xab = (void *) xabrdt;
     }
     else
     {
 	rdt.xab$l_nxt = 0L;
-	outfab->fab$l_xab = &rdt;
+	outfab->fab$l_xab = (void *) &rdt;
     }
     if (xabdat != 0L)
     {
 	xabdat->xab$l_nxt = outfab->fab$l_xab;
-	outfab->fab$l_xab = xabdat;
+	outfab->fab$l_xab = (void *)xabdat;
     }
 
     if( xabpro != 0L )
@@ -1599,13 +1623,13 @@ static int _close_rms()
 	if( !secinf )
 	    xabpro->xab$l_uic = 0;    /* Use default (user's) uic */
 	xabpro->xab$l_nxt = outfab->fab$l_xab;
-	outfab->fab$l_xab = xabpro;
+	outfab->fab$l_xab = (void *) xabpro;
     }
     else
     {	pro = cc$rms_xabpro;
 	pro.xab$w_pro = pInfo->file_attr;
 	pro.xab$l_nxt = outfab->fab$l_xab;
-	outfab->fab$l_xab = &pro;
+	outfab->fab$l_xab = (void *) &pro;
     }
 
     sys$wait(outrab);
@@ -1754,74 +1778,55 @@ char *string;
 char *do_wild( wld )
     char *wld;
 {
-    int	status;
+    int status;
 
-    static	char	filename[256];
-    static	char	efn[256];
-    static	char	last_wild[256];
-    static	struct	FAB fab;
-    static	struct	NAM nam;
-    static	int	first_call=1;
-    static	char	deflt[] = "*.zip";
-    static	int	use_default = 1;
+    static char filename[256];
+    static char efn[256];
+    static char last_wild[256];
+    static struct FAB fab;
+    static struct NAM nam;
+    static int first_call=1;
+    static char deflt[] = "*.zip";
 
     if( first_call || strcmp(wld, last_wild) )
-    {	/* (Re)Initialize everything */
+    {   /* (Re)Initialize everything */
 
-	strcpy( last_wild, wld );
-	first_call = 1;			/* New wild spec */
+        strcpy( last_wild, wld );
+        first_call = 1;            /* New wild spec */
 
-	fab = cc$rms_fab;
-	fab.fab$l_fna = last_wild;
-	fab.fab$b_fns = strlen(last_wild);
-	fab.fab$l_nam = &nam;
-	nam = cc$rms_nam;
-	nam.nam$l_esa = efn;
-	nam.nam$b_ess = sizeof(efn)-1;
-	nam.nam$l_rsa = filename;
-	nam.nam$b_rss = sizeof(filename)-1;
+        fab = cc$rms_fab;
+        fab.fab$l_fna = last_wild;
+        fab.fab$b_fns = strlen(last_wild);
+        fab.fab$l_dna = deflt;
+        fab.fab$b_dns = strlen(deflt);
+        fab.fab$l_nam = &nam;
+        nam = cc$rms_nam;
+        nam.nam$l_esa = efn;
+        nam.nam$b_ess = sizeof(efn)-1;
+        nam.nam$l_rsa = filename;
+        nam.nam$b_rss = sizeof(filename)-1;
 
-	if(!OK(sys$parse(&fab)))
-	    return 0L;	/* Initialization failed */
-
-	first_call = 0;
-	use_default = 1;
+        if(!OK(sys$parse(&fab)))
+            return (char *)NULL;     /* Initialization failed */
+        first_call = 0;
+        if( !OK(sys$search(&fab)) )
+        {
+            strcpy( filename, wld );
+            return filename;
+        }
     }
-
-    if( !OK(sys$search(&fab)) )
+    else
     {
-	if( !fab.fab$l_dna && use_default )
-	{
-		first_call = 1;	/* Try to use default file type ".zip"	*/
-
-		fab = cc$rms_fab;
-		fab.fab$l_fna = last_wild;
-		fab.fab$b_fns = strlen(last_wild);
-		fab.fab$l_nam = &nam;
-		fab.fab$l_dna = deflt;
-		fab.fab$b_dns = strlen(deflt);
-		nam = cc$rms_nam;
-		nam.nam$l_esa = efn;
-		nam.nam$b_ess = sizeof(efn)-1;
-		nam.nam$l_rsa = filename;
-		nam.nam$b_rss = sizeof(filename)-1;
-
-		if(!OK(sys$parse(&fab)))
-			return 0L;
-		if( !OK(sys$search(&fab)) )
-			return 0L;
-		first_call = 0;
-	}
-	else
-	{	first_call = 1;	/* Reinitialize next time */
-		return 0L;
-	}
+        if( !OK(sys$search(&fab)) )
+        {
+            first_call = 1;        /* Reinitialize next time */
+            return (char *)NULL;
+        }
     }
-    use_default = 0;	/* Do not append ".zip" next time since at least
-			   one file is found. */
     filename[nam.nam$b_rsl] = 0;
     return filename;
-}
+
+} /* end function do_wild() */
 
 #endif /* !SFX */
 
@@ -2041,7 +2046,10 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc),*/
                 break;
 
             case ';':             /* start of VMS version? */
-                lastsemi = pp;    /* omit for now; remove VMS vers. later */
+                if (lastsemi)
+                    *lastsemi = '_';   /* convert previous one to underscore */
+                lastsemi = pp;
+                *pp++ = ';';      /* keep for now; remove VMS vers. later */
                 break;
 
             case ' ':
@@ -2062,12 +2070,15 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc),*/
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended "###") */
-    if (!V_flag && lastsemi) {
-        pp = lastsemi;            /* semi-colon was omitted:  expect all #'s */
+    if (lastsemi) {
+        pp = lastsemi + 1;        /* expect all digits after semi-colon */
         while (isdigit((uch)(*pp)))
             ++pp;
-        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
+        if (*pp)                  /* not version number:  convert ';' to '_' */
+            *lastsemi = '_';
+        else if (!V_flag)         /* only digits between ';' and end:  nuke */
             *lastsemi = '\0';
+        /* else only digits and we're saving version number:  do nothing */
     }
 
     if (last_dot != NULL)         /* one dot is OK:  put it back in */
@@ -2080,6 +2091,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc),*/
   ---------------------------------------------------------------------------*/
 
     if (filename[strlen(filename) - 1] == '/') {
+        checkdir("", APPEND_NAME);   /* create directory, if not found */
         checkdir(filename, GETPATH);
         if (created_dir && QCOND2) {
             fprintf(stdout, "   creating: %s\n", filename);
@@ -2114,43 +2126,44 @@ int checkdir(pathcomp,fcn)
     char *pathcomp;
     int fcn;
 {
-    int     function=fcn & FN_MASK;
-    static  char    pathbuf[FILNAMSIZ];
-    static  char    lastdir[FILNAMSIZ]="\t"; /* directory created last time */
-					     /* initially - impossible dir. spec. */
-    static  char    *pathptr=pathbuf;        /* For debugger */
-    static  char    *devptr, *dirptr, *namptr;
-    static  int            devlen, dirlen, namlen;
-    static  int            root_dirlen;
-    static  char    *end;
-    static  int        first_comp,root_has_dir;
-    static  int        rootlen=0;
-    static  char    *rootend;
-    static  int        mkdir_failed=0;
-    int        status;
+    int function=fcn & FN_MASK;
+    static char pathbuf[FILNAMSIZ];
+    static char lastdir[FILNAMSIZ]="\t"; /* directory created last time */
+				         /* initially - impossible dir. spec. */
+    static char *pathptr=pathbuf;        /* For debugger */
+    static char *devptr, *dirptr, *namptr;
+    static int  devlen, dirlen, namlen;
+    static int  root_dirlen;
+    static char *end;
+    static int  first_comp,root_has_dir;
+    static int  rootlen=0;
+    static char *rootend;
+    static int  mkdir_failed=0;
+    int status;
 
 /************
  *** ROOT ***
  ************/
 
+#if (!defined(SFX) || defined(SFX_EXDIR))
     if(function==ROOT)
     {        /*  Assume VMS root spec */
-        char        *p = pathcomp;
-        char        *q;
+        char  *p = pathcomp;
+        char  *q;
 
         struct
-        {   short        len;
-            short        code;
-            char        *addr;
+        {   short  len;
+            short  code;
+            char   *addr;
         } itl [4] =
         {
-            {   0,        FSCN$_DEVICE,            0        },
-            {   0,        FSCN$_ROOT,            0        },
-            {   0,        FSCN$_DIRECTORY,    0        },
-            {   0,        0,                    0        }   /* End if itemlist */
+            {  0,  FSCN$_DEVICE,    0  },
+            {  0,  FSCN$_ROOT,      0  },
+            {  0,  FSCN$_DIRECTORY, 0  },
+            {  0,  0,               0  }   /* End of itemlist */
         };
         int fields = 0;
-        struct        dsc$descriptor        pthcmp;
+        struct dsc$descriptor  pthcmp;
 
         /*
          *  Initialize everything
@@ -2174,7 +2187,7 @@ int checkdir(pathcomp,fcn)
         root_has_dir = 0;
 
         if( fields & FSCN$M_ROOT )
-        {   int        len;
+        {   int   len;
 
             strncpy(dirptr = end, itl[1].addr,
                 len = itl[1].len - 1);        /* Cut out trailing ']' */
@@ -2183,14 +2196,14 @@ int checkdir(pathcomp,fcn)
         }
 
         if( fields & FSCN$M_DIRECTORY )
-        {   char    *ptr;
-            int            len;
+        {   char  *ptr;
+            int   len;
 
             len = itl[2].len-1;
             ptr = itl[2].addr;
 
             if( root_has_dir /* i.e. root specified */ )
-            {        --len;                            /* Cut out leading dot */
+            {   --len;                            /* Cut out leading dot */
                 ++ptr;                            /* ??? [a.b.c.][.d.e] */
             }
 
@@ -2214,6 +2227,7 @@ int checkdir(pathcomp,fcn)
         rootlen = rootend - devptr;
         return 0;
     }
+#endif /* !SFX || SFX_EXDIR */
 
 
 /************
@@ -2306,11 +2320,12 @@ int checkdir(pathcomp,fcn)
                 dirend = (char*)nam.nam$l_dir + nam.nam$b_dir;
                 save = *dirend;
                 *dirend = 0;
-                if( (mkdir_failed = mkdir(nam.nam$l_dev)) && errno == EEXIST )
+                if( (mkdir_failed = mkdir(nam.nam$l_dev, 0)) && errno == EEXIST )
                     mkdir_failed = 0;
                 *dirend = save;
                 if( mkdir_failed )
                     return 3;
+                created_dir = TRUE;
             }                                /* if (sys$parse... */
             pathcomp[nam.nam$b_esl] = 0;
             return 0;
@@ -2333,6 +2348,8 @@ int checkdir(pathcomp,fcn)
 		    {   if( errno != EEXIST )
 			    mkdir_failed = 1;   /* Mine for GETPATH */
 		    }
+		    else
+			created_dir = TRUE;
 		    strcpy(lastdir,pathbuf);
 		}
 	    }
@@ -2387,7 +2404,7 @@ int check_for_newer(filename)   /* return 1 if existing file newer or equal; */
     fab  = cc$rms_fab;
     xdat = cc$rms_xabdat;
 
-    fab.fab$l_xab = &xdat;
+    fab.fab$l_xab = (char *) &xdat;
     fab.fab$l_fna = filename;
     fab.fab$b_fns = strlen(filename);
     fab.fab$l_fop = FAB$M_GET | FAB$M_UFO;
@@ -2446,8 +2463,8 @@ int check_for_newer(filename)   /* return 1 if existing file newer or equal; */
 
 
 
-void return_VMS(zip_error)
-    int zip_error;
+void return_VMS(ziperr)
+    int ziperr;
 {
 #ifdef RETURN_CODES
 /*---------------------------------------------------------------------------
@@ -2456,7 +2473,7 @@ void return_VMS(zip_error)
     violation," for example).
   ---------------------------------------------------------------------------*/
 
-    switch (zip_error) {
+    switch (ziperr) {
 
     case PK_COOL:
         break;   /* life is fine... */
@@ -2467,16 +2484,14 @@ void return_VMS(zip_error)
     case PK_ERR:
     case PK_BADERR:
         fprintf(stderr, "\n[return-code %d:  error in zipfile \
-(e.g., can't find local file header sig)]\n",
-                zip_error);
+(e.g., can't find local file header sig)]\n", ziperr);
         break;
     case PK_MEM:
     case PK_MEM2:
     case PK_MEM3:
     case PK_MEM4:
     case PK_MEM5:
-        fprintf(stderr, "\n[return-code %d:  insufficient memory]\n",
-          zip_error);
+        fprintf(stderr, "\n[return-code %d:  insufficient memory]\n", ziperr);
         break;
     case PK_NOZIP:
         fprintf(stderr, "\n[return-code 9:  zipfile not found]\n");
@@ -2499,13 +2514,104 @@ specified on command line]\n");
         break;
     default:
         fprintf(stderr, "\n[return-code %d:  unknown return-code (screw-up)]\n",
-          zip_error);
+          ziperr);
         break;
     }
 #endif /* RETURN_CODES */
 
+/*---------------------------------------------------------------------------
+    Return an intelligent status/severity level if RETURN_SEVERITY defined:
+
+    $STATUS          $SEVERITY = $STATUS & 7
+    31 .. 16 15 .. 3   2 1 0
+                       -----
+    VMS                0 0 0  0    Warning
+    FACILITY           0 0 1  1    Success
+    Number             0 1 0  2    Error
+             MESSAGE   0 1 1  3    Information
+             Number    1 0 0  4    Severe (fatal) error
+
+    0x7FFF0000 was chosen (by experimentation) to be outside the range of
+    VMS FACILITYs that have dedicated message numbers.  Hopefully this will
+    always result in silent exits--it does on VMS 5.4.  Note that the C li-
+    brary translates exit arguments of zero to a $STATUS value of 1 (i.e.,
+    exit is both silent and has a $SEVERITY of "success").
+  ---------------------------------------------------------------------------*/
+
+#ifdef RETURN_SEVERITY
+    {
+    int severity = (ziperr == 2 || (ziperr >= 9 && ziperr <= 11))? 2 : 4;
+
+    exit(                                          /* $SEVERITY:	*/
+         (ziperr == PK_COOL) ? 1 :                 /*   success		*/
+         (ziperr == PK_WARN) ? 0x7FFF0000 :        /*   warning		*/
+         (0x7FFF0000 | (ziperr << 4) | severity)   /*   error or fatal	*/
+        );
+    }
+#else
     exit(0);   /* everything okey-dokey as far as VMS concerned */
+#endif
 
 } /* end function return_VMS() */
 
-#endif				/* VMS */
+
+
+
+
+#ifndef SFX
+
+/************************/
+/*  Function version()  */
+/************************/
+
+void version()
+{
+    extern char Far  CompiledWith[];
+#ifdef VMS_VERSION
+    char buf[40];
+#endif
+
+    printf(LoadFarString(CompiledWith),
+
+#ifdef __GNUC__
+      "gcc ", __VERSION__,
+#else
+#  if 0
+      "cc ", (sprintf(buf, " version %d", _RELEASE), buf),
+#  else
+#  if defined(DECC) || defined(__DECC) || defined (__DECC__)
+      "DEC C", "",
+#  else
+#  ifdef VAXC
+      "VAX C", "",
+#  else
+      "unknown compiler", "",
+#  endif
+#  endif
+#  endif
+#endif
+
+#ifdef VMS_VERSION
+#  if defined(__alpha)
+      "OpenVMS",   /* version has trailing spaces ("V6.1   "), so truncate: */
+      (sprintf(buf, " (%.4s for Alpha)", VMS_VERSION), buf),
+#  else /* VAX */
+      (VMS_VERSION[1] >= '6')? "OpenVMS" : "VMS",
+      (sprintf(buf, " (%.4s for VAX)", VMS_VERSION), buf),
+#  endif
+#else
+      "VMS",
+      "",
+#endif /* ?VMS_VERSION */
+
+#ifdef __DATE__
+      " on ", __DATE__
+#else
+      "", ""
+#endif
+      );
+
+} /* end function version() */
+
+#endif /* !SFX */
+#endif /* VMS */

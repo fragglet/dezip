@@ -1,29 +1,29 @@
-Contents of the "vms" sub-archive for UnZip 5.1 and later:
+Contents of the "vms" sub-archive for UnZip 5.12 and later:
 
   Contents            this file
   README              general VMS info about using UnZip and zipfiles
-  unzip.rnh           UnZip manual page, RUNOFF format
+  unzip_def.rnh       UnZip default help page, RUNOFF format
+  unzip_cli.help      UnZip VMSCLI help page, TPU format
+  unzipsfx.hlp        UnZipSFX pre-formatted help page
+  cvthelp.tpu         TPU macro file to convert .help file to RUNOFF format
+  cmdline.c           VMS-style command-line-interface code (if VMSCLI defined)
+  unz_cld.cld         more VMS-command-line stuff (if VMSCLI defined)
   vms.c               VMS file manipulation code
   vms.h               VMS header file for UnZip
   make.com            command file to make UnZip with GNU or DEC C on VAX or AXP
-  makefile            MAKE/VMS makefile for UnZip
-  descrip.mms         MMS makefile for UnZip
+  descrip.mms         MMK/MMS makefile for UnZip/ZipInfo and UnZipSFX
   vmsshare.opt        options file used by descrip.mms
-  bilf/bilf.c         BILF source code
-  bilf/make_bilf.com  command file to compile BILF with VAX C
+  unzip.opt           options file used by descrip.mms and make.com
+  unzipsfx.opt        options file used by descrip.mms and make.com
+  clean.com           command file to remove .obj and .exe files; used with MMS
+  makesfx.com         command file to create self-extracting archives
 
-BILF may be required for older zipfiles or for those created under other
-operating systems.  Instructions for its use are in the source code.  I'm
-not sure it's of much use any more, so it may be dropped from the UnZip
-distribution soon.
+MAKE/VMS is no longer supported since MMK (MMS clone by Matt Madison/MadGoat
+Enterprises, compatible with descrip.mms) is both free and becoming quite 
+popular.  MMK is available by anonymous ftp from ftp.spc.edu/ftp.wku.edu and 
+by mailserver at wkuvx1.wku.edu.  Check VMS newsgroups for announcements and 
+exact location.
 
-MAKE/VMS v3.4 is Todd Aven's 1989 make utility (Software Sweatshop, NY); 
-his e-mail address is listed as todd@cincom.umd.edu.  The version used here 
-has two revisions by Ned Freed (1989, 1990) and one by Greg Roelofs (1992--
-options to use either creation date or revision date for determining out-of-
-date-ness).  Grab quest.jpl.nasa.gov:/pub/VMS/vms_make.exe and/or vms_make.zip.
-The original is at vmsa.oac.uci.edu.  [An updated version was apparently re-
-leased in 3Q 93 and is available from ftp.spc.edu.]
-
-An MMS clone called MMK (Matt's Make) is also now available and undergoing
-rapid development; it too is available from ftp.spc.edu.
+The MAKE.COM command file accepts compilation options in a LOCAL_UNZIP 
+symbol or logical; the format is "VMSCLI,RETURN_SEVERITY" (for example).
+DESCRIP.MMS must be edited in order to use special options.

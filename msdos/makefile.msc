@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.1 and later                      Greg Roelofs and others
-# Version:  Microsoft C (5.x and later)                         27 January 1994
+# Makefile for UnZip 5.11 and later                     Greg Roelofs and others
+# Version:  Microsoft C (5.x and later)                          11 August 1994
 #------------------------------------------------------------------------------
 
 # Users of MSC 6/7 and NMAKE can use the Unix Makefile (target msc_dos),
@@ -9,7 +9,7 @@
 # there is possibly a bug in MSC 6 which screws up funzip (goes into
 # infinite loop? --this has not been confirmed in over a year...).  There
 # is definitely a bug (internal compiler error) in MSC 6.00 while com-
-# piling explode.c.
+# piling explode.c (fixed in 6.0a, 6.0ax, 6.0ax2, 7.*, 8.*).
 
 
 #    GNU make doesn't like the return value from "rem"
@@ -22,11 +22,17 @@ STRIP=echo  Ignore this line.
 #    and remove /e from LDFLAGS.  This makes a big difference in
 #    .exe size (and possibly load time).
 
-# large model (use S for more speed but no ZipInfo; may run out of memory)
-MODEL=L
+#    Optional nonstandard preprocessor flags (as -DCHECK_EOF or -DDOS_WILD)
+#    should be added to the environment via "set LOCAL_UNZIP=-DFOO" or added
+#    to the declaration of LOC here:
+LOC = $(LOCAL_UNZIP) 
 
-CC = cl					# -Ox does not work for inflate.c
-CFLAGS = -nologo -DMSC -Oait -Gs -I.	# add -G2(3,4) and/or -FPi87 for x86/x87
+# small model (should work now, but if problems, use L)
+MODEL=S
+
+CC = cl		# -Ox does not work for inflate.c
+# add -G2(3,4) for 286 (386, 486) and/or -FPi87 for 80x87:
+CFLAGS = -nologo -DMSC $(LOC) -Oait -Gs -I.
 
 LD = link
 LDFLAGS = /nologo/noi/e/st:0x0c00   # remove /e if you have LZEXE or PKLITE
@@ -37,10 +43,13 @@ OBJS2 = inflate.obj match.obj unreduce.obj unshrink.obj zipinfo.obj
 OBJS3 = msdos.obj
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3)
 
+OBJX = unzip_.obj crypt.obj extract_.obj file_io.obj inflate.obj match.obj\
+  msdos_.obj
+
 OBJF = funzip.obj crypt_.obj inflate_.obj
 
 
-default:        unzip.exe funzip.exe
+default:        unzip.exe funzip.exe unzipsfx.exe
 
 .c.obj:
         $(CC) -c -A$(MODEL) $(CFLAGS) $*.c
@@ -55,6 +64,9 @@ envargs.obj:      envargs.c unzip.h
 explode.obj:      explode.c unzip.h
 
 extract.obj:      extract.c unzip.h crypt.h
+
+extract_.obj:     extract.c unzip.h crypt.h
+        $(CC) -c -A$(MODEL) $(CFLAGS) -DSFX -Foextract_.obj extract.c
 
 file_io.obj:      file_io.c unzip.h crypt.h tables.h
 
@@ -71,11 +83,17 @@ match.obj:        match.c unzip.h
 msdos.obj:        msdos/msdos.c unzip.h
         $(CC) -c -A$(MODEL) $(CFLAGS) msdos/msdos.c
 
+msdos_.obj:       msdos/msdos.c unzip.h
+        $(CC) -c -A$(MODEL) $(CFLAGS) -DSFX -Fomsdos_.obj msdos/msdos.c
+
 unreduce.obj:     unreduce.c unzip.h
 
 unshrink.obj:     unshrink.c unzip.h
 
-unzip.obj:        unzip.c unzip.h
+unzip.obj:        unzip.c unzip.h crypt.h version.h
+
+unzip_.obj:       unzip.c unzip.h crypt.h version.h
+        $(CC) -c -A$(MODEL) $(CFLAGS) -DSFX -Founzip_.obj unzip.c
 
 zipinfo.obj:      zipinfo.c unzip.h
 
@@ -101,3 +119,9 @@ unzip.exe:      $(OBJS)
 funzip.exe:     $(OBJF)
 	$(LD) $(LDFLAGS) $(OBJF) $(LDFLAGS2)
 	$(STRIP) funzip.exe
+
+unzipsfx.exe:     $(OBJX)
+	echo $(OBJX), $@; > unzipsfx.rsp
+	$(LD) $(LDFLAGS) @unzipsfx.rsp
+	del unzipsfx.rsp
+	$(STRIP) unzipsfx.exe

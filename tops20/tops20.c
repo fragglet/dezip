@@ -4,6 +4,16 @@
 
   TOPS20-specific routines for use with Info-ZIP's UnZip 5.1 and later.
 
+  Contains:  mapattr()
+             close_outfile()
+             version()
+             upper()
+             enquote()
+             dequote()
+             fnlegal()
+
+  (not yet ported:  do_wild(), mapname(), checkdir(), ...)
+
   ---------------------------------------------------------------------------*/
 
 
@@ -106,6 +116,58 @@ void close_outfile()
     fclose(outfile);
 
 } /* end function close_outfile() */
+
+
+
+
+
+#ifndef SFX
+
+/************************/
+/*  Function version()  */
+/************************/
+
+void version()
+{
+    extern char Far  CompiledWith[];
+#if 0
+    char buf[40];
+#endif
+
+    printf(LoadFarString(CompiledWith),
+
+#ifdef __GNUC__
+      "gcc ", __VERSION__,
+#else
+#  if 0
+      "cc ", (sprintf(buf, " version %d", _RELEASE), buf),
+#  else
+#  ifdef __COMPILER_KCC__
+      "KCC", "",
+#  else
+      "unknown compiler", "",
+#  endif
+#  endif
+#endif
+
+      "TOPS-20",
+
+#if defined(foobar) || defined(FOOBAR)
+      " (Foo BAR)",   /* OS version or hardware */
+#else
+      "",
+#endif /* Foo BAR */
+
+#ifdef __DATE__
+      " on ", __DATE__
+#else
+      "", ""
+#endif
+      );
+
+} /* end function version() */
+
+#endif /* !SFX */
 
 
 

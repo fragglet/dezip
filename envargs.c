@@ -10,14 +10,13 @@
  |     to make the action of the code less obscure.
  |  3. Set tabsize to four to make this pretty
  |---------------------------------------------------------------- 
- | UnZip notes 24 May 92 ("v1.4"):
- |  1. #include "unzip.h" for prototypes
- |  2. changed ch to type char
- |  3. added an ifdef to avoid Borland warnings
- |
- | UnZip notes 4 Dec 93 ("v1.5"):
- |  1. included Rich Wales' mksargs() routine (for MS-DOS, maybe
- |     OS/2? NT?)
+ | UnZip notes: 24 May 92 ("v1.4"):
+ |  1. #include "unzip.h" for prototypes (24 May 92)
+ |  2. changed ch to type char (24 May 92)
+ |  3. added an ifdef to avoid Borland warnings (24 May 92)
+ |  4. included Rich Wales' mksargs() routine (for MS-DOS, maybe
+ |     OS/2? NT?) (4 Dec 93)
+ |  5. added alternate-variable string envstr2 (21 Apr 94)
  *----------------------------------------------------------------*/
 
 
@@ -30,11 +29,13 @@ static void mem_err __((void));
    static char *SCCSid = "@(#)envargs.c    1.3 23 Oct 1991";
 #endif
 
+static char Far NoMemArguments[] = "envargs:  can't get memory for arguments";
 
 
-void envargs(Pargc, Pargv, envstr)
+
+void envargs(Pargc, Pargv, envstr, envstr2)
     int *Pargc;
-    char ***Pargv, *envstr;
+    char ***Pargv, *envstr, *envstr2;
 {
     char *getenv();
     char *envptr;       /* value returned by getenv */
@@ -44,10 +45,10 @@ void envargs(Pargc, Pargv, envstr)
     char **argv;        /* internal arg vector */
     char **argvect;     /* copy of vector address */
 
-    /* see if anything in the environment */
-    envptr = getenv(envstr);
-    if (envptr == (char *)NULL || *envptr == 0)
-        return;
+    /* see if anything in either of valid environment variables */
+    if ((envptr = getenv(envstr)) == (char *)NULL || *envptr == 0)
+        if ((envptr = getenv(envstr2)) == (char *)NULL || *envptr == 0)
+            return;
 
     /* count the args so we can allocate room for them */
     argc = count_args(envptr);
@@ -114,7 +115,7 @@ static int count_args(s)
 
 static void mem_err()
 {
-    perror("Can't get memory for arguments");
+    perror(LoadFarString(NoMemArguments));
     exit(2);
 }
 

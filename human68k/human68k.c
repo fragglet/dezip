@@ -9,6 +9,7 @@
              mapname()
              checkdir()
              close_outfile()
+             version()
              TwentyOne()
              normalize_name()
 
@@ -428,6 +429,7 @@ checkdir warning:  path too long; truncating\n\
     command line.
   ---------------------------------------------------------------------------*/
 
+#if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
         if (pathcomp == NULL) {
@@ -441,9 +443,10 @@ checkdir warning:  path too long; truncating\n\
                 pathcomp[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
-            if (stat(pathcomp, &statbuf) || !S_ISDIR(statbuf.st_mode)) {
-                /* path does not exist */
-                if (!create_dirs                     /* || isshexp(pathcomp) */
+            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
+                !S_ISDIR(statbuf.st_mode)))          /* path does not exist */
+            {
+                if (!create_dirs                     /* || iswild(pathcomp) */
 #ifdef OLD_EXDIR
                                  || !had_trailing_pathsep
 #endif
@@ -473,6 +476,7 @@ checkdir warning:  path too long; truncating\n\
         Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
+#endif /* !SFX || SFX_EXDIR */
 
 /*---------------------------------------------------------------------------
     END:  free rootpath, immediately prior to program exit.
@@ -510,6 +514,47 @@ void close_outfile()
     _dos_chmod(filename, pInfo->file_attr);
 
 } /* end function close_outfile() */
+
+
+
+
+#ifndef SFX
+
+/************************/
+/*  Function version()  */
+/************************/
+
+void version()
+{
+    extern char Far  CompiledWith[];
+#if 0
+    char buf[40];
+#endif
+
+    printf(LoadFarString(CompiledWith),
+
+#ifdef __GNUC__
+      "gcc ", __VERSION__,
+#else
+#  if 0
+      "cc ", (sprintf(buf, " version %d", _RELEASE), buf),
+#  else
+      "unknown compiler", "",
+#  endif
+#endif
+
+      "Human68k", " (X68000)",
+
+#ifdef __DATE__
+      " on ", __DATE__
+#else
+      "", ""
+#endif
+      );
+
+} /* end function version() */
+
+#endif /* !SFX */
 
 
 

@@ -1,5 +1,5 @@
-/* inflate.c -- Not copyrighted 1992-94 by Mark Adler
-   version c14j, 23 January 1994 */
+/* inflate.c -- put in the public domain by Mark Adler
+   version c14o, 23 August 1994 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -68,6 +68,14 @@
                     G. Roelofs      check NEXTBYTE macro for EOF.
    c14j  23 Jan 94  G. Roelofs      removed Ghisler "optimizations"; ifdef'd
                                     EOF check.
+   c14k  27 Feb 94  G. Roelofs      added some typecasts to avoid warnings.
+   c14l   9 Apr 94  G. Roelofs      fixed split comments on preprocessor lines
+                                    to avoid bug in Encore compiler.
+   c14m   7 Jul 94  P. Kienitz      modified to allow assembler version of
+                                    inflate_codes() (define ASM_INFLATECODES)
+   c14n  22 Jul 94  G. Roelofs      changed fprintf to FPRINTF for DLL versions
+   c14o  23 Aug 94  C. Spieler      added a newline to a debug statement;
+                    G. Roelofs      added another typecast to avoid MSC warning
  */
 
 
@@ -163,26 +171,26 @@
 
 #define PKZIP_BUG_WORKAROUND    /* PKZIP 1.93a problem--live with it */
 
+/*
+    inflate.h must supply the uch slide[WSIZE] array and the NEXTBYTE,
+    FLUSH() and memzero macros.  If the window size is not 32K, it
+    should also define WSIZE.  If INFMOD is defined, it can include
+    compiled functions to support the NEXTBYTE and/or FLUSH() macros.
+    There are defaults for NEXTBYTE and FLUSH() below for use as
+    examples of what those functions need to do.  Normally, you would
+    also want FLUSH() to compute a crc on the data.  inflate.h also
+    needs to provide these typedefs:
+
+        typedef unsigned char uch;
+        typedef unsigned short ush;
+        typedef unsigned long ulg;
+
+    This module uses the external functions malloc() and free() (and
+    probably memset() or bzero() in the memzero() macro).  Their
+    prototypes are normally found in <string.h> and <stdlib.h>.
+ */
 #define INFMOD          /* tell inflate.h to include code to be compiled */
-#include "inflate.h"    /* this must supply the uch slide[WSIZE] array, and
-                           the NEXTBYTE, FLUSH() and memzero macros.  If the
-                           window size is not 32K, it should also define WSIZE.
-                           If INFMOD is defined, it can include compiled
-                           functions to support the NEXTBYTE and/or FLUSH()
-                           macros.  There are defaults for NEXTBYTE and
-                           FLUSH() below for use as examples of what those
-                           functions need to do.  Normally, you would also
-                           want FLUSH() to compute a crc on the data.
-                           inflate.h also needs to provide these typedefs:
-
-                               typedef unsigned char uch;
-                               typedef unsigned short ush;
-                               typedef unsigned long ulg;
-
-                           This module uses the external functions malloc()
-                           and free() (and probably memset() or bzero() in the
-                           memzero() macro).  Their prototypes are normally
-                           found in <string.h> and <stdlib.h>. */
+#include "inflate.h"
 
 #ifndef WSIZE           /* default is 32K */
 #  define WSIZE 0x8000  /* window size--must be a power of two, and at least */
@@ -190,6 +198,10 @@
 
 #ifndef NEXTBYTE        /* default is to simply get a byte from stdin */
 #  define NEXTBYTE getchar()
+#endif
+
+#ifndef FPRINTF
+#  define FPRINTF fprintf
 #endif
 
 #ifndef FLUSH           /* default is to simply write the buffer to stdout */
@@ -489,7 +501,7 @@ int *m;                 /* maximum lookup bits, returns actual */
             f -= *xp;           /* else deduct codes from patterns */
           }
         }
-        if (w + j > el && (unsigned)w < el)
+        if ((unsigned)w + j > el && (unsigned)w < el)
           j = el - w;           /* make EOB code end at table */
         z = 1 << j;             /* table entries for j-bit table */
         l[h] = j;               /* set table size in stack */
@@ -582,6 +594,12 @@ struct huft *t;         /* table to free */
 }
 
 
+
+#ifdef ASM_INFLATECODES
+#  define inflate_codes(tl,td,bl,bd)  flate_codes(tl,td,bl,bd,(uch *)slide)
+   int flate_codes OF((struct huft *, struct huft *, int, int, uch *));
+
+#else
 
 int inflate_codes(tl, td, bl, bd)
 struct huft *tl, *td;   /* literal/length and distance decoder tables */
@@ -689,6 +707,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   return 0;
 }
 
+#endif /* ASM_INFLATECODES */
+
 
 
 int inflate_stored()
@@ -745,7 +765,7 @@ int inflate_stored()
 
 
 /* Globals for literal tables (built once) */
-struct huft *fixed_tl = NULL;
+struct huft *fixed_tl = (struct huft *)NULL;
 struct huft *fixed_td;
 int fixed_bl, fixed_bd;
 
@@ -756,7 +776,7 @@ int inflate_fixed()
 {
   /* if first time, set up tables for fixed blocks */
   Trace((stderr, "\nliteral block"));
-  if (fixed_tl == NULL)
+  if (fixed_tl == (struct huft *)NULL)
   {
     int i;                /* temporary variable */
     static unsigned l[288]; /* length list for huft_build */
@@ -774,7 +794,7 @@ int inflate_fixed()
     if ((i = huft_build(l, 288, 257, cplens, cplext,
                         &fixed_tl, &fixed_bl)) != 0)
     {
-      fixed_tl = NULL;
+      fixed_tl = (struct huft *)NULL;
       return i;
     }
 
@@ -785,7 +805,7 @@ int inflate_fixed()
     if ((i = huft_build(l, 30, 0, cpdist, cpdext, &fixed_td, &fixed_bd)) > 1)
     {
       huft_free(fixed_tl);
-      fixed_tl = NULL;
+      fixed_tl = (struct huft *)NULL;
       return i;
     }
   }
@@ -927,7 +947,7 @@ int inflate_dynamic()
   if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0)
   {
     if (i == 1 && !qflag) {
-      fprintf(stderr, "(incomplete l-tree)  ");
+      FPRINTF(stderr, "(incomplete l-tree)  ");
       huft_free(tl);
     }
     return i;                   /* incomplete code set */
@@ -936,7 +956,7 @@ int inflate_dynamic()
   if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0)
   {
     if (i == 1 && !qflag) {
-      fprintf(stderr, "(incomplete d-tree)  ");
+      FPRINTF(stderr, "(incomplete d-tree)  ");
 #ifdef PKZIP_BUG_WORKAROUND
       i = 0;
     }
@@ -1038,7 +1058,7 @@ int inflate()
 
 
   /* return success */
-  Trace((stderr, "\n%u bytes in Huffman tables (%d/entry)",
+  Trace((stderr, "\n%u bytes in Huffman tables (%d/entry)\n",
          h * sizeof(struct huft), sizeof(struct huft)));
   return 0;
 }
@@ -1047,11 +1067,11 @@ int inflate()
 
 int inflate_free()
 {
-  if (fixed_tl != NULL)
+  if (fixed_tl != (struct huft *)NULL)
   {
     huft_free(fixed_td);
     huft_free(fixed_tl);
-    fixed_td = fixed_tl = NULL;
+    fixed_td = fixed_tl = (struct huft *)NULL;
   }
   return 0;
 }

@@ -22,6 +22,9 @@
 #if defined(__GO32__) && defined(unix)   /* MS-DOS extender:  NOT Unix */
 #  undef unix
 #endif
+#if (defined(__convex__) && !defined(__convexc__))
+#  define __convexc__
+#endif
 
 #if defined(unix) || defined(M_XENIX) || defined(COHERENT) || defined(__hpux)
 #  ifndef UNIX
@@ -71,10 +74,12 @@
 #  define MODERN
 #endif
 #if defined(THINK_C) || defined(MPW) || defined(WIN32) || defined(_SEQUENT_)
-#  ifndef PROTO
-#    define PROTO
+#  ifndef PTX   /* Sequent running Dynix/ptx:  non-modern compiler */
+#    ifndef PROTO
+#      define PROTO
+#    endif
+#    define MODERN
 #  endif
-#  define MODERN
 #endif
 #if defined(ATARI_ST) || defined(__BORLANDC__)  /* || defined(__convexc__) */
 #  ifndef PROTO
@@ -91,27 +96,14 @@
 /* used to remove arguments in function prototypes for non-ANSI C */
 #ifdef PROTO
 #  define OF(a) a
-#else /* !PROTO */
+#else
 #  define OF(a) ()
-#endif /* ?PROTO */
+#endif
 
 /* bad or (occasionally?) missing stddef.h: */
 #if defined(M_XENIX) || defined(DNIX)
 #  define NO_STDDEF_H
 #endif
-
-#if (defined(__NetBSD__) && !defined(__386BSD__))
-#  define __386BSD__
-#endif
-
-#if 0  /* GRR 931003:  BOGUS!  Screwed-up systems can define this explicitly */
-/* cannot depend on MODERN for presence of stdlib.h */
-#if defined(__GNUC__)
-#  if (!defined(__EMX__) && !defined(__386BSD__) && !defined(LINUX))
-#    define NO_STDLIB_H
-#  endif
-#endif /* __GNUC__ */
-#endif /* 0 */
 
 #if defined(apollo)          /* defines __STDC__ */
 #    define NO_STDLIB_H
@@ -127,29 +119,24 @@
 #if (defined(__SYSTEM_FIVE) || defined(M_SYSV) || defined(M_SYS5))
 #  ifndef SYSV
 #    define SYSV
-#  endif /* !SYSV */
+#  endif
 #endif /* __SYSTEM_FIVE || M_SYSV || M_SYS5 */
-
-#if (defined(SYSV) || defined(CRAY) || defined(LINUX))
-#  ifndef TERMIO
-#    define TERMIO
-#  endif /* !TERMIO */
-#endif /* SYSV || CRAY || LINUX */
 
 #if (defined(ultrix) || defined(bsd4_2) || defined(sun) || defined(pyr))
 #  if (!defined(BSD) && !defined(SYSV))
 #    define BSD
 #  endif
 #endif /* ultrix || bsd4_2 || sun || pyr */
-#if defined(__convexc__) || defined(__386BSD__)
+#if defined(__convexc__)
 #  if (!defined(BSD) && !defined(SYSV))
 #    define BSD
 #  endif
-#endif /* __convexc__ || __386BSD__ */
+#endif /* __convexc__ */
 
 #ifdef pyr  /* Pyramid */
 #  ifdef BSD
 #    define pyr_bsd
+#    define USE_STRINGS_H    /* instead of more common string.h */
 #  endif
 #  define ZMEM            /* should ZMEM only be for BSD universe...? */
 #  define DECLARE_ERRNO   /*  (AT&T memcpy was claimed to be very slow) */
@@ -175,26 +162,12 @@
 #  define SSTAT stat
 #endif
 
+#ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
+#  define stat(p,s) zstat(p,s)
+#endif
+
 #define STRNICMP zstrnicmp
 
-#if 0  /* internal version renamed to zstrnicmp and used for all systems now */
-/* SCO Unix, dnix, Interactive SysV (all SysV?):  no strnicmp or strncasecmp.
- * Also Sun 386i, VMS (just VAX C?), djgpp 1.10 and earlier, Coherent. */
-#if (defined(SYSV) || defined(sun386) || defined(VMS) || defined(__GO32__))
-#  define NO_STRNICMP
-#endif
-#if (defined(COHERENT))
-#  define NO_STRNICMP
-#endif
-#ifndef NO_STRNICMP
-#  if (!defined(MODERN) || defined(NeXT) || defined(CRAY) || defined(LINUX))
-#    define strnicmp strncasecmp
-#  endif
-#  if (defined(__386BSD__) || defined(__bsdi__))
-#    define strnicmp strncasecmp
-#  endif
-#endif
-#endif /* 0 */
 
 
 
@@ -209,21 +182,13 @@
 #endif
 #include <ctype.h>       /* skip for VMS, to use tolower() function? */
 #include <errno.h>       /* used in mapname() */
-#include <string.h>      /* GRR:  EXPERIMENTAL! */
+#ifdef USE_STRINGS_H
+#  include <strings.h>   /* strcpy, strcmp, memcpy, index/rindex, etc. */
+#else
+#  include <string.h>    /* strcpy, strcmp, memcpy, strchr/strrchr, etc. */
+#endif
 #ifdef MODERN
 #  include <limits.h>    /* GRR:  EXPERIMENTAL!  (can be deleted) */
-#endif
-
-#if 0    /* GRR:  MORE EXPERIMENTING (moved to OS sections) */
-#ifdef VMS
-#  include <types.h>     /* (placed up here instead of in VMS section below */
-#  include <stat.h>      /* because types.h is used in some other headers) */
-#else /* !VMS */
-#    if (!defined(THINK_C) && !defined(MPW) && !defined(ATARI_ST) && !defined(AZTEC_C))
-#      include <sys/types.h>         /* off_t, time_t, dev_t, ... */
-#      include <sys/stat.h>
-#    endif /* !THINK_C && !MPW && !ATARI_ST && !AZTEC_C */
-#endif /* ?VMS */
 #endif
 
 #ifdef EFT
@@ -241,11 +206,13 @@
 #  endif
    typedef size_t extent;
    typedef void voidp;
-/* #  include <string.h> */      /* defines strcpy, strcmp, memcpy, etc. */
 #else /* !MODERN */
-/*    char *strchr(), *strrchr();  */
    LONGINT lseek();
-   char *malloc();
+#  ifdef VAXC              /* not fully modern, but does have stdlib.h */
+#    include <stdlib.h>
+#  else
+     char *malloc();
+#  endif
    typedef unsigned int extent;
    typedef char voidp;
 #  define void int
@@ -269,6 +236,7 @@
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 /* #  define USE_FWRITE   if write() returns 16-bit int */
+#  define PIPE_ERROR (errno == 9999)    /* always false */
 #endif
 
 /*---------------------------------------------------------------------------
@@ -299,9 +267,9 @@
 #    define DIRENT
 #    define SYMLINKS
 #    ifdef S_ISLNK             /* WARNING:  horrible kludge!!!! */
-#      undef S_ISLNK           /* MiNTlibs <= pl.41 have symlinks wrong! */
+#      undef S_ISLNK           /* MiNTlibs & POSIX don't define S_ISLNK */
 #      define S_ISLNK(a) (((a) & 0xa000) == 0xa000)
-#    endif                     /* remove this when it's fixed! */
+#    endif
 #    ifdef SHORT_NAMES         /* library will truncate weird names on TOS fs */
 #      undef SHORT_NAMES
 #    endif
@@ -319,6 +287,25 @@
 #  ifndef PutNativeEOL
 #    define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 #  endif
+#  define EXE_EXTENSION  ".tos"  /* or .ttp instead?? */
+#endif
+
+/*---------------------------------------------------------------------------
+    Human68k/X68000 section:
+  ---------------------------------------------------------------------------*/
+
+#ifdef __human68k__    /* DO NOT DEFINE DOS_OS2 HERE!  If Human68k is so much */
+#  include <time.h>    /*  like MS-DOS and/or OS/2, create DOS_HUM_OS2 macro. */
+#  include <fcntl.h>
+#  include <io.h>
+#  include <conio.h>
+#  include <jctype.h>
+#  include <sys/stat.h>
+#  define DATE_FORMAT  DF_YMD    /* Japanese standard */
+      /* GRR:  these EOL macros are guesses */
+#  define lenEOL        2
+#  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
+#  define EXE_EXTENSION ".exe"   /* just a guess... */
 #endif
 
 /*---------------------------------------------------------------------------
@@ -329,13 +316,14 @@
 #  define MACOS
 #  ifndef __STDC__            /* if Think C hasn't defined __STDC__ ... */
 #    define __STDC__ 1        /*   make sure it's defined: it needs it */
-#  else /* __STDC__ defined */
+#  else
 #    if !__STDC__             /* sometimes __STDC__ is defined as 0; */
 #      undef __STDC__         /*   it needs to be 1 or required header */
 #      define __STDC__ 1      /*   files are not properly included. */
 #    endif /* !__STDC__ */
-#  endif /* ?defined(__STDC__) */
-#  define CREATOR       'KAHL'
+#  endif
+#  define CREATOR  'KAHL'
+#  define MAIN     unzip
 #endif /* THINK_C */
 
 #ifdef MPW
@@ -494,7 +482,11 @@ typedef struct _MacInfo {
 #  include <io.h>             /* lseek(), open(), setftime(), dup(), creat() */
 #  include <time.h>           /* localtime() */
 #  include <fcntl.h>          /* O_BINARY for open() w/o CR/LF translation */
-#  define DIR_END '\\'
+#  ifdef __GO32__
+#    define DIR_END '/'
+#  else
+#    define DIR_END '\\'
+#  endif
 #  if (defined(M_I86CM) || defined(M_I86LM))
 #    define MED_MEM
 #  endif
@@ -505,7 +497,7 @@ typedef struct _MacInfo {
 #    ifndef MED_MEM
 #      define SMALL_MEM
 #    endif
-#    define USE_FWRITE        /* write() cannot write more than 32767 bytes */
+/* #    define USE_FWRITE   write() *can* write up to 65534 bytes after all */
 #  endif
 #  define DATE_FORMAT   dateformat()
 #  define lenEOL        2
@@ -524,6 +516,10 @@ typedef struct _MacInfo {
 #  endif
 #  define isupper(x)   IsUpperNLS((unsigned char)(x))
 #  define tolower(x)   ToLowerNLS((unsigned char)(x))
+#endif
+
+#ifdef MSDOS
+#  define EXE_EXTENSION ".exe"  /* OS/2 has GetLoadPath() function instead */
 #endif
 
 #if defined(MSWIN) && defined(FILE_IO_C)
@@ -575,6 +571,9 @@ typedef struct _MacInfo {
 #  define lenEOL        2
 #  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 #  define NT
+#  if (defined(_MSC_VER) && !defined(MSC))
+#    define MSC
+#  endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -602,6 +601,7 @@ typedef struct _MacInfo {
 #  define DIR_END  '>'
 #  define DIR_EXT  ".directory"
 #  define DATE_FORMAT  DF_MDY
+#  define EXE_EXTENSION ".exe"  /* just a guess... */
 #endif /* TOPS20 */
 
 /*---------------------------------------------------------------------------
@@ -635,11 +635,20 @@ typedef struct _MacInfo {
 #      undef BSD
 #    endif
 #    include <sys/param.h>     /* conflict with <sys/types.h>, some systems? */
-#    if defined(TEMP_BSD) && !defined(BSD)
-#      define BSD
+#    ifdef TEMP_BSD
 #      undef TEMP_BSD
+#      ifndef BSD
+#        define BSD
+#      endif
 #    endif
 #  endif /* !NO_PARAM_H */
+
+#  ifdef __osf__
+#    define DIRENT
+#    ifdef BSD
+#      undef BSD
+#    endif
+#  endif /* __osf__ */
 
 #  ifdef BSD
 #    include <sys/time.h>
@@ -652,18 +661,18 @@ typedef struct _MacInfo {
      struct tm *gmtime(), *localtime();
 #  endif
 
-#  if defined(__386BSD__) || defined(LINUX) || (defined(SYSV)&&defined(MODERN))
+#  if defined(BSD4_4) || defined(LINUX) || (defined(SYSV) && defined(MODERN))
 #    include <unistd.h>        /* this includes utime.h, at least on SGIs */
 #  endif
 
-#  if defined(__386BSD__) ||defined(_POSIX_SOURCE) ||defined(sgi)||defined(_AIX)
+#  if defined(BSD4_4) || defined(_POSIX_SOURCE) || defined(sgi) || defined(_AIX)
 #    include <utime.h>   /* NeXT, at least, does NOT define utimbuf in here */
 #  else
      struct utimbuf {
          time_t actime;        /* new access time */
          time_t modtime;       /* new modification time */
      };
-#  endif /* ?(__386BSD__ || _POSIX_SOURCE || sgi || _AIX) */
+#  endif /* ?(BSD4_4 || _POSIX_SOURCE || sgi || _AIX) */
 
 #  if (defined(V7) || defined(pyr_bsd))
 #    define strchr   index
@@ -692,6 +701,7 @@ typedef struct _MacInfo {
 #  include <stat.h>
 #  include <time.h>               /* the usual non-BSD time functions */
 #  include <file.h>               /* same things as fcntl.h has */
+#  include <unixio.h>
 #  include <rms.h>
 #  define _MAX_PATH NAM$C_MAXRSS  /* to define FILNAMSIZ below */
 #  define RETURN    return_VMS    /* VMS interprets return codes incorrectly */
@@ -703,23 +713,6 @@ typedef struct _MacInfo {
 #  define PutNativeEOL  *q++ = native(LF);
 #endif /* VMS */
 
-/*---------------------------------------------------------------------------
-    X68000/Human68k section:
-  ---------------------------------------------------------------------------*/
-
-#ifdef __human68k__    /* DO NOT DEFINE DOS_OS2 HERE!  If Human68k is so much */
-#  include <time.h>    /*  like MS-DOS and/or OS/2, create DOS_HUM_OS2 macro! */
-#  include <fcntl.h>
-#  include <io.h>
-#  include <conio.h>
-#  include <jctype.h>
-#  include <sys/stat.h>
-#  define DATE_FORMAT  DF_YMD    /* Japanese standard */
-      /* GRR:  these EOL macros are guesses */
-#  define lenEOL        2
-#  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
-#endif
-
 
 
 
@@ -730,7 +723,7 @@ typedef struct _MacInfo {
 
 #define UNZIP
 #define UNZIP_VERSION     20   /* compatible with PKUNZIP 2.0 */
-#define VMS_VERSION       42   /* if OS-needed-to-extract is VMS:  can do */
+#define VMS_UNZIP_VERSION 42   /* if OS-needed-to-extract is VMS:  can do */
 
 #if defined(MSDOS) || defined(NT) || defined(OS2)
 #  define DOS_NT_OS2
@@ -756,6 +749,37 @@ typedef struct _MacInfo {
 #  define T20_VMS
 #endif
 
+/* clean up with a few defaults */
+#ifndef DIR_END
+#  define DIR_END '/'       /* last char before program name (or filename) */
+#endif
+#ifndef RETURN
+#  define RETURN  return    /* only used in main() */
+#endif
+#ifndef PRINTF
+#  define PRINTF  printf
+#endif
+#ifndef FPRINTF
+#  define FPRINTF fprintf
+#endif
+#ifndef PUTC
+#  define PUTC    putc      /* putchar() not used: use PUTC(c,stdout) instead */
+#endif
+
+#define DIR_BLKSIZ  64      /* number of directory entries per block
+                             *  (should fit in 4096 bytes, usually) */
+#ifndef WSIZE
+#  define WSIZE     0x8000  /* window size--must be a power of two, and */
+#endif                      /*  at least 32K for zip's deflate method */
+
+#ifndef INBUFSIZ
+#  if (defined(MED_MEM) || defined(SMALL_MEM))
+#    define INBUFSIZ  2048  /* works for MS-DOS small model */
+#  else
+#    define INBUFSIZ  8192  /* larger buffers for real OSes */
+#  endif
+#endif
+
 /* GRR:  NT defines MSDOS?? */
 #if (!defined(MSDOS) && !defined(__IBMC__)) || defined(NT)
 #  define near
@@ -766,24 +790,6 @@ typedef struct _MacInfo {
 #  define far
 #endif
 
-/* clean up with a couple of defaults */
-#ifndef DIR_END
-#  define DIR_END '/'       /* last char before program name (or filename) */
-#endif
-#ifndef RETURN
-#  define RETURN  return    /* only used in main() */
-#endif
-
-#define DIR_BLKSIZ  64      /* number of directory entries per block
-                             *  (should fit in 4096 bytes, usually) */
-#ifndef WSIZE
-#  define WSIZE     0x8000  /* window size--must be a power of two, and */
-#endif                      /*  at least 32K for zip's deflate method */
-
-#ifndef INBUFSIZ
-#  define INBUFSIZ  0x0800  /* 2K:  works for MS-DOS small model */
-#endif
-
 /* Logic for case of small memory, length of EOL > 1:  if OUTBUFSIZ == 2048,
  * OUTBUFSIZ>>1 == 1024 and OUTBUFSIZ>>7 == 16; therefore rawbuf is 1008 bytes
  * and transbuf 1040 bytes.  Have room for 32 extra EOL chars; 1008/32 == 31.5
@@ -792,7 +798,9 @@ typedef struct _MacInfo {
  * (Argument scales for larger OUTBUFSIZ.)
  */
 #ifdef SMALL_MEM          /* i.e., 16-bit OS's:  MS-DOS, OS/2 1.x, etc. */
-#  define NO_ZIPINFO      /* GRR:  true until move all strings to far memory */
+#  ifndef Far
+#    define Far far  /* __far only works for MSC 6.00, not 6.0a or Borland */
+#  endif
 #  define OUTBUFSIZ INBUFSIZ
 #  if (lenEOL == 1)
 #    define RAWBUFSIZ (OUTBUFSIZ>>1)
@@ -801,15 +809,27 @@ typedef struct _MacInfo {
 #  endif
 #  define TRANSBUFSIZ (OUTBUFSIZ-RAWBUFSIZ)
 #else
+#  define LoadFarString(x)       x
+#  define LoadFarStringSmall(x)  x
+#  define LoadFarStringSmall2(x) x
 #  ifdef MED_MEM
 #    define OUTBUFSIZ 0xFF80     /* can't malloc arrays of 0xFFE8 or more */
 #    define TRANSBUFSIZ 0xFF80
 #  else
 #    define OUTBUFSIZ (lenEOL*WSIZE)  /* more efficient text conversion */
 #    define TRANSBUFSIZ (lenEOL*OUTBUFSIZ)
+#    define NEW_UNSHRINK
 #  endif
 #  define RAWBUFSIZ OUTBUFSIZ
 #endif /* ?SMALL_MEM */
+
+#ifndef Far
+#  define Far   /* GRR:  should combine this with near/far above */
+#endif
+
+#ifndef MAIN
+#  define MAIN  main
+#endif
 
 #if (defined(SFX) && !defined(NO_ZIPINFO))
 #  define NO_ZIPINFO
@@ -934,8 +954,9 @@ typedef struct _MacInfo {
 #define CPM_              9
 #define TOPS20_           10
 #define FS_NTFS_          11   /* filesystem used by Windows NT */
-/* #define QDOS_          12?  */
-#define NUM_HOSTS         12   /* index of last system + 1 */
+#define QDOS_MAYBE_       12   /* a bit premature, but somebody once started */
+#define ACORN_            13   /* Archimedes Acorn RISCOS */
+#define NUM_HOSTS         14   /* index of last system + 1 */
 
 #define STORED            0    /* compression methods */
 #define SHRUNK            1
@@ -983,7 +1004,7 @@ typedef struct _MacInfo {
 #define CREC_SIZE     42    /*  directory headers, and the end-of-    */
 #define ECREC_SIZE    18    /*  central-dir record, respectively      */
 
-#define MAX_BITS      13                 /* used in unshrink() */
+#define MAX_BITS      13                 /* used in old unshrink() */
 #define HSIZE         (1 << MAX_BITS)    /* size of global work area */
 
 #define LF      10    /* '\n' on ASCII machines; must be 10 due to EBCDIC */
@@ -996,7 +1017,7 @@ typedef struct _MacInfo {
 #endif
 
 #ifdef MPW
-#  define FFLUSH(f)   putc('\n',f)
+#  define FFLUSH(f)   PUTC('\n',f)
 #else
 #  define FFLUSH      fflush
 #endif
@@ -1016,6 +1037,8 @@ typedef struct _MacInfo {
 #  define ENV_UNZIP     "UNZIP"
 #  define ENV_ZIPINFO   "ZIPINFO"
 #endif /* ?VMS */
+#define ENV_UNZIP2      "UNZIPOPT"        /* alternate name for zip compat. */
+#define ENV_ZIPINFO2    "ZIPINFOOPT"
 
 #if !defined(QQ) && !defined(NOQQ)
 #  define QQ
@@ -1098,6 +1121,7 @@ typedef struct VMStimbuf {
   ---------------------------------------------------------------------------*/
 
 #ifdef MALLOC_WORK
+
    union work {
      struct {
        short *Prefix_of;            /* (8193 * sizeof(short)) */
@@ -1106,28 +1130,35 @@ typedef struct VMStimbuf {
      } shrink;                      /* unshrink() */
      uch *Slide;                    /* explode(), inflate(), unreduce() */
    };
+#  define prefix_of  area.shrink.Prefix_of
+#  define suffix_of  area.shrink.Suffix_of
+#  define stack      area.shrink.Stack
 
 #else /* !MALLOC_WORK */
-   union work {
-     struct {
-#ifdef HSIZE2    /* needed to avoid errors on some machines? */
-       short Prefix_of[HSIZE + 2];  /* (8194 * sizeof(short)) */
-       uch Suffix_of[HSIZE + 2];    /* also s-f length_nodes (smaller) */
-       uch Stack[HSIZE + 2];        /* also s-f distance_nodes (smaller) */
-#else /* !HSIZE2 */
-       short Prefix_of[HSIZE];      /* (8192 * sizeof(short)) */
-       uch Suffix_of[HSIZE];        /* also s-f length_nodes (smaller) */
-       uch Stack[HSIZE];            /* also s-f distance_nodes (smaller) */
-#endif /* ?HSIZE2 */
-     } shrink;
-     uch Slide[WSIZE];
-   };
+
+#  ifdef NEW_UNSHRINK   /* weird segmentation violations if union NODE array */
+     union work {
+       uch Stack[8192];             /* unshrink() */
+       uch Slide[WSIZE];            /* explode(), inflate(), unreduce() */
+     };
+#    define stack  area.Stack
+#  else
+     union work {
+       struct {
+         short Prefix_of[HSIZE];    /* (8192 * sizeof(short)) */
+         uch Suffix_of[HSIZE];
+         uch Stack[HSIZE];
+       } shrink;
+       uch Slide[WSIZE];            /* explode(), inflate(), unreduce() */
+     };
+#    define prefix_of  area.shrink.Prefix_of
+#    define suffix_of  area.shrink.Suffix_of
+#    define stack      area.shrink.Stack
+#  endif /* ?NEW_UNSHRINK */
+
 #endif /* ?MALLOC_WORK */
 
-#define prefix_of   area.shrink.Prefix_of
-#define suffix_of   area.shrink.Suffix_of
-#define stack       area.shrink.Stack
-#define slide       area.Slide
+#define slide  area.Slide
 
 /*---------------------------------------------------------------------------
     Zipfile layout declarations.  If these headers ever change, make sure the
@@ -1264,7 +1295,7 @@ int    list_files                __((void));
 
 int      open_input_file    __((void));
 int      open_outfile       __((void));                        /* also vms.c */
-int      readbuf            __((char *buf, register unsigned len));
+unsigned readbuf            __((char *buf, register unsigned len));
 int      FillBitBuffer      __((void));
 int      readbyte           __((void));
 #ifdef FUNZIP
@@ -1275,8 +1306,8 @@ int      readbyte           __((void));
 void     handler            __((int signal));
 time_t   dos_to_unix_time   __((unsigned ddate, unsigned dtime));
 int      check_for_newer    __((char *filename));       /* also os2.c, vms.c */
-int      find_end_central_dir __((long searchlen));        /* find_ecrec */
-int      get_cdir_file_hdr  __((void));                    /* get_cdir_ent */
+int      find_ecrec         __((long searchlen));
+int      get_cdir_ent       __((void));
 int      do_string          __((unsigned int len, int option));
 ush      makeword           __((uch *b));
 ulg      makelong           __((uch *sig));
@@ -1286,6 +1317,14 @@ int      zstrnicmp __((register char *s1, register char *s2, register int n));
    char *memset __((register char *, register char, register unsigned int));
    char *memcpy __((register char *, register char *, register unsigned int));
 #endif
+
+#ifdef SMALL_MEM
+   char *LoadFarString         __((char Far *sz));
+   char *LoadFarStringSmall    __((char Far *sz));
+   char *LoadFarStringSmall2   __((char Far *sz));
+   char Far * Far zfstrcpy     __((char Far *s1, const char Far *s2));
+#endif
+
 
 /*---------------------------------------------------------------------------
     Functions in extract.c:
@@ -1331,6 +1370,7 @@ int    unshrink                  __((void));                   /* unshrink.c */
    long     macwrite             __((short, char *, unsigned));
    short    macclose             __((short));
    long     maclseek             __((short, long, short));
+   char    *macgetenv            __((char *));
    char    *wfgets               __((char *, int, FILE *));
    void     wfprintf             __((FILE *, char *, ...));
    void     wprintf              __((char *, ...));
@@ -1341,6 +1381,7 @@ int    unshrink                  __((void));                   /* unshrink.c */
   ---------------------------------------------------------------------------*/
 
 #if (defined(__GO32__) || (defined(MSDOS) && defined(__EMX__)))
+   unsigned _dos_getcountryinfo(void *);                          /* msdos.c */
    void _dos_setftime(int, unsigned short, unsigned short);       /* msdos.c */
    void _dos_setfileattr(char *, int);                            /* msdos.c */
    unsigned _dos_creat(char *, unsigned, int *);                  /* msdos.c */
@@ -1384,37 +1425,40 @@ int    unshrink                  __((void));                   /* unshrink.c */
   ---------------------------------------------------------------------------*/
 
 #ifdef VMS
-
-int      check_format      __((void));                              /* vms.c */
-int      find_vms_attrs    __((void));                              /* vms.c */
-int      CloseOutputFile   __((void));                              /* vms.c */
+   int    check_format        __((void));                           /* vms.c */
+   int    find_vms_attrs      __((void));                           /* vms.c */
+   int    CloseOutputFile     __((void));                           /* vms.c */
 /* static uch *extract_block  __((struct extra_block *, int *, uch *, int)); */
 /* static int  _flush_blocks  __((int final_flag));                  * vms.c */
 /* static int  _flush_records __((int final_flag));                  * vms.c */
 /* static int  WriteBuffer    __((unsigned char *buf, int len));     * vms.c */
 /* static int  WriteRecord    __((unsigned char *rec, int len));     * vms.c */
 /* static void message        __((int string, char *status));        * vms.c */
-void     return_VMS        __((int zip_error));
-
+   void   return_VMS          __((int zip_error));                  /* vms.c */
+#ifdef VMSCLI
+   ulg    vms_unzip_cmdline   __((int *, char ***));            /* cmdline.c */
+#endif
 #endif
 
 /*---------------------------------------------------------------------------
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
 
-int      match             __((char *s, char *p, int ic));        /* match.c */
-int      iswild            __((char *p));                         /* match.c */
+int      match           __((char *s, char *p, int ic));          /* match.c */
+int      iswild          __((char *p));                           /* match.c */
 
-void     envargs           __((int *, char ***, char *));       /* envargs.c */
-void     mksargs           __((int *, char ***));               /* envargs.c */
+void     envargs         __((int *, char ***, char *, char *)); /* envargs.c */
+void     mksargs         __((int *, char ***));                 /* envargs.c */
 
-int      dateformat        __((void));
-int      mapattr           __((void));                              /* local */
-int      mapname           __((int renamed));                       /* local */
-int      checkdir          __((char *pathcomp, int flag));          /* local */
-char    *do_wild           __((char *wildzipfn));                   /* local */
+int      dateformat      __((void));
+void     version         __((void));                                /* local */
+int      mapattr         __((void));                                /* local */
+int      mapname         __((int renamed));                         /* local */
+int      checkdir        __((char *pathcomp, int flag));            /* local */
+char    *do_wild         __((char *wildzipfn));                     /* local */
+char    *GetLoadPath     __((void));                                /* local */
 #ifndef MTS /* macro in MTS */
-   void  close_outfile     __((void));                              /* local */
+   void  close_outfile   __((void));                                /* local */
 #endif
 
 
@@ -1433,7 +1477,7 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
 #endif
 
 #ifdef DEBUG
-#  define Trace(x)   fprintf x
+#  define Trace(x)   FPRINTF x
 #else
 #  define Trace(x)
 #endif
@@ -1447,7 +1491,7 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
 
 #define LSEEK(abs_offset) {LONGINT request=(abs_offset)+extra_bytes,\
    inbuf_offset=request%INBUFSIZ, bufstart=request-inbuf_offset;\
-   if(request<0) {fprintf(stderr, SeekMsg, ReportMsg); return(3);}\
+   if(request<0) {FPRINTF(stderr, LoadFarStringSmall(SeekMsg), LoadFarString(ReportMsg)); return(3);}\
    else if(bufstart!=cur_zipfile_bufstart)\
    {cur_zipfile_bufstart=lseek(zipfd,(LONGINT)bufstart,SEEK_SET);\
    if((incnt=read(zipfd,(char *)inbuf,INBUFSIZ))<=0) return(51);\
@@ -1470,7 +1514,8 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
  *      LONGINT   bufstart = request - inbuf_offset;
  *
  *      if (request < 0) {
- *          fprintf(stderr, SeekMsg, ReportMsg);
+ *          FPRINTF(stderr, LoadFarStringSmall(SeekMsg),
+ *            LoadFarString(ReportMsg));
  *          return(3);             /-* 3:  severe error in zipfile *-/
  *      } else if (bufstart != cur_zipfile_bufstart) {
  *          cur_zipfile_bufstart = lseek(zipfd, (LONGINT)bufstart, SEEK_SET);
@@ -1512,7 +1557,8 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
 #  define NEXTBYTE getc(in)   /* redefined in crypt.h if full version */
 #else
 #  define FLUSH(w) if (mem_mode) outcnt=(w); else flush(slide,(ulg)w,0)
-#  define NEXTBYTE (csize-- <= 0 ? EOF : (--incnt >= 0 ? *inptr++ : readbyte()))
+#  define NEXTBYTE \
+     (csize-- <= 0L ? EOF : (--incnt >= 0 ? (int)(*inptr++) : readbyte()))
 #endif
 
 
@@ -1541,23 +1587,6 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
  *  }
  *
  */
-
-
-/*
- *  Remove all the ASCII carriage returns from buffer buf (length len),
- *  shortening as necessary (note that len gets modified in the process,
- *  so it CANNOT be an expression).  This macro is intended to be used
- *  *before* A_TO_N(); hence the check for CR instead of '\r'.  NOTE:  The
- *  if-test gets performed one time too many, but it doesn't matter.
- */
-#define NUKE_CRs(buf,len) \
-{ \
-    register int i, j; \
-    for (i = j = 0;  j < len;  (buf)[i++] = (buf)[j++]) \
-        if ((buf)[j] == CR) \
-            ++j; \
-    len = i; \
-}
 
 
 /* GRR:  should change name to STRLOWER and use StringLower if possible */
@@ -1649,10 +1678,12 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
    extern int       zipinfo_mode;
    extern int       aflag;
    extern int       cflag;
+   extern int       C_flag;
    extern int       fflag;
    extern int       hflag;
    extern int       jflag;
    extern int       lflag;
+   extern int       L_flag;
    extern int       overwrite_none;
    extern int       overwrite_all;
    extern int       force_flag;
@@ -1662,10 +1693,10 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
    extern int       volflag;
 #endif
    extern int       tflag;
-   extern int       U_flag;
+   extern int       T_flag;
    extern int       uflag;
-   extern int       V_flag;
    extern int       vflag;
+   extern int       V_flag;
 #ifdef VMS
    extern int       secinf;
 #endif
@@ -1677,6 +1708,9 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
    extern int       xfilespecs;
    extern int       process_all_files;
    extern int       create_dirs;
+#ifndef NO_ZIPINFO
+   extern int       newzip;
+#endif
    extern LONGINT   real_ecrec_offset;
    extern LONGINT   expect_ecrec_offset;
    extern long      csize;
@@ -1690,7 +1724,11 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
 
    extern union work area;
 
+#ifdef FUNZIP
    extern ulg near  crc_32_tab[];
+#else
+   extern ulg       *crc_32_tab;
+#endif
    extern ulg       crc32val;
    extern ush near  mask_bits[];
 
@@ -1735,11 +1773,6 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
    extern char near filename[];
 #endif
 
-   extern char      *EndSigMsg;
-   extern char      *CentSigMsg;
-   extern char      *SeekMsg;
-   extern char      *ReportMsg;
-
 #ifdef DECLARE_ERRNO
    extern int       errno;
 #endif
@@ -1758,5 +1791,12 @@ char    *do_wild           __((char *wildzipfn));                   /* local */
    extern short     giCursor;
    extern CursHandle rghCursor[];
 #endif
+
+   extern char Far  CentSigMsg[];
+   extern char Far  EndSigMsg[];
+   extern char Far  SeekMsg[];
+   extern char Far  ReportMsg[];
+   extern char Far  FilenameNotMatched[];
+   extern char Far  ExclFilenameNotMatched[];
 
 #endif /* !__unzip_h */

@@ -9,6 +9,10 @@
 #define local static
 #define CRC32(c, b)    (crc_32_tab[((int)(c) ^ (b)) & 0xff] ^ ((c) >> 8))
 
-extern ulg near crc_32_tab[];
+#ifdef FUNZIP
+   extern ulg near crc_32_tab[];
+#else
+   extern ulg *crc_32_tab;
+#endif
 
 #endif /* !__zip_h */

@@ -1,5 +1,5 @@
 .!
-.!  File:	UNZIP.RNH
+.!  File:	UNZIP_DEF.RNH
 .!
 .!  Author:	Hunter Goatley
 .!
@@ -7,10 +7,11 @@
 .!
 .!  Description:
 .!
-.!	RUNOFF source file for portable UNZIP on-line help for VMS.
-.!	Adapted from UNZIP.MAN, distributed with UNZIP.
+.!	RUNOFF source file for VMS on-line help for portable UnZip.
+.!	Adapted from UNZIP.MAN (now UNZIP.DOC).
 .!
-.!	To build:	$ RUNOFF UNZIP.RNH
+.!	To build:	$ REN UNZIP_DEF.RNH UNZIP.RNH
+.!			$ RUNOFF UNZIP.RNH
 .!			$ LIBR/HELP/INSERT libr UNZIP
 .!
 .!  Modification history:
@@ -27,6 +28,10 @@
 .!		Modified for UnZip V5.1
 .!	01-006		Cave Newt		21-DEC-1993 12:38
 .!		Added -x option and cleaned up.
+.!	01-007		Cave Newt		14-JUL-1994 09:45
+.!		Added -Z, -C and -L options, removed -U, minor clean-up.
+.!	01-008		Cave Newt		28-JUL-1994 08:57
+.!		Removed semi-colons from comments.
 .!
 .noflags
 .lm4 .rm72
@@ -47,7 +52,7 @@ Archive member extraction is implied by the absence of the -c, -p, -t, -l, -v or
 specify a subset of the archive members.
 Format:
 .sk;.lm+1;.literal
-UNZIP [-cflptuvxz[ajnoqUVX]] file[.zip] [list] [-x xlist] [-d out_dir]
+UNZIP [-cflptuvxz[ajnoqCLVX]] file[.zip] [list] [-x xlist] [-d out_dir]
 .end literal;.lm-1
 .!------------------------------------------------------------------------------
 .indent -4
@@ -98,6 +103,7 @@ format rather than "foo.dir" or "foo/" format.
 The default action of UnZip is to extract all zipfile entries.  The following
 options and modifiers can be provided:
 .sk;.literal
+   -Z   ZipInfo mode
    -c   extract files to SYS$OUTPUT (terminal)
    -f   freshen existing files (replace if newer); create none
    -l   list archive files (short format)
@@ -105,7 +111,6 @@ options and modifiers can be provided:
    -t   test archive files
    -u   update existing files; create new ones if needed
    -v   list archive files (verbose format)
-   -x   extract files in archive (default)
    -z   display only the archive comment
 .end literal;.sk;.literal
  MODIFIERS
@@ -115,11 +120,12 @@ options and modifiers can be provided:
    -n   never overwrite existing files; don't prompt
    -o   OK to overwrite files without prompting
    -q   perform operations quietly (-qq => even quieter)
-   -U   leave filenames uppercase if created under MS-DOS, VMS, etc.
+   -C   match filenames case-insensitively
+   -L   convert filenames to lowercase if created under DOS, VMS, etc.
    -V   retain (VMS) file version numbers
    -X   restore owner/protection info (may require privileges)
 .end literal;.sk
-Note that uppercase options such as -X,-V,-U must be specified in quotes.
+Note that uppercase options (-C, -L, -V and -X) must be specified in quotes.
 For example:
 .sk;.literal
     unzip "-VX" -a zipfile
@@ -152,6 +158,8 @@ are defined, the logical is used.
 .indent -4
 2 Authors
 .br
-Info-ZIP, originally based on a program by Samuel H. Smith.
+Info-ZIP; currently maintained by Greg Roelofs.  VMS support maintained
+by Igor Mandrichenko and Hunter Goatley.  Originally based on a program
+by Samuel H. Smith.
 .sk
 VMS on-line help ported from UNZIP.DOC by Hunter Goatley.

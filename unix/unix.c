@@ -11,14 +11,18 @@
              checkdir()
              mkdir()
              close_outfile()
+             version()
 
   ---------------------------------------------------------------------------*/
 
 
 #include "unzip.h"
 
-/* SCO Unix, DNIX, TI SysV, Coherent 4.x, ... */
-#if defined(__convexc__) || defined(SYSV) || defined(CRAY)
+/* SCO Unix, AIX, DNIX, TI SysV, Coherent 4.x, ... */
+#if defined(__convexc__) || defined(SYSV) || defined(CRAY) || defined(BSD4_4)
+#  define DIRENT
+#endif
+#if defined(_AIX)
 #  define DIRENT
 #endif
 #ifdef COHERENT
@@ -30,7 +34,7 @@
 /* GRR:  may need to uncomment one or both of these for the relevant systems */
 
 #if 0
-#if defined(__386BSD__) || defined(_POSIX_VERSION)
+#if defined(_POSIX_VERSION)
 #  define DIRENT
 #endif
 #endif
@@ -101,7 +105,7 @@ struct dirent *readdir(dirp)
 char *do_wild(wildspec)
     char *wildspec;         /* only used first time on a given dir */
 {
-    static DIR *dir = NULL;
+    static DIR *dir = (DIR *)NULL;
     static char *dirname, *wildname, matchname[FILNAMSIZ];
     static int firstcall=TRUE, have_dirname, dirnamelen;
     struct dirent *file;
@@ -115,7 +119,7 @@ char *do_wild(wildspec)
         firstcall = FALSE;
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, '/')) == NULL) {
+        if ((wildname = strrchr(wildspec, '/')) == (char *)NULL) {
             dirname = ".";
             dirnamelen = 1;
             have_dirname = FALSE;
@@ -123,8 +127,8 @@ char *do_wild(wildspec)
         } else {
             ++wildname;     /* point at character after '/' */
             dirnamelen = wildname - wildspec;
-            if ((dirname = (char *)malloc(dirnamelen+1)) == NULL) {
-                fprintf(stderr, "warning:  can't allocate wildcard buffers\n");
+            if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
+                FPRINTF(stderr, "warning:  can't allocate wildcard buffers\n");
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -133,8 +137,8 @@ char *do_wild(wildspec)
             have_dirname = TRUE;
         }
 
-        if ((dir = opendir(dirname)) != NULL) {
-            while ((file = readdir(dir)) != NULL) {
+        if ((dir = opendir(dirname)) != (DIR *)NULL) {
+            while ((file = readdir(dir)) != (struct dirent *)NULL) {
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
                 if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
@@ -148,7 +152,7 @@ char *do_wild(wildspec)
             }
             /* if we get to here directory is exhausted, so close it */
             closedir(dir);
-            dir = NULL;
+            dir = (DIR *)NULL;
         }
 
         /* return the raw wildspec in case that works (e.g., directory not
@@ -158,7 +162,7 @@ char *do_wild(wildspec)
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == NULL) {
+    if (dir == (DIR *)NULL) {
         firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
         if (have_dirname)
             free(dirname);
@@ -169,7 +173,7 @@ char *do_wild(wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != NULL)
+    while ((file = readdir(dir)) != (struct dirent *)NULL)
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
@@ -180,7 +184,7 @@ char *do_wild(wildspec)
         }
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = NULL;
+    dir = (DIR *)NULL;
     firstcall = TRUE;  /* reset for new wildspec */
     if (have_dirname)
         free(dirname);
@@ -243,12 +247,12 @@ int mapattr()
 int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     int renamed;      /* 2 if warning (skip file because dir doesn't exist), */
 {                     /* 3 if error (skip file), 10 if no memory (skip file) */
-    char pathcomp[FILNAMSIZ];   /* path-component buffer */
-    char *pp, *cp=NULL;         /* character pointers */
-    char *lastsemi = NULL;      /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;          /* flags */
+    char pathcomp[FILNAMSIZ];    /* path-component buffer */
+    char *pp, *cp=(char *)NULL;  /* character pointers */
+    char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
+    int quote = FALSE;           /* flags */
     int error = 0;
-    register unsigned workch;   /* hold the character being tested */
+    register unsigned workch;    /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
@@ -273,7 +277,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     pp = pathcomp;              /* point to translation buffer */
     if (jflag)                  /* junking directories */
         cp = (char *)strrchr(filename, '/');
-    if (cp == NULL)             /* no '/' or not junking dirs */
+    if (cp == (char *)NULL)     /* no '/' or not junking dirs */
         cp = filename;          /* point to internal zipfile-member pathname */
     else
         ++cp;                   /* point to start of last component of path */
@@ -294,7 +298,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
                 if ((error = checkdir(pathcomp, APPEND_DIR)) > 1)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = NULL;  /* leave directory semi-colons alone */
+                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
                 break;
 
             case ';':             /* VMS version (or DEC-20 attrib?) */
@@ -340,14 +344,14 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     if (filename[strlen(filename) - 1] == '/') {
         checkdir(filename, GETPATH);
         if (created_dir && QCOND2) {
-            fprintf(stdout, "   creating: %s\n", filename);
+            FPRINTF(stdout, "   creating: %s\n", filename);
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
     if (*pathcomp == '\0') {
-        fprintf(stderr, "mapname:  conversion of %s failed\n", filename);
+        FPRINTF(stderr, "mapname:  conversion of %s failed\n", filename);
         return 3;
     }
 
@@ -441,14 +445,14 @@ int checkdir(pathcomp, flag)
                 return 2;         /* path doesn't exist:  nothing to do */
             }
             if (too_long) {
-                fprintf(stderr, "checkdir error:  path too long: %s\n",
+                FPRINTF(stderr, "checkdir error:  path too long: %s\n",
                   buildpath);
                 fflush(stderr);
                 free(buildpath);
                 return 4;         /* no room for filenames:  fatal */
             }
             if (mkdir(buildpath, 0777) == -1) {   /* create the directory */
-                fprintf(stderr, "checkdir error:  can't create %s\n\
+                FPRINTF(stderr, "checkdir error:  can't create %s\n\
                  unable to process %s.\n", buildpath, filename);
                 fflush(stderr);
                 free(buildpath);
@@ -456,14 +460,14 @@ int checkdir(pathcomp, flag)
             }
             created_dir = TRUE;
         } else if (!S_ISDIR(statbuf.st_mode)) {
-            fprintf(stderr, "checkdir error:  %s exists but is not directory\n\
+            FPRINTF(stderr, "checkdir error:  %s exists but is not directory\n\
                  unable to process %s.\n", buildpath, filename);
             fflush(stderr);
             free(buildpath);
             return 3;          /* path existed but wasn't dir */
         }
         if (too_long) {
-            fprintf(stderr, "checkdir error:  path too long: %s\n", buildpath);
+            FPRINTF(stderr, "checkdir error:  path too long: %s\n", buildpath);
             fflush(stderr);
             free(buildpath);
             return 4;         /* no room for filenames:  fatal */
@@ -484,7 +488,7 @@ int checkdir(pathcomp, flag)
         strcpy(pathcomp, buildpath);
         Trace((stderr, "getting and freeing path [%s]\n", pathcomp));
         free(buildpath);
-        buildpath = end = NULL;
+        buildpath = end = (char *)NULL;
         return 0;
     }
 
@@ -507,7 +511,7 @@ int checkdir(pathcomp, flag)
 #endif
             if ((end-buildpath) >= FILNAMSIZ) {
                 *--end = '\0';
-                fprintf(stderr, "checkdir warning:  path too long; truncating\n\
+                FPRINTF(stderr, "checkdir warning:  path too long; truncating\n\
 checkdir warning:  path too long; truncating\n\
                    %s\n                -> %s\n", filename, buildpath);
                 fflush(stderr);
@@ -528,7 +532,8 @@ checkdir warning:  path too long; truncating\n\
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(filename)+rootlen+1)) == NULL)
+        if ((buildpath = (char *)malloc(strlen(filename)+rootlen+1)) ==
+            (char *)NULL)
             return 10;
         if ((rootlen > 0) && !renamed_fullpath) {
             strcpy(buildpath, rootpath);
@@ -548,9 +553,10 @@ checkdir warning:  path too long; truncating\n\
     command line.
   ---------------------------------------------------------------------------*/
 
+#if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
-        if (pathcomp == NULL) {
+        if (pathcomp == (char *)NULL) {
             rootlen = 0;
             return 0;
         }
@@ -561,9 +567,10 @@ checkdir warning:  path too long; truncating\n\
                 pathcomp[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
-            if (stat(pathcomp, &statbuf) || !S_ISDIR(statbuf.st_mode)) {
-                /* path does not exist */
-                if (!create_dirs                     /* || isshexp(pathcomp) */
+            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
+                !S_ISDIR(statbuf.st_mode)))          /* path does not exist */
+            {
+                if (!create_dirs                     /* || iswild(pathcomp) */
 #ifdef OLD_EXDIR
                                  || !had_trailing_pathsep
 #endif
@@ -574,7 +581,7 @@ checkdir warning:  path too long; truncating\n\
                 /* create the directory (could add loop here to scan pathcomp
                  * and create more than one level, but why really necessary?) */
                 if (mkdir(pathcomp, 0777) == -1) {
-                    fprintf(stderr,
+                    FPRINTF(stderr,
                       "checkdir:  can't create extraction directory: %s\n",
                       pathcomp);
                     fflush(stderr);
@@ -582,7 +589,7 @@ checkdir warning:  path too long; truncating\n\
                     return 3;  /* failed:  file exists, or 2+ levels required */
                 }
             }
-            if ((rootpath = (char *)malloc(rootlen+2)) == NULL) {
+            if ((rootpath = (char *)malloc(rootlen+2)) == (char *)NULL) {
                 rootlen = 0;
                 return 10;
             }
@@ -593,6 +600,7 @@ checkdir warning:  path too long; truncating\n\
         Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
+#endif /* !SFX || SFX_EXDIR */
 
 /*---------------------------------------------------------------------------
     END:  free rootpath, immediately prior to program exit.
@@ -652,17 +660,17 @@ int mkdir(path, mode)
 void close_outfile()
 {
     static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-    long m_time;
+    time_t m_time;
     int yr, mo, dy, hh, mm, ss, leap, days;
     struct utimbuf tp;
 #   define YRBASE  1970
-#ifndef __386BSD__
+#ifndef BSD4_4
 #ifdef BSD
     static struct timeb tbp;
 #else /* !BSD */
     extern long timezone;
 #endif /* ?BSD */
-#endif /* !__386BSD__ */
+#endif /* !BSD4_4 */
 
 
 /*---------------------------------------------------------------------------
@@ -680,7 +688,7 @@ void close_outfile()
         fclose(outfile);                    /* close "data" file... */
         outfile = fopen(filename, FOPR);    /* ...and reopen for reading */
         if (!linktarget || (fread(linktarget, 1, ucsize, outfile) != ucsize)) {
-            fprintf(stderr, "\nwarning:  symbolic link (%s) failed\n",
+            FPRINTF(stderr, "\nwarning:  symbolic link (%s) failed\n",
               filename);
             if (linktarget)
                 free(linktarget);
@@ -690,7 +698,7 @@ void close_outfile()
         fclose(outfile);                    /* close "data" file for good... */
         unlink(filename);                   /* ...and delete it */
         linktarget[ucsize] = '\0';
-        fprintf(stdout, "-> %s ", linktarget);
+        FPRINTF(stdout, "-> %s ", linktarget);
         if (symlink(linktarget, filename))  /* create the real link */
             perror("symlink error");
         free(linktarget);
@@ -739,19 +747,19 @@ void close_outfile()
 
     /* adjust for local timezone */
 #ifdef BSD
-#if (defined(__386BSD__) || defined(__bsdi__))
+#ifdef BSD4_4
     m_time -= localtime(&m_time)->tm_gmtoff;  /* seconds EAST of GMT:  subtr. */
 #else
     ftime(&tbp);                    /* get `timezone' */
     m_time += tbp.timezone * 60L;   /* seconds WEST of GMT:  add */
-#endif
+#endif /* ?BSD4_4 */
 #else /* !BSD */
     tzset();              /* get `timezone' */
     m_time += timezone;   /* seconds WEST of GMT:  add */
 #endif /* ?BSD */
 
     /* adjust for daylight savings time (or local equivalent) */
-#ifndef __386BSD__  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
+#ifndef BSD4_4  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
     if (localtime(&m_time)->tm_isdst)
         m_time -= 60L * 60L;   /* adjust for daylight savings time */
 #endif
@@ -760,9 +768,9 @@ void close_outfile()
     tp.actime = tp.modtime = m_time;
     if (utime(filename, &tp)) {
 #ifdef AOS_VS
-        fprintf(stderr, "... can't set time for %s", filename);
+        FPRINTF(stderr, "... can't set time for %s", filename);
 #else
-        fprintf(stderr, "warning:  can't set the time for %s\n", filename);
+        FPRINTF(stderr, "warning:  can't set the time for %s\n", filename);
 #endif
         FFLUSH(stderr);
     }
@@ -774,116 +782,189 @@ void close_outfile()
 
 
 
-#if 0
+#ifndef SFX
 
-/**************************************/
-/* Function set_file_time_and_close() */
-/**************************************/
+/************************/
+/*  Function version()  */
+/************************/
 
-void set_file_time_and_close()
+void version()
 {
-    static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-    long m_time;
-    int yr, mo, dy, hh, mm, ss, leap, days;
-    struct utimbuf tp;
-#   define YRBASE  1970
-#ifndef __386BSD__
-#ifdef BSD
-    static struct timeb tbp;
-#else /* !BSD */
-    extern long timezone;
-#endif /* ?BSD */
-#endif /* !__386BSD__ */
+    extern char Far  CompiledWith[];
+#if defined(CRAY) || defined(NetBSD)
+    char buf1[40];
+#if defined(CRAY)
+    char buf2[40];
+#endif
+#endif
 
+    PRINTF(LoadFarString(CompiledWith),
 
-/*---------------------------------------------------------------------------
-    If symbolic links are supported, allocate a storage area, put the uncom-
-    pressed "data" in it, and create the link.  Since we know it's a symbolic
-    link to start with, we shouldn't have to worry about overflowing unsigned
-    ints with unsigned longs.
-  ---------------------------------------------------------------------------*/
-
-#ifdef SYMLINKS
-    if (symlnk) {
-        unsigned ucsize = (unsigned)lrec.ucsize;
-        char *linktarget = (char *)malloc((unsigned)lrec.ucsize+1);
-
-        close(outfd);                       /* close "data" file... */
-        outfd = open(filename, O_RDONLY);   /* ...and reopen for reading */
-        if (!linktarget || (read(outfd, linktarget, ucsize) != ucsize)) {
-            fprintf(stderr, "\nwarning:  symbolic link (%s) failed\n",
-              filename);
-            if (linktarget)
-                free(linktarget);
-            close(outfd);
-            return;
-        }
-        close(outfd);                       /* close "data" file for good... */
-        unlink(filename);                   /* ...and delete it */
-        linktarget[ucsize] = '\0';
-        fprintf(stdout, "-> %s ", linktarget);
-        if (symlink(linktarget, filename))  /* create the real link */
-            perror("symlink error");
-        free(linktarget);
-        return;                             /* can't set time on symlinks */
-    }
-#endif /* SYMLINKS */
-
-    close(outfd);
-    if (cflag)          /* can't set time on stdout */
-        return;
-
-/*---------------------------------------------------------------------------
-    Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
-    time:  adjust base year from 1980 to 1970, do usual conversions from
-    yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
-    light savings time differences.
-  ---------------------------------------------------------------------------*/
-
-    yr = ((lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
-    mo = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
-    dy = (lrec.last_mod_file_date & 0x1f) - 1;
-    hh = (lrec.last_mod_file_time >> 11) & 0x1f;
-    mm = (lrec.last_mod_file_time >> 5) & 0x3f;
-    ss = (lrec.last_mod_file_time & 0x1f) * 2;
-
-    /* leap = # of leap yrs from YRBASE up to but not including current year */
-    leap = ((yr + YRBASE - 1) / 4);   /* leap year base factor */
-
-    /* how many days from YRBASE to this year? (& add expired days this year) */
-    days = (yr * 365) + (leap - 492) + yday[mo];
-
-    /* if year is a leap year and month is after February, add another day */
-    if ((mo > 1) && ((yr+YRBASE)%4 == 0) && ((yr+YRBASE) != 2100))
-        ++days;   /* OK through 2199 */
-
-    /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
-    m_time = ((days + dy) * 86400) + (hh * 3600) + (mm * 60) + ss;
-
-    /* adjust for local timezone */
-#ifdef BSD
-#ifdef __386BSD__
-    m_time -= localtime(&m_time)->tm_gmtoff;  /* seconds EAST of GMT:  subtr. */
+#ifdef __GNUC__
+      "gcc ", __VERSION__,
 #else
-    ftime(&tbp);                    /* get `timezone' */
-    m_time += tbp.timezone * 60L;   /* seconds WEST of GMT:  add */
-#endif
-#else /* !BSD */
-    tzset();              /* get `timezone' */
-    m_time += timezone;   /* seconds WEST of GMT:  add */
-#endif /* ?BSD */
-
-    /* adjust for daylight savings time (or local equivalent) */
-#ifndef __386BSD__  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
-    if (localtime(&m_time)->tm_isdst)
-        m_time -= 60L * 60L;   /* adjust for daylight savings time */
+#  if defined(CRAY) && defined(_RELEASE)
+      "cc ", (sprintf(buf1, "version %d", _RELEASE), buf1),
+#  else
+#  ifdef __VERSION__
+      "cc ", __VERSION__,
+#  else
+      "cc", "",
+#  endif
+#  endif
 #endif
 
-    /* set the file's access and modification times */
-    tp.actime = tp.modtime = m_time;
-    if (utime(filename, &tp))
-        fprintf(stderr, "warning:  can't set the time for %s\n", filename);
+      "Unix",
 
-} /* end function set_file_time_and_close() */
+#if defined(sgi) || defined(__sgi)
+      " (Silicon Graphics IRIX)",
+#else
+#ifdef sun
+#  ifdef sparc
+#    ifdef __SVR4
+      " (Sun Sparc/Solaris)",
+#    else /* may or may not be SunOS */
+      " (Sun Sparc)",
+#    endif
+#  else
+#  if defined(sun386) || defined(i386)
+      " (Sun 386i)",
+#  else
+#  if defined(mc68020) || defined(__mc68020__)
+      " (Sun 3)",
+#  else /* mc68010 or mc68000:  Sun 2 or earlier */
+      " (Sun 2)",
+#  endif
+#  endif
+#  endif
+#else
+#ifdef __hpux
+      " (HP/UX)",
+#else
+#ifdef __osf__
+      " (DEC OSF/1)",
+#else
+#ifdef _AIX
+      " (IBM AIX)",
+#else
+#ifdef aiws
+      " (IBM RT/AIX)",
+#else
+#if defined(CRAY) || defined(cray)
+#  ifdef _UNICOS
+      (sprintf(buf2, " (Cray UNICOS release %d)", _UNICOS), buf2),
+#  else
+      " (Cray UNICOS)",
+#  endif
+#else
+#if defined(uts) || defined(UTS)
+      " (Amdahl UTS)",
+#else
+#ifdef NeXT
+#  ifdef mc68000
+      " (NeXTStep/black)",
+#  else
+      " (NeXTStep for Intel)",
+#  endif
+#else              /* the next dozen or so are somewhat order-dependent */
+#ifdef LINUX
+      " (Linux)",
+#else
+#ifdef MINIX
+      " (Minix)",
+#else
+#ifdef M_UNIX
+      " (SCO Unix)",
+#else
+#ifdef M_XENIX
+      " (SCO Xenix)",
+#else
+#ifdef __NetBSD__
+#  ifdef NetBSD0_8
+      (sprintf(buf1, " (NetBSD 0.8%c)", (char)(NetBSD0_8 - 1 + 'A')), buf1),
+#  else
+#  ifdef NetBSD0_9
+      (sprintf(buf1, " (NetBSD 0.9%c)", (char)(NetBSD0_9 - 1 + 'A')), buf1),
+#  else
+#  ifdef NetBSD1_0
+      (sprintf(buf1, " (NetBSD 1.0%c)", (char)(NetBSD1_0 - 1 + 'A')), buf1),
+#  else
+      (BSD4_4 == 0.5)? " (NetBSD before 0.9)" : " (NetBSD 1.1 or later)",
+#  endif
+#  endif
+#  endif
+#else
+#ifdef __FreeBSD__
+      (BSD4_4 == 0.5)? " (FreeBSD 1.x)" : " (FreeBSD 2.0 or later)",
+#else
+#ifdef __bsdi__
+      (BSD4_4 == 0.5)? " (BSD/386 1.0)" : " (BSD/386 1.1 or later)",
+#else
+#ifdef __386BSD__
+      (BSD4_4 == 1)? " (386BSD, post-4.4 release)" : " (386BSD)",
+#else
+#if defined(i486) || defined(__i486) || defined(__i486__)
+      " (Intel 486)",
+#else
+#if defined(i386) || defined(__i386) || defined(__i386__)
+      " (Intel 386)",
+#else
+#ifdef pyr
+      " (Pyramid)",
+#else
+#ifdef ultrix
+#  ifdef mips
+      " (DEC/MIPS)",
+#  else
+#  ifdef vax
+      " (DEC/VAX)",
+#  else /* __alpha? */
+      " (DEC/Alpha)",
+#  endif
+#  endif
+#else
+#ifdef gould
+      " (Gould)",
+#else
+#ifdef MTS
+      " (MTS)",
+#else
+#ifdef __convexc__
+      " (Convex)",
+#else
+      "",
+#endif /* Convex */
+#endif /* MTS */
+#endif /* Gould */
+#endif /* DEC */
+#endif /* Pyramid */
+#endif /* 386 */
+#endif /* 486 */
+#endif /* 386BSD */
+#endif /* BSDI BSD/386 */
+#endif /* NetBSD */
+#endif /* FreeBSD */
+#endif /* SCO Xenix */
+#endif /* SCO Unix */
+#endif /* Minix */
+#endif /* Linux */
+#endif /* NeXT */
+#endif /* Amdahl */
+#endif /* Cray */
+#endif /* RT/AIX */
+#endif /* AIX */
+#endif /* OSF/1 */
+#endif /* HP/UX */
+#endif /* Sun */
+#endif /* SGI */
 
-#endif /* 0 */
+#ifdef __DATE__
+      " on ", __DATE__
+#else
+      "", ""
+#endif
+      );
+
+} /* end function version() */
+
+#endif /* !SFX */

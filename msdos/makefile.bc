@@ -1,21 +1,20 @@
-# Makefile for UnZip and fUnZip for Turbo C++ 1.0 and Borland C++ 2.x/3.0
-# Version: 5.1 and later                                         Alvin Koh
+# Makefile for UnZip(SFX) and fUnZip for Borland C++ 2.x/3.0 and Turbo C++ 1.0
+# Version: 5.12 and later        Alvin Koh, Jim Knoble, Christian Spieler, etc.
 #
-# Last revised:  6 Feb 94
+# Last revised:  11 Aug 94
 
 
-# for Turbo C++ uncomment these and comment out the bcc lines:
-#CC = tcc
-#TLINK = tlink
-
-# for Borland C++ uncomment these and comment out the tcc lines:
+# for Borland C++ uncomment this and comment out the tcc line:
 CC = bcc
-TLINK = tlink /P-
+
+# for Turbo C++ uncomment this and comment out the bcc line:
+#CC = tcc
 
 #TASM = tasm	# not used
 
-#MODEL = s	# small model for UnZip (no ZipInfo)
-MODEL = l	# large model for UnZip (code doesn't fit in compact anymore)
+#UNMODEL = s     # small model for UnZip and ZipInfo, now that strings moved
+UNMODEL = l     # large model for UnZip (M. Lawler/BC 4.0:  _text > 64K w/ "s")
+FUMODEL = s     # always use small model for fUnZip
 
 #    GNU make doesn't like the return value from "rem"
 #STRIP=rem
@@ -27,11 +26,19 @@ STRIP=echo  Ignore this line.
 #    This makes a big difference in .exe size (and possibly load time).
 
 
+#    Optional nonstandard preprocessor flags (as -DCHECK_EOF or -DDOS_WILD)
+#    should be added to the environment via "set LOCAL_UNZIP=-DFOO" or added
+#    to the declaration of LOC here:
+LOC = $(LOCAL_UNZIP)
+
+
 # compiler flags
 
-CFLAGS = -O -ff- -k- -P-.C -I.
-UNFLAGS = -m$(MODEL) $(CFLAGS)
-FUFLAGS = -ms $(CFLAGS) -K -d	# funzip is always small-model
+CFLAGS = -O -ff- -k- -P-.C -I. $(LOC)
+UNFLAGS = -m$(UNMODEL) $(CFLAGS)
+FUFLAGS = -m$(FUMODEL) $(CFLAGS) -K -d
+LDFLAGS = -lxncd -l-P          # for bcc
+#LDFLAGS = -lxncd		# for tcc
 
 # implicit rules
 
@@ -59,46 +66,55 @@ funzip_dependencies = \
 	crypt_.obj \
 	inflate_.obj
 
+unzipsfx_dependencies = \
+	unzip_.obj \
+	crypt.obj \
+	extract_.obj \
+	file_io.obj \
+	inflate.obj \
+	match.obj \
+	msdos_.obj
+
 # explicit rules
 
-all:    unzip.exe funzip.exe
+all:    unzip.exe funzip.exe unzipsfx.exe
 
 unzip.exe:      $(unzip_dependencies)
-	$(TLINK) /x/n/c/d @&&|
-c0$(MODEL).obj+
-unzip.obj+
-crypt.obj+
-envargs.obj+
-explode.obj+
-extract.obj+
-file_io.obj+
-inflate.obj+
-match.obj+
-unreduce.obj+
-unshrink.obj+
-zipinfo.obj+
+	$(CC) -m$(UNMODEL) $(LDFLAGS) -eunzip.exe @&&|
+unzip.obj
+crypt.obj
+envargs.obj
+explode.obj
+extract.obj
+file_io.obj
+inflate.obj
+match.obj
+unreduce.obj
+unshrink.obj
+zipinfo.obj
 msdos.obj
-unzip.exe
-                # no map file
-emu.lib+
-math$(MODEL).lib+
-c$(MODEL).lib
 |
 	$(STRIP) unzip.exe
 
 funzip.exe:    $(funzip_dependencies)
-	$(TLINK) /x/n/c/d @&&|
-c0s.obj+
-funzip.obj+
-crypt_.obj+
+	$(CC) -m$(FUMODEL) $(LDFLAGS) -efunzip.exe @&&|
+funzip.obj
+crypt_.obj
 inflate_.obj
-funzip.exe
-                # no map file
-emu.lib+
-maths.lib+
-cs.lib
 |
 	$(STRIP) funzip.exe
+
+unzipsfx.exe:      $(unzipsfx_dependencies)
+	$(CC) -m$(UNMODEL) $(LDFLAGS) -eunzipsfx.exe @&&|
+unzip_.obj
+crypt.obj
+extract_.obj
+file_io.obj
+inflate.obj
+match.obj
+msdos_.obj
+|
+	$(STRIP) unzipsfx.exe
 
 # individual file dependencies
 
@@ -111,7 +127,7 @@ inflate.obj:    inflate.c inflate.h unzip.h
 match.obj:      match.c unzip.h
 unreduce.obj:   unreduce.c unzip.h
 unshrink.obj:   unshrink.c unzip.h
-unzip.obj:      unzip.c unzip.h
+unzip.obj:      unzip.c unzip.h crypt.h version.h
 zipinfo.obj:    zipinfo.c unzip.h
 
 msdos.obj:      msdos/msdos.c unzip.h
@@ -125,3 +141,12 @@ crypt_.obj:     crypt.c unzip.h zip.h crypt.h
 
 inflate_.obj:   inflate.c inflate.h unzip.h crypt.h
 	$(CC) -c $(FUFLAGS) -DFUNZIP -oinflate_.obj inflate.c
+
+unzip_.obj:     unzip.c unzip.h crypt.h version.h
+	$(CC) -c $(UNFLAGS) -DSFX -ounzip_.obj unzip.c
+
+extract_.obj:   extract.c unzip.h crypt.h
+	$(CC) -c $(UNFLAGS) -DSFX -oextract_.obj extract.c
+
+msdos_.obj:     msdos/msdos.c unzip.h
+	$(CC) -c $(UNFLAGS) -DSFX -omsdos_.obj msdos/msdos.c

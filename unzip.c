@@ -26,12 +26,6 @@
   UnZip (3.16 -> 4.0), using the central directory for processing rather than
   the individual (local) file headers.
 
-  The author finds it convenient to define an alias "ii" (under Unix and VMS)
-  or to rename the executable to "ii.exe" (OS/2 and DOS).  This nicely comple-
-  ments the common Unix "ll" long-listing alias (ls -lF), since zipinfo's de-
-  fault action is to produce a Unix-like listing of the archive's contents.
-  "ii zipfile" is easier to type than "zipinfo zipfile"...
-
   As of ZipInfo v2.0 and UnZip v5.1, the two programs are combined into one.
   If the executable is named "unzip" (or "unzip.exe", depending), it behaves
   like UnZip by default; if it is named "zipinfo" or "ii", it behaves like
@@ -40,75 +34,28 @@
 
   Another dandy product from your buddies at Newtware!
 
-  Author:  Greg Roelofs, newt@uchicago.edu, 23 August 1990 -> ...
-           SizeOfEAs() by Kai Uwe Rommel.
+  Author:  Greg Roelofs, newt@uchicago.edu, 23 August 1990 -> ... 1994
 
   ---------------------------------------------------------------------------
 
-  Quick compile instructions (see INSTALL file):  copy and/or rename appro-
-  priate makefile to main unzip directory, then:
+  Version:  unzip512.{tar.Z | zip | zoo} for Unix, VMS, OS/2, MS-DOS, Windows,
+              Windows NT, Macintosh, Amiga, Atari, Human68K and TOPS-20.  De-
+              cryption requires sources in zcrypt23.zip, and Windows (not NT)
+              support requires sources in wunz20sr.zip (not up to date).  See
+              accompanying file "Where" in the main source distribution for
+              ftp, uucp and mail-server sites.
 
-     under Unix (cc):  make <system name>
-       (type "make list" for a list of valid names, or read Makefile for 
-        details.  "make unzip" works for most systems.  If you have a NEW
-        system, not covered by any of the existing targets, send FULL in-
-        formation--hardware, OS, versions, etc.--to zip-bugs)
-
-     under VMS (VAX or Alpha C, or GNU C):  @make_vaxc  or  @make_gcc
-       (can also use MMS or MAKE/VMS; see [.vms]README.)
-
-     under OS/2:  nmake -f makefile.os2 <compiler>
-       (type "nmake -f makefile.os2" for list of targets; Watcom, Borland,
-        IBM, Microsoft, emx+gcc compilers and nmake and dmake supported)
-
-     under MS-DOS (MS or Quick C, Turbo or Borland C[++]):  make
-       (project files no longer supported; for Microsoft, use nmake; for
-        djgpp or cross-compiling, use appropriate targets in unix/Makefile)
-
-     under MS Windows 3.1:  get wunz20sr.{zip | zoo | whatever} and use
-       the included makefile
-
-     under Windows NT (MS Visual C++):  nmake
-
-     under Macintosh OS (Think C):  un-BinHex the Think C project file and
-       UnZip resource file, then click on something or other :-) )
-
-     under AmigaDOS (SAS/Lattice C or Aztec C):
-       with SAS C 6.x:  lmk -f amiga/SMakeFile all
-       with Aztec C:    make -f amiga/Makefile.AZT all
-
-     under Atari TOS (MiNT libraries and gcc 2.4.5):  make
-       (see atari/README and atari/Makefile for info about other compilers)
-
-     under TOPS-20:  use make.mic and "do make" [no longer fully ported]
-
-  ---------------------------------------------------------------------------
-
-  Version:  unzip51.{tar.Z | zip | zoo} for Unix, VMS, OS/2, MS-DOS, Windows,
-              Windows NT, Macintosh, Amiga, Atari and TOPS-20.  Decryption
-              requires sources in zcrypt20.zip, and Windows (not NT) support
-              requires sources in wunz20sr.zip.  See accompanying file "Where"
-              in the main source distribution for ftp, uucp and mail-server
-              sites.
   Copyrights:  see accompanying file "COPYING" in UnZip source distribution.
 
   ---------------------------------------------------------------------------*/
 
 
 
-#include "unzip.h"               /* includes, typedefs, macros, etc. */
+#include "unzip.h"        /* includes, typedefs, macros, prototypes, etc. */
+#include "crypt.h"
+#include "version.h"
 #ifdef MSWIN
 #  include "wizunzip.h"
-#endif
-
-
-#define RELEASE
-#ifdef RELEASE
-#  define UZ_VERSION  "5.1 of 7 February 1994"   /* official release version */
-#  define ZI_VERSION  "2.0 of 7 February 1994"
-#else
-#  define UZ_VERSION  "5.1p BETA of 6 Feb 94"   /* internal beta level */
-#  define ZI_VERSION  "1.99 BETA of 6 Feb 94"
 #endif
 
 
@@ -117,20 +64,17 @@
 /*  Global Variables  */
 /**********************/
 
-#ifdef MACOS
-   extern char *unzip_version = UZ_VERSION;
-   extern char *zipinfo_version = ZI_VERSION;
-#endif
-
 int zipinfo_mode;     /* behave like ZipInfo or like normal UnZip? */
 
 int aflag=0;          /* -a: do ASCII-EBCDIC and/or end-of-line translation */
 int cflag=0;          /* -c: output to stdout */
+int C_flag=0;         /* -C: match filenames case-insensitively */
 int dflag=0;          /* -d: all args are files/dirs to be extracted */
 int fflag=0;          /* -f: "freshen" (extract only newer files) */
 int hflag=0;          /* -h: header line (zipinfo) */
 int jflag=0;          /* -j: junk pathnames (unzip) */
 int lflag=(-1);       /* -12slmv: listing format (zipinfo) */
+int L_flag=0;         /* -L: convert filenames from some OSes to lowercase */
 int overwrite_none=0; /* -n: never overwrite files (no prompting) */
 int overwrite_all=0;  /* -o: OK to overwrite files without prompting */
 int force_flag=0;     /* (shares -o for now): force to override errors, etc. */
@@ -140,8 +84,8 @@ int qflag=0;          /* -q: produce a lot less output */
    int volflag=0;     /* -$: extract volume labels */
 #endif
 int tflag=0;          /* -t: test (unzip) or totals line (zipinfo) */
+int T_flag=0;         /* -T: decimal time format (zipinfo) */
 int uflag=0;          /* -u: "update" (extract only newer & brand-new files) */
-int U_flag=0;         /* -U: preserve uppercase characters in filenames */
 int vflag=0;          /* -v: (verbosely) list directory */
 int V_flag=0;         /* -V: don't strip VMS version numbers */
 #ifdef VMS
@@ -154,6 +98,10 @@ int xfilespecs;       /* number of excluded filespecs to be matched */
 int process_all_files = 0;
 int create_dirs;      /* used by main(), mapname(), checkdir() */
 int extract_flag;
+
+#if (defined(CRYPT) || !defined(NO_ZIPINFO))
+   int newzip;        /* used in extract.c, crypt.c, zipinfo.c */
+#endif
 
 LONGINT real_ecrec_offset, expect_ecrec_offset;
 
@@ -192,7 +140,12 @@ ulg bitbuf;
 int bits_left;
 boolean zipeof;
 
-char *wildzipfn, *zipfn;    /* GRR:  MSWIN:  must nuke any malloc'd zipfn... */
+#ifdef SFX
+   char *argv0;                 /* used for NT and EXE_EXTENSION */
+#else
+   char *wildzipfn;
+#endif
+char *zipfn;    /* GRR:  MSWIN:  must nuke any malloc'd zipfn... */
 
 int zipfd;                      /* zipfile file handle */
 LONGINT ziplen;
@@ -240,34 +193,334 @@ ulg outcnt;                     /* number of chars stored in outbuf */
 #ifdef SMALL_MEM
    uch *outbuf2;                /* initialized in main() (never changes) */
 #else
-   uch *outbuf2 = NULL;         /* malloc'd ONLY if unshrink and -a */
+   uch *outbuf2 = (uch *)NULL;  /* malloc'd ONLY if unshrink and -a */
 #endif
 #ifdef MSWIN
    char *filename;
 #else
-   char near filename[FILNAMSIZ];
+   char near filename[FILNAMSIZ];  /* also used by NT for temporary SFX path */
 #endif
 
-/*---------------------------------------------------------------------------
-    unzip.c repeated error messages (we use all of these at least twice)
-  ---------------------------------------------------------------------------*/
 
-char *EndSigMsg = "\nnote:\
+
+
+
+/********************/
+/*  Global strings  */
+/********************/
+
+char Far UnzipVersion[] = UZ_VERSION;   /* now defined in version.h */
+#ifndef NO_ZIPINFO
+   char Far ZipinfoVersion[] = ZI_VERSION;
+#endif
+
+char Far EndSigMsg[] = "\nnote:\
   didn't find end-of-central-dir signature at end of central dir.\n";
-char *CentSigMsg =
+char Far CentSigMsg[] =
   "error:  expected central file header signature not found (file #%u).\n";
-char *SeekMsg =
+char Far SeekMsg[] =
   "error [%s]:  attempt to seek before beginning of zipfile\n%s";
+char Far FilenameNotMatched[] = "caution: filename not matched:  %s\n";
+char Far ExclFilenameNotMatched[] =
+  "caution: excluded filename not matched:  %s\n";
+
+#ifndef SFX
+  char Far CompiledWith[] = "Compiled with %s%s for %s%s%s%s.\n\n";
+#endif
 
 #ifdef VMS
-  char *ReportMsg = "\
+  char Far ReportMsg[] = "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode--this includes ftp, Kermit, AND unzip'd zipfiles)\n";
 #else
-  char *ReportMsg = "\
+  char Far ReportMsg[] = "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode and that you have compiled unzip properly)\n";
 #endif
+
+/*******************/
+/*  Local strings  */
+/*******************/
+
+#ifndef SFX
+   static char Far EnvUnZip[] = ENV_UNZIP;
+   static char Far EnvUnZip2[] = ENV_UNZIP2;
+   static char Far EnvZipInfo[] = ENV_ZIPINFO;
+   static char Far EnvZipInfo2[] = ENV_ZIPINFO2;
+#endif
+
+#if (!defined(SFX) || defined(SFX_EXDIR))
+   static char Far NotExtracting[] = "caution:  not extracting; -d ignored\n";
+   static char Far MustGiveExdir[] =
+     "error:  must specify directory to which to extract with -d option\n";
+#endif
+
+static char Far CentDirTooLong[] =
+  "error [%s]:  reported length of central directory is\n\
+  %d bytes too long (Atari STZip zipfile?  J.H.Holm ZIPSPLIT 1.1\n\
+  zipfile?).  Compensating...\n";
+static char Far InvalidOptionsMsg[] = "error:\
+  -fn or any combination of -c, -l, -p, -t, -u and -v options invalid\n";
+static char Far IgnoreOOptionMsg[] =
+  "caution:  both -n and -o specified; ignoring -o\n";
+static char Far CantAllocateBuffers[] =
+  "error:  can't allocate unzip buffers\n";
+
+/* usage() strings */
+#ifndef VMSCLI
+#ifndef SFX
+#ifdef VMS
+    static char Far Example2[] = "vms.c";
+    static char Far Example1[] = 
+"unzip \"-V\" foo \"Bar\" => must quote uppercase options and filenames in VMS";
+#else
+    static char Far Example2[] = "ReadMe";
+    static char Far Example1[] =
+"unzip -p foo | more  => send contents of foo.zip via pipe into program more";
+#endif /* ?VMS */
+
+#ifdef DOS_NT_OS2
+    static char Far loc_str[] = " -$  label removables (-$$ => fixed disks)";
+    static char Far loc2str[] = "\
+                                             -s  spaces in filenames => '_'\n";
+#else /* !DOS_NT_OS2 */
+#ifdef VMS
+    static char Far loc_str[] = "\"-X\" restore owner/protection info";
+    static char Far loc2str[] = "\n";
+#else
+    static char Far loc_str[] = "";   /* Unix, Amiga, Mac, etc. */
+ /* char Far loc_str[] = " -X  restore UID/GID info";    Unix version, in 5.2 */
+    static char Far loc2str[] = "";
+#endif /* ?VMS */
+#endif /* ?DOS_NT_OS2 */
+#endif /* !SFX */
+
+#ifndef NO_ZIPINFO
+#ifdef VMSWILD
+   static char Far ZipInfoExample[] = "* or % (e.g., \"*font-%.zip\")";
+#else
+   static char Far ZipInfoExample[] = "*, ?, [] (e.g., \"[a-j]*.zip\")";
+#endif
+static char Far ZipInfoUsageLine1[] = "\
+ZipInfo %s, by Newtware and the fine folks at Info-ZIP.\n\
+\n\
+List name, date/time, attribute, size, compression method, etc., about files\n\
+in list (excluding those in xlist) contained in the specified .zip archive(s).\
+\n\"file[.zip]\" may be a wildcard name containing %s.\n\n\
+   usage:  zipinfo [-12smlvhtTz] file[.zip] [list...] [-x xlist...]\n\
+      or:  unzip %s-Z%s [-12smlvhtTz] file[.zip] [list...] [-x xlist...]\n";
+
+static char Far ZipInfoUsageLine2[] = "\nmain\
+ listing-format options:             -s  short Unix \"ls -l\" format (def.)\n\
+  -1  filenames ONLY, one per line       -m  medium Unix \"ls -l\" format\n\
+  -2  just filenames but allow -h/-t/-z  -l  long Unix \"ls -l\" format\n\
+                                         -v  verbose, multi-page format\n";
+
+static char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
+  -h  print header line       -t  print totals for listed files or for all\n\
+  -z  print zipfile comment  %c-T%c print file times in sortable decimal format\
+\n  -x  exclude filenames that follow from listing\n";
+/*"  -p  disable automatic \"more\" function (for pipes) [not implemented]\n";*/
+#endif /* !NO_ZIPINFO */
+#endif /* !VMSCLI */
+
+#ifdef BETA
+   static char Far BetaVersion[] = "%s\
+      THIS IS STILL A BETA VERSION OF UNZIP%s -- DO NOT DISTRIBUTE.\n\n";
+#endif
+
+#ifdef SFX
+# if (defined(SFX_EXDIR) && !defined(VMS))
+   static char Far UnzipSFXUsage[] = "\
+UnZipSFX %s, by Info-ZIP (zip-bugs@wkuvx1.wku.edu).\n\
+Valid options are -tfupcz and -d <exdir>; modifiers are -abjnoqCLV%s.\n";
+# else
+   static char Far UnzipSFXUsage[] = "\
+UnZipSFX %s, by Info-ZIP (zip-bugs@wkuvx1.wku.edu).\n\
+Valid options are -tfupcz; modifiers are -abjnoqCLV%s.\n";
+# endif
+   static char Far CantFindMyself[] =
+     "unzipsfx:  can't find myself! [%s]\n";
+#else /* !SFX */
+   static char Far CompileOptions[] = "UnZip special compilation options:\n";
+   static char Far CompileOptFormat[] = "\t%s\n";
+   static char Far EnvOptions[] = "\nUnZip and ZipInfo environment options:\n";
+   static char Far EnvOptFormat[] = "%16s:  %s\n";
+   static char Far None[] = "[none]";
+#  ifdef NO_ZIPINFO
+     static char Far No_ZipInfo[] = "NO_ZIPINFO";
+#  endif
+#  ifdef CHECK_EOF
+     static char Far Check_EOF[] = "CHECK_EOF";
+#  endif
+#  ifdef DOSWILD
+     static char Far DosWild[] = "DOSWILD";
+#  endif
+#  ifdef VMSWILD
+     static char Far VmsWild[] = "VMSWILD";
+#  endif
+#  ifdef VMSCLI
+     static char Far VmsCLI[] = "VMSCLI";
+#  endif
+#  ifdef ASM_INFLATECODES
+     static char Far AsmInflateCodes[] = "ASM_INFLATECODES";
+#  endif
+#  ifdef ASM_CRC
+     static char Far AsmCRC[] = "ASM_CRC";
+#  endif
+#  ifdef REGARGS
+     static char Far RegArgs[] = "REGARGS";
+#  endif
+#  ifdef OLD_EXDIR
+     static char Far Old_Exdir[] = "OLD_EXDIR";
+#  endif
+#  ifdef CHECK_VERSIONS
+     static char Far Check_Versions[] = "CHECK_VERSIONS";
+#  endif
+#  ifdef RETURN_CODES
+     static char Far Return_Codes[] = "RETURN_CODES";
+#  endif
+#  ifdef RETURN_SEVERITY
+     static char Far Return_Severity[] = "RETURN_SEVERITY";
+#  endif
+#  ifdef DEBUG
+     static char Far Debug[] = "DEBUG";
+#  endif
+#  ifdef DEBUG_TIME
+     static char Far DebugTime[] = "DEBUG_TIME";
+#  endif
+#  ifdef CRYPT
+     static char Far Decryption[] = "[decryption]";
+#  endif
+#  ifdef __EMX__
+     static char Far EnvEMX[] = "EMX";
+     static char Far EnvEMXOPT[] = "EMXOPT";
+#  endif
+#  ifdef __GO32__
+     static char Far EnvGO32[] = "GO32";
+     static char Far EnvGO32TMP[] = "GO32TMP";
+#  endif
+
+/* UnzipUsageLine1[] is also used in vms/cmdline.c:  do not make it static */
+char Far UnzipUsageLine1[] = "\
+UnZip %s, by Info-ZIP.  Portions (c) 1989 by S. H. Smith.\n\
+Send bug reports to authors at zip-bugs@wkuvx1.wku.edu; see README for details.\
+\n\n";
+static char Far UnzipUsageLine2a[] = "\
+Latest sources and executables are always in ftp.uu.net:/pub/archiving/zip, at\
+\nleast as of date of this release; see \"Where\" for other ftp and non-ftp \
+sites.\n\n";
+
+#ifndef VMSCLI
+static char Far UnzipUsageLine2[] = "\
+Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
+ Default action is to extract files in list, except those in xlist, to exdir;\n\
+  file[.zip] may be a wildcard.  %s\n\n";
+
+#ifdef NO_ZIPINFO
+#  define ZIPINFO_MODE_OPTION  ""
+   static char Far ZipinfoMode[] =
+     "(ZipInfo mode is disabled in this version.)";
+#else
+#  define ZIPINFO_MODE_OPTION  "[-Z] "
+#  ifdef VMS
+     static char Far ZipinfoMode[] =
+       "\"-Z\" => ZipInfo mode (`unzip \"-Z\"' for usage).";
+#  else
+     static char Far ZipinfoMode[] =
+       "-Z => ZipInfo mode (\"unzip -Z\" for usage).";
+#  endif
+#endif /* ?NO_ZIPINFO */
+
+static char Far UnzipUsageLine3[] = "\
+  -p  extract files to pipe, no messages     -l  list files (short format)\n\
+  -f  freshen existing files, create none    -t  test compressed archive data\n\
+  -u  update files, create if necessary      -z  display archive comment\n\
+  -x  exclude files which follow (in xlist)  -d  extract files into exdir\n\n";
+
+static char Far UnzipUsageLine4[] = "\
+modifiers:                                   -q  quiet mode (-qq => quieter)\n\
+  -n  never overwrite existing files         -a  auto-convert any text files\n\
+  -o  overwrite files WITHOUT prompting      -aa treat ALL files as text\n \
+ -j  junk paths (don't make directories)    -v  be verbose/print version info\n\
+ %c-C%c match filenames case-insensitively    %c-L%c make (some) names \
+lowercase\n %-42s %c-V%c retain VMS version numbers\n%s";
+
+static char Far UnzipUsageLine5[] = "\
+Examples (see unzip.doc for more info):\n\
+  unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
+  %s\n\
+  unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
+#endif /* !VMSCLI */
+
+/* process_zipfiles() strings */
+   static char Far FilesProcessOK[] = "%d archive%s successfully processed.\n";
+   static char Far ArchiveWarning[] =
+     "%d archive%s had warnings but no fatal errors.\n";
+   static char Far ArchiveFatalError[] = "%d archive%s had fatal errors.\n";
+   static char Far FileHadNoZipfileDir[] =
+     "%d file%s had no zipfile directory.\n";
+   static char Far ZipfileWasDir[] = "1 \"zipfile\" was a directory.\n";
+   static char Far ManyZipfilesWereDir[] =
+     "%d \"zipfiles\" were directories.\n";
+   static char Far NoZipfileFound[] = "No zipfiles found.\n";
+#endif /* ?SFX */
+
+/* do_seekable() strings */
+#ifndef SFX
+#ifdef UNIX
+   static char Far CantFindZipfileDirMsg[] =
+     "%s:  can't find zipfile directory in one of %s or\n\
+        %s%s.zip, and can't find %s, period.\n";
+   static char Far CantFindEitherZipfile[] =
+     "%s:  can't find %s, %s.zip or %s, so there.\n";
+#else /* !UNIX */
+   static char Far CantFindZipfileDirMsg[] =
+     "%s:  can't find zipfile directory in %s,\n\
+        %sand can't find %s, period.\n";
+   static char Far CantFindEitherZipfile[] =
+     "%s:  can't find either %s or %s, so there.\n";
+#endif /* ?UNIX */
+   static char Far MaybeExe[] =
+     "note:  %s may be a plain executable, not an archive\n";
+   static char Far CentDirNotInZipMsg[] = "\n\
+     Zipfile is part of a multi-disk archive, and this is not the disk on\n\
+     which the central zipfile directory begins.\n";
+#ifdef NO_MULTIPART
+   static char Far NoMultiDiskArcSupport[] =
+     "\nerror [%s]:  zipfile is part of multi-disk archive\n\
+  (sorry, not yet supported).\n";
+   static char Far MaybePakBug[] = "warning [%s]:\
+  zipfile claims to be 2nd disk of a 2-part archive;\n\
+  attempting to process anyway.  If no further errors occur, this archive\n\
+  was probably created by PAK v2.51 or earlier.  This bug was reported to\n\
+  NoGate in March 1991 and was supposed to have been fixed by mid-1991; as\n\
+  of mid-1992 it still hadn't been.  (If further errors do occur, archive\n\
+  was probably created by PKZIP 2.04c or later; UnZip does not yet support\n\
+  multi-part archives.)\n";
+#else
+   static char Far MaybePakBug[] = "warning [%s]:\
+  zipfile claims to be last disk of a multi-part archive;\n\
+  attempting to process anyway, assuming all parts have been concatenated\n\
+  together in order.  Expect \"errors\" and warnings...true multi-part support\
+\n  doesn't exist yet (coming soon).\n";
+#endif
+   static char Far ExtraBytesAtStart[] =
+     "warning [%s]:  extra %ld bytes at beginning or within zipfile\n\
+  (attempting to process anyway)\n";
+#endif /* !SFX */
+
+static char Far MissingBytes[] =
+  "error [%s]:  missing %ld bytes in zipfile\n\
+  (attempting to process anyway)\n";
+static char Far NullCentDirOffset[] =
+  "error [%s]:  NULL central directory offset\n\
+  (attempting to process anyway)\n";
+static char Far ZipfileEmpty[] = "warning [%s]:  zipfile is empty\n";
+static char Far CentDirStartNotFound[] =
+  "error [%s]:  start of central directory not found;\n\
+  zipfile corrupt.\n%s";
+static char Far ZipfileCommTrunc1[] = "\ncaution:  zipfile comment truncated\n";
 
 
 
@@ -277,19 +530,19 @@ char *SeekMsg =
 #  include "winsetup.c"   /* duplicates some code in main() */
 #else /* !MSWIN */
 
+
+
 /******************/
 /*  Main program  */
 /******************/
 
-#ifdef THINK_C
- int unzip(argc, argv)
-#else
- int main(argc, argv)   /* return PK-type error code (except under VMS) */
-#endif
+int MAIN(argc, argv)   /* return PK-type error code (except under VMS) */
     int argc;
     char *argv[];
 {
+#ifndef NO_ZIPINFO
     char *p;
+#endif
     int error=FALSE;
 #if defined(__IBMC__) && defined(__DEBUG_ALLOC__)
     extern void DebugMalloc(void);
@@ -309,7 +562,7 @@ char *SeekMsg =
         rghCursor[a] = GetCursor(a+128);
     giCursor = 0;
 
-    aflag=cflag=dflag=fflag=jflag=qflag=tflag=U_flag=uflag=vflag=zflag = 0;
+    aflag=cflag=dflag=fflag=L_flag=jflag=qflag=tflag=uflag=vflag=zflag = 0;
     local_hdr_sig[1] = central_hdr_sig[1] = end_central_sig[1] = '\0';
 /*  extd_local_sig[1] = '\0';  */
     error = FALSE;
@@ -348,41 +601,39 @@ char *SeekMsg =
 #endif
 
 /*---------------------------------------------------------------------------
-    Debugging info for checking on structure padding:
-  ---------------------------------------------------------------------------*/
-
-#ifdef DEBUG_STRUC
-    printf("local_file_hdr size: %X\n",
-           sizeof(local_file_hdr));
-    printf("local_byte_hdr size: %X\n",
-           sizeof(local_byte_hdr));
-    printf("actual size of local headers: %X\n", LREC_SIZE);
-
-    printf("central directory header size: %X\n",
-           sizeof(cdir_file_hdr));
-    printf("central directory byte header size: %X\n",
-           sizeof(cdir_byte_hdr));
-    printf("actual size of central dir headers: %X\n", CREC_SIZE);
-
-    printf("end central dir record size: %X\n",
-           sizeof(ecdir_rec));
-    printf("end central dir byte record size: %X\n",
-           sizeof(ec_byte_rec));
-    printf("actual size of end-central-dir record: %X\n", ECREC_SIZE);
-#endif /* DEBUG_STRUC */
-
-/*---------------------------------------------------------------------------
     First figure out if we're running in UnZip mode or ZipInfo mode, and put
     the appropriate environment-variable options into the queue.  Then rip
     through any command-line options lurking about...
   ---------------------------------------------------------------------------*/
 
 #ifdef SFX
-    zipfn = argv[0];
+    argv0 = argv[0];
+#if defined(OS2) || defined(NT)
+    zipfn = GetLoadPath();   /* non-MSC NT puts path into filename[] */
+#else
+    zipfn = argv0;
+#endif
+    zipinfo_mode = FALSE;
+    if ((error = uz_opts(&argc, &argv)) != 0)
+        RETURN(error);
+
+#else /* !SFX */
+
+#ifdef MSDOS
+    /* extract MKS extended argument list from environment (before envargs!) */
+    mksargs(&argc, &argv);
 #endif
 
+#ifdef VMSCLI
+    {
+        ulg status = vms_unzip_cmdline(&argc, &argv);
+        if (!(status & 1))
+            return status;
+    }
+#endif /* VMSCLI */
+
 #ifndef NO_ZIPINFO
-    if ((p = strrchr(argv[0], DIR_END)) == NULL)
+    if ((p = strrchr(argv[0], DIR_END)) == (char *)NULL)
         p = argv[0];
     else
         ++p;
@@ -391,34 +642,25 @@ char *SeekMsg =
         (argc > 1 && strncmp(argv[1], "-Z", 2) == 0))
     {
         zipinfo_mode = TRUE;
-        envargs(&argc, &argv, ENV_ZIPINFO);
+        envargs(&argc, &argv, LoadFarStringSmall(EnvZipInfo),
+          LoadFarStringSmall2(EnvZipInfo2));
         error = zi_opts(&argc, &argv);
     } else
-#endif
+#endif /* NO_ZIPINFO */
     {
         zipinfo_mode = FALSE;
-        envargs(&argc, &argv, ENV_UNZIP);
+        envargs(&argc, &argv, LoadFarStringSmall(EnvUnZip),
+          LoadFarStringSmall2(EnvUnZip2));
         error = uz_opts(&argc, &argv);
     }
-
-#ifdef MSDOS
-    /* extract MKS extended argument list from environment */
-    mksargs(&argc, &argv);
-#endif
-
-#ifdef SFX
-    if (error)
-#else
     if ((argc < 0) || error)
-#endif
         RETURN(error);
 
+#endif /* ?SFX */
+
 /*---------------------------------------------------------------------------
-    Now get the zipfile name from the command line and see if it exists as a
-    regular (non-directory) file.  If not, append the ".zip" suffix.  We don't
-    immediately check to see if this results in a good name, but we will do so
-    later.  In the meantime, see if there are any member filespecs on the com-
-    mand line, and if so, set the filename pointer to point at them.
+    Now get the zipfile name from the command line and then process any re-
+    maining options and file specifications.
   ---------------------------------------------------------------------------*/
 
 #ifdef DOS_NT_OS2
@@ -434,12 +676,15 @@ char *SeekMsg =
                 *q = '/';
         ++pfnames;
     }
+#endif /* DOS_NT_OS2 */
+
+#ifndef SFX
+    wildzipfn = *argv++;
 #endif
 
-    wildzipfn = *argv++;
+#if (defined(OLD_EXDIR) || (defined(SFX) && !defined(SFX_EXDIR)))
 
-#ifdef OLD_EXDIR
-
+#ifndef SFX
     if (argc > 0) {
         /* -d:  "name/" immediately after zipfile name is a stored directory to
          * be extracted--do NOT treat as directory to which to extract files
@@ -454,6 +699,7 @@ char *SeekMsg =
             }
         }
     }
+#endif /* !SFX */
 
     filespecs = argc;
     xfilespecs = 0;
@@ -479,7 +725,7 @@ char *SeekMsg =
     } else
         process_all_files = TRUE;       /* for speed */
 
-#else /* !OLD_EXDIR */
+#else /* !(OLD_EXDIR || (SFX && !SFX_EXDIR)) */
 
     filespecs = argc;
     xfilespecs = 0;
@@ -492,7 +738,10 @@ char *SeekMsg =
         pfnames = argv;
         while (*++pp) {
             Trace((stderr, "pp - argv = %d\n", pp-argv));
-            if (!dflag && strcmp(*pp, "-d") == 0) {
+            if (!dflag && strncmp(*pp, "-d", 2) == 0) {
+                char *q = *pp;
+                int firstarg = (pp == argv);
+
                 dflag = TRUE;
                 if (in_files) {      /* ... zipfile ... -d exdir ... */
                     *pp = 0;                    /* terminate pfnames */
@@ -503,20 +752,22 @@ char *SeekMsg =
                     xfilespecs = pp - pxnames;
                     /* "... -x xlist -d exdir":  nothing left */
                 }
-                if (*++pp) {
-                    if (extract_flag) {
-                        create_dirs = !fflag;
-                        if ((error = checkdir(*pp, ROOT)) > 2)
-                            RETURN(error);   /* out of memory, or file in way */
-                    } else
-                        fprintf(stderr,
-                          "caution:  not extracting; -d ignored\n");
-                } else {
-                    fprintf(stderr, "error:  must specify directory to which to\
- extract with -d option\n");
-                    break;   /* no arguments left */
+                /* first check for "-dpath", then for "-d path" */
+                if (q[2])
+                    q += 2;
+                else if (*++pp)
+                    q = *pp;
+                else {
+                    FPRINTF(stderr, LoadFarString(MustGiveExdir));
+                    RETURN(PK_PARAM);  /* don't extract here by accident */
                 }
-                if (pp == argv+1)   /* ... zipfile -d exdir ... */
+                if (extract_flag) {
+                    create_dirs = !fflag;
+                    if ((error = checkdir(q, ROOT)) > 2)
+                        RETURN(error);  /* out of memory, or file in way */
+                } else
+                    FPRINTF(stderr, LoadFarString(NotExtracting));
+                if (firstarg)   /* ... zipfile -d exdir ... */
                     if (pp[1]) {
                         pfnames = pp + 1;  /* argv+2 */
                         filespecs = argc - (pfnames-argv);  /* for now... */
@@ -546,7 +797,7 @@ char *SeekMsg =
     } else
         process_all_files = TRUE;      /* for speed */
 
-#endif /* ?OLD_EXDIR */
+#endif /* ?(OLD_EXDIR || (SFX && !SFX_EXDIR)) */
 
 /*---------------------------------------------------------------------------
     Okey dokey, we have everything we need to get started.  Let's roll.
@@ -556,7 +807,7 @@ char *SeekMsg =
     outbuf = (uch *)malloc(OUTBUFSIZ + 1);  /* 1 extra for string termin. */
 
     if ((inbuf == (uch *)NULL) || (outbuf == (uch *)NULL)) {
-        fprintf(stderr, "error:  can't allocate unzip buffers\n");
+        FPRINTF(stderr, LoadFarString(CantAllocateBuffers));
         RETURN(PK_MEM);
     }
     hold = inbuf + INBUFSIZ;     /* to check for boundary-spanning signatures */
@@ -572,9 +823,9 @@ char *SeekMsg =
 
 
 
-/************************/
-/*  Function uz_opts()  */
-/************************/
+/**********************/
+/* Function uz_opts() */
+/**********************/
 
 int uz_opts(pargc, pargv)
     int *pargc;
@@ -620,6 +871,12 @@ int uz_opts(pargc, pargv)
 #endif
                     }
                     break;
+                case ('C'):    /* -C:  match filenames case-insensitively */
+                    if (negative)
+                        C_flag = FALSE, negative = 0;
+                    else
+                        C_flag = TRUE;
+                    break;
                 case ('d'):  /* arg after zipfn is stored dir, not extract-to */
 #ifdef OLD_EXDIR
                     if (negative)
@@ -642,12 +899,20 @@ int uz_opts(pargc, pargv)
                     else
                         jflag = TRUE;
                     break;
+#ifndef SFX
                 case ('l'):
                     if (negative) {
                         vflag = MAX(vflag-negative,0);
                         negative = 0;
                     } else
                         ++vflag;
+                    break;
+#endif /* !SFX */
+                case ('L'):    /* convert (some) filenames to lowercase */
+                    if (negative)
+                        L_flag = FALSE, negative = 0;
+                    else
+                        L_flag = TRUE;
                     break;
                 case ('n'):    /* don't overwrite any files */
                     if (negative)
@@ -665,13 +930,12 @@ int uz_opts(pargc, pargv)
                         ++force_flag;  /* (share -o for now) force to cont. */
                     }
                     break;
-                case ('p'):    /* pipes:  stdout, no translation, no messages */
+                case ('p'):    /* pipes:  extract to stdout, no messages */
                     if (negative) {
                         cflag = FALSE;
                         qflag = MAX(qflag-999,0);
                         negative = 0;
                     } else {
-                        aflag = 0;
                         cflag = TRUE;
                         qflag += 999;
                     }
@@ -697,24 +961,19 @@ int uz_opts(pargc, pargv)
                     else
                         tflag = TRUE;
                     break;
-                case ('U'):    /* allow Uppercase (don't make all lowercase) */
-                    if (negative)
-                        U_flag = FALSE, negative = 0;
-                    else
-                        U_flag = TRUE;
-                    break;
                 case ('u'):    /* update (extract only new and newer files) */
                     if (negative)
                         uflag = FALSE, negative = 0;
                     else
                         uflag = TRUE;
                     break;
-                case ('V'):    /* Version (retain VMS/DEC-20 file versions) */
+                case ('U'):    /* obsolete; to be removed in future release */
                     if (negative)
-                        V_flag = FALSE, negative = 0;
+                        L_flag = TRUE, negative = 0;
                     else
-                        V_flag = TRUE;
+                        L_flag = FALSE;
                     break;
+#ifndef SFX
                 case ('v'):    /* verbose */
                     if (negative) {
                         vflag = MAX(vflag-negative,0);
@@ -724,6 +983,15 @@ int uz_opts(pargc, pargv)
                     else
                         vflag = 2;
                     break;
+#endif /* !SFX */
+                case ('V'):    /* Version (retain VMS/DEC-20 file versions) */
+                    if (negative)
+                        V_flag = FALSE, negative = 0;
+                    else
+                        V_flag = TRUE;
+                    break;
+                case ('x'):    /* extract:  default */
+                    break;
 #ifdef VMS
                 case ('X'):   /* restore owner/protection info (need privs?) */
                     if (negative)
@@ -732,8 +1000,6 @@ int uz_opts(pargc, pargv)
                         secinf = TRUE;
                     break;
 #endif /* VMS */
-                case ('x'):    /* extract:  default */
-                    break;
                 case ('z'):    /* display only the archive comment */
                     if (negative) {
                         zflag -= negative;
@@ -749,7 +1015,7 @@ int uz_opts(pargc, pargv)
                     } else
                         ++volflag;
                     break;
-#endif
+#endif /* DOS_NT_OS2 */
                 default:
                     error = TRUE;
                     break;
@@ -759,26 +1025,18 @@ int uz_opts(pargc, pargv)
     } /* end while (not done with switches) */
 
 /*---------------------------------------------------------------------------
-    Check for nonsensical combinations of options.  [Isn't the -a option use-
-    ful when listing the directory (i.e., for reading zipfile comments)?  It
-    is only a modifier, so perhaps it should not be included in the test.]
+    Check for nonsensical combinations of options.
   ---------------------------------------------------------------------------*/
 
-    if ((cflag && tflag) || (cflag && uflag) || (cflag && vflag) ||
-        (tflag && uflag) || (tflag && vflag) || (uflag && vflag) ||
+    if ((cflag && tflag) || (cflag && uflag) || (tflag && uflag) ||
         (fflag && overwrite_none)) {
-        fprintf(stderr, "error:\
-  -fn or any combination of -c, -l, -p, -t, -u and -v options invalid\n");
+        FPRINTF(stderr, LoadFarString(InvalidOptionsMsg));
         error = TRUE;
     }
     if (aflag > 2)
         aflag = 2;
-#if 0
-    if ((aflag && tflag) || (aflag && vflag))   /* -a makes no sense */
-        aflag = 0;
-#endif
     if (overwrite_all && overwrite_none) {
-        fprintf(stderr, "caution:  both -n and -o specified; ignoring -o\n");
+        FPRINTF(stderr, LoadFarString(IgnoreOOptionMsg));
         overwrite_all = FALSE;
     }
 
@@ -790,7 +1048,146 @@ int uz_opts(pargc, pargv)
     {
         *pargc = argc;
         *pargv = argv;
-        return usage(error);
+#ifndef SFX
+        if (vflag >= 2 && argc == -1) {
+            if (qflag > 3)
+                PRINTF("%d\n", (UZ_MAJORVER*100 + UZ_MINORVER*10 + PATCHLEVEL));
+            else {
+                char *envptr, *getenv();
+                int numopts = 0;
+
+                PRINTF(LoadFarString(UnzipUsageLine1),
+                  LoadFarStringSmall(UnzipVersion));
+                PRINTF(LoadFarString(UnzipUsageLine2a));
+                version();
+                PRINTF(LoadFarString(CompileOptions));
+#ifdef NO_ZIPINFO
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(No_ZipInfo));
+                ++numopts;
+#endif
+#ifdef CHECK_EOF
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(Check_EOF));
+                ++numopts;
+#endif
+#ifdef DOSWILD
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(DosWild));
+                ++numopts;
+#endif
+#ifdef VMSWILD
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(VmsWild));
+                ++numopts;
+#endif
+#ifdef VMSCLI
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(VmsCLI));
+                ++numopts;
+#endif
+#ifdef ASM_INFLATECODES
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(AsmInflateCodes));
+                ++numopts;
+#endif
+#ifdef ASM_CRC
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(AsmCRC));
+                ++numopts;
+#endif
+#ifdef REGARGS
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(RegArgs));
+                ++numopts;
+#endif
+#ifdef OLD_EXDIR
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(Old_Exdir));
+                ++numopts;
+#endif
+#ifdef CHECK_VERSIONS
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(Check_Versions));
+                ++numopts;
+#endif
+#ifdef RETURN_CODES
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(Return_Codes));
+                ++numopts;
+#endif
+#ifdef RETURN_SEVERITY
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(Return_Severity));
+                ++numopts;
+#endif
+#ifdef DEBUG
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(Debug));
+                ++numopts;
+#endif
+#ifdef DEBUG_TIME
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(DebugTime));
+                ++numopts;
+#endif
+#ifdef CRYPT
+                PRINTF(LoadFarString(CompileOptFormat),
+                  LoadFarStringSmall(Decryption));
+                ++numopts;
+#endif
+                if (numopts == 0)
+                    PRINTF(LoadFarString(CompileOptFormat),
+                      LoadFarStringSmall(None));
+
+                PRINTF(LoadFarString(EnvOptions));
+                envptr = getenv(LoadFarStringSmall(EnvUnZip));
+                PRINTF(LoadFarString(EnvOptFormat),
+                  LoadFarStringSmall(EnvUnZip),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+                envptr = getenv(LoadFarStringSmall(EnvUnZip2));
+                PRINTF(LoadFarString(EnvOptFormat),
+                  LoadFarStringSmall(EnvUnZip2),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+                envptr = getenv(LoadFarStringSmall(EnvZipInfo));
+                PRINTF(LoadFarString(EnvOptFormat),
+                  LoadFarStringSmall(EnvZipInfo),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+                envptr = getenv(LoadFarStringSmall(EnvZipInfo2));
+                PRINTF(LoadFarString(EnvOptFormat),
+                  LoadFarStringSmall(EnvZipInfo2),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+#ifdef __EMX__
+                envptr = getenv(LoadFarStringSmall(EnvEMX));
+                PRINTF(LoadFarString(EnvOptFormat), LoadFarStringSmall(EnvEMX),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+                envptr = getenv(LoadFarStringSmall(EnvEMXOPT));
+                PRINTF(LoadFarString(EnvOptFormat),
+                  LoadFarStringSmall(EnvEMXOPT),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+#endif /* __EMX__ */
+#ifdef __GO32__
+                envptr = getenv(LoadFarStringSmall(EnvGO32));
+                PRINTF(LoadFarString(EnvOptFormat), LoadFarStringSmall(EnvGO32),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+                envptr = getenv(LoadFarStringSmall(EnvGO32TMP));
+                PRINTF(LoadFarString(EnvOptFormat),
+                  LoadFarStringSmall(EnvGO32TMP),
+                  (envptr == (char *)NULL || *envptr == 0)?
+                  LoadFarStringSmall2(None) : envptr);
+#endif /* __GO32__ */
+            }
+            return 0;
+        } else
+#endif /* !SFX */
+            return usage(error);
     }
 
     if (cflag || tflag || vflag)
@@ -808,11 +1205,24 @@ int uz_opts(pargc, pargv)
 
 
 
-/**********************/
-/*  Function usage()  */
-/**********************/
+/********************/
+/* Function usage() */
+/********************/
 
 #ifdef SFX
+#  ifdef VMS
+#    define LOCAL "X.  Quote uppercase options"
+#  else
+#    ifdef DOS_NT_OS2
+#      define LOCAL "s$"
+#    else
+#       ifdef AMIGA
+#         define LOCAL "$"
+#       else
+#         define LOCAL ""
+#       endif
+#    endif /* ?DOS_NT_OS2 */
+#  endif /* ?VMS */
 
 int usage(error)   /* return PK-type error code */
     int error;
@@ -824,12 +1234,10 @@ int usage(error)   /* return PK-type error code */
     else
         usagefp = (FILE *)stdout;
 
-    fprintf(usagefp, "\
-UnZipSFX %s, by Info-ZIP (zip-bugs@wkuvx1.wku.edu).\n\n",
-      UZ_VERSION);
-#ifndef RELEASE
-    fprintf(usagefp, "\
-    THIS IS STILL A BETA VERSION OF UNZIPSFX -- DO NOT DISTRIBUTE.\n\n");
+    FPRINTF(usagefp, LoadFarString(UnzipSFXUsage),
+      LoadFarStringSmall(UnzipVersion), LOCAL);
+#ifdef BETA
+    FPRINTF(usagefp, LoadFarString(BetaVersion), "\n", "SFX");
 #endif
 
     if (error)
@@ -844,6 +1252,7 @@ UnZipSFX %s, by Info-ZIP (zip-bugs@wkuvx1.wku.edu).\n\n",
 
 
 #else /* !SFX */
+#ifndef VMSCLI
 
 int usage(error)   /* return PK-type error code */
     int error;
@@ -851,31 +1260,10 @@ int usage(error)   /* return PK-type error code */
 #ifdef VMS
 #  define QUOT '\"'
 #  define QUOTS "\""
-#  define EXAMPLE2 "vms.c"
-#  define EXAMPLE1 \
-"unzip \"-V\" foo \"Bar\" => must quote uppercase options and filenames in VMS"
 #else
 #  define QUOT ' '
 #  define QUOTS ""
-#  define EXAMPLE2 "ReadMe"
-#  define EXAMPLE1 \
-"unzip -p foo | more  => send contents of foo.zip via pipe into program more"
 #endif
-
-#ifdef DOS_NT_OS2
-    char *loc_str = " -$  label removables (-$$ => fixed disks)";
-    char *loc2str = "\
-                                             -s  spaces in filenames => '_'\n";
-#else /* !DOS_NT_OS2 */
-#ifdef VMS
-    char *loc_str = "\"-X\" restore owner/protection info";
-    char *loc2str = "\n";
-#else
-    char *loc_str = "";   /* Unix, Amiga, Mac, etc. */
- /* char *loc_str = " -X  restore UID/GID info";    Unix version, in 5.2 */
-    char *loc2str = "";
-#endif
-#endif /* ?DOS_NT_OS2 */
 
     FILE *usagefp;
 
@@ -898,27 +1286,13 @@ int usage(error)   /* return PK-type error code */
 
 #ifndef NO_ZIPINFO
 
-        fprintf(usagefp, "\
-ZipInfo %s, by Newtware and the fine folks at Info-ZIP.\n\
-\n\
-List name, date/time, attribute, size, compression method, etc., about files\n\
-in list (excluding those in xlist) contained in the specified .zip archive(s).\
-\n\"file[.zip]\" may be a wildcard name containing *, ?, [] (e.g., \"[a-j]*\
-.zip\").\n\n\
-   usage:  zipinfo [-12smlvhtz] file[.zip] [list...] [-x xlist...]\n\
-      or:  unzip %s-Z%s [-12smlvhtz] file[.zip] [list...] [-x xlist...]\n",
-          ZI_VERSION, QUOTS,QUOTS);
-        fprintf(usagefp, "\nmain\
- listing-format options:             -s  short Unix \"ls -l\" format (def.)\n\
-  -1  filenames ONLY, one per line       -m  medium Unix \"ls -l\" format\n\
-  -2  just filenames but allow -h/-t/-z  -l  long Unix \"ls -l\" format\n\
-                                         -v  verbose, multi-page format\n\
-miscellaneous options:\n  \
--h  print header line      -t  print totals for files listed or for all files\n\
-  -z  print zipfile comment  -x  exclude filenames that follow from listing\n");
-/* -p  disable automatic \"more\" function (for pipes) [not implemented]\n"); */
+        FPRINTF(usagefp, LoadFarString(ZipInfoUsageLine1),
+          LoadFarStringSmall(ZipinfoVersion),
+          LoadFarStringSmall2(ZipInfoExample), QUOTS,QUOTS);
+        FPRINTF(usagefp, LoadFarString(ZipInfoUsageLine2));
+        FPRINTF(usagefp, LoadFarString(ZipInfoUsageLine3), QUOT,QUOT);
 #ifdef VMS
-        fprintf(usagefp, "\nRemember that non-lowercase filespecs must be\
+        FPRINTF(usagefp, "\nRemember that non-lowercase filespecs must be\
  quoted in VMS (e.g., \"Makefile\").\n");
 #endif
 
@@ -926,49 +1300,27 @@ miscellaneous options:\n  \
 
     } else {   /* UnZip mode */
 
-        fprintf(usagefp, "\
-UnZip %s, by Info-ZIP.  Portions (c) 1989 by S. H. Smith.\n\
-Send bug reports to authors at zip-bugs@wkuvx1.wku.edu; see README for details.\
-\n\n", UZ_VERSION);
-#ifndef RELEASE
-        fprintf(usagefp, "\
-        THIS IS STILL A BETA VERSION OF UNZIP -- DO NOT DISTRIBUTE.\n\n");
+        FPRINTF(usagefp, LoadFarString(UnzipUsageLine1),
+          LoadFarStringSmall(UnzipVersion));
+#ifdef BETA
+        FPRINTF(usagefp, LoadFarString(BetaVersion), "", "");
 #endif
-        fprintf(usagefp, "\
-Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
- Default action is to extract files in list, except those in xlist, to exdir;\n\
-  file[.zip] may be a wildcard.  %s\n\n",
-#ifdef NO_ZIPINFO
-          "", "(ZipInfo mode is disabled in this version.)");
-#else
-#ifdef VMS
-          "[-Z] ", "\"-Z\" => ZipInfo mode (`unzip \"-Z\"' for usage).");
-#else
-          "[-Z] ", "-Z => ZipInfo mode (\"unzip -Z\" for usage).");
-#endif
-#endif /* ?NO_ZIPINFO */
+        FPRINTF(usagefp, LoadFarString(UnzipUsageLine2), ZIPINFO_MODE_OPTION,
+          LoadFarStringSmall(ZipinfoMode));
 
-        fprintf(usagefp, "\
-  -c  extract files to stdout/screen (CRT)   -l  list files (short format)\n\
-  -p  extract files to pipe, no messages     -v  list files (verbose format)\n\
-  -f  freshen existing files, create none    -t  test compressed archive data\n\
-  -u  update files, create if necessary      -z  display archive comment\n\
-  -x  exclude files which follow (in xlist)  -d  extract files into exdir\n\n");
+        FPRINTF(usagefp, LoadFarString(UnzipUsageLine3));
 
-        fprintf(usagefp, "\
-modifiers:                                   -q  quiet mode (-qq => quieter)\n\
-  -n  never overwrite existing files         -a  auto-convert any text files\n\
-  -o  overwrite files WITHOUT prompting      -aa treat ALL files as text\n\
-  -j  junk paths (don't make directories)   %c-U%c don't make names lowercase\n\
- %-42s %c-V%c retain VMS version numbers\n%s",
-          QUOT,QUOT, loc_str, QUOT,QUOT, loc2str);
+        FPRINTF(usagefp, LoadFarString(UnzipUsageLine4), QUOT,QUOT, QUOT,QUOT,
+                LoadFarStringSmall(loc_str), QUOT,QUOT,
+                LoadFarStringSmall2(loc2str));
 
-        fprintf(usagefp, "\
-Examples (see unzip.doc for more info):\n\
-  unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
-  %s\n\
-  unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n",
-          EXAMPLE1, EXAMPLE2,EXAMPLE2);
+        /* This is extra work for SMALL_MEM, but it will work since
+         * LoadFarStringSmall2 uses the same buffer.  Remember, this
+         * is a hack. */
+        FPRINTF(usagefp, LoadFarString(UnzipUsageLine5),
+                LoadFarStringSmall(Example1),
+                LoadFarStringSmall2(Example2),
+                LoadFarStringSmall2(Example2));
 
     }
 
@@ -979,22 +1331,25 @@ Examples (see unzip.doc for more info):\n\
 
 } /* end function usage() */
 
+#endif /* !VMSCLI */
 #endif /* ?SFX */
 #endif /* ?MSWIN */
 
 
 
 
-/*********************************/
-/*  Function process_zipfiles()  */
-/*********************************/
+/*******************************/
+/* Function process_zipfiles() */
+/*******************************/
 
 int process_zipfiles()    /* return PK-type error code */
 {
-    char *lastzipfn = NULL;
+#ifndef SFX
+    char *lastzipfn = (char *)NULL;
+    int NumWinFiles, NumLoseFiles, NumWarnFiles;
+    int NumMissDirs, NumMissFiles;
+#endif
     int error=0, error_in_archive=0;
-    int num_win_files, num_lose_files, num_warn_files;
-    int num_miss_dirs, num_miss_files;
 
 
 /*---------------------------------------------------------------------------
@@ -1016,33 +1371,57 @@ int process_zipfiles()    /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
 #ifdef SFX
-    if ((error = do_seekable(0)) != IZ_DIR && error > error_in_archive)
-        error_in_archive = error;
+    if ((error = do_seekable(0)) == PK_NOZIP) {
+#ifdef EXE_EXTENSION
+        int len=strlen(argv0);
+
+        /* append .exe if appropriate; also .sfx? */
+        if ((zipfn = (char *)malloc(len+5)) != (char *)NULL) {
+            strcpy(zipfn, argv0);
+            strcpy(zipfn+len, EXE_EXTENSION);
+            error = do_seekable(0);
+            free(zipfn);
+            zipfn = argv0;  /* for "can't find myself" message only */
+        }
+#endif /* EXE_EXTENSION */
+#ifdef NT
+        zipfn = argv0;  /* for "can't find myself" message only */
+#endif
+    }
+    if (error) {
+        if (error == IZ_DIR)
+            error_in_archive = PK_NOZIP;
+        else
+            error_in_archive = error;
+        if (error == PK_NOZIP)
+            FPRINTF(stderr, LoadFarString(CantFindMyself), zipfn);
+    }
 
 #else /* !SFX */
-    num_win_files = num_lose_files = num_warn_files = 0;
-    num_miss_dirs = num_miss_files = 0;
+    NumWinFiles = NumLoseFiles = NumWarnFiles = 0;
+    NumMissDirs = NumMissFiles = 0;
 
-    while ((zipfn = do_wild(wildzipfn)) != NULL) {
+    while ((zipfn = do_wild(wildzipfn)) != (char *)NULL) {
         Trace((stderr, "do_wild( %s ) returns %s\n", wildzipfn, zipfn));
 
         lastzipfn = zipfn;
 
-        if (!qflag  &&  error != PK_NOZIP  &&
-            (num_win_files+num_lose_files+num_warn_files+num_miss_files) > 0)
-            printf("\n");
+        /* print a blank line between the output of different zipfiles */
+        if (!qflag  &&  error != PK_NOZIP  &&  error != IZ_DIR  &&
+            (NumWinFiles+NumLoseFiles+NumWarnFiles+NumMissFiles) > 0)
+            PRINTF("\n");
         FFLUSH(stdout);
 
         if ((error = do_seekable(0)) == PK_WARN)
-            ++num_warn_files;
+            ++NumWarnFiles;
         else if (error == IZ_DIR)
-            ++num_miss_dirs;
+            ++NumMissDirs;
         else if (error == PK_NOZIP)
-            ++num_miss_files;
+            ++NumMissFiles;
         else if (error)
-            ++num_lose_files;
+            ++NumLoseFiles;
         else
-            ++num_win_files;
+            ++NumWinFiles;
 
         if (error != IZ_DIR && error > error_in_archive)
             error_in_archive = error;
@@ -1050,25 +1429,38 @@ int process_zipfiles()    /* return PK-type error code */
 
     } /* end while-loop (wildcard zipfiles) */
 
-    if ((num_win_files + num_warn_files + num_lose_files) == 0  &&
-        (num_miss_dirs + num_miss_files) == 1  &&  lastzipfn != NULL)
+    if ((NumWinFiles + NumWarnFiles + NumLoseFiles) == 0  &&
+        (NumMissDirs + NumMissFiles) == 1  &&  lastzipfn != (char *)NULL)
     {
-        num_miss_dirs = num_miss_files = 0;
+        char *p = lastzipfn + strlen(lastzipfn);
+
+        NumMissDirs = NumMissFiles = 0;
         if (error_in_archive == PK_NOZIP)
             error_in_archive = PK_COOL;
-        strcat((zipfn = lastzipfn), ZSUFX);
+        zipfn = lastzipfn;
+        strcpy(p, ".zip");
 
-        if ((error = do_seekable(1)) == PK_WARN)
-            ++num_warn_files;
+#ifdef UNIX
+        if ((error = do_seekable(0)) == PK_NOZIP || error == IZ_DIR) {
+            if (error == IZ_DIR)
+                ++NumMissDirs;
+            strcpy(p, ".ZIP");
+            error = do_seekable(1);
+        }
+#else
+        error = do_seekable(1);
+#endif
+        if (error == PK_WARN)
+            ++NumWarnFiles;
         else if (error == IZ_DIR)
-            ++num_miss_dirs;
+            ++NumMissDirs;
         else if (error == PK_NOZIP)
             /* if increment again => bug: "1 file had no zipfile directory." */
-            /* ++num_miss_files */ ;
+            /* ++NumMissFiles */ ;
         else if (error)
-            ++num_lose_files;
+            ++NumLoseFiles;
         else
-            ++num_win_files;
+            ++NumWinFiles;
 
         if (error > error_in_archive)
             error_in_archive = error;
@@ -1079,29 +1471,35 @@ int process_zipfiles()    /* return PK-type error code */
     FFLUSH(stdout);
     FFLUSH(stderr);
 
+/*---------------------------------------------------------------------------
+    Print summary of all zipfiles, assuming zipfile spec was a wildcard (no
+    need for a summary if just one zipfile).
+  ---------------------------------------------------------------------------*/
+
 #ifndef SFX
-    if (num_miss_dirs + num_miss_files + num_lose_files + num_warn_files > 0
-        || num_win_files != 1)
-        fprintf(stderr, "\n");
-    if ((num_win_files > 1) || (num_win_files == 1 &&
-        num_miss_dirs + num_miss_files + num_lose_files + num_warn_files > 0))
-        fprintf(stderr, "%d archive%s successfully processed.\n",
-          num_win_files, (num_win_files == 1)? " was" : "s were");
-    if (num_warn_files > 0)
-        fprintf(stderr, "%d archive%s had warnings but no fatal errors.\n",
-          num_warn_files, (num_warn_files == 1)? "" : "s");
-    if (num_lose_files > 0)
-        fprintf(stderr, "%d archive%s had fatal errors.\n",
-          num_lose_files, (num_lose_files == 1)? "" : "s");
-    if (num_miss_files > 0)
-        fprintf(stderr, "%d file%s had no zipfile directory.\n",
-          num_miss_files, (num_miss_files == 1)? "" : "s");
-    if (num_miss_dirs == 1)
-        fprintf(stderr, "1 \"zipfile\" was a directory.\n");
-    else if (num_miss_dirs > 0)
-        fprintf(stderr, "%d \"zipfiles\" were directories.\n", num_miss_dirs);
-    if (num_win_files + num_lose_files + num_warn_files == 0)
-        fprintf(stderr, "No zipfiles found.\n");
+    if (iswild(wildzipfn)) {
+        if (NumMissFiles + NumLoseFiles + NumWarnFiles > 0 || NumWinFiles != 1)
+            FPRINTF(stderr, "\n");
+        if ((NumWinFiles > 1) || (NumWinFiles == 1 &&
+            NumMissDirs + NumMissFiles + NumLoseFiles + NumWarnFiles > 0))
+            FPRINTF(stderr, LoadFarString(FilesProcessOK),
+              NumWinFiles, (NumWinFiles == 1)? " was" : "s were");
+        if (NumWarnFiles > 0)
+            FPRINTF(stderr, LoadFarString(ArchiveWarning),
+              NumWarnFiles, (NumWarnFiles == 1)? "" : "s");
+        if (NumLoseFiles > 0)
+            FPRINTF(stderr, LoadFarString(ArchiveFatalError),
+              NumLoseFiles, (NumLoseFiles == 1)? "" : "s");
+        if (NumMissFiles > 0)
+            FPRINTF(stderr, LoadFarString(FileHadNoZipfileDir),
+              NumMissFiles, (NumMissFiles == 1)? "" : "s");
+        if (NumMissDirs == 1)
+            FPRINTF(stderr, LoadFarString(ZipfileWasDir));
+        else if (NumMissDirs > 0)
+            FPRINTF(stderr, LoadFarString(ManyZipfilesWereDir), NumMissDirs);
+        if (NumWinFiles + NumLoseFiles + NumWarnFiles == 0)
+            FPRINTF(stderr, LoadFarString(NoZipfileFound));
+    }
 #endif /* !SFX */
 
     /* free allocated memory */
@@ -1122,15 +1520,18 @@ int process_zipfiles()    /* return PK-type error code */
 
 
 
-/****************************/
-/*  Function do_seekable()  */
-/****************************/
+/**************************/
+/* Function do_seekable() */
+/**************************/
 
 int do_seekable(lastchance)    /* return PK-type error code */
     int lastchance;
 {
-    int error=0, error_in_archive, maybe_exe=FALSE;
+#ifndef SFX
     static int no_ecrec = FALSE;
+    int maybe_exe=FALSE;
+#endif
+    int error=0, error_in_archive;
 
 
 /*---------------------------------------------------------------------------
@@ -1139,23 +1540,35 @@ int do_seekable(lastchance)    /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     if (SSTAT(zipfn, &statbuf) || (error = S_ISDIR(statbuf.st_mode)) != 0) {
+#ifndef SFX
         if (lastchance)
             if (no_ecrec)
-                fprintf(stderr, "%s:  can't find zipfile directory in %s,\n\
-        %sand can't find %s, period.\n", zipinfo_mode? "zipinfo" : "unzip",
-                  wildzipfn, zipinfo_mode? "  " : "", zipfn);
+                FPRINTF(stderr, LoadFarString(CantFindZipfileDirMsg),
+                  zipinfo_mode? "zipinfo" : "unzip",
+                  wildzipfn, zipinfo_mode? "  " : "",
+#ifdef UNIX
+                                                     wildzipfn,
+#endif
+                                                               zipfn);
             else
-                fprintf(stderr,
-                  "%s:  can't find either %s or %s, so there.\n",
-                  zipinfo_mode? "zipinfo" : "unzip", wildzipfn, zipfn);
+                FPRINTF(stderr,
+                  LoadFarString(CantFindEitherZipfile),
+                  zipinfo_mode? "zipinfo" : "unzip", wildzipfn,
+#ifdef UNIX
+                                                               wildzipfn,
+#endif
+                                                                         zipfn);
+#endif /* !SFX */
         return error? IZ_DIR : PK_NOZIP;
     }
     ziplen = statbuf.st_size;
 
-#if defined(UNIX) || defined(DOS_NT_OS2)  /* no extension on Unix exec's: */
-    if (statbuf.st_mode & S_IEXEC)      /* might find zip, not zip.zip; etc. */
-        maybe_exe = TRUE;               /* (for other OS's, some executables */
-#endif                                  /* can be self-extracting archives) */
+#ifndef SFX
+#if defined(UNIX) || defined(DOS_NT_OS2)
+    if (statbuf.st_mode & S_IEXEC)   /* no extension on Unix exec's:  might */
+        maybe_exe = TRUE;            /*  find unzip, not unzip.zip; etc. */
+#endif
+#endif /* !SFX */
 
 #ifdef VMS
     if (check_format())      /* check for variable-length format */
@@ -1177,25 +1590,25 @@ int do_seekable(lastchance)    /* return PK-type error code */
     inptr = inbuf;
 
     if (!qflag && !zipinfo_mode)
-        printf("Archive:  %s\n", zipfn);
+        PRINTF("Archive:  %s\n", zipfn);
 
     if ((
 #ifndef NO_ZIPINFO
          zipinfo_mode &&
-          ((error_in_archive = find_end_central_dir(ziplen)) != 0 ||
+          ((error_in_archive = find_ecrec(ziplen)) != 0 ||
           (error_in_archive = zi_end_central()) > PK_WARN))
         || (!zipinfo_mode &&
 #endif
-          ((error_in_archive = find_end_central_dir(MIN(ziplen,66000L))) != 0 ||
+          ((error_in_archive = find_ecrec(MIN(ziplen,66000L))) != 0 ||
           (error_in_archive = uz_end_central()) > PK_WARN)))
     {
         close(zipfd);
 #ifdef SFX
+        ++lastchance;   /* avoid picky compiler warnings */
         return error_in_archive;
 #else
         if (maybe_exe)
-            fprintf(stderr, "note:  %s may be an executable, not an archive\n",
-              zipfn);
+            FPRINTF(stderr, LoadFarString(MaybeExe), zipfn);
         if (lastchance)
             return error_in_archive;
         else {
@@ -1215,57 +1628,51 @@ int do_seekable(lastchance)    /* return PK-type error code */
     archives) or inconsistencies (missing or extra bytes in zipfile).
   ---------------------------------------------------------------------------*/
 
+#ifdef NO_MULTIPART
     error = !zipinfo_mode && (ecrec.number_this_disk == 1) &&
             (ecrec.num_disk_with_start_central_dir == 1);
+#else
+    error = !zipinfo_mode && (ecrec.number_this_disk != 0);
+#endif
 
+#ifndef SFX
     if (zipinfo_mode &&
         ecrec.number_this_disk != ecrec.num_disk_with_start_central_dir)
     {
-        fprintf(stderr, "\n\
-     Zipfile is part of a multi-disk archive, and this is not the disk on\n\
-     which the central zipfile directory begins.\n");
+        FPRINTF(stderr, LoadFarString(CentDirNotInZipMsg));
         error_in_archive = PK_FIND;
-
+#ifdef NO_MULTIPART   /* concatenation of multiple parts works in some cases */
     } else if (!zipinfo_mode && !error && ecrec.number_this_disk != 0) {
-
-        fprintf(stderr, "\nerror [%s]:  zipfile is part of multi-disk archive\n\
-  (sorry, not yet supported).\n", zipfn);
+        FPRINTF(stderr, LoadFarString(NoMultiDiskArcSupport), zipfn);
         error_in_archive = PK_FIND;
-
+#endif
     } else {   /* this is a (relatively) normal zipfile:  process normally */
-
         if (error) {
-            fprintf(stderr, "\n\
-     Warning:  zipfile claims to be second disk of a two-part archive;\n\
-     attempting to process anyway.  If no further errors occur, this\n\
-     archive was probably created by PAK v2.51 or earlier.  This bug\n\
-     was reported to NoGate in March 1991 and was supposed to have been\n\
-     fixed by mid-1991; as of mid-1992 it still hadn't been.  (If fur-\n\
-     ther errors do occur, archive was probably created by PKZIP 2.04c\n\
-     or later; UnZip does not yet support multi-part archives.)\n\n");
+            FPRINTF(stderr, LoadFarString(MaybePakBug), zipfn);
             error_in_archive = PK_WARN;
         }
-        if ((extra_bytes = real_ecrec_offset - expect_ecrec_offset) < (LONGINT)0) {
-            fprintf(stderr, "error [%s]:  missing %ld bytes in zipfile\n\
-  (attempting to process anyway)\n", zipfn, (long)(-extra_bytes));
+#endif
+        if ((extra_bytes = real_ecrec_offset-expect_ecrec_offset) < (LONGINT)0)
+        {
+            FPRINTF(stderr, LoadFarString(MissingBytes), zipfn,
+              (long)(-extra_bytes));
             error_in_archive = PK_ERR;
         } else if (extra_bytes > 0) {
             if ((ecrec.offset_start_central_directory == 0) &&
                 (ecrec.size_central_directory != 0))   /* zip 1.5 -go bug */
             {
-                fprintf(stderr, "error [%s]:  NULL central directory offset\n\
-  (attempting to process anyway)\n", zipfn);
+                FPRINTF(stderr, LoadFarString(NullCentDirOffset), zipfn);
                 ecrec.offset_start_central_directory = extra_bytes;
                 extra_bytes = 0;
                 error_in_archive = PK_ERR;
-            } else {
+            }
 #ifndef SFX
-                fprintf(stderr, "warning [%s]:  extra %ld bytes at beginning\
- or within zipfile\n  (attempting to process anyway)\n", zipfn,
+            else {
+                FPRINTF(stderr, LoadFarString(ExtraBytesAtStart), zipfn,
                   (long)extra_bytes);
                 error_in_archive = PK_WARN;
-#endif
             }
+#endif
         }
 
     /*-----------------------------------------------------------------------
@@ -1274,9 +1681,9 @@ int do_seekable(lastchance)    /* return PK-type error code */
 
         if (expect_ecrec_offset == 0L  &&  ecrec.size_central_directory == 0) {
             if (zipinfo_mode)
-                printf("%sEmpty zipfile.\n", lflag>9 ? "\n  " : "");
+                PRINTF("%sEmpty zipfile.\n", lflag>9 ? "\n  " : "");
             else
-                fprintf(stderr, "warning [%s]:  zipfile is empty\n", zipfn);
+                FPRINTF(stderr, LoadFarString(ZipfileEmpty), zipfn);
             close(zipfd);
             return (error_in_archive > PK_WARN)? error_in_archive : PK_WARN;
         }
@@ -1285,30 +1692,31 @@ int do_seekable(lastchance)    /* return PK-type error code */
         Compensate for missing or extra bytes, and seek to where the start
         of central directory should be.  If header not found, uncompensate
         and try again (necessary for at least some Atari archives created
-        with STZIP, as well as archives created by J.H. Holm's ZIPSPLIT 1.1).
+        with STZip, as well as archives created by J.H. Holm's ZIPSPLIT 1.1).
       -----------------------------------------------------------------------*/
 
         LSEEK( ecrec.offset_start_central_directory )
-        if ((error = readbuf(sig, 4)) < 0) {
+#ifdef OLD_SEEK_TEST
+        if (readbuf(sig, 4) == 0) {
             close(zipfd);
             return PK_ERR;  /* file may be locked, or possibly disk error(?) */
         }
-        if ((error == 0) || strncmp(sig, central_hdr_sig, 4)) {
+        if (strncmp(sig, central_hdr_sig, 4))
+#else
+        if ((readbuf(sig, 4) == 0) || strncmp(sig, central_hdr_sig, 4))
+#endif
+        {
             long tmp = extra_bytes;
 
             extra_bytes = 0;
             LSEEK( ecrec.offset_start_central_directory )
-            if ((readbuf(sig, 4) <= 0) || strncmp(sig, central_hdr_sig, 4)) {
-                fprintf(stderr,
-                  "error [%s]:  start of central directory not found;\n\
-  zipfile corrupt.\n%s", zipfn, ReportMsg);
+            if ((readbuf(sig, 4) == 0) || strncmp(sig, central_hdr_sig, 4)) {
+                FPRINTF(stderr, LoadFarString(CentDirStartNotFound), zipfn,
+                  LoadFarStringSmall(ReportMsg));
                 close(zipfd);
                 return PK_BADERR;
             }
-            fprintf(stderr,
-              "error [%s]:  reported length of central directory is\n\
-  %ld bytes too long (Atari STZIP zipfile?  J.H.Holm ZIPSPLIT 1.1\n\
-  zipfile?).  Compensating...\n", zipfn, -tmp);
+            FPRINTF(stderr, LoadFarString(CentDirTooLong), zipfn, -tmp);
             error_in_archive = PK_ERR;
         }
 
@@ -1327,19 +1735,23 @@ int do_seekable(lastchance)    /* return PK-type error code */
         if (zipinfo_mode) {
             error = zipinfo();                     /* ZIPINFO 'EM */
             if (lflag > 9)
-                printf("\n");
+                PRINTF("\n");
         } else
 #endif
-            if (vflag)
+#ifndef SFX
+            if (vflag && !tflag && !cflag)
                 error = list_files();              /* LIST 'EM */
             else
+#endif
                 error = extract_or_test_files();   /* EXTRACT OR TEST 'EM */
 
         Trace((stderr, "done with extract/list files (error = %d)\n", error));
 
         if (error > error_in_archive)   /* don't overwrite stronger error */
             error_in_archive = error;   /*  with (for example) a warning */
+#ifndef SFX
     }
+#endif
 
     close(zipfd);
     return error_in_archive;
@@ -1368,18 +1780,18 @@ int uz_end_central()    /* return PK-type error code */
 #ifdef MSWIN
     cchComment = ecrec.zipfile_comment_length; /* save for comment button */
     if (ecrec.zipfile_comment_length && (zflag > 0))
-#else /* !MSWIN */
+#else
     if (ecrec.zipfile_comment_length && (zflag > 0 || (zflag == 0 && !qflag)))
-#endif /* ?MSWIN */
+#endif
     {
 #if 0
 #ifndef MSWIN
         if (zflag == 0)       (add "&& single_zipfile" perhaps; unnecessary with
-            printf("[%s] comment:\n", zipfn);  multiple zipfiles: "Archive:...")
+            PRINTF("[%s] comment:\n", zipfn);  multiple zipfiles: "Archive:...")
 #endif /* !MSWIN */
 #endif /* 0 */
         if (do_string(ecrec.zipfile_comment_length,DISPLAY)) {
-            fprintf(stderr, "\ncaution:  zipfile comment truncated\n");
+            FPRINTF(stderr, LoadFarString(ZipfileCommTrunc1));
             error = PK_WARN;
         }
     }
@@ -1391,9 +1803,9 @@ int uz_end_central()    /* return PK-type error code */
 
 
 
-/**************************************/
-/*  Function process_cdir_file_hdr()  */
-/**************************************/
+/************************************/
+/* Function process_cdir_file_hdr() */
+/************************************/
 
 int process_cdir_file_hdr()    /* return PK-type error code */
 {
@@ -1406,26 +1818,26 @@ int process_cdir_file_hdr()    /* return PK-type error code */
     file is coming.
   ---------------------------------------------------------------------------*/
 
-    if ((error = get_cdir_file_hdr()) != 0)
+    if ((error = get_cdir_ent()) != 0)
         return error;
 
     pInfo->hostnum = MIN(crec.version_made_by[1], NUM_HOSTS);
 /*  extnum = MIN(crec.version_needed_to_extract[1], NUM_HOSTS); */
 
     pInfo->lcflag = 0;
-    if (!U_flag)   /* as long as user hasn't specified case-preservation */
+    if (L_flag)               /* user specified case-conversion */
         switch (pInfo->hostnum) {
             case FS_FAT_:     /* PKZIP and zip -k store in uppercase */
             case ATARI_:      /* MS-DOS filesystem */
             case CPM_:        /* like MS-DOS, right? */
             case VM_CMS_:     /* all caps? */
             case TOPS20_:
+            case VMS_:        /* our Zip uses lowercase, but ASi's doesn't */
         /*  case Z_SYSTEM_:   ? */
         /*  case QDOS_:       ? */
                 pInfo->lcflag = 1;   /* convert filename to lowercase */
                 break;
 
-        /*  case VMS_:   Info-ZIP's VMS Zip converts filenames to lowercase */
             default:     /* AMIGA_, FS_HPFS_, FS_NTFS_, MAC_, UNIX_, */
                 break;   /*  (Z_SYSTEM_):  no conversion */
         }
@@ -1448,9 +1860,9 @@ int process_cdir_file_hdr()    /* return PK-type error code */
 
 
 
-/***************************************/
-/*  Function process_local_file_hdr()  */
-/***************************************/
+/*************************************/
+/* Function process_local_file_hdr() */
+/*************************************/
 
 int process_local_file_hdr()    /* return PK-type error code */
 {
@@ -1464,7 +1876,7 @@ int process_local_file_hdr()    /* return PK-type error code */
     usable struct (lrec)).
   ---------------------------------------------------------------------------*/
 
-    if (readbuf((char *)byterec, LREC_SIZE) <= 0)
+    if (readbuf((char *)byterec, LREC_SIZE) == 0)
         return PK_EOF;
 
     lrec.version_needed_to_extract[0] = byterec[L_VERSION_NEEDED_TO_EXTRACT_0];

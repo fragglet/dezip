@@ -9,6 +9,24 @@
   Mac, and which also determined whether HFS (Hierarchical File System) or
   MFS (Macintosh File System) was in use.
 
+  Contains:  do_wild()
+             mapattr()
+             mapname()
+             checkdir()
+             close_outfile()
+             version()
+             IsHFSDisk()
+             MacFSTest()
+             macmkdir()
+             ResolveMacVol()
+             macopen()
+             macfopen()
+             maccreat()
+             macread()
+             macwrite()
+             macclose()
+             maclseek()
+
   ---------------------------------------------------------------------------*/
 
 
@@ -181,7 +199,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
 
     pp = pathcomp;              /* point to translation buffer */
     if (!(renamed_fullpath || jflag))
-    	*pp++ = ':';
+        *pp++ = ':';
     *pp = '\0';
 
     if (jflag)                  /* junking directories */
@@ -411,8 +429,6 @@ checkdir warning:  path too long; truncating\n\
     extract-to path.
   ---------------------------------------------------------------------------*/
 
-/* GRR:  for VMS and TOPS-20, add up to 13 to strlen */
-
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
         if ((buildpath = (char *)malloc(strlen(filename)+rootlen+2)) == NULL)
@@ -435,11 +451,7 @@ checkdir warning:  path too long; truncating\n\
     command line.
   ---------------------------------------------------------------------------*/
 
-/* GRR:  for VMS and TOPS-20, allow either y]z.dir or y.z] forms; fix as
- * appropriate before stat call */
-
-/* GRR:  for MS-DOS and OS/2, may need to append '.' to path of form "x:" */
-
+#if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
         if (pathcomp == NULL) {
@@ -453,14 +465,17 @@ checkdir warning:  path too long; truncating\n\
                 pathcomp[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
-            if (stat(pathcomp, &statbuf) || !S_ISDIR(statbuf.st_mode)) {
-                /* path does not exist */
-                if (!create_dirs || !had_trailing_pathsep) {
+            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
+                !S_ISDIR(statbuf.st_mode)))          /* path does not exist */
+            {
+                if (!create_dirs                     /* || iswild(pathcomp) */
+#ifdef OLD_EXDIR
+                                 || !had_trailing_pathsep
+#endif
+                                                         ) {
                     rootlen = 0;
                     return 2;   /* treat as stored file */
                 }
-/* GRR:  scan for wildcard characters?  OS-dependent...  if find any, return 2:
- * treat as stored file(s) */
                 /* create the directory (could add loop here to scan pathcomp
                  * and create more than one level, but why really necessary?) */
                 if (MKDIR(pathcomp) == -1) {
@@ -483,6 +498,7 @@ checkdir warning:  path too long; truncating\n\
         Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
+#endif /* !SFX || SFX_EXDIR */
 
 /*---------------------------------------------------------------------------
     END:  free rootpath, immediately prior to program exit.
@@ -581,6 +597,62 @@ void close_outfile()
     p2cstr(filename);
 
 } /* end function close_outfile() */
+
+
+
+
+
+#ifndef SFX
+
+/************************/
+/*  Function version()  */
+/************************/
+
+void version()
+{
+    extern char Far  CompiledWith[];
+#if 0
+    char buf[40];
+#endif
+
+    printf(LoadFarString(CompiledWith),
+
+#ifdef __GNUC__
+      "gcc ", __VERSION__,
+#else
+#  if 0
+      "cc ", (sprintf(buf, " version %d", _RELEASE), buf),
+#  else
+#  ifdef THINK_C
+      "Think C", "",
+#  else
+#  ifdef MPW
+      "MPW C", "",
+#  else
+      "unknown compiler", "",
+#  endif
+#  endif
+#  endif
+#endif
+
+      "MacOS",
+
+#if defined(foobar) || defined(FOOBAR)
+      " (Foo BAR)",    /* hardware or OS version */
+#else
+      "",
+#endif /* Foo BAR */
+
+#ifdef __DATE__
+      " on ", __DATE__
+#else
+      "", ""
+#endif
+      );
+
+} /* end function version() */
+
+#endif /* !SFX */
 
 
 

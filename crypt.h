@@ -1,5 +1,5 @@
 /*
-   crypt.h (dummy version) by Info-ZIP.      Last revised:  6 Feb 94
+   crypt.h (dummy version) by Info-ZIP.      Last revised:  18 Apr 94
 
    This is a non-functional version of Info-ZIP's crypt.h encryption/
    decryption header file for Zip, ZipCloak, UnZip and fUnZip.  This
@@ -24,9 +24,5 @@
 
 #define echoff(f)
 #define echon()
-
-#if (defined(AMIGA) && !defined(EPIPE))
-#  define EPIPE 9999         /* (errno == EPIPE) always false */
-#endif
 
 #endif /* !__crypt_h */

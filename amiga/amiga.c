@@ -3,6 +3,7 @@
   amiga.c
 
   Amiga-specific routines for use with Info-ZIP's UnZip 5.1 and later.
+  See History.5xx for revision history.
 
   Contents:   mapattr()
               mapname()
@@ -11,15 +12,8 @@
               cmptime()
               invlocal()
               close_outfile()
-
-  History:
-     Sep ?? 1992:  Greg Roelofs, original coding (I did??).
-     Oct 30 1992:  John Bush, merged FileDate() code with Zip 1.9h.
-                   Incorporated Zip's invlocal() routine and omitted 
-                   intermediate redundant date format changes.
-     Feb 6, 1993:  Separated filedate.c so it could be loaded in Zip too.
-     Jul 11 1993:  Added 5.1e routines required.
-     Nov 1, 1993:  Compatibilized to 5.1h (JB)
+              _abort()         (Aztec C only)
+              version()
 
   ------------------------------------------------------------------------*/
 
@@ -46,7 +40,7 @@ static int renamed_fullpath; /* ditto */
 #endif /* !S_IRWD */
 
 #ifndef S_IHIDDEN
-#  define S_IHIDDEN  0200  /* hidden supported in future AmigaDOS 3.x */
+#  define S_IHIDDEN  0200  /* hidden supported in future AmigaDOS (someday) */
 #endif /* !S_HIDDEN */
 
 
@@ -463,6 +457,7 @@ int checkdir(pathcomp, flag)
     command line.
   ---------------------------------------------------------------------------*/
 
+#if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
         if (pathcomp == NULL) {
@@ -476,14 +471,17 @@ int checkdir(pathcomp, flag)
                 pathcomp[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
-            if (stat(pathcomp, &statbuf) || !S_ISDIR(statbuf.st_mode)) {
-                /* path does not exist */
-                if (!create_dirs || !had_trailing_pathsep) {
+            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
+                !S_ISDIR(statbuf.st_mode)))      /* path does not exist */
+            {
+                if (!create_dirs                     /* || iswild(pathcomp) */
+#ifdef OLD_EXDIR
+                                 || !had_trailing_pathsep
+#endif
+                                                         ) {
                     rootlen = 0;
                     return 2;   /* treat as stored file */
                 }
-/* GRR:  scan for wildcard characters?  OS-dependent...  if find any, return 2:
- * treat as stored file(s) */
                 /* create the directory (could add loop here to scan pathcomp
                  * and create more than one level, but why really necessary?) */
                 if (MKDIR(pathcomp, 0777) == -1) {
@@ -507,6 +505,7 @@ int checkdir(pathcomp, flag)
         Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
+#endif /* !SFX || SFX_EXDIR */
 
 /*---------------------------------------------------------------------------
     END:  free rootpath, immediately prior to program exit.
@@ -679,3 +678,99 @@ void _abort(void)               /* called when ^C is pressed */
     exit(1);
 }
 #endif /* AZTEC_C */
+
+
+#ifndef SFX
+
+/************************/
+/*  Function version()  */
+/************************/
+
+
+/* NOTE:  the following include depends upon the environment 
+ *        variable $Workbench to be set correctly.  (Set by
+ *        default, by kickstart during startup)
+ */
+int WBversion = (int)
+#include "ENV:Workbench"
+;
+
+void version()
+{
+   extern char Far  CompiledWith[];
+
+/* Define buffers. */
+
+   char buf1[16];  /* compiler name */
+   char buf2[16];  /* revstamp */
+   char buf3[16];  /* OS */
+   char buf4[16];  /* Date */
+/*   char buf5[16];  /* Time */
+
+/* format "with" name strings */
+
+#ifdef AMIGA
+# ifdef __SASC
+   strcpy(buf1,"SAS/C ");
+# else
+#  ifdef LATTICE
+    strcpy(buf1,"Lattice C ");
+#  else
+#   ifdef AZTEC_C
+     strcpy(buf1,"Manx Aztec C ");
+#   else
+     strcpy(buf1,"UNKNOWN ");
+#   endif
+#  endif
+# endif
+/* "under" */
+  sprintf(buf3,"AmigaDOS v%d",WBversion);
+#else
+  strcpy(buf1,"Unknown compiler ");
+  strcpy(buf3,"Unknown OS");
+#endif
+
+/* Define revision, date, and time strings.  
+ * NOTE:  Do not calculate run time, be sure to use time compiled.
+ * Pass these strings via your makefile if undefined.
+ */
+
+#if defined(__VERSION__) && defined(__REVISION__)
+  sprintf(buf2,"version %d.%d",__VERSION__,__REVISION__);
+#else
+# ifdef __VERSION__
+  sprintf(buf2,"version %d",__VERSION__);
+# else
+  sprintf(buf2,"unknown version");
+# endif
+#endif
+
+#ifdef __DATE__
+  sprintf(buf4," on %s",__DATE__);
+#else
+  strcpy(buf4," unknown date");
+#endif
+
+/******
+#ifdef __TIME__
+  sprintf(buf5," at %s",__TIME__);
+#else
+  strcpy(buf5," unknown time");
+#endif
+******/
+
+/* Print strings using "CompiledWith" mask defined in unzip.c (used by all).
+ *  ("Compiled with %s%s under %s%s%s%s.")
+ */
+
+   printf(LoadFarString(CompiledWith),
+     buf1,
+     buf2, 
+     buf3,
+     buf4,
+     /* buf5, */ "",
+     "" );  /* buf6 not used */
+
+} /* end function version() */
+
+#endif /* !SFX */

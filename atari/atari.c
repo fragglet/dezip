@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------
 
-  atari.c (based on unix.c)
+  atari.c
 
   Atari-specific routines for use with Info-ZIP's UnZip 5.1 and later.
 
@@ -11,47 +11,23 @@
              checkdir()
              mkdir()
              close_outfile()
+             version()
 
   Due to the amazing MiNT library being very, very close to BSD unix's
   library, I'm using the unix.c as a base for this.  Note:  If you're not
   going to compile this with the MiNT libraries (for GNU C, Turbo C, Pure C,
   Lattice C, or Heat & Serve C), you're going to be in for some nasty work.
-  The modifications in this file were made by Chris Herborth
+  Most of the modifications in this file were made by Chris Herborth
   (cherborth@semprini.waterloo-rdp.on.ca) and /should/ be marked with [cjh].
-  I'm also going to use RCS on this, in case I mess something up.
-
-  $Id: atari.c 1.4 1993/12/28 18:52:52 root Exp $
-
-  $Log: atari.c $
- * Revision 1.4  1993/12/28  18:52:52  root
- * Final version; symlinks finally work, no thanks to the non-standard
- * MiNTlibs definition of a symlink.
- * ÿ.
- *
- * Revision 1.3  1993/11/18  08:11:06  root
- * Added symbolic link support; should probably change it to copy the
- * original file in a link if the link fails (ie, if you try to do it
- * on a TOS filesystem).
- *
- * Revision 1.2  1993/11/13  18:50:30  root
- * Initial modifications for Atari ST/MiNT, untested.
- *
- * Revision 1.1  1993/11/13  13:02:56  root
- * Initial revision
- *
 
   ---------------------------------------------------------------------------*/
 
 
 #include "unzip.h"
-
-/* MiNTlibs has dirent [cjh] */
-#include <dirent.h>
+#include <dirent.h>            /* MiNTlibs has dirent [cjh] */
 
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
-
-/* AT&T 3B1 stuff deleted :-) [cjh] */
 
 /**********************/
 /* Function do_wild() */   /* for porting:  dir separator; match(ignore_case) */
@@ -96,7 +72,7 @@ char *do_wild(wildspec)
             while ((file = readdir(dir)) != NULL) {
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix:  '*' and '?' do not match leading dot */
-				/* Need something here for TOS filesystem? [cjh] */
+                    /* Need something here for TOS filesystem? [cjh] */
                 if (match(file->d_name, wildname, 0)) {  /* 0 == case sens. */
                     if (have_dirname) {
                         strcpy(matchname, dirname);
@@ -130,7 +106,7 @@ char *do_wild(wildspec)
      * matchname already.
      */
     while ((file = readdir(dir)) != NULL)
-    	/* May need special TOS handling here. [cjh] */
+        /* May need special TOS handling here. [cjh] */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
@@ -163,7 +139,7 @@ int mapattr()
 
     switch (pInfo->hostnum) {
         case UNIX_:
-        	/* minix filesystem under MiNT on Atari [cjh] */
+            /* minix filesystem under MiNT on Atari [cjh] */
         case VMS_:
             pInfo->file_attr = (unsigned)(tmp >> 16);
             return 0;
@@ -177,7 +153,7 @@ int mapattr()
         case FS_NTFS_:
         case MAC_:
         case ATARI_:             /* (used to set = 0666) */
-        	/* TOS filesystem [cjh] */
+            /* TOS filesystem [cjh] */
         case TOPS20_:
         default:
             tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
@@ -377,8 +353,7 @@ int checkdir(pathcomp, flag)
 
     if (FUNCTION == APPEND_DIR) {
         int too_long = FALSE;
-/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... */
-/* [cjh] */
+/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... [cjh] */
 #ifdef SHORT_NAMES
         char *old_end = end;
 #endif
@@ -386,8 +361,7 @@ int checkdir(pathcomp, flag)
         Trace((stderr, "appending dir segment [%s]\n", pathcomp));
         while ((*end = *pathcomp++) != '\0')
             ++end;
-/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... */
-/* [cjh] */
+/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... [cjh] */
 #ifdef SHORT_NAMES   /* path components restricted to 14 chars, typically */
         if ((end-old_end) > FILENAME_MAX)  /* GRR:  proper constant? */
             *(end = old_end + FILENAME_MAX) = '\0';
@@ -459,8 +433,7 @@ int checkdir(pathcomp, flag)
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == APPEND_NAME) {
-/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... */
-/* [cjh] */
+/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... [cjh] */
 #ifdef SHORT_NAMES
         char *old_end = end;
 #endif
@@ -468,8 +441,7 @@ int checkdir(pathcomp, flag)
         Trace((stderr, "appending filename [%s]\n", pathcomp));
         while ((*end = *pathcomp++) != '\0') {
             ++end;
-/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... */
-/* [cjh] */
+/* SHORT_NAMES required for TOS, but it has to co-exist for minix fs... [cjh] */
 #ifdef SHORT_NAMES  /* truncate name at 14 characters, typically */
             if ((end-old_end) > FILENAME_MAX)      /* GRR:  proper constant? */
                 *(end = old_end + FILENAME_MAX) = '\0';
@@ -517,6 +489,7 @@ checkdir warning:  path too long; truncating\n\
     command line.
   ---------------------------------------------------------------------------*/
 
+#if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
         if (pathcomp == NULL) {
@@ -530,9 +503,10 @@ checkdir warning:  path too long; truncating\n\
                 pathcomp[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
-            if (stat(pathcomp, &statbuf) || !S_ISDIR(statbuf.st_mode)) {
-                /* path does not exist */
-                if (!create_dirs                     /* || isshexp(pathcomp) */
+            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
+                !S_ISDIR(statbuf.st_mode)))          /* path does not exist */
+            {
+                if (!create_dirs                     /* || iswild(pathcomp) */
 #ifdef OLD_EXDIR
                                  || !had_trailing_pathsep
 #endif
@@ -562,6 +536,7 @@ checkdir warning:  path too long; truncating\n\
         Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
+#endif /* !SFX || SFX_EXDIR */
 
 /*---------------------------------------------------------------------------
     END:  free rootpath, immediately prior to program exit.
@@ -592,14 +567,8 @@ void close_outfile()
     int yr, mo, dy, hh, mm, ss, leap, days;
     struct utimbuf tp;
 #   define YRBASE  1970
-#ifndef __386BSD__
-#ifdef BSD
-    static struct timeb tbp;
-#else /* !BSD */
-    extern long timezone;
-#endif /* ?BSD */
-#endif /* !__386BSD__ */
-/* The above seems ok for Atari if you undefine __STRICT_ANSI__ [cjh] */
+    extern long timezone;  /* seems ok for Atari if undefine __STRICT_ANSI__ */
+                           /* [cjh] */
 
 /*---------------------------------------------------------------------------
     If symbolic links are supported, allocate a storage area, put the uncom-
@@ -608,38 +577,36 @@ void close_outfile()
     ints with unsigned longs.
   ---------------------------------------------------------------------------*/
 
-	/* symlinks allowed on minix filesystems [cjh]
-	 * Hopefully this will work properly... We won't bother to try if
-	 * MiNT isn't present; the symlink should fail if we're on a TOS
-	 * filesystem.
-	 * BUG: should we copy the original file to the "symlink" if the
-	 *      link fails?
-	 */
-	if (symlnk)
-	{
-       	unsigned ucsize = (unsigned)lrec.ucsize;
-       	char *linktarget = (char *)malloc((unsigned)lrec.ucsize+1);
+    /* symlinks allowed on minix filesystems [cjh]
+     * Hopefully this will work properly... We won't bother to try if
+     * MiNT isn't present; the symlink should fail if we're on a TOS
+     * filesystem.
+     * BUG: should we copy the original file to the "symlink" if the
+     *      link fails?
+     */
+    if (symlnk) {
+        unsigned ucsize = (unsigned)lrec.ucsize;
+        char *linktarget = (char *)malloc((unsigned)lrec.ucsize+1);
 
-       	fclose(outfile);                    /* close "data" file... */
-       	outfile = fopen(filename, FOPR);    /* ...and reopen for reading */
-       	if (!linktarget || (fread(linktarget, 1, ucsize, outfile) != ucsize))
-		{
-           	fprintf(stderr, "\nwarning:  symbolic link (%s) failed\n",
-           	        filename);
-           	if (linktarget)
-               	free(linktarget);
-           	fclose(outfile);
-           	return;
-       	}
-       	fclose(outfile);                    /* close "data" file for good... */
-       	unlink(filename);                   /* ...and delete it */
-       	linktarget[ucsize] = '\0';
-       	fprintf(stdout, "-> %s ", linktarget);
-       	if (symlink(linktarget, filename))  /* create the real link */
-           	perror("symlink error");
-       	free(linktarget);
-       	return;                             /* can't set time on symlinks */
-   	}
+        fclose(outfile);                    /* close "data" file... */
+        outfile = fopen(filename, FOPR);    /* ...and reopen for reading */
+        if (!linktarget || (fread(linktarget, 1, ucsize, outfile) != ucsize)) {
+            fprintf(stderr, "\nwarning:  symbolic link (%s) failed\n",
+              filename);
+            if (linktarget)
+                free(linktarget);
+            fclose(outfile);
+            return;
+        }
+        fclose(outfile);                    /* close "data" file for good... */
+        unlink(filename);                   /* ...and delete it */
+        linktarget[ucsize] = '\0';
+        fprintf(stdout, "-> %s ", linktarget);
+        if (symlink(linktarget, filename))  /* create the real link */
+            perror("symlink error");
+        free(linktarget);
+        return;                             /* can't set time on symlinks */
+    }
 
     fclose(outfile);
 
@@ -681,24 +648,13 @@ void close_outfile()
     m_time = ((days + dy) * 86400) + (hh * 3600) + (mm * 60) + ss;
 
     /* adjust for local timezone */
-/* This seems ok, if you undefine __STRICT_ANSI__; use tzset(). [cjh] */
-#ifdef BSD
-#ifdef __386BSD__
-    m_time -= localtime(&m_time)->tm_gmtoff;  /* seconds EAST of GMT:  subtr. */
-#else /* BSD && !__386BSD__ */
-    ftime(&tbp);                    /* get `timezone' */
-    m_time += tbp.timezone * 60L;   /* seconds WEST of GMT:  add */
-#endif /* __386BSD__ */
-#else /* !BSD */
+    /* This seems ok, if you undefine __STRICT_ANSI__; use tzset(). [cjh] */
     tzset();              /* get `timezone' */
     m_time += timezone;   /* seconds WEST of GMT:  add */
-#endif /* ?BSD */
 
     /* adjust for daylight savings time (or local equivalent) */
-#ifndef __386BSD__  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
     if (localtime(&m_time)->tm_isdst)
         m_time -= 60L * 60L;   /* adjust for daylight savings time */
-#endif
 
     /* set the file's access and modification times */
     tp.actime = tp.modtime = m_time;
@@ -710,116 +666,54 @@ void close_outfile()
 
 
 
-#if 0
+#ifndef SFX
 
-/**************************************/
-/* Function set_file_time_and_close() */
-/**************************************/
+/************************/
+/*  Function version()  */
+/************************/
 
-void set_file_time_and_close()
+void version()
 {
-    static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-    long m_time;
-    int yr, mo, dy, hh, mm, ss, leap, days;
-    struct utimbuf tp;
-#   define YRBASE  1970
-#ifndef __386BSD__
-#ifdef BSD
-    static struct timeb tbp;
-#else /* !BSD */
-    extern long timezone;
-#endif /* ?BSD */
-#endif /* !__386BSD__ */
+    extern char Far  CompiledWith[];
+#ifdef __TURBOC__
+    char buf[40];
+#endif
 
+    printf(LoadFarString(CompiledWith),
 
-/*---------------------------------------------------------------------------
-    If symbolic links are supported, allocate a storage area, put the uncom-
-    pressed "data" in it, and create the link.  Since we know it's a symbolic
-    link to start with, we shouldn't have to worry about overflowing unsigned
-    ints with unsigned longs.
-  ---------------------------------------------------------------------------*/
-
-#ifdef SYMLINKS
-    if (symlnk) {
-        unsigned ucsize = (unsigned)lrec.ucsize;
-        char *linktarget = (char *)malloc((unsigned)lrec.ucsize+1);
-
-        close(outfd);                       /* close "data" file... */
-        outfd = open(filename, O_RDONLY);   /* ...and reopen for reading */
-        if (!linktarget || (read(outfd, linktarget, ucsize) != ucsize)) {
-            fprintf(stderr, "\nwarning:  symbolic link (%s) failed\n",
-              filename);
-            if (linktarget)
-                free(linktarget);
-            close(outfd);
-            return;
-        }
-        close(outfd);                       /* close "data" file for good... */
-        unlink(filename);                   /* ...and delete it */
-        linktarget[ucsize] = '\0';
-        fprintf(stdout, "-> %s ", linktarget);
-        if (symlink(linktarget, filename))  /* create the real link */
-            perror("symlink error");
-        free(linktarget);
-        return;                             /* can't set time on symlinks */
-    }
-#endif /* SYMLINKS */
-
-    close(outfd);
-    if (cflag)          /* can't set time on stdout */
-        return;
-
-/*---------------------------------------------------------------------------
-    Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
-    time:  adjust base year from 1980 to 1970, do usual conversions from
-    yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
-    light savings time differences.
-  ---------------------------------------------------------------------------*/
-
-    yr = ((lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
-    mo = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
-    dy = (lrec.last_mod_file_date & 0x1f) - 1;
-    hh = (lrec.last_mod_file_time >> 11) & 0x1f;
-    mm = (lrec.last_mod_file_time >> 5) & 0x3f;
-    ss = (lrec.last_mod_file_time & 0x1f) * 2;
-
-    /* leap = # of leap yrs from YRBASE up to but not including current year */
-    leap = ((yr + YRBASE - 1) / 4);   /* leap year base factor */
-
-    /* how many days from YRBASE to this year? (& add expired days this year) */
-    days = (yr * 365) + (leap - 492) + yday[mo];
-
-    /* if year is a leap year and month is after February, add another day */
-    if ((mo > 1) && ((yr+YRBASE)%4 == 0) && ((yr+YRBASE) != 2100))
-        ++days;   /* OK through 2199 */
-
-    /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
-    m_time = ((days + dy) * 86400) + (hh * 3600) + (mm * 60) + ss;
-
-    /* adjust for local timezone */
-#ifdef BSD
-#ifdef __386BSD__
-    m_time -= localtime(&m_time)->tm_gmtoff;  /* seconds EAST of GMT:  subtr. */
+#ifdef __GNUC__
+      "gcc ", __VERSION__,
 #else
-    ftime(&tbp);                    /* get `timezone' */
-    m_time += tbp.timezone * 60L;   /* seconds WEST of GMT:  add */
-#endif
-#else /* !BSD */
-    tzset();              /* get `timezone' */
-    m_time += timezone;   /* seconds WEST of GMT:  add */
-#endif /* ?BSD */
-
-    /* adjust for daylight savings time (or local equivalent) */
-#ifndef __386BSD__  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
-    if (localtime(&m_time)->tm_isdst)
-        m_time -= 60L * 60L;   /* adjust for daylight savings time */
+#  if 0
+      "cc ", (sprintf(buf, " version %d", _RELEASE), buf),
+#  else
+#  ifdef __TURBOC__
+      "Turbo C", (sprintf(buf, " (0x%04x = %d)", __TURBOC__, __TURBOC__), buf),
+#  else
+      "unknown compiler", "",
+#  endif
+#  endif
 #endif
 
-    /* set the file's access and modification times */
-    tp.actime = tp.modtime = m_time;
-    if (utime(filename, &tp))
-        fprintf(stderr, "warning:  can't set the time for %s\n", filename);
+#ifdef __MINT__
+      "Atari TOS/MiNT",
+#else
+      "Atari TOS",
+#endif
 
-} /* end function set_file_time_and_close() */
+#if defined(atarist) || defined(ATARIST)
+      " (Atari ST/TT/Falcon030)",
+#else
+      "",
+#endif
 
-#endif /* 0 */
+#ifdef __DATE__
+      " on ", __DATE__
+#else
+      "", ""
+#endif
+      );
+
+} /* end function version() */
+
+#endif /* !SFX */

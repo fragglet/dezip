@@ -6,23 +6,71 @@
   output, file-related sorts of things, plus some miscellaneous stuff.  Most
   of the stuff has to do with opening, closing, reading and/or writing files.
 
+  Contains:  open_input_file()
+             open_outfile()           (non-VMS)
+             readbuf()
+             readbyte()
+             flush()                  (non-VMS)
+             disk_error()             (non-VMS)
+             handler()
+             dos_to_unix_time()       (non-VMS, non-OS/2)
+             check_for_newer()        (non-VMS, non-OS/2)
+             find_ecrec()
+             get_cdir_ent()
+             do_string()
+             makeword()
+             makelong()
+             memset()                 (ZMEM only)
+             memcpy()                 (ZMEM only)
+             zstrnicmp()
+             zstat()                  (REGULUS only)
+             LoadFarString()          (SMALL_MEM only)
+             LoadFarStringSmall()     (SMALL_MEM only)
+             LoadFarStringSmall2()    (SMALL_MEM only)
+
   ---------------------------------------------------------------------------*/
 
 
 #define FILE_IO_C
 #include "unzip.h"
 #include "crypt.h"
-#include "tables.h"   /* definition/initialization of crc_32_tab[], ebcdic[] */
+#include "tables.h"   /* definition/initialization of ebcdic[] */
 
-#ifdef USE_FWRITE  /* see GRR notes below about MS-DOS and 16-bit ints */
+#ifdef USE_FWRITE
 #  define WriteError(buf,len,strm) \
-          ((ulg)fwrite((char *)(buf),1,(extent)(len),strm) != (ulg)(len))
+     ((extent)fwrite((char *)(buf),1,(extent)(len),strm) != (extent)(len))
 #else
 #  define WriteError(buf,len,strm) \
-          ((ulg)write(fileno(strm),(char *)(buf),(extent)(len)) != (ulg)(len))
+     ((extent)write(fileno(strm),(char *)(buf),(extent)(len)) != (extent)(len))
 #endif
 
 static int disk_error OF((void));
+
+
+
+/*****************************/
+/* Strings used in file_io.c */
+/*****************************/
+
+#ifdef UNIX
+   static char Far CannotDeleteOldFile[] = "\nerror:  cannot delete old %s\n";
+#endif
+
+static char Far CantOpenZipfile[] = "error:  can't open zipfile [ %s ]\n";
+static char Far CannotCreateFile[] = "\nerror:  cannot create %s\n";
+static char Far ReadError[] = "error:  zipfile read error\n";
+static char Far DiskFull[] =
+  "\n%s:  write error (disk full?).  Continue? (y/n/^C) ";
+static char Far ZipfileCorrupt[] = "error:  zipfile probably corrupt (%s)\n";
+static char Far CentDirEndSigNotFound[] = "\
+  End-of-central-directory signature not found.  Either this file is not\n\
+  a zipfile, or it constitutes one disk of a multi-part archive.  In the\n\
+  latter case the central directory and zipfile comment will be found on\n\
+  the last disk(s) of this archive.\n";
+static char Far FilenameTooLongTrunc[] =
+  "warning:  filename too long--truncating.\n";
+static char Far ExtraFieldTooLong[] =
+  "warning:  extra field too long (%d).  Ignoring...\n";
 
 
 
@@ -53,7 +101,7 @@ int open_input_file()    /* return 1 if open failed */
 #endif /* ?VMS */
 #endif /* ?(UNIX || TOPS20) */
     if (zipfd < 0) {
-        fprintf(stderr, "error:  can't open zipfile [ %s ]\n", zipfn);
+        FPRINTF(stderr, LoadFarString(CantOpenZipfile), zipfn);
         return 1;
     }
     return 0;
@@ -77,20 +125,20 @@ int open_outfile()         /* return 1 if fail */
 #endif
 #ifdef UNIX
     if (stat(filename, &statbuf) == 0 && unlink(filename) < 0) {
-        fprintf(stderr, "\nerror:  cannot delete old %s\n", filename);
+        FPRINTF(stderr, LoadFarString(CannotDeleteOldFile), filename);
         return 1;
     }
 #endif
 #ifdef TOPS20
     char *tfilnam;
 
-    if ((tfilnam = (char *)malloc(2*strlen(filename)+1)) == NULL)
+    if ((tfilnam = (char *)malloc(2*strlen(filename)+1)) == (char *)NULL)
         return 1;
     strcpy(tfilnam, filename);
     upper(tfilnam);
     enquote(tfilnam);
-    if ((outfile = fopen(tfilnam, FOPW)) == NULL) {
-        fprintf(stderr, "\nerror:  cannot create %s\n", tfilnam);
+    if ((outfile = fopen(tfilnam, FOPW)) == (FILE *)NULL) {
+        FPRINTF(stderr, LoadFarString(CannotCreateFile), tfilnam);
         free(tfilnam);
         return 1;
     }
@@ -101,13 +149,13 @@ int open_outfile()         /* return 1 if fail */
         outfile = fopen(filename, FOPWT);
     else
         outfile = fopen(filename, FOPW);
-    if (outfile == NULL) {
-        fprintf(stderr, "\nerror:  cannot create %s\n", filename);
+    if (outfile == (FILE *)NULL) {
+        FPRINTF(stderr, LoadFarString(CannotCreateFile), filename);
         return 1;
     }
 #else
-    if ((outfile = fopen(filename, FOPW)) == NULL) {
-        fprintf(stderr, "\nerror:  cannot create %s\n", filename);
+    if ((outfile = fopen(filename, FOPW)) == (FILE *)NULL) {
+        FPRINTF(stderr, LoadFarString(CannotCreateFile), filename);
         return 1;
     }
 #endif
@@ -143,25 +191,25 @@ int open_outfile()         /* return 1 if fail */
 /* Function readbuf() */
 /**********************/
 
-int readbuf(buf, size)   /* return number of bytes read into buf */
+unsigned readbuf(buf, size)   /* return number of bytes read into buf */
     char *buf;
     register unsigned size;
 {
-    register int count;
-    int n;
+    register unsigned count;
+    unsigned n;
 
     n = size;
     while (size) {
         if (incnt == 0) {
 #ifdef OLD_READBUF
             if ((incnt = read(zipfd, (char *)inbuf, INBUFSIZ)) <= 0)
-                return (int)(n-size);
+                return (n-size);
 #else
             if ((incnt = read(zipfd, (char *)inbuf, INBUFSIZ)) == 0)
-                return (int)(n-size);
+                return (n-size);
             else if (incnt < 0) {
-                fprintf(stderr, "error:  zipfile read error\n");
-                return -1;  /* discarding some data, but better than lockup */
+                FPRINTF(stderr, LoadFarString(ReadError));
+                return 0;  /* discarding some data; better than lock-up */
             }
 #endif
             /* buffer ALWAYS starts on a block boundary:  */
@@ -225,9 +273,13 @@ int flush(rawbuf, size, unshrink)   /* cflag => always 0; 50 if write error */
     ulg size;
     int unshrink;
 {
+#ifdef ASM_CRC
+    ulg CalcCRC(ulg *crc_table, ulg crcval, uch *rawbuf, ulg rawbufsize);
+#else
     register ulg crcval = crc32val;
     register ulg n = size;
-    register uch *p=rawbuf, *q;
+#endif
+    register uch *p, *q;
     uch *transbuf;
     ulg transbufsiz;
     static int didCRlast = FALSE;
@@ -237,9 +289,14 @@ int flush(rawbuf, size, unshrink)   /* cflag => always 0; 50 if write error */
     Compute the CRC first; if testing or if disk is full, that's it.
   ---------------------------------------------------------------------------*/
 
+#ifdef ASM_CRC
+    crc32val = CalcCRC(crc_32_tab, crc32val, rawbuf, size);
+#else
+    p = rawbuf;
     while (n--)
         crcval = crc_32_tab[((uch)crcval ^ (*p++)) & 0xff] ^ (crcval >> 8);
     crc32val = crcval;
+#endif /* ?ASM_CRC */
 
     if (tflag || size == 0L)   /* testing or nothing to write:  all done */
         return 0;
@@ -260,7 +317,9 @@ int flush(rawbuf, size, unshrink)   /* cflag => always 0; 50 if write error */
          * have to be rewritten if size can ever be that large.  For now,
          * never more than 32K.  Also note that write() returns an int, which
          * doesn't necessarily limit size to 32767 bytes if write() is used
-         * on 16-bit systems but does make it more of a pain; hence it is not.
+         * on 16-bit systems but does make it more of a pain; however, because
+         * at least MSC 5.1 has a lousy implementation of fwrite() (as does
+         * DEC Ultrix cc), write() is used anyway.
          */
         if (WriteError(rawbuf, size, outfile))  /* write raw binary data */
             return cflag? 0 : disk_error();
@@ -346,8 +405,7 @@ int flush(rawbuf, size, unshrink)   /* cflag => always 0; 50 if write error */
 
 static int disk_error()
 {
-    fprintf(stderr, "\n%s:  write error (disk full?).  Continue? (y/n/^C) ",
-      filename);
+    FPRINTF(stderr, LoadFarString(DiskFull), filename);
     FFLUSH(stderr);
 
 #ifndef MSWIN
@@ -376,22 +434,27 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
     int signal;
 {
 #if defined(SIGBUS) || defined(SIGSEGV)
-    static char *corrupt = "error:  zipfile probably corrupt (%s)\n";
+#  ifdef SMALL_MEM
+    static char *corrupt;
+    corrupt = LoadFarString(ZipfileCorrupt);
+#  else
+    static char *corrupt = LoadFarString(ZipfileCorrupt);
+#  endif
 #endif
 
 #if !defined(DOS_NT_OS2) && !defined(MACOS)
     echon();
-    putc('\n', stderr);
+    PUTC('\n', stderr);
 #endif /* !DOS_NT_OS2 && !MACOS */
 #ifdef SIGBUS
     if (signal == SIGBUS) {
-        fprintf(stderr, corrupt, "bus error");
+        FPRINTF(stderr, corrupt, "bus error");
         exit(3);
     }
 #endif /* SIGBUS */
 #ifdef SIGSEGV
     if (signal == SIGSEGV) {
-        fprintf(stderr, corrupt, "segmentation violation");
+        FPRINTF(stderr, corrupt, "segmentation violation");
         exit(3);
     }
 #endif /* SIGSEGV */
@@ -402,10 +465,16 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 
 
 
-#ifndef VMS
+#ifdef DEBUG_TIME
+#  define TTrace(x)  FPRINTF x
+#else
+#  define TTrace(x)
+#endif
+
+#if !defined(VMS) && !defined(OS2)
 
 /*******************************/
-/* Function dos_to_unix_time() */
+/* Function dos_to_unix_time() */   /* only used for freshening/updating */
 /*******************************/
 
 time_t dos_to_unix_time(ddate, dtime)
@@ -424,9 +493,9 @@ time_t dos_to_unix_time(ddate, dtime)
     long m_time, days=0;
 #if (!defined(MACOS) && !defined(MSC))
 #if (defined(BSD) || defined(MTS) || defined(__GO32__))
-#ifndef __386BSD__
+#ifndef BSD4_4
     static struct timeb tbp;
-#endif /* __386BSD__ */
+#endif /* !BSD4_4 */
 #else /* !(BSD || MTS || __GO32__) */
 #ifdef ATARI_ST
     extern long _timezone;
@@ -471,10 +540,12 @@ time_t dos_to_unix_time(ddate, dtime)
     /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
     m_time = ((long)(days + dy) * 86400L) + ((long)hh * 3600) + (mm * 60) + ss;
       /* - 1;   MS-DOS times always rounded up to nearest even second */
+    TTrace((stderr, "dos_to_unix_time:\n"));
+    TTrace((stderr, "  m_time before timezone = %ld\n", m_time));
 
 #ifndef MACOS
 #if (defined(BSD) || defined(MTS) || defined(__GO32__))
-#if (!defined(__386BSD__) && !defined(__bsdi__))
+#ifndef BSD4_4
     ftime(&tbp);
     m_time += tbp.timezone * 60L;
 #endif
@@ -487,9 +558,10 @@ time_t dos_to_unix_time(ddate, dtime)
         /* account for timezone differences */
         res = GetTimeZoneInformation(&tzinfo);
         if (res == TIME_ZONE_ID_STANDARD)
-            m_time += 60*tzinfo.StandardBias;
+            m_time += 60*(tzinfo.Bias + tzinfo.StandardBias);
         else if (res == TIME_ZONE_ID_DAYLIGHT)
-            m_time += 60*tzinfo.DaylightBias;
+            m_time += 60*(tzinfo.Bias + tzinfo.DaylightBias);
+        /* GRR:  are other return-values possible? */
     }
 #else /* !WIN32 */
     tzset();                    /* set `timezone' variable */
@@ -497,31 +569,29 @@ time_t dos_to_unix_time(ddate, dtime)
 #endif /* ?WIN32 */
 #endif /* ?(BSD || MTS || __GO32__) */
 #endif /* !MACOS */
+    TTrace((stderr, "  m_time after timezone =  %ld\n", m_time));
 
-#ifdef __386BSD__               /* see comments in unix.c */
+#ifdef BSD4_4               /* see comments in unix.c */
     m_time -= localtime((time_t *) &m_time)->tm_gmtoff;
-#else /* !__386BSD__ */
+#else /* !BSD4_4 */
 #ifndef WIN32
     if (localtime((time_t *)&m_time)->tm_isdst)
         m_time -= 60L * 60L;    /* adjust for daylight savings time */
 #endif /* !WIN32 */
-#endif /* ?__386BSD__ */
+#endif /* ?BSD4_4 */
+    TTrace((stderr, "  m_time after DST =       %ld\n", m_time));
 
     return m_time;
 #endif /* ?TOPS20 */
 
 } /* end function dos_to_unix_time() */
 
-#endif /* !VMS */
 
 
 
-
-
-#if !defined(VMS) && !defined(OS2)
 
 /******************************/
-/* Function check_for_newer() */
+/* Function check_for_newer() */   /* only used for freshening/updating */
 /******************************/
 
 int check_for_newer(filename)   /* return 1 if existing file newer or equal; */
@@ -536,10 +606,9 @@ int check_for_newer(filename)   /* return 1 if existing file newer or equal; */
     existing = (statbuf.st_mtime & 1) ? statbuf.st_mtime+1 : statbuf.st_mtime;
     archive  = dos_to_unix_time(lrec.last_mod_file_date,
                                 lrec.last_mod_file_time);
-#ifdef PRINT_TIME
-    fprintf(stderr, "existing %ld, archive %ld, e-a %ld\n", existing, archive,
-      existing-archive);
-#endif
+
+    TTrace((stderr, "check_for_newer:  existing %ld, archive %ld, e-a %ld\n",
+      existing, archive, existing-archive));
 
     return (existing >= archive);
 
@@ -551,11 +620,11 @@ int check_for_newer(filename)   /* return 1 if existing file newer or equal; */
 
 
 
-/***********************************/
-/* Function find_end_central_dir() */
-/***********************************/
+/*************************/
+/* Function find_ecrec() */
+/*************************/
 
-int find_end_central_dir(searchlen)   /* return PK-class error */
+int find_ecrec(searchlen)   /* return PK-class error */
     long searchlen;
 {
     int i, numblks, found=FALSE;
@@ -644,12 +713,8 @@ fail:
         MessageBeep(1);
 #endif
         if (qflag || (zipinfo_mode && !hflag))
-            fprintf(stderr, "[%s]\n", zipfn);
-        fprintf(stderr, "\
-  End-of-central-directory signature not found.  Either this file is not\n\
-  a zipfile, or it constitutes one disk of a multi-part archive.  In the\n\
-  latter case the central directory and zipfile comment will be found on\n\
-  the last disk(s) of this archive.\n\n");
+            FPRINTF(stderr, "[%s]\n", zipfn);
+        FPRINTF(stderr, LoadFarString(CentDirEndSigNotFound));
         return PK_ERR;   /* failed */
     }
 
@@ -667,7 +732,7 @@ fail:
       inptr-inbuf, inptr-inbuf);
 #endif
 
-    if (readbuf((char *)byterec, ECREC_SIZE+4) <= 0)
+    if (readbuf((char *)byterec, ECREC_SIZE+4) == 0)
         return PK_EOF;
 
     ecrec.number_this_disk =
@@ -689,17 +754,17 @@ fail:
                           ecrec.size_central_directory;
     return PK_COOL;
 
-} /* end function find_end_central_dir() */
+} /* end function find_ecrec() */
 
 
 
 
 
-/********************************/
-/* Function get_cdir_file_hdr() */
-/********************************/
+/***************************/
+/* Function get_cdir_ent() */
+/***************************/
 
-int get_cdir_file_hdr()   /* return PK-type error code */
+int get_cdir_ent()   /* return PK-type error code */
 {
     cdir_byte_hdr byterec;
 
@@ -711,7 +776,7 @@ int get_cdir_file_hdr()   /* return PK-type error code */
     usable struct (crec)).
   ---------------------------------------------------------------------------*/
 
-    if (readbuf((char *)byterec, CREC_SIZE) <= 0)
+    if (readbuf((char *)byterec, CREC_SIZE) == 0)
         return PK_EOF;
 
     crec.version_made_by[0] = byterec[C_VERSION_MADE_BY_0];
@@ -750,7 +815,7 @@ int get_cdir_file_hdr()   /* return PK-type error code */
 
     return PK_COOL;
 
-} /* end function get_cdir_file_hdr() */
+} /* end function get_cdir_ent() */
 
 
 
@@ -795,12 +860,9 @@ int do_string(len, option)      /* return PK-type error code */
      * converting formats and printing as we go.  The second half of the
      * loop conditional was added because the file might be truncated, in
      * which case comment_bytes_left will remain at some non-zero value for
-     * all time.  outbuf is used as a scratch buffer because it is avail-
-     * able (we should be either before or in between any file processing).
-     * [The typecast in front of the MIN() macro was added because of the
-     * new promotion rules under ANSI C; readbuf() wants an int, but MIN()
-     * returns a signed long, if I understand things correctly.  The proto-
-     * type should handle it, but just in case...]
+     * all time.  outbuf and slide are used as scratch buffers because they
+     * are available (we should be either before or in between any file pro-
+     * cessing).
      */
 
     case DISPLAY:
@@ -808,16 +870,27 @@ int do_string(len, option)      /* return PK-type error code */
         block_length = OUTBUFSIZ;    /* for the while statement, first time */
         while (comment_bytes_left > 0 && block_length > 0) {
 #ifndef MSWIN
-            register uch *p = outbuf-1;
+            register uch *p = outbuf;
+            register uch *q = outbuf;
 #endif
             if ((block_length = readbuf((char *)outbuf,
-                   (int) MIN(OUTBUFSIZ, comment_bytes_left))) <= 0)
+                   (unsigned) MIN((long)OUTBUFSIZ, comment_bytes_left))) == 0)
                 return PK_EOF;
             comment_bytes_left -= block_length;
-            NUKE_CRs(outbuf, block_length);   /* (modifies block_length) */
 
-            /*  this is why we allocated an extra byte for outbuf: */
+            /* this is why we allocated an extra byte for outbuf: */
             outbuf[block_length] = '\0';   /* terminate w/zero:  ASCIIZ */
+
+            /* remove all ASCII carriage returns comment before printing
+             * (since used before A_TO_N(), check for CR instead of '\r')
+             */
+            while (*p) {
+                while (*p == CR)
+                    ++p;
+                *q++ = *p++;
+            }
+            /* could check whether (p - outbuf) == block_length here */
+            *q = '\0';
 
             A_TO_N(outbuf);   /* translate string to native */
 
@@ -826,18 +899,28 @@ int do_string(len, option)      /* return PK-type error code */
             WriteStringToMsgWin(outbuf, bRealTimeMsgUpdate);
 #else /* !MSWIN */
 #ifdef NATIVE
-            printf("%s", outbuf);   /* GRR:  can ANSI be used with EBCDIC? */
+            PRINTF("%s", outbuf);   /* GRR:  can ANSI be used with EBCDIC? */
 #else /* ASCII */
-            while (*++p)
+            p = outbuf - 1;
+            q = slide;
+            while (*++p) {
                 if (*p == 0x1B) {   /* ASCII escape char */
-                    putchar('^');
-                    putchar('[');
+                    *q++ = '^';
+                    *q++ = '[';
                 } else
-                    putchar(*p);
+                    *q++ = *p;
+                if ((unsigned)(q-slide) > WSIZE-3) {   /* time to flush */
+                    *q = '\0';
+                    PRINTF("%s", slide);
+                    q = slide;
+                }
+            }
+            *q = '\0';
+            PRINTF("%s", slide);
 #endif /* ?NATIVE */
 #endif /* ?MSWIN */
         }
-        printf("\n");   /* assume no newline at end */
+        PRINTF("\n");   /* assume no newline at end */
         break;
 
     /*
@@ -849,12 +932,12 @@ int do_string(len, option)      /* return PK-type error code */
     case FILENAME:
         extra_len = 0;
         if (len >= FILNAMSIZ) {
-            fprintf(stderr, "warning:  filename too long--truncating.\n");
+            FPRINTF(stderr, LoadFarString(FilenameTooLongTrunc));
             error = PK_WARN;
             extra_len = len - FILNAMSIZ + 1;
             len = FILNAMSIZ - 1;
         }
-        if (readbuf(filename, len) <= 0)
+        if (readbuf(filename, len) == 0)
             return PK_EOF;
         filename[len] = '\0';   /* terminate w/zero:  ASCIIZ */
 
@@ -876,7 +959,7 @@ int do_string(len, option)      /* return PK-type error code */
          * We truncated the filename, so print what's left and then fall
          * through to the SKIP routine.
          */
-        fprintf(stderr, "[ %s ]\n", filename);
+        FPRINTF(stderr, "[ %s ]\n", filename);
         len = extra_len;
         /*  FALL THROUGH...  */
 
@@ -899,11 +982,10 @@ int do_string(len, option)      /* return PK-type error code */
         if (extra_field != (uch *)NULL)
             free(extra_field);
         if ((extra_field = (uch *)malloc(len)) == (uch *)NULL) {
-            fprintf(stderr,
-              "warning:  extra field too long (%d).  Ignoring...\n", len);
+            FPRINTF(stderr, LoadFarString(ExtraFieldTooLong), len);
             LSEEK(cur_zipfile_bufstart + (inptr-inbuf) + len)
         } else
-            if (readbuf((char *)extra_field, len) <= 0)
+            if (readbuf((char *)extra_field, len) == 0)
                 return PK_EOF;
         break;
 
@@ -1018,3 +1100,70 @@ int zstrnicmp(s1, s2, n)
     }
     return 0;
 }
+
+
+
+
+
+#ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
+#  undef stat
+
+/********************/
+/* Function zstat() */
+/********************/
+
+int zstat(p, s)
+    char *p;
+    struct stat *s;
+{
+    return (stat(p,s) >= 0? 0 : (-1));
+}
+
+#endif /* REGULUS */
+
+
+
+
+
+#ifdef SMALL_MEM
+
+char rgchBigBuffer[512];
+char rgchSmallBuffer[96];
+char rgchSmallBuffer2[96];
+
+/******************************/
+/*  Function LoadFarString()  */   /* (and friends...) */
+/******************************/
+
+char *LoadFarString(char Far *sz)
+{
+    (void)zfstrcpy(rgchBigBuffer, sz);
+    return rgchBigBuffer;
+}
+
+char *LoadFarStringSmall(char Far *sz)
+{
+    (void)zfstrcpy(rgchSmallBuffer, sz);
+    return rgchSmallBuffer;
+}
+
+char *LoadFarStringSmall2(char Far *sz)
+{
+    (void)zfstrcpy(rgchSmallBuffer2, sz);
+    return rgchSmallBuffer2;
+}
+
+
+/*************************/
+/*  Function zfstrcpy()  */   /* portable clone of _fstrcpy() */
+/*************************/
+
+char Far * Far zfstrcpy(char Far *s1, const char Far *s2)
+{
+    char Far *p = s1;
+
+    while ((*s1++ = *s2++) != '\0');
+    return p;
+}
+
+#endif /* SMALL_MEM */

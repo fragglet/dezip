@@ -1,4 +1,4 @@
-/* inflate.h for UnZip -- Not copyrighted 1993 by Mark Adler
+/* inflate.h for UnZip -- put in the public domain by Mark Adler
    version c14e, 29 September 1993 */
 
 

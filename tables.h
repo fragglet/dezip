@@ -11,6 +11,8 @@
   ---------------------------------------------------------------------------*/
 
 
+#ifdef FUNZIP
+
 /* Table of CRC-32's of all single-byte values (made by makecrc.c) */
 ulg near crc_32_tab[] = {
     0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
@@ -66,6 +68,8 @@ ulg near crc_32_tab[] = {
     0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
     0x2d02ef8dL
 };
+
+#endif /* FUNZIP */
 
 
 

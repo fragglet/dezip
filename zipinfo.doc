@@ -1,14 +1,14 @@
 
-ZIPINFO(1L)            LOCAL USER COMMANDS            ZIPINFO(1L)
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
 
 NAME
      zipinfo - list detailed information about a ZIP archive
 
 SYNOPSIS
-     zipinfo      [-12smlvhtz]      file[.zip]      [file(s) ...]
+     zipinfo     [-12smlvhtTz]      file[.zip]      [file(s) ...]
      [-x xfile(s) ...]
 
-     unzip    -Z    [-12smlvhtz]     file[.zip]     [file(s) ...]
+     unzip    -Z    [-12smlvhtTz]    file[.zip]     [file(s) ...]
      [-x xfile(s) ...]
 
 DESCRIPTION
@@ -23,7 +23,8 @@ DESCRIPTION
      format is a cross between Unix ``ls -l''  and  ``unzip  -v''
      output.   See DETAILED DESCRIPTION below.  Note that zipinfo
      is the same program as unzip (under Unix, a link to it);  on
-     some systems, zipinfo support may not have been compiled in.
+     some systems, however, zipinfo support may have been omitted
+     when unzip was compiled.
 
 ARGUMENTS
      file[.zip]
@@ -52,6 +53,11 @@ ARGUMENTS
           be  interpreted  or  modified  by the operating system,
           particularly under Unix and VMS.)  If  no  matches  are
           found,  the  specification  is  assumed to be a literal
+
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 1
+
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
+
           filename; and if that also fails, the  suffix  .zip  is
           appended.  Note that self-extracting ZIP files are sup-
           ported; just specify the .exe suffix  (if  any)  expli-
@@ -105,6 +111,17 @@ OPTIONS
           includes  all  of the internal zipfile headers in addi-
           tion to the compressed data.
 
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 2
+
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
+
+     -T   print the file dates and times in  a  sortable  decimal
+          format  (yymmdd.hhmmss).   The default date format is a
+          more standard, human-readable version with  abbreviated
+          month names (see examples below).
+
+     -z   include the archive comment (if any) in the listing.
+
 DETAILED DESCRIPTION
      zipinfo has a number of  modes,  and  its  behavior  can  be
      rather  difficult  to fathom if one isn't familiar with Unix
@@ -134,28 +151,34 @@ DETAILED DESCRIPTION
      acter  (`T'  or `B').  The second character may also take on
      four values, depending on whether there is an extended local
      header  and/or  an  ``extra field'' associated with the file
-     (explained in PKWare's APPNOTE.TXT).  If neither exists, the
-     character  will  be  a hyphen (`-'); if there is an extended
-     local header but no extra field, `l'; if the  reverse,  `x';
-     and  if  both  exist, `X'.  Thus the file in this example is
-     (probably) a text file, is not encrypted, and has neither an
-     extra field nor an extended local header associated with it.
-     The example below, on the other hand, is an encrypted binary
-     file with an extra field:
+     (fully explained  in  PKWare's  APPNOTE.TXT,  but  basically
+     analogous  to  pragmas in ANSI C--i.e., they provide a stan-
+     dard  way  to  include  non-standard  information   in   the
+     archive).  If neither exists, the character will be a hyphen
+     (`-'); if there is an extended local  header  but  no  extra
+     field,  `l';  if  the  reverse, `x'; and if both exist, `X'.
+     Thus the file in this example is (probably) a text file,  is
+     not  encrypted,  and  has  neither  an  extra  field  nor an
+     extended local  header  associated  with  it.   The  example
+     below,  on  the other hand, is an encrypted binary file with
+     an extra field:
 
 RWD,R,R     0.9 vms     168 Bx shrk  9-Aug-91 19:15 perms.0644
 
-     Extra fields are used by PKWARE for  authenticity  verifica-
-     tion  and possibly other purposes, and by Info-ZIP's zip 1.6
-     and later to store OS/2, Macintosh and VMS file  attributes.
-     This  example  presumably falls into the latter class, then.
-     Note that the file attributes  are  listed  in  VMS  format.
-     Some  other  possibilities  for  the  host  operating system
-     (which is actually a misnomer;  host  file  system  is  more
-     correct)  include OS/2 or NT with High Performance File Sys-
-     tem (HPFS), MS-DOS, OS/2 or NT with  File  Allocation  Table
-     (FAT) file system, and Macintosh.  These are denoted as fol-
-     lows:
+     Extra fields are used for various purposes  (see  discussion
+     of  the  -v  option below) including the storage of VMS file
+
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 3
+
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
+
+     attributes, which is presumably the case  here.   Note  that
+     the  file  attributes  are listed in VMS format.  Some other
+     possibilities for the host operating system (which is  actu-
+     ally  a  misnomer--host file system is more correct) include
+     OS/2 or NT with High Performance File System (HPFS), MS-DOS,
+     OS/2 or NT with File Allocation Table (FAT) file system, and
+     Macintosh.  These are denoted as follows:
 
 -rw-a--     1.0 hpf    5358 Tl i4:3  4-Dec-91 11:33 longfilename.hpfs
 -r--ahs     1.1 fat    4096 b- i4:2 14-Jul-91 12:58 EA DATA. SF
@@ -198,6 +221,20 @@ RWD,R,R     0.9 vms     168 Bx shrk  9-Aug-91 19:15 perms.0644
 
 -rw-rws---  1.5 unx    2802 t-     538 defX 11-Aug-91 13:48 perms.2660
 
+     Adding the -T option changes  the  file  date  and  time  to
+     decimal format:
+
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 4
+
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
+
+-rw-rws---  1.5 unx    2802 t-     538 defX 910811.134804 perms.2660
+
+     Note that because of limitations in the MS-DOS  format  used
+     to  store file times, the seconds field is always rounded to
+     the nearest even second.  For Unix files this is expected to
+     change in the next major releases of zip(1L) and unzip.
+
      In addition to individual file information, a  default  zip-
      file listing also includes header and trailer lines:
 
@@ -223,13 +260,19 @@ Archive:  OS2.zip   5453 bytes   5 files
      trailer  line (or both) is listed.  See the EXAMPLES section
      below for a semi-intelligible translation of this nonsense.
 
-     The verbose listing is self-explanatory.  It also lists file
-     comments  and the zipfile comment, if any, and the number of
-     bytes of OS/2 extended attributes  stored.   Note  that  the
-     latter  number will in general NOT match the number given by
-     OS/2's ``dir'' command; OS/2 always reports  the  number  of
-     bytes  required  in  16-bit  format,  whereas zipinfo always
-     reports the 32-bit storage.
+     The verbose listing is  mostly  self-explanatory.   It  also
+     lists file comments and the zipfile comment, if any, and the
+     type and  number  of  bytes  in  any  stored  extra  fields.
+     Currently  known  types  of  extra  fields  include PKWARE's
+     authentication (``AV'') info; OS/2 extended attributes;  VMS
+     filesystem  info,  both PKWARE and Info-ZIP versions; Macin-
+     tosh resource forks; Acorn/Archimedes SparkFS info;  and  so
+     on.   (Note  that  in the case of OS/2 extended attributes--
+     perhaps the most common use  of  zipfile  extra  fields--the
+     size  of the stored EAs as reported by zipinfo may not match
+     the number given by OS/2's dir command: OS/2 always  reports
+     the  number  of  bytes  required  in  16-bit format, whereas
+     zipinfo always reports the 32-bit storage.)
 
 ENVIRONMENT OPTIONS
      Modifying zipinfo's default behavior via options  placed  in
@@ -237,6 +280,11 @@ ENVIRONMENT OPTIONS
      due to zipinfo's attempts to handle various defaults  in  an
      intuitive,  yet  Unix-like,  manner.   (Try  not  to laugh.)
      Nevertheless, there is some  underlying  logic.   In  brief,
+
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 5
+
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
+
      there are three ``priority levels'' of options:  the default
      options; environment options, which can override or  add  to
      the  defaults; and explicit options given by the user, which
@@ -248,10 +296,10 @@ ENVIRONMENT OPTIONS
      long-listing  format  (-l)  can  make  use  of the zipinfo's
      environment variable to change this default:
 
-        ZIPINFO=-l; export ZIPINFO   Unix Bourne shell
-        setenv ZIPINFO -l            Unix C shell
-        set ZIPINFO=-l               OS/2 or MS-DOS
-        define ZIPINFO_OPTS "-l"     VMS (quotes for lowercase)
+         ZIPINFO=-l; export ZIPINFO    Unix Bourne shell
+         setenv ZIPINFO -l             Unix C shell
+         set ZIPINFO=-l                OS/2 or MS-DOS
+         define ZIPINFO_OPTS "-l"      VMS (quotes for lowercase)
 
      If,  in  addition,  the  user  dislikes  the  trailer  line,
      zipinfo's  concept  of  ``negative  options'' may be used to
@@ -265,25 +313,40 @@ ENVIRONMENT OPTIONS
      there.   It is also consistent with the behavior of the Unix
      command nice(1).
 
+     As  suggested  above,  the  default   variable   names   are
+     ZIPINFO_OPTS  for  VMS  (where  the  symbol  used to install
+     zipinfo as a foreign command  would  otherwise  be  confused
+     with  the  environment  variable), and ZIPINFO for all other
+     operating systems.  For compatibility with  zip(1L),  ZIPIN-
+     FOOPT  is  also  accepted  (don't ask).  If both ZIPINFO and
+     ZIPINFOOPT are defined, however, ZIPINFO  takes  precedence.
+     unzip's  diagnostic  option (-v with no zipfile name) can be
+     used to check the values of  all  four  possible  unzip  and
+     zipinfo environment variables.
+
 EXAMPLES
      To get a basic, short-format listing of  the  complete  con-
      tents  of  a  ZIP  archive storage.zip, with both header and
      totals lines, use only the archive name as  an  argument  to
      zipinfo:
 
-        zipinfo storage
+         zipinfo storage
 
      To produce  a  basic,  long-format  listing  (not  verbose),
      including header and totals lines, use -l:
 
-        zipinfo -l storage
+         zipinfo -l storage
+
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 6
+
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
 
      To list the complete contents of the archive without  header
      and  totals  lines,  either  negate the -h and -t options or
      else specify the contents explicitly:
 
-        zipinfo --h-t storage
-        zipinfo storage \*
+         zipinfo --h-t storage
+         zipinfo storage \*
 
      (where the backslash is required only  if  the  shell  would
      otherwise  expand the `*' wildcard, as in Unix when globbing
@@ -291,8 +354,8 @@ EXAMPLES
      worked  as  well).   To turn off the totals line by default,
      use the environment variable (C shell is assumed here):
 
-        setenv ZIPINFO --t
-        zipinfo storage
+         setenv ZIPINFO --t
+         zipinfo storage
 
      To get the full, short-format listing of the  first  example
      again,  given that the environment variable is set as in the
@@ -300,9 +363,9 @@ EXAMPLES
      explicitly,  since the -t option by itself implies that ONLY
      the footer line is to be printed:
 
-        setenv ZIPINFO --t
-        zipinfo -t storage           [only totals line]
-        zipinfo -st storage          [full listing]
+         setenv ZIPINFO --t
+         zipinfo -t storage            [only totals line]
+         zipinfo -st storage           [full listing]
 
      The -s option, like -m and -l, includes headers and  footers
      by  default, unless otherwise specified.  Since the environ-
@@ -320,7 +383,7 @@ EXAMPLES
      To list information on a single file within the archive,  in
      medium format, specify the filename explicitly:
 
-        zipinfo -m storage unshrink.c
+         zipinfo -m storage unshrink.c
 
      The specification of any member file, as  in  this  example,
      will  override the default header and totals lines; only the
@@ -331,13 +394,34 @@ EXAMPLES
      uncompressed size; in such cases -t may be specified  expli-
      citly:
 
-        zipinfo -mt storage "*.[ch]" Mak\*
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 7
 
-     Finally, to get maximal information about the  ZIP  archive,
-     use the verbose option.  It is usually wise to pipe the out-
-     put into a filter such as more(1):
+ZIPINFO(1L)       MISC. REFERENCE MANUAL PAGES        ZIPINFO(1L)
 
-        zipinfo -v storage | more
+         zipinfo -mt storage "*.[ch]" Mak\*
+
+     To get maximal information about the ZIP  archive,  use  the
+     verbose  option.  It is usually wise to pipe the output into
+     a filter such as Unix more(1) if the operating system allows
+     it:
+
+         zipinfo -v storage | more
+
+     Finally, to see the most  recently  modified  files  in  the
+     archive,  use  the -T option in conjunction with an external
+     sorting utility such as Unix sort(1) (and tail(1)  as  well,
+     in this example):
+
+         zipinfo -T storage | sort -n +6 | tail -15
+
+     The -n option to sort(1) tells it to sort numerically rather
+     than  in  ASCII order, and the +6 option tells it to sort on
+     the sixth field after  the  first  one  (i.e.,  the  seventh
+     field).   This  assumes the default short-listing format; if
+     -m or -l is used, the proper sort(1)  option  would  be  +7.
+     The tail(1) command filters out all but the last 15 lines of
+     the listing.  Future releases  of  zipinfo  may  incorporate
+     date/time and filename sorting as built-in options.
 
 TIPS
      The author finds it convenient to define  an  alias  ii  for
@@ -352,14 +436,14 @@ BUGS
      a good one.
 
 SEE ALSO
-     ls(1), funzip(1), unzip(1), zip(1), zipcloak(1), zipnote(1),
-     zipsplit(1)
+     ls(1),   funzip(1L),   unzip(1L),   unzipsfx(1L),   zip(1L),
+     zipcloak(1L), zipnote(1L), zipsplit(1L)
 
 AUTHOR
      Greg Roelofs (a.k.a. Cave Newt).  ZipInfo contains  pattern-
-     matching  code  by Mark Adler, and the OS/2 extra-field code
-     is by Kai Uwe Rommel; many other have contributed fixes  and
-     improvements.   Please  refer  to  the  CONTRIBS file in the
-     UnZip source distribution for a more complete list.
+     matching  code  by Mark Adler and fixes/improvements by many
+     others.  Please refer to the  CONTRIBS  file  in  the  UnZip
+     source distribution for a more complete list.
 
-Info-ZIP             Last change:  7 Feb 94                  v2.0
+Info-ZIP         Last change: 28 Aug 94 (v2.02)                 8
+

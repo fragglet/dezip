@@ -12,27 +12,43 @@ Bogus bugs (not our fault!):
  path.  Make sure you're using the version you think you're using; give
  the full path explicitly if necessary.  Executing "unzip" without any
  options will print a help screen, at the top of which is the UnZip
- version number and release date.
+ version number and release date; and executing "unzip -v" without any
+ zipfile or other options will give information about what compiler was
+ used, the target operating system, any special UnZip options, and the 
+ date of compilation--only for version 5.11 and later, though!  (Also,
+ under Unix C shell and some Bourne shells, "which unzip" will print 
+ the path of the unzip you're actually using.  Under OS/2 and MS-DOS,
+ whch21gr.zip [on SimTel mirror sites] will do the same thing; in addi-
+ tion, "which -a unzip" will show *all* copies of unzip in your path.)
 
 
 Bugs (real and/or imagined):
 ---------------------------
 
+ - MKS Korn shell:  unzip assumes the MKS-style command-line environment
+    options are relevant to it, but this is not the case if unzip was called
+    by another program (e.g., from a .BAT file).  A fix for this exists for
+    Borland compilers but not for MSC, Watcom, djgpp, etc.
+ - OS/2:  for paths with one long component, the .LONGNAME EA may be saved for
+    all components (waste of disk space):  how to check??
+ - VMS:  for extracting to other directories, only the VMS-style "-d [.foo]"
+    format is accepted; "-d foo" should also be allowed.  Long filenames are
+    not automatically truncated to 39.39.  Even with -o specified, the user
+    is queried before overwriting; without -o, there are two levels of query.
+ - Novell Netware:  Netware drives may clear the archive bit on extracted
+    files under OS/2 and/or MS-DOS.  UnZip always *tries* to set the archive
+    bit, however.  [pynq@uchicago, 940527]
  - DEC Ultrix:  on long zipfiles, unzip will sometimes fail (bad CRC, not always
     reproducible); this is apparently due either to a hardware bug (cache mem)
     or OS bug (page faults?) [Igor, Jean-loup, bottom of BUGS.long]
  - Pyramid:  USE_FWRITE causes CRC errors (???) [Kevin]
- - possible problems with unzip -a on binary file in compact-model-MSDOS-Zip-
-    created archive? (showed up with MSDOS zip 1.9l and various unzips; inflate
-    crashes(?)) [Piet]
- - funzip/more/decryption/no-echo bug:  race condition(?) causes terminal
-    to be "reset" to no-echo state
+ - funzip/more/decryption/no-echo bug:  race condition(?) causes terminal to
+    be "reset" to no-echo state
  - directory dates/times (special Unix perms?) not restored
  - Macintosh (100200), Atari (020000) external file attributes not interpreted
     correctly (both unzip and zipinfo)
  - pkbug error:  zipfile with incorrect csize and/or ucsize--check for end of
     compressed (csize) data in uncompression routines:
-      unimplod.c:    while ((!zipeof) && ((outpos + outcnt) < ucsize)) {
       unreduce.c:    while (((outpos + outcnt) < ucsize) && (!zipeof)) {
     [James Birdsall, Mark, bottom of BUGS.long]
  - OS/2:  directory EAs not restored if directory exists [Kai Uwe, KG27515@uark]

@@ -14,8 +14,8 @@
   GRR:  reversed order of text, pattern in matche() (now same as match());
         added ignore_case/ic flags, Case() macro.
 
-  PK:   replaced matche() with recmatch() from Zip, modified to have an
-        ignore_case argument; replaced test frame with simpler one.
+  PaulK:  replaced matche() with recmatch() from Zip, modified to have an
+          ignore_case argument; replaced test frame with simpler one.
 
   ---------------------------------------------------------------------------
 
@@ -39,29 +39,31 @@
   returns TRUE if string matches pattern, FALSE otherwise.  In the pattern:
 
      `*' matches any sequence of characters (zero or more)
-     `?' matches any character
+     `?' matches any single character
      [SET] matches any character in the specified set,
      [!SET] or [^SET] matches any character not in the specified set.
 
   A set is composed of characters or ranges; a range looks like ``character
   hyphen character'' (as in 0-9 or A-Z).  [0-9a-zA-Z_] is the minimal set of
   characters allowed in the [..] pattern construct.  Other characters are
-  allowed (ie. 8 bit characters) if your system will support them.
+  allowed (i.e., 8-bit characters) if your system will support them.
 
   To suppress the special syntactic significance of any of ``[]*?!^-\'', in-
   side or outside a [..] construct and match the character exactly, precede
   it with a ``\'' (backslash).
 
   Note that "*.*" and "*." are treated specially under MS-DOS if DOSWILD is
-  defined.  See the DOSWILD section below for an explanation.
+  defined.  See the DOSWILD section below for an explanation.  Note also
+  that with VMSWILD defined, '%' is used instead of '?', and sets (ranges)
+  are delimited by () instead of [].
 
   ---------------------------------------------------------------------------*/
 
 
 
-#include "unzip.h"    /* define ToLower() in here (for Unix, define ToLower
-                       * to be macro (using isupper()); otherwise just use
-                       * tolower() */
+/* define ToLower() in here (for Unix, define ToLower to be macro (using
+ * isupper()); otherwise just use tolower() */
+#include "unzip.h"
 
 #if 0  /* this is not useful until it matches Amiga names insensitively */
 #ifdef AMIGA        /* some other platforms might also want to use this */
@@ -78,6 +80,16 @@
 #  define ToLower(c) (IsUpper((uch) c) ? (unsigned) c | 0x20 : (unsigned) c)
 #endif
 #define Case(x)  (ic? ToLower(x) : (x))
+
+#ifdef VMSWILD
+#  define WILDCHAR   '%'
+#  define BEG_RANGE  '('
+#  define END_RANGE  ')'
+#else
+#  define WILDCHAR   '?'
+#  define BEG_RANGE  '['
+#  define END_RANGE  ']'
+#endif
 
 #if 0                /* GRR:  add this to unzip.h someday... */
 #if !(defined(MSDOS) && defined(DOSWILD))
@@ -151,11 +163,7 @@ static int recmatch(p, s, ic)
         return *s == 0;
 
     /* '?' (or '%') matches any character (but not an empty string) */
-#ifdef VMS
-    if (c == '%')         /* GRR:  make this conditional, too? */
-#else /* !VMS */
-    if (c == '?')
-#endif /* ?VMS */
+    if (c == WILDCHAR)
         return *s ? recmatch(p, s + 1, ic) : 0;
 
     /* '*' matches any number of characters, including zero */
@@ -173,7 +181,7 @@ static int recmatch(p, s, ic)
     }
 
     /* Parse and process the list of characters and ranges in brackets */
-    if (c == '[') {
+    if (c == BEG_RANGE) {
         int e;          /* flag true if next char to be taken literally */
         uch *q;         /* pointer to end of [-] group */
         int r;          /* flag true to match anything but the range */
@@ -187,9 +195,9 @@ static int recmatch(p, s, ic)
             else
                 if (*q == '\\')      /* GRR:  change to ^ for MS-DOS, OS/2? */
                     e = 1;
-                else if (*q == ']')
+                else if (*q == END_RANGE)
                     break;
-        if (*q != ']')               /* nothing matches if bad syntax */
+        if (*q != END_RANGE)         /* nothing matches if bad syntax */
             return 0;
         for (c = 0, e = *p == '-'; p < q; p++) {  /* go through the list */
             if (e == 0 && *p == '\\')             /* set escape flag if \ */
@@ -201,7 +209,7 @@ static int recmatch(p, s, ic)
 
                 if (*(p+1) != '-')
                     for (c = c ? c : *p; c <= *p; c++)  /* compare range */
-                        if (Case(c) == cc)
+                        if ((unsigned)Case(c) == cc)  /* typecast for MSC bug */
                             return r ? 0 : recmatch(q + 1, s + 1, ic);
                 c = e = 0;   /* clear range, escape flags */
             }
@@ -221,11 +229,10 @@ static int recmatch(p, s, ic)
 
 
 
-#ifdef WILD_STAT_BUG   /* Turbo/Borland C, Watcom C, VAX C, Atari MiNT libs */
 
-int iswild(p)
-    char *p;
-{
+int iswild(p)        /* originally only used for stat()-bug workaround in */
+    char *p;         /*  VAX C, Turbo/Borland C, Watcom C, Atari MiNT libs; */
+{                    /*  now used in process_zipfiles() as well */
     for (; *p; ++p)
         if (*p == '\\' && *(p+1))
             ++p;
@@ -244,16 +251,15 @@ int iswild(p)
 
 } /* end function iswild() */
 
-#endif /* WILD_STAT_BUG */
 
 
 
 
 #ifdef TEST_MATCH
 
-#define put(s) { fputs(s, stdout); fflush(stdout); }
+#define put(s) {fputs(s,stdout); fflush(stdout);}
 
-void main(void)
+void main()
 {
     char pat[256], str[256];
 

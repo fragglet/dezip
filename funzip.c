@@ -1,6 +1,6 @@
-/* funzip.c -- Not copyrighted 1992-94 by Mark Adler */
+/* funzip.c -- put in the public domain by Mark Adler */
 
-#define VERSION "3.8 of 7 February 1994"
+#define VERSION "3.83 of 28 August 1994"
 
 
 /* You can do whatever you like with this source file, though I would
@@ -10,51 +10,56 @@
    History:
    vers     date          who           what
    ----   ---------  --------------  ------------------------------------
-    1.0   13 Aug 92  M. Adler        really simple unzip filter.
-    1.1   13 Aug 92  M. Adler        cleaned up somewhat, give help if
+   1.0    13 Aug 92  M. Adler        really simple unzip filter.
+   1.1    13 Aug 92  M. Adler        cleaned up somewhat, give help if
                                      stdin not redirected, warn if more
                                      zip file entries after the first.
-    1.2   15 Aug 92  M. Adler        added check of lengths for stored
+   1.2    15 Aug 92  M. Adler        added check of lengths for stored
                                      entries, added more help.
-    1.3   16 Aug 92  M. Adler        removed redundant #define's, added
+   1.3    16 Aug 92  M. Adler        removed redundant #define's, added
                                      decryption.
-    1.4   27 Aug 92  G. Roelofs      added exit(0).
-    1.5    1 Sep 92  K. U. Rommel    changed read/write modes for OS/2.
-    1.6    6 Sep 92  G. Roelofs      modified to use dummy crypt.c and
+   1.4    27 Aug 92  G. Roelofs      added exit(0).
+   1.5     1 Sep 92  K. U. Rommel    changed read/write modes for OS/2.
+   1.6     6 Sep 92  G. Roelofs      modified to use dummy crypt.c and
                                      crypt.h instead of -DCRYPT.
-    1.7   23 Sep 92  G. Roelofs      changed to use DOS_OS2; included
+   1.7    23 Sep 92  G. Roelofs      changed to use DOS_OS2; included
                                      crypt.c under MS-DOS.
-    1.8    9 Oct 92  M. Adler        improved inflation error msgs.
-    1.9   17 Oct 92  G. Roelofs      changed ULONG/UWORD/byte to ulg/ush/uch;
+   1.8     9 Oct 92  M. Adler        improved inflation error msgs.
+   1.9    17 Oct 92  G. Roelofs      changed ULONG/UWORD/byte to ulg/ush/uch;
                                      renamed inflate_entry() to inflate();
                                      adapted to use new, in-place zdecode.
-    2.0   22 Oct 92  M. Adler        allow filename argument, prompt for
+   2.0    22 Oct 92  M. Adler        allow filename argument, prompt for
                                      passwords and don't echo, still allow
                                      command-line password entry, but as an
                                      option.
-    2.1   23 Oct 92  J-l. Gailly     fixed crypt/store bug,
+   2.1    23 Oct 92  J-l. Gailly     fixed crypt/store bug,
                      G. Roelofs      removed crypt.c under MS-DOS, fixed
                                      decryption check to compare single byte.
-    2.2   28 Oct 92  G. Roelofs      removed declaration of key.
-    2.3   14 Dec 92  M. Adler        replaced fseek (fails on stdin for SCO
+   2.2    28 Oct 92  G. Roelofs      removed declaration of key.
+   2.3    14 Dec 92  M. Adler        replaced fseek (fails on stdin for SCO
                                      Unix V.3.2.4).  added quietflg for
                                      inflate.c.
-    3.0   11 May 93  M. Adler        added gzip support
-    3.1    9 Jul 93  K. U. Rommel    fixed OS/2 pipe bug (PIPE_ERROR)
-    3.2    4 Sep 93  G. Roelofs      moved crc_32_tab[] to tables.h; used FOPx
+   3.0    11 May 93  M. Adler        added gzip support
+   3.1     9 Jul 93  K. U. Rommel    fixed OS/2 pipe bug (PIPE_ERROR)
+   3.2     4 Sep 93  G. Roelofs      moved crc_32_tab[] to tables.h; used FOPx
                                      from unzip.h; nuked OUTB macro and outbuf;
                                      replaced flush(); inlined FlushOutput();
                                      renamed decrypt to encrypted
-    3.3   29 Sep 93  G. Roelofs      replaced ReadByte() with NEXTBYTE macro;
+   3.3    29 Sep 93  G. Roelofs      replaced ReadByte() with NEXTBYTE macro;
                                      revised (restored?) flush(); added FUNZIP
-    3.4   21 Oct 93  G. Roelofs      renamed quietflg to qflag; changed outcnt,
+   3.4    21 Oct 93  G. Roelofs      renamed quietflg to qflag; changed outcnt,
                      H. Gessau       second updcrc() arg and flush() arg to ulg;
                                      added inflate_free(); added "g =" to null
                                      getc(in) to avoid compiler warnings
-    3.5   31 Oct 93  H. Gessau       changed DOS_OS2 to DOS_NT_OS2
-    3.6    6 Dec 93  H. Gessau       added "near" to mask_bits[]
-    3.7    9 Dec 93  G. Roelofs      added extent typecasts to fwrite() checks
-    3.8   28 Jan 94  GRR/JlG         initialized g variable in main() for gcc
+   3.5    31 Oct 93  H. Gessau       changed DOS_OS2 to DOS_NT_OS2
+   3.6     6 Dec 93  H. Gessau       added "near" to mask_bits[]
+   3.7     9 Dec 93  G. Roelofs      added extent typecasts to fwrite() checks
+   3.8    28 Jan 94  GRR/JlG         initialized g variable in main() for gcc
+   3.81   22 Feb 94  M. Hanning-Lee  corrected usage message
+   3.82   27 Feb 94  G. Roelofs      added some typecasts to avoid warnings
+   3.83   22 Jul 94  G. Roelofs      changed fprintf to FPRINTF for DLLs
+    -      2 Aug 94  -               public release with UnZip 5.11
+    -     28 Aug 94  -               public release with UnZip 5.12
  */
 
 
@@ -149,7 +154,7 @@ ulg n;                  /* number of bytes in s[] */
 
   static ulg crc = 0xffffffffL; /* shift register contents */
 
-  if (s == NULL)
+  if (s == (uch *)NULL)
     c = 0xffffffffL;
   else
   {
@@ -167,7 +172,7 @@ int n;
 char *m;
 /* Exit on error with a message and a code */
 {
-  fprintf(stderr, "funzip error: %s\n", m);
+  FPRINTF(stderr, "funzip error: %s\n", m);
   exit(n);
 }
 
@@ -204,7 +209,7 @@ char **argv;
 
 #ifdef CRYPT
   /* get the command line password, if any */
-  p = NULL;
+  p = (char *)NULL;
   if (argc && **argv == '-')
   {
     argc--;
@@ -215,20 +220,20 @@ char **argv;
   /* if no file argument and stdin not redirected, give the user help */
   if (argc == 0 && isatty(0))
   {
-    fprintf(stderr, "fUnZip (filter UnZip), version %s\n", VERSION);
-    fprintf(stderr, "usage: ... | funzip%s | ...\n", s);
-    fprintf(stderr, "       ... | funzip%s > outfile\n", s);
-    fprintf(stderr, "       funzip%s infile.zip > outfile\n", s);
-    fprintf(stderr, "       funzip%s infile.gz > outfile\n", s);
-    fprintf(stderr,
-    "       extracts to stdout the gzip file or first zip entry of stdin.\n");
+    FPRINTF(stderr, "fUnZip (filter UnZip), version %s\n", VERSION);
+    FPRINTF(stderr, "usage: ... | funzip%s | ...\n", s);
+    FPRINTF(stderr, "       ... | funzip%s > outfile\n", s);
+    FPRINTF(stderr, "       funzip%s infile.zip > outfile\n", s);
+    FPRINTF(stderr, "       funzip%s infile.gz > outfile\n", s);
+    FPRINTF(stderr, "Extracts to stdout the gzip file or first zip entry of\
+ stdin or the given file.\n");
     exit(3);
   }
 
   /* prepare to be a binary filter */
   if (argc)
   {
-    if ((in = fopen(*argv, FOPR)) == NULL)
+    if ((in = fopen(*argv, FOPR)) == (FILE *)NULL)
       err(2, "cannot find input file");
   }
   else
@@ -236,13 +241,13 @@ char **argv;
 #ifdef DOS_NT_OS2
     setmode(0, O_BINARY);  /* some buggy C libraries require BOTH setmode() */
 #endif                     /*  call AND the fdopen() in binary mode :-( */
-    if ((in = fdopen(0, FOPR)) == NULL)
+    if ((in = fdopen(0, FOPR)) == (FILE *)NULL)
       err(2, "cannot find stdin");
   }
 #ifdef DOS_NT_OS2
   setmode(1, O_BINARY);
 #endif
-  if ((out = fdopen(1, FOPW)) == NULL)
+  if ((out = fdopen(1, FOPW)) == (FILE *)NULL)
     err(2, "cannot write to stdout");
 
   /* read local header, check validity, and skip name and extra fields */
@@ -287,10 +292,10 @@ char **argv;
     {
       ush i, e;
 
-      if (p == NULL)
-        if ((p = (char *)malloc(PWLEN+1)) == NULL)
+      if (p == (char *)NULL)
+        if ((p = (char *)malloc(PWLEN+1)) == (char *)NULL)
           err(1, "out of memory");
-        else if ((p = getp("Enter password: ", p, PWLEN+1)) == NULL)
+        else if ((p = getp("Enter password: ", p, PWLEN+1)) == (char *)NULL)
           err(1, "no tty to prompt for password");
       init_keys(p);
       for (i = 0; i < RAND_HEAD_LEN; i++)
@@ -326,7 +331,7 @@ char **argv;
 
     n = LG(h + LOCLEN);
     if (n != LG(h + LOCSIZ) - (encrypted ? RAND_HEAD_LEN : 0)) {
-      fprintf(stderr, "len %ld, siz %ld\n", n, LG(h + LOCSIZ));
+      FPRINTF(stderr, "len %ld, siz %ld\n", n, LG(h + LOCSIZ));
       err(4, "invalid compressed data--length mismatch");
     }
     while (n--) {
@@ -377,7 +382,7 @@ char **argv;
 
   /* check if there are more entries */
   if (!g && fread((char *)h, 1, 4, in) == 4 && LG(h) == LOCSIG)
-    fprintf(stderr,
+    FPRINTF(stderr,
       "funzip warning: zip file has more than one entry--rest ignored\n");
 
   exit(0);

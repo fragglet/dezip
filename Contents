@@ -1,21 +1,21 @@
-Contents of the UnZip 5.1 archive (the OS-specific subdirectories at the
+Contents of the UnZip 5.11 archive (the OS-specific subdirectories at the
 end contain their own Contents listings):
 
   Contents	this file
   README	what UnZip is; general information
   INSTALL	how to compile and install UnZip and related utilities
   Where		where Zip/UnZip and encryption/decryption support can be found
-  History.510	new features and fixes in this release
-  ZipRules	Info-ZIP guidelines on contributions to the cause
-  BUGS		known bugs, problems, and (possible) features to be added
-  unzip.1	UnZip manual page, nroff format
+  History.511	new features and fixes in this release
+  ZipPorts	Info-ZIP rules and guidelines on contributions to the cause
+  ToDo		rough priority list of new features to be added in next release
+  BUGS		known bugs, problems, and (possible) other features to be added
   unzip.doc	UnZip manual page, human-readable format
-  zipinfo.1	ZipInfo manual page, nroff format
+  unzipsfx.doc	UnZipSFX manual page, human-readable format
   zipinfo.doc	ZipInfo manual page, human-readable format
-  funzip.1 	fUnZip manual page, nroff format
   funzip.doc	fUnZip manual page, human-readable format
   CONTRIBS	list of contributors to UnZip
   COPYING	copyrights and distribution policy
+  file_id.diz	BBS-oriented file describing this archive
   crypt.c	dummy decryption routines (required*)
   crypt.h	dummy decryption header file (required*)
   envargs.c	code to read options from UNZIP environment var. (required)
@@ -31,6 +31,7 @@ end contain their own Contents listings):
   unshrink.c	code for unshrinking (required)
   unzip.c	main UnZip driver code (required)
   unzip.h	main UnZip header file (required*)
+  version.h	header with UnZip/UnZipSFX and ZipInfo version info (required)
   zip.h		dummy header for use with crypt.c (required*)
   zipinfo.c	UnZip listing routines, mainly for ZipInfo mode (required)
   amiga/	support files for compiling under AmigaDOS
@@ -45,6 +46,7 @@ end contain their own Contents listings):
   vms/		support files for compiling under VMS
 
 Files marked "required*" are also needed to compile fUnZip.  The normal
-unzip makefile targets now make funzip, too, except in a few cases; zipinfo
-is now incorporated into unzip (and invoked with unzip's -Z option or by
-linking/renaming the executable to "zipinfo[.exe]" or "ii[.exe]").
+unzip makefile targets now make both unzipsfx and funzip, except in a few 
+cases; zipinfo is now incorporated into unzip (and invoked with unzip's 
+-Z option or by linking/renaming the executable to "zipinfo[.exe]" or 
+"ii[.exe]").

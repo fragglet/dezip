@@ -11,20 +11,17 @@
 
 #include <time.h>
 
-#ifdef AMIGA_BETA
-#define AMIGA_BRIEF_MSG "\
-This is an \"official beta\" release from Info-Zip. See README.AMI for details.\n\n"
-#endif /* AMIGA_BETA */
-
 
 #ifdef AZTEC_C                   /* Manx Aztec C, 5.0 or newer only */
 #  include <clib/dos_protos.h>
 #  include <pragmas/dos_lib.h>
 #  define MODERN
 #  define O_BINARY 0
-
 #  include "amiga/z-stat.h"
 #  define dirent direct
+#  ifdef ASM_CRC
+#    pragma regcall(CalcCRC(a0,d0,a1,d1))
+#  endif
 #endif /* AZTEC_C */
 
 
@@ -36,6 +33,9 @@ This is an \"official beta\" release from Info-Zip. See README.AMI for details.\
 #  include <proto/dos.h>  /* needed? */
 #  if ( (!defined(O_BINARY)) && defined(O_RAW))
 #    define O_BINARY O_RAW
+#  endif
+#  ifdef ASM_CRC
+     /* PUT SOMETHING HERE TO PASS ARGS IN REGISTERS TO CalcCRC() */
 #  endif
 #endif /* LATTICE */
 

@@ -2,12 +2,12 @@
 FUNZIP(1)                USER COMMANDS                  FUNZIP(1)
 
 NAME
-     funzip - extract from a ZIP archive file as a filter
+     funzip - filter for extracting from a ZIP archive in a pipe
 
 SYNOPSIS
-     [...]  |  funzip [ -password ]  |  [...]
+     [...]  |  funzip [-password]  |  [...]
 
-     funzip [ -password ]  input.zip |  [...]
+     funzip [-password] input.zip  |  [...]
 
 ARGUMENTS
      [-password]
@@ -22,10 +22,14 @@ DESCRIPTION
      argument,  then  the  input  comes  from  the specified file
      instead of from stdin.  A password for encrypted  zip  files
      can  be  specified  on  the command line (preceding the file
-     name, if any) by prefixing the password with a dash.  If the
-     first  entry of the zip file is encrypted and no password is
-     specified on the command line, then the user is prompted for
-     a password, and the password is not echoed on the console.
+     name, if any) by prefixing the password with a  dash.   Note
+     that  this  constitutes  a  security  risk  on many systems;
+     currently running processes are  often  visible  via  simple
+     commands  (e.g.,  ps(1)  under  Unix), and command-line his-
+     tories can be read.  If the first entry of the zip  file  is
+     encrypted  and no password is specified on the command line,
+     then the user is prompted for a password and the password is
+     not echoed on the console.
 
      Given the limitation on single-member extraction, funzip  is
      most useful in conjunction with a secondary archiver program
@@ -36,18 +40,22 @@ EXAMPLES
      To use funzip to  extract  the  first  member  file  of  the
      archive test.zip and to pipe it into more(1):
 
-          funzip test.zip | more
+         funzip test.zip | more
 
      To use funzip to test the first member file of test.zip (any
      errors will be reported on standard error):
 
-          funzip test.zip > /dev/null
+         funzip test.zip > /dev/null
 
      To use zip and funzip in place of  compress(1)  and  zcat(1)
-     for tape backups:
+     (or gzip(1L) and gzcat(1L)) for tape backups:
 
-          tar cf - . | zip -7 | dd of=/dev/nrst0 obs=8k
-          dd if=/dev/nrst0 ibs=8k | funzip | tar xf -
+         tar cf - . | zip -7 | dd of=/dev/nrst0 obs=8k
+         dd if=/dev/nrst0 ibs=8k | funzip | tar xf -
+
+Info-ZIP         Last change: 28 Aug 94 (v3.83)                 1
+
+FUNZIP(1)                USER COMMANDS                  FUNZIP(1)
 
      (where, for example, nrst0 is a SCSI tape drive).
 
@@ -73,10 +81,11 @@ BUGS
      unzip itself (future release).
 
 SEE ALSO
-     unzip(1),  zip(1),  zipcloak(1),   zipinfo(1),   zipnote(1),
-     zipsplit(1)
+     gzip(1L), unzip(1L),  unzipsfx(1L),  zip(1L),  zipcloak(1L),
+     zipinfo(1L), zipnote(1L), zipsplit(1L)
 
 AUTHOR
      Mark Adler (Info-ZIP)
 
-Info-ZIP             Last change:  7 Feb 94                  v3.8
+Info-ZIP         Last change: 28 Aug 94 (v3.83)                 2
+

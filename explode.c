@@ -1,5 +1,5 @@
-/* explode.c -- Not copyrighted 1992 by Mark Adler
-   version c11, 9 January 1994 */
+/* explode.c -- put in the public domain by Mark Adler
+   version c13, 25 August 1994 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -31,6 +31,9 @@
                                     and bytebuf variable (not used); changed
                                     memset() to memzero().
     c11   9 Jan 94  M. Adler        fixed incorrect used_csize calculation.
+    c12   9 Apr 94  G. Roelofs      fixed split comments on preprocessor lines
+                                    to avoid bug in Encore compiler.
+    c13  25 Aug 94  M. Adler        fixed distance-length comment (orig c9 fix)
  */
 
 
@@ -52,14 +55,14 @@
    (min match = 2).  The kind of stream is identified in two bits of a
    general purpose bit flag that is outside of the compressed stream.
    
-   Distance-length pairs are always coded.  Distance-length pairs for matched
-   strings are preceded by a zero bit (to distinguish them from literals) and
-   are always coded.  The distance comes first and is either the low six (4K)
-   or low seven (8K) bits of the distance (uncoded), followed by the high six
-   bits of the distance coded.  Then the length is six bits coded (0..63 +
-   min match length), and if the maximum such length is coded, then it's
-   followed by another eight bits (uncoded) to be added to the coded length.
-   This gives a match length range of 2..320 or 3..321 bytes.
+   Distance-length pairs for matched strings are preceded by a zero bit (to
+   distinguish them from literals) and are always coded.  The distance comes
+   first and is either the low six (4K) or low seven (8K) bits of the
+   distance (uncoded), followed by the high six bits of the distance coded.
+   Then the length is six bits coded (0..63 + min match length), and if the
+   maximum such length is coded, then it's followed by another eight bits
+   (uncoded) to be added to the coded length.  This gives a match length
+   range of 2..320 or 3..321 bytes.
 
    The literal, length, and distance codes are all represented in a slightly
    compressed form themselves.  What is sent are the lengths of the codes for
@@ -77,8 +80,8 @@
    module.
  */
 
-#include "unzip.h"      /* this must supply the slide[] (uch) array and
-                         * the NEXTBYTE macro */
+#include "unzip.h"      /* must supply slide[] (uch) array and NEXTBYTE macro */
+
 #ifndef WSIZE
 #  define WSIZE 0x8000  /* window size--must be a power of two, and */
 #endif                  /* at least 8K for zip's implode method */

@@ -1,6 +1,6 @@
 #-----------------------------------------------------------------------------
-# Makefile for UnZip 5.1 and later                            Jean-loup Gailly
-# Version:  Turbo C (use makefile.bc for Turbo C++)           21 December 1993
+# Makefile for UnZip 5.11 and later                           Jean-loup Gailly
+# Version:  Turbo C (edit and use makefile.bc for Turbo C++)      10 July 1994
 #-----------------------------------------------------------------------------
 
 #    GNU make doesn't like the return value from "rem"
@@ -12,14 +12,18 @@ STRIP=echo  Ignore this line.
 #STRIP=pklite
 #    This makes a big difference in .exe size (and possibly load time).
 
-# memory model for UnZip (use s for speed & no ZipInfo; may run out of memory)
+# memory model for UnZip (conflicting reports on whether Turbo C can or
+# cannot put strings into far memory; for now assume it can and use small
+# model *with* ZipInfo enabled...if fails, either define NO_ZIPINFO or
+# use large model)   [GRR 940712:  sigh, no go--inflate fails.  Back to
+# large model...]
 #MODEL = s
 MODEL = l
 
 CC = tcc
 LD = $(CC)
 
-UCFLAGS = -m$(MODEL) -O -Z -I.
+UCFLAGS = -m$(MODEL) -O -Z -I. -DFar=
 ULDFLAGS = -m$(MODEL)
 
 # funzip is always small-model
@@ -31,9 +35,12 @@ LDFLAGS2 =
 OBJS = unzip.obj crypt.obj envargs.obj explode.obj extract.obj file_io.obj \
 	inflate.obj match.obj unreduce.obj unshrink.obj zipinfo.obj msdos.obj
 
+OBJX = unzip_.obj crypt.obj extract_.obj file_io.obj inflate.obj match.obj \
+	msdos_.obj
+
 OBJF = funzip.obj crypt_.obj inflate_.obj
 
-default:        unzip.exe funzip.exe
+default:        unzip.exe funzip.exe unzipsfx.exe
 
 clean:
 	rem Ignore any errors in the following...
@@ -56,6 +63,9 @@ explode.obj:    explode.c unzip.h
 
 extract.obj:    extract.c unzip.h crypt.h
 
+extract_.obj:   extract.c unzip.h crypt.h
+	$(CC) -c $(UCFLAGS) -DSFX -oextract_.obj extract.c
+
 file_io.obj:    file_io.c unzip.h crypt.h tables.h
 
 funzip.obj:     funzip.c unzip.h crypt.h tables.h
@@ -71,11 +81,17 @@ match.obj:      match.c unzip.h
 msdos.obj:      msdos/msdos.c unzip.h
         $(CC) -c $(UCFLAGS) msdos/msdos.c
 
+msdos_.obj:     msdos/msdos.c unzip.h
+	$(CC) -c $(UCFLAGS) -DSFX -omsdos_.obj msdos/msdos.c
+
 unreduce.obj:   unreduce.c unzip.h
 
 unshrink.obj:   unshrink.c unzip.h
 
-unzip.obj:      unzip.c unzip.h
+unzip.obj:      unzip.c unzip.h crypt.h version.h
+
+unzip_.obj:     unzip.c unzip.h crypt.h version.h
+	$(CC) -c $(UCFLAGS) -DSFX -ounzip_.obj unzip.c
 
 zipinfo.obj:    zipinfo.c unzip.h
 
@@ -105,3 +121,8 @@ unzip.exe: $(OBJS)
 funzip.exe:     $(OBJF)
 	$(LD) $(FLDFLAGS) $(OBJF) $(LDFLAGS2)
 	$(STRIP) funzip.exe
+
+unzipsfx.exe:     $(OBJX)
+	$(LD) $(ULDFLAGS) $(OBJX) $(LDFLAGS2)
+	rename unzip_.exe unzipsfx.exe
+	$(STRIP) unzipsfx.exe

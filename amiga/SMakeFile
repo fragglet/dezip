@@ -1,8 +1,8 @@
 #===========================================================================
 # Makefile for UnZip, ZipInfo & fUnZip:  AMIGA SAS/C Version 6.x
-# Version:  5.1                                                  9 July 1993
+# Version:  5.11                                                 9 July 1993
 #===========================================================================
-# John Bush <john.bush@east.sun.com>                last modified:  6 Feb 94
+# John Bush <john.bush@east.sun.com>               last modified:  10 Jul 94
 #---------------------------------------------------------------------------
 
 #####################
@@ -52,11 +52,14 @@ OBJSA = amiga.o
 OBJS  = $(OBJS1) $(OBJS2) $(OBJSA)
 LOBJS = $(OBJS)
 
+# UnZipSFX Objects
+OBJX = unzip_x.o crypt.o extract_x.o file_io.o inflate.o match.o amiga_x.o
+
 # fUnZip Objects
 OBJF = funzip.o crypt_f.o inflate_f.o
 
 # Output targets
-UNZIPS = unzip funzip
+UNZIPS = unzip unzipsfx funzip
 
 # Temp filename for object lists to load using linker "WITH" command.
 OBJLIST = ram:OBJLIST.TMP
@@ -79,13 +82,17 @@ all: $(UNZIPS)
 #        map generated will be the one that remains after this is finished.
 #        Or, put specific MAP statements in below for each.  
 
-unzip:  $(OBJS)
-        echo "$(OBJS)" >$(OBJLIST)
-        $(LD) TO UnZip $(LDFLAGS) WITH $(OBJLIST) $(LIBFLAGS) $(LDFLAGS2)
+unzip:    $(OBJS)
+          echo "$(OBJS)" >$(OBJLIST)
+          $(LD) TO UnZip $(LDFLAGS) WITH $(OBJLIST) $(LIBFLAGS) $(LDFLAGS2)
 
-funzip: $(OBJF)
-        echo "$(OBJF)" >$(OBJLIST)
-        $(LD) TO fUnZip $(LDFLAGS) WITH $(OBJLIST) $(LIBFLAGS) $(LDFLAGS2)
+unzipsfx: $(OBJX)
+          echo "$(OBJX)" >$(OBJLIST)
+          $(LD) TO UnZipSFX $(LDFLAGS) WITH $(OBJLIST) $(LIBFLAGS) $(LDFLAGS2)
+
+funzip:   $(OBJF)
+          echo "$(OBJF)" >$(OBJLIST)
+          $(LD) TO fUnZip $(LDFLAGS) WITH $(OBJLIST) $(LIBFLAGS) $(LDFLAGS2)
 
 clean:
         -delete >nil: $(OBJS1)
@@ -94,10 +101,19 @@ clean:
         -delete >nil: $(OBJF)
 
 spotless: clean
-        -delete >nil: UnZip FunZip
+        -delete >nil: UnZip UnZipSFX fUnZip
 
-# special rules for crypt binary used in FunZip
+# special rules for objects used in UnZipSFX and fUnZip
 #
+unzip_x.o:     unzip.c unzip.h version.h
+                $(CC) DEF=SFX $(CFLAGS) OBJNAME=unzip_x.o unzip.c
+
+extract_x.o:   extract.c unzip.h crypt.h
+                $(CC) DEF=SFX $(CFLAGS) OBJNAME=extract_x.o extract.c
+
+amiga_x.o:     amiga/amiga.c amiga/amiga.h
+                $(CC) DEF=SFX $(CFLAGS) OBJNAME=amiga_x.o amiga/amiga.c
+
 crypt_f.o:     crypt.c unzip.h zip.h crypt.h
                 $(CC) DEF=FUNZIP $(CFLAGS) OBJNAME=crypt_f.o crypt.c
 
@@ -117,7 +133,7 @@ match.o:        match.c unzip.h
 shared.o:       shared.c unzip.h
 unreduce.o:     unreduce.c unzip.h
 unshrink.o:     unshrink.c unzip.h
-unzip.o:        unzip.c unzip.h
+unzip.o:        unzip.c unzip.h version.h
 zipinfo.o:      zipinfo.c unzip.h
 
 

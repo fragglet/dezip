@@ -3,7 +3,7 @@
 #include <Traps.h>
 #include <Values.h>
 
-extern char *unzip_version, *zipinfo_version;
+extern char UnzipVersion[], ZipinfoVersion[];
 
 void MacFSTest (int);
 void ResolveMacVol (short, short *, long *, StringPtr);
@@ -121,7 +121,7 @@ void domenu(menucommand) long menucommand;
 
     case appleMenu:
         if (theitem == aboutItem) {
-            ParamText(unzip_version, zipinfo_version, nil, nil);
+            ParamText(UnzipVersion, ZipinfoVersion, nil, nil);
             Alert(aboutAlert, nil);
         } else {
             GetItem(appleHandle, theitem, name);
@@ -306,8 +306,8 @@ int main(argc, argv) int argc; char *argv[];
     InitDialogs(nil);
     InitCursor();
 
-    c2pstr(unzip_version);
-    c2pstr(zipinfo_version);
+    c2pstr(UnzipVersion);
+    c2pstr(ZipinfoVersion);
 
     SysEnvirons(1, &sysRec);
     useWNE = TrapAvailable(sysRec.machineType, _WaitNextEvent, ToolTrap);
@@ -431,7 +431,7 @@ int main(argc, argv) int argc; char *argv[];
                 *v = "unzip";
                 argc = 1;
 
-                envargs(&argc, &v, NULL);
+                envargs(&argc, &v, NULL, NULL);
 
                 argv = (char **)malloc((argc + 3) * sizeof(char *));
 

@@ -8,12 +8,15 @@
   ---------------------------------------------------------------------------*/
 
 #include <descrip.h>
+#include <starlet.h>
 #include <syidef.h>
 #include <atrdef.h>
 #include <fibdef.h>
 #include <iodef.h>
 #include <fchdef.h>
-#include <rms.h>
+/* #include <rms.h>  already included in unzip.h */
+#include <lib$routines.h>
+#include <unixlib.h>
 
 #define ERR(s) !((s) & 1)	/* VMS system error */
 
@@ -49,7 +52,7 @@ struct EB_header    /* Common header of extra block */
 
 /*------ Old style INFO-ZIP extra field definitions -----*/
 
-#if (!defined(VAXC) && !defined(_RMS_H))
+#if (!defined(VAXC) && !defined(_RMS_H) && !defined(__RMS_LOADED))
 
 struct XAB {                    /* This definition may be skipped */
     unsigned char xab$b_cod;

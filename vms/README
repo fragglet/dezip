@@ -1,17 +1,32 @@
-vms/README for UnZip 5.1 and later, 19 Oct 93
----------------------------------------------
+vms/README for UnZip 5.12 and later, 25 Aug 94
+----------------------------------------------
 
 Notes about using UnZip and zipfiles under VMS (see INSTALL for instructions
-on compiling and installing):
+on compiling):
 
- - After proper installation, UnZip is invoked just as in Unix or MS-DOS:
-   "unzip -opts archive files".  The hyphen ('-') is the switch character,
-   not the slash ('/') as in native VMS commands.  A portable tool can be
-   designed to operate like the native programs on every system, or it can
-   be designed to operate consistently across all systems; Info-ZIP has 
-   chosen the latter course.  At some future date we may add support which
-   allows the user (or installer) to choose native look-and-feel over Info-
-   ZIP look-and-feel, but this is not a priority...
+ - Install UnZip as foreign symbol by adding this to login.com:
+      $ unzip == "$disk:[dir]unzip.exe"
+      $ zipinfo == "$disk:[dir]unzip.exe -Z"
+   where "disk" and "dir" are location of UnZip executable; the "$" before
+   the disk name is important.  Some people, including the author, prefer
+   a short alias such as "ii" instead of "zipinfo"; edit to taste.
+
+ - Optionally install UnZipSFX for use with the MAKESFX.COM command file:
+      $ unzipsfx :== disk:[dir]unzipsfx.exe
+   Thereafter an archive "foo.zip" may be converted to "foo.exe" simply by
+   typing "@makesfx foo" (assuming MAKESFX.COM is in the current directory).
+   Note that there is *no* leading "$" in this case.
+
+ - After proper installation, the default version of UnZip is invoked just
+   as in Unix or MS-DOS:  "unzip -opts archive files".  The hyphen ('-') is
+   the switch character, not the slash ('/') as in native VMS commands.  An
+   alternative is available if VMSCLI is defined during compilation; this
+   version does provide a native VMS-style command interface (e.g., /ZIPINFO
+   instead of -Z).  Both versions accept the command "unzip -v", which can
+   be used to check whether VMSCLI was defined or not; but an even simpler
+   method is to type "unzip" and look at the help screen.  Note that options
+   placed in an environment variable (UNZIP_OPTS) must be of the short, hy-
+   phenated form regardless of how UnZip was compiled.
 
  - VMS (or the C compiler) translates all command-line text to lowercase
    unless it is quoted, making some options and/or filenames not work as
@@ -21,19 +36,23 @@ on compiling and installing):
 	unzip -v zipfile vms/readme
    which may not match the contents of the zipfile and definitely won't
    extract the file with its version number as intended.  This can be
-   avoided by enclosing the uppercase stuff in quotes:
+   avoided by use of the -C option (/CASE_INSENSITIVE) or by enclosing
+   the uppercase stuff in quotes:
 	unzip "-V" zipfile "vms/README"
    Note that quoting the whole line probably won't work, since it would
    be interpreted as a single argument by the C library.
 
  - Wildcards which refer to files internal to the archive behave like Unix
-   wildcards, not VMS ones.  This is both a matter of consistency (see
-   above) and power--full Unix regular expressions are supported, so that
-   one can specify "all .c and .h files which start with a, b, c or d and
-   do not have a 2 before the dot" as "[a-d]*[^2].[ch]".  Of course, "*.[ch]"
-   is a much more common wildcard specification, but the power is there if
-   you need it.  Note that "*" matches zipfile directory separators ('/'),
-   too.
+   wildcards, not VMS ones (assuming UnZip was not compiled with VMSWILD
+   defined).  This is both a matter of consistency (see above) and power--
+   full Unix regular expressions are supported, so that one can specify
+   "all .c and .h files which start with a, b, c or d and do not have a 2
+   before the dot" as "[a-d]*[^2].[ch]".  Of course, "*.[ch]" is a much more
+   common wildcard specification, but the power is there if you need it.
+   Note that "*" matches zipfile directory separators ('/'), too.  If UnZip
+   *was* compiled with VMSWILD defined (do "unzip -v" to check), the single-
+   character wildcard is "%" rather than "?", and character sets (ranges)
+   are delimited with () instead of [] (for example, "*.(ch)").
 
  - Created files get whatever permissions were stored in the archive (mapped
    to VMS and/or masked with your default permissions, depending on the 
@@ -43,7 +62,7 @@ on compiling and installing):
    the extraction directory.
 
  - When transferring files, particularly via Kermit, pay attention to the
-   settings!  In particularly, zipfiles must be transferred in some binary
+   settings!  In particular, zipfiles must be transferred in some binary
    mode, which is NOT Kermit's default mode, and this mode must usually be
    set on BOTH sides of the transfer (e.g., both VAX and PC).  See the notes
    below for details.
@@ -51,7 +70,7 @@ on compiling and installing):
 
 
 
-From INFO-ZIP Digest (Wed, 6 Nov 1991), Volume 91, Issue 290:
+From Info-ZIP Digest (Wed, 6 Nov 1991), Volume 91, Issue 290:
 
    Date: Tue, 5 Nov 91 15:31 CDT
    From: Hugh Schmidt <HUGH@macc.wisc.edu>
