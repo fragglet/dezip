@@ -1,14 +1,15 @@
 /*
- *	arcmatch.c	1.1
+ *  arcmatch.c  1.1
  *
- *	Author: Thom Henderson
- *	Original System V port: Mike Stump
+ *  Author: Thom Henderson
+ *  Original System V port: Mike Stump
  *
  * REVISION HISTORY
  *
- * 03/22/87  C. Seaman		enhancements, bug fixes, cleanup
- * 11/13/89  C. Mascott		adapt for use with unzip
- * 01/25/90  J. Cowan		match case-insensitive
+ * 03/22/87  C. Seaman      enhancements, bug fixes, cleanup
+ * 11/13/89  C. Mascott     adapt for use with unzip
+ * 01/25/90  J. Cowan       match case-insensitive
+ * 03/17/90  D. Kirschbaum      Prototypes, other tweaks for Turbo C.
  *
  */
 
@@ -16,34 +17,48 @@
  * ARC - Archive utility - ARCMATCH
  * 
  * Version 2.17, created on 12/17/85) at 20:32:18
- * 
+ *
  * (C) COPYRIGHT 1985 by System Enhancement Associates; ALL RIGHTS RESERVED
- * 
+ *
  *     Description:
- *          This file contains service routines needed to maintain an archive.
+ *        This file contains service routines needed to maintain an archive.
  */
 
 #include <sys/types.h>
 #include <sys/dir.h>
 #include <ctype.h>
 
-#define ASTERISK '*'		/* The '*' metacharacter */
-#define QUESTION '?'		/* The '?' metacharacter */
+#ifdef __TURBOC__               /* v2.0b */
+#include <stdio.h>      /* for printf() */
+#include <stdlib.h>     /* for exit() */
+#endif
+
+#define ASTERISK '*'        /* The '*' metacharacter */
+#define QUESTION '?'        /* The '?' metacharacter */
 #define BACK_SLASH '\\'         /* The '\' metacharacter */
-#define LEFT_BRACKET '['	/* The '[' metacharacter */
-#define RIGHT_BRACKET ']'	/* The ']' metacharacter */
+#define LEFT_BRACKET '['    /* The '[' metacharacter */
+#define RIGHT_BRACKET ']'   /* The ']' metacharacter */
 
 #define IS_OCTAL(ch) (ch >= '0' && ch <= '7')
 
-typedef short INT;
-typedef short BOOLEAN;
+typedef short int INT;      /* v2.0b */
+typedef short int BOOLEAN;  /* v2.0b */
 #define TRUE 1
 #define FALSE 0
 #define EOS '\000'
 
+#ifdef __TURBOC__              /* v2.0b */
+/* local prototypes for Turbo */
+
+int match(char *string, char *pattern);
+static BOOLEAN do_list (register char *string, char *pattern);  /* v2.0b */
+static void list_parse (char **patp, char *lowp, char *highp);
+static char nextch (char **patp);
+#else       /* v2.0b original code */
 static BOOLEAN do_list();
 static char nextch();
 static void list_parse();
+#endif
 
 int match(string, pattern)
 char *string;
@@ -77,7 +92,7 @@ char *pattern;
     case BACK_SLASH:
         pattern++;
     default:
-	if (toupper(*string) == toupper(*pattern))
+    if (toupper(*string) == toupper(*pattern))
         {
             string++;
             pattern++;
@@ -176,3 +191,4 @@ char **patp;
     }
     return(ch);
 }
+

@@ -1,0 +1,14 @@
+# Makefile for unzip30 under Minix
+#Regards,
+#Mark
+#mbeck@ai.mit.edu
+
+CFLAGS = -c -DUNIX -DZMEM
+
+OBJS=	unzip.s match.s crc32.s ascebc.s zmemcpy.s zmemset.s
+
+.c.s:
+	cc $(CFLAGS) $<
+
+unzip:	$(OBJS)
+	cc -i -o unzip $(OBJS)

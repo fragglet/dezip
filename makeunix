@@ -1,3 +1,0 @@
-# Use this script to compile & link unzip in UNIX/XENIX systems
-cc -DUNIX -Ox -o unzip memcpy.c memset.c match.c crc32.c unzip.c
-rm memcpy.o memset.o crc32.o match.o unzip.o
