@@ -5,8 +5,8 @@
 {$N-}    {Numeric coprocessor}
 {$V-}    {Relaxes string typing}
 {$B-}    {Boolean complete evaluation}
-{$S+}    {Stack checking}
-{$R+}    {Range checking}
+{$S-}    {Stack checking}
+{$R-}    {Range checking}
 {$D+}    {Global debug information}
 {$L+}    {Local debug information}
 

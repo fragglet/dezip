@@ -220,13 +220,58 @@ begin
 end;
 
 
-(* ------------------------------------------------------------- *)
-procedure ReadBits(bits: integer; var x: integer);
-   {read the specified number of bits}
-var
-   bit:     integer;
-   bitv:    word;
+(*
+ * Copyright 1987, 1989 Samuel H. Smith;  All rights reserved
+ *
+ * This is a component of the ProDoor System.
+ * Do not distribute modified versions without my permission.
+ * Do not remove or alter this notice or any other copyright notice.
+ * If you use this in your own program you must distribute source code.
+ * Do not use any of this in a commercial product.
+ *
+ *)
 
+(******************************************************
+ *
+ * Procedure:  itoh
+ *
+ * Purpose:    converts an integer into a string of hex digits
+ *
+ * Example:    s := itoh(i);
+ *
+ *)
+
+function itoh(i: longint): string;   {integer to hex conversion}
+var
+   h:   string;
+   w:   word;
+
+   procedure digit(ix: integer; ii: word);
+   begin
+      ii := ii and 15;
+      if ii > 9 then 
+         ii := ii + 7 + ord('a') - ord('A');
+      h[ix] := chr(ii + ord('0'));
+   end;
+
+begin
+   w := i and $FFFF;
+   h[0] := chr(4);
+   digit(1,w shr 12);
+   digit(2,w shr 8);
+   digit(3,w shr 4);
+   digit(4,w);
+   itoh := h;   
+end;
+
+
+(* ------------------------------------------------------------- *)
+procedure ReadBits(bits: integer; var result: integer);
+   {read the specified number of bits}
+const
+   bit:     integer = 0;
+   bitv:    integer = 0;
+   x:       integer = 0;
 begin
    x := 0;
    bitv := 1;
@@ -253,6 +298,8 @@ begin
       bitv := bitv shl 1;
    end;
 
+(* writeln(bits,'-',itoh(x)); *)
+   result := x;
 end;
 
 
@@ -514,7 +561,6 @@ const
 var
    cbits:      integer;
    maxcode:    integer;
-   buf:        array[0.. max_bits-1] of byte;
    free_ent:   integer;
    maxcodemax: integer;
    offset:     integer;
