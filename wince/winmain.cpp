@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -3823,14 +3823,27 @@ BOOL CALLBACK DlgProcAbout(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #endif
 
          // Fill in a few static members.
+         // (For VER_FULLVERSION_STR and VER_COMMENT_STR, the TEXT() macro is
+         //  not applicable, because they are defined as a set of concatenated
+         //  string constants. These strings need to be converted to UNICODE
+         //  at runtime, sigh.)
          TCHAR szBuffer[80];
          SetDlgItemText(hDlg, IDC_PRODUCT, TEXT(VER_PRODUCT_STR));
-         _stprintf(szBuffer, TEXT("Freeware Version %s"), TEXT(VER_FULLVERSION_STR));
+#ifdef UNICODE
+         _stprintf(szBuffer, TEXT("Freeware Version %S"), VER_FULLVERSION_STR);
+#else
+         _stprintf(szBuffer, TEXT("Freeware Version %s"), VER_FULLVERSION_STR);
+#endif
          SetDlgItemText(hDlg, IDC_VERSION, szBuffer);
          _stprintf(szBuffer, TEXT("Developed by %s"), TEXT(VER_DEVELOPER_STR));
          SetDlgItemText(hDlg, IDC_DEVELOPER, szBuffer);
          SetDlgItemText(hDlg, IDC_COPYRIGHT, TEXT(VER_COPYRIGHT_STR));
-         SetDlgItemText(hDlg, IDC_COMMENT, TEXT(VER_COMMENT_STR));
+#ifdef UNICODE
+         _stprintf(szBuffer, TEXT("%S"), VER_COMMENT_STR);
+         SetDlgItemText(hDlg, IDC_COMMENT, szBuffer);
+#else
+         SetDlgItemText(hDlg, IDC_COMMENT, VER_COMMENT_STR);
+#endif
 
          // Center the dialog over our parent.
          CenterWindow(hDlg);

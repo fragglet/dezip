@@ -2,7 +2,7 @@
 # Currently supported implementations: Cygnus/Win32 and MinGW32.
 #
 # First version: Cosmin Truta <cosmint@cs.ubbcluj.ro>, Dec 1997.
-# Last revision: Christian Spieler, 07-Nov-1999
+# Last revision: Christian Spieler, 14-Jan-2001
 #
 # To use, do "make -f win32/makefile.gcc".
 
@@ -101,8 +101,9 @@ GENFLAGS =
 FFLAGS   = -DFUNZIP
 SFXFLAGS = -DSFX
 GENDLLFL = -DDLL -DWINDLL
-GENGUILB = -DSFX -DDLL -DWINDLL
+GENGUILB = -DSFX -DDLL -DWINDLL -DUNZIPLIB
 GENGUISX = -DSFX
+GENLIBFL = -DDLL -DWINDLL -DUNZIPLIB
 LDLIBS   = $(LD_DEBUG_LIBS)
 else
 CVER     = $(CC_RELEASE_OPT)
@@ -112,8 +113,9 @@ GENFLAGS = $(CC_SPEED_OPT)
 FFLAGS   = $(CC_SPEED_OPT) -DFUNZIP
 SFXFLAGS = $(CC_SIZE_OPT) -DSFX
 GENDLLFL = $(CC_SPEED_OPT) -DDLL -DWINDLL
-GENGUILB = $(CC_SIZE_OPT) -DSFX -DDLL -DWINDLL
+GENGUILB = $(CC_SIZE_OPT) -DSFX -DDLL -DWINDLL -DUNZIPLIB
 GENGUISX = $(CC_SIZE_OPT) -DSFX
+GENLIBFL = $(CC_SPEED_OPT) -DDLL -DWINDLL -DUNZIPLIB
 LDLIBS   = $(LD_RELEASE_LIBS)
 endif
 GUILDFLAG=-mwindows
@@ -138,16 +140,23 @@ OBJF  = $(OBJF1) $(OBJF2) $(OBJA) $(OBJFS)
 OBJDLL = windll$(OBJ) windllrc$(OBJ) api$(OBJ)
 OBJD1 = crc32l$(OBJ) crctabl$(OBJ) cryptl$(OBJ)
 OBJD2 = explodel$(OBJ) extractl$(OBJ) fileiol$(OBJ) globalsl$(OBJ)
-OBJD3 = inflatel$(OBJ) listl$(OBJ) matchl$(OBJ) processl$(OBJ) ttyiol$(OBJ)
+OBJD3 = inflatel$(OBJ) listl$(OBJ) matchl$(OBJ) processl$(OBJ)
 OBJD4 = unreducl$(OBJ) unshrnkl$(OBJ) zipinfol$(OBJ)
 OBJDS = win32l$(OBJ) ntl$(OBJ)
 OBJD  = $(OBJDLL) $(OBJD1) $(OBJD2) $(OBJD3) $(OBJD4) $(OBJA) $(OBJDS)
 OBLX1 = apig$(OBJ) crc32g$(OBJ) crctabg$(OBJ) cryptg$(OBJ)
 OBLX2 = extractg$(OBJ) fileiog$(OBJ) globalsg$(OBJ) inflateg$(OBJ)
-OBLX3 = matchg$(OBJ) processg$(OBJ) ttyiog$(OBJ)
+OBLX3 = matchg$(OBJ) processg$(OBJ)
 OBLXS = win32g$(OBJ) ntg$(OBJ) windllg$(OBJ)
 OBLX  = $(OBLX1) $(OBLX2) $(OBLX3) $(OBJA) $(OBLXS)
 OBGX  = sfxwiz$(OBJ) sfxwizrc$(OBJ)
+OBJLIB = windllb$(OBJ) apib$(OBJ)
+OBJB1 = crc32b$(OBJ) crctabb$(OBJ) cryptb$(OBJ)
+OBJB2 = explodeb$(OBJ) extractb$(OBJ) fileiob$(OBJ) globalsb$(OBJ)
+OBJB3 = inflateb$(OBJ) listb$(OBJ) matchb$(OBJ) processb$(OBJ)
+OBJB4 = unreducb$(OBJ) unshrnkb$(OBJ) zipinfob$(OBJ)
+OBJBS = win32b$(OBJ) ntb$(OBJ)
+OBJB  = $(OBJLIB) $(OBJB1) $(OBJB2) $(OBJB3) $(OBJB4) $(OBJA) $(OBJBS)
 
 UNZIP_H = unzip.h unzpriv.h globals.h win32/w32cfg.h
 WINDLL_H = windll/windll.h windll/structs.h windll/decs.h
@@ -158,8 +167,10 @@ WINDLL_IMP_H = windll/decs.h windll/structs.h
 # Default target is all the executables
 unzips: unzip$(EXE) funzip$(EXE) unzipsfx$(EXE)
 dll:    unzip32.dll
+dllsample: uzexampl.exe
 guisfx: SFXWiz32.exe
-all:    unzips dll guisfx
+lib:    libunzip32.a
+all:    unzips dll dllsample guisfx lib
 
 unzip$(EXE): $(OBJU)
 	$(LD) $(LDFLAGS) $(LDVER) $(OBJU) $(LDLIBS)
@@ -181,6 +192,9 @@ SFXWiz32$(EXE): $(OBGX) libunzsfx32.a
 
 uzexampl$(EXE): uzexampl$(OBJ)
 	$(CC) $(LDFLAGS) $(LDVER) uzexampl$(OBJ) -lversion $(LDLIBS)
+
+libunzip32.a: $(OBJB)
+	$(AR) -rus $@ $(OBJB)
 
 
 # How to compile sources
@@ -213,13 +227,13 @@ crc_i386$(OBJ): crc_i386.S
 win32$(OBJ): win32/win32.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENFLAGS) -I. win32/win32.c
 
-nt$(OBJ): win32/nt.c win32/nt.h
+nt$(OBJ): win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENFLAGS) -I. win32/nt.c
 
 win32x$(OBJ): win32/win32.c $(UNZIP_H) win32/nt.h		# unzipsfx only
 	$(CC) $(CFLAGS) $(CVER) $(SFXFLAGS) -I. win32/win32.c
 
-ntx$(OBJ): win32/nt.c win32/nt.h				# unzipsfx only
+ntx$(OBJ): win32/nt.c $(UNZIP_H) win32/nt.h			# unzipsfx only
 	$(CC) $(CFLAGS) $(CVER) $(SFXFLAGS) -I. win32/nt.c
 
 win32f$(OBJ): win32/win32.c $(UNZIP_H) win32/nt.h		# funzip only
@@ -289,10 +303,10 @@ cryptl$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 explodel$(OBJ):	explode.c $(UNZIP_H)
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) explode.c
 
-extractl$(OBJ):	extract.c $(UNZIP_H) crypt.h
+extractl$(OBJ):	extract.c $(UNZIP_H) $(WINDLL_H) crypt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) extract.c
 
-fileiol$(OBJ):	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileiol$(OBJ):	fileio.c $(UNZIP_H) $(WINDLL_H) crypt.h ttyio.h ebcdic.h
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) fileio.c
 
 globalsl$(OBJ):	globals.c $(UNZIP_H)
@@ -307,11 +321,8 @@ listl$(OBJ):	list.c $(UNZIP_H) $(WINDLL_H)
 matchl$(OBJ):	match.c $(UNZIP_H)
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) match.c
 
-processl$(OBJ):	process.c $(UNZIP_H)
+processl$(OBJ):	process.c $(UNZIP_H) $(WINDLL_H)
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) process.c
-
-ttyiol$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) ttyio.c
 
 unreducl$(OBJ):	unreduce.c $(UNZIP_H)
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) unreduce.c
@@ -325,7 +336,7 @@ zipinfol$(OBJ):	zipinfo.c $(UNZIP_H)
 win32l$(OBJ): win32/win32.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) -I. win32/win32.c
 
-ntl$(OBJ): win32/nt.c win32/nt.h
+ntl$(OBJ): win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) -I. win32/nt.c
 
 windll$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
@@ -365,13 +376,10 @@ matchg$(OBJ):	match.c $(UNZIP_H)
 processg$(OBJ):	process.c $(UNZIP_H) $(WINDLL_H)
 	$(CC) $(CFLAGS) $(CVER) $(GENGUILB) process.c
 
-ttyiog$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) $(CFLAGS) $(CVER) $(GENGUILB) ttyio.c
-
 win32g$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENGUILB) -I. win32/win32.c
 
-ntg$(OBJ):	win32/nt.c win32/nt.h
+ntg$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENGUILB) -I. win32/nt.c
 
 windllg$(OBJ):  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
@@ -383,6 +391,61 @@ sfxwiz$(OBJ):	windll/guisfx/sfxwiz.c windll/guisfx/dialog.h $(WINDLL_IMP_H)
 sfxwizrc$(OBJ):	windll/guisfx/sfxwiz.rc
 	- $(RC)  --include-dir windll/guisfx --define WIN32 -o$@ \
 		windll/guisfx/sfxwiz.rc
+
+# Static LIB compilation section
+apib$(OBJ): api.c $(UNZIP_H) $(WINDLL_H) version.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) api.c
+
+crc32b$(OBJ):	crc32.c $(UNZIP_H) zip.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) crc32.c
+
+crctabb$(OBJ):	crctab.c $(UNZIP_H) zip.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) crctab.c
+
+cryptb$(OBJ):	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) crypt.c
+
+explodeb$(OBJ):	explode.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) explode.c
+
+extractb$(OBJ):	extract.c $(UNZIP_H) crypt.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) extract.c
+
+fileiob$(OBJ):	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) fileio.c
+
+globalsb$(OBJ):	globals.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) globals.c
+
+inflateb$(OBJ):	inflate.c inflate.h $(UNZIP_H) crypt.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) inflate.c
+
+listb$(OBJ):	list.c $(UNZIP_H) $(WINDLL_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) list.c
+
+matchb$(OBJ):	match.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) match.c
+
+processb$(OBJ):	process.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) process.c
+
+unreducb$(OBJ):	unreduce.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) unreduce.c
+
+unshrnkb$(OBJ):	unshrink.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) unshrink.c
+
+zipinfob$(OBJ):	zipinfo.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) zipinfo.c
+
+win32b$(OBJ): win32/win32.c $(UNZIP_H) win32/nt.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) -I. win32/win32.c
+
+ntb$(OBJ): win32/nt.c $(UNZIP_H) win32/nt.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) -I. win32/nt.c
+
+windllb$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) -I. windll/windll.c
 
 clean:
 	$(RM) *$(OBJ)

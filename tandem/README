@@ -28,6 +28,12 @@ Recent changes:
                  structures defined in ZIPH after call to TANDEMH
 07/05/99  5.41c  Assume not DST if can't resolve time (no DST table available)
 01/06/99  5.41c  Add steps to make Self Extracting files (SFX)
+12/01/01  5.42g  Fix problems with MAKE for WIDE objects, updated TANDEMC/H
+                 in line with ZIP, updated DOIT to remove TIMEZONE.C
+
+                 If we ever want to use TIMEZONE.C then we need to set the
+                 define IZTZ_DEFINESTDGLOBALS, it then compiles OK.  The object
+                 would need to be added to the building of UNZIPLIB in make.
 
 
 A few notes about the files on this subvol

@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.41                                                  16 April 2000
+# Version:  5.42                                                  28 April 2000
 #==============================================================================
 
 
@@ -117,7 +117,7 @@ VERSION = Version 5.41
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, OK, it's a lot ugly:
 MANS = man/funzip.1 man/unzip.1 man/unzipsfx.1 man/zipgrep.1 man/zipinfo.1
-DOCS = funzip.doc unzip.doc unzipsfx.doc zipgrep.doc zipinfo.doc
+DOCS = funzip.txt unzip.txt unzipsfx.txt zipgrep.txt zipinfo.txt
 
 # list of supported systems/targets in this version
 SYSTEMS1 = generic generic2 generic3 generic_zlib generic_shlib
@@ -222,7 +222,7 @@ generic_msg:
 	$(CC) -c $(CF) -o $@ $*.c
 
 # this doesn't work...directories are always a pain with implicit rules
-#.1.doc:		man/$<
+#.1.txt:		man/$<
 #	nroff -Tman -man $< | col -b | uniq | \
 #	 sed 's/Sun Release ..../Info-ZIP        /' > $@
 
@@ -230,22 +230,22 @@ generic_msg:
 # these rules may be specific to Linux (or at least the GNU groff package)
 # and are really intended only for the authors' use in creating non-Unix
 # documentation files (which are provided with both source and binary
-# distributions).  We should probably add a ".1.doc" rule for more generic
+# distributions).  We should probably add a ".1.txt" rule for more generic
 # systems...
 
-funzip.doc:	man/funzip.1
+funzip.txt:	man/funzip.1
 	nroff -Tascii -man man/funzip.1 | col -b | uniq | expand > $@
 
-unzip.doc:	man/unzip.1
+unzip.txt:	man/unzip.1
 	nroff -Tascii -man man/unzip.1 | col -b | uniq | expand > $@
 
-unzipsfx.doc:	man/unzipsfx.1
+unzipsfx.txt:	man/unzipsfx.1
 	nroff -Tascii -man man/unzipsfx.1 | col -b | uniq | expand > $@
 
-zipgrep.doc:	man/zipgrep.1
+zipgrep.txt:	man/zipgrep.1
 	nroff -Tascii -man man/zipgrep.1 | col -b | uniq | expand > $@
 
-zipinfo.doc:	man/zipinfo.1
+zipinfo.txt:	man/zipinfo.1
 	nroff -Tascii -man man/zipinfo.1 | col -b | uniq | expand > $@
 
 

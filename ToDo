@@ -2,6 +2,10 @@
 For UnZip 6.0/6.1/who knows:
 ================================
 
+   o add support for PKWARE's deflate64(Tm) compression algorithm
+
+        will appear in 5.50 (alpha state code present in 5.42)
+
    o add multi-part zipfile handling
 
         top of the list for 6.0!
@@ -93,6 +97,15 @@ Requested features:
 
    o miscellaneous little stuff:  whenever
      --------------------------
+
+ - add support for setting directory time stamps to win32 port. This requires
+   a solution similar to the UNIX SET_DIR_ATTRIB optional code; maybe, it could
+   be combined with the delayed restoring of directory ACLs. Unfortunately,
+   the simple version used in the OS/2 case (setting dir time stamp just after
+   creating the directory) does not work, because WinNT updates directory
+   change times whenever the directory content gets modified (addition,
+   deletion, rename, file change), at least for NTFS file systems.
+   (SPC, 2000-11-16)
 
  - change DOS -f/-u stuff to use DOS API for getting filetimes, not stat()
 

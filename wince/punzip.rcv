@@ -1,8 +1,16 @@
+/*
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+*/
 //******************************************************************************
 //
 // File:        PUNZIP.RCV
 //
-// Description: Resources that Microsoft Visual C++ does not edit directly.  
+// Description: Resources that Microsoft Visual C++ does not edit directly.
 //              This file sets all the version defines and declares the Version
 //              Info resource.  This file is included by both the C compiler and
 //              the resource compiler.
@@ -79,7 +87,7 @@
 #define VER_VERSION          VERSION_MAJOR,VERSION_MINOR,VERSION_PRIVATE,VERSION_PATCH
 
 #define VER_COMPANY_STR      VER_DEVELOPER_STR
-#define VER_COPYRIGHT_STR    "Copyright \251 1997 Steve P. Miller.  All Rights Reserved."
+#define VER_COPYRIGHT_STR    "Copyright \251 1997-2001 Info-ZIP.  All Rights Reserved."
 
 
 #ifdef UNICODE
@@ -89,7 +97,7 @@
 #endif
 
 #if defined(_X86_) || defined(_M_IX86)
-   #define VER_ARCH " (i386," VER_CODEPAGE 
+   #define VER_ARCH " (i386," VER_CODEPAGE
 #elif defined(_MIPS_) || defined(_M_MRX000)
    #define VER_ARCH " (MIPS)"
 #elif defined(_SH3_)
@@ -131,7 +139,7 @@
    #else
       #define VER_VERSION_STR    VERSION_STRING " (Debug)"
    #endif
-#else   
+#else
    #if (VER_FF_PRERELEASE == VS_FF_PRERELEASE)
       #define VER_VERSION_STR    VERSION_STRING " Beta"
    #else
@@ -162,7 +170,7 @@ VS_VERSION_INFO VERSIONINFO
    FILEOS         VOS__WINDOWS32
    FILETYPE       VFT_APP
    FILESUBTYPE    VFT2_UNKNOWN
-   
+
    BEGIN
       BLOCK "StringFileInfo"
       BEGIN
@@ -171,7 +179,7 @@ VS_VERSION_INFO VERSIONINFO
 #else
          BLOCK "040904E4"     // 0x0409 = U.S. English, 0x04E4 = Ansi 1252
 #endif
-         BEGIN 
+         BEGIN
              VALUE "CompanyName",     VER_COMPANY_STR "\0"
              VALUE "FileDescription", VER_FULLPRODUCT_STR "\0"
              VALUE "FileVersion",     VER_FULLVERSION_STR "\0"
@@ -183,9 +191,9 @@ VS_VERSION_INFO VERSIONINFO
              VALUE "Comments",        VER_COMMENT_STR "\0"
          END
       END
-    
-      BLOCK "VarFileInfo" 
-      BEGIN 
+
+      BLOCK "VarFileInfo"
+      BEGIN
 #ifdef UNICODE
          // English language (0x0409) and the Unicode codepage (1200)
          VALUE "Translation", 0x0409, 1200

@@ -12,7 +12,7 @@ Contents of the "windll" subdirectory for UnZip 5.4 and later:
                  used by WiZ application itself
   decs.h         Exported function declarations.
   windll.rc      resource file for both 16- and 32-bit DLLs
-  windll.doc     simplistic explaination of how to use DLL
+  windll.txt     simplistic explanation of how to use DLL
   structs.h      header file, used by both the DLL and by WiZ, that defines
                  several structures passed to the DLL
   uzexampl.c     a very simplistic example of how to load the DLL and make

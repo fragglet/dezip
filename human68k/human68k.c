@@ -73,7 +73,7 @@ char *do_wild(__G__ wildspec)
         if (!iswild(wildspec)) {
             strcpy(matchname, wildspec);
             have_dirname = FALSE;
-            dir = NULL;
+            wild_dir = (DIR *)NULL;
             return matchname;
         }
 

@@ -22,6 +22,7 @@
 #define IBUF_LEN   4096   /* input buffer length */
 
 #define INCL_NOPM
+#define INCL_VIO
 #define INCL_DOSNLS
 #define INCL_DOSPROCESS
 #define INCL_DOSDEVICES

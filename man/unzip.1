@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -19,7 +19,7 @@
 .fi
 ..
 .\" =========================================================================
-.TH UNZIP 1L "16 April 2000 (v5.41)" "Info-ZIP"
+.TH UNZIP 1L "14 January 2001 (v5.42)" "Info-ZIP"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
@@ -284,7 +284,8 @@ file system such as OS/2 HPFS or a case-sensitive one such as under
 Unix.  By default \fIunzip\fP lists and extracts such filenames exactly as
 they're stored (excepting truncation, conversion of unsupported characters,
 etc.); this option causes the names of all files from certain systems to be
-converted to lowercase.
+converted to lowercase.  The \fB\-LL\fP option forces conversion of every
+filename to lowercase, regardless of the originating file system.
 .TP
 .B \-M
 pipe all output through an internal pager similar to the Unix\fImore\fP(1)
@@ -315,7 +316,6 @@ of \fIzip\fP(1L), which stores filenotes as comments.
 overwrite existing files without prompting.  This is a dangerous option, so
 use it with care.  (It is often used with \fB\-f\fP, however, and is the only
 way to overwrite directory EAs under OS/2.)
-.TP
 .IP \fB\-P\fP\ \fIpassword\fP
 use \fIpassword\fP to decrypt encrypted zipfile entries (if any).  \fBTHIS IS
 INSECURE!\fP  Many multi-user operating systems provide ways for any user to
@@ -375,7 +375,6 @@ would ever be useful anyway.]
 removable (e.g., a diskette).  Doubling the option (\fB\-$$\fP) allows fixed
 media (hard disks) to be labelled as well.  By default, volume labels are
 ignored.
-.TP
 .IP \fB\-/\fP\ \fIextensions\fP
 [Acorn only] overrides the extension list supplied by Unzip$Ext environment
 variable. During extraction, filename extensions that match one of the items
@@ -739,6 +738,8 @@ deleted.
 .\" =========================================================================
 .SH URL
 The Info-ZIP home page is currently at
+\fChttp://www.info-zip.org/pub/infozip/\fR
+or
 \fCftp://ftp.info-zip.org/pub/infozip/\fR .
 .PD
 .\" =========================================================================
@@ -799,8 +800,10 @@ Info-ZIP (Zip-Bugs subgroup, GRR)
 Info-ZIP (Zip-Bugs subgroup, GRR)
 .IP "v5.32\t\ 3 Nov 97"
 Info-ZIP (Zip-Bugs subgroup, GRR)
-.IP "v5.4\t\28 Nov 98"
+.IP "v5.4\t28 Nov 98"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .IP "v5.41\t16 Apr 00"
+Info-ZIP (Zip-Bugs subgroup, SPC)
+.IP "v5.42\t14 Jan 01"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .PD

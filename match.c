@@ -190,15 +190,35 @@ static int recmatch(p, s, ic)
         c = '*', p++;
 #endif /* AMIGA */
     if (c == '*') {
-        if (*p == 0)
-            return 1;
 #ifdef WILD_STOP_AT_DIR
+#  ifdef AMIGA
+        if ((c = p[0]) == '#' && p[1] == '?') /* "#?" is Amiga-ese for "*" */
+            c = '*', p++;
+        if (c == '*') {
+#  else /* !AMIGA */
+        if (*p == '*') {
+#  endif /* ?AMIGA */
+            /* '**': this matches slashes */
+            if (*++p == 0)
+                return 1;
+            for (; *s; INCSTR(s))
+                if ((c = recmatch(p, s, ic)) != 0)
+                    return (int)c;
+            return 2;   /* 2 means give up--match will return false */
+        }
+        /* '*': this doesn't match slashes */
         for (; *s && *s != '/'; INCSTR(s))
             if ((c = recmatch(p, s, ic)) != 0)
                 return (int)c;
+        /* end of pattern: matched if at end of string, else continue */
+        if (*p == 0)
+            return (*s == 0);
+        /* continue to match if at '/' in pattern, else give up */
         return (*p == '/' || (*p == '\\' && p[1] == '/'))
                ? recmatch(p, s, ic) : 2;
 #else /* !WILD_STOP_AT_DIR */
+        if (*p == 0)
+            return 1;
         for (; *s; INCSTR(s))
             if ((c = recmatch(p, s, ic)) != 0)
                 return (int)c;

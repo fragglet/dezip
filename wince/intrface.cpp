@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -74,6 +74,8 @@
 //              match
 //              iswild
 //              IsOldFileSystem
+//              conv_to_rule
+//              GetPlatformLocalTimezone
 //
 //
 // Date      Name          History
@@ -657,7 +659,7 @@ void SetCurrentFile(Uz_Globs *pG) {
    g_pExtractInfo->dwFile++;
    g_pExtractInfo->dwBytesWrittenThisFile = 0;
    g_pExtractInfo->dwBytesWrittenPreviousFiles += g_pExtractInfo->dwBytesTotalThisFile;
-   g_pExtractInfo->dwBytesTotalThisFile = pG->ucsize;
+   g_pExtractInfo->dwBytesTotalThisFile = pG->lrec.ucsize;
    g_pExtractInfo->szFile = pG->filename;
    g_pExtractInfo->fNewLineOfText = TRUE;
 
@@ -1482,3 +1484,79 @@ BOOL IsOldFileSystem(char *szPath) {
 
 #endif // _WIN32_WCE
 }
+
+//******************************************************************************
+//***** Functions to supply timezone information from the Windows registry to
+//***** Info-ZIP's private RTL "localtime() et al." replacements in timezone.c.
+//******************************************************************************
+
+//******************************************************************************
+// Copied from win32.c
+#ifdef W32_USE_IZ_TIMEZONE
+#include "timezone.h"
+#define SECSPERMIN      60
+#define MINSPERHOUR     60
+#define SECSPERHOUR     (SECSPERMIN * MINSPERHOUR)
+static void conv_to_rule(LPSYSTEMTIME lpw32tm, struct rule * ZCONST ptrule);
+
+static void conv_to_rule(LPSYSTEMTIME lpw32tm, struct rule * ZCONST ptrule)
+{
+    if (lpw32tm->wYear != 0) {
+        ptrule->r_type = JULIAN_DAY;
+        ptrule->r_day = ydays[lpw32tm->wMonth - 1] + lpw32tm->wDay;
+    } else {
+        ptrule->r_type = MONTH_NTH_DAY_OF_WEEK;
+        ptrule->r_mon = lpw32tm->wMonth;
+        ptrule->r_day = lpw32tm->wDayOfWeek;
+        ptrule->r_week = lpw32tm->wDay;
+    }
+    ptrule->r_time = (long)lpw32tm->wHour * SECSPERHOUR +
+                     (long)(lpw32tm->wMinute * SECSPERMIN) +
+                     (long)lpw32tm->wSecond;
+}
+
+int GetPlatformLocalTimezone(register struct state * ZCONST sp,
+        void (*fill_tzstate_from_rules)(struct state * ZCONST sp_res,
+                                        ZCONST struct rule * ZCONST start,
+                                        ZCONST struct rule * ZCONST end))
+{
+    TIME_ZONE_INFORMATION tzinfo;
+    DWORD res;
+
+    /* read current timezone settings from registry if TZ envvar missing */
+    res = GetTimeZoneInformation(&tzinfo);
+    if (res != TIME_ZONE_ID_INVALID)
+    {
+        struct rule startrule, stoprule;
+
+        conv_to_rule(&(tzinfo.StandardDate), &stoprule);
+        conv_to_rule(&(tzinfo.DaylightDate), &startrule);
+        sp->timecnt = 0;
+        sp->ttis[0].tt_abbrind = 0;
+        if ((sp->charcnt =
+             WideCharToMultiByte(CP_ACP, 0, tzinfo.StandardName, -1,
+                                 sp->chars, sizeof(sp->chars), NULL, NULL))
+            == 0)
+            sp->chars[sp->charcnt++] = '\0';
+        sp->ttis[1].tt_abbrind = sp->charcnt;
+        sp->charcnt +=
+            WideCharToMultiByte(CP_ACP, 0, tzinfo.DaylightName, -1,
+                                sp->chars + sp->charcnt,
+                                sizeof(sp->chars) - sp->charcnt, NULL, NULL);
+        if ((sp->charcnt - sp->ttis[1].tt_abbrind) == 0)
+            sp->chars[sp->charcnt++] = '\0';
+        sp->ttis[0].tt_gmtoff = - (tzinfo.Bias + tzinfo.StandardBias)
+                                * MINSPERHOUR;
+        sp->ttis[1].tt_gmtoff = - (tzinfo.Bias + tzinfo.DaylightBias)
+                                * MINSPERHOUR;
+        sp->ttis[0].tt_isdst = 0;
+        sp->ttis[1].tt_isdst = 1;
+        sp->typecnt = (startrule.r_mon == 0 && stoprule.r_mon == 0) ? 1 : 2;
+
+        if (sp->typecnt > 1)
+            (*fill_tzstate_from_rules)(sp, &startrule, &stoprule);
+        return TRUE;
+    }
+    return FALSE;
+}
+#endif /* W32_USE_IZ_TIMEZONE */

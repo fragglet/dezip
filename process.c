@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -206,6 +206,13 @@ int process_zipfiles(__G)    /* return PK-type error code */
     still too strict; any listed OS that supplies tzset(), regardless of
     whether the function does anything, should be removed from the ifdefs.
   ---------------------------------------------------------------------------*/
+
+#if (defined(WIN32) && defined(USE_EF_UT_TIME))
+    /* For the Win32 environment, we may have to "prepare" the environment
+       prior to the tzset() call, to work around tzset() implementation bugs.
+     */
+    iz_w32_prepareTZenv();
+#endif
 
 #if (defined(IZ_CHECK_TZ) && defined(USE_EF_UT_TIME))
 #  ifndef VALID_TIMEZONE
@@ -453,6 +460,11 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
    if (G.key != (char *)NULL) {
         free(G.key);
         G.key = (char *)NULL;
+   }
+
+   if (G.extra_field != (uch *)NULL) {
+        free(G.extra_field);
+        G.extra_field = (uch *)NULL;
    }
 
 #if (!defined(VMS) && !defined(SMALL_MEM))
@@ -1054,7 +1066,7 @@ int process_cdir_file_hdr(__G)    /* return PK-type error code */
 /*  extnum = MIN(crec.version_needed_to_extract[1], NUM_HOSTS); */
 
     G.pInfo->lcflag = 0;
-    if (uO.L_flag)            /* user specified case-conversion */
+    if (uO.L_flag == 1)       /* name conversion for monocase systems */
         switch (G.pInfo->hostnum) {
             case FS_FAT_:     /* PKZIP and zip -k store in uppercase */
             case CPM_:        /* like MS-DOS, right? */
@@ -1072,6 +1084,8 @@ int process_cdir_file_hdr(__G)    /* return PK-type error code */
                 break;   /*  FS_VFAT_, BEOS_ (Z_SYSTEM_), THEOS_: */
                          /*  no conversion */
         }
+    else if (uO.L_flag > 1)   /* let -LL force lower case for all names */
+        G.pInfo->lcflag = 1;
 
     /* do Amigas (AMIGA_) also have volume labels? */
     if (IS_VOLID(G.crec.external_file_attributes) &&
@@ -1193,15 +1207,14 @@ int process_local_file_hdr(__G)    /* return PK-type error code */
     G.lrec.filename_length = makeword(&byterec[L_FILENAME_LENGTH]);
     G.lrec.extra_field_length = makeword(&byterec[L_EXTRA_FIELD_LENGTH]);
 
-    G.csize = (long) G.lrec.csize;
-    G.ucsize = (long) G.lrec.ucsize;
-
     if ((G.lrec.general_purpose_bit_flag & 8) != 0) {
         /* can't trust local header, use central directory: */
         G.lrec.crc32 = G.pInfo->crc;
-        G.csize = (long)(G.lrec.csize = G.pInfo->compr_size);
-        G.ucsize = (long)(G.lrec.ucsize = G.pInfo->uncompr_size);
+        G.lrec.csize = G.pInfo->compr_size;
+        G.lrec.ucsize = G.pInfo->uncompr_size;
     }
+
+    G.csize = (long)G.lrec.csize;
 
     return PK_COOL;
 

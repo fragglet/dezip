@@ -768,7 +768,7 @@ int main(argc, argv) int argc; char *argv[];
             GetFullPathFromSpec(ArchivePath, &myReply.sfFile, &err);
 
             strcpy(ExtractPath,ArchivePath);
-            FindNewExtractFolder(ExtractPath);
+            FindNewExtractFolder(ExtractPath, false);
 
             if (myReply.sfGood && (CheckMountedVolumes(ArchivePath) == 1)) {
                 modifierMask &= modifiers;

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -114,7 +114,7 @@ int list_files(__G)    /* return PK-type error code */
     static ZCONST char dtype[]="NXFS";  /* see zi_short() */
     static ZCONST char Far method[NUM_METHODS+1][8] =
         {"Stored", "Shrunk", "Reduce1", "Reduce2", "Reduce3", "Reduce4",
-         "Implode", "Token", "Defl:#", "EnhDefl", "ImplDCL", "Unk:###"};
+         "Implode", "Token", "Defl:#", "Def64#", "ImplDCL", "Unk:###"};
 
 
 
@@ -317,7 +317,7 @@ int list_files(__G)    /* return PK-type error code */
 
             methnum = MIN(G.crec.compression_method, NUM_METHODS);
             zfstrcpy(methbuf, method[methnum]);
-            if (methnum == DEFLATED) {
+            if (methnum == DEFLATED || methnum == ENHDEFLATED) {
                 methbuf[5] = dtype[(G.crec.general_purpose_bit_flag>>1) & 3];
             } else if (methnum >= NUM_METHODS) {
                 sprintf(&methbuf[4], "%03u", G.crec.compression_method);

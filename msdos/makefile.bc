@@ -1,7 +1,7 @@
 # Makefile for UnZip(SFX) and fUnZip for Borland C++ 2.x-4.x and Turbo C++ 1.0
-# Version: 5.20 and later        Alvin Koh, Jim Knoble, Christian Spieler, etc.
+# Version: 5.42 and later        Alvin Koh, Jim Knoble, Christian Spieler, etc.
 #
-# Last revised:  16 Apr 98
+# Last revised:  14 Jan 01
 #
 # To compile with Turbo C++ 1.0, set the macro CC_REV to 1 at the command line
 # (make -fmsdos/makefile.bc -DCC_REV=1).
@@ -10,7 +10,10 @@
 #    GNU make doesn't like the return value from "rem"
 #STRIP=rem
 STRIP=echo  Ignore this line.
-#    If you don't have LZEXE or PKLITE, get one of them. Then define:
+#    If you don't have UPX, LZEXE, or PKLITE, get one of them. Then define:
+#    (NOTE: upx needs a 386 or higher system to run the exe compressor)
+#STRIP=upx --8086 --best
+#    or
 #STRIP=lzexe
 #    or
 #STRIP=pklite
@@ -43,20 +46,29 @@ AS = tasm
 
 # "near data" model is sufficient for UnZip and ZipInfo, now that strings moved
 # switched to medium model; UnZip code has grown beyond the 64k limit.
-UNMODEL = m		# medium model for UnZip and ZipInfo
-ASUNMODEL=__MEDIUM__	# keep in sync with UNMODEL definition !!
+# since 5.42: switched to large model; medium model requires to much memory
+# to compile zipinfo, reported for BC++ 4.51 and TC++ 1.0
+# (compilation worked with 624k DOS memory and TC++ 1.0, but that much free
+# space requires an almost "empty" DOS system)
+UNMODEL = l		# large model for UnZip and ZipInfo
+ASUNMODEL=__LARGE__	# keep in sync with UNMODEL definition !!
 
 FUMODEL = s		# always use small model for fUnZip
 ASFUMODEL=__SMALL__	# keep in sync with FUMODEL definition !!
+
+SXMODEL = s		# always use small model for SFXUnZip
+ASSXMODEL=__SMALL__	# keep in sync with SXMODEL definition !!
 
 !if $(USE_ASMCRC)
 ASMFLG = -DASM_CRC
 ASMOBJS = crc_i86.obj
 ASMOBJF = crc_i86_.obj
+ASMOBJX = crc_i86x.obj
 !else
 ASMFLG =
 ASMOBJS =
 ASMOBJF =
+ASMOBJX =
 !endif
 
 
@@ -78,7 +90,7 @@ LDFLAGS = -lxncd -l-P		# for bcc
 CFLAGS  = $(CCOPTIM) $(CC_CPUFLG) -ff- -k- -P-.C -I. $(ASMFLG) $(LOC)
 UNFLAGS = -m$(UNMODEL) $(CFLAGS)
 FUFLAGS = -m$(FUMODEL) $(CFLAGS) -K -d
-SXFLAGS = -m$(UNMODEL) $(CFLAGS)
+SXFLAGS = -m$(SXMODEL) $(CFLAGS)
 
 # implicit rules
 
@@ -97,9 +109,9 @@ OBJUS = msdos.obj $(ASMOBJS)
 OBJU  = $(OBJU1) $(OBJU2) $(OBJU3) $(OBJUS)
 OBJF  = funzip.obj crc32f.obj cryptf.obj globalsf.obj inflatef.obj \
 	ttyiof.obj $(ASMOBJF)
-OBJX1 = unzipsfx.obj crc32.obj crctab.obj crypt.obj extractx.obj fileio.obj
-OBJX2 = globals.obj inflate.obj match.obj processx.obj ttyio.obj
-OBJXS = msdosx.obj $(ASMOBJS)
+OBJX1 = unzipsfx.obj crc32x.obj crctabx.obj cryptx.obj extractx.obj fileiox.obj
+OBJX2 = globalsx.obj inflatex.obj matchx.obj processx.obj ttyiox.obj
+OBJXS = msdosx.obj $(ASMOBJX)
 OBJX  = $(OBJX1) $(OBJX2) $(OBJXS)
 
 UNZIP_H = unzip.h unzpriv.h globals.h msdos/doscfg.h
@@ -121,7 +133,7 @@ $(OBJF)
 	$(STRIP) funzip.exe
 
 unzipsfx.exe:   $(OBJX)
-	$(CC) -m$(UNMODEL) $(LDFLAGS) -eunzipsfx.exe @&&|
+	$(CC) -m$(SXMODEL) $(LDFLAGS) -eunzipsfx.exe @&&|
 $(OBJX)
 |
 	$(STRIP) unzipsfx.exe
@@ -159,6 +171,9 @@ crc_i86.obj:    msdos/crc_i86.asm
 crc_i86_.obj:   msdos/crc_i86.asm
 	$(AS) $(ASFLAGS) -D$(ASFUMODEL) msdos\crc_i86.asm, $*.obj ;
 
+crc_i86x.obj:   msdos/crc_i86.asm
+	$(AS) $(ASFLAGS) -D$(ASSXMODEL) msdos\crc_i86.asm, $*.obj ;
+
 msdos.obj:      msdos/msdos.c $(UNZIP_H)
 	$(CC) -c $(UNFLAGS) msdos/msdos.c
 
@@ -183,11 +198,35 @@ ttyiof.obj:     ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h version.h consts.h
 	$(CC) -c $(SXFLAGS) -DSFX -ounzipsfx.obj unzip.c
 
+crc32x.obj:     crc32.c $(UNZIP_H) zip.h
+	$(CC) -c $(SXFLAGS) -DSFX -ocrc32x.obj crc32.c
+
+crctabx.obj:    crctab.c $(UNZIP_H) zip.h
+	$(CC) -c $(SXFLAGS) -DSFX -ocrctabx.obj crctab.c
+
+cryptx.obj:     crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(SXFLAGS) -DSFX -ocryptx.obj crypt.c
+
 extractx.obj:   extract.c $(UNZIP_H) crypt.h
 	$(CC) -c $(SXFLAGS) -DSFX -oextractx.obj extract.c
 
+fileiox.obj:    fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+	$(CC) -c $(SXFLAGS) -DSFX -ofileiox.obj fileio.c
+
+globalsx.obj:   globals.c $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -oglobalsx.obj globals.c
+
+inflatex.obj:   inflate.c inflate.h $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -oinflatex.obj inflate.c
+
+matchx.obj:     match.c $(UNZIP_H)
+	$(CC) -c $(SXFLAGS) -DSFX -omatchx.obj match.c
+
 processx.obj:   process.c $(UNZIP_H)
 	$(CC) -c $(SXFLAGS) -DSFX -oprocessx.obj process.c
+
+ttyiox.obj:     ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) -c $(SXFLAGS) -DSFX -ottyiox.obj ttyio.c
 
 msdosx.obj:     msdos/msdos.c $(UNZIP_H)
 	$(CC) -c $(SXFLAGS) -DSFX -omsdosx.obj msdos/msdos.c

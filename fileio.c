@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -1403,7 +1403,7 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 #if (!defined(VMS) && !defined(CMS_MVS))
 #if (!defined(OS2) || defined(TIMESTAMP))
 
-#if (!defined(HAVE_MKTIME) || defined(AMIGA) || defined(WIN32))
+#if (!defined(HAVE_MKTIME) || defined(WIN32))
 /* also used in amiga/filedate.c and win32/win32.c */
 ZCONST ush ydays[] =
     { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -15,6 +15,15 @@
 
 #if (defined(__CYGWIN32__) && !defined(__CYGWIN__))
 #  define __CYGWIN__            /* compatibility for CygWin B19 and older */
+#endif
+
+#ifdef __CYGWIN__
+/* Those Idiots at Cygnus have started to set "Unix" identifiers
+ * for a Win32 compiler ...
+ */
+#  ifdef UNIX
+#    undef UNIX
+#  endif
 #endif
 
 #if (defined(_MSC_VER) && !defined(MSC))
@@ -41,6 +50,31 @@
 #  ifndef tzset
 #    define tzset _tzset
 #  endif
+#endif
+#ifdef W32_USE_IZ_TIMEZONE
+#  ifdef __BORLANDC__
+#    define tzname tzname
+#    define IZTZ_DEFINESTDGLOBALS
+#  endif
+#  ifndef tzset
+#    define tzset _tzset
+#  endif
+#  ifndef timezone
+#    define timezone _timezone
+#  endif
+#  ifndef daylight
+#    define daylight _daylight
+#  endif
+#  ifndef tzname
+#    define tzname _tzname
+#  endif
+#  if (!defined(NEED__ISINDST) && !defined(__BORLANDC__))
+#    define NEED__ISINDST
+#  endif
+#  ifdef IZTZ_GETLOCALETZINFO
+#    undef IZTZ_GETLOCALETZINFO
+#  endif
+#  define IZTZ_GETLOCALETZINFO GetPlatformLocalTimezone
 #endif
 #include <memory.h>
 #if (!defined(__RSXNT__) && !defined(__CYGWIN__))
@@ -80,6 +114,11 @@
      extern int *_imp____mb_cur_max;
 #    define MB_CUR_MAX (*_imp____mb_cur_max)
 #  endif
+#endif
+
+/* for UnZip, the "basic" part of the win32 api is sufficient */
+#ifndef WIN32_LEAN_AND_MEAN
+#  define WIN32_LEAN_AND_MEAN
 #endif
 
 #if defined(__FILEIO_C)
@@ -127,8 +166,14 @@
 #if (defined(__RSXNT__) && !defined(HAVE_MKTIME))
 #  define HAVE_MKTIME           /* use mktime() in time conversion routines */
 #endif
+#if (defined(MSC) && !defined(HAVE_MKTIME))
+#  define HAVE_MKTIME           /* use mktime() in time conversion routines */
+#endif
 #if (defined(__CYGWIN__) && defined(HAVE_MKTIME))
 #  undef HAVE_MKTIME            /* Cygnus' mktime() implementation is buggy */
+#endif
+#if (defined(W32_USE_IZ_TIMEZONE) && !defined(HAVE_MKTIME))
+#  define HAVE_MKTIME           /* use mktime() in time conversion routines */
 #endif
 #if (!defined(NT_TZBUG_WORKAROUND) && !defined(NO_NT_TZBUG_WORKAROUND))
 #  define NT_TZBUG_WORKAROUND
@@ -228,6 +273,24 @@ int getch_win32  OF((void));
 #  endif
 #endif /* !__RSXNT__ */
 
+/* Up to now, all versions of Microsoft C runtime libraries lack the support
+ * for customized (non-US) switching rules between daylight saving time and
+ * standard time in the TZ environment variable string.
+ * But non-US timezone rules are correctly supported when timezone information
+ * is read from the OS system settings in the Win32 registry.
+ * The following work-around deletes any TZ environment setting from
+ * the process environment.  This results in a fallback of the RTL time
+ * handling code to the (correctly interpretable) OS system settings, read
+ * from the registry.
+ */
+#ifdef USE_EF_UT_TIME
+# if (defined(__WATCOMC__) || defined(W32_USE_IZ_TIMEZONE))
+#   define iz_w32_prepareTZenv()
+# else
+#   define iz_w32_prepareTZenv()        putenv("TZ=")
+# endif
+#endif
+
 #if (defined(NT_TZBUG_WORKAROUND) || defined(W32_STATROOT_FIX))
 #  define W32_STAT_BANDAID
 #  if (defined(NT_TZBUG_WORKAROUND) && defined(REENTRANT))
@@ -272,10 +335,9 @@ int getch_win32  OF((void));
 #  define PIPE_ERROR (errno == EPIPE)
 #endif /* __WATCOMC__ */
 
-#define SCREENLINES screenlines()
-#define SCREENWIDTH screencolumns()
-int screenlines(void);
-int screencolumns(void);
+#define SCREENWIDTH 80
+#define SCREENSIZE(scrrows, scrcols)  screensize(scrrows, scrcols)
+int screensize(int *tt_rows, int *tt_cols);
 
 /* on the DOS or NT console screen, line-wraps are always enabled */
 #define SCREENLWRAP 1

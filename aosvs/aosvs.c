@@ -19,7 +19,6 @@
              mapattr()
              mapname()
              checkdir()
-             screenlines()
              close_outfile()
              version()             <-- GRR:  needs work!  (Unix, not AOS/VS)
              zvs_create()
@@ -887,33 +886,6 @@ int checkdir(__G__ pathcomp, flag)
     return 99;  /* should never reach */
 
 } /* end function checkdir() */
-
-
-
-
-
-#ifdef MORE
-
-/**************************/
-/* Function screenlines() */
-/**************************/
-
-int screenlines()
-{
-    char *envptr, *getenv();
-    int n;
-
-    /* GRR:  this is overly simplistic; should use winsize struct and
-     * appropriate TIOCGWINSZ ioctl(), assuming exists on enough systems
-     */
-    envptr = getenv("LINES");
-    if (envptr == (char *)NULL || (n = atoi(envptr)) < 5)
-        return 24;   /* VT-100 assumed to be minimal hardware */
-    else
-        return n;
-}
-
-#endif /* MORE */
 
 
 

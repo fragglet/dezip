@@ -79,15 +79,19 @@ return (unsigned short) strlen(VolumeName);
 /* Function FindNewExtractFolder() */
 /***********************************/
 
-char *FindNewExtractFolder(char *ExtractPath)
+char *FindNewExtractFolder(char *ExtractPath, Boolean uniqueFolder)
 {
 char buffer[NAME_MAX], *tmpPtr, *namePtr;
+char *last_dotpos         = ExtractPath;
 short count = 0, folderCount = 0;
 OSErr err;
 FSSpec Spec;
 long theDirID;
 Boolean isDirectory;
 unsigned short namelen, pathlen = strlen(ExtractPath);
+unsigned long ext_length  = 0;
+unsigned long num_to_cut  = 0;
+long firstpart_length = pathlen;
 
 AssertStr(ExtractPath,"FindNewExtractFolder ExtractPath == NULL")
 
@@ -98,25 +102,48 @@ for (tmpPtr = ExtractPath; *tmpPtr; tmpPtr++)
         namePtr = tmpPtr;
         }
 
-if (folderCount > 1)
+if (folderCount > 1) {
     namelen = strlen(namePtr);
-else
+} else {
     namelen = strlen(ExtractPath);
+}
 
-for (count = 0; count < 99; count++)
-    {
-    memset(buffer,0,sizeof(buffer));
+if (uniqueFolder) {
+    for (count = 0; count < 99; count++)
+        {
+        memset(buffer,0,sizeof(buffer));
 
-    if (namelen >= 28)
-        ExtractPath[pathlen-2] = 0x0;
-    else
+        if (namelen >= 28)
+            ExtractPath[pathlen-2] = 0x0;
+        else
+            ExtractPath[pathlen-1] = 0x0;
+
+        sprintf(buffer,"%s%d",ExtractPath,count);
+        GetCompletePath(ExtractPath, buffer, &Spec,&err);
+        err = FSpGetDirectoryID(&Spec, &theDirID, &isDirectory);
+        if (err == -43) break;
+        }
+} else {
+    /* Look for the last extension pos */
+    for (tmpPtr = ExtractPath; *tmpPtr; tmpPtr++)
+        if (*tmpPtr == '.') last_dotpos = tmpPtr;
+
+    ext_length = strlen(last_dotpos);
+
+    if (ext_length < 6) {  /* up to 5 chars are treated as a */
+                           /* normal extension like ".html" or ".class"  */
+        int nameLength = last_dotpos - ExtractPath;
+        if (nameLength > 1) {
+            ExtractPath[nameLength] = 0x0;
+        } else {
+            ExtractPath[pathlen-1] = 0x0;
+        }
+    } else {
         ExtractPath[pathlen-1] = 0x0;
-
-    sprintf(buffer,"%s%d",ExtractPath,count);
-    GetCompletePath(ExtractPath, buffer, &Spec,&err);
-    err = FSpGetDirectoryID(&Spec, &theDirID, &isDirectory);
-    if (err == -43) break;
     }
+
+    GetCompletePath(ExtractPath, ExtractPath, &Spec,&err);
+}
 
 /* Foldernames must always end with a colon  */
 sstrcat(ExtractPath,":");

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -17,6 +17,7 @@
              do_wild()
              mapattr()
              mapname()
+             maskDOSdevice()
              map2fat()
              checkdir()
              isfloppy()
@@ -38,8 +39,7 @@
              _is_executable()               (djgpp 2.x)
              __crt0_glob_function()         (djgpp 2.x)
              __crt0_load_environment_file() (djgpp 2.x)
-             screenlines()                  (emx)
-             screencolumns()                (emx)
+             screensize()                   (emx)
              int86x_realmode()              (Watcom 32-bit)
              stat_bandaid()                 (Watcom)
 
@@ -50,6 +50,7 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
+static void maskDOSdevice(__GPRO__ char *pathcomp, char *last_dot);
 #ifdef MAYBE_PLAIN_FAT
    static void map2fat OF((char *pathcomp, char *last_dot));
 #endif
@@ -412,7 +413,6 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
 #ifdef MAYBE_PLAIN_FAT
     char *last_dot=(char *)NULL;   /* last dot not converted to underscore */
-    int dotname = FALSE;           /* path component begins with dot? */
 # ifdef USE_LFN
     int use_lfn = USE_LFN;         /* file system supports long filenames? */
 # endif
@@ -479,6 +479,11 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
 #ifdef MAYBE_PLAIN_FAT
+                maskDOSdevice(__G__ pathcomp, last_dot);
+#else
+                maskDOSdevice(__G__ pathcomp, NULL);
+#endif
+#ifdef MAYBE_PLAIN_FAT
 # ifdef USE_LFN
                 if (!use_lfn)
 # endif
@@ -531,27 +536,19 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 }
 # endif
                 if (pp == pathcomp) {     /* nothing appended yet... */
-                    if (*cp == '/') {     /* don't bother appending a "./" */
-                        ++cp;             /*  component to the path:  skip */
-                        break;            /*  to next char after the '/' */
+                    if (*cp == '/') {     /* don't bother appending "./" to */
+                        ++cp;             /*  the path: skip behind the '/' */
                     } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
-                        *pp++ = '.';      /* add first dot, unchanged... */
-                        ++cp;             /* skip second dot, since it will */
-                    } else {              /*  be "added" at end of if-block */
-                        *pp++ = '_';      /* FAT doesn't allow null filename */
-                        dotname = TRUE;   /*  bodies, so map .exrc -> _.exrc */
-                    }                     /*  (extra '_' now, "dot" below) */
-                } else if (dotname) {     /* found a second dot, but still */
-                    dotname = FALSE;      /*  have extra leading underscore: */
-                    *pp = '\0';           /*  remove it by shifting chars */
-                    pp = pathcomp + 1;    /*  left one space (e.g., .p1.p2: */
-                    while (pp[1]) {       /*  __p1 -> _p1_p2 -> _p1.p2 when */
-                        *pp = pp[1];      /*  finished) [opt.:  since first */
-                        ++pp;             /*  two chars are same, can start */
-                    }                     /*  shifting at second position] */
+                        *pp++ = '.';      /*  add first dot, */
+                        *pp++ = '.';      /*  second dot, and */
+                        ++cp;             /*  skip over to the '/' */
+                    } else {              /* null filename body not allowed */
+                        *pp++ = '_';      /*  for FAT, so map .exrc -> _exrc */
+                    }                     /*  (_.exr would keep max 3 chars) */
+                } else {                  /* found dot within path component */
+                    last_dot = pp;        /*  point at last dot so far... */
+                    *pp++ = '_';          /*  convert to underscore for now */
                 }
-                last_dot = pp;    /* point at last dot so far... */
-                *pp++ = '_';      /* convert dot to underscore for now */
                 break;
 #endif /* MAYBE_PLAIN_FAT */
 
@@ -588,42 +585,6 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         } /* end switch */
     } /* end while loop */
 
-    *pp = '\0';                   /* done with pathcomp:  terminate it */
-
-    /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!uO.V_flag && lastsemi) {
-#ifndef MAYBE_PLAIN_FAT
-        pp = lastsemi + 1;
-#else
-# ifdef USE_LFN
-        if (use_lfn)
-            pp = lastsemi + 1;
-        else
-            pp = lastsemi;        /* semi-colon was omitted:  expect all #'s */
-# else
-        pp = lastsemi;            /* semi-colon was omitted:  expect all #'s */
-# endif
-#endif
-        while (isdigit((uch)(*pp)))
-            ++pp;
-        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
-            *lastsemi = '\0';
-    }
-
-    if (G.pInfo->vollabel) {
-        if (strlen(pathcomp) > 11)
-            pathcomp[11] = '\0';
-    }
-
-#ifdef MAYBE_PLAIN_FAT
-# ifdef USE_LFN
-    if (!use_lfn)
-        map2fat(pathcomp, last_dot);  /* 8.3 truncation (in place) */
-# else
-    map2fat(pathcomp, last_dot);  /* 8.3 truncation (in place) */
-# endif
-#endif
-
 /*---------------------------------------------------------------------------
     Report if directory was created (and no file to create:  filename ended
     in '/'), check name to be sure it exists, and combine path and name be-
@@ -649,6 +610,48 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
             z_dos_chmod(__G__ G.filename, G.pInfo->file_attr);
         }
         return 2;   /* dir existed already; don't look for data to extract */
+    }
+
+    *pp = '\0';                   /* done with pathcomp:  terminate it */
+
+    /* if not saving them, remove VMS version numbers (appended ";###") */
+    if (!uO.V_flag && lastsemi) {
+#ifndef MAYBE_PLAIN_FAT
+        pp = lastsemi + 1;
+#else
+# ifdef USE_LFN
+        if (use_lfn)
+            pp = lastsemi + 1;
+        else
+            pp = lastsemi;        /* semi-colon was omitted:  expect all #'s */
+# else
+        pp = lastsemi;            /* semi-colon was omitted:  expect all #'s */
+# endif
+#endif
+        while (isdigit((uch)(*pp)))
+            ++pp;
+        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
+            *lastsemi = '\0';
+    }
+
+#ifdef MAYBE_PLAIN_FAT
+    maskDOSdevice(__G__ pathcomp, last_dot);
+#else
+    maskDOSdevice(__G__ pathcomp, NULL);
+#endif
+
+    if (G.pInfo->vollabel) {
+        if (strlen(pathcomp) > 11)
+            pathcomp[11] = '\0';
+    } else {
+#ifdef MAYBE_PLAIN_FAT
+# ifdef USE_LFN
+        if (!use_lfn)
+            map2fat(pathcomp, last_dot);  /* 8.3 truncation (in place) */
+# else
+        map2fat(pathcomp, last_dot);  /* 8.3 truncation (in place) */
+# endif
+#endif
     }
 
     if (*pathcomp == '\0') {
@@ -680,6 +683,59 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
 
 
+/****************************/
+/* Function maskDOSdevice() */
+/****************************/
+
+static void maskDOSdevice(__G__ pathcomp, last_dot)
+    __GDEF
+    char *pathcomp, *last_dot;
+{
+/*---------------------------------------------------------------------------
+    Put an underscore in front of the file name if the file name is a
+    DOS/WINDOWS device name like CON.*, AUX.*, PRN.*, etc. Trying to
+    extract such a file would fail at best and wedge us at worst.
+  ---------------------------------------------------------------------------*/
+#if !defined(S_IFCHR) && defined(_S_IFCHR)
+#  define S_IFCHR _S_IFCHR
+#endif
+#if !defined(S_ISCHR)
+# if defined(_S_ISCHR)
+#  define S_ISCHR(m) _S_ISCHR(m)
+# elif defined(S_IFCHR)
+#  define S_ISCHR(m) ((m) & S_IFCHR)
+# endif
+#endif
+
+#ifdef DEBUG
+    if (stat(pathcomp, &G.statbuf) == 0) {
+        Trace((stderr,
+               "maskDOSdevice() stat(\"%s\", buf) st_mode result: %X, %o\n",
+               pathcomp, G.statbuf.st_mode, G.statbuf.st_mode));
+    } else {
+        Trace((stderr, "maskDOSdevice() stat(\"%s\", buf) failed\n",
+               pathcomp));
+    }
+#endif
+    if (stat(pathcomp, &G.statbuf) == 0 && S_ISCHR(G.statbuf.st_mode)) {
+        extent i;
+
+        /* pathcomp contains a name of a DOS character device (builtin or
+         * installed device driver).
+         * Prepend a '_' to allow creation of the item in the file system.
+         */
+        for (i = strlen(pathcomp) + 1; i > 0; --i)
+            pathcomp[i] = pathcomp[i - 1];
+        pathcomp[0] = '_';
+        if (last_dot != (char *)NULL)
+            last_dot++;
+    }
+} /* end function maskDOSdevice() */
+
+
+
+
+
 #ifdef MAYBE_PLAIN_FAT
 
 /**********************/
@@ -705,13 +761,13 @@ static void map2fat(pathcomp, last_dot)
     if (last_dot == (char *)NULL) {   /* no dots:  check for underscores... */
         char *plu = strrchr(pathcomp, '_');   /* pointer to last underscore */
 
-        if (plu == (char *)NULL) {  /* no dots, no underscores:  truncate at */
-            if (pEnd > pathcomp+8)  /* 8 chars (could insert '.' and keep 11) */
-                *(pEnd = pathcomp+8) = '\0';
-        } else if (MIN(plu - pathcomp, 8) + MIN(pEnd - plu - 1, 3) > 8) {
+        if ((plu != (char *)NULL) &&    /* found underscore: convert to dot? */
+            (MIN(plu - pathcomp, 8) + MIN(pEnd - plu - 1, 3) > 8)) {
             last_dot = plu;       /* be lazy:  drop through to next if-block */
-        } else if ((pEnd - pathcomp) > 8)    /* more fits into just basename */
-            pathcomp[8] = '\0';    /* than if convert last underscore to dot */
+        } else if ((pEnd - pathcomp) > 8)
+            /* no underscore; or converting underscore to dot would save less
+               chars than leaving everything in the basename */
+            pathcomp[8] = '\0';     /* truncate at 8 chars */
         /* else whole thing fits into 8 chars or less:  no change */
     }
 
@@ -720,8 +776,8 @@ static void map2fat(pathcomp, last_dot)
     extension if necessary) and second half at three.
   ---------------------------------------------------------------------------*/
 
-    if (last_dot != (char *)NULL) {   /* one dot (or two, in the case of */
-        *last_dot = '.';              /*  "..") is OK:  put it back in */
+    if (last_dot != (char *)NULL) {     /* one dot is OK: */
+        *last_dot = '.';                /* put the last back in */
 
         if ((last_dot - pathcomp) > 8) {
             char *p, *q;
@@ -729,15 +785,15 @@ static void map2fat(pathcomp, last_dot)
 
             p = last_dot;
             q = last_dot = pathcomp + 8;
-            for (i = 0;  (i < 4) && *p;  ++i)  /* too many chars in basename: */
-                *q++ = *p++;                   /*  shift extension left and */
-            *q = '\0';                         /*  truncate/terminate it */
+            for (i = 0;  (i < 4) && *p;  ++i) /* too many chars in basename: */
+                *q++ = *p++;                  /*  shift extension left and */
+            *q = '\0';                        /*  truncate/terminate it */
         } else if ((pEnd - last_dot) > 4)
-            last_dot[4] = '\0';                /* too many chars in extension */
+            last_dot[4] = '\0';               /* too many chars in extension */
         /* else filename is fine as is:  no change */
 
         if ((last_dot - pathcomp) > 0 && last_dot[-1] == ' ')
-            last_dot[-1] = '_';                /* NO blank in front of '.'! */
+            last_dot[-1] = '_';               /* NO blank in front of '.'! */
     }
 } /* end function map2fat() */
 
@@ -1681,6 +1737,10 @@ void version(__G)
         "++ later than 3.0",
 #    elif (__TURBOC__ >= 0x0400)
         "++ 3.0",
+#    elif (__TURBOC__ >= 0x0297)     /* see remark for Borland C++ 2.0 */
+        "++ 2.0",
+#    elif (__TURBOC__ == 0x0296)     /* [662] checked by SPC */
+        "++ 1.01",
 #    elif (__TURBOC__ == 0x0295)     /* [661] vfy'd by Kevin */
         "++ 1.0",
 #    elif (__TURBOC__ == 0x0201)     /* Brian:  2.01 -> 0x0201 */
@@ -1938,6 +1998,7 @@ int _is_executable (const char *path, int fhandle, const char *ext)
     return 0;
 }
 
+#ifndef USE_DJGPP_GLOB
 /* Prevent globbing of filenames.  This gives the same functionality as
  * "stubedit <program> globbing=no" did with DJGPP v1.
  */
@@ -1945,13 +2006,16 @@ char **__crt0_glob_function(char *_arg)
 {
     return NULL;
 }
+#endif /* !USE_DJGPP_GLOB */
 
+#ifndef USE_DJGPP_ENV
 /* Reduce the size of the executable and remove the functionality to read
  * the program's environment from whatever $DJGPP points to.
  */
 void __crt0_load_environment_file(char *_app_name)
 {
 }
+#endif /* !USE_DJGPP_ENV */
 
 #endif /* __DJGPP__ >= 2 */
 #endif /* __GO32__ || __EMX__ */
@@ -1961,29 +2025,18 @@ void __crt0_load_environment_file(char *_app_name)
 #ifdef __EMX__
 #ifdef MORE
 
-/**************************/
-/* Function screenlines() */
-/**************************/
+/*************************/
+/* Function screensize() */
+/*************************/
 
-int screenlines()
+int screensize(int *tt_rows, int *tt_cols)
 {
     int scr_dimen[2];           /* scr_dimen[0]: columns, src_dimen[1]: rows */
 
     _scrsize(scr_dimen);
-    return (scr_dimen[1]);
-}
-
-
-/****************************/
-/* Function screencolumns() */
-/****************************/
-
-int screencolumns()
-{
-    int scr_dimen[2];           /* scr_dimen[0]: columns, src_dimen[1]: rows */
-
-    _scrsize(scr_dimen);
-    return (scr_dimen[0]);
+    if (tt_rows != NULL) *tt_rows = scr_dimen[1];
+    if (tt_cols != NULL) *tt_cols = scr_dimen[0];
+    return 0;
 }
 
 #endif /* MORE */

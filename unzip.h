@@ -71,6 +71,9 @@ freely, subject to the following restrictions:
 #  ifdef unix
 #    undef unix
 #  endif
+#  ifdef _unix
+#    undef _unix
+#  endif
 #  ifdef __unix
 #    undef __unix
 #  endif
@@ -83,11 +86,11 @@ freely, subject to the following restrictions:
 #  define CONVEX
 #endif
 
-#if (defined(unix) || defined(__unix) || defined(__unix__))
+#if (defined(unix) || defined(_unix) || defined(__unix) || defined(__unix__))
 #  ifndef UNIX
 #    define UNIX
 #  endif
-#endif /* unix || __unix || __unix__ */
+#endif /* unix || _unix || __unix || __unix__ */
 #if (defined(M_XENIX) || defined(COHERENT) || defined(__hpux))
 #  ifndef UNIX
 #    define UNIX

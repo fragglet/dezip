@@ -21,7 +21,7 @@
               stamp_file()
               _abort()                (Aztec C only)
              [dateformat()]           (currently not used)
-              windowheight()
+              screensize()
               version()
 
   ------------------------------------------------------------------------*/
@@ -66,7 +66,7 @@ const char version_id[]  = "\0$VER: UnZip 5.41 ("
 #endif /* SFX */
 
 
-static int ispattern(char *p)
+static int ispattern(ZCONST char *p)
 {
     register char c;
     while (c = *p++)
@@ -114,7 +114,8 @@ char *do_wild(__G__ wildspec)
         G.notfirstcall = TRUE;
 
         /* avoid needless readdir() scans: */
-        if (!ispattern(wildspec) || (lok = Lock(wildspec, ACCESS_READ))) {
+        if (!ispattern(wildspec) ||
+                (lok = Lock((char *)wildspec, ACCESS_READ))) {
             if (lok) UnLock(lok);       /* ^^ we ignore wildcard chars if */
             G.dirnamelen = 0;           /* the name matches a real file   */
             strcpy(G.matchname, wildspec);
@@ -747,9 +748,9 @@ void _abort(void)               /* called when ^C is pressed */
 }
 
 
-/**************************************************************/
-/* function windowheight() -- uses sendpkt() from filedate.c: */
-/**************************************************************/
+/************************************************************/
+/* function screensize() -- uses sendpkt() from filedate.c: */
+/************************************************************/
 
 #include <devices/conunit.h>
 #include <dos/dosextens.h>
@@ -758,8 +759,9 @@ void _abort(void)               /* called when ^C is pressed */
 
 extern long sendpkt(struct MsgPort *pid, long action, long *args, long nargs);
 
-int windowheight(BPTR fh)
+int screensize(int *ttrows, int *ttcols)
 {
+    BPTR fh = Output();
     if (fh && IsInteractive(fh)) {
         struct ConUnit *conunit = NULL;
         void *conp = ((struct FileHandle *) (fh << 2))->fh_Type;
@@ -770,10 +772,15 @@ int windowheight(BPTR fh)
             conunit = (void *) ((struct IOStdReq *) ind->id_InUse)->io_Unit;
         if (ind)
             FreeMem(ind, sizeof(*ind));
-        if (conunit)
-            return conunit->cu_YMax + 1;
+        if (conunit) {
+            if (ttrows) *ttrows = conunit->cu_YMax + 1;
+            if (ttcols) *ttcols = conunit->cu_XMax + 1;
+            return 0;     /* success */
+        }
     }
-    return INT_MAX;
+    if (ttrows) *ttrows = INT_MAX;
+    if (ttcols) *ttcols = INT_MAX;
+    return 1;             /* failure */
 }
 
 
@@ -783,18 +790,18 @@ int windowheight(BPTR fh)
 #  include <dos/filehandler.h>
 #  include <clib/macros.h>
 
-BOOL is_floppy(char *path)
+BOOL is_floppy(ZCONST char *path)
 {
     BOOL okay = FALSE;
     char devname[32], *debna;
     ushort i;
-    BPTR lok = Lock(path, ACCESS_READ), pok;
+    BPTR lok = Lock((char *)path, ACCESS_READ), pok;
     struct FileSysStartupMsg *fart;
     struct DeviceNode *debb, devlist = (void *) BADDR((struct DosInfo *)
                                 BADDR(DOSBase->dl_Root->rn_Info)->di_DevInfo);
     if (!lok)
         return FALSE;                   /* should not happen */
-    if (pok = ParentDir(path)) {
+    if (pok = ParentDir((char *)path)) {
         UnLock(lok);
         UnLock(pok);
         return FALSE;                   /* it's not a root directory path */

@@ -7,10 +7,18 @@
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
 /*
-   crypt.h (full version) by Info-ZIP.   Last revised:  [see CR_VERSION_DATE]
+  crypt.h (full version) by Info-ZIP.   Last revised:  [see CR_VERSION_DATE]
 
-   This header file is not copyrighted, and non-beta versions may be
-   distributed without restriction.
+  This encryption/decryption source code for Info-Zip software was
+  originally written in Europe.  The whole source package can be
+  freely distributed, including from the USA.  (Prior to January 2000,
+  re-export from the US was a violation of US law.)
+
+  NOTE on copyright history:
+  Previous versions of this source package (up to version 2.8) were
+  not copyrighted and put in the public domain.  If you cannot comply
+  with the Info-Zip LICENSE, you may want to look for one of those
+  public domain versions.
  */
 
 #ifndef __crypt_h   /* don't include more than once */
@@ -25,18 +33,27 @@
       - dummy crypt code when used to compile Zip
         (because we do not distribute encrypting versions of Zip from US
         servers)
-      - full crypt code when used to compile UnZip
+      - dummy crypt code when compiling UnZipSFX stub, to minimize size
+      - full crypt code when used to compile UnZip and fUnZip
    b) USE_CRYPT defined:
       - always full crypt code
    c) NO_CRYPT defined:
       - never full crypt code
    NO_CRYPT takes precedence over USE_CRYPT
  */
-#if (defined(USE_CRYPT) || !defined(ZIP)) && !defined(NO_CRYPT)
+#if defined(NO_CRYPT)
+#  define CRYPT  0  /* dummy version */
+#else
+#if defined(USE_CRYPT)
+#  define CRYPT  1  /* full version */
+#else
+#if (!defined(ZIP) && !defined(SFX))
 #  define CRYPT  1  /* full version */
 #else
 #  define CRYPT  0  /* dummy version */
 #endif
+#endif /* ?USE_CRYPT */
+#endif /* ?NO_CRYPT */
 
 #if CRYPT
 /* full version */
@@ -49,10 +66,10 @@
 #define CR_MINORVER        9
 #ifdef CR_BETA
 #  define CR_BETA_VER      "a BETA"
-#  define CR_VERSION_DATE  "9 April 2000"      /* last real code change */
+#  define CR_VERSION_DATE  "05 May 2000"       /* last real code change */
 #else
 #  define CR_BETA_VER      ""
-#  define CR_VERSION_DATE  "16 April 2000"     /* last public release date */
+#  define CR_VERSION_DATE  "05 May 2000"       /* last public release date */
 #  define CR_RELEASE
 #endif
 

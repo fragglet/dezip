@@ -37,9 +37,6 @@ B) Implementation limits of UnZip:
    Size of Zip archive:                 2 GByte (2^31 - 1 Bytes)
    Compressed size of archive entry:    2 GByte (2^31 - 1 Bytes)
 
-   -->> ONLY for imploded and reduced archive members: <<--
-   Uncompressed size of archive entry:  2 GByte (2^31 - 1 Bytes)
-
    The number of Zip archive entries is unlimited. The "number-of-entries"
    field of the "end-of-central-dir" record is checked against the "number
    of entries found in the central directory" modulus 64k (2^16).
@@ -179,4 +176,4 @@ D) Some technical remarks:
 
 Please report any problems to:  Zip-Bugs@lists.wku.edu
 
-Last updated:  24 December 1999, Christian Spieler
+Last updated:  30 December 2000, Christian Spieler

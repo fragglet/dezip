@@ -39,7 +39,7 @@ OBJF = funzip.o crc_68.o crypt_.o globals_.o inflate_.o flate_.o ttyio_.o
 UNZIP_H = unzip.h unzpriv.h globals.h
 
 UNZIPS = unzip.x unzipsfx.x funzip.x
-DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc
+DOCS = unzip.txt unzipsfx.txt zipinfo.txt funzip.txt
 
 .c.o:
 	$(CC) $(CFLAGS) -I. -c $< -o $@

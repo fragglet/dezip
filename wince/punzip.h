@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -201,6 +201,24 @@ extern "C" {
 #  define PREINCSTR(ptr) (ptr = (char *)_mbsinc((const UCHAR *)(ptr)))
 #  define MBSCHR(str, c) (char *)_mbschr((const UCHAR *)(str), (c))
 #  define MBSRCHR(str, c) (char *)_mbsrchr((const UCHAR *)(str), (c))
+#endif
+
+/* Up to now, all versions of Microsoft C runtime libraries lack the support
+ * for customized (non-US) switching rules between daylight saving time and
+ * standard time in the TZ environment variable string.
+ * But non-US timezone rules are correctly supported when timezone information
+ * is read from the OS system settings in the Win32 registry.
+ * The following work-around deletes any TZ environment setting from
+ * the process environment.  This results in a fallback of the RTL time
+ * handling code to the (correctly interpretable) OS system settings, read
+ * from the registry.
+ */
+#ifdef USE_EF_UT_TIME
+# if (defined(_WIN32_WCE) || defined(W32_USE_IZ_TIMEZONE))
+#   define iz_w32_prepareTZenv()
+# else
+#   define iz_w32_prepareTZenv()        putenv("TZ=")
+# endif
 #endif
 
 #ifdef MSC

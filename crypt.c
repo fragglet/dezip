@@ -7,21 +7,25 @@
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
 /*
-   crypt.c (full version) by Info-ZIP.      Last revised:  [see crypt.h]
+  crypt.c (full version) by Info-ZIP.      Last revised:  [see crypt.h]
 
-   This code is not copyrighted and is put in the public domain.  The
-   encryption/decryption parts (as opposed to the non-echoing password
-   parts) were originally written in Europe; the whole file can there-
-   fore be freely distributed from any country except the USA.  Since
-   spring 2000, the USA have liberated their export restrictions for
-   crypting code, which allow now a re-export of our source to another
-   country.  (Previously, this was forbidden by US law.)
+  This encryption/decryption source code for Info-Zip software was
+  originally written in Europe.  The whole source package can be
+  freely distributed, including from the USA.  (Prior to January 2000,
+  re-export from the US was a violation of US law.)
+
+  NOTE on copyright history:
+  Previous versions of this source package (up to version 2.8) were
+  not copyrighted and put in the public domain.  If you cannot comply
+  with the Info-Zip LICENSE, you may want to look for one of those
+  public domain versions.
  */
 
-/* This encryption code is a direct transcription of the algorithm from
-   Roger Schlafly, described by Phil Katz in the file appnote.txt.  This
-   file (appnote.txt) is distributed with the PKZIP program (even in the
-   version without encryption capabilities).
+/*
+  This encryption code is a direct transcription of the algorithm from
+  Roger Schlafly, described by Phil Katz in the file appnote.txt.  This
+  file (appnote.txt) is distributed with the PKZIP program (even in the
+  version without encryption capabilities).
  */
 
 #define ZCRYPT_INTERNAL

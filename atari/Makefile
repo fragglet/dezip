@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Atari           ("real" makes only)
-# Version:  5.41                                               16 February 1999
+# Version:  5.41                                                  28 April 2000
 #==============================================================================
 
 
@@ -84,7 +84,7 @@ INSTALLEDMAN = $(MANDIR)/unzip.$(manext) $(MANDIR)/funzip.$(manext) \
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, no, it's a lot ugly:
 MANS = man/unzip.1 man/unzipsfx.1 man/zipinfo.1 man/funzip.1
-DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc
+DOCS = unzip.txt unzipsfx.txt zipinfo.txt funzip.txt
 
 
 ###############################################

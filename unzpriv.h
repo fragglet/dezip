@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -29,7 +29,9 @@
 
 /* GRR 960204:  MORE defined here in preparation for removal altogether */
 #ifndef MORE
+# ifndef RISCOS
 #  define MORE
+# endif
 #endif
 
 /* fUnZip should never need to be reentrant */
@@ -39,6 +41,9 @@
 #  endif
 #  ifdef DLL
 #    undef DLL
+#  endif
+#  ifdef USE_DEFLATE64          /* the preliminary deflate64 code does not */
+#    undef USE_DEFLATE64        /*  work for fUnZip */
 #  endif
 #endif
 
@@ -280,8 +285,7 @@
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
-#  define SCREENLINES
-#  define SCREENWIDTH
+#  define SCREENWIDTH 80
 #  define USE_EF_UT_TIME
 #  define SET_DIR_ATTRIB
 #  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
@@ -460,8 +464,7 @@
 #    define TIMESTAMP
 #  endif
 #  define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
-#  define SCREENLINES
-#  define SCREENWIDTH
+#  define SCREENWIDTH 80
 #endif
 
 /*---------------------------------------------------------------------------
@@ -573,8 +576,8 @@
 #  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
-#  define SCREENLINES   screenlines()
-#  define SCREENWIDTH   screencolumns()
+#  define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
+#  define SCREENWIDTH   80
 #  define SCREENLWRAP   screenlinewrap()
 #  if (defined(__VMS_VERSION) && !defined(VMS_VERSION))
 #    define VMS_VERSION __VMS_VERSION
@@ -611,7 +614,11 @@
 /*  Defines  */
 /*************/
 
-#define UNZIP_VERSION     20   /* compatible with PKUNZIP 2.0 */
+#ifdef USE_DEFLATE64
+#  define UNZIP_VERSION   21   /* compatible with PKUNZIP 4.0 */
+#else
+#  define UNZIP_VERSION   20   /* compatible with PKUNZIP 2.0 */
+#endif
 #define VMS_UNZIP_VERSION 42   /* if OS-needed-to-extract is VMS:  can do */
 
 #if (defined(MSDOS) || defined(OS2))
@@ -782,22 +789,25 @@
 #  endif
 #endif
 #if (defined(MORE) && !defined(SCREENSIZE))
-#  ifdef DOS_FLX_NLM_OS2_W32
+#  ifndef SCREENWIDTH
 #    define SCREENSIZE(scrrows, scrcols) { \
-            if ((scrrows) != NULL) *(scrrows) = 25; \
-            if ((scrcols) != NULL) *(scrcols) = 80; }
+          if ((scrrows) != NULL) *(scrrows) = SCREENLINES; }
 #  else
 #    define SCREENSIZE(scrrows, scrcols) { \
-            if ((scrrows) != NULL) *(scrrows) = 24; \
-            if ((scrcols) != NULL) *(scrcols) = 80; }
+          if ((scrrows) != NULL) *(scrrows) = SCREENLINES; \
+          if ((scrcols) != NULL) *(scrcols) = SCREENWIDTH; }
 #  endif
 #endif
 
 #define DIR_BLKSIZ  64      /* number of directory entries per block
                              *  (should fit in 4096 bytes, usually) */
 #ifndef WSIZE
-#  define WSIZE     0x8000  /* window size--must be a power of two, and */
-#endif                      /*  at least 32K for zip's deflate method */
+#  ifdef USE_DEFLATE64
+#    define WSIZE   65536L  /* window size--must be a power of two, and */
+#  else                     /*  at least 64K for PKZip's deflate64 method */
+#    define WSIZE   0x8000  /* window size--must be a power of two, and */
+#  endif                    /*  at least 32K for zip's deflate method */
+#endif
 
 #ifndef INBUFSIZ
 #  if (defined(MED_MEM) || defined(SMALL_MEM))
@@ -1255,6 +1265,7 @@
 #define EF_JLMAC     0x07c8    /* Johnny Lee's old Macintosh (= 1992) */
 #define EF_ZIPIT     0x2605    /* Thomas Brown's Macintosh (ZipIt) */
 #define EF_ZIPIT2    0x2705    /* T. Brown's Mac (ZipIt) v 1.3.8 and newer ? */
+#define EF_SMARTZIP  0x4d63    /* Mac SmartZip by Marco Bambini */
 #define EF_VMCMS     0x4704    /* Info-ZIP's VM/CMS ("\004G") */
 #define EF_MVS       0x470f    /* Info-ZIP's MVS ("\017G") */
 #define EF_ACL       0x4c41    /* (OS/2) access control list ("AL") */
@@ -1300,6 +1311,7 @@
 #define EB_BEOS_HLEN      5    /* length of BeOS e.f attribute header */
 #define EB_BE_FL_UNCMPR   0x01 /* "BeOS attributes uncompressed" bit flag */
 #define EB_MAC3_HLEN      14   /* length of Mac3 attribute block header */
+#define EB_SMARTZIP_HLEN  64   /* fixed length of the SmartZip extra field */
 #define EB_M3_FL_DATFRK   0x01 /* "this entry is data fork" flag */
 #define EB_M3_FL_UNCMPR   0x04 /* "Mac3 attributes uncompressed" bit flag */
 #define EB_M3_FL_TIME64   0x08 /* "Mac3 time fields are 64 bit wide" flag */
@@ -1943,10 +1955,9 @@ char    *do_wild         OF((__GPRO__ ZCONST char *wildzipfn));     /* local */
 char    *GetLoadPath     OF((__GPRO));                              /* local */
 #if (defined(MORE) && (defined(BEO_UNX) || defined(QDOS) || defined(VMS)))
    int screensize        OF((int *tt_rows, int *tt_cols));          /* local */
-#  if (defined(SCREENWIDTH) && defined(SCREENLWRAP) && defined(VMS))
-      int screencolumns  OF((void));                                /* local */
-      int screenlinewrap OF((void));                                /* local */
-#  endif
+# if defined(VMS)
+   int screenlinewrap    OF((void));                                /* local */
+# endif
 #endif /* MORE && (BEO_UNX || QDOS || VMS) */
 #ifndef MTS /* macro in MTS */
    void  close_outfile   OF((__GPRO));                              /* local */

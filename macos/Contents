@@ -1,4 +1,4 @@
-Contents of the "macos" sub-archive for UnZip 5.4 and later:
+Contents of the "macos" sub-archive for UnZip 5.42 and later:
 
   Contents          this file
   README.TXT        Dirk Haase's infos on updated Macintosh ports of Zip/UnZip
@@ -8,7 +8,7 @@ Contents of the "macos" sub-archive for UnZip 5.4 and later:
   UnZpLib.h         config header used to build a static library
   UnZpSFX.h         config header used to build the SFX stub
   UnZpSx.h          config header for building a standalone app. with MW Sioux
-  UnZpPrj.hqx       Metrowerks CodeWarrior pro3 project file (BinHex)
+  UnZpPrj.xml       Metrowerks CodeWarrior pro5 project file (xml export file)
 
   source/        subdirectory containing all sources:
                   a) UnZip specific code

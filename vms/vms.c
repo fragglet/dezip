@@ -28,8 +28,7 @@
              checkdir()
              check_for_newer()
              return_VMS
-             screenlines()
-             screencolumns()
+             screensize()
              screenlinewrap()
              version()
 
@@ -1501,9 +1500,9 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
 /* Record delimiters */
 #ifdef undef
 #define RECORD_END(c,f)                                                 \
-(    ( ORG_DOS || G.pInfo->textmode ) && c==CTRLZ                      \
+(    ( ORG_DOS || G.pInfo->textmode ) && c==CTRLZ                       \
   || ( f == FAB$C_STMLF && c==LF )                                      \
-  || ( f == FAB$C_STMCR || ORG_DOS || G.pInfo->textmode ) && c==CR     \
+  || ( f == FAB$C_STMCR || ORG_DOS || G.pInfo->textmode ) && c==CR      \
   || ( f == FAB$C_STM && (c==CR || c==LF || c==FF || c==VT) )           \
 )
 #else
@@ -3305,18 +3304,13 @@ static int getscreeninfo(int *tt_rows, int *tt_cols, int *tt_wrap)
     return ((status & 1) != 0);
 }
 
-int screenlines()
+int screensize(int *tt_rows, int *tt_cols)
 {
-    if (scrnlines < 0)
+    if (scrnlines < 0 || scrncolumns < 0)
         getscreeninfo(&scrnlines, &scrncolumns, &scrnwrap);
-    return (scrnlines);
-}
-
-int screencolumns()
-{
-    if (scrncolumns < 0)
-        getscreeninfo(&scrnlines, &scrncolumns, &scrnwrap);
-    return (scrncolumns);
+    if (tt_rows != NULL) *tt_rows = scrnlines;
+    if (tt_cols != NULL) *tt_cols = scrncolumns;
+    return !(scrnlines > 0 && scrncolumns > 0);
 }
 
 int screenlinewrap()

@@ -1,18 +1,15 @@
-Contents of the "amiga" directory for UnZip 5.4 and later:
+Contents of the "amiga" directory for UnZip 5.42 and later:
 
   Contents      this file
   amiga.c       Amiga-specific file I/O routines
   amiga.h       Amiga-specific header file
   filedate.c    SetFileDate clone for OS 1.3, and other low-level resources
-  time_lib.c    timezone and timestamp functions
-  timezone.doc  explanation of the TZ environment variable for timezones
 
   smakefile     SAS/C makefile for UnZip, fUnZip, and UnZipSFX
 
   makefile.azt  Aztec C makefile for UnZip, fUnZip, and UnZipSFX
   stat.c        stat() emulation for Aztec, along with opendir()/readdir()/etc
   z-stat.h      replacement stat.h header file for use with stat.c
-  z-time.h      replacement time.h header file for use with time_lib.c
   crc_68.a      assembler version of crc32.c
   flate.a       assembler version of inflate_codes() (define ASM_INFLATECODES)
 
@@ -32,4 +29,5 @@ Notes:
   timezone in the Locale preferences editor, this will be an adequate
   substitute for setting TZ.  If you do not set TZ to your current timezone,
   files will be restored with times corrsponding to "EST5EDT", U.S. Eastern
-  time.  See timezone.doc for directions on how to set the TZ variable.
+  time.  See ../proginfo/timezone.txt for directions on how to set the
+  TZ variable.

@@ -1,18 +1,25 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
-/* explode.c -- put in the public domain by Mark Adler
+/* explode.c -- by Mark Adler
    version c15, 6 July 1996 */
 
 
-/* You can do whatever you like with this source file, though I would
-   prefer that if you modify it and redistribute it that you include
-   comments to that effect with your name and the date.  Thank you.
+/* Copyright history:
+   - Starting with UnZip 5.41 of 16-April-2000, this source file
+     is covered by the Info-Zip LICENSE cited above.
+   - Prior versions of this source file, found in UnZip source packages
+     up to UnZip 5.40, were put in the public domain.
+     The original copyright note by Mark Adler was:
+         "You can do whatever you like with this source file,
+         though I would prefer that if you modify it and
+         redistribute it that you include comments to that effect
+         with your name and the date.  Thank you."
 
    History:
    vers    date          who           what
@@ -223,7 +230,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
 /* Decompress the imploded data using coded literals and an 8K sliding
    window. */
 {
-  long s;               /* bytes to decompress */
+  ulg s;                /* bytes to decompress */
   register unsigned e;  /* table entry flag/number of extra bits */
   unsigned n, d;        /* length and index for copy */
   unsigned w;           /* current window position */
@@ -241,7 +248,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   mb = mask_bits[bb];           /* precompute masks for speed */
   ml = mask_bits[bl];
   md = mask_bits[bd];
-  s = G.ucsize;
+  s = G.lrec.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -303,7 +310,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       }
 
       /* do the copy */
-      s -= n;
+      s = (s > (ulg)n ? s - (ulg)n : 0);
       do {
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
         if (G.redirect_slide) {
@@ -363,7 +370,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
 /* Decompress the imploded data using coded literals and a 4K sliding
    window. */
 {
-  long s;               /* bytes to decompress */
+  ulg s;                /* bytes to decompress */
   register unsigned e;  /* table entry flag/number of extra bits */
   unsigned n, d;        /* length and index for copy */
   unsigned w;           /* current window position */
@@ -381,7 +388,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   mb = mask_bits[bb];           /* precompute masks for speed */
   ml = mask_bits[bl];
   md = mask_bits[bd];
-  s = G.ucsize;
+  s = G.lrec.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -443,7 +450,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       }
 
       /* do the copy */
-      s -= n;
+      s = (s > (ulg)n ? s - (ulg)n : 0);
       do {
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
         if (G.redirect_slide) {
@@ -503,7 +510,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
 /* Decompress the imploded data using uncoded literals and an 8K sliding
    window. */
 {
-  long s;               /* bytes to decompress */
+  ulg s;                /* bytes to decompress */
   register unsigned e;  /* table entry flag/number of extra bits */
   unsigned n, d;        /* length and index for copy */
   unsigned w;           /* current window position */
@@ -520,7 +527,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   u = 1;                        /* buffer unflushed */
   ml = mask_bits[bl];           /* precompute masks for speed */
   md = mask_bits[bd];
-  s = G.ucsize;
+  s = G.lrec.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -574,7 +581,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       }
 
       /* do the copy */
-      s -= n;
+      s = (s > (ulg)n ? s - (ulg)n : 0);
       do {
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
         if (G.redirect_slide) {
@@ -634,7 +641,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
 /* Decompress the imploded data using uncoded literals and a 4K sliding
    window. */
 {
-  long s;               /* bytes to decompress */
+  ulg s;                /* bytes to decompress */
   register unsigned e;  /* table entry flag/number of extra bits */
   unsigned n, d;        /* length and index for copy */
   unsigned w;           /* current window position */
@@ -651,7 +658,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   u = 1;                        /* buffer unflushed */
   ml = mask_bits[bl];           /* precompute masks for speed */
   md = mask_bits[bd];
-  s = G.ucsize;
+  s = G.lrec.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -705,7 +712,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       }
 
       /* do the copy */
-      s -= n;
+      s = (s > (ulg)n ? s - (ulg)n : 0);
       do {
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
         if (G.redirect_slide) {

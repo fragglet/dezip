@@ -33,7 +33,7 @@
 #  include <dos.h>
 #endif
 #include <libraries/dos.h>
-#include "amiga/z-time.h"
+#include <time.h>
 
 
 struct stat {

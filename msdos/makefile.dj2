@@ -1,5 +1,5 @@
 # Makefile for Info-ZIP's UnZip, UnZipSFX and fUnZip using DJGPP v2.01 or
-# higher, by Frank Donahoe.                      Last updated: 16 April 00
+# higher, by Frank Donahoe.                      Last updated: 05 May 00
 
 # This Makefile is specifically tailored for GNU make and GNU C and
 # may not work with a generic Unix-compatible make utility.  The latest
@@ -93,17 +93,17 @@ INSTALL=ginstall
 # Laszlo Molnar who wrote DJ Packer and Markus F. X. J. Oberhumer who wrote
 # the compression library used by the DJ Packer have collaborated on the
 # Ultimate Packer for eXecutables, which has recently been released.  Look
-# for upx???d.zip at     http://upx.tsx.org/                            or
-# look for "djp.exe", now two years old, in the archive mlp107[b,s].zip,
-# found in the same directory as csdpmi4[b,s].zip
+# for upx???d.zip at     http://upx.tsx.org/
+# As an alternative, look for "djp.exe", now two years old, in the archive
+# mlp107[b,s].zip, found in the same directory as csdpmi4[b,s].zip (see below)
 # Do not add the option -s to djp.exe without making the required changes
-# to the targets zipinfo$E and unzipsfx$E.  Uncomment the three lines
-# beginning with $(DJP).
-# (Note by the UnZip maintainer: For now, "makefile.dj2" keeps "djp.exe"
-# as packer example, because "upx" new, not [yet] contained in the standard
-# djgpp distribution set and almost untested with UnZip.)
+# to the target zipinfo$E.  Uncomment the three lines beginning with $(DJP)
+# or $(DJPSX).
 
-DJP = djp -q
+#DJP = djp -q
+#DJPSX = djp -q -s
+DJP = upx -qq
+DJPSX = $(DJP)
 E = .exe
 O = .o
 M=msdos
@@ -167,7 +167,7 @@ funzip$E: $(OBJF)
 
 unzipsfx$E: $(OBJX)
 	$(LD) $(LDFLAGS) $(OBJX) -o $@
-#	$(DJP) -s $@
+#	$(DJPSX) $@
 
 # explicit compilation instructions:
 

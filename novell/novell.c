@@ -20,7 +20,7 @@
              close_outfile()
              stamp_file()
              version()
-             screenlines()
+             screensize()
 
   ---------------------------------------------------------------------------*/
 
@@ -807,16 +807,24 @@ void version(__G)
 
 #ifdef MORE
 
-/**************************/
-/* Function screenlines() */
-/**************************/
+/*************************/
+/* Function screensize() */
+/*************************/
 
-int screenlines()
+int screensize(int *tt_rows, int *tt_cols)
 {
     WORD height;
     WORD width;
 
-    return (GetSizeOfScreen(&height, &width) == 0) ? height : 25;
+    if (GetSizeOfScreen(&height, &width) == 0) {
+        if (tt_rows != NULL) *tt_rows = height;
+        if (tt_cols != NULL) *tt_cols = width;
+        return 0;       /* signal success */
+    } else {
+        if (tt_rows != NULL) *tt_rows = 25;
+        if (tt_cols != NULL) *tt_cols = 80;
+        return 1;       /* signal failure */
+    }
 }
 
 #endif /* MORE */

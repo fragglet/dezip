@@ -56,7 +56,7 @@ ARGUMENTS
               An optional list of archive members to be  excluded
               from  processing.   Since wildcard characters match
 
-Info-ZIP                  16 April 2000                         1
+Info-ZIP                 14 January 2001                        1
 
 ZIPGREP(1L)                                           ZIPGREP(1L)
 
@@ -78,11 +78,12 @@ SEE ALSO
        zipinfo(1L), zipnote(1L), zipsplit(1L)
 
 URL
-       The  Info-ZIP  home  page  is currently at ftp://ftp.info-
+       The  Info-ZIP  home  page is currently at http://www.info-
+       zip.org/pub/infozip/          or           ftp://ftp.info-
        zip.org/pub/infozip/ .
 
 AUTHORS
        zipgrep was written by Jean-loup Gailly.
 
-Info-ZIP                  16 April 2000                         2
+Info-ZIP                 14 January 2001                        2
 

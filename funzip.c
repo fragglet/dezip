@@ -1,19 +1,26 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
-/* funzip.c -- put in the public domain by Mark Adler */
+/* funzip.c -- by Mark Adler */
 
-#define VERSION "3.93 of 21 November 1998"
+#define VERSION "3.93 of 14 January 2001"
 
 
-/* You can do whatever you like with this source file, though I would
-   prefer that if you modify it and redistribute it that you include
-   comments to that effect with your name and the date.  Thank you.
+/* Copyright history:
+   - Starting with UnZip 5.41 of 16-April-2000, this source file
+     is covered by the Info-Zip LICENSE cited above.
+   - Prior versions of this source file, found in UnZip source packages
+     up to UnZip 5.40, were put in the public domain.
+     The original copyright note by Mark Adler was:
+         "You can do whatever you like with this source file,
+         though I would prefer that if you modify it and
+         redistribute it that you include comments to that effect
+         with your name and the date.  Thank you."
 
    History:
    vers     date          who           what
@@ -84,6 +91,8 @@
    3.93   20 Sep 97  G. Roelofs      minor cosmetic fixes to messages
     -      3 Nov 97  -               public release with UnZip 5.32
     -     28 Nov 98  -               public release with UnZip 5.4
+    -     16 Apr 00  -               public release with UnZip 5.41
+    -     14 Jan 01  -               public release with UnZip 5.42
  */
 
 

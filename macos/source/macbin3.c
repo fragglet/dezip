@@ -147,7 +147,11 @@ static Boolean  HeaderIsMacBinary(char *header,
                                   Word *version,
                                   long maxDataLen);
 static Boolean FSpExists(FSSpec *file);
-static unsigned long crc32(unsigned long seed, unsigned char *p, long len);
+#ifdef INCLUDE_CRC32CALC
+static unsigned long crc32(unsigned long seed, unsigned char *p, size_t len);
+#else
+extern unsigned long crc32(unsigned long seed, unsigned char *p, size_t len);
+#endif
 static OSErr GetDesktopComment(FSSpec *file, char*comment, long *length);
 static OSErr SetDesktopComment(FSSpec *file, char*comment, long length);
 static Handle  EncodeMacbinary(FSSpec *file);
@@ -160,10 +164,10 @@ static OSErr   DecodeMacBinary(Handle data, FSSpec *destination);
 
 #ifdef INCLUDE_CRC32CALC
 /* taken from the mcvert source code */
-static unsigned long crc32( unsigned long seed, unsigned char *p, long len)
+static unsigned long crc32(unsigned long seed, unsigned char *p, size_t len)
 {
     unsigned long hold;     /* crc computed so far */
-    long i;                 /* index into data */
+    size_t i;               /* index into data */
 
     hold = seed;                   /* start with seed */
     for (i = 0; i < len; i++, p++)

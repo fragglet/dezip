@@ -9,7 +9,7 @@
 .!
 .!      TPU-processable source file to produce VMS on-line help for
 .!      portable UnZip.  Adapted from UNZIP.RNH, originally based on
-.!      UNZIP.MAN (now UNZIP.DOC).
+.!      UNZIP.MAN (now UNZIP.TXT).
 .!
 .!      To build:
 .!          $ EDIT /TPU/NOSECTION/NODISPLAY/COMMAND=CVTHELP.TPU UNZIP_CLI.HELP
@@ -36,6 +36,9 @@
 .!      02-007          Christian Spieler       22-JUL-1997 22:37
 .!              Formatting changes (prevent line wraps); added "Exit_Codes"
 .!              subtopic (no version number change).
+.!      02-007          Christian Spieler       28-APR-2000 03:22
+.!              Changed references to plaintext UnZip documentation file
+.!              into UNZIP.TXT (no version number change).
 .!
 <INIT>
 <MAIN>
@@ -323,7 +326,7 @@ Info-ZIP; currently maintained by Greg Roelofs.  VMS support maintained
 by Igor Mandrichenko, Christian Spieler and Hunter Goatley.  Originally
 based on a program by Samuel H. Smith.
 
-VMS on-line help ported from UNZIP.DOC by Hunter Goatley.
+VMS on-line help ported from UNZIP.TXT by Hunter Goatley.
 
 <TOPIC>
 Exit_Codes

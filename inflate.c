@@ -1,18 +1,25 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
-/* inflate.c -- put in the public domain by Mark Adler
+/* inflate.c -- by Mark Adler
    version c16d, 05 July 1999 */
 
 
-/* You can do whatever you like with this source file, though I would
-   prefer that if you modify it and redistribute it that you include
-   comments to that effect with your name and the date.  Thank you.
+/* Copyright history:
+   - Starting with UnZip 5.41 of 16-April-2000, this source file
+     is covered by the Info-Zip LICENSE cited above.
+   - Prior versions of this source file, found in UnZip source packages
+     up to UnZip 5.40, were put in the public domain.
+     The original copyright note by Mark Adler was:
+         "You can do whatever you like with this source file,
+         though I would prefer that if you modify it and
+         redistribute it that you include comments to that effect
+         with your name and the date.  Thank you."
 
    History:
    vers    date          who           what
@@ -105,6 +112,7 @@
                                     stopped because of input data errors
    c16d  05 Jul 99  C. Spieler      take care of FLUSH() return values and
                                     stop processing in case of errors
+   c17   31 Dec 00  C. Spieler      added preliminary support for Deflate64
  */
 
 
@@ -236,9 +244,13 @@
 #include "inflate.h"
 
 
-#ifndef WSIZE           /* default is 32K */
-#  define WSIZE 0x8000  /* window size--must be a power of two, and at least */
-#endif                  /* 32K for zip's deflate method */
+#ifndef WSIZE               /* default is 32K resp. 64K */
+#  ifdef USE_DEFLATE64
+#    define WSIZE   65536L  /* window size--must be a power of two, and */
+#  else                     /*  at least 64K for PKZip's deflate64 method */
+#    define WSIZE   0x8000  /* window size--must be a power of two, and */
+#  endif                    /*  at least 32K for zip's deflate method */
+#endif
 
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
 #  define wsize G._wsize    /* wsize is a variable */
@@ -323,7 +335,7 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
               ZLIB_VERSION, zlib_version));
 
         /* windowBits = log2(wsize) */
-        for (i = ((unsigned)wsize * 2 - 1), windowBits = 0;
+        for (i = (unsigned)wsize, windowBits = 0;
              !(i & 1);  i >>= 1, ++windowBits);
         if ((unsigned)windowBits > (unsigned)15)
             windowBits = 15;
@@ -461,6 +473,8 @@ static int inflate_block OF((__GPRO__ int *e));
 
 /* unsigned wp;  moved to globals.h */     /* current position in slide */
 
+#define INVALID_CODE 99
+#define IS_INVALID_CODE(c)  ((c) == INVALID_CODE)
 
 /* Tables for deflate from PKZIP's appnote.txt. */
 static ZCONST unsigned border[] = { /* Order of the bit length code lengths */
@@ -471,15 +485,28 @@ static ZCONST ush cplens[] = {  /* Copy lengths for literal codes 257..285 */
         /* note: see note #13 above about the 258 in this list. */
 static ZCONST ush cplext[] = {  /* Extra bits for literal codes 257..285 */
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
-        3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99}; /* 99==invalid */
+        3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, INVALID_CODE, INVALID_CODE};
 static ZCONST ush cpdist[] = {  /* Copy offsets for distance codes 0..29 */
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
+#ifdef USE_DEFLATE64
+        8193, 12289, 16385, 24577, 32769, 49153};
+#else
         8193, 12289, 16385, 24577};
+#endif
 static ZCONST ush cpdext[] = {  /* Extra bits for distance codes */
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+#ifdef USE_DEFLATE64
+        12, 12, 13, 13, 14, 14};
+#else
         12, 12, 13, 13};
+#endif
+#ifdef USE_DEFLATE64
+#  define NUMDISTS 32
+#else
+#  define NUMDISTS 30
+#endif
 
 
 /* moved to consts.h (included in unzip.c), resp. funzip.c */
@@ -604,7 +631,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
     NEEDBITS((unsigned)bl)
     if ((e = (t = tl + ((unsigned)b & ml))->e) > 16)
       do {
-        if (e == 99)
+        if (IS_INVALID_CODE(e))
           return 1;
         DUMPBITS(t->b)
         e -= 16;
@@ -629,13 +656,21 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       /* get length of block to copy */
       NEEDBITS(e)
       n = t->v.n + ((unsigned)b & mask_bits[e]);
-      DUMPBITS(e);
+      DUMPBITS(e)
+#if (defined(USE_DEFLATE64) && !defined(FUNZIP))
+      if (n == 258 && G.lrec.compression_method == ENHDEFLATED) {
+        /* fetch length bits */
+        NEEDBITS(16)
+        n = ((unsigned)b & 0xffff) + 3;
+        DUMPBITS(16)
+      }
+#endif
 
       /* decode distance of block to copy */
       NEEDBITS((unsigned)bd)
       if ((e = (t = td + ((unsigned)b & md))->e) > 16)
         do {
-          if (e == 99)
+          if (IS_INVALID_CODE(e))
             return 1;
           DUMPBITS(t->b)
           e -= 16;
@@ -790,10 +825,10 @@ static int inflate_fixed(__G)
     }
 
     /* distance table */
-    for (i = 0; i < 30; i++)      /* make an incomplete code set */
+    for (i = 0; i < NUMDISTS; i++)      /* make an incomplete code set */
       l[i] = 5;
     G.fixed_bd = 5;
-    if ((i = huft_build(__G__ l, 30, 0, cpdist, cpdext,
+    if ((i = huft_build(__G__ l, NUMDISTS, 0, cpdist, cpdext,
                         &G.fixed_td, &G.fixed_bd)) > 1)
     {
       huft_free(G.fixed_tl);
@@ -828,7 +863,7 @@ static int inflate_dynamic(__G)
 #ifdef PKZIP_BUG_WORKAROUND
   unsigned ll[288+32]; /* literal/length and distance code lengths */
 #else
-  unsigned ll[286+30]; /* literal/length and distance code lengths */
+  unsigned ll[286+NUMDISTS]; /* literal/length and distance code lengths */
 #endif
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
@@ -854,7 +889,7 @@ static int inflate_dynamic(__G)
 #ifdef PKZIP_BUG_WORKAROUND
   if (nl > 288 || nd > 32)
 #else
-  if (nl > 286 || nd > 30)
+  if (nl > 286 || nd > NUMDISTS)
 #endif
     return 1;                   /* bad lengths */
 
@@ -1273,7 +1308,7 @@ int huft_build(__G__ b, n, s, d, e, t, m)
       /* set up table entry in r */
       r.b = (uch)(k - w);
       if (p >= v + n)
-        r.e = 99;               /* out of values--invalid code */
+        r.e = INVALID_CODE;     /* out of values--invalid code */
       else if (*p < s)
       {
         r.e = (uch)(*p < 256 ? 16 : 15);  /* 256 is end-of-block code */

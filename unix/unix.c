@@ -372,7 +372,7 @@ int mapattr(__G)
              * in a '/'.  Some third-party Zip programs fail to set the subdir
              * bit for directory entries.
              */
-            if ((tmp | 0x10) == 0) {
+            if ((tmp & 0x10) == 0) {
                 extent fnlen = strlen(G.filename);
                 if (fnlen > 0 && G.filename[fnlen-1] == '/')
                     tmp |= 0x10;
@@ -853,35 +853,6 @@ int mkdir(path, mode)
 }
 
 #endif /* NO_MKDIR */
-
-
-
-
-
-#if 0
-#ifdef MORE
-
-/**************************/
-/* Function screenlines() */
-/**************************/
-
-int screenlines()
-{
-    char *envptr, *getenv();
-    int n;
-
-    /* GRR:  this is overly simplistic; should use winsize struct and
-     * appropriate TIOCGWINSZ ioctl(), assuming exists on enough systems
-     */
-    envptr = getenv("LINES");
-    if (envptr == (char *)NULL || (n = atoi(envptr)) < 5)
-        return 24;   /* VT-100 assumed to be minimal hardware */
-    else
-        return n;
-}
-
-#endif /* MORE */
-#endif /* 0 */
 
 
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -173,6 +173,7 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 #endif /* ?MORE */
 #else /* !OS2 */
 #ifdef WIN32
+#ifdef NTSD_EAS
 #ifdef MORE
    static ZCONST char Far local3[] = "\
   -X  restore ACLs (-XX => use privileges)   -s  spaces in filenames => '_'\n\
@@ -181,6 +182,16 @@ static ZCONST char Far IgnoreOOptionMsg[] =
    static ZCONST char Far local3[] = " \
  -X  restore ACLs (-XX => use privileges)   -s  spaces in filenames => '_'\n\n";
 #endif /* ?MORE */
+#else /* !NTSD_EAS */
+#ifdef MORE
+   static ZCONST char Far local3[] = "\
+  -M  pipe through \"more\" pager            \
+  -s  spaces in filenames => '_'\n\n";
+#else
+   static ZCONST char Far local3[] = " \
+                                            -s  spaces in filenames => '_'\n\n";
+#endif /* ?MORE */
+#endif /* ?NTSD_EAS */
 #else /* !WIN32 */
 #ifdef MORE
    static ZCONST char Far local3[] = "  -\
@@ -403,6 +414,18 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far Use_Smith_Code[] =
      "USE_SMITH_CODE (PKZIP 0.9x unreducing method supported)";
 #  endif
+#  ifdef USE_DEFLATE64
+     static ZCONST char Far Use_Deflate64[] =
+     "USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)";
+#  endif
+#  if (defined(__DJGPP__) && (__DJGPP__ >= 2))
+#    ifdef USE_DJGPP_ENV
+       static ZCONST char Far Use_DJGPP_Env[] = "USE_DJGPP_ENV";
+#    endif
+#    ifdef USE_DJGPP_GLOB
+       static ZCONST char Far Use_DJGPP_Glob[] = "USE_DJGPP_GLOB";
+#    endif
+#  endif /* __DJGPP__ && (__DJGPP__ >= 2) */
 #  ifdef USE_VFAT
      static ZCONST char Far Use_VFAT_support[] = "USE_VFAT";
 #  endif
@@ -549,7 +572,7 @@ modifiers:                                   -q  quiet mode (-qq => quieter)\n\
 lowercase\n %-42s %c-V%c retain VMS version numbers\n%s";
 
 static ZCONST char Far UnzipUsageLine5[] = "\
-Examples (see unzip.doc for more info):\n\
+Examples (see unzip.txt for more info):\n\
   unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
 %s\
   unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
@@ -1145,10 +1168,11 @@ int uz_opts(__G__ pargc, pargv)
 #endif /* !SFX */
 #ifndef CMS_MVS
                 case ('L'):    /* convert (some) filenames to lowercase */
-                    if (negative)
-                        uO.L_flag = FALSE, negative = 0;
-                    else
-                        uO.L_flag = TRUE;
+                    if (negative) {
+                        uO.L_flag = MAX(uO.L_flag-negative,0);
+                        negative = 0;
+                    } else
+                        ++uO.L_flag;
                     break;
 #endif /* !CMS_MVS */
 #ifdef MORE
@@ -1321,7 +1345,7 @@ int uz_opts(__G__ pargc, pargv)
                     }
 #endif /* SFX */
                     break;
-#if (defined(RESTORE_UIDGID) || defined(OS2_W32))
+#if (defined(RESTORE_UIDGID) || defined(RESTORE_ACL))
                 case ('X'):   /* restore owner/protection info (need privs?) */
                     if (negative) {
                         uO.X_flag = MAX(uO.X_flag-negative,0);
@@ -1329,7 +1353,7 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.X_flag;
                     break;
-#endif /* RESTORE_UIDGID || OS2_W32 */
+#endif /* RESTORE_UIDGID || RESTORE_ACL */
                 case ('z'):    /* display only the archive comment */
                     if (negative) {
                         uO.zflag = MAX(uO.zflag-negative,0);
@@ -1726,6 +1750,23 @@ static void show_version_info(__G)
           LoadFarStringSmall(Use_Unshrink)));
         ++numopts;
 #endif
+#ifdef USE_DEFLATE64
+        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
+          LoadFarStringSmall(Use_Deflate64)));
+        ++numopts;
+#endif
+#  if (defined(__DJGPP__) && (__DJGPP__ >= 2))
+#    ifdef USE_DJGPP_ENV
+        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
+          LoadFarStringSmall(Use_DJGPP_Env)));
+        ++numopts;
+#    endif
+#    ifdef USE_DJGPP_GLOB
+        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
+          LoadFarStringSmall(Use_DJGPP_Glob)));
+        ++numopts;
+#    endif
+#  endif /* __DJGPP__ && (__DJGPP__ >= 2) */
 #ifdef USE_VFAT
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_VFAT_support)));

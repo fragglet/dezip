@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 08 Apr 2000.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 06 May 2000.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -170,7 +170,27 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         default, but it can be extremely useful on those rare occasions when
         a VMS text file must be extracted as normal text.
 
-      USE_VFAT   (MS-DOS only, for using same executable under DOS and Win95/NT)
+      USE_DJGPP_ENV   (MS-DOS DJGPP 2.0x only)
+        Regular DJGPP v2.0x compiled programs which use ENVIRONMENT are
+        able to read from the file "djgpp.env" as well as those set in the
+        environment.  This adds about 1KB to the size of the executable.
+        This option is disabled by default in Info-ZIP source. If you are
+        able to use "djgpp.env" and don't like to clutter the environment
+        with many special purpose variables, you may want to compile with
+        this option set.
+
+      USE_DJGPP_GLOB  (MS-DOS DJGPP 2.0x only)
+        If you like to get UnZip binaries that handle command line arguments
+        similar to Unix tools which are run in an Unix shell, you might want
+        to set this compilation option.  This option enables the support for
+        globbing command line arguments containing wild card that is built
+        into the DJGPP startup code.  When using a binary compiled with this
+        option, you may have to enclose wildcard arguments in double quotes
+        to get them passed to the program unmodified.  Enabling this option
+        is not recommended, because it results in Info-Zip binaries that do
+        not behave as expected for MS-DOS programs.
+
+      USE_VFAT  (MS-DOS only, for using same executable under DOS and Win95/NT)
         djgpp 2.x and emx/gcc+RSX 5.1 can detect when they are running under a
         Win32 DOS box and will accordingly enable long-filename support.  For
         now only djgpp 2.x and emx/gcc with RSX 5.1 or later have this feature
@@ -269,6 +289,15 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         clude unreducing capability, define USE_SMITH_CODE.  Note that this
         subjects UnZip to any and all restrictions in Smith's copyright; see
         the UnZip COPYING file for details.
+
+      USE_CRYPT
+        Enable decryption support for all binaries.  The default setting
+        is to disable decryption support for the SFX stub to keep its size
+        as small as possible. For other binaries of the UnZip distribution,
+        decryption support is enabled by default.
+
+      NO_CRYPT
+        Disable decryption support for all binaries.
 
       PASSWD_FROM_STDIN   (with full crypt sources only; Unix, VMS only)
         Used to allow the password on encrypted files to be read from stdin
@@ -453,7 +482,7 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
     Also note that many OSes require a timezone variable to be set correctly
     (often "TZ"); Unix and VMS generally do so by default, Win95/NT do if set
     up properly, but other OSes generally do not.  See the discussion of the
-    -f and -u options in the UnZip man page (or unzip.doc).  BeOS doesn't
+    -f and -u options in the UnZip man page (or unzip.txt).  BeOS doesn't
     currently support timezone information at all, but this will probably be
     added soon.
 
@@ -515,7 +544,7 @@ BeOS
   and the default man-page extension is "1" (corresponding to the man/man1,
   above).  Of course, these Unix man-pages aren't useful until someone ports
   something that can format them... plain text versions are also installed
-  with an extension of ".doc".  To install, do a "make install", or to
+  with an extension of ".txt".  To install, do a "make install", or to
   change the prefix, do "make prefix=/your/path install".  For example, to
   install in /boot/bin, do "make prefix=/boot/bin install".
 

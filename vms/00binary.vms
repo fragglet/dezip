@@ -43,9 +43,9 @@ a) common files (documentation etc.):
   license              Info-ZIP copyright and distribution policy
   where                pointer to Zip/UnZip support archives
   makesfx.com          command file to create self-extracting archives
-  unzip.doc            UnZip manual page, human-readable format
-  unzipsfx.doc         UnZipSFX manual page, human-readable format
-  zipinfo.doc          ZipInfo manual page, human-readable format
+  unzip.txt            UnZip manual page, human-readable format
+  unzipsfx.txt         UnZipSFX manual page, human-readable format
+  zipinfo.txt          ZipInfo manual page, human-readable format
   3rdparty.bug         known bugs in PK[UN]ZIP, WinZip, etc.
   unzip.hlp            UnZip help module, for default command interface
   unzip_cli.hlp        UnZip help module, for VMSCLI command interface

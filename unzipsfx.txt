@@ -55,7 +55,7 @@ ARGUMENTS
 
               ?      matches exactly 1 character
 
-Info-ZIP              16 April 2000 (v5.41)                     1
+Info-ZIP             14 January 2001 (v5.42)                    1
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -113,7 +113,7 @@ OPTIONS
        archives may wish to include a short listing in  the  zip-
        file comment.
 
-Info-ZIP              16 April 2000 (v5.41)                     2
+Info-ZIP             14 January 2001 (v5.42)                    2
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -172,7 +172,7 @@ EXAMPLES
 
        Under VMS:
 
-Info-ZIP              16 April 2000 (v5.41)                     3
+Info-ZIP             14 January 2001 (v5.42)                    3
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -230,7 +230,7 @@ LIMITATIONS
        For  some architectures there is limited portability, how-
        ever (e.g., between some flavors of Intel-based Unix).
 
-Info-ZIP              16 April 2000 (v5.41)                     4
+Info-ZIP             14 January 2001 (v5.42)                    4
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
@@ -289,20 +289,21 @@ SEE ALSO
        funzip(1L), unzip(1L), zip(1L), zipcloak(1L), zipgrep(1L),
        zipinfo(1L), zipnote(1L), zipsplit(1L)
 
-Info-ZIP              16 April 2000 (v5.41)                     5
+Info-ZIP             14 January 2001 (v5.42)                    5
 
 UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
 URL
-       The  Info-ZIP  home  page  is currently at ftp://ftp.info-
+       The  Info-ZIP  home  page is currently at http://www.info-
+       zip.org/pub/infozip/          or           ftp://ftp.info-
        zip.org/pub/infozip/ .
 
 AUTHORS
-       Greg Roelofs was responsible for the  basic  modifications
-       to  UnZip necessary to create UnZipSFX.  See unzip(1L) for
+       Greg  Roelofs  was responsible for the basic modifications
+       to UnZip necessary to create UnZipSFX.  See unzip(1L)  for
        the current list of Zip-Bugs authors, or the file CONTRIBS
-       in  the  UnZip  source  distribution  for the full list of
+       in the UnZip source distribution  for  the  full  list  of
        Info-ZIP contributors.
 
-Info-ZIP              16 April 2000 (v5.41)                     6
+Info-ZIP             14 January 2001 (v5.42)                    6
 

@@ -50,8 +50,7 @@
              IsUpperNLS()
              ToLowerNLS()
              StringLower()
-             screenlines()
-             screencolumns()
+             screensize()
              DebugMalloc()
 
   ---------------------------------------------------------------------------*/
@@ -2175,32 +2174,21 @@ char *StringLower(char *szArg)
 
 
 #ifdef MORE
-int screenlines()
+int screensize(int *tt_rows, int *tt_cols)
 {
 #ifdef __EMX__
   int dst[2];
   _scrsize(dst);
-  return dst[1];
+  if (tt_rows != NULL) *tt_rows = dst[1];
+  if (tt_cols != NULL) *tt_cols = dst[0];
 #else
   VIOMODEINFO vmi;
   vmi.cb = sizeof(vmi);
   VioGetMode(&vmi, 0);
-  return vmi.row;
+  if (tt_rows != NULL) *tt_rows = vmi.row;
+  if (tt_cols != NULL) *tt_cols = vmi.col;
 #endif
-}
-
-int screencolumns()
-{
-#ifdef __EMX__
-  int dst[2];
-  _scrsize(dst);
-  return dst[0];
-#else
-  VIOMODEINFO vmi;
-  vmi.cb = sizeof(vmi);
-  VioGetMode(&vmi, 0);
-  return vmi.col;
-#endif
+  return 0;
 }
 #endif /* MORE */
 

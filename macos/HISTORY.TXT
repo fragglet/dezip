@@ -1,9 +1,80 @@
-Macintosh Port of Info-ZIP's Zip
+A free Macintosh Port of Info-ZIP's
+Zip and UnZip
 By Dirk Haase, d_haase@sitec.net
 Home page: www.sitec.net/maczip
 Mirror page:
 www.haase-online.de/dirk/maczip
 ================================
+
+
+
+
+
+
+Release MacZip ver1.06 beta 1
+05. August 2000
+------------
+
+2) CHG: {zip} switch to latest beta release
+         unzip 2.30
+
+3) CHG: {unzip} switch to latest beta release
+         unzip 5.42c
+
+
+
+
+
+Release MacZip ver1.05 final
+05. August 2000
+------------
+
+1) CHG: {unzip} switch to latest final release
+         unzip 5.41
+
+2) FIX: {unzip} Fixed "unique unzip folder" foldername handling
+
+3) FIX: {unzip} added prototype crc32() in macbin3.c
+
+4) CHG: {unzip/zip} added exported Codewarrior project-file in xml-format
+
+5) FIX: {unzip} added extra-field recognition for Mac SmartZip in
+	    zipinfo.c and unzpriv.h.
+
+
+
+
+
+Release MacZip ver1.04 final
+25. January 2000
+----------------
+
+
+Final release of MacZip. All parts now
+in final release state !!
+
+1) Switch to MW Codewarrior pro 5.3
+
+2) CHG: {zip} switch (back) to latest final release
+         unzip 2.30
+
+3) CHG: {unzip} switch (back) to latest final release
+         unzip 5.40
+
+
+
+
+Release MacZip ver1.04 beta 3
+05. October 1999
+----------------
+
+1) CHG: {zip} switch to latest source level
+         unzip 2.30o beta release
+
+2) CHG: {unzip} switch to latest source level
+         unzip 5.41c beta release
+
+3) ADD: {console} added menu to print the license
 
 
 
@@ -25,10 +96,10 @@ Release MacZip ver1.04 beta 2
 
 4) FIX: {zip} Filename match was case sensitive.
 
-6) CHG: {zip) switch to latest source level
+6) CHG: {zip} switch to latest source level
          unzip 2.30m beta release
 
-7) CHG: {unzip) switch to latest source level
+7) CHG: {unzip} switch to latest source level
          unzip 5.41b beta release
 
 8) FIX: {zip/unzip 68k only) I have found a wrong compiler setting

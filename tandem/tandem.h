@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -183,13 +183,15 @@ struct nsk_stat_reserved
   int64_t spare[3];
 };
 
-typedef struct
+#pragma FIELDALIGN SHARED8 nsk_owner
+struct nsk_owner
 {
   unsigned group   : 8;
   unsigned user    : 8;
-} nsk_owner;
+};
 
-typedef struct
+#pragma FIELDALIGN SHARED8 nsk_file_flags
+struct nsk_file_flags
 {
   unsigned buffered    : 1;
   unsigned audited     : 1;
@@ -207,14 +209,15 @@ typedef struct
   unsigned crashopen   : 1;
   unsigned rollforward : 1;
   unsigned clearonpurge: 1;
-} nsk_file_flags;
+};
 
-typedef struct
+#pragma FIELDALIGN SHARED8 nsk_file_attrs_def
+struct nsk_file_attrs_def
 {
   unsigned short filecode;  /* 16 */
   unsigned short block;     /* 16 */  /* Allow of block > 4096 one day ! */
-  nsk_file_flags flags;     /* 16 */
-  nsk_owner owner;          /* 16 */
+  struct nsk_file_flags flags;     /* 16 */
+  struct nsk_owner owner;   /* 16 */
   unsigned short primext;   /* 16 */
   unsigned short secext;    /* 16 */
   unsigned maxext    : 10;
@@ -231,12 +234,15 @@ typedef struct
   unsigned filetype  : 2;
   unsigned fileopen  : 1;
   unsigned reclen    : 12;
-} nsk_file_attrs;
+};
+typedef struct nsk_file_attrs_def nsk_file_attrs;
 
+#pragma FIELDALIGN SHARED8 nsk_stat_overlay
 struct nsk_stat_overlay
 {
-  time_t creation_time;  /* 32 */
-  char   nsk_ef_start;   /* Start of ef region */
+  time_t creation_time;       /* 32 bits */
+  nsk_file_attrs nsk_ef_region;
+ /*  char   nsk_ef_region[20]; *//* EF region */
 };
 
 typedef union

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -91,7 +91,8 @@ char *in2ex(n)
 void zexit(status)
   int status;
 {
-  terminate_program (0,0,status,,,);   /* Exit(>0) creates saveabend files */
+  /* Exit(>0) creates saveabend files */
+  terminate_program (0,0,(short)status,,,);
 }
 
 
@@ -103,7 +104,8 @@ FILE *zipopen(fname, opt)
 const char *fname;
 const char *opt;
 {
-  int fdesc,fnum,err;
+  int fdesc;
+  short fnum, err;
 
 #ifdef ZIP
   #define alist_items 1
@@ -115,7 +117,7 @@ const char *opt;
 
   if (strcmp(opt,FOPW) == 0)
     if ((fdesc = creat(fname,,100,500)) != -1){
-      fnum = fdtogfn (fdesc);
+      fnum = fdtogfn ((short)fdesc);
       err = (SETMODE (fnum, SET_FILE_BUFFERSIZE, TANDEM_BLOCKSIZE) != CCE);
       err = (SETMODE (fnum, SET_FILE_BUFFERED, 0, 0) != CCE);
       err = (SETMODE (fnum, SET_FILE_BUFFERED, 0, 1) != CCE);
@@ -385,11 +387,10 @@ int chown(file, uid, gid)
 int zgetch(void)
 {
   char ch;
-  int f,fnum,count, rlen,wlen, err;
+  short f, err, count, fnum, rlen;
 
   rlen = 1;
-  wlen = 0;
-  f = fileno(stdin);
+  f = (short)fileno(stdin);
   fnum = fdtogfn (f);
   #define ECHO_MODE 20
   err = (SETMODE(fnum, ECHO_MODE, 0) != CCE);
@@ -547,7 +548,7 @@ int stat(n, s)
   s->st_reserved[1] = 0;
   s->st_reserved[2] = 0;
   nsk_ov = (nsk_stat_ov *)&s->st_reserved[0];
-  nsk_attr = (nsk_file_attrs *)&nsk_ov->ov.nsk_ef_start;
+  nsk_attr = (nsk_file_attrs *)&nsk_ov->ov.nsk_ef_region;
 
   /* Check to see if name contains a (pseudo) file extension */
   extension = parsename (n,fname,ext);

@@ -291,10 +291,15 @@
 #endif
 
 #ifdef __EMX__
-#  define SCREENLINES screenlines()
-#  define SCREENWIDTH screencolumns()
-   int screenlines(void);
-   int screencolumns(void);
+#  define SCREENWIDTH 80
+#  define SCREENSIZE(scrrows, scrcols)  screensize(scrrows, scrcols)
+   int screensize(int *tt_rows, int *tt_cols);
+#endif
+
+#ifndef SCREENSIZE
+#  define SCREENSIZE(scrrows, scrcols) { \
+        if ((scrrows) != NULL) *(scrrows) = SCREENLINES; \
+        if ((scrcols) != NULL) *(scrcols) = SCREENWIDTH; }
 #endif
 
 /* on the DOS console screen, line-wraps are always enabled */

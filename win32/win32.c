@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -37,13 +37,15 @@
              do_wild()
              mapattr()
              mapname()
+             maskDOSdevice()
              map2fat()
              checkdir()
              dateformat()
              version()
-             screenlines()
-             screencolumns()
+             screensize()
              zstat_win32()
+             conv_to_rule()
+             GetPlatformLocalTimezone()
              getch_win32()
 
   ---------------------------------------------------------------------------*/
@@ -122,11 +124,13 @@
    static void NTtzbugWorkaround(time_t ut, FILETIME *pft);
 #endif /* NT_TZBUG_WORKAROUND */
 
+
 static int  getNTfiletime   (__GPRO__ FILETIME *pModFT, FILETIME *pAccFT,
                              FILETIME *pCreFT);
 static int  isfloppy        (int nDrive);
 static int  NTQueryVolInfo  (__GPRO__ const char *name);
 static int  IsVolumeOldFAT  (__GPRO__ const char *name);
+static void maskDOSdevice   (__GPRO__ char *pathcomp);
 static void map2fat         (char *pathcomp, char **pEndFAT);
 
 
@@ -407,15 +411,13 @@ static int EvalExtraFields(__G__ path, ef_ptr, ef_len)
                 rc = SetEAs(__G__ path, ef_ptr);
                 break;
 
-            case EF_PKUNIX:
-            case EF_IZUNIX:
-            case EF_IZUNIX2:
-            case EF_TIME:
-                break;          /* handled elsewhere */
 #else /* ! 0 */
 #ifdef DEBUG
-            case EF_AV:
             case EF_OS2:
+#endif /* DEBUG */
+#endif /* ? 0 */
+#ifdef DEBUG
+            case EF_AV:
             case EF_PKVMS:
             case EF_PKW32:
             case EF_PKUNIX:
@@ -437,7 +439,6 @@ static int EvalExtraFields(__G__ path, ef_ptr, ef_len)
             case EF_ASIUNIX:
                 break;          /* shut up for other known e.f. blocks  */
 #endif /* DEBUG */
-#endif /* ? 0 */
 
             default:
                 Trace((stderr,
@@ -1516,6 +1517,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         switch (workch) {
         case '/':             /* can assume -j flag not given */
             *pp = '\0';
+            maskDOSdevice(__G__ pathcomp);
             if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
                 return error;
             pp = pathcomp;    /* reset conversion buffer for next piece */
@@ -1557,17 +1559,6 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 #endif
         } /* end switch */
     } /* end while loop */
-
-    *pp = '\0';                   /* done with pathcomp:  terminate it */
-
-    /* if not saving them, remove VMS version numbers (appended "###") */
-    if (!uO.V_flag && lastsemi) {
-        pp = lastsemi + 1;        /* semi-colon was kept:  expect #'s after */
-        while (isdigit((uch)(*pp)))
-            ++pp;
-        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
-            *lastsemi = '\0';
-    }
 
 /*---------------------------------------------------------------------------
     Report if directory was created (and no file to create:  filename ended
@@ -1624,6 +1615,19 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
+    *pp = '\0';                   /* done with pathcomp:  terminate it */
+
+    /* if not saving them, remove VMS version numbers (appended "###") */
+    if (!uO.V_flag && lastsemi) {
+        pp = lastsemi + 1;        /* semi-colon was kept:  expect #'s after */
+        while (isdigit((uch)(*pp)))
+            ++pp;
+        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
+            *lastsemi = '\0';
+    }
+
+    maskDOSdevice(__G__ pathcomp);
+
     if (*pathcomp == '\0') {
         Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
           FnFilter1(G.filename)));
@@ -1667,6 +1671,57 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
 
 
+/****************************/
+/* Function maskDOSdevice() */
+/****************************/
+
+static void maskDOSdevice(__G__ pathcomp)
+    __GDEF
+    char *pathcomp;
+{
+/*---------------------------------------------------------------------------
+    Put an underscore in front of the file name if the file name is a
+    DOS/WINDOWS device name like CON.*, AUX.*, PRN.*, etc. Trying to
+    extract such a file would fail at best and wedge us at worst.
+  ---------------------------------------------------------------------------*/
+#if !defined(S_IFCHR) && defined(_S_IFCHR)
+#  define S_IFCHR _S_IFCHR
+#endif
+#if !defined(S_ISCHR)
+# if defined(_S_ISCHR)
+#  define S_ISCHR(m) _S_ISCHR(m)
+# elif defined(S_IFCHR)
+#  define S_ISCHR(m) ((m) & S_IFCHR)
+# endif
+#endif
+
+#ifdef DEBUG
+    if (stat(pathcomp, &G.statbuf) == 0) {
+        Trace((stderr,
+               "maskDOSdevice() stat(\"%s\", buf) st_mode result: %X, %o\n",
+               pathcomp, G.statbuf.st_mode, G.statbuf.st_mode));
+    } else {
+        Trace((stderr, "maskDOSdevice() stat(\"%s\", buf) failed\n",
+               pathcomp));
+    }
+#endif
+    if (stat(pathcomp, &G.statbuf) == 0 && S_ISCHR(G.statbuf.st_mode)) {
+        extent i;
+
+        /* pathcomp contains a name of a DOS character device (builtin or
+         * installed device driver).
+         * Prepend a '_' to allow creation of the item in the file system.
+         */
+        for (i = strlen(pathcomp) + 1; i > 0; --i)
+            pathcomp[i] = pathcomp[i - 1];
+        pathcomp[0] = '_';
+    }
+} /* end function maskDOSdevice() */
+
+
+
+
+
 /**********************/
 /* Function map2fat() */        /* Not quite identical to OS/2 version */
 /**********************/
@@ -1678,8 +1733,6 @@ static void map2fat(pathcomp, pEndFAT)
     char *pEnd = *pEndFAT;      /* variable pointer to buildpathFAT */
     char *pBegin = *pEndFAT;    /* constant pointer to start of this comp. */
     char *last_dot = NULL;      /* last dot not converted to underscore */
-    int dotname = FALSE;        /* flag:  path component begins with dot */
-                                /*  ("." and ".." don't count) */
     register unsigned workch;   /* hold the character being tested */
 
 
@@ -1703,23 +1756,16 @@ static void map2fat(pathcomp, pEndFAT)
                     if (*ppc == '\0')     /* don't bother appending a */
                         break;            /*  "./" component to the path */
                     else if (*ppc == '.' && ppc[1] == '\0') {   /* "../" */
-                        *pEnd++ = '.';    /* add first dot, unchanged... */
-                        ++ppc;            /* skip second dot, since it will */
-                    } else {              /*  be "added" at end of if-block */
-                        *pEnd++ = '_';    /* FAT doesn't allow null filename */
-                        dotname = TRUE;   /*  bodies, so map .exrc -> _.exrc */
-                    }                     /*  (extra '_' now, "dot" below) */
-                } else if (dotname) {     /* found a second dot, but still */
-                    dotname = FALSE;      /*  have extra leading underscore: */
-                    *pEnd = '\0';         /*  remove it by shifting chars */
-                    pEnd = *pEndFAT + 1;  /*  left one space (e.g., .p1.p2: */
-                    while (pEnd[1]) {     /*  __p1 -> _p1_p2 -> _p1.p2 when */
-                        *pEnd = pEnd[1];  /*  finished) [opt.:  since first */
-                        ++pEnd;           /*  two chars are same, can start */
-                    }                     /*  shifting at second position] */
+                        *pEnd++ = '.';    /*  add first dot, */
+                        *pEnd++ = '.';    /*  add second dot, and */
+                        ++ppc;            /*  skip over to pathcomp's end */
+                    } else {              /* FAT doesn't allow null filename */
+                        *pEnd++ = '_';    /*  bodies, so map .exrc -> _exrc */
+                    }                     /*  (_.exr would keep max 3 chars) */
+                } else {                  /* found dot within path component */
+                    last_dot = pEnd;      /*  point at last dot so far... */
+                    *pEnd++ = '_';        /*  convert to underscore for now */
                 }
-                last_dot = pEnd;    /* point at last dot so far... */
-                *pEnd++ = '_';      /* convert dot to underscore for now */
                 break;
 
             default:
@@ -1741,23 +1787,20 @@ static void map2fat(pathcomp, pEndFAT)
     if (last_dot == NULL) {       /* no dots:  check for underscores... */
         char *plu = MBSRCHR(pBegin, '_');   /* pointer to last underscore */
 
-        if (plu == NULL) {   /* no dots, no underscores:  truncate at 8 chars */
-            *pEndFAT += 8;        /* (or could insert '.' and keep 11...?) */
-            if (*pEndFAT > pEnd)
-                *pEndFAT = pEnd;  /* oops...didn't have 8 chars to truncate */
-            else
-                **pEndFAT = '\0';
-        } else if (MIN(plu - pBegin, 8) + MIN(pEnd - plu - 1, 3) > 8) {
+        if ((plu != NULL) &&      /* found underscore: convert to dot? */
+            (MIN(plu - pBegin, 8) + MIN(pEnd - plu - 1, 3) > 8)) {
             last_dot = plu;       /* be lazy:  drop through to next if-blk */
         } else if ((pEnd - *pEndFAT) > 8) {
-            *pEndFAT += 8;        /* more fits into just basename than if */
-            **pEndFAT = '\0';     /*  convert last underscore to dot */
+            /* no underscore; or converting underscore to dot would save less
+               chars than leaving everything in the basename */
+            *pEndFAT += 8;        /* truncate at 8 chars */
+            **pEndFAT = '\0';
         } else
             *pEndFAT = pEnd;      /* whole thing fits into 8 chars or less */
     }
 
-    if (last_dot != NULL) {       /* one dot (or two, in the case of */
-        *last_dot = '.';          /*  "..") is OK:  put it back in */
+    if (last_dot != NULL) {       /* one dot is OK: */
+        *last_dot = '.';          /* put it back in */
 
         if ((last_dot - pBegin) > 8) {
             char *p, *q;
@@ -2274,24 +2317,16 @@ void version(__G)
 
 #ifdef MORE
 
-int screenlines()
+int screensize(int *tt_rows, int *tt_cols)
 {
     HANDLE hstdout;
     CONSOLE_SCREEN_BUFFER_INFO scr;
 
     hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
     GetConsoleScreenBufferInfo(hstdout, &scr);
-    return scr.srWindow.Bottom - scr.srWindow.Top + 1;
-}
-
-int screencolumns()
-{
-    HANDLE hstdout;
-    CONSOLE_SCREEN_BUFFER_INFO scr;
-
-    hstdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    GetConsoleScreenBufferInfo(hstdout, &scr);
-    return scr.srWindow.Right - scr.srWindow.Left + 1;
+    if (tt_rows != NULL) *tt_rows = scr.srWindow.Bottom - scr.srWindow.Top + 1;
+    if (tt_cols != NULL) *tt_cols = scr.srWindow.Right - scr.srWindow.Left + 1;
+    return 0;           /* signal success */
 }
 
 #endif /* MORE */
@@ -2435,6 +2470,77 @@ int zstat_win32(__W32STAT_GLOBALS__ const char *path, struct stat *buf)
 }
 
 #endif /* W32_STAT_BANDAID */
+
+
+
+#ifdef W32_USE_IZ_TIMEZONE
+#include "timezone.h"
+#define SECSPERMIN      60
+#define MINSPERHOUR     60
+#define SECSPERHOUR     (SECSPERMIN * MINSPERHOUR)
+static void conv_to_rule(LPSYSTEMTIME lpw32tm, struct rule * ZCONST ptrule);
+
+static void conv_to_rule(LPSYSTEMTIME lpw32tm, struct rule * ZCONST ptrule)
+{
+    if (lpw32tm->wYear != 0) {
+        ptrule->r_type = JULIAN_DAY;
+        ptrule->r_day = ydays[lpw32tm->wMonth - 1] + lpw32tm->wDay;
+    } else {
+        ptrule->r_type = MONTH_NTH_DAY_OF_WEEK;
+        ptrule->r_mon = lpw32tm->wMonth;
+        ptrule->r_day = lpw32tm->wDayOfWeek;
+        ptrule->r_week = lpw32tm->wDay;
+    }
+    ptrule->r_time = (long)lpw32tm->wHour * SECSPERHOUR +
+                     (long)(lpw32tm->wMinute * SECSPERMIN) +
+                     (long)lpw32tm->wSecond;
+}
+
+int GetPlatformLocalTimezone(register struct state * ZCONST sp,
+        void (*fill_tzstate_from_rules)(struct state * ZCONST sp_res,
+                                        ZCONST struct rule * ZCONST start,
+                                        ZCONST struct rule * ZCONST end))
+{
+    TIME_ZONE_INFORMATION tzinfo;
+    DWORD res;
+
+    /* read current timezone settings from registry if TZ envvar missing */
+    res = GetTimeZoneInformation(&tzinfo);
+    if (res != TIME_ZONE_ID_INVALID)
+    {
+        struct rule startrule, stoprule;
+
+        conv_to_rule(&(tzinfo.StandardDate), &stoprule);
+        conv_to_rule(&(tzinfo.DaylightDate), &startrule);
+        sp->timecnt = 0;
+        sp->ttis[0].tt_abbrind = 0;
+        if ((sp->charcnt =
+             WideCharToMultiByte(CP_ACP, 0, tzinfo.StandardName, -1,
+                                 sp->chars, sizeof(sp->chars), NULL, NULL))
+            == 0)
+            sp->chars[sp->charcnt++] = '\0';
+        sp->ttis[1].tt_abbrind = sp->charcnt;
+        sp->charcnt +=
+            WideCharToMultiByte(CP_ACP, 0, tzinfo.DaylightName, -1,
+                                sp->chars + sp->charcnt,
+                                sizeof(sp->chars) - sp->charcnt, NULL, NULL);
+        if ((sp->charcnt - sp->ttis[1].tt_abbrind) == 0)
+            sp->chars[sp->charcnt++] = '\0';
+        sp->ttis[0].tt_gmtoff = - (tzinfo.Bias + tzinfo.StandardBias)
+                                * MINSPERHOUR;
+        sp->ttis[1].tt_gmtoff = - (tzinfo.Bias + tzinfo.DaylightBias)
+                                * MINSPERHOUR;
+        sp->ttis[0].tt_isdst = 0;
+        sp->ttis[1].tt_isdst = 1;
+        sp->typecnt = (startrule.r_mon == 0 && stoprule.r_mon == 0) ? 1 : 2;
+
+        if (sp->typecnt > 1)
+            (*fill_tzstate_from_rules)(sp, &startrule, &stoprule);
+        return TRUE;
+    }
+    return FALSE;
+}
+#endif /* W32_USE_IZ_TIMEZONE */
 
 #endif /* !FUNZIP */
 

@@ -19,7 +19,7 @@
              Echon()        (Unix only)
              Echoff()       (Unix only)
              screensize()   (Unix only)
-             zgetch()       (Unix and non-Unix versions)
+             zgetch()       (Unix, VMS, and non-Unix/VMS versions)
              getp()         ("PC," Unix/Atari/Be, VMS/VMCMS/MVS)
 
   ---------------------------------------------------------------------------*/
@@ -178,6 +178,10 @@
 #ifndef HAVE_WORKING_GETCH
 #ifdef VMS
 
+static struct dsc$descriptor_s DevDesc =
+        {11, DSC$K_DTYPE_T, DSC$K_CLASS_S, "SYS$COMMAND"};
+     /* {dsc$w_length, dsc$b_dtype, dsc$b_class, dsc$a_pointer}; */
+
 /*
  * Turn keyboard echoing on or off (VMS).  Loosely based on VMSmunch.c
  * and hence on Joe Meadows' file.c code.
@@ -196,13 +200,9 @@ int echo(opt)
      * Greg Roelofs, 15 Aug 91
      */
 
-    /* SKM: make global? */
-    static struct dsc$descriptor_s DevDesc =
-        {11, DSC$K_DTYPE_T, DSC$K_CLASS_S, "SYS$COMMAND"};
-     /* {dsc$w_length, dsc$b_dtype, dsc$b_class, dsc$a_pointer}; */
-    static short           DevChan, iosb[4];
-    static long            status;
-    static unsigned long   oldmode[2], newmode[2];   /* each = 8 bytes */
+    short           DevChan, iosb[4];
+    long            status;
+    unsigned long   ttmode[2];  /* space for 8 bytes */
 
 
     /* assign a channel to standard input */
@@ -215,26 +215,24 @@ int echo(opt)
      * instead, but echo on/off will be more general)
      */
     status = sys$qiow(0, DevChan, IO$_SENSEMODE, &iosb, 0, 0,
-                     oldmode, 8, 0, 0, 0, 0);
+                     ttmode, 8, 0, 0, 0, 0);
     if (!(status & 1))
         return status;
     status = iosb[0];
     if (!(status & 1))
         return status;
 
-    /* copy old mode into new-mode buffer, then modify to be either NOECHO or
-     * ECHO (depending on function argument opt)
+    /* modify mode buffer to be either NOECHO or ECHO
+     * (depending on function argument opt)
      */
-    newmode[0] = oldmode[0];
-    newmode[1] = oldmode[1];
     if (opt == 0)   /* off */
-        newmode[1] |= TT$M_NOECHO;                      /* set NOECHO bit */
+        ttmode[1] |= TT$M_NOECHO;                       /* set NOECHO bit */
     else
-        newmode[1] &= ~((unsigned long) TT$M_NOECHO);   /* clear NOECHO bit */
+        ttmode[1] &= ~((unsigned long) TT$M_NOECHO);    /* clear NOECHO bit */
 
     /* use the IO$_SETMODE function to change the tty status */
     status = sys$qiow(0, DevChan, IO$_SETMODE, &iosb, 0, 0,
-                     newmode, 8, 0, 0, 0, 0);
+                     ttmode, 8, 0, 0, 0, 0);
     if (!(status & 1))
         return status;
     status = iosb[0];
@@ -249,6 +247,42 @@ int echo(opt)
     return SS$_NORMAL;   /* we be happy */
 
 } /* end function echo() */
+
+
+/*
+ * Read a single character from keyboard in non-echoing mode (VMS).
+ * (returns EOF in case of errors)
+ */
+int tt_getch()
+{
+    short           DevChan, iosb[4];
+    long            status;
+    char            kbbuf[16];	/* input buffer with - some - excess length */
+
+    /* assign a channel to standard input */
+    status = sys$assign(&DevDesc, &DevChan, 0, 0);
+    if (!(status & 1))
+        return EOF;
+
+    /* read a single character from SYS$COMMAND (no-echo) and
+     * wait for completion
+     */
+    status = sys$qiow(0,DevChan,
+                      IO$_READVBLK|IO$M_NOECHO|IO$M_NOFILTR,
+                      &iosb, 0, 0,
+                      &kbbuf, 1, 0, 0, 0, 0);
+    if ((status&1) == 1)
+	status = iosb[0];
+
+    /* deassign the sys$input channel by way of clean-up
+     * (for this step, we do not need to check the completion status)
+     */
+    sys$dassgn(DevChan);
+
+    /* return the first char read, or EOF in case the read request failed */
+    return (int)(((status&1) == 1) ? (uch)kbbuf[0] : EOF);
+
+} /* end function tt_getch() */
 
 
 #else /* !VMS:  basically Unix */
@@ -434,11 +468,12 @@ int zgetch(__G__ f)
     STTY(f, &sg);               /* restore canonical mode */
     GLOBAL(echofd) = -1;
 
-    return (int)c;
+    return (int)(uch)c;
 }
 
 
 #else /* !UNIX && !__BEOS__ */
+#ifndef VMS     /* VMS supplies its own variant of getch() */
 
 
 int zgetch(__G__ f)
@@ -463,6 +498,7 @@ int zgetch(__G__ f)
     return (int)c;
 }
 
+#endif /* !VMS */
 #endif /* ?(UNIX || __BEOS__) */
 
 #endif /* UNZIP && !FUNZIP */

@@ -523,14 +523,6 @@ GetModuleFileName(hInstance,(LPSTR)szThisApp,sizeof(szThisApp));
 lstrcpy(zfn, szThisApp);
 
 ptr = strrchr(szThisApp, '\\');
-//if (SearchPath(
-//    NULL,               /* address of search path               */
-//    szThisApp,          /* address of filename                  */
-//    NULL,               /* address of extension                 */
-//    MAX_PATH,           /* size, in characters, of buffer       */
-//    szThisApp,          /* address of buffer for found filename */
-//    &ptr                /* address of pointer to file component */
-//   ) != 0)
 if (ptr != NULL)
    {
    lstrcpy(szAppName, ptr);

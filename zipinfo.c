@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -207,7 +207,7 @@ static ZCONST char Far MthdRedF4[] = "reduced (factor 4)";
 static ZCONST char Far MthdImplode[] = "imploded";
 static ZCONST char Far MthdToken[] = "tokenized";
 static ZCONST char Far MthdDeflate[] = "deflated";
-static ZCONST char Far MthdEnDeflate[] = "deflated (enhanced)";
+static ZCONST char Far MthdDeflat64[] = "deflated (enhanced-64k)";
 static ZCONST char Far MthdDCLImplode[] = "imploded (PK DCL)";
 
 static ZCONST char Far DeflNorm[] = "normal";
@@ -315,6 +315,7 @@ static ZCONST char Far efTime[] = "universal time";
 static ZCONST char Far efJLMac[] = "old Info-ZIP Macintosh";
 static ZCONST char Far efMac3[] = "new Info-ZIP Macintosh";
 static ZCONST char Far efZipIt[] = "ZipIt Macintosh";
+static ZCONST char Far efSmartZip[] = "SmartZip Macintosh";
 static ZCONST char Far efZipIt2[] = "ZipIt Macintosh (short)";
 static ZCONST char Far efVMCMS[] = "VM/CMS";
 static ZCONST char Far efMVS[] = "MVS";
@@ -351,7 +352,7 @@ static ZCONST char Far UTmodification[] = "modification";
 static ZCONST char Far UTaccess[] = "access";
 static ZCONST char Far UTcreation[] = "creation";
 static ZCONST char Far ZipItFname[] = ".\n\
-    The Mac long filename is %s.\n";
+    The Mac long filename is %s";
 static ZCONST char Far Mac3data[] = ".\n\
     The local extra field has %lu bytes of %scompressed Macintosh\n\
     finder attributes";
@@ -360,7 +361,7 @@ static ZCONST char Far MacOSdata[] = ".\n\
     The associated file has type code `%c%c%c%c' and creator code `%c%c%c%c'";
 static ZCONST char Far MacOSdata1[] = ".\n\
     The associated file has type code `0x%lx' and creator code `0x%lx'";
-static ZCONST char Far MacOSJLEEflags[] = "\n    File is marked as %s";
+static ZCONST char Far MacOSJLEEflags[] = ".\n    File is marked as %s";
 static ZCONST char Far MacOS_RF[] = "Resource-fork";
 static ZCONST char Far MacOS_DF[] = "Data-fork";
 static ZCONST char Far MacOSMAC3flags[] = ".\n\
@@ -945,7 +946,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     };
     static ZCONST char Far *method[NUM_METHODS] = {
         MthdNone, MthdShrunk, MthdRedF1, MthdRedF2, MthdRedF3, MthdRedF4,
-        MthdImplode, MthdToken, MthdDeflate, MthdEnDeflate, MthdDCLImplode
+        MthdImplode, MthdToken, MthdDeflate, MthdDeflat64, MthdDCLImplode
     };
     static ZCONST char Far *dtypelng[4] = {
         DeflNorm, DeflMax, DeflFast, DeflSFast
@@ -1047,7 +1048,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
           (G.crec.general_purpose_bit_flag & 2)? '8' : '4'));
         Info(slide, 0, ((char *)slide, LoadFarString(ShannonFanoTrees),
           (G.crec.general_purpose_bit_flag & 4)? '3' : '2'));
-    } else if (methnum == DEFLATED) {
+    } else if (methnum == DEFLATED || methnum == ENHDEFLATED) {
         ush  dnum=(ush)((G.crec.general_purpose_bit_flag>>1) & 3);
 
         Info(slide, 0, ((char *)slide, LoadFarString(CompressSubtype),
@@ -1408,6 +1409,9 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                 case EF_TANDEM:
                     ef_fieldname = efTandem;
                     break;
+                case EF_SMARTZIP:
+                    ef_fieldname = efSmartZip;
+                    break;
                 case EF_THEOS:
 #ifdef OLD_THEOS_EXTRA
                 case EF_THEOSO:
@@ -1545,7 +1549,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                             zi_showMacTypeCreator(__G__ &ef_ptr[4]);
                         }
                     }
-
+                    break;
                 case EF_ZIPIT:
                     if (eb_datalen >= 5 &&
                         strncmp((char *)ef_ptr, "ZPIT", 4) == 0) {
@@ -1572,6 +1576,17 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                           LoadFarString(MacOSJLEEflags),
                           LoadFarStringSmall(ef_ptr[31] & 1 ?
                                              MacOS_DF : MacOS_RF)));
+                    }
+                    break;
+                case EF_SMARTZIP:
+                    if ((eb_datalen == EB_SMARTZIP_HLEN) &&
+                        strncmp((char *)ef_ptr, "dZip", 4) == 0) {
+                        char filenameBuf[32];
+                        zi_showMacTypeCreator(__G__ &ef_ptr[4]);
+                        memcpy(filenameBuf, &ef_ptr[33], 31);
+                        filenameBuf[ef_ptr[32]] = '\0';
+                        Info(slide, 0, ((char *)slide,
+                             LoadFarString(ZipItFname), filenameBuf));
                     }
                     break;
 #ifdef CMS_MVS
@@ -1740,7 +1755,7 @@ static int zi_short(__G)   /* return PK-type error code */
 #endif
     static ZCONST char Far method[NUM_METHODS+1][5] = {
         "stor", "shrk", "re:1", "re:2", "re:3", "re:4", "i#:#", "tokn",
-        "def#", "edef", "dcli", "u###"
+        "def#", "d64#", "dcli", "u###"
     };
 
 
@@ -1760,7 +1775,7 @@ static int zi_short(__G)   /* return PK-type error code */
     if (methnum == IMPLODED) {
         methbuf[1] = (char)((G.crec.general_purpose_bit_flag & 2)? '8' : '4');
         methbuf[3] = (char)((G.crec.general_purpose_bit_flag & 4)? '3' : '2');
-    } else if (methnum == DEFLATED) {
+    } else if (methnum == DEFLATED || methnum == ENHDEFLATED) {
         ush  dnum=(ush)((G.crec.general_purpose_bit_flag>>1) & 3);
         methbuf[3] = dtype[dnum];
     } else if (methnum >= NUM_METHODS) {   /* unknown */
@@ -1885,7 +1900,7 @@ static int zi_short(__G)   /* return PK-type error code */
                 sprintf(&attribs[12], "%d.%d", hostver/10, hostver%10);
                 break;
             } /* else: fall through! */
-#endif	/* OLD_THEOS_EXTRA */
+#endif /* OLD_THEOS_EXTRA */
 
         case FS_FAT_:
         case FS_HPFS_:

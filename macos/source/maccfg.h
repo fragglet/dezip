@@ -253,7 +253,6 @@ int     macprintf       OF((char *, ...));                        /* macos.c */
 
 ulg    makePPClong(ZCONST uch *sig);
 ush    makePPCword(ZCONST uch *b);
-char  *FindNewExtractFolder(char *ArchivePath);
 void   UserStop(void);
 
 #endif /* !__maccfg_h */

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -37,7 +37,7 @@ char *in2ex OF((char *));
 
 static nsk_file_attrs *ef_scan_for_tandem (
     uch *ef_buf,
-    unsigned ef_len,
+    unsigned ef_len
   );
 
 static int created_dir;        /* used in mapname(), checkdir() */

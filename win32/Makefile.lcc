@@ -1,6 +1,6 @@
 # Makefile for UnZip, fUnZip and UnZipSFX using LCC-Win32.
 # By E-Yen Tan (3 June 1998).
-# Last updated 27 October 1999 (Christian Spieler).
+# Last updated 14 January 2001 (Christian Spieler).
 #
 # This version includes rules to build the 32-bit windll DLL.
 
@@ -83,12 +83,12 @@ OBJF  = funzip$(OBJ) $(CRC32F)$(OBJ) cryptf$(OBJ) inflatef$(OBJ) \
 OBJDLL = windll$(OBJ) windll32.res api$(OBJ)
 OBJD1 = $(CRC32L)$(OBJ) crctabl$(OBJ) cryptl$(OBJ)
 OBJD2 = explodel$(OBJ) extractl$(OBJ) fileiol$(OBJ) globalsl$(OBJ)
-OBJD3 = inflatel$(OBJ) listl$(OBJ) matchl$(OBJ) processl$(OBJ) ttyiol$(OBJ)
+OBJD3 = inflatel$(OBJ) listl$(OBJ) matchl$(OBJ) processl$(OBJ)
 OBJD4 = unreducl$(OBJ) unshrnkl$(OBJ) zipinfol$(OBJ)
 OBJD  = $(OBJDLL) $(OBJD1) $(OBJD2) $(OBJD3) $(OBJD4) $(OBJDS)
 OBLX1 = apig$(OBJ) $(CRC32G)$(OBJ) crctabg$(OBJ) cryptg$(OBJ)
 OBLX2 = extractg$(OBJ) fileiog$(OBJ) globalsg$(OBJ) inflateg$(OBJ)
-OBLX3 = matchg$(OBJ) processg$(OBJ) ttyiog$(OBJ)
+OBLX3 = matchg$(OBJ) processg$(OBJ)
 OBLX  = $(OBLX1) $(OBLX2) $(OBLX3) $(OBLXS)
 OBGX  = sfxwiz$(OBJ)
 
@@ -108,8 +108,9 @@ UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 
 unzips:	unzip.exe funzip.exe unzipsfx.exe
 dll:	unzip32.dll
+dllsample: uzexampl.exe
 guisfx:	SFXWiz32.exe
-all:	unzips dll guisfx
+all:	unzips dll dllsample guisfx
 
 unzip.exe: $(OBJU)
 	$(LD) $(LDFLAGS)$@ $(DEF) $(OBJU) $(LDFLAGS2)
@@ -266,9 +267,6 @@ matchl$(OBJ):	match.c $(UNZIP_H)
 processl$(OBJ):	process.c $(UNZIP_H)
 	$(CC) -c $(CFLAGS_DL) $(OUT)$@ process.c
 
-ttyiol$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) -c $(CFLAGS_DL) $(OUT)$@ ttyio.c
-
 unreducl$(OBJ):	unreduce.c $(UNZIP_H)
 	$(CC) -c $(CFLAGS_DL) $(OUT)$@ unreduce.c
 
@@ -321,13 +319,10 @@ matchg$(OBJ):	match.c $(UNZIP_H)
 processg$(OBJ):	process.c $(UNZIP_H) $(WINDLL_H)
 	$(CC) -c $(CFLAGS_SL) $(OUT)$@ process.c
 
-ttyiog$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) -c $(CFLAGS_SL) $(OUT)$@ ttyio.c
-
 win32g$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
 	$(CC) -c $(CFLAGS_SL) -Iwin32 $(OUT)$@ win32/win32.c
 
-ntg$(OBJ):	win32/nt.c win32/nt.h
+ntg$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) -c $(CFLAGS_SL) -Iwin32 $(OUT)$@ win32/nt.c
 
 windllg$(OBJ):  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h

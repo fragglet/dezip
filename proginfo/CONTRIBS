@@ -75,6 +75,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Ian E. Gorman          VM/CMS & MVS support
   Bill Gould             MVS file-format fixes
   Michael Graff          Unix makefile entry
+  Juan Manuel Guerrero   DOS/WIN32 filename mapping fixes, device name handling
   Giuseppe Guerrini      LynxOS variant of Unix port
   Richard H. Gumpertz    Unix makefile entry
   Walter Haidinger       Amiga SAS/C fixes
@@ -189,6 +190,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Jon Saxton             date formats, OS/2 fixes
   Tom Schmidt            Unix makefile entry; Xenix and SunOS 3 target bugfixes
   Hugh Schmidt           VMS stuff
+  Doug Schuessler        Tandem/NSK port fixes
   Martin Schulz          original Atari port, symlinks bugfix
   Charles Scripter       various bug reports and bugfixes
   Chris Seaman           Unix time stuff

@@ -114,4 +114,4 @@ be compiled with djgpp 2.03, mainly because of its nice long-filename
 support when running in a Win32 DOS box.  The cwsdpmi DPMI server will be
 bundled if necessary.
 
-SPC 2000416
+SPC 2000-04-16

@@ -26,7 +26,8 @@
 #  endif
 #  define MAIN main
 #  define DECLARE_TIMEZONE
-#  define SCREENLINES   screenlines()
+#  define SCREENWIDTH 80
+#  define SCREENSIZE(scrrows, scrcols)  screensize(scrrows, scrcols)
    void InitUnZipConsole OF((void));
-   int screenlines       OF((void));
+   int screensize        OF((int *tt_rows, int *tt_cols));
 #endif /* NLM */

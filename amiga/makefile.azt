@@ -1,4 +1,4 @@
-# Makefile for UnZip 5.4 using Manx Aztec C 5.2, last revised 18 Nov 98.
+# Makefile for UnZip 5.42 using Manx Aztec C 5.2, last revised 19 Jun 00.
 # Define EXTRA=xxx on the Make command line for e.g. -dUSE_UNSHRINK.
 
 EXTRA =
@@ -15,16 +15,16 @@ LDFLAGS = +q -m
 LDLIBS = -lc16
 # linker arg -m suppresses warnings about overriding c.lib functions
 
-OBJS = unzip.o process.o crypt.o ttyio.o envargs.o explode.o \
-         unshrink.o extract.o zipinfo.o inflate.o match.o unreduce.o \
-         fileio.o list.o globals.o crctab.o amiga/amiga.o amiga/crc_68.o \
-         amiga/flate.o amiga/time_lib.o
+OBJS = unzip.o envargs.o process.o extract.o \
+         explode.o unshrink.o unreduce.o inflate.o match.o zipinfo.o \
+         list.o globals.o crypt.o ttyio.o fileio.o crctab.o timezone.o \
+         amiga/amiga.o amiga/crc_68.o amiga/flate.o
 
-XOBJS = unzip.xo process.xo crypt.o ttyio.o extract.xo fileio.o \
-         inflate.o match.o globals.o crctab.o amiga/flate.o amiga/amiga.xo \
-         amiga/crc_68.o amiga/time_lib.o
+XOBJS = unzip.xo process.xo extract.xo inflate.o \
+         match.o globals.o crypt.o ttyio.o fileio.o crctab.o timezone.o \
+         amiga/flate.o amiga/amiga.xo amiga/crc_68.o
 
-FOBJS = funzip.o crypt.fo ttyio.fo inflate.fo globals.fo \
+FOBJS = funzip.o inflate.fo crypt.fo ttyio.fo globals.fo \
          amiga/flate.fo amiga/crc_68.o amiga/filedate.fo
 
 
@@ -72,9 +72,9 @@ cleaner : clean
 
 
 $(OBJS) $(XOBJS) $(FOBJS) : unzip.h unzpriv.h globals.h \
-                             amiga/amiga.h amiga/z-stat.h amiga/z-time.h
+                             amiga/amiga.h amiga/z-stat.h
 
-crypt.o crypt.fo ttyio.o ttyio.fo : zip.h
+crypt.o crypt.fo timezone.o ttyio.o ttyio.fo : zip.h
 
 inflate.o inflate.fo : inflate.h
 
@@ -86,6 +86,8 @@ fileio.o extract.o extract.xo inflate.o inflate.fo amiga/filedate.fo : crypt.h
 amiga/mkGoff amiga/FmkGoff : crypt.h
 
 crypt.o crypt.fo ttyio.o ttyio.fo funzip.o fileio.o : ttyio.h
+
+timezone.o amiga/amiga.o amiga/amiga.xo : timezone.h
 
 unzip.o unzip.xo : version.h consts.h
 

@@ -1,5 +1,5 @@
-Macintosh Port of Info-ZIP's Zip
-and UnZip
+A free Macintosh Port of Info-ZIP's
+Zip and UnZip
 By Dirk Haase, d_haase@sitec.net
 Home page: www.sitec.net/maczip
 Mirror page:
@@ -22,6 +22,17 @@ The Zip and UnZip programs can process archives pro-
 duced by PKZIP, and PKZIP and PKUNZIP can work with
 archives produced by zip. Zip version 2.2 is compatible
 with PKZIP 2.04.
+
+
+
+License:
+--------
+  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+
+  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+  If, for some reason, all these files are missing, the Info-ZIP license
+  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 
 
 
@@ -245,14 +256,15 @@ I strongly recommend to test your archive (e.g. unzip -t archive).
 Zip Programs / Macintosh Extra-Data:
 -----------------------------------------
 A brief overview:
-Currently, as far as I know, there are 4 Zip programs available
+Currently, as far as I know, there are 6 Zip programs available
 for the Macintosh platform.
 These programs build (of course) different variants of Zip files:
 
     - Info-ZIP's first Port of Zip. Ported by Johnny Lee
       This Port is rather outdated and no longer supported (since 1992).
       68K only. Only minimal Mac-info is stored (Creator/Type,
-      Finder attributes). Creator/Type: '????' / '????'
+      Finder attributes).
+      Creator/Type: '????' / '????'
       Until year 1998, only UnZip 5.32 survived.
 
     - ZipIt by Tom Brown. This is Shareware and still supported I think.
@@ -274,6 +286,16 @@ These programs build (of course) different variants of Zip files:
       (More details about the compatibility issue can be found in
       proginfo/3rdparty.bug!). Type: 'PKz1'
       Mac filenames are restored without any change.
+
+    - Aladdin DropZip 1999, This is Shareware. Aladdin choosed
+      the format of ZipIt. Therefore, it has the some drawbacks
+      like ZipIt.
+      Creator/Type: 'SITx' / 'ZIP '
+
+    - SmartZip 1.0 1999 - by Marco Bambini Vampire Software. This is
+      Shareware. SmartZip compresses Macintosh files using the Mac Binary.
+      Therefore, it has the same drawbacks as ZipIt.
+      Creator/Type: 'dZIP' / 'ZIP '
 
 and finally:
     - Info-ZIP's latest Port of Zip. MacZip 1.0. Ported by me :-)
@@ -409,7 +431,7 @@ Hints for proper restoration of file-time stamps:
 -------------------------------------------------
 
 UnZip requires the host computer to have proper time zone information in
-order to handle certain tasks correctly (see unzip.doc).  To set the
+order to handle certain tasks correctly (see unzip.txt).  To set the
 time zone on the Macintosh, go to the Map Control Panel and enter the
 correct number of hours (and, in a few locales, minutes) offset from
 Universal Time/Greenwich Mean Time.  For example, the US Pacific time zone

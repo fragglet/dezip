@@ -114,7 +114,7 @@ struct stat *buf;
                 (86400 * 8 * 365 )                              +
                 (86400 * 2 );  /* two leap years */
 
-        tzset();
+        /* tzset(); */  /* this should be handled by mktime(), instead */
         /* ftime += timezone; */
         local_tm = *gmtime(&ftime);
         local_tm.tm_isdst = -1;

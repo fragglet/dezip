@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -13,7 +13,7 @@
  * Originally included in unzip.h, extracted for simplicity and eeze of
  * maintenance by John Bush.
  *
- * THIS FILE IS #INCLUDE'd by unzip.h
+ * THIS FILE IS #INCLUDE'd by unzpriv.h
  *
  */
 
@@ -21,7 +21,6 @@
 #define __amiga_amiga_h
 
 #include "amiga/z-stat.h"     /* substitute for <stat.h> and <direct.h> */
-#include "amiga/z-time.h"                    /* substitute for <time.h> */
 #include <limits.h>
 #ifndef NO_FCNTL_H
 #  include <fcntl.h>
@@ -34,6 +33,10 @@
 #  include <pragmas/dos_lib.h>           /* do inline dos.library calls */
 #  define O_BINARY 0
 #  define direct dirent
+
+#  ifndef IZTZ_DEFINESTDGLOBALS
+#    define IZTZ_DEFINESTDGLOBALS
+#  endif
 
 #  define DECLARE_TIMEZONE
 #  define ASM_INFLATECODES
@@ -85,6 +88,10 @@
 #    include "memwatch.h"
 #    undef getenv
 #  endif /* MWDEBUG */
+#  ifndef IZTZ_SETLOCALTZINFO
+     /*  XXX !!  We have really got to find a way to operate without these. */
+#    define IZTZ_SETLOCALTZINFO
+#  endif
 #endif /* SASC */
 
 
@@ -92,6 +99,16 @@
 #define USE_EF_UT_TIME
 #if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
 #  define TIMESTAMP
+#endif
+
+#ifndef IZTZ_GETLOCALETZINFO
+#  define IZTZ_GETLOCALETZINFO GetPlatformLocalTimezone
+#endif
+/* the amiga port uses Info-ZIP's own timezone library, which includes
+ * a "working" mktime() implementation
+ */
+#ifndef HAVE_MKTIME
+#  define HAVE_MKTIME
 #endif
 
 /* check that TZ environment variable is defined before using UTC times */
@@ -113,19 +130,19 @@
 
 /* Funkshine Prough Toe Taipes */
 
-int Agetch (void);              /* getch() like function, in amiga/filedate.c */
-LONG FileDate (char *, time_t[]);
-int windowheight (BPTR fh);
+extern int real_timezone_is_set;
+void tzset(void);
+#define VALID_TIMEZONE(tempvar) (tzset(), real_timezone_is_set)
+
+int Agetch(void);               /* getch() like function, in amiga/filedate.c */
+LONG FileDate(char *, time_t[]);
+int screensize(int *ttrows, int *ttcols);
 void _abort(void);              /* ctrl-C trap */
 
-#define SCREENLINES windowheight(Output())
-
-#ifdef USE_TIME_LIB
-   extern int real_timezone_is_set;
-#  define VALID_TIMEZONE(tempvar) (tzset(), real_timezone_is_set)
-#else
-#  define VALID_TIMEZONE(tempvar) ((tempvar = getenv("TZ")) && tempvar[0])
-#endif
+#define SCREENSIZE(ttrows, ttcols) screensize(ttrows, ttcols)
+#define SCREENWIDTH 80
+#define SCREENLWRAP 1
+#define TABSIZE     8
 
 /* Static variables that we have to add to Uz_Globs: */
 #define SYSTEM_SPECIFIC_GLOBALS \

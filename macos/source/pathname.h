@@ -30,7 +30,7 @@ char *GetFullPathFromID(char *CompletePath, short vRefNum, long dirID,
 char *GetAppName(void);
 void createArchiveName(char *Path);
 void FindDesktopFolder(char *Path);
-char *FindNewExtractFolder(char *ExtractPath);
+char *FindNewExtractFolder(char *ExtractPath, Boolean uniqueFolder);
 
 char *MakeFilenameShorter(const char *LongFilename);
 

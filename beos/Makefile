@@ -2,7 +2,7 @@
 #
 # Makefile for Info-ZIP's unzip, unzipsfx, and funzip on BeOS
 #
-# Copyright (c) 1998-1999 Info-ZIP
+# Copyright (c) 1998-2000 Info-ZIP
 #             Chris Herborth (chrish@qnx.com)
 #
 # This is the new New and Improved Makefile for BeOS; it will:
@@ -102,7 +102,7 @@ INSTALLEDMAN = $(MANDIR)/unzip.$(manext) $(MANDIR)/funzip.$(manext) \
 UNZIPS = unzip$E funzip$E unzipsfx$E zipinfo$E
 # this is a little ugly...well, no, it's a lot ugly:
 MANS = man/unzip.1 man/unzipsfx.1 man/zipinfo.1 man/funzip.1 man/zipgrep.1
-DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc zipgrep.doc
+DOCS = unzip.txt unzipsfx.txt zipinfo.txt funzip.txt zipgrep.txt
 
 ######################################################################
 # Things that change:

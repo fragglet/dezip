@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX & fUnZip:  Atari ST               Chris Herborth
-# Version:  UnZip 5.20+, MiNT, GNU C                           11 February 1996
+# Version:  UnZip 5.20+, MiNT, GNU C                              28 April 2000
 #==============================================================================
 
 # Based on the original unix Makefile and modified by Chris Herborth
@@ -69,7 +69,7 @@ BINDIR = /usr/local/bin#		where to install executables
 #
 UNZIPS = unzip$E funzip$E unzipsfx$E zipinfo$E
 MANS = unzip.$(manext) unzipsfx.$(manext) zipinfo.$(manext) funzip.$(manext)
-DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc
+DOCS = unzip.txt unzipsfx.txt zipinfo.txt funzip.txt
 # this is a little ugly...
 INSTALLED = $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E $(BINDIR)/funzip$E \
 	$(BINDIR)/unzipsfx$E $(MANDIR)/unzipsfx.$(manext) \

@@ -1,15 +1,17 @@
-Contents of the "tandem" subdirectory for UnZip 5.32 and later:
+Contents of the "tandem" subdirectory for UnZip 5.42 and later:
 
   Contents      this file
   README
   HISTORY
-  doit          macro to extract and rename required Tandem files from archive
   commacs       generic support macros for compiling
+  doit          macro to extract and rename required Tandem files from archive
   macros        Info-ZIP-specific macros for compiling
   make          Tandem NSK script to compile UnZip intelligently
   makesfx       Tandem NSK script to compile UnZipSFX
-  tandem.c      Tandem NSK-specific support routines
+  tandem.c      Tandem NSK-specific Zip & UnZip support routines
   tandem.h      Tandem NSK-specific data declarations
+  tanunz.c      Tandem NSK-specific UnZip support routines
+  tannsk.h      Tandem NSK-specific declarations that need delayed including
 
 To compile, run the rename.unix script on a Unix system (renames *.c files
 to *c and *.h files to *h, and leaves all files necessary for Tandem port

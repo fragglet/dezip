@@ -936,7 +936,7 @@ Modifiers include:\n\
    /[NO]CASE_INSENSITIVE, /[NO]LOWERCASE, /[NO]VERSION, /[NO]RESTORE\n\n"));
 
         Info(slide, flag, ((char *)slide, "\
-Examples (see unzip.doc or \"HELP UNZIP\" for more info):\n   \
+Examples (see unzip.txt or \"HELP UNZIP\" for more info):\n   \
 unzip edit1 /EXCL=joe.jou /CASE_INSENSITIVE    => extract all files except\n   \
    joe.jou (or JOE.JOU, or any combination of case) from zipfile edit1.zip\n   \
 unzip zip201 \"Makefile.VMS\" vms/*.[ch]         => extract VMS Makefile and\n\

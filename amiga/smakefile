@@ -1,6 +1,6 @@
 #===========================================================================
 # Makefile for UnZip, ZipInfo, fUnZip, MakeSFX      AMIGA SAS/C Version 6.58
-# Version:  5.4                                     last revised:  18 Nov 98
+# Version:  5.42                                    last revised:  19 Jun 00
 #===========================================================================
 # from John Bush <john.bush@east.sun.com>
 #            or: <JBush@bix.com>
@@ -310,13 +310,13 @@ LIBFLAGSC = LIB $(LMEMLIB) SC:LIB/sc.lib SC:LIB/amiga.lib
 OBJS1 = unzip$(O) crc32$(O) crctab$(O) crypt$(O) envargs$(O) explode$(O)
 OBJS2 = extract$(O) fileio$(O) globals$(O) list$(O) inflate$(O) match$(O)
 OBJS3 = process$(O) ttyio$(O) unreduce$(O) unshrink$(O) zipinfo$(O)
-OBJSA = amiga$(O) time_lib$(O) stat$(O) filedate$(O)
+OBJSA = amiga$(O) timezone$(O)
 OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) $(OBJSA)
 
 # UnZipSFX Objects
 OBJX1 = unzip$(OX) extract$(OX) inflate$(OX) match$(OX) process$(OX)
 OBJXI = crypt$(O) crc32$(O) crctab$(O) fileio$(O) globals$(O) ttyio$(O)
-OBJXA = amiga$(OX) time_lib$(O) stat$(O) filedate$(O)
+OBJXA = amiga$(OX) timezone$(O)
 OBJX  = $(OBJX1) $(OBJXI) $(OBJXA)
 
 # fUnZip Objects
@@ -330,7 +330,7 @@ OBJM = makesfx$(O)
 
 # Common header files
 UNZIP_H1 = unzip.h unzpriv.h globals.h
-UNZIP_HA = amiga/amiga.h amiga/z-time.h amiga/z-stat.h
+UNZIP_HA = amiga/amiga.h amiga/z-stat.h
 UNZIP_H  = $(UNZIP_H1) $(UNZIP_HA)
 
 # Output targets
@@ -424,10 +424,9 @@ spotless: clean
 # (objects not needed by Amiga port are commented)
 
 # special rule for adding Amiga internal version number to UnZip
-amiga$(O):          amiga/amiga.c $(UNZIP_H) crypt.h env:Workbench
-time_lib$(O):       amiga/time_lib.c amiga/z-time.h
-stat$(O):           amiga/stat.c     amiga/z-stat.h amiga/z-time.h
-filedate$(O):       amiga/filedate.c amiga/z-time.h crypt.h
+amiga$(O):          amiga/amiga.c amiga/filedate.c amiga/stat.c $(UNZIP_H) crypt.h timezone.h env:Workbench
+stat$(O):           amiga/stat.c     amiga/z-stat.h
+filedate$(O):       amiga/filedate.c crypt.h timezone.h
 api$(O):            api.c      $(UNZIP_H) version.h #zlib.h
 apihelp$(O):        apihelp.c  $(UNZIP_H) version.h
 crc32$(O):          crc32.c    $(UNZIP_H) zip.h
@@ -442,6 +441,7 @@ inflate$(O):        inflate.c  $(UNZIP_H) inflate.h #zlib.h
 list$(O):           list.c     $(UNZIP_H)
 match$(O):          match.c    $(UNZIP_H)
 process$(O):        process.c  $(UNZIP_H)
+timezone$(O):       timezone.c $(UNZIP_H) zip.h timezone.h
 ttyio$(O):          ttyio.c    $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(O):       unreduce.c $(UNZIP_H)
 unshrink$(O):       unshrink.c $(UNZIP_H)
@@ -453,7 +453,7 @@ zipinfo$(O):        zipinfo.c  $(UNZIP_H)
 # UnZipSFX dependencies:
 #
 # special rule for adding Amiga internal version number to UnZipSFX
-amiga$(OX):      amiga/amiga.c $(UNZIP_H) amiga/filedate.c amiga/stat.c crypt.h
+amiga$(OX):      amiga/amiga.c amiga/filedate.c amiga/stat.c $(UNZIP_H) crypt.h timezone.h
 unzip$(OX):      unzip.c    $(UNZIP_H) crypt.h version.h consts.h
 extract$(OX):    extract.c  $(UNZIP_H) crypt.h
 inflate$(OX):    inflate.c  $(UNZIP_H) inflate.h #zlib.h
@@ -469,7 +469,7 @@ crypt$(OF):      crypt.c    $(UNZIP_H) zip.h crypt.h ttyio.h
 globals$(OF):    globals.c  $(UNZIP_H)
 inflate$(OF):    inflate.c  $(UNZIP_H) inflate.h crypt.h #zlib.h
 ttyio$(OF):      ttyio.c    $(UNZIP_H) zip.h crypt.h ttyio.h
-filedate$(OF):   amiga/filedate.c amiga/z-time.h crypt.h
+filedate$(OF):   amiga/filedate.c crypt.h
 
 
 # MakeSFX dependencies

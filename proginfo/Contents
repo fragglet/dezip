@@ -1,4 +1,4 @@
-Contents of the "proginfo" subdirectory for UnZip 5.3 and later:
+Contents of the "proginfo" subdirectory for UnZip 5.42 and later:
 
   Contents      this file
   CONTRIBS      list of contributors to UnZip
@@ -9,4 +9,5 @@ Contents of the "proginfo" subdirectory for UnZip 5.3 and later:
   fileinfo.cms  info about the VM/CMS file system, including record formats
   nt.sd         info about support for Windows NT's Security Descriptors (ACLs)
   perform.dos   relative performance of Zip and UnZip with various DOS compilers
+  timezone.txt  explanation of the TZ environment variable for timezones
   ziplimit.txt  limits of the Zip archive format and InfoZip's implementation

@@ -12,7 +12,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// Englisch (USA) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -26,17 +26,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE DISCARDABLE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE DISCARDABLE
 BEGIN
     "#include ""afxres.h""\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE DISCARDABLE
 BEGIN
     "#include ""punzip.rcv""\r\n"
     "#ifdef _WIN32_WCE\r\n"
@@ -61,7 +61,7 @@ END
 // Menu
 //
 
-IDR_UNZIP MENU DISCARDABLE 
+IDR_UNZIP MENU DISCARDABLE
 BEGIN
     POPUP "&File"
     BEGIN
@@ -125,7 +125,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Zip File Comment"
 FONT 8, "MS Sans Serif"
 BEGIN
-    EDITTEXT        IDC_COMMENT,6,6,349,184,ES_MULTILINE | WS_VSCROLL | 
+    EDITTEXT        IDC_COMMENT,6,6,349,184,ES_MULTILINE | WS_VSCROLL |
                     WS_HSCROLL | NOT WS_TABSTOP
 END
 
@@ -134,7 +134,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Properties"
 FONT 8, "MS Sans Serif"
 BEGIN
-    EDITTEXT        IDC_COMMENT,6,18,238,90,ES_MULTILINE | NOT WS_VISIBLE | 
+    EDITTEXT        IDC_COMMENT,6,18,238,90,ES_MULTILINE | NOT WS_VISIBLE |
                     WS_VSCROLL | WS_HSCROLL
     LTEXT           "",IDC_FILE,11,22,229,8
     LTEXT           "Size:",IDC_STATIC,11,34,70,8
@@ -224,7 +224,7 @@ BEGIN
     RTEXT           "0",IDC_BYTES_PROCESSED,68,83,44,8
     LTEXT           "Bytes total:",IDC_STATIC,10,94,58,8
     RTEXT           "",IDC_BYTES_TOTAL,68,94,44,8
-    EDITTEXT        IDC_LOG,123,15,272,109,ES_MULTILINE | WS_VSCROLL | 
+    EDITTEXT        IDC_LOG,123,15,272,109,ES_MULTILINE | WS_VSCROLL |
                     WS_HSCROLL
     GROUPBOX        "",IDC_STATIC,6,49,112,29
     GROUPBOX        "",IDC_STATIC,6,77,112,29
@@ -245,7 +245,7 @@ BEGIN
     CTEXT           "Many thanks go to Greg Roelofs and all the fine folks at Info-ZIP.",
                     IDC_STATIC,5,79,259,8
     CTEXT           "",IDC_COMMENT,20,89,229,16
-    CTEXT           "Visit ftp://ftp.freesoftware.com/pub/infozip for the latest news and binaries.",
+    CTEXT           "Visit ftp://ftp.info-zip.org/pub/infozip/ for the latest news and binaries.",
                     IDC_STATIC,5,109,259,8
     GROUPBOX        "",IDC_STATIC,3,0,263,71,BS_LEFT
     GROUPBOX        "",IDC_STATIC,3,71,263,49,BS_LEFT
@@ -285,7 +285,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO DISCARDABLE
 BEGIN
     IDD_REPLACE, DIALOG
     BEGIN
@@ -366,7 +366,7 @@ END
 // Accelerator
 //
 
-IDR_UNZIP ACCELERATORS DISCARDABLE 
+IDR_UNZIP ACCELERATORS DISCARDABLE
 BEGIN
     "A",            IDM_ACTION_SELECT_ALL,  VIRTKEY, CONTROL, NOINVERT
     "E",            IDM_ACTION_EXTRACT,     VIRTKEY, CONTROL, NOINVERT
@@ -376,7 +376,7 @@ BEGIN
     VK_RETURN,      IDM_FILE_PROPERTIES,    VIRTKEY, ALT, NOINVERT
 END
 
-#endif    // English (U.S.) resources
+#endif    // Englisch (USA) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

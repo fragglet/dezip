@@ -1,5 +1,4 @@
 Attribute VB_Name = "VBUnzBas"
-
 Option Explicit
 
 '-- Please Do Not Remove These Comment Lines!
@@ -22,7 +21,7 @@ Option Explicit
 '-- A Very Special Thanks To Mr. Mike Le Voi
 '-- And Mr. Mike White
 '-- And The Fine People Of The Info-ZIP Group
-'-- For Letting Me Use And Modify Their Orginal
+'-- For Letting Me Use And Modify Their Original
 '-- Visual Basic 5.0 Code! Thank You Mike Le Voi.
 '-- For Your Hard Work In Helping Me Get This To Work!!!
 '---------------------------------------------------------------
@@ -338,7 +337,7 @@ Public Function UZDLLRep(ByRef fname As UNZIPCBChar) As Long
   s0 = ""
 
   For xx = 0 To 255
-    If fname.ch(xx) = 0 Then Exit For 
+    If fname.ch(xx) = 0 Then Exit For
     s0 = s0 & Chr$(fname.ch(xx))
   Next
 

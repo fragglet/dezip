@@ -92,15 +92,14 @@
 #ifndef DATE_FORMAT
 #  define DATE_FORMAT DF_MDY    /* GRR:  customize with locale.h somehow? */
 #endif
-#define lenEOL        1
+#define lenEOL          1
 #ifdef EBCDIC
 #  define PutNativeEOL  *q++ = '\n';
 #else
 #  define PutNativeEOL  *q++ = native(LF);
 #endif
 #define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
-#define SCREENLINES
-#define SCREENWIDTH
+#define SCREENWIDTH     80
 #define SCREENLWRAP     1
 #define USE_EF_UT_TIME
 #define SET_DIR_ATTRIB

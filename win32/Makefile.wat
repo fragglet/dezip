@@ -1,11 +1,12 @@
 # WMAKE makefile for Windows 95 and Windows NT (Intel only)
-# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 24 Oct 99.
+# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 07 Jan 01.
 # Makes UnZip.exe, fUnZip.exe, and UnZipSFX.exe.
 #
 # Invoke from UnZip source dir with "WMAKE -F WIN32\MAKEFILE.WAT [targets]"
 # To build with debug info use "WMAKE DEBUG=1 ..."
 # To build with no assembly modules use "WMAKE NOASM=1 ..."
-# To support unshrinking and unreducing use "WMAKE LAWSUIT=1 ..."
+# To support unshrinking use "WMAKE LAWSUIT=1 ..."
+# To support unreducing, get the real unreduce.c and go "WMAKE OFFEND_RMS=1 ..."
 #
 # Other options to be fed to the compiler can be specified in an environment
 # variable called LOCAL_UNZIP.
@@ -31,10 +32,14 @@ O = ob32w\  # likewise
 !endif
 
 !ifdef LAWSUIT
-cvars = $+$(cvars)$- -DUSE_SMITH_CODE -DUSE_UNSHRINK
-avars = $+$(avars)$- -DUSE_SMITH_CODE -DUSE_UNSHRINK
+cvars = $+$(cvars)$- -DUSE_UNSHRINK
+avars = $+$(avars)$- -DUSE_UNSHRINK
 # "$+$(foo)$-" means expand foo as it has been defined up to now; normally,
 # this Make defers inner expansion until the outer macro is expanded.
+!endif
+!ifdef OFFEND_RMS
+cvars = $+$(cvars)$- -DUSE_SMITH_CODE
+avars = $+$(avars)$- -DUSE_SMITH_CODE
 !endif
 
 # The assembly hot-spot code in crc_i386.asm is optional.  This section

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -9,7 +9,7 @@
 #ifndef __unzver_h   /* prevent multiple inclusions */
 #define __unzver_h
 
-#define UNZ_DLL_VERSION "5.41\0"
+#define UNZ_DLL_VERSION "5.42\0"
 #define COMPANY_NAME "Info-ZIP\0"
 
 #endif /* __unzver_h */

@@ -1703,22 +1703,22 @@ static void DecodeMac3ExtraField(ZCONST uch *buff, MACINFO *mi)
 
 Assert_it(buff, "", "");
 
-mi->fpb.hFileInfo.ioFlFndrInfo.fdFlags      =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlFndrInfo.fdLocation.v =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlFndrInfo.fdLocation.h =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlFndrInfo.fdFldr       =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlFndrInfo.fdFlags        =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlFndrInfo.fdLocation.v   =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlFndrInfo.fdLocation.h   =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlFndrInfo.fdFldr         =  makeword(buff); buff += 2;
 
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdIconID    =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdUnused[0] =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdUnused[1] =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdUnused[2] =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdScript    = *buff;           buff += 1;
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdXFlags    = *buff;           buff += 1;
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdComment   =  makeword(buff); buff += 2;
-mi->fpb.hFileInfo.ioFlXFndrInfo.fdPutAway   =  makelong(buff); buff += 4;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdIconID      =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdReserved[0] =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdReserved[1] =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdReserved[2] =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdScript      = *buff;           buff += 1;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdXFlags      = *buff;           buff += 1;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdComment     =  makeword(buff); buff += 2;
+mi->fpb.hFileInfo.ioFlXFndrInfo.fdPutAway     =  makelong(buff); buff += 4;
 
-mi->fpb.hFileInfo.ioFVersNum                = *buff;           buff += 1;
-mi->fpb.hFileInfo.ioACUser                  = *buff;           buff += 1;
+mi->fpb.hFileInfo.ioFVersNum                  = *buff;           buff += 1;
+mi->fpb.hFileInfo.ioACUser                    = *buff;           buff += 1;
 
 /*
 This implementation does not use the 64 bit time values, therefore

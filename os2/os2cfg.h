@@ -146,10 +146,9 @@
 #endif
 
 /* screen size detection */
-#define SCREENLINES screenlines()
-#define SCREENWIDTH screencolumns()
-int screenlines(void);
-int screencolumns(void);
+#define SCREENWIDTH 80
+#define SCREENSIZE(scrrows, scrcols)  screensize(scrrows, scrcols)
+int screensize(int *tt_rows, int *tt_cols);
 
 /* on the OS/2 console screen, line-wraps are always enabled */
 #define SCREENLWRAP 1

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -109,11 +109,11 @@ static ZCONST char Far ComprMsgNum[] =
    static ZCONST char Far CmprImplode[]    = "implode";
    static ZCONST char Far CmprTokenize[]   = "tokenize";
    static ZCONST char Far CmprDeflate[]    = "deflate";
-   static ZCONST char Far CmprEnDeflate[]  = "enhanced deflate";
+   static ZCONST char Far CmprDeflat64[]   = "deflate64";
    static ZCONST char Far CmprDCLImplode[] = "DCL implode";
    static ZCONST char Far *ComprNames[NUM_METHODS] = {
      CmprNone, CmprShrink, CmprReduce, CmprReduce, CmprReduce, CmprReduce,
-     CmprImplode, CmprTokenize, CmprDeflate, CmprEnDeflate, CmprDCLImplode
+     CmprImplode, CmprTokenize, CmprDeflate, CmprDeflat64, CmprDCLImplode
    };
 #endif /* !SFX */
 static ZCONST char Far FilNamMsg[] =
@@ -740,7 +740,11 @@ startover:
                                   dirlist->u.t3.mtime;
                             }
                             dirlist->have_uidgid =
+#ifdef RESTORE_UIDGID
                                 (uO.X_flag && (eb_izux_flg & EB_UX2_VALID));
+#else
+                                0;
+#endif
                             ++num_dirs;
                         }
 #endif /* SET_DIR_ATTRIB */
@@ -1127,8 +1131,14 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
     __GDEF
 {
 #ifdef SFX
-#  define UNKN_COMPR \
-   (G.crec.compression_method!=STORED && G.crec.compression_method!=DEFLATED)
+#  ifdef USE_DEFLATE64
+#    define UNKN_COMPR \
+     (G.crec.compression_method!=STORED && G.crec.compression_method<DEFLATED \
+      && G.crec.compression_method>ENHDEFLATED)
+#  else
+#    define UNKN_COMPR \
+     (G.crec.compression_method!=STORED && G.crec.compression_method!=DEFLATED)
+#  endif
 #else
 #  ifdef COPYRIGHT_CLEAN  /* no reduced files */
 #    define UNKN_RED (G.crec.compression_method >= REDUCED1 && \
@@ -1141,8 +1151,15 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
 #  else
 #    define UNKN_SHR  FALSE  /* unshrinking not unknown */
 #  endif
-#  define UNKN_COMPR (UNKN_RED || UNKN_SHR || \
-   G.crec.compression_method==TOKENIZED || G.crec.compression_method>DEFLATED)
+#  ifdef USE_DEFLATE64
+#    define UNKN_COMPR (UNKN_RED || UNKN_SHR || \
+     G.crec.compression_method==TOKENIZED || \
+     G.crec.compression_method>ENHDEFLATED)
+#  else
+#    define UNKN_COMPR (UNKN_RED || UNKN_SHR || \
+     G.crec.compression_method==TOKENIZED || \
+     G.crec.compression_method>DEFLATED)
+#  endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -1444,6 +1461,9 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
 #endif /* !SFX */
 
         case DEFLATED:
+#ifdef USE_DEFLATE64
+        case ENHDEFLATED:
+#endif
             if (!uO.tflag && QCOND2) {
                 Info(slide, 0, ((char *)slide, LoadFarString(ExtractMsg),
                   "inflat", FnFilter1(G.filename),

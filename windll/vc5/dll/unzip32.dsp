@@ -141,10 +141,6 @@ SOURCE=..\..\..\process.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\ttyio.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\unreduce.c
 # End Source File
 # Begin Source File
