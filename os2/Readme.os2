@@ -1,0 +1,24 @@
+[Info-ZIP #127]
+Date: Fri, 26 Apr 91 17:42:24 PDT
+From: wbonner@yoda.eecs.wsu.edu (Wim Bonner)
+Subject: Makefile Change for OS/2 (and addition of def file)
+
+[makefile changes posted]
+
+The following are two lines which should be placed in a file called unzip.def
+for the make file changes to work correctly.  They could be put in the make
+file, and have the make file echo them to unzip.def if the system is being
+built on OS/2, but that may be more complicated than simply including one
+more file.  The description line is optional, but I thought that it might
+be useful for something, perhaps a copyright statement?  I think it is what
+Windows uses for descriptions when it searches a dos hard drive for programs
+to install.  It may be used in the future for OS/2 things, I don't know.
+
+unzip.def: (The following two lines are for a Module Definition File)
+
+NAME Unzip WINDOWCOMPAT NEWFILES
+DESCRIPTION 'any one line description can be placed here between single quotes'
+-- 
+|  wbonner@yoda.eecs.wsu.edu  | The Loft BBS
+| 27313853@wsuvm1.csc.wsu.edu | (509)335-4339
+|  72561.3135@CompuServe.com  | USR HST Dual Standard HST/V.32

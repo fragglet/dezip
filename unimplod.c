@@ -56,8 +56,13 @@ sf_tree lit_tree;
 sf_tree length_tree;
 sf_tree distance_tree;
 sf_node *lit_nodes = (sf_node *) prefix_of;     /* 2*LITVALS nodes */
+#ifdef MACOS
+sf_node *length_nodes ;  /* 2*LENVALS nodes */
+sf_node *distance_nodes ;    /* 2*DISTVALS nodes */
+#else
 sf_node *length_nodes = (sf_node *) suffix_of;  /* 2*LENVALS nodes */
 sf_node *distance_nodes = (sf_node *) stack;    /* 2*DISTVALS nodes */
+#endif
 boolean lit_tree_present;
 boolean eightK_dictionary;
 int minimum_match_length;

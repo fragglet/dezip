@@ -1,8 +1,5 @@
 # Makefile for unzip
 #
-# v4.0  Added many new systems; rearranged, condensed, cleaned up, fixed 
-#	bugs, you name it.  Much better.
-#
 # ******** INSTRUCTIONS (such as they are) ********
 #
 # "make vax"	-- makes unzip on a VAX 11-780 BSD 4.3 in current directory
@@ -76,10 +73,11 @@ OBJS = unzip$O file_io$O mapname$O match$O misc$O\
 SHELL = /bin/sh
 
 # list of supported systems in this version
-SYSTEMS1 = 386i 3Bx amdahl apollo convex cray_cc cray_scc
-SYSTEMS2 = dec5820 diab encore gould hp mips msc_dos next
-SYSTEMS3 = pyramid rtaix sco sco_dos sgi stellar sun tahoe
-SYSTEMS4 = ultrix vax wombat
+SYSTEMS1 = 386i 3Bx amdahl apollo aviion convex cray cray_cc
+SYSTEMS2 = dnix encore generic generic2 gould hp mips msc_dos
+SYSTEMS3 = msc_os2 next pyramid rtaix sco sco_dos sequent sgi
+SYSTEMS4 = stellar sun tahoe ultrix_risc ultrix_vax vax wombat
+# SYSTEMS5 =
 
 ####################
 # DEFAULT HANDLING #
@@ -115,15 +113,39 @@ goober:
 ERROR:
 	@echo
 	@echo\
- 'Must type "make <system>", where <system> is one of the following:'
+ "  If you're not sure about the characteristics of your system, try typing"
+	@echo\
+ '  "make generic".  If the compiler barfs and says something unpleasant about'
+	@echo\
+ '  "timezone redefined," try typing "make clean" followed by "make generic2".'
+	@echo\
+ '  One of these actions should produce a working copy of unzip on most Unix'
+	@echo\
+ '  systems.  If you know a bit more about the machine on which you work, you'
+	@echo\
+ '  might try "make list" for a list of the specific systems supported herein.'
+	@echo\
+ '  And as a last resort, feel free to read the numerous comments within the'
+	@echo\
+ '  Makefile itself.  Have an excruciatingly pleasant day.'
+	@echo
+
+list:
+	@echo
+	@echo\
+ 'Type "make <system>", where <system> is one of the following:'
 	@echo
 	@echo  "	$(SYSTEMS1)"
 	@echo  "	$(SYSTEMS2)"
 	@echo  "	$(SYSTEMS3)"
 	@echo  "	$(SYSTEMS4)"
+#	@echo  "	$(SYSTEMS5)"
 	@echo
 	@echo\
  'Otherwise set the shell variable SYSTEM to one of these and just type "make".'
+	@echo\
+ 'For further (very useful) information, please read the comments in Makefile.'
+	@echo
 
 
 ###############################################
@@ -145,6 +167,9 @@ unreduce$O:     unreduce.c unzip.h
 unshrink$O:     unshrink.c unzip.h
 unzip$O:        unzip.c unzip.h
 
+clean:
+	rm -f $(OBJS) unzip$(EXE)
+
 # Zipinfo section commented out because it's no longer compatible with
 # the current unzip.h (I think).  Will be updated one of these days...
 #
@@ -161,13 +186,23 @@ unzip$O:        unzip.c unzip.h
 
 
 # ---------------------------------------------------------------------------
-#   "Normal" group (no #defines):
+#   Generic targets (can't assume make utility groks "$(MAKE)")
+# ---------------------------------------------------------------------------
+
+generic:	# first try for unknown systems:  hope make is called "make"...
+	make unzip CFLAGS="$(CFLAGS) -DNOTINT16"
+
+generic2:	# second try for unknown systems:  keep hoping...
+	make unzip CFLAGS="$(CFLAGS) -DNOTINT16 -DBSD"
+
+# ---------------------------------------------------------------------------
+#   "Normal" (i.e., PC-like) group (no #defines):
 # ---------------------------------------------------------------------------
 
 386i:		unzip	# sun386i, SunOS 4.0.2 ["sun:" works, too, but bigger]
 encore:		unzip	# Multimax
-sco:		unzip	# Xenix/386 (tested on 2.3.1); SCO unix 3.2.0.
-ultrix:		unzip	# DECstation?
+sco:		unzip	# Xenix/386 (tested on 2.3.1); SCO Unix 3.2.0.
+ultrix_vax:	unzip	# VAXen running Ultrix (just 4.0?); not RISC machines
 vax:		unzip	# general-purpose VAX target (not counting VMS)
 
 # ---------------------------------------------------------------------------
@@ -177,25 +212,41 @@ vax:		unzip	# general-purpose VAX target (not counting VMS)
 3Bx:		_16	# AT&T 3B2/1000-80; should work on any WE32XXX machine
 amdahl:		_16	# Amdahl (IBM) mainframe, UTS (SysV) 1.2.4 and 2.0.1
 apollo:		_16	# Apollo Domain/OS machines
+aviion:         _16     # Data General AViiONs, DG/UX 4.3x
 convex:		_16	# C200/C400
 cray_cc:	_16	# Cray-2 and Y-MP, using old-style compiler
-dec5820:	_16	# DEC 5820 (RISC), Test version of Ultrix v4.0
-diab:		_16	# 680X0, DIAB dnix 5.2/5.3 (a Swedish System V clone)
+#dec5820:	_16	# DEC 5820 (RISC), Test version of Ultrix v4.0
+dnix:		_16	# 680X0, DIAB dnix 5.2/5.3 (a Swedish System V clone)
 gould:		_16	# Gould PN9000 running UTX/32 2.1Bu01
 hp:		_16	# HP 9000 series (68020), 4.3BSD or HP-UX A.B3.10 Ver D
 mips:		_16	# MIPS M120-5(?), SysV R3 [error in sys/param.h file?]
-next:		_16	# 68030 BSD 4.3+Mach
+#next:		_16	# 68030 BSD 4.3+Mach
 rtaix:		_16	# IBM RT 6150 under AIX 2.2.1
 stellar:	_16	# gs-2000
-sun:		_16	# Sun 4/110, SunOS 4.0.3c; Sun 3 (68020), SunOS 4.0.3
 tahoe:		_16	# tahoe (CCI Power6/32), 4.3BSD
 
 _16:
 	$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16"
 
 # ---------------------------------------------------------------------------
+#   NOTINT16 + BSD (for timezone structs) group:
+# ---------------------------------------------------------------------------
+
+sun:		_16bsd	# Sun 4/110, SunOS 4.0.3c; Sun 3 (68020), SunOS 4.0.3
+ultrix_risc:	_16bsd	# DEC 58x0 (MIPS guts), DECstation 2100; Ultrix v4.1
+
+_16bsd:
+	$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16 -DBSD"
+
+# ---------------------------------------------------------------------------
 #   "Unique" group (require non-standard options):
 # ---------------------------------------------------------------------------
+
+# Sequent Symmetry is a 386 but needs -DZMEM
+# This should also work on Balance but I can't test it just yet.
+
+sequent:	# Sequent w/Dynix
+	$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16 -DBSD -DZMEM"
 
 # I have finished porting unzip 3.0 to the Pyramid 90X under OSX4.1.
 # The biggest problem was the default structure alignment yielding two
@@ -221,7 +272,7 @@ sgi:		# Silicon Graphics (tested on Personal Iris 4D20)
 # Cray-2 and Y-MP, running Unicos 5.1.10 or 6.0 (SysV + BSD enhancements)
 # and Standard (ANSI) C compiler 1.5 or 2.0.1.
 
-cray_scc:
+cray:
 	$(MAKE) unzip CC="scc" LD="scc" CFLAGS="$(CFLAGS) -DNOTINT16"
 
 # SCO cross compile from unix to DOS. Tested with Xenix/386 and
@@ -251,6 +302,23 @@ msc_dos:
 	$(MAKE) -nologo unzip.exe CFLAGS="-Ox -nologo $(FP) -G2" CC=cl\
 	LD=link EXE=.exe O=.obj LDFLAGS="/noi /nol" LDFLAGS2=",unzip;"
 
+# I do not believe that OS/2 has the 128 character command line limitation, 
+# so when I have more time to get to know how nmake really works, I may figure 
+# out how to set the makefile so that it works like most of the other things 
+# in unix.  The main things I had to change were adding the define -DOS2 and 
+# the C flag -Lp.  It still looks for the default named libraries, and not 
+# the protected-mode names, but I am sure most people dealing with OS/2 know
+# how to type slibcep when it says it can't find slibce.
+
+msc_os2:
+	$(MAKE) -nologo unzip.exe CFLAGS="-Ox -nologo $(FP) -G2 -DOS2 -Lp"\
+	CC=cl LD=link EXE=.exe O=.obj LDFLAGS="/noi /nol"\
+	LDFLAGS2=",unzip,,,unzip.def;"
+
+# NeXT 2.x: make the executable smaller.
+next:
+	$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16" LDFLAGS2="-object -s"
+
 # I didn't do this.  I swear.  No, really.
 
 wombat:		# Wombat 68000 (or whatever)
@@ -265,35 +333,39 @@ wombat:		# Wombat 68000 (or whatever)
 # Thanks to the following people for their help in testing and/or porting
 # to various machines:
 #
-#   386i:	Richard Stephen, stephen@corp.telecom.co.nz
-#   3Bx:	Bob Kemp, hrrca!bobc@cbnewse.att.com
-#   amdahl:	Kim DeVaughn
-#   apollo:	Tim Geibelhaus
-#   cray:	Greg Roelofs, roelofs@amelia.nas.nasa.gov
-#   dec5820:	"Moby" Dick O'Connor
-#   diab:	Bo Kullmar, bk@kullmar.se
-#   gould:	Onno van der Linden, linden@fwi.uva.nl
-#   hp:		Randy McCaskile, rmccask@seas.gwu.edu (HP-UX)
+#  386i:	Richard Stephen, stephen@corp.telecom.co.nz
+#  3Bx:		Bob Kemp, hrrca!bobc@cbnewse.att.com
+#  amdahl:	Kim DeVaughn, ked01@juts.ccc.amdahl.com
+#  apollo:	Tim Geibelhaus
+#  aviion:	Bruce Kahn, bkahn@archive.webo.dg.com
+#  cray:	Greg Roelofs, roelofs@amelia.nas.nasa.gov
+#  dec5820:	"Moby" Dick O'Connor, djo7613@u.washington.edu
+#  dnix:	Bo Kullmar, bk@kullmar.se
+#  gould:	Onno van der Linden, linden@fwi.uva.nl
+#  hp:		Randy McCaskile, rmccask@seas.gwu.edu (HP-UX)
 #   		Gershon Elber, gershon@cs.utah.edu (HP BSD 4.3)
-#   mips:	Peter Jones, jones@mips1.uqam.ca
-#   msc_dos:	Greg Roelofs
-#   next:	Mark Adler, madler@piglet.caltech.edu
-#   pyramid:	James Dugal, jpd@usl.edu
-#   rtaix:	Erik-Jan Vens
-#   sco:	Onno van der Linden, linden@fwi.uva.nl (SCO Unix 3.2.0)
+#  mips:	Peter Jones, jones@mips1.uqam.ca
+#  msc_dos:	Greg Roelofs
+#  msc_os2:	Wim Bonner, wbonner@yoda.eecs.wsu.edu
+#  next:	Mark Adler, madler@piglet.caltech.edu
+#  pyramid:	James Dugal, jpd@usl.edu
+#  rtaix:	Erik-Jan Vens
+#  sco:		Onno van der Linden (SCO Unix 3.2.0)
 #   		Bill Davidsen, davidsen@crdos1.crd.ge.com (Xenix/386)
-#   sco_dos:	Bill Davidsen, davidsen@crdos1.crd.ge.com
-#   sgi:	Valter V. Cavecchia (see comments for addresses)
-#   sun:	Onno van der Linden, linden@fwi.uva.nl (Sun 4)
-#   tahoe:	Mark Edwards, mce%sdcc10@ucsd.edu
-#   ultrix:	Greg Flint
-#   vax:	Forrest Gehrke, feg@dodger.att.com (SysV)
+#  sco_dos:	Bill Davidsen
+#  sequent:	Phil Howard, phil@ux1.cso.uiuc.edu
+#  sgi:		Valter V. Cavecchia (see comments for addresses)
+#  sun:		Onno van der Linden (Sun 4)
+#  tahoe:	Mark Edwards, mce%sdcc10@ucsd.edu
+#  ultrix_vax:	Greg Flint, afc@klaatu.cc.purdue.edu
+#  ultrix_risc:	Michael Graff, explorer@iastate.edu
+#  vax:		Forrest Gehrke, feg@dodger.att.com (SysV)
 #		David Kirschbaum, kirsch@usasoc.soc.mil (BSD 4.3)
 #		Jim Steiner, steiner@pica.army.mil (8600+Ultrix)
-#   wombat:	Joe Isuzu, joe@trustme.isuzu.com
+#  wombat:	Joe Isuzu, joe@trustme.isuzu.com
 
 # SCO unix 3.2.0:
-# Don't use -Ox with cc (derived from Microsoft 5.1),there is
-# a bug in the loop optimization,which causes bad CRC's
+# Don't use -Ox with cc (derived from Microsoft 5.1), there is
+# a bug in the loop optimization, which causes bad CRC's
 #
 # Onno van der Linden

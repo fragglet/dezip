@@ -8,11 +8,6 @@
   types," in the case of non-ANSI compilers), macros, and global-variable
   declarations.
 
-  Two potential trouble areas:  the use of "defined()" and the indentation
-  of preprocessor directives.  Both are new since the first edition of K&R,
-  but both also seem to be widely accepted by non-ANSI compilers.  So far
-  they've been tested on quite a few compilers, with no problems reported...
-
   ---------------------------------------------------------------------------*/
 
 
@@ -21,7 +16,7 @@
 /*  OS-Dependent Includes  */
 /***************************/
 
-#include <stdio.h>       /* this is your standard header for all C compiles  */
+#include <stdio.h>       /* this is your standard header for all C compiles */
 #include <ctype.h>
 #include <errno.h>       /* used in mapped_name() */
 #define DECLARE_ERRNO    /* everybody except MSC 6.0 */
@@ -29,11 +24,15 @@
 #  include <types.h>     /*  (placed up here instead of in VMS section below */
 #  include <stat.h>      /*   because types.h is used in some other headers) */
 #else  /* almost everybody */
-#  include <sys/types.h> /* off_t, time_t, dev_t, ... */
-#  include <sys/stat.h>  /* Everybody seems to need this. */
+#  if defined(THINK_C) || defined(MPW) /* for Macs */
+#    include <stddef.h>
+#  else
+#    include <sys/types.h> /* off_t, time_t, dev_t, ... */
+#    include <sys/stat.h>  /* Everybody seems to need this. */
+#  endif
 #endif                   /*   This include file defines
-                          *     #define S_IREAD 0x0100  (* owner may read *)
-                          *     #define S_IWRITE 0x0080 (* owner may write *)
+                          *     #define S_IREAD 0x0100  (owner may read)
+                          *     #define S_IWRITE 0x0080 (owner may write)
                           *   as used in the creat() standard function.  Must
                           *   be included AFTER sys/types.h for most systems.
                           */
@@ -47,19 +46,20 @@
 #  include <sys/param.h>  /*  the contents of sys/types.h, so you don't need */
                           /*  (and can't use) sys/types.h. (or param.h???)   */
 #  ifndef BSIZE
-#    define BSIZE   DEV_BSIZE    /* v2.0c assume common for all Unix systems */
+#    define BSIZE   DEV_BSIZE   /* assume common for all Unix systems */
 #  endif
 
 #  ifndef BSD
-#    define NO_MKDIR                                    /* for mapped_name() */
+#    define NO_MKDIR            /* for mapped_name() */
 #    include <time.h>
      struct tm *gmtime(), *localtime();
 #  else   /* BSD */
 #    include <sys/time.h>
+#    include <sys/timeb.h>
 #  endif
 
 #else   /* !UNIX */
-#  define BSIZE   512                                     /* disk block size */
+#  define BSIZE   512           /* disk block size */
 #endif
 
 #if defined(V7) || defined(BSD)
@@ -72,15 +72,15 @@
   ---------------------------------------------------------------------------*/
 
 #ifdef __TURBOC__
-#  define DOS_OS2             /* Turbo C under DOS, MSC under DOS or OS2 */
-#  include <sys/timeb.h>      /* for structure ftime */
-#  include <mem.h>            /* for memcpy() */
-#else                         /* NOT Turbo C... */
-#  ifdef MSDOS                /*   but still MS-DOS, so we'll assume it's    */
-#    ifndef MSC               /*   Microsoft's compiler and fake the ID, if  */
-#      define MSC             /*   necessary (it is in 5.0; apparently not   */
-#    endif                    /*   in 5.1 and 6.0) */
-#    include <dos.h>          /* _dos_setftime() */
+#  define DOS_OS2             /* Turbo C under DOS, MSC under DOS or OS2    */
+#  include <sys/timeb.h>      /* for structure ftime                        */
+#  include <mem.h>            /* for memcpy()                               */
+#else                         /* NOT Turbo C...                             */
+#  ifdef MSDOS                /*   but still MS-DOS, so we'll assume it's   */
+#    ifndef MSC               /*   Microsoft's compiler and fake the ID, if */
+#      define MSC             /*   necessary (it is in 5.0; apparently not  */
+#    endif                    /*   in 5.1 and 6.0)                          */
+#    include <dos.h>          /* _dos_setftime()                            */
 #  endif
 #  ifdef OS2                  /* stuff for DOS and OS/2 family version */
 #    ifndef MSC
@@ -90,17 +90,15 @@
 #  endif
 #endif
 
-#ifdef MSC                    /* defined for all versions of MSC now */
-#  define DOS_OS2             /* Turbo C under DOS, MSC under DOS or OS/2 */
+#ifdef MSC                    /* defined for all versions of MSC now         */
+#  define DOS_OS2             /* Turbo C under DOS, MSC under DOS or OS/2    */
 #  ifndef __STDC__            /* MSC 5.0 and 5.1 aren't truly ANSI-standard, */
-#    define __STDC__          /*   but they understand prototypes...so */
-#  endif                      /*   they're close enough for our purposes */
-#  ifdef _MSC_VER             /* new with either 5.1 or 6.0 ... */
-#    if (_MSC_VER >= 600)     /* errno is now a function in a dynamic link */
-#      undef DECLARE_ERRNO    /*   library (or something)--incompatible with */
-#    endif                    /*   the usual "extern int errno" declaration */
-#  endif                      /*   (thanks to Wim Bonner for finding this) */
-#endif
+#    define __STDC__          /*   but they understand prototypes...so       */
+#  endif                      /*   they're close enough for our purposes     */
+#  if defined(_MSC_VER) && (_MSC_VER >= 600)      /* new with 5.1 or 6.0 ... */
+#    undef DECLARE_ERRNO      /* errno is now a function in a dynamic link   */
+#  endif                      /*   library (or something)--incompatible with */
+#endif                        /*   the usual "extern int errno" declaration  */
 
 #ifdef DOS_OS2                /* defined for both Turbo C, MSC */
 #  include <io.h>             /* lseek(), open(), setftime(), dup(), creat() */
@@ -111,19 +109,19 @@
   ---------------------------------------------------------------------------*/
 
 #ifdef VMS
-#  include <time.h>               /* the usual non-BSD time functions */
-#  include <file.h>               /* same things as fcntl.h has */
-#  define UNIX                    /* can share most of same code from now on */
-#  define RETURN   return_VMS     /* VMS interprets return codes incorrectly */
+#  include <time.h>             /* the usual non-BSD time functions */
+#  include <file.h>             /* same things as fcntl.h has */
+#  define UNIX                  /* can share most of same code from now on */
+#  define RETURN   return_VMS   /* VMS interprets return codes incorrectly */
 #else
-#  define RETURN   return         /* only used in main() */
+#  define RETURN   return       /* only used in main() */
 #  ifdef V7
 #    define O_RDONLY  0
 #    define O_WRONLY  1
 #    define O_RDWR    2
 #  else
 #    ifdef MTS
-#      include <sys/file.h>       /* MTS uses this instead of fcntl.h */
+#      include <sys/file.h>     /* MTS uses this instead of fcntl.h */
 #    else
 #      include <fcntl.h>
 #    endif
@@ -131,9 +129,31 @@
 #endif
 /*
  *   fcntl.h (above):   This include file defines
- *                        #define O_BINARY 0x8000  (* no cr-lf translation *)
+ *                        #define O_BINARY 0x8000  (no cr-lf translation)
  *                      as used in the open() standard function.
  */
+
+/*---------------------------------------------------------------------------
+    And some Mac stuff for good measure:
+  ---------------------------------------------------------------------------*/
+
+#ifdef THINK_C
+#  define MACOS
+#  define NOTINT16
+#  ifndef __STDC__            /* THINK_C isn't truly ANSI-standard, */
+#    define __STDC__          /*   but it understands prototypes...so */
+#  endif                      /*   it's close enough for our purposes */
+#  include <time.h>
+#  include <unix.h>
+#  include "macstat.h"
+#endif
+#ifdef MPW                    /* not tested yet - should be easy enough tho */
+#  define MACOS
+#  define NOTINT16
+#  include <time.h>
+#  include <fcntl.h>
+#  include "macstat.h"
+#endif
 
 /*---------------------------------------------------------------------------
     And finally, some random extra stuff:
@@ -156,59 +176,63 @@
 /*  Defines  */
 /*************/
 
-#define STRSIZ            256
 #define INBUFSIZ          BUFSIZ   /* same as stdio uses */
-#define DIR_BLKSIZ        64       /* number of directory entries per block  */
-                                   /*   (should fit in 4096 bytes, usually)  */
+#define DIR_BLKSIZ        64       /* number of directory entries per block
+                                    *  (should fit in 4096 bytes, usually) */
+#define FILNAMSIZ         (1025)
+#ifdef MTS
+#  undef FILENAME_MAX              /* the MTS value is too low: use default */
+#endif
+#ifndef FILENAME_MAX               /* make sure FILENAME_MAX always exists  */
+#  define FILENAME_MAX    (FILNAMSIZ - 1)
+#endif
 #ifdef ZIPINFO
-#  define OUTBUFSIZ       BUFSIZ   /* zipinfo needs less than unzip does */
+#  define OUTBUFSIZ       BUFSIZ   /* zipinfo needs less than unzip does    */
 #else
-#  define OUTBUFSIZ       0x2000   /* unImplode needs power of 2, >= 0x2000  */
+#  define OUTBUFSIZ       0x2000   /* unImplode needs power of 2, >= 0x2000 */
 #endif
 
 #define ZSUFX             ".zip"
-#define CENTRAL_HDR_SIG   "\120\113\001\002"            /* the infamous "PK" */
-#define LOCAL_HDR_SIG     "\120\113\003\004"            /*  signature bytes  */
+#define CENTRAL_HDR_SIG   "\120\113\001\002"   /* the infamous "PK" */
+#define LOCAL_HDR_SIG     "\120\113\003\004"   /*  signature bytes  */
 #define END_CENTRAL_SIG   "\120\113\005\006"
 
-#define START             -1       /* identifies block when doing back-scan  */
-#define MIDDLE            0
-#define END               1
-
-#define SKIP              0        /* choice of activities for do_string() */
+#define SKIP              0    /* choice of activities for do_string() */
 #define DISPLAY           1
 #define FILENAME          2
 
-#define DOS_OS2_FAT_      0        /* version_made_by codes (central dir) */
+#define DOS_OS2_FAT_      0    /* version_made_by codes (central dir) */
 #define AMIGA_            1
-#define VMS_              2        /* MAKE SURE THESE ARE NOT DEFINED ON */
-#define UNIX_             3        /* THE RESPECTIVE SYSTEMS!!  (Like, for */
-#define VM_CMS_           4        /* instance, "UNIX":  CFLAGS = -O -DUNIX) */
+#define VMS_              2    /* MAKE SURE THESE ARE NOT DEFINED ON     */
+#define UNIX_             3    /* THE RESPECTIVE SYSTEMS!!  (Like, for   */
+#define VM_CMS_           4    /* instance, "UNIX":  CFLAGS = -O -DUNIX) */
 #define ATARI_            5
 #define OS2_HPFS_         6
 #define MAC_              7
 #define Z_SYSTEM_         8
 #define CPM_              9
-/* #define TOPS20_   10  (we're going to need this soon, I think...)  */
-#define NUM_HOSTS         10       /* index of last system + 1 */
+/* #define TOPS20_   10  (we're going to need this soon...)  */
+#define NUM_HOSTS         10   /* index of last system + 1 */
 
-#define STORED            0        /* compression methods */
+#define STORED            0    /* compression methods */
 #define SHRUNK            1
 #define REDUCED1          2
 #define REDUCED2          3
 #define REDUCED3          4
 #define REDUCED4          5
 #define IMPLODED          6
-#define NUM_METHODS       7        /* index of last method + 1 */
-/* don't forget to update list_files() appropriately if NUM_METHODS changes  */
+#define NUM_METHODS       7    /* index of last method + 1 */
+/* don't forget to update list_files() appropriately if NUM_METHODS changes */
 
-#define TRUE              1        /* sort of obvious */
-#define FALSE             0
+#ifndef MACOS
+#  define TRUE            1    /* sort of obvious */
+#  define FALSE           0
+#endif
 
-#define UNZIP_VERSION   11         /* compatible with PKUNZIP 1.1 */
+#define UNZIP_VERSION   11     /* compatible with PKUNZIP 1.1 */
 
-#ifndef UNZIP_OS                   /* not used yet, but will need for Zip    */
-#  ifdef UNIX                      /* (could be defined in Makefile or...)   */
+#ifndef UNZIP_OS               /* not used yet, but will need for Zip  */
+#  ifdef UNIX                  /* (could be defined in Makefile or...) */
 #    define UNZIP_OS    UNIX_
 #  endif
 #  ifdef DOS_OS2
@@ -220,7 +244,10 @@
 #  ifdef MTS
 #    define UNZIP_OS    UNIX_
 #  endif
-#  ifndef UNZIP_OS                 /* still not defined:  default setting    */
+#  ifdef MACOS
+#    define UNZIP_OS    MAC_
+#  endif
+#  ifndef UNZIP_OS             /* still not defined:  default setting */
 #    define UNZIP_OS    UNKNOWN
 #  endif
 #endif
@@ -248,55 +275,45 @@
     defines AND the typedefs below get updated accordingly.
   ---------------------------------------------------------------------------*/
 
-#define LREC_SIZE     26           /* lengths of local file headers, central */
-#define CREC_SIZE     42           /*   directory headers, and the end-of-   */
-#define ECREC_SIZE    18           /*   central-dir record, resp. */
+#define LREC_SIZE     26    /* lengths of local file headers, central */
+#define CREC_SIZE     42    /*  directory headers, and the end-of-    */
+#define ECREC_SIZE    18    /*  central-dir record, respectively      */
 
 
-#define MAX_BITS      13                      /* used in unShrink() */
-#define HSIZE         (1 << MAX_BITS)         /* size of global work area */
+#define MAX_BITS      13                 /* used in unShrink() */
+#define HSIZE         (1 << MAX_BITS)    /* size of global work area */
 
-#define LF   10         /* '\n' on ASCII machines.  Must be 10 due to EBCDIC */
-#define CR   13         /* '\r' on ASCII machines.  Must be 13 due to EBCDIC */
+#define LF   10   /* '\n' on ASCII machines.  Must be 10 due to EBCDIC */
+#define CR   13   /* '\r' on ASCII machines.  Must be 13 due to EBCDIC */
 
 #ifdef EBCDIC
 #  define ascii_to_native(c)   ebcdic[(c)]
 #endif
 
-#ifndef SEEK_SET         /* These should all be declared in stdio.h!  But */
-#  define SEEK_SET  0    /*   since they're not (in many cases), do so here. */
+#ifndef SEEK_SET        /* These should all be declared in stdio.h!  But   */
+#  define SEEK_SET  0   /*  since they're not (in many cases), do so here. */
 #  define SEEK_CUR  1
 #  define SEEK_END  2
 #endif
+
+
+
+
 
 /**************/
 /*  Typedefs  */
 /**************/
 
-typedef unsigned char    byte;                /* code assumes UNSIGNED bytes */
+typedef unsigned char    byte;       /* code assumes UNSIGNED bytes */
 typedef long             longint;
 typedef unsigned short   UWORD;
 typedef unsigned long    ULONG;
 typedef char             boolean;
 
 /*---------------------------------------------------------------------------
-    Zipfile layout declarations
+    Zipfile layout declarations.  If these headers ever change, make sure the
+    ??REC_SIZE defines (above) change with them!
   ---------------------------------------------------------------------------*/
-
-/*
- *    If these headers ever change, make sure ??REC_SIZE defines (above)
- *    change with them!!  [Sizes hard-coded since even byte-type structs
- *    may be padded at the end, thus screwing up sizeof().  Thanks to Mark
- *    Edwards for catching this.  1990.9.23]
- *
- *    New byte arrays replace the old byte-type structs; this is a much
- *    cleaner way to do NOTINT16.  [Thanks to Bob Kemp.  1990.9.25]
- *
- *    longint fields changed to ULONGs, following Antoine Verheijen's lead.
- *    None of the fields makes sense as a negative number, and the CRCs MUST
- *    be defined as unsigned for some machines.  [Thanks to AV.  1990.10.10]
- *
- */
 
 #ifdef NOTINT16
 
@@ -333,14 +350,15 @@ typedef char             boolean;
 #      define C_EXTERNAL_FILE_ATTRIBUTES        34
 #      define C_RELATIVE_OFFSET_LOCAL_HEADER    38
 
-   typedef byte   end_central_byte_record[ ECREC_SIZE ];
-#      define NUMBER_THIS_DISK                  0
-#      define NUM_DISK_WITH_START_CENTRAL_DIR   2
-#      define NUM_ENTRIES_CENTRL_DIR_THS_DISK   4
-#      define TOTAL_ENTRIES_CENTRAL_DIR         6
-#      define SIZE_CENTRAL_DIRECTORY            8
-#      define OFFSET_START_CENTRAL_DIRECTORY    12
-#      define ZIPFILE_COMMENT_LENGTH            16
+   typedef byte   end_central_byte_record[ ECREC_SIZE+4 ];
+/*     define SIGNATURE                         0   space-holder only */
+#      define NUMBER_THIS_DISK                  4
+#      define NUM_DISK_WITH_START_CENTRAL_DIR   6
+#      define NUM_ENTRIES_CENTRL_DIR_THS_DISK   8
+#      define TOTAL_ENTRIES_CENTRAL_DIR         10
+#      define SIZE_CENTRAL_DIRECTORY            12
+#      define OFFSET_START_CENTRAL_DIRECTORY    16
+#      define ZIPFILE_COMMENT_LENGTH            20
 
 
    typedef struct local_file_header {                 /* LOCAL */
@@ -386,7 +404,7 @@ typedef char             boolean;
    } end_central_dir_record;
 
 
-#else   /* !NOTINT16:  read data directly into the structure we'll be using  */
+#else   /* !NOTINT16:  read data directly into the structure we'll be using */
 
 
    typedef struct local_file_header {                 /* LOCAL */
@@ -422,6 +440,7 @@ typedef char             boolean;
    } central_directory_file_header;
 
    typedef struct end_central_dir_record {            /* END CENTRAL */
+       byte _sig_[4];  /* space-holder only */
        UWORD number_this_disk;
        UWORD num_disk_with_start_central_dir;
        UWORD num_entries_centrl_dir_ths_disk;
@@ -448,6 +467,11 @@ typedef char             boolean;
 #    define __(X)   ()  /*  of any other way to do this, so maybe it's an    */
 #  endif                /*  algorithm?  Whatever, thanks to CRI.  (Note:     */
 #endif                  /*  keep interior stuff parenthesized.)              */
+/*
+ * Toad Hall Note:  Not to worry:  I've seen this somewhere else too,
+ * so obviously it's been stolen more than once.
+ * That makes it public domain, right?
+ */
 
 /*---------------------------------------------------------------------------
     Functions in nunzip.c:
@@ -456,7 +480,6 @@ typedef char             boolean;
 void   usage                         __( (void) );
 int    process_zipfile               __( (void) );
 int    find_end_central_dir          __( (void) );
-int    scan_back                     __( (void) );
 int    process_end_central_dir       __( (void) );
 int    list_files                    __( (void) );
 int    extract_or_test_files         __( (void) );
@@ -468,8 +491,9 @@ int    process_local_file_header     __( (void) );
     Functions in file_io.c:
   ---------------------------------------------------------------------------*/
 
+int    change_zipfile_attributes __( (int zip_error) );
 int    open_input_file           __( (void) );
-int    readbuf                   __( (int fd, char *buf, register unsigned size) );
+int    readbuf                   __( (char *buf, register unsigned size) );
 int    create_output_file        __( (void) );
 int    FillBitBuffer             __( (register int bits) );
 int    ReadByte                  __( (UWORD *x) );
@@ -481,12 +505,25 @@ int    FlushOutput               __( (void) );
 void   set_file_time_and_close   __( (void) );
 
 /*---------------------------------------------------------------------------
+    Macintosh file_io functions:
+  ---------------------------------------------------------------------------*/
+
+#ifdef MACOS
+void   macfstest                 __( (int vrefnum, int wd) );
+/*
+ * static int   IsHFSDisk        __( (int wAppVRefNum) );
+ */
+int    mkdir                     __( (char *path, int mode) );
+void   SetMacVol                 __( (char *pch, short wVRefNum) );
+#endif
+
+/*---------------------------------------------------------------------------
     Uncompression functions (all internal compression routines, enclosed in
     comments below, are prototyped in their respective files and are invisi-
     ble to external functions):
   ---------------------------------------------------------------------------*/
 
-void   unImplode                __( (void) );                 /* unimplod.c  */
+void   unImplode                __( (void) );                  /* unimplod.c */
 /*
  * static void   ReadLengths     __( (sf_tree *tree) );
  * static void   SortLengths     __( (sf_tree *tree) );
@@ -496,12 +533,12 @@ void   unImplode                __( (void) );                 /* unimplod.c  */
  * static void   ReadTree        __( (register sf_node *nodes, int *dest) );
  */
 
-void   unReduce                 __( (void) );                 /* unreduce.c  */
+void   unReduce                 __( (void) );                  /* unreduce.c */
 /*
  * static void   LoadFollowers   __( (void) );
  */
 
-void   unShrink                 __( (void) );                 /* unshrink.c  */
+void   unShrink                 __( (void) );                  /* unshrink.c */
 /*
  * static void   partial_clear   __( (void) );
  */
@@ -510,7 +547,7 @@ void   unShrink                 __( (void) );                 /* unshrink.c  */
     Functions in match.c, mapname.c, and misc.c:
   ---------------------------------------------------------------------------*/
 
-int       match         __( (char *string, char *pattern) );    /* match.c   */
+int       match         __( (char *string, char *pattern) );      /* match.c */
 /*
  * static BOOLEAN   do_list      __( (register char *string, char *pattern) );
  * static void      list_parse   __( (char **patp, char *lowp, char *highp) );
@@ -520,16 +557,16 @@ int       match         __( (char *string, char *pattern) );    /* match.c   */
 int       mapped_name   __( (void) );                           /* mapname.c */
 
 void      UpdateCRC     __( (register unsigned char *s, register int len) );
-int       do_string     __( (unsigned int len, int option) );   /* misc.c */
-UWORD     makeword      __( (byte *b) );                        /* misc.c */
-ULONG     makelong      __( (byte *sig) );                      /* misc.c */
-void      return_VMS    __( (int zip_error) );                  /* misc.c */
+int       do_string     __( (unsigned int len, int option) );      /* misc.c */
+UWORD     makeword      __( (byte *b) );                           /* misc.c */
+ULONG     makelong      __( (byte *sig) );                         /* misc.c */
+void      return_VMS    __( (int zip_error) );                     /* misc.c */
 #ifdef ZMEM
    char   *memset       __( (register char *buf, register char init, register unsigned int len) );
    char   *memcpy       __( (register char *dst, register char *src, register unsigned int len) );
-#endif    /* These guys MUST be ifdef'd because their definition conflicts   */
-          /*  with the standard one.  Others (makeword/makelong, return_VMS) */
-          /*  don't matter. */
+#endif      /* These guys MUST be ifdef'd because their definition  */
+            /*  conflicts with the standard one.  Others (makeword, */
+            /*  makelong, return_VMS) don't matter.                 */
 
 
 
@@ -539,9 +576,43 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
 /*  Macros  */
 /************/
 
-#ifndef min                                  /* MSC defines this in stdlib.h */
+#ifndef min    /* MSC defines this in stdlib.h */
 #  define min(a,b)   ((a) < (b) ? (a) : (b))
 #endif
+
+
+#define LSEEK(abs_offset) {longint request=(abs_offset), inbuf_offset=request%INBUFSIZ, bufstart=request-inbuf_offset;\
+   if(bufstart!=cur_zipfile_bufstart) {cur_zipfile_bufstart=lseek(zipfd,bufstart,SEEK_SET);\
+   if((incnt=read(zipfd,inbuf,INBUFSIZ))<=0) return(51); inptr=inbuf+inbuf_offset; incnt-=inbuf_offset;\
+   }else {incnt+=(inptr-inbuf)-inbuf_offset; inptr=inbuf+inbuf_offset; }}
+
+/*
+ *  Seek to the block boundary of the block which includes abs_offset,
+ *  then read block into input buffer and set pointers appropriately.
+ *  If block is already in the buffer, just set the pointers.  This macro
+ *  is used by process_end_central_dir (unzip.c) and do_string (misc.c).
+ *  A slightly modified version is embedded within extract_or_test_files
+ *  (unzip.c).  ReadByte and readbuf (file_io.c) are compatible.
+ *
+ *  macro LSEEK( abs_offset )
+ *    {
+ *      longint   request = abs_offset;
+ *      longint   inbuf_offset = request % INBUFSIZ;
+ *      longint   bufstart = request - inbuf_offset;
+ *
+ *      if (bufstart != cur_zipfile_bufstart) {
+ *          cur_zipfile_bufstart = lseek(zipfd, bufstart, SEEK_SET);
+ *          if ((incnt = read(zipfd,inbuf,INBUFSIZ)) <= 0)
+ *              return(51);
+ *          inptr = inbuf + inbuf_offset;
+ *          incnt -= inbuf_offset;
+ *      } else {
+ *          incnt += (inptr-inbuf) - inbuf_offset;
+ *          inptr = inbuf + inbuf_offset;
+ *      }
+ *    }
+ *
+ */
 
 
 #define OUTB(intc) { *outptr++=intc; if (++outcnt==OUTBUFSIZ) FlushOutput(); }
@@ -573,7 +644,7 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
  */
 
 
-#define NUKE_CRs(buf,len) {int i,j; for (i=j=0; j<len; (buf)[i++]=(buf)[j++]) if ((buf)[j]=='\r') ++j; len=i;}
+#define NUKE_CRs(buf,len) {register int i,j; for (i=j=0; j<len; (buf)[i++]=(buf)[j++]) if ((buf)[j]=='\r') ++j; len=i;}
 
 /*
  *  Remove all the ASCII carriage returns from buffer buf (length len),
@@ -584,7 +655,7 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
  *
  *  macro NUKE_CRs( buf, len )
  *    {
- *      int   i, j;
+ *      register int   i, j;
  *
  *      for ( i = j = 0  ;  j < len  ;  (buf)[i++] = (buf)[j++] )
  *        if ( (buf)[j] == CR )
@@ -593,7 +664,6 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
  *    }
  *
  */
-
 
 
 #define TOLOWER(str1,str2) {char *ps1,*ps2; ps1=(str1)-1; ps2=(str2); while(*++ps1) *ps2++=(isupper(*ps1))?tolower(*ps1):*ps1; *ps2='\0';}
@@ -605,7 +675,7 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
  *
  *  macro TOLOWER( str1, str2 )
  *    {
- *      char   *ps1, *ps2;
+ *      register char   *ps1, *ps2;
  *
  *      ps1 = (str1) - 1;
  *      ps2 = (str2);
@@ -624,7 +694,6 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
  */
 
 
-
 #ifndef ascii_to_native
 
 #  define ascii_to_native(c)   (c)
@@ -632,8 +701,7 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
 
 #else
 
-#  define NATIVE			/* Used in main() for '-a' and '-c'. */
-
+#  define NATIVE   /* Used in main() for '-a' and '-c'. */
 #  define A_TO_N(str1) { register unsigned char *ps1; for (ps1 = str1; *ps1; ps1++) *ps1 = (ascii_to_native(*ps1)); }
 
 /*
@@ -668,29 +736,29 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
 /*  Globals  */
 /*************/
 
-/*--------------------------------------------------------------------------
-    These declarations are needed by everybody *except* unzip.c, or at least
-    that's how it was until Antoine Verheijen added a reference to ebcdic[].
-    But as Larry Jones points out, including these in unzip.c *also* ensures
-    that the definitions match the declarations (else the compiler burps).
-    And once we take that step, there's no longer any reason for the extern
-    declarations to reside within a separate file.  Hence the inclusion here
-    of (most of) the former contents of globals.h.
-  --------------------------------------------------------------------------*/
-
    extern int       tflag;
 /* extern int       vflag;    (only used in unzip.c)  */
    extern int       cflag;
    extern int       aflag;
    extern int       dflag;
    extern int       Uflag;
+   extern int       V_flag;
+#ifdef MACOS
+   extern int       hfsflag;
+#endif
    extern int       lcflag;
+   extern unsigned  f_attr;
    extern longint   csize;
    extern longint   ucsize;
 
    extern short     prefix_of[];
+#ifdef MACOS
+   extern byte      *suffix_of;
+   extern byte      *stack;
+#else
    extern byte      suffix_of[];
    extern byte      stack[];
+#endif
    extern ULONG     crc32val;
    extern UWORD     mask_bits[];
 
@@ -704,7 +772,6 @@ void      return_VMS    __( (int zip_error) );                  /* misc.c */
    extern char      zipfn[];
    extern local_file_header   lrec;
    extern struct stat         statbuf;
-   extern longint   cur_zipfile_fileptr;
    extern longint   cur_zipfile_bufstart;
 
    extern byte      *outbuf;

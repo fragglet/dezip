@@ -1,0 +1,89 @@
+                     VMS Notes for UnZip 4.1
+                           12 May 1991
+
+
+The various VMS tweaks to UnZip 4.1 were tested on a VAX 8600 running
+VMS 5.2 and VAX C 3.0.  Older tweaks were also tested on a VAX 11/785.
+
+Among other things, this system has built into its C run-time library
+most of the standard Unix functions; the notable exception is utime().
+Despite this lack, however, UnZip does manage to set the date/time of 
+each extracted file.  The compiler also predefines the token "VMS", so 
+it is not necessary to specify this on the compiler command line.
+
+To build UnZip, just run the included command file VMS_MAKE.COM (i.e.,
+"@vms_make").  By default, this creates a shareable-image executable,
+which is smaller and (supposedly) loads faster than the normal type
+(that's "loads" the verb, not the adjective...).  It also will be 
+better able to take advantage of any bug fixes or new capabilities 
+that DEC might introduce, since the library code isn't built into the 
+executable.  The shared executable is about a quarter the size of the 
+ordinary type.
+
+[Btw, the VMS make utility "MMS" seems not to be compatible enough with
+Unix make to use the same makefile.  Antonio Querubin, Jr., sent along an 
+MMS makefile, but it has a small incompatibility with the current UnZip 
+distribution.  If DESCRIP.MMS is included with this package, read the 
+comments at the top to see what action is required.]
+
+UnZip is written to return the standard PK-type return codes (or error
+codes, or exit codes, or whatever you want to call them).  Unfortunately,
+VMS insists on interpreting the codes in its own lovable way, and this
+results in endearing commentary such as "access violation, error mask =
+0005, PC = 00003afc" (or something like that) when you run UnZip with no
+arguments.  To avoid this I've added a special VMS_return() function which
+interprets the error codes and prints a semi-informative message (enclosed
+in square [] brackets), then exits with a normal error status.  Tastes
+vary, however, and some people may not like the semi-informative messages
+(I don't, for one).  If you happen to be one of those people, you may
+disable the messages by recompiling misc.c with NO_RETURN_CODES defined.
+(This knocks down the executable size by a block or 4, too.)  The syntax 
+is as follows:
+	cc /def=(NO_RETURN_CODES) misc
+
+To use UnZip in the normal way, define a symbol "unzip" as follows:
+	unzip :== "$diskname:[directory]unzip.exe"
+(substitute for "diskname" and "directory" as appropriate, and DON'T FORGET
+THE "$"!  It won't work if you omit that.)  In general it's wise to stick 
+such assignments in your LOGIN.COM file and THEN forget about them.  It is 
+no longer necessary to worry about the record type of the zipfile...er, 
+well, most of the time, anyway (see the special Kermit section below).
+
+Having done all this you are ready to roll.  Use the unzip command in
+the usual way; as with the MS-DOS and Unix versions, this one uses '-'
+as a switch character.  If nothing much happens when you do a directory
+listing, for example, you're probably trying to specify a filename which
+has uppercase letters in it...VMS thoughtfully converts everything on the
+command line to lowercase, so even if you type:
+	unzip -v zipfile Makefile
+what you get is:
+	unzip -v zipfile makefile
+which, in my example here, doesn't match the contents of the zipfile.
+This is relatively easy to circumvent, by enclosing the filespec(s) in 
+quotes:
+	unzip -tq unzip401 "Makefile" "VMS*" *.c *.h
+[This example also demonstrates the use of wildcards, which act like Unix
+wildcards, not VMS ones.   In other words, "VMS*" matches files VMSNOTES,
+VMS_MAKE.COM, and VMSSHARE.OPT, whereas the normal VMS behavior would be
+to match only the first file (since the others have extensions--ordinarily,
+you would be required to specify "VMS*.*").]
+
+Note that created files get whatever default permissions you've set, but 
+created directories additionally inherit the (possibly more restrictive) 
+permissions of the parent directory.  And, of course, things probably won't 
+work too well if you don't have permission to write to whatever directory 
+into which you're trying to extract things.  (That made sense; read it 
+again if you don't believe me.)
+
+SPECIAL KERMIT NOTES:  Kermit files uploaded with "set file type binary"
+remain incompatible with UnZip, despite the inclusion of code from Joe
+Meadows' spectacular VMS utility, FILE.  The reason is that the files
+created on the VMS side have "variable length, 510-byte maximum" records,
+which is to say, there's extra junk inside them that shouldn't be there.
+Avoid this problem by uploading with "set file type fixed" and everything
+should be hunky-dory.  If you forgot, you can convert the zipfile into
+UnZip-readable form (i.e., "stream-LF" format) with Rahul Dhesi's BILF
+utility.  A similar utility will be included in future releases of UnZip.
+
+Greg Roelofs,
+ often found lurking about Info-ZIP@WSMR-Simtel20.Army.Mil

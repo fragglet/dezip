@@ -1,0 +1,397 @@
+unzip version 4.1, 13 May 91
+
+- Cave Newt, Info-ZIP #139
+These are the minor things I found:
+   (1) the do-nothing file_io.c umask patch got included by mistake
+   (2) those same two lines in unzip.c are shifted over again (somebody's
+        patch program REALLY doesn't like those lines...they're full of
+        feelthy tabs, which may have something to do with it)
+   (3) the man page wasn't quite updated to reflect the -z and -o options
+   (4) the Makefile now has two msc_os2 targets
+
+I've fixed (1) through (3) in this patch.  None of them actually has any
+impact on the code--(2) is obviously cosmetic, and (1) is effectively so,
+although it's potentially dangerous.  For the man page I just updated the
+nroff source (unzip.1); unzip.man can be regenerated.  In addition to in-
+cluding "o" and "z" in the synopsis and adding the -z description, I also
+figured I might as well put in the "4.1" comments, so I did that.
+[Affected file_io.c, unzip.c, unzip.1]
+
+- Jim Dumser, Info-ZIP #140, 7 May 91
+First is my "proposed" umask patch, after which I conceded to Greg's
+fix.  It was still included, and altho it doesn't hurt anybody, it
+really shouldn't be in there.  [NOP, fixed by Cave Newt's patch above.]
+
+Second is something that will hurt people.  There were 2 msc_os2 targets
+in the Makefile.  I picked the one that was submitted last (and for
+which the .def file was included), and removed the other.
+[Affected Makefile]
+
+-Cave Newt, 8 May 91 (private message, not in Info-ZIP)
+Yes, it's YAVU (Yet Another VMS Update).  I edited the VMSNOTES file
+a little bit to reflect what I've lately figured out about the "variable
+length, 510 byte max" format, and I undid the interior vmsattr.zip file
+since there wasn't much need for it as a separate sub-sub-archive.  No
+big changes, but we may as well get ready for the release.
+[New VMS.zip]
+
+- Cave Newt, 10 May 91 (private message, not in Info-ZIP)
+First of all, one last (?) change to the man page:  I forgot to update
+the info for the -a switch, and it still contained your old e-mail
+address.  Good thing you ignored my impatient nagging, huh? :-)  Patch 
+below to the patch I already sent you...
+[Affected unzip.1]
+
+And from the Coordinator:
+We're going public with this one, folks.  History, here we come!
+
+================
+
+v4.07 BETA, 4 May 91
+
+- (That's "05-04-91" in feelthy civilian format)
+
+- Starting with v4.06 source, patched in the v4.06a stuff
+  (see UNZ_406A.ZIP patch file)
+
+- Wim Bonner's OS2 Makefile patch (for long file names)
+  and an "unzip.def" file.  (MAKEFILE.127)
+- Cave Newt: fix for Makefile's pyramid target (MAKEFILE.406)
+- Mark Adler's minor diffs to make it compile cleaner and smaller
+  on the NeXT (plus trimmed out some feelthy tabs).  (UNZIP.125)
+
+- The Great Umask Wars commence, with Bo Kullmar, Cave Newt,
+  and Jim Dumser all contributing to the Infamous Info-ZIP MindFog.
+  (It all worked out in the end .. kinda ..)
+  UNZIP_C.128: Bo's first shots at Fort Sumpter; UNZIP_C.129: Cave
+  Newt throws in a few curves.
+
+- Bo Kullmar adds a -z option to only display the archive comment.
+  He also notices the Infamous 8192 bug (an extra LF is inserted
+  after every 8192 byte in the do_string function.
+  (UNZIP_C.132)
+
+- Info-ZIP Coordinator prepares lengthy curses for anyone preparing
+  to write 8192-byte-long archive comments.  (Private files)
+
+- Jim Dumser then leaps into the -z conflict.  He also discovers
+  who's sneaking in feelthy tabs to our source!
+  He then coins the famous phrase:
+  "needs to be applied either before Bo's patch ("A -z option to unzip",
+  91.129) or after my patch ("Re:  A -z option to unzip", 91.130).
+  Actually, because the 91.129 patch does more than just add the COMMENT
+  option, you really need to apply both Bo's and mine, then apply this."
+  (Which *almost* invokes Info-ZIP Coordinator's curses.)
+  (UNZIP_C.133, UNZIP_C.134)
+
+- Jim Dumser, returning to the Umask Front, discovers there *ain't*
+  no feelthy umask() in Turbo C!  And MSC fakes it.  umask()-related
+  code is #ifdef'ed for Unix systems only.  (DUMSER.407)
+- Cave Newt chucks a grenade into umask() with yet more #ifdefs.
+  (407.MSG)
+- Jim Dumser pretends to clear up the confusion.  Contributes a stupendous
+  diff or two just to be sure I got it all.  Bo Kullmar throws in one
+  of them too.  Looks like I got it all.
+
+================
+
+v4.06a, late April 91
+
+ - unzip Makefile:  fix for pyramid target from Cave Newt.
+   Somebody switched "make" with "$MAKE" or some such.
+
+- Makefile Change for OS/2 (and addition of def file)
+  (Wim Bonner).  Tweak to the msc_os2 system of the Makefile,
+  plus a wee little def file for OS/2.
+
+- Unzip 4.06 diffs for the NeXT (Mark Adler)
+  "Here are some very minor diffs for Unzip 4.06 to make it compile cleaner
+  and smaller on the NeXT.  (By the way, there were feelthy tabs in unzip.c,
+  unzip.h, and a few other non-source files.)"
+
+================
+
+4.06, 25 April 1991
+
+- Minor patches to Makefile (Jim Dumser, Info-ZIP #096
+- And then a BIG change to Makefile: a "generic" Makefile
+  From Cave Newt (Info-ZIP #099)
+- Case-conversion-info patch from Cave Newt (Info-ZIP #098):
+  "Unzip does 'smart' lowercasing of filenames in zipfiles,
+  a feature I like a lot (that's why I put it in :-).  But zip
+  doesn't do any conversions, and it's easy to forget sometimes
+  that all the names in a zipfile are really uppercase.  This is
+  a PROPOSED patch that lets you know when case-conversion has
+  occurred in unzip."
+  Well, the Newt proposed .. and nobody screamed .. so it becomes
+  gospel.
+- VMS file attribute patch (Cave Newt, Info-ZIP #098):
+  Wee little patches to the unix code, and some new files in the
+  VMS.zip file.
+- Wim Bonner, Info-ZIP #100, reported a "missing semicolon" error
+  with MSC 6.0 and OS/2:
+  "The problem is that there are a set of local variables declared in
+  conditional defines, and they are after some code has already appeared
+  in the subroutine.
+  "If the conditional block is moved before the small amount of code, the
+  file compiles OK."
+  Fixed.
+- Jim Dumser (Info-ZIP #???, 26 Mar), further patching Cave Newt's
+  file attributes patch with more of his own.
+- Info-ZIP #106:  Patched to solve problem with truncated comments.
+- Added "-o" and "-n" patches by Gene McManus (Info-ZIP #106),
+  to permit overwriting output files without prompting.
+  These switches do virtually the same thing (so I don't know why
+  he did them both) .. and the patches kinda conflict .. but I made
+  it fit.
+- Mac diffs from Johnny Lee (Info-ZIP #115):
+  "Catching up with the permissions changes. Since I don't have any
+  AppleShare docs handy, this patch only determines if a file
+  is read-only or not."
+- Cave Newt (Info-ZIP #120) fixes the -a switch usage screen.
+- Cave Newt (Info-ZIP #121) *really* fixes the truncated zip comment
+  (superseding my fix in #106).
+
+Archive still includes the MAC, VMS, and ATARI-specific code in
+their own separate .ZIPs.
+
+Last patches before public v4.10 release (I hope)
+
+David Kirschbaum
+Info-ZIP Coordinator
+
+================
+
+4.05, 19 Mar 91
+
+[We're going to use Greg Roelof's version, since his is probably the
+most complete.  From the header of his message: ]
+
+Here's the package, in two parts.  The zipfile is basically complete, 
+except that it doesn't have a History.405 file or an unzip405.descr
+file.  I've grouped the non-Unix-OS stuff into four sub-zipfiles inside
+the main one:  one each for Atari ST, Mac, MS-DOS, and VMS.  This keeps
+things a little cleaner and prevents collisions between the Atari Turbo
+makefiles and the MS-DOS ones.  You can take them out for the beta
+version if you want, but they aren't really all that big.  Note that
+the Mac and Atari binaries are NOT included; the little zipfiles only
+contain extra source files, notes, and makefile stuff.
+
+Now, a complete list of the changes to 4.05 from 4.04:
+
+  Missing 4.04 patches:
+	- Antoine's FILENAME_MAX fix
+        - size-of-encrypted-member (negative size factors) fix
+	- Bo's missing <sys/timeb.h> for BSD moved into unzip.h
+
+  Bug fixes:
+	- setting the time on stdout
+	- listing of three digits of 21st century years instead of two
+	- multiple usage screens for non-existent switches (e.g., unzip -XY)
+	- [VMS] inability to set file dates when extracting directory trees
+	- [VMS] choke-and-die on multiple-dot filenames (now converted to '_')
+
+  New features:
+	- BIG Mac attack from Johnny Lee
+	- (correct) handling of file permissions, both Unix zip and PKZIP
+	- new -V option to retain version numbers from VMS-created zipfiles
+	- ifdef'd code to deal with PAK bug ("on" for now)
+	- detection of big-endian and/or struct-padding behavior, and noti-
+	   fication to user to recompile if necessary
+
+  New Makefile targets:
+	- msc_os2 from Wim Bonner
+	- sequent from Phil Howard
+	- ultrix split into ultrix_vax and ultrix_risc
+	- dec5820 commented out (ultrix_risc system)
+	- renames:  diab -> dnix; cray_scc -> cray
+
+
+NOT included in this release are the Atari patches; partly this is because
+the majority of them had nothing to do with Atari at all and should have
+been posted to the group, and partly it is because the remaining ones, which
+DID have to do with Atari, largely consisted of the removal of all the non-
+Atari operating systems (like Unix, DOS, VMS; Mac didn't exist at the time).
+
+Also not included are (1) the proposed "generic"/"generic2" makefile targets
+(still waiting for some Info-ZIP feedback); (2) the ultimate VMS file-type
+fix on which I've been working (close, still waiting on someone); and (3) a 
+new case-conversion-warning patch I'll post shortly to see what folks think.
+(Oh, and the two 4.05 description files I mentioned above.)
+
+I don't *think* I missed any unzip patches that have been posted, but people
+should check carefully to see if their favorite one is in here.  Also, the
+Mac patches collided rather violently with my own, so folks should keep their
+eyes peeled.  I tried to hand-tweak everything, but patch may have snuck one
+or two into a slightly wrong place.  No crashes yet on MY system...
+
+Finally, with the exception of the PAK-fix, I think I've removed everything
+that hasn't been posted in one way or another (i.e., my own little tweaks).
+So this should be a nice, clean release, which should in turn make everyone
+very happy.
+
+Greg
+
+================
+
+v4.04, 22 Feb 91
+
+- Makefile:
+  From: Michael Regoli <mr@ogre.cica.indiana.edu>
+  It looks as if "make" is not defined for the IBM RT.  
+  We need a MAKE macro definition on or about line 67:
+  (And he sent a context diff.  Applied.)
+
+  From: bkahn@archive.webo.dg.com (Bruce Kahn)
+  I just got a copy of 4.03 from the archives and it seems that my little
+  addition to the Makefile from 3.1x to support Data General AViiONs was
+  lost.  Im enclosing a diff -c on the 'current' 4.03 makefile to add this
+  back in.
+  (Applied after slight editing.)
+
+  And someone said Suns needed "-DBSD" on their make line (maybe
+  Josh? Bo Kullmar?).  Anyway, Suns are now broken out onto their own line
+  (basically "_16", plus "-DBSD").
+
+- file_io.c (The date/time problem, fixed by Bo Kullmar): 
+  Lots of changes (confusing), so you'd want the original message
+  and patch if you want details.  Usually named file_io.404.
+  Bo's patch forgot one thing: a reference to /sys/timeb.h for BSD systems.
+  (diff included and applied)
+
+- New VMS files from Cave Newt (entirely replacing old ones, and one
+  VMSSHARE.OPT or some such deleted entirely).
+
+- unzip.c
+
+  From: Cave Newt <roelofs@amelia.nas.nasa.gov>
+  Subject: Compression ratio calculation bug
+
+  Ah, yes, the old negative-ratio bug.  Below is a patch to fix this;
+  here's the explanation:
+  [explanation deleted, patch applied.]
+
+================
+
+
+v4.03, 8 Dec 90
+
+- Changes to VMSNOTES.
+- Patched via Newt's "even more stupendous(ly long) 4.03 patches"
+- Entirely new unzip.c and unzip.h
+- misc.c, mapname.c and file_io.c patched via patch.403
+- Fixes are for VMS: reversion to block-boundary seeks while
+  retaining the random-access behavior that gives (n)unzip its speed.
+- Routines to find end-of-central-directory sig rewritten and
+  streamlined into a single function.
+- New LSEEK macro added.
+[Full details for all this horridness are in the unz403_p patch archive.]
+ 
+- Fix involving making the filename longer
+- fixing a leap-year bug (2000 IS a leap year).
+- Consolidated more repeated error strings (unzip.c)
+- Removed an unused macro (UPDCRC32).
+
+================
+
+v4.02, 6 Dec 90
+
+- Per Cave Newt's request, changed nunzip's in VMS_MAKE.COM
+  to unzip.
+
+- mapname.c :  History of changes removed.
+
+- Many changes, patches in Cave Newt's big unzip_c.401, unz402_p.zip,
+  to include more extensive explanation and comments.
+
+- Bug in unzip.c related to encryption:
+  Mark and Newt were getting "bus errors" (sic) when unzip tried to test
+  or unzip an encrypted file. (Probably array overruns)
+  Solution:  check general purpose bit flag to see if file is encrypted.
+  If so, skip it (with regretful message).
+  Later we may decrypt (Mark offers his routine).
+
+- -t option change:
+  The -t option in 4.01 currently prints both the individual file "OKs"
+  and a summary; this is redundant.  So now -t just prints the "OKs"
+  (like the old versions), -tq just prints the summary, and -tqq
+  doesn't print anything at all.
+
+- Misc indentation corrected.
+
+- man page changed:
+  Separated the modifier options into their own little heading.
+  Expanded the -a explanation to include EBCDIC, since that's why it was
+  originally done in the first place.
+  Added 3.1 to the list at the bottom.
+
+- Minor centralization of repeated error message strings.
+
+================
+
+v4.01, 4 Dec 90:
+
+1 - From Down Under:
+From: aas@cc.uq.oz.au
+
+The makefile.msc as it stands more or less works for TurboC 2.0,
+so makefile.tc is probably redundant.  However, TurboC throws what
+we colloquially call a `wobbly' over one line in file_io.c: where
+`>> (space) =' is used instead of the ANSI `>>=' construct.  The
+fix is easy (appended).
+
+[Makefile.msc patched to include both Turbo C and MSC compiles,
+ renamed to MAKEFILE.DOS.  Actually, it's for OS/2 also.
+ Works just fine for Turbo C v2.0, can't test the others.
+ Removed MAKEFILE.TC.
+]
+
+And the file_io.c patch was a one-liner at line 312 /318:
+!     bitbuf >> = bits;
+changed to:
+!     bitbuf >>= bits;
+
+================
+
+2 - From: Cave Newt <roelofs@amelia.nas.nasa.gov>
+    (details in unzip400.msg, unz401_p.zip)
+
+- a patch to 3.99 which you missed and I forgot about:  the name[STRSIZ]
+  one in mapname.c.
+  [Extracted to mapname.pch, mapname.c patched.]
+
+- indent11 (AKA "Mr. Mangler") likes tabs, which is going to play hell 
+  with patches.
+
+  [I'm using indent11 with the "-kr" settings.
+   And all source will be archived with NO tabs.
+   Except for the stupid makefiles, however
+  ]
+
+- "makefile.msc" should have been uppercase.
+  [It's MAKEFILE.DOS now because of TC/MSC/OS2 integration.]
+
+- man page still says "3.1" at the top and has a weird (old)
+  e-mail address for you at the bottom.
+  [unzip.1 edited to reflect "4.0".]
+
+- Comments at the top of unzip.c say "unzip40.tar.Z" rather than
+  "unzip400".
+  [Fixed]
+
+================
+Final 4.01 Toad Hall Note:
+- Compiling in Turbo C integrated environment (e.g., using the .PRJ
+  file) produced an UNZIP.EXE a couple hundred bytes smaller than the
+  one compiled via tcc and the MAKEFILE.DOS.  Obviously I've forgotten
+  a switch somewhere, or my default tcc settings are slightly off.
+  So if you want the absolute smallest, suggest integrated compile.
+- No more stupid mixing of Unix and DOS text files.  EVERYTHING's gonna
+  have (1) no tabs and (2) Unix LF line endings.  If you're gonna work
+  in DOS, you'd better have FLIP or TOADCRLF or some such to convert
+  these Unix files.
+  We'll still indicate DOS files vs. Unix files via name case (e.g.,
+  DOS files'll be all uppercase).  Of course, the VMS files are ALSO
+  uppercase (meant to ask you about that, Cave Newt), but that's ok.
+  For the DENSA members, anything starting with VMS is NOT DOS, ok?
+================

@@ -12,27 +12,16 @@
 
   ---------------------------------------------------------------------------
 
-  Revision history:
-
-     11/16/89  C. Mascott     moved working crcval to register [crc32.c]
-      3/21/90  A. Bjorklund   wrote ASCII-to-EBCDIC translation [ascebc.c]
-     ~3/28/90  B. Davidsen    wrote(?) memset/memcpy() clones [zmem*.c, 2.0f?]
-     ~5/02/90  B. Kullmar     patched to fix an -a switch bug [ascebc.c, 3.01]
-      5/22/90  W. Losh        removed ae_buf(): no longer used [ascebc.c, 3.04]
-      8/24/90  G. Roelofs     wrote multi-purpose string handler [nunzip.c]
-      8/29/90  L. Jones       fixed up memset(), memcpy() [zmem*.c, 3.14]
-      9/19/90  M. Edwards     corrected out-of-bounds array ref [crc32.c]
-      9/23/90  G. Roelofs     combined all of the above into this file
-     10/10/90  G. Roelofs     added return_VMS() to interpret error codes
-     10/12/90  A. Verheijen   rewrote a_to_e(), changed make_long() return
-     10/17/90  A. Verheijen   removed a_to_e() in favor of A_TO_N() macro
+  Contributions by C. Mascott, Allan Bjorklund, Bill Davidsen, Bo Kullmar,
+  Warner Losh, Greg Roelofs, Larry Jones, Mark Edwards, Antoine Verheijen,
+  and probably many others.
 
   ---------------------------------------------------------------------------
 
-  Copyright, applying to UpdateCRC(), UPDCRC32(), and crc_32_tab[]:
+  Copyright, applying to UpdateCRC() and crc_32_tab[]:
 
-  *  COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or       *
-  *  code or tables extracted from it, as desired without restriction.     *
+     COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or code
+     or tables extracted from it, as desired without restriction.
 
   ---------------------------------------------------------------------------*/
 
@@ -45,7 +34,7 @@
 /*  Function UpdateCRC()  */
 /**************************/
 
- /*  --------------------------------------------------------------------
+ /*--------------------------------------------------------------------
 
    First, the polynomial itself and its table of feedback terms.  The
    polynomial is
@@ -140,15 +129,6 @@ ULONG crc_32_tab[] =
 };
 
 
-#define UPDCRC32(res,oct) res=crc_32_tab[(byte)res^(byte)oct] ^ ((res>>8) & 0x00FFFFFFL)
-
-/*
- * macro UPDCRC32(res,oct)
- *  res=crc_32_tab[(byte)res ^ (byte)oct] ^ ((res >> 8) & 0x00FFFFFFL)
- *
- */
-
-
 void UpdateCRC(s, len)
 register byte *s;
 register int len;
@@ -186,13 +166,8 @@ int option;
     dergoing any necessary or unnecessary character conversions; and FILENAME,
     wherein the string is put into the filename[] array after undergoing ap-
     propriate conversions (including case-conversion, if that is indicated:
-    see the global variable lcflag).  The latter option is the one where ar-
-    bitrary length gets us into trouble:  filename[] is presently only dimen-
-    sioned at 256 characters, and it is quite possible (though, so far, still
-    unlikely) to have filenames of that length created under OS/2 HPFS (in
-    which each filename, including directories, I think, may be up to 256
-    characters long).  For the moment, however, we'll just watch for this
-    and yell if we see a long filename.
+    see the global variable lcflag).  The latter option should be OK, since
+    filename is now dimensioned at FILENAME_MAX (1024).
 
     The string, by the way, is assumed to start at the current file-pointer
     position; its length is given by len.  So start off by checking length
@@ -204,26 +179,25 @@ int option;
 
     switch (option) {
 
-        /*-----------------------------------------------------------------------
-            First case:  print string on standard output.  First set loop vari-
-            ables, then loop through the comment in chunks of OUTBUFSIZ bytes,
-            converting formats and printing as we go.  The second half of the
-            loop conditional was added because the file might be truncated, in
-            which case comment_bytes_left will remain at some non-zero value for
-            all time.  outbuf is used as a scratch buffer because it is available
-            (we should be either before or in between any file processing).  [The
-            typecast in front of the min() macro was added because of the new
-            promotion rules under ANSI C; readbuf() wants an int, but min() re-
-            turns a signed long, if I understand things correctly.  The prototype
-            should handle it, but just in case...  GRR  1990.9.26]
-          -----------------------------------------------------------------------*/
+    /*
+     * First case:  print string on standard output.  First set loop vari-
+     * ables, then loop through the comment in chunks of OUTBUFSIZ bytes,
+     * converting formats and printing as we go.  The second half of the
+     * loop conditional was added because the file might be truncated, in
+     * which case comment_bytes_left will remain at some non-zero value for
+     * all time.  outbuf is used as a scratch buffer because it is avail-
+     * able (we should be either before or in between any file processing).
+     * [The typecast in front of the min() macro was added because of the
+     * new promotion rules under ANSI C; readbuf() wants an int, but min()
+     * returns a signed long, if I understand things correctly.  The proto-
+     * type should handle it, but just in case...]
+     */
 
     case DISPLAY:
         comment_bytes_left = len;
-        block_length = OUTBUFSIZ;       /* for the while statement, first time */
-
+        block_length = OUTBUFSIZ;    /* for the while statement, first time */
         while (comment_bytes_left > 0 && block_length > 0) {
-            if ((block_length = readbuf(zipfd, outbuf,
+            if ((block_length = readbuf((char *) outbuf,
                          (int) min(OUTBUFSIZ, comment_bytes_left))) <= 0)
                 return (51);    /* 51:  unexpected EOF */
             comment_bytes_left -= block_length;
@@ -234,34 +208,26 @@ int option;
 
             A_TO_N(outbuf);     /* translate string to native */
 
-            printf("%s\n", outbuf);     /* assume no newline at end */
+            printf("%s", outbuf);
         }
+        printf("\n", outbuf);   /* assume no newline at end */
         break;
 
-        /*-----------------------------------------------------------------------
-            Second case:  read string into filename[] array.  The case where the
-            filename is longer than STRSIZ is not very well handled (although it
-            is better than before).  If the length is just due to a shitload of
-            directory levels, we should really chop off the beginning and pre-
-            serve the actual (presumably short) filename.  If, however, it's just
-            a case of a really, REALLY long filename, then we'd want to chop off
-            the end of that.  Ideally, of course, we should check the host-OS
-            version and the UNZIP_OS version and the directory flag (dflag), and
-            then do the appropriate filename-mapping and directory-creating right
-            here, on the fly.  Sooner or later we're going to *have* to do this,
-            but for now we just keep the first STRSIZ bytes and let mapname()
-            work with what's left (and hope for the best).
-          -----------------------------------------------------------------------*/
+    /*
+     * Second case:  read string into filename[] array.  The filename should
+     * never ever be longer than FILNAMSIZ (1024), but for now we'll check,
+     * just to be sure.
+     */
 
     case FILENAME:
         extra_len = 0;
-        if (len >= STRSIZ) {
+        if (len >= FILNAMSIZ) {
             fprintf(stderr, "warning:  filename too long--truncating.\n");
             error = 1;          /* 1:  warning error */
-            extra_len = len - STRSIZ + 1;
-            len = STRSIZ - 1;
+            extra_len = len - FILNAMSIZ + 1;
+            len = FILNAMSIZ - 1;
         }
-        if (readbuf(zipfd, filename, len) <= 0)
+        if (readbuf(filename, len) <= 0)
             return (51);        /* 51:  unexpected EOF */
         filename[len] = '\0';   /* terminate w/zero:  ASCIIZ */
 
@@ -273,37 +239,22 @@ int option;
         if (!extra_len)         /* we're done here */
             break;
 
-        /*---------------------------------------------------------------------
-            We truncated the filename, so print what's left and then fall
-            through to the SKIP routine.
-          ---------------------------------------------------------------------*/
+        /*
+         * We truncated the filename, so print what's left and then fall
+         * through to the SKIP routine.
+         */
         fprintf(stderr, "[ %s ]\n", filename);
         len = extra_len;
         /*  FALL THROUGH...  */
 
-        /*-----------------------------------------------------------------------
-            Third case:  skip string, adjusting readbuf()'s internal variables as
-            necessary.  If the string is smaller than the data left in the buffer,
-            reset incnt (bytes remaining) and inptr (pointer to first byte of un-
-            used data) to skip over the string.  If the string is longer than the
-            amount of data left in the input buffer, reposition the file pointer
-            to the end of the string and force readbuf() to read a new block next
-            time around.  And if the string is exactly equal to the amount of
-            data remaining in the buffer, the file pointer is already positioned
-            correctly, so just force a new read.
-          -----------------------------------------------------------------------*/
+    /*
+     * Third case:  skip string, adjusting readbuf's internal variables
+     * as necessary (and possibly skipping to and reading a new block of
+     * data).
+     */
 
     case SKIP:
-        if (len < incnt) {
-            inptr += len;
-            incnt -= len;
-        } else if (len > incnt) {
-            cur_zipfile_fileptr = lseek(zipfd, (long) (len - incnt), SEEK_CUR);
-            incnt = 0;
-            if (cur_zipfile_fileptr < 0)
-                return (3);     /* 3:  error in zipfile */
-        } else
-            incnt = 0;          /* just force a new read next time */
+        LSEEK(cur_zipfile_bufstart + (inptr-inbuf) + len)
         break;
 
     }                           /* end switch (option) */
@@ -318,9 +269,10 @@ int option;
 
 #ifdef EBCDIC
 
-/*  This is the MTS ASCII->EBCDIC translation table. It provides a 1-1
-    translation from ISO 8859/1 8-bit ASCII to IBM Code Page 37 EBCDIC.
-*/
+/*
+ * This is the MTS ASCII->EBCDIC translation table. It provides a 1-1
+ * translation from ISO 8859/1 8-bit ASCII to IBM Code Page 37 EBCDIC.
+ */
 
 unsigned char ebcdic[] =
 {
@@ -451,10 +403,6 @@ extract/view/etc.]\n");
         fprintf(stderr, "\n[return-code 51:  unexpected EOF in zipfile \
 (i.e., truncated)]\n");
         break;
-    case 99:
-        fprintf(stderr, "\n[return-code 99:  GRR screwed up \
-(on purpose, probably, too.  Bleah.)]\n");
-        break;
     default:
         fprintf(stderr, "\n[return-code %d:  unknown return-code \
 (who put this one in?  Wasn't me...)]\n",
@@ -472,19 +420,13 @@ extract/view/etc.]\n");
 
 
 
-#ifdef ZMEM
+#ifdef ZMEM                     /* memset, memcpy for systems without them */
 
 /************************/
 /*  Function zmemset()  */
 /************************/
 
-/*
- * zmemset - memset for systems without it
- *  bill davidsen - March 1990
- */
-
-char *
- memset(buf, init, len)
+char *memset(buf, init, len)
 register char *buf, init;       /* buffer loc and initializer */
 register unsigned int len;      /* length of the buffer */
 {
@@ -504,8 +446,7 @@ register unsigned int len;      /* length of the buffer */
 /*  Function zmemcpy()  */
 /************************/
 
-char *
- memcpy(dst, src, len)
+char *memcpy(dst, src, len)
 register char *dst, *src;
 register unsigned int len;
 {

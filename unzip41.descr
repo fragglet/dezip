@@ -1,0 +1,50 @@
+UNZIP41.ZIP	Generic Unix unzip v4.1 for free public distribution
+UNZIP41.ARC	Same as above, but .ARC format
+UNZIP41.TAR-Z	Same as above, but compressed tar format
+UNZ_41P.ZIP	Patches to create v4.1 from v4.07
+
+A public distribution version of the Info-ZIP project's generic
+Unix unzip utility.
+
+This version of unzip has been ported to a wide array of Unix and
+other mainframes, minis, and micros (to include MSDOS, Atari ST (kinda),
+and Macintosh).  Although highly compatible with Phil Katz's PKZIP
+and PKUNZIP utilities of MSDOS fame, our objective has been one of
+portability and other-than-MSDOS functionality.
+
+See the Makefile (or the system-specific archives) for details on
+how to compile for your system.
+
+See unzip.1 or unzip.man for usage.  (No, there isn't a manual per se.
+There's plenty of space on the Info-ZIP staff for a volunteer!)
+
+If you confirm a clean compile and execution on a unique system
+(e.g., one different from those in the Makefile), please provide
+Info-ZIP via E-Mail with details as to your system type, any changes
+required, what Makefile system was used, etc.
+
+If any changes are made to source, we'd appreciate them (context diff
+files only, please) with explanation as appropriate.
+
+All E-Mail should go to Info-ZIP@WSMR-SIMTEL20.Army.Mil directly
+(and not to me:  I'm only the Coordinator).  However, if you're
+requesting something special (e.g., a copy of the "No Feelthy ..."
+rules for source and change submission), E-Mail me personally.
+
+Information on commercial usage, licensing, etc. is NOT available.
+We at Info-ZIP are currently researching how to best handle this
+problem.  (There are potential copyright problems.)  So don't bug us.
+We have little interest in commercial developers, and by Internet
+rules, are forbidden to discuss such filthy topics in any case.
+
+If you'd like to keep up to date with our unzip (and companion zip
+utility) development, join the ranks of BETA testers, add your own
+thoughts and contributions, etc., send your request to
+
+ Info-ZIP-Request@WSMR-SIMTEL20.Army.Mil
+
+and Keith Petersen'll add you to the Info-ZIP newsletter mailing list.
+
+David Kirschbaum
+Info-ZIP Coordinator
+

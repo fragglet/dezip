@@ -61,21 +61,20 @@ int open_input_file()
 /*  Function readbuf()  */
 /************************/
 
-int readbuf(fd, buf, size)
-int fd;
+int readbuf(buf, size)
 char *buf;
 register unsigned size;
-{
+{                               /* return number of bytes read into buf */
     register int count;
     int n;
 
     n = size;
     while (size) {
         if (incnt == 0) {
-            if ((incnt = read(fd, inbuf, INBUFSIZ)) <= 0)
-                return (incnt);
-            cur_zipfile_bufstart = cur_zipfile_fileptr;
-            cur_zipfile_fileptr += incnt;
+            if ((incnt = read(zipfd, inbuf, INBUFSIZ)) <= 0)
+                return (n-size);
+            /* buffer ALWAYS starts on a block boundary:  */
+            cur_zipfile_bufstart += INBUFSIZ;
             inptr = inbuf;
         }
         count = min(size, incnt);
@@ -105,7 +104,7 @@ int create_output_file()
      *
      * Create the output file and set its date/time using VMS Record Management
      * Services From Hell.  Then reopen for appending with normal Unix/C-type
-     * I/O functions.  This is the ONLY way to set the file date/time under VMS.
+     * I/O functions.  This is the EASY way to set the file date/time under VMS.
      */
     int ierr, yr, mo, dy, hh, mm, ss;
     char timbuf[24];            /* length = first entry in "stupid" + 1 */
@@ -143,11 +142,11 @@ int create_output_file()
     ss = (lrec.last_mod_file_time & 0x1f) * 2;
 
     fileblk = cc$rms_fab;               /* fill FAB with default values */
-    fileblk.fab$l_fna = filename;       /* l_fna, b_fns are the only re-*/
+    fileblk.fab$l_fna = filename;       /* l_fna, b_fns are the only re- */
     fileblk.fab$b_fns = strlen(filename); /*  quired user-supplied fields */
     fileblk.fab$b_rfm = FAB$C_STMLF;    /* stream-LF record format */
     fileblk.fab$b_rat = FAB$M_CR;       /* carriage-return carriage ctrl */
-    /*     ^^^^ *NOT* V_CR!!! */
+    /*                      ^^^^ *NOT* V_CR!!!     */
     fileblk.fab$l_xab = &dattim;        /* chain XAB to FAB */
     dattim = cc$rms_xabdat;             /* fill XAB with default values */
 
@@ -206,9 +205,9 @@ int create_output_file()
 
 #else                           /* !VMS */
 
-/***********************************/
+/**********************************/
 /*  Function create_output_file() */
-/***********************************/
+/**********************************/
 
 int create_output_file()
 {                               /* return non-0 if creat failed */
@@ -217,7 +216,7 @@ int create_output_file()
      *
      * Create the output file with default permissions.
      */
-    static int do_all = 0;
+    extern int do_all;
     char answerbuf[10];
     UWORD holder;
 
@@ -227,7 +226,6 @@ int create_output_file()
 
     /*
      * check if the file exists, unless do_all
-     * ask before overwrite code by Bill Davidsen (davidsen@crdos1.crd.ge.com)
      */
     if (!do_all) {
         outfd = open(filename, 0);
@@ -255,9 +253,14 @@ int create_output_file()
         }
     }
 #ifndef UNIX
-    outfd = creat(filename, S_IWRITE | S_IREAD);
+    outfd = creat(filename, (S_IWRITE | S_IREAD) & f_attr);
 #else
-    outfd = creat(filename, 0666);      /* let umask strip unwanted perm's */
+    {
+      int mask;
+      mask = umask(0);
+      outfd = creat(filename, 0777 & f_attr);
+      umask(mask);
+    }
 #endif
 
     if (outfd < 1) {
@@ -269,6 +272,30 @@ int create_output_file()
      * disable all CR/LF translations
      */
 #ifndef UNIX
+#ifdef THINK_C
+    /*
+     * THINKC's stdio routines have the horrible habit of
+     * making any file you open look like generic files
+     * this code tells the OS that it's a text file
+     */
+    if (aflag) {
+        fileParam pb;
+        OSErr err;
+
+        CtoPstr(filename);
+        pb.ioNamePtr = filename;
+        pb.ioVRefNum = 0;
+        pb.ioFVersNum = 0;
+        pb.ioFDirIndex = 0;
+        err = PBGetFInfo(&pb,0);
+        if (err == noErr) {
+            pb.ioFlFndrInfo.fdCreator = '????';
+            pb.ioFlFndrInfo.fdType = 'TEXT';
+            err = PBSetFInfo(&pb, 0);
+        }
+        PtoCstr(filename);
+    }
+#endif
     if (!aflag) {
         close(outfd);
         outfd = open(filename, O_RDWR | O_BINARY);
@@ -283,9 +310,9 @@ int create_output_file()
 
 
 
-/******************************/
+/*****************************/
 /*  Function FillBitBuffer() */
-/******************************/
+/*****************************/
 
 int FillBitBuffer(bits)
 register int bits;
@@ -321,9 +348,9 @@ register int bits;
 
 
 
-/*************************/
+/************************/
 /*  Function ReadByte() */
-/*************************/
+/************************/
 
 int ReadByte(x)
 UWORD *x;
@@ -339,8 +366,8 @@ UWORD *x;
     if (incnt == 0) {
         if ((incnt = read(zipfd, inbuf, INBUFSIZ)) <= 0)
             return 0;
-        cur_zipfile_bufstart = cur_zipfile_fileptr;
-        cur_zipfile_fileptr += incnt;
+        /* buffer ALWAYS starts on a block boundary:  */
+        cur_zipfile_bufstart += INBUFSIZ;
         inptr = inbuf;
     }
     *x = *inptr++;
@@ -351,9 +378,9 @@ UWORD *x;
 
 
 #ifdef FLUSH_AND_WRITE
-/****************************/
+/***************************/
 /*  Function FlushOutput() */
-/****************************/
+/***************************/
 
 int FlushOutput()
 {                               /* return PK-type error code */
@@ -385,9 +412,9 @@ int FlushOutput()
 }
 
 #else                           /* separate flush and write routines */
-/****************************/
+/***************************/
 /*  Function FlushOutput() */
-/****************************/
+/***************************/
 
 int FlushOutput()
 {                               /* return PK-type error code */
@@ -405,9 +432,9 @@ int FlushOutput()
     return (0);                 /* 0:  no error */
 }
 
-/****************************/
+/***************************/
 /*  Function WriteBuffer() */
-/****************************/
+/***************************/
 
 static int WriteBuffer(fd, buf, len)    /* return 0 if successful, 1 if not */
 int fd;
@@ -434,9 +461,9 @@ int len;
 
 
 
-/*************************/
+/************************/
 /*  Function dos2unix() */
-/*************************/
+/************************/
 
 static int dos2unix(buf, len)
 unsigned char *buf;
@@ -448,6 +475,28 @@ int len;
 
     new_len = len;
     walker = outout;
+#ifdef MACOS
+    /*
+     * Mac wants to strip LFs instead CRs from CRLF pairs
+     */
+    if (CR_flag && *buf == LF) {
+        buf++;
+        new_len--;
+        len--;
+        CR_flag = buf[len] == CR;
+    }
+    else
+        CR_flag = buf[len - 1] == CR;
+    for (i = 0; i < len; i += 1) {
+        *walker++ = ascii_to_native(*buf);
+        if (*buf == LF) walker[-1] = CR;
+        if (*buf++ == CR && *buf == LF) {
+            new_len--;
+            buf++;
+            i++;
+        }
+    }
+#else
     if (CR_flag && *buf != LF)
         *walker++ = ascii_to_native(CR);
     CR_flag = buf[len - 1] == CR;
@@ -461,9 +510,10 @@ int len;
     }
     /*
      * If the last character is a CR, then "ignore it" for now...
- */
+     */
     if (walker[-1] == ascii_to_native(CR))
         new_len--;
+#endif
     return new_len;
 }
 
@@ -473,13 +523,13 @@ int len;
 
 #ifdef DOS_OS2
 
-/****************************************/
+/***************************************/
 /*  Function set_file_time_and_close() */
-/****************************************/
+/***************************************/
 
 void set_file_time_and_close()
  /*
-  * MS-DOS AND OS/2 VERSION (Unix version is below)
+  * MS-DOS AND OS/2 VERSION (Mac, Unix versions are below)
   *
   * Set the output file date/time stamp according to information from the
   * zipfile directory record for this member, then close the file.  This
@@ -522,10 +572,18 @@ void set_file_time_and_close()
 #endif                          /* __TURBOC__ */
 #endif                          /* !OS2 */
 
+    /*
+     * Do not attempt to set the time stamp on standard output
+     */
+    if (cflag) {
+        close(outfd);
+        return;
+    }
+
+
 /*---------------------------------------------------------------------------
     Copy and/or convert time and date variables, if necessary; then set the
-    file time/date.  OS/2 code supplied by Mike O'Carroll (18 May 90) via
-    Alex A. Sergejew (25 Sep 90).
+    file time/date.
   ---------------------------------------------------------------------------*/
 
 #ifdef OS2
@@ -565,15 +623,16 @@ void set_file_time_and_close()
 
 #else                           /* !DOS_OS2 ... */
 #ifndef VMS                     /* && !VMS (already done) ... */
-#ifndef MTS                     /* && !MTS (can't do):  assume UNIX */
+#ifndef MTS                     /* && !MTS (can't do):  Mac or UNIX */
+#ifdef MACOS                    /* Mac first */
 
-/****************************************/
+/***************************************/
 /*  Function set_file_time_and_close() */
-/****************************************/
+/***************************************/
 
 void set_file_time_and_close()
  /*
-  * UNIX VERSION (MS-DOS & OS/2 version is above)
+  * MAC VERSION
   *
   * First close the output file, then set its date/time stamp according
   * to information from the zipfile directory record for this file.  [So
@@ -582,20 +641,95 @@ void set_file_time_and_close()
   * #ifdefs.  So there.]
   */
 {
-    time_t times[2];
-    struct tm *tmbuf;
+    long m_time;
+    DateTimeRec dtr;
+    ParamBlockRec pbr;
+    OSErr err;
+
+    if (outfd != 1)
+    {
+        close(outfd);
+
+        /*
+         * Macintosh bases all file modification times on the number of seconds
+         * elapsed since Jan 1, 1904, 00:00:00.  Therefore, to maintain
+         * compatibility with MS-DOS archives, which date from Jan 1, 1980,
+         * with NO relation to GMT, the following conversions must be made:
+         *      the Year (yr) must be incremented by 1980;
+         *      and converted to seconds using the Mac routine Date2Secs(),
+         *      almost similar in complexity to the Unix version :-)
+         *                                     J. Lee
+         */
+
+        dtr.year = (((lrec.last_mod_file_date >> 9) & 0x7f) + 1980); /* dissect date */
+        dtr.month = ((lrec.last_mod_file_date >> 5) & 0x0f);
+        dtr.day = (lrec.last_mod_file_date & 0x1f);
+
+        dtr.hour = ((lrec.last_mod_file_time >> 11) & 0x1f);      /* dissect time */
+        dtr.minute = ((lrec.last_mod_file_time >> 5) & 0x3f);
+        dtr.second = ((lrec.last_mod_file_time & 0x1f) * 2);
+        Date2Secs(&dtr, &m_time);
+        CtoPstr(filename);
+        pbr.fileParam.ioNamePtr = filename;
+        pbr.fileParam.ioVRefNum = pbr.fileParam.ioFVersNum = pbr.fileParam.ioFDirIndex = 0;
+        err = PBGetFInfo(&pbr, 0L);
+        pbr.fileParam.ioFlMdDat = pbr.fileParam.ioFlCrDat = m_time;
+        if (err == noErr) {
+            err = PBSetFInfo(&pbr, 0L);
+        }
+        if (err != noErr) {
+            printf("Error, can't set the time for %s\n",filename);
+        }
+
+        /* set read-only perms if needed */
+        if (err != noErr && f_attr != 0) {
+            err = SetFLock(filename, 0);
+        }
+        PtoCstr(filename);
+    }
+}
+
+
+
+
+
+#else                           /* !MACOS:  only one left is UNIX */
+
+/***************************************/
+/*  Function set_file_time_and_close() */
+/***************************************/
+
+void set_file_time_and_close()
+ /*
+  * UNIX VERSION (MS-DOS & OS/2, Mac versions are above)
+  *
+  * First close the output file, then set its date/time stamp according
+  * to information from the zipfile directory record for this file.  [So
+  * technically this should be called "close_file_and_set_time()", but
+  * this way we can use the same prototype for either case, without extra
+  * #ifdefs.  So there.]
+  */
+{
     long m_time;
     int yr, mo, dy, hh, mm, ss, leap, days = 0;
+    struct utimbuf {
+      time_t atime;             /* New access time */
+      time_t mtime;             /* New modification time */
+    } tp;
 #ifdef BSD
-    struct timeval tv;
-    struct timezone tz;
+    static struct timeb tbp;
+#else
+    extern long timezone;
 #endif
 
 
     close(outfd);
 
+    if (cflag)                  /* can't set time on stdout */
+        return;
+
     /*
-     * These date conversions look a little wierd, so I'll explain.
+     * These date conversions look a little weird, so I'll explain.
      * UNIX bases all file modification times on the number of seconds
      * elapsed since Jan 1, 1970, 00:00:00 GMT.  Therefore, to maintain
      * compatibility with MS-DOS archives, which date from Jan 1, 1980,
@@ -646,8 +780,8 @@ void set_file_time_and_close()
     case 4:
         days += 31;
     case 3:
-        days += 28;             /* account for leap years */
-        if (((yr + 1970) % 4 == 0) && (yr + 1970) != 2000)
+        days += 28;             /* account for leap years (2000 IS one) */
+        if (((yr + 1970) % 4 == 0) && (yr + 1970) != 2100)  /* OK thru 2199 */
             ++days;
     case 2:
         days += 31;
@@ -657,30 +791,26 @@ void set_file_time_and_close()
     m_time = ((days + dy) * 86400) + (hh * 3600) + (mm * 60) + ss;
 
 #ifdef BSD
-    gettimeofday(&tv, &tz);
-/* This program is TOO smart about daylight savings time.
- * Adjusting for it throws our file times off by one hour if it's true.
- * Remming it out.
- *
- *  if (tz.tz_dsttime != 0)
- *      m_time -= 3600;
- */
-    m_time += tz.tz_minuteswest * 60;   /* account for timezone differences */
+   ftime(&tbp);
+   m_time += tbp.timezone * 60L;
 #else                                   /* !BSD */
-    tmbuf = localtime(&m_time);
-    hh = tmbuf->tm_hour;
-    tmbuf = gmtime(&m_time);
-    hh = tmbuf->tm_hour - hh;
-    if (hh < 0)
-        hh += 24;
-    m_time += (hh * 3600);      /* account for timezone differences */
+    tzset();                            /* Set `timezone'. */
+    m_time += timezone;                 /* account for timezone differences */
 #endif
 
-    times[0] = m_time;          /* set the stamp on the file */
-    times[1] = m_time;
-    utime(filename, times);
+    if (localtime(&m_time)->tm_isdst)
+        m_time -= 60L * 60L;            /* Adjust for daylight savings time */
+
+    /* set the time stamp on the file */
+    
+    tp.mtime = m_time;                  /* Set modification time */
+    tp.atime = m_time;                  /* Set access time */
+
+    if (utime(filename, &tp))
+        fprintf(stderr, "Error, can't set the time for %s\n",filename);
 }
 
-#endif                          /* !MTS */
-#endif                          /* !VMS */
-#endif                          /* !DOS_OS2 */
+#endif                          /* ?MACOS */
+#endif                          /* ?MTS */
+#endif                          /* ?VMS */
+#endif                          /* ?DOS_OS2 */
