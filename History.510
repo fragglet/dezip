@@ -1,0 +1,580 @@
+UnZip, version 5.1, 7 February 1994
+
+New features, you betcha:
+
+5.1a:
+ - Amiga:  incorporated "final" Amiga port patches [John Bush, Paul
+    Kienitz]
+ - Amiga:  replaced DMakefile, attempted to sync with JB patches [Stefan
+    Becker, CN]
+ - OS/2:  patches to funzip to make it work (except with MSC) [Kai Uwe Rommel]
+5.1b:
+ - almost all crypt/password stuff moved to crypt.c and/or crypt.h, and
+    dummy versions written:  just replace dummy versions with full ones
+    and recompile normally, instead of recompiling with -DCRYPT.  NO MORE
+    DUPLICATE MAKEFILES!  NO MORE MAKEFILE EDITING!!  :-)  [CN]
+ - TOPS-20:  new port!  [Frank Wancho]
+ - Unix, OS/2:  funzip, zipinfo now included in standard make [CN, Kai Uwe]
+ - MS-DOS:  updated MSC/Turbo C makefile; added PKLITE option [CN, Jim Reisert]
+5.1c:
+ - added -x "exclude files" capability to unzip and zipinfo [CN]
+ - OS/2, MS-DOS:  added '\\'-to-'/' conversion for command-line filenames
+    after zipfile [Jon Saxton]
+ - added "ptx" target to Makefile (for Sequent/Dynix/ptx) [Alan Phillips]
+ - renamed "next" target to "next2x"; added "next3x" target to Makefile;
+    added generic, all-purpose "next10" target; added descriptive "next"
+    target [Mark Adler, CN]
+ - Amiga:  added full Amiga-zip support to zipinfo [John Bush, CN]
+ - Unix:  added (some) Posix support, touched up Linux stuff [H.J.Lu?]
+5.1d:
+ - added warning to unzip and zipinfo if any filespec not matched [CN, Mark]
+ - replaced all "byte" typedefs with "uch" to match zip, avoid redefinition
+    annoyances [CN]
+ - incorporated Atari patches (at last!)--needs testing [Martin Schulz, CN]
+ - added -z option (print zipfile comment) to zipinfo [CN]
+ - added version-made-by support for TOPS-20 and NTFS systems [CN]
+ - improved help screen examples (esp. VMS) [CN, Jean-loup]
+ - moved all unzip/zipinfo shared code (aside from OS-specific) to new
+    module (shared.c); moved all of remainder in misc.c to file_io.c;
+    removed misc.c (no more need for misc_.o{bj} or to include misc.c
+    and file_io.c into zipinfo.c) [CN]
+ - allowed negative -z option in unzip to remove zipfile comment (printed
+    by default if extracting/listing/testing) [CN]
+ - updated Where file to include mention of Zip 1.1 [CN]
+ - added ability to extract VMS -V text files to screen [Igor]
+5.1e:
+ - sysv_gcc Makefile target [Jean-loup]
+ - OS/2:  added bunch of new compiler targets to makefile.os2 [Kai Uwe]
+ - extract-to directory supported (Unix, OS/2, MS-DOS), mapname completely
+    rewritten [CN]
+ - added wildcard-zipfile capability (Unix, OS/2, MS-DOS) [CN]
+ - incorporated zipinfo into unzip (use -Z option or link to "zipinfo" or
+    "ii") [CN]
+ - updated and improved unzip and zipinfo help screens [CN]
+ - added "No errors detected" message to non-quiet tests (unzip -t) [CN]
+ - Atari:  Atari/GCC port! (relative to 5.1d3, anyway) [Chris Herborth]
+ - Amiga:  (finally) incorporated John's and Paul's Amiga patches from
+    last year; made various arrays (min_info, explode/inflate) static to
+    save on Amiga stack space [John, Paul]
+ - modified handler() error message to indicate segv/bus error [CN]
+ - nextbw (multi-architecture NeXTstep binary) Makefile target [Denise Blakeley]
+ - yet another new (and smaller) version of match.c, swiped from zip [original
+    undoubtedly by Mark, modified for unzip by Paul Kienitz]
+5.1f:
+ - added gzip support to funzip [Mark, from last May; forgot to put into 5.1e]
+ - converted unzip and funzip from open()/write() to fopen()/fwrite() [CN]
+ - moved crc_32_tab[] and ebcdic[] to tables.h (used by both file_io.c and
+    funzip.c), and incorporated shared.c into file_io.c (still to do:  split
+    zipfile-header routines into headers.c?) [CN]
+ - made small modification to FillBitBuffer to improve performance on 64-bit
+    machines (Alpha, Cray, etc.) [Martin Schulz]
+ - rewrote text-conversion (ASCII/EBCDIC, EOL) stuff and flush() routine [CN,
+    possibly also Johnny Lee]
+ - NT:  tweaked/fixed NT port [Martin Schulz]
+ - MS-DOS:  split makefile into makefile.tc and makefile.msc; removed all
+    Borland project files [CN, Jean-loup]
+ - Unix:  added uninstall target; changed MANDIR location to /usr/local/man/man1
+    by default [Eric Raymond, Jean-loup, CN]
+ - Unix:  added volume-label "support" (skip) [CN]
+ - OS/2:  added full volume-label support for floppy drives only [CN]
+ - MS-DOS:  added volume-label support for floppy drives only; Borland stuff
+    still needs a little work, and djgpp not supported at all [Bob Babcock, CN]
+ - MS-DOS:  added DOSWILD compile option for special handling of "*.*" and "*."
+    [CN, Jean-loup, Piet Plomp]
+ - (mostly MS-DOS):  added NO_ZIPINFO compile option so that small-memory
+    machines can still compile unzip in small model--automatically set for
+    small-model MS-DOS and OS/2 compiles; restored appropriate makefile entries
+    to small model [CN, Jean-loup]
+ - Unix:  added sco_sl (shared libraries) target to Makefile [Bill]
+ - changed extract-to behavior to use -d exdir; added OLD_EXDIR define to com-
+    pile with old behavior [CN]
+ - created first attempt at INSTALL document [CN]
+ - updated and cleaned up the main usage screen (new -b option, generic -a
+    option, change in -d and exdir syntax) [CN]
+ - replaced hoary ReadByte() function with new NEXTBYTE macro; 35-70% speedup!
+    [Jean-loup, CN]
+ - replaced funzip's ReadByte() function with new NEXTBYTE macro; updated main
+    Makefile and makefile.os2 to use inflate_.o (sigh) [CN]
+ - incorporated FillBitBuf() into READBITS macro [CN]
+ - streamlined memextract(); removed ReadMemoryByte() and mem_[oi]_* vars;
+    removed UpdateCRC() [CN]
+ - Human68k:  created new source subdirectory for Human68k; incorporated
+    patches (mostly) and added new makefile and source files [NIIMI Satoshi, CN]
+ - VMS:  incorporated Igor's new code with GRR 5.1e changes (well, sort of),
+    including Igor's VMS do_wild and mapname/checkdir routines [Igor, CN]
+ - revised all makefiles to use OS-specific code in place; changed all OS dirs
+    to lowercase to match zip's; moved Unix-specific code to new "unix" dir [CN]
+5.1g:
+ - filenames and comments now filtered for control characters [CN]
+ - auto-text conversion NOT default again; -b removed and -aa added [CN,
+    Jean-loup]
+ - added inflate_free() to unzip and funzip [Mark]
+5.1h:
+ - MS-DOS:  added "non-MSDOS external file attributes" field to zipinfo -v
+    output (for debugging AV archives) [CN]
+ - removed [text]/[binary] messages except for -a (auto) mode; added [empty]
+    message for zero-length files; changed symlink "extracting" message to
+    "linking" [CN, Mark]
+ - Unix:  added zipinfo target to Makefile to sidestep old habits which don't
+    work (try "make file_io" for an example) and make automatic hard link;
+    added unix_make dependency to allow "make -f unix/Makefile" even for 
+    recursive makes (only under Unix, though) [Bill]
+ - VMS:  updated VMS.notes -> README [CN]
+ - OS/2, NT, MS-DOS:  added -$ option for writing volume labels (floppies only);
+    -$$ for writing labels to hard disks, too [CN]
+5.1i:
+ - MS-DOS:  added true detection of floppies/removables via DOS function 44h;
+    changed usage screen slightly [CN, Bruce Kahn]
+ - NT:  changed lots of DOS_OS2's to DOS_NT_OS2's, plus other changes in prep-
+    aration for full NT port [Henry Gessau]
+ - Unix:  added 7300_gcc target [James Birdsall]
+ - Amiga:  replaced amiga/ subdir with all-new version and made final fixes to
+    unzip.h and crypt.h (full port is done at last!) [John Bush, Paul Kienitz]
+ - restored -b option as undocumented shortcut for ---a [CN]
+ - Human68K:  almost full port (compiles, at least :-) [NIIMI Satoshi]
+ - Unix:  changed rtaix target to aix to match zip [Mike Bernardi]
+ - Unix:  added pixel and v7 targets [Aubrey Jaffer]
+5.1j:
+ - OS/2:  added smart detection of floppies/removables [Kai Uwe, CN]
+ - MS-DOS:  added MKS environment-variable argument processing [Rich Wales]
+ - MS-DOS:  added "near" here and there for large-model compiles [Henry]
+ - added more "smartness" for seeking on mangled zipfiles [CN]
+ - added some (old) inflate huft_build() optimizations [Christian Ghisler]
+5.1k:
+ - [none]
+5.1L:
+ - VMS:  finished port *and* docs! [Igor]
+ - NT:  finished port! [Henry]
+5.1m:
+ - added crypt.c ifdef to allow passwords to be read from stdin [Jean-loup]
+ - Mac:  brand-new port! [Antoine]
+ - Atari:  brand-new port! [Chris Herborth]
+ - VMS:  combined make_gcc.com and make_vaxc.com into super make.com [Hunter]
+5.1n:
+ - Unix:  added/touched up BSDI BSD/386 port [Paul Borman]
+ - Amiga:  new SMakefile [John Bush]
+5.1o:
+ - MS-DOS:  djgpp volume label support, etc. [Onno]
+ - experimental code [CN, Paul Roub]
+ - new MS-DOS README file with warnings about various compiler bugs [CN]
+5.1p:
+ - MS-DOS, OS/2:  added emx+gcc 32-bit MS-DOS port (via cross-compilation from
+    OS/2; see makefile.os2) [Kai Uwe]
+ - finished writing/updating all docs; set release dates appropriately [CN]
+
+Bugs fixed:
+
+5.1a:
+ - cleaned up SysV defines in unzip.h [CN]
+ - fixed sco target to make sure UNIX and SYSV defined under Xenix; added
+    xenix target [Paul Telles, Jean-loup, CN]
+ - fixed prototype bug on Sequent [Bob Bond]
+ - eliminated Convex c120, c210 targets; replaced convex target, using
+    __convexc__ in unzip.h [Rafal Maszkowski]
+ - fixed 386BSD filetime routines, removed unsupported djgcc dateformat
+    call, added bcc_dos, zi_bcc and zi_djgcc targets, renamed zi_dos to
+    zi_msc [Onno van der Linden]
+ - MS-DOS:  fixed zi_msc target to use /e link-flag and not -G2 compiler
+    flag by default [Piet Plomp]
+ - renamed hp_ux target to hpux to match zip; added to help list [CN]
+ - added exit(0) to funzip.c to avoid gnutar problem [Joe Tam]
+ - updated Where file [CN, Jean-loup]
+ - MS-DOS/Windows:  fixed DISPLAY bug in misc.c [Johnny Lee]
+ - renamed thinkc.rsrc.hqx to thinkc_rsrc.hqx in order to avoid fatal bug
+    in SHEZ80 (MS-DOS zip-viewing util)--only distribution file with two
+    dots [Jean-loup]
+5.1b:
+ - MS-DOS:  fixed (I hope) bug with Borland C and #if !defined() [Hogan Long]
+ - fixed funzip.1 to note consequence of first-member-only behavior when
+    first member is a directory [John Bush, CN]
+ - final Convex fixes to Makefile, unzip.h, crypt.c [Rafael Pappalardo, CN]
+ - fixed Sequent macro in unzip.h, modified Makefile to allow parallel makes
+    [Jason Merrill]
+ - Amiga:  various unzip/zipinfo patches; new makefiles [John Bush]
+ - TOPS-20:  small optimizations, bugfixes [Frank Wancho, CN]
+ - some code cleanup (extraneous AMIGA+UNIX, dup, FFLUSH, etc.) [CN]
+ - attempted to fix AT&T 6300+ SysV bug with -DMALLOC_WORK [CN]
+5.1c:
+ - renamed Readme to README as per comp.sources.misc guidelines [CN]
+ - TOPS-20:  revised *.mic command files, jfn file_io.c code [Frank Wancho]
+ - added "Caution: zero files tested" message to -t output (not just -tq) [CN]
+ - renamed crc32 macro in zip.h/crypt.c to CRC32 to avoid conflict with
+    lrec.crc32 in unzip [Jean-loup]
+ - fixed bug with -a where CRC was calculated incorrectly [CN]
+ - added man pages to install target; added "docs" and "unzipsman" targets [CN,
+    Jean-loup]
+ - fixed zipinfo/funzip bug in sysv6300 Makefile target [Peter Mauzey]
+ - changed all "return #" to "return PK_XXXX" [CN]
+ - made HSIZE (rather than HSIZE+2) default until we see who breaks [Mark, CN]
+ - made DECLARE_ERRNO non-default (except for MSC 5.0 and earlier) [CN, Bill
+    Davidsen]
+ - fixed Bull byte problem in unzip.h, Makefile [CN, Matthew D'Errico]
+ - MS-DOS:  changed all occurrences of -Ox to -Oait -Gs in MSC targets of
+    Makefile; removed overlooked -G2 in MSDOS/makefile [Jean-loup]
+ - MS-DOS:  fixed gcc_dos target; removed recent parallel-make modification
+    because of MS-DOS make utility breakage [Onno van der Linden]
+ - MS-DOS, OS/2:  changed MSDOS definition to exclude OS/2 (use DOS_OS2 or OS2
+    instead) [CN]
+ - fixed const problem for NeXT 3.0 in file_io.c [Mark]
+ - fixed ZL2, FL2 Makefile macros to be same as LF2 by default [CN]
+ - #included crypt.c into funzip.c for MS-DOS (Borland problems) [CN]
+ - #included file_io.c and misc.c into zipinfo.c for all systems (code
+    duplication, makefile simplification) [CN]
+ - added SGI to list of systems on which not to redeclare open() in crypt.c
+    [CN]
+ - VMS:  fixed prototypes for echo() [Mike Freeman]
+ - OS/2:  updated makefile, unzip.def; removed zipinfo.def; removed extern
+    declaration of keys[] from unzip.h [Kai Uwe, CN]
+ - Amiga:  latest Lattice/Aztec C fixes (perms, filetimes, etc.) [John Bush,
+    Paul Kienitz]
+ - changed ULONG/UWORD to ulg/ush to match zip and avoid collisions with
+    Amiga and OS/2 typedefs [CN]
+ - removed redundant dos_attr and unix_attr, changed to file_attr, rewrote
+    attributes section of store_info(), and added mapattr() routines [CN]
+ - moved all OS-specific code out of file_io.c, etc., and into local files
+    (msdos.c, os2.c, vms.c, amiga.c, etc.) [CN]
+ - improved inflate() and explode() error messages (out of memory, bad huffman
+    tables); renamed inflate_entry() to inflate() (and removed old version)
+    [Mark, CN]
+ - added ifdef'd code to deal with buggy PKZIP betas (PKZIP_BUG_WORKAROUND)
+    [Jean-loup]
+ - cleaned up time headers and typedefs [CN]
+ - MS-DOS:  updated MSC/TCC makefile (CHECK TURBO C HALF) [Jean-loup, CN]
+ - fixed a comment in inflate.c [Mark]
+ - added RAND_HEAD_LEN, uch definitions to zip.h/unzip.h to match Jean-loup's
+    zip changes [CN]
+5.1d:
+ - moved Makefile "funny comment" to avoid echo during build [Mark, CN]
+ - modified unzip.c, funzip.c to use new zdecode macro [Mark, CN]
+ - fixed decryption bug (ReadByte/testp doing double decryption of header) [CN]
+ - changed all usages of "UNIX" to mean Unix only, not Unix+VMS+TOPS-20 [CN]
+ - OS/2:  moved some extern declarations to unzip.h, cleaned up os2.c, fixed
+    file_io.c bug, fixed makefile.os2 [Kai Uwe, CN]
+ - MS-DOS:  fixed various djgcc bugs, removed some unused variables, updated
+    MS-DOS targets in Makefile [Onno]
+ - fixed compressed-symlinks bug (at last!) [Martin Schulz, CN]
+ - renamed all zipinfo S_IFxxx defines to UNX_IFxxx to avoid redefinition
+    problems on Apollo, Amiga, etc. (still have S_IXUSR, etc., but wait with
+    those and see what breaks) [CN]
+ - fixed inverted ecrec offsets reported by zipinfo -v (real, expected were
+    mislabelled) [CN]
+ - VMS:  fixed some write/error stuff in vms.c [Igor]
+ - fixed bug with -q/bad-CRC error message; changed -q behavior to skip
+    "extracting:" messages (same as -qq; matches -t option more closely) [CN]
+ - fixed persistent double-dot name in MAC sub-archive (argh!) [Jean-loup]
+ - fixed some crypt.c and extract.c casts, replaced MSDOS/tcc project files
+    [Jean-loup]
+ - moved RAND_HEAD_LEN definition to crypt.h [CN]
+ - added VMS mapattr() routine to map Unix perms -> VMS attribs [Igor, CN]
+ - updated dnix Makefile target, added compiler-bug work-around [Bo Kullmar]
+5.1e:
+ - added missing definition of RAND_HEAD_LEN to dummy crypt.h [CN, Mark, Rafal]
+ - ifdef'd out fcntl.h in crypt.c for unzip [Jean-loup]
+ - removed unused variable in file_io.c [CN]
+ - fixed extra "%s" in unzip.c, removed some Borland warnings from extract.c,
+    updated MSDOS Makefile entries [Onno]
+ - fixed dnix comments in Makefile [Bo]
+ - moved definition of `key' into crypt.c; removed dependency on crypt.h for
+    unzip.c [CN]
+ - updated sources and usage screen with new addresses; cleaned up/rewrote
+    README file [CN]
+ - updated OS/2 makefile (new targets) [Kai Uwe]
+ - updated MS-DOS tcc/zipinfo.prj [Glenn Andrews]
+ - put in alternate fix for <sys/param.h> BSD redefinitions; temporarily
+    commented out NO_PARAM_H for Minix, 386BSD, etc. [CN, Marcelino Enriquez]
+ - changed "Extracting," "Inflating," etc., messages to lowercase to match
+    zip [CN]
+ - added Atari to auto-lowercasing list [Chris Herborth?]
+ - added necessary typecasts to work under Amdahl "EFT" system [CN]
+ - fixed inflate.c to work with slightly modified PKZIP 2.04c format; fixed
+    incorrect return value; added code to fix funzip EOB bug [Mark]
+ - added two parentheses to unix.c to avoid gcc warnings [Onno]
+ - replaced fseek in funzip.c [Mark]
+ - updated some comments and removed a debug statement in inflate.c [Mark]
+ - fixed (and improved?) ZMEM stuff for Pyramid [CN]
+ - fixed bug in non-Mac version of ASCII conversion code [Ron Henderson]
+ - fixed unzip so error on "foo" results in check of "foo.zip", too, before
+    quitting with error message [CN]
+ - fixed too-long usage string in unzip.c [CN, Jean-loup]
+ - fixed error handling in process_zipfiles [CN]
+ - got rid of annoying longint typedef [CN]
+ - fixed/improved Turbo C++ 1.0 support in makefile.bcc [Kevin Fritz]
+ - added Convex to the list for fcntl.h in crypt.c and noted possible open/
+    ttyname compiler bug [Rafal Maszkowski]
+ - added HP/UX to list of systems for which to define UNIX [Mike Peterson]
+ - fixed a bunch of SysV.4/MS-DOS warnings (errors?) [Jean-loup]
+ - added macfstest call to macmkdir in mac.c for MPW hfsflag [Steve Hanna]
+ - fixed Minix outfd bug, #defined UNIX for Minix, updated minix Makefile
+    target [Bruce Evans]
+ - made <termios.h> default for TERMIO ifdef (Posix); see what breaks...
+    [CN, Bruce Evans]
+ - fixed some inflate error messages (c10.5) [Mark]
+ - added -DNODIR to 7300 Makefile target [CN]
+ - fixed return-value of PK_NOZIP (9) bug [CN]
+ - MS-DOS:  commented out opendir/readdir in msdos.c for Borland C (already has
+    them) [CN, Michael Lawler]
+ - added 14-char path-component truncation if SHORT_NAMES defined [CN]
+ - changed cray_cc/cray targets to cray/cray_scc [CN]
+ - MS-DOS:  changed makefiles to use compact model for now (project files
+    unchanged), until put strings in far data area [CN]
+5.1f:
+ - removed automatic definition of NO_MKDIR for SysV (apparently they've
+    joined the real world...) [Piet Plomp, CN]
+ - added some (uch) typecasts to match.c [CN, Piet Plomp]
+ - MS-DOS:  changed *_dos Makefile targets to use compact model [Piet Plomp]
+ - changed default LD to be $(CC) instead of cc [CN]
+ - cleaned up unzip.h--each OS gets own section [CN]
+ - fixed some DNIX defines [Bo Kullmar, CN]
+ - switched back to strnicmp for zipinfo detection [Paul, CN]
+ - cleaned up unix.c direct/dirent stuff [Onno]
+ - fixed error level if a CRC fails [Jean-loup, CN]
+ - made termios.h conditional again (fails under Sun SysV, SVR4) [Jean-loup]
+ - added more specific checking of explode() return codes [CN]
+ - renamed decrypt_member() to decrypt() and added "newzip" global to avoid
+    using old password on new zipfiles [CN, Jean-loup]
+ - finished zipinfo-izing all remaining S_Ixxxx macros and moved to zipinfo.c
+    [CN, Dave Begley]
+ - removed UNIX zip kludge in crypt.c [Jean-loup, CN]
+ - removed bogus dot in volume-label names when listing/extracting/testing [CN]
+ - MS-DOS:  removed default definition of MSC; added sys/timeb.h to djgpp
+    stuff; enabled timezone calcs for djgpp [Jean-loup]
+ - MS-DOS:  fixed opendir() bug with "d:" path and possible bug with "d://*.*";
+    also fixed minor memory leak [CN]
+ - OS/2:  fixed opendir() bug with ".." path; eliminated many strlen() and
+    strcat() calls [CN]
+ - fixed missing termination of dirname[] in do_wild (all versions so far) [CN]
+ - fixed compression factor calculation (allow negative factors); added ratio()
+    function [CN, Jean-loup]
+ - added #ifdef UNZIP around extern int newzip in crypt.h [Hunter]
+ - MS-DOS:  changed *_dos Makefile back to small model [CN]
+ - fixed "anonymous" error messages (i.e., no zipfile name when doing wildcard
+    tests) and added count of non-zipfiles (no central directory) to summary
+    line [CN, Jean-loup]
+ - removed inclusion of limits.h for Pyramid [Kevin Fritz]
+ - MS-DOS:  fixed -ocrypt_.obj in makefile.bc; added inflate_.obj [Kevin Fritz,
+    CN]
+ - OS/2, MS-DOS:  fixed -s flag (meaning was reversed) [Kevin Fritz]
+ - added various typecasts to appease the god of Borland [Kevin Fritz, CN]
+ - OS/2, MS-DOS:  worked around MSC stat() bug (stat(non-existent-dir) == 0)
+    [David Robinson]
+ - OS/2, MS-DOS, VMS:  worked around Borland/Watcom/VMS (or just VAX C?) bugs
+    (stat(wildcard) == 0); added iswild() function to match.c, based on zip's
+    isshexp() (included special Amiga "#?" pattern for future bugs :-) ) [CN,
+    Jean-loup, Mark, Thomas Opheys]
+ - fixed -c "disk full" bug (fclose(stdout)) [CN]
+ - changed all memset() calls to memzero() macro to avoid future bugs with
+    bzero systems [CN]
+ - fixed Unix wildcard bug:  "*" matched ".*" files [CN]
+5.1g:
+ - added -I. to all Makefile targets which redefine CF [Piet, CN]
+ - added some typecasts to memextract in extract.c [Piet, CN]
+ - removed bogus ';' from NEXTBYTE macro [Rafal]
+ - Unix:  defined DIRENT for Convex in unix/unix.c [Rafal]
+ - put a (char *) typecast back into crypt.c for Convex [Rafal]
+ - Unix:  defined DIRENT for SCO Unix in unix/unix.c [Piet]
+ - added clone strnicmp() function for SCO Unix and dnix [CN]
+ - NeXT:  added some parentheses to avoid warning; #defined strnicmp [Mark]
+ - OS/2, MS-DOS:  fixed text-conversion bug (^Z stripped) [Kevin, CN]
+ - changed outcnt to long to avoid problems with 16-bit ints (compare with
+    WSIZE); changed flush(), updcrc() args to long, ulg, respectively [CN]
+ - MS-DOS:  fixed makefiles to work with new subdirectory structure; added
+    STRIP to makefile.bc and removed too-long warning options [CN, Kevin]
+ - removed bogus newlines from "comment ends" messages in zipinfo [CN]
+ - updated makefiles (yet again):  added tables.h, fixed(?) subdirs [CN]
+ - fixed "unzip -t .\*" message ("2 files had no zipfile directory") [CN]
+5.1h:
+ - Atari, Human68k, MS-DOS, NT, OS/2:  fixed interpretation of MS-DOS external
+    attributes (including Borland "warning:  file attributes may not be correct"
+    message on AV archives) [CN, Kevin]
+ - defined NO_STRNICMP for all SYSV systems [Larry Jones]
+ - changed "file"/directory message to "zipfile"/directory [CN, Kevin]
+ - added -I. to all CFLAGS, as was meant to be done in 5.1g... [CN, Piet]
+ - added MED_MEM variant to SMALL_MEM stuff for compact/large/huge models
+    where can't malloc > 64K [Piet, CN]
+ - MS-DOS:  Borland C++ 2.x doesn't have opendir/readdir, so renamed ours and
+    made default for everybody; also (for GNU make) changed leading spaces to
+    tabs in makefile.bc and default STRIP from rem to echo in all MS-DOS
+    makefiles [Jim Dumser, CN]
+ - renamed inflate.?.bkfl to inflbkfl.? [Jim Dumser]
+ - MS-DOS:  fixed GETDRIVE macro for Borland compiler (off by one => labelling
+    wrong/hard disks unintentionally); fixed IZ_VOL_LABEL error check in 
+    mapname() [Kevin, CN]
+ - fixed signed/unsigned problems with flush/Fwrite/outcnt/size [Henry]
+ - now include limits.h only if MODERN defined [CN, Jim Dumser]
+ - made volume-label skipping no longer a warning [Kevin]
+ - rearranged usage screen and fixed some missing VMS quotes [CN]
+ - added "g = " to 3 null getc(in) loops in funzip.c (Borland warnings) [CN,
+    Kevin]
+ - OS/2, MS-DOS:  fixed -f bug with read-only files [CN]
+ - MS-DOS:  fixed fwrite/setvbuf bug (MSC only?); made USE_FWRITE mandatory
+    for MS-DOS, OS/2, NT (all non-Unix?) [CN]
+ - fixed "zipfile was directory" bug when no zipfiles found [CN]
+ - fixed various compiler warnings, etc. [Bill Davidsen, CN]
+ - moved old.c and dummy_do_wild.c into oldmapname.zip and renamed to
+    porting.zip; removed backfill stuff until 5.2 betas [CN]
+5.1i:
+ - MS-DOS:  fixed missing '>' in makefile.msc [Piet]
+ - MS-DOS:  fixed too-large malloc value (0xFFF0 -> 0xFF80) [Piet]
+ - Unix:  removed strrchr/rindex definition for Pyramid [Geraldo Veiga]
+ - MS-DOS:  reduced MSC stack size slightly (4k -> 3k) to avoid inflate out-
+    of-memory errors [CN]
+ - MS-DOS:  changed all makefiles to use small model for funzip [Piet, CN]
+ - fixed Cray inflate.c bug (huft_build() l macro) [CN]
+ - MS-DOS:  removed forgotten #ifndef __BORLANDC__ (opendir) [Jim Dumser]
+ - OS/2:  fixed "os2\unzip16.def" in makefile.os2, SizeOfEAs() inclusion for
+    small-model OS/2 compiles, and incorrect stat()-bug workaround for MSC [CN]
+ - Unix:  fixed missing ';' in NO_DIR code; added NO_MKDIR and NO_STRNICMP to
+    7300 target [CN]
+ - MS-DOS:  fixed extra "msdos.obj" in makefile.tc [James Birdsall]
+ - Unix:  added NO_STRNICMP for Sun 386i [Piet]
+ - Unix:  restored Pyramid strrchr/rindex definition if BSD (default) defined;
+    modified pyramid target for auto-detection of BSD vs. AT&T universes (also
+    added "hidden" pyr_ucb and pyr_att targets); moved ZMEM/memcpy/bcopy section
+    after string.h to avoid errors due to macros [CN, Jean-loup, Kevin]
+ - MS-DOS, OS/2:  disallowed brackets from FAT filenames [who?]
+ - MS-DOS:  removed suggestion to use msc_dos target of unix/Makefile from
+    msdos/Contents [James Birdsall]
+ - MS-DOS:  delete *.ob files before renaming .obj files in makefile.tc; added
+    "clean" target [Paul Manno]
+ - fixed NULL input bug (when stdin redirected to /dev/null) [Rodney Brown]
+ - updated help screen and docs to use new addresses (wkuvx1.wku.edu instead
+    of wkuvx1.bitnet) [CN]
+ - fixed small bug in -d option (filespecs not set) [CN]
+ - fixed spelling error in unzip.1/zipinfo.1 [Mark Hanning-Lee]
+ - use strncasecmp if __386BSD__ [Onno]
+ - OS/2:  fixed os2/unzip.def lines and removed C Set/2 optimization on crypt.c
+    (optimization bug on keys[1]) [CN, Kai Uwe, Art Pina]
+ - OS/2:  changed all "*.*" to "*" in opendir() [Kai Uwe]
+5.1j:
+ - Unix:  removed spaces from _v7 target and fixed secondary target [Bo]
+ - Unix:  tricky-fied unix_make target to avoid do-nothing warnings [CN]
+ - MTS:  fixed up port [Antoine]
+ - OS/2:  fixed incorrect removal of VMS version numbers [Henry]
+ - MS-DOS:  removed bogus, overlooked "main" code in msdos.c [Glenn Andrews]
+ - AOS/VS:  utime() warning, inflate.c typecast for Data General [Dave Lovelace]
+ - VMS:  fixed CR/LF at 2048 boundary bug [Igor]
+ - OS/2, MS-DOS:  changed STAT to SSTAT (like zip) to avoid somebody's compiler
+    warnings [CN]
+ - Unix:  use strncasecmp instead of strnicmp for Linux [Karel Kubat]
+ - OS/2:  fixed several map2fat bugs [CN, Henry]
+ - MS-DOS:  changed all makefiles to use large memory model by default [CN]
+5.1k:
+ - MS-DOS:  ifdef'd declaration of environ in envargs.c for MSC [Piet]
+ - added extent typecasts to funzip.c fwrite() tests (MSC warnings) [CN, Piet]
+ - MS-DOS:  fixed unzip -a signed/unsigned bug on files > 32KB ("disk full")
+    [CN, Piet]
+5.1L:
+ - VMS:  included missing vms.h; removed VMSmunch.h [CN, Igor]
+ - MS-DOS:  fixed comment in makefile.msc [James Birdsall]
+ - MS-DOS:  changed block_length to long in file_io.c and made loop variable
+    register class [Javier Manero, CN]
+ - MS-DOS:  fixed funzip LDFLAGS in makefile.tc [James Birdsall]
+ - removed unused 'p' variable in zi_long() [Piet]
+5.1m:
+ - MS-DOS:  fixed funzip model-mixing in makefile.bc [Kevin Fritz]
+ - Unix:  fixed NO_DIR define in 7300_gcc target [James Birdsall]
+ - Unix:  fixed incorrect single quote in help target [Jean-loup]
+ - changed error about compressed length to warning under some conditions;
+    reduced static string space slightly [CN, Jean-loup, Mark]
+ - Unix:  defined __386BSD__ if __NetBSD__ is defined [Onno]
+ - VMS:  don't redefine XAB struct if using gcc and Pat Rankin's replacement
+    headers [Mike Freeman]
+ - VMS:  various Alpha fixes (vms.h, vms.c, descrip.mms) [Hunter]
+ - Amiga:  added ifdef for EPIPE to dummy version of crypt.h [Paul Kienitz]
+ - Amiga:  fixed shift bug in mapattr() [Paul]
+ - changed comment_bytes_left to long in file_io.c to avoid type mismatch
+    [Piet]
+ - VMS:  fixed make_gcc.com to find include files on vms.c [CN, Mike Freeman]
+ - added better checks for EOF and error-on-read [CN, Anthony Naggs, Phil H.]
+ - fixed incorrect used_csize calculation in explode.c [Mark]
+ - VMS:  fixed "*.[ch]" non-match bug [CN, Mike Freeman]
+ - VMS:  made VMS-version-checking a compilable option, off by default [CN]
+ - added typecast to return value in recmatch() [John Bush]
+ - VMS:  remove MS-DOS ^Z at end of file for text conversions [Igor]
+5.1n:
+ - added typecast to used_csize in extract.c [Piet]
+ - VMS:  fixed incorrect dir in make.com [Mike Freeman]
+ - VMS:  fixed auto-appending of ".zip" and inability to create second-level
+    directories; tweaked descrip.mms [Igor]
+ - MS-DOS:  defined MSC in makefile.msc (for MSC 5.1); added msdos.c typecast
+    [Anthony Naggs]
+ - removed CG inflate patches [Mark, CN]
+ - MS-DOS:  defined NO_STRNICMP for djgpp [Onno]
+ - Mac:  replaced thinkc.hqx (fixed link order) [Antoine]
+ - Unix:  fixes for Coherent 4.x [Fred Smith]
+ - Unix:  defined _BSD for osf1 target; included utime.h for (PS/2) AIX [???]
+ - Amiga:  "picky diffs" to Amiga-specific files [Paul]
+5.1o:
+ - fixed incorrect test of open() return value [Meiwei Wu]
+ - OS/2:  boosted stacksize to 0x50000 to avoid LINK386 warnings [CN]
+ - VMS:  fixed prototype/declaration mismatches (flush(), close_outfile())
+    [Mike Freeman, CN]
+ - removed a tab in funzip.c and several in unzip.h; corrected several
+    bad wordings/typos in docs [James Birdsall]
+ - NT:  fixed missing fcntl.h for funzip [James Birdsall]
+ - VMS:  clarified docs on -d option [CN]
+ - OS/2:  added typecast, fixed MSC model in makefile [Kai Uwe]
+ - MS-DOS:  changed "MODEL = L" to "MODEL=L" in makefile.msc [Jean-loup]
+ - MS-DOS:  moved undef of FILENAME to top of msdos.c (djgpp as well as BC)
+    [CN, Jean-loup]
+ - fixed printf() long/short mismatch in unzip.c and initialized "g" variable
+    in funzip's main() to avoid gcc warning [Jean-loup, CN]
+ - removed NO_STRNICMP stuff and renamed ours to zstrnicmp:  use it for all
+    systems [CN, Jean-loup]
+5.1p:
+ - OS/2:  changed -Zmt to -Zmtd in makefile.os2 for emx 0.8g+; fixed
+    incorrect DosOpen param declarations for 32-bit [Jon Saxton]
+ - OS/2:  added comment about Watcom '/' '\' problem in makefile.os2;
+    added PIPE_ERROR fix [Kai Uwe]
+ - Unix, MS-DOS:  added .SUFFIXES to unix/Makefile for GNU make [CN]
+
+   ...
+
+==================
+
+Early revision history of vms.c (moved here to keep size of source file down):
+
+     1.0-1   Mandrichenko    16-feb-1992
+             Recognize -c option
+     1.0-2   Mandrichenko    17-feb-1992
+             Do not use ASYnchroneous mode.
+     1.0-3   Mandrichenko    2-mar-1992
+             Make code more standard
+             Use lrec instead of crec -- unzip4.2p does not provide
+             crec now.
+     1.1     Mandrichenko    5-mar-1992
+             Make use of asynchronous output.
+             Be ready to extract RMS blocks of invalid size (because diff
+             VMS version used to compress).
+     1.1-1   Mandrichenko    11-mar-1992
+             Use internal file attributes saved in pInfo to decide
+             if the file is text.  [GRR:  temporarily disabled, since
+             no way to override and force binary extraction]
+     1.1-2   Mandrichenko    13-mar-1992
+             Do not restore owner/protection info if -X not specified.
+     1.1-3   Mandrichenko    30-may-1992
+             Set revision date/time to creation date/time if none specified
+             Take quiet flag into account.
+     1.1-4   Cave Newt       14-jun-1992
+             Check zipfile for variable-length format (unzip and zipinfo).
+     1.2     Mandrichenko    21-jun-1992
+             Use deflation/inflation for compression of extra blocks
+             Free all allocated space
+     1.2-1   Mandrichenko    23-jun-1992
+             Interactively select an action when file exists
+     1.2-2   Mandrichenko    6-oct-1992
+             Restore protection even with no -X.
+     1.2-3   Cave Newt       17-oct-1992
+             Use ulg/ush/uch instead of ULONG/UWORD/byte; move return_VMS()
+             here from misc.c; replace return codes with PK_ macros
+     1.3     Mandrichenko    25-oct-1992
+             Extract "-V" saved files to screen; use mapattr() for non-VMS
+             protections
+
+==================
+
+These changes occurred in beta versions 5.1a to 5.1p.  This list may have 
+left out some bugfixes and even some features...the brain cell is going, 
+folks (as Mark would say).  Apologies, etc.
+
+Greg Roelofs (a.k.a. Cave Newt)

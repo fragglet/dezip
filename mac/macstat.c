@@ -7,8 +7,6 @@
 #include    <Files.h>
 #include    <Errors.h>
 #define FSFCBLen    (*(short *)0x3F6)
-#define CtoPstr c2pstr
-#define PtoCstr p2cstr
 #endif
 
 #ifdef MACOS
@@ -53,7 +51,7 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
         if ( fUseDefault )
         {
             WDPBRec wdpb;
-    
+
             wdpb.ioCompletion = 0;
             wdpb.ioNamePtr = (StringPtr)temp;
             err = PBHGetVol(&wdpb, 0);
@@ -96,27 +94,27 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
 
         /* get information about file */
         cPB.hFileInfo.ioCompletion = (ProcPtr)0L;
-        CtoPstr(path);
+        c2pstr(path);
         strncpy(temp,path, path[0]+1);
-        PtoCstr(path);
+        p2cstr(path);
         cPB.hFileInfo.ioNamePtr = (StringPtr)temp;
         cPB.hFileInfo.ioVRefNum = nVRefNumT;
         cPB.hFileInfo.ioDirID = lDirIDT;
         cPB.hFileInfo.ioFDirIndex = 0;
 
-        err = PBGetCatInfo(&cPB, false); 
+        err = PBGetCatInfo(&cPB, false);
 
         if (err != noErr) {
-            if (err != fnfErr) {
+            if ((err != fnfErr) && (err != dirNFErr)) {
                 SysBeep(1);
             }
             return -1;
         }
-        
+
         /* Type of file: directory or regular file + access */
         buf->st_mode = (cPB.hFileInfo.ioFlAttrib & ioDirMask) ? S_IFDIR : S_IFREG |
                        (cPB.hFileInfo.ioFlAttrib & 0x01) ? S_IREAD : (S_IREAD | S_IWRITE);
-        
+
         /* last access time, modification time and creation time(?) */
         buf->st_atime = buf->st_mtime = cPB.hFileInfo.ioFlMdDat;
         buf->st_ctime = cPB.hFileInfo.ioFlCrDat;
@@ -139,7 +137,7 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
             SysBeep(1);
             return -1;
         }
-            
+
         buf->st_blksize = cPB.hFileInfo.ioFlPyLen / hPB.volumeParam.ioVAlBlkSiz;
     }
     else    /* MFS? */
@@ -147,9 +145,9 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
         ParamBlockRec   pPB;
         ParamBlockRec   hPB;
 
-        CtoPstr(path);
+        c2pstr(path);
         strncpy(temp, path, path[0]+1);
-        PtoCstr(path);
+        p2cstr(path);
         pPB.fileParam.ioCompletion = (ProcPtr)0;
         pPB.fileParam.ioNamePtr = (StringPtr)temp;
         pPB.fileParam.ioVRefNum = nVRefNumT;

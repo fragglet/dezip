@@ -1,9 +1,26 @@
-===============================================================================
-   The following copyrights are claimed on portions of the UnZip source code.
-   Further comments are at the bottom.
-===============================================================================
+__________________________________________________________________________
 
-  Copyright in unzip.c, originally from unzip version 1.2 (?):
+  This is the Info-ZIP file COPYING (for UnZip), last updated 6 Feb 94.
+__________________________________________________________________________
+
+   There are currently two explicit copyrights on portions of UnZip
+   code (at least, of which Info-ZIP is aware):  the original Sam Smith
+   copyright on unzip 2.0, upon which Info-ZIP's UnZip 3.0 was based;
+   and Igor Mandrichenko's copyright on his routines in vms.c.  These
+   are discussed immediately below; the Frequently Asked Questions re-
+   garding (re)distribution of Zip and UnZip are near the end of this
+   file.
+__________________________________________________________________________
+
+   The original unzip source code has been extensively modified and
+   mostly rewritten (changes include random zipfile access rather than
+   sequential; replacement of unimplode() with explode(); replacement
+   of output routines; addition of inflate(), wildcards, filename-
+   mapping, text translation, ...; etc.).  As far as we can tell, the
+   only remaining code which is substantially similar to Mr. Smith's
+   is that in the files unreduce.c and unshrink.c (although even those
+   have been modified), to which the following copyright therefore
+   applies:
 
      * Copyright 1989 Samuel H. Smith;  All rights reserved
      *
@@ -12,88 +29,97 @@
      * If you use this in your own program you must distribute source code.
      * Do not use any of this in a commercial product.
 
--------------------------------------------------------------------------------
+   Regarding the first stipulation, Mr. Smith was finally tracked down
+   in southern California [Samuel H. Smith, The Tool Shop, P.O. Box 8808,
+   Panorama City, CA  91412-4808, (818) 891-4228 (voice), (818) 891-6780
+   (BBS, 2400 baud, free access)]:
 
-  Copyright in misc.c, applying to UpdateCRC() and crc_32_tab[]:
+   "He says that he thought that whoever contacted him understood that
+    he has no objection to the Info-ZIP group's inclusion of his code.
+    His primary concern is that it remain freely distributable, he said."
 
-     COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or code
-     or tables extracted from it, as desired without restriction.
+   Info-ZIP is indebted and grateful to Mr. Smith; we hope he finds our
+   contributions as useful as we have his.
 
--------------------------------------------------------------------------------
+   Note that the third and fourth stipulations still apply to any com-
+   pany which wishes to incorporate the unreduce and/or unshrink code 
+   into its products; if you wish to do so, you must contact Mr. Smith
+   regarding licensing.
 
-  Copyright in vms.c, distributed with UnZip versions 4.2 and later:
+
+   The following copyright applies to most of the VMS code in vms.c,
+   distributed with UnZip versions 4.2 and later:
 
      * Copyright (C) 1992 Igor Mandrichenko.
-     * Permission is granted to any individual or institution to use, copy,
-     * or redistribute this software so long as all of the original files
-     * are included unmodified, that it is not sold for profit, and that
-     * this copyright notice is retained.
+     * Permission is granted to any individual or institution to use,
+     * copy, or redistribute this software so long as all of the orig-
+     * inal files are included unmodified, that it is not sold for
+     * profit, and that this copyright notice is retained.
 
--------------------------------------------------------------------------------
 
-  Additional copyright information:
+   Note that BILF (distributed with the VMS stuff) is not Info-ZIP code;
+   it is copyrighted by Rahul Dhesi and is freely distributable.
 
-     BILF (distributed with the VMS stuff) is copyrighted by Rahul Dhesi,
-     but it is freely distributable.
 
-     The functions extract_or_test_files() and store_info() in extract.c,
-     do_string() and return_VMS() in misc.c, VMS version of echo() in
-     file_io.c, and find_end_central_dir() in unzip.c, were written by
-     Greg Roelofs and subsequently modified by many others via Info-ZIP.
-     I do not claim a copyright on these routines, but I do ask that no
-     one else do so either, :-) and that anyone using them in other pro-
-     grams note their source.
+   The remaining code was written by many people associated with the
+   Info-ZIP group, with large contributions from (but not limited to):
+   Mark Adler (inflate, explode, funzip), Kai Uwe Rommel (OS/2), John
+   Bush and Paul Kienitz (Amiga), Antoine Verheijen (Mac) and Greg
+   Roelofs (lots of stuff).  See the file CONTRIBS in the source dis-
+   tribution for a much more complete list of contributors.  Also note 
+   that, while this code may not be explicitly copyrighted, we do re-
+   quest that no one else try to copyright it, either.  In other words, 
+   use it with our blessings, but it's still our code.  (You can con-
+   sider that an implicit copyright if it makes you feel better. :-) )
+   Thank you!
+__________________________________________________________________________
 
-     The function decrypt_member() in extract.c and the password functions
-     in file_io.c were written by Mark Adler, as were the inflate.c and
-     explode.c modules.
+   Frequently Asked Questions about distributing Zip and UnZip:
 
-     The function mapped_name() in mapname.c was written by David Kirschbaum,
-     based on the XXU program by Frank Da Cruz.
 
-     The module match.c was written by J. Kercheval and modified by David
-     Kirschbaum for use in UnZip.
+   Q. Can I distribute Zip and UnZip sources and/or executables?
 
-     Original notes from unzip 2.0a by Carl Mascott, cmascott@world.std.com
-     (these are only the modifications which seem still to exist):
-        * 12/14/89  C. Mascott  2.0a   adapt for UNIX
-        *              don't pre-allocate output file space
-        *              implement -t, -v, member file specs
-        *              buffer all input
-        *              fix "Bad CRC" msg: good/bad CRCs were swapped
-        *              check for write error on output file
+   A. You may redistribute the latest official distributions without
+      any modification, and without even asking us for permission.
+      [Note that an "executable distribution" includes documentation,
+      even if it's in a separate zipfile; plain executables do NOT
+      count.]  You can charge for the cost of the media (CDROM, disk-
+      ettes, etc.) and a small copying fee.  Distributed archives
+      should follow the naming conventions used in the Where file.
+      If you want to distribute modified versions please contact us
+      at zip-bugs@wkuvx1.wku.edu first.  You must not distribute beta
+      versions without explicit permission to do so.
 
-     Most of the remaining routines have contributions from all of us, and
-     show it. :-)
 
-===============================================================================
+   Q. Can I use the executables of Zip and UnZip to distribute my
+      software?
 
-   Info-ZIP comments:
+   A. Yes, so long as it is clear that Zip and UnZip are not being
+      sold, that the source code is freely available, and that there
+      are no extra or hidden charges resulting from its use by or in-
+      clusion with the commercial product.  Here is an example of a
+      suitable notice:
 
-   Info-ZIP has very little interest in legal matters, aside from the usual
-   "CYA" sense (that's an acronym, and you can figure it out yourself :-) ).
+         NOTE:  <Product> is packaged on this CD using Info-ZIP's
+         compression utility.  The installation program uses UnZip
+         to read zip files from the CD.  Info-ZIP's software (Zip,
+         UnZip and related utilities) is free and can be obtained
+         as source code or executables from various bulletin board
+         services and anonymous-ftp sites, including CompuServe's
+         IBMPRO forum and ftp.uu.net:/pub/archiving/zip/*.
 
-   As far as we are aware--and please note that the numerous contributors 
-   and copyright holders make this a little uncertain--the UnZip code is now 
-   "clean" in the sense that an UnZip executable may be distributed with a
-   commercial product SO LONG AS IT IS CLEAR THAT UNZIP IS NOT BEING SOLD,
-   THAT THE SOURCE CODE IS FREELY AVAILABLE, AND THAT THERE ARE NO EXTRA OR
-   HIDDEN CHARGES RESULTING FROM ITS USE BY OR INCLUSION WITH THE COMMERCIAL
-   PRODUCT.  In particular, the retroactive copyright on unimplode.c which
-   Carl Mascott requested we include in UnZip 4.2 is no longer in force, since
-   Mark Adler has rewritten the module in question from scratch (it's about
-   twice as fast, too! :-) ).
 
-   Regarding the original copyright by Mr. Smith:  Info-ZIP has finally found
-   him again (he's moved to southern California), and he's apparently happy
-   with the current code and restrictions.  More specifically, since the 
-   current incarnation of UnZip can be considered "our own"--it bears very 
-   little resemblance to his original program, in either content or size :-)
-   --and since we freely distribute the source code, we believe that we are 
-   within the bounds of his third stipulation.
+   Q. Can I use the source code of Zip and UnZip in my commercial
+      application?
 
-   Info-ZIP continues to rewrite portions of the code as time permits, in an
-   effort to eliminate as many of the restrictions (and bugs) as possible.
-   The bugs are our primary concern, however, so don't hold your breath. :-)
+   A. Yes, so long as you include in your product an acknowledgment
+      and an offer of the original compression sources for free or
+      for a small copying fee, and make clear that there are no extra
+      or hidden charges resulting from the use of the compression 
+      code by your product.  In other words, you are allowed to sell
+      only your own work, not ours.  [Note the additional restrictions
+      above on the code in unreduce.c, unshrink.c and vms.c.]  If you
+      have special requirements, contact us at zip-bugs@wkuvx1.wku.edu.
 
-===============================================================================
+__________________________________________________________________________
+

@@ -1,0 +1,168 @@
+__________________________________________________________________________
+
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 6 Feb 94.
+__________________________________________________________________________
+
+
+  This file is still pretty new and probably has some rough edges.  If you
+  discover any errors or omissions, please send e-mail to zip-bugs at the
+  address given in the README file.
+
+
+To compile:
+
+  - Unpack *.c and *.h (the actual source files), preserving the directory
+    structure (e.g., ./unix/unix.c).  [The exception is TOPS-20, where
+    tops20/* should be unpacked into the current directory; but TOPS-20
+    isn't fully supported in this version.]  Copy the appropriate makefile
+    into the current directory and/or rename as appropriate.  Check the
+    appropriate <OS>/Contents file for descriptions of each makefile in
+    cases where more than one exists (e.g., MS-DOS).  [Some makefiles can
+    be invoked in place--e.g., "nmake -f msdos\makefile.msc" or "make -f
+    unix/Makefile some_unix_target"--but MS-DOS targets in the Unix makefile
+    (bcc_dos, gcc_dos, etc.) cannot.  Also, moving the Unix Makefile instead
+    of copying it may result in a harmless error message at compile time.]
+
+  - If you want a non-standard version of UnZip, define one or more of the
+    following optional macros.  Some of these may not be fully supported in
+    this or future releases, however.
+
+      OLD_EXDIR    (Unix, OS/2, MS-DOS only)
+        Use old behavior regarding the directory to which to extract:  the
+        argument immediately after the zipfile name is the extraction dir;
+        if the directory doesn't exist, create it if it was specified as
+        "dir/" (i.e., with trailing path separator), else treat it as a
+        stored file; if -d is used, treat the argument as a stored file re-
+        gardless of trailing '/'.  For example:
+            unzip foo bar       if bar is a dir, extract everything into it;
+                                  otherwise extract bar as stored file
+            unzip foo bar/      extract everything into bar, creating if nec.
+            unzip -d foo bar/   treat bar/ as a stored directory and extract it
+
+      DOSWILD      (MS-DOS only)
+        Treat trailing "*.*" like Unix "*" (i.e., matches anything); treat
+        trailing "*." as match for files without a dot (i.e., matches anything,
+        as long as no dots in name).  Special treatment only occurs if patterns
+        are at end of arguments; i.e., "a*.*" matches all files starting with
+        "a", but "*.*c" matches all files ending in "c" *only* if they have a
+        dot somewhere before the "c".  Thus "*.*.*" could be used (albeit awk-
+        wardly) to specify all filenames with at least one dot in them, and
+        "*." matches all filenames with no dots in them.  [The default method
+        of specifying these would be "*.*" and "* -x *.*", respectively, where
+        the second example makes use of UnZip's exclude-files option.]  All
+        other regular expressions (including "?" and "[range_of_chars]") re-
+        tain their Unix-like behavior.
+
+      CHECK_VERSIONS (VMS only)
+        UnZip "extra fields" are used to store VMS (RMS) filesystem info,
+	and the format of this information may differ in various versions
+	of VMS.  Defining this option will enable UnZip warnings when the
+	stored extra-field VMS version(s) do(es) not match the version of
+	VMS currently being used.  This is a common occurrence in zipfiles 
+	received from other sites, but since the format of the filesystem
+	does not seem to have changed in years (including on Alpha and Open-
+	VMS systems), the warnings are not enabled by default.
+
+      RETURN_CODES (VMS only)
+        VMS interprets return codes according to a rigid set of guidelines,
+        so VMS UnZip always returns 0 regardless of whether any warnings or
+        errors occurred.  To see the UnZip return values, define RETURN_CODES;
+        UnZip will then print the value and its interpretation.  This is often
+        annoying, however.
+
+      NO_ZIPINFO
+        Compile without zipinfo mode (-Z) enabled; makes smaller executable
+        because many text strings left out.  Automatically enabled for
+        small-model compiles under MS-DOS and OS/2, so ordinarily there is
+        no need to specify this explicitly.  (Note that even with this defined,
+        the resulting executable may still be too big to extract some zipfiles
+        correctly.)
+
+      CHECK_EOF (primarily intended for MS-DOS)
+        When unzipping an archive on a bad floppy drive, unzip reportedly
+        hangs the system; this appears to be due to a failure to do a proper
+        check for end-of-file from the read() system call.  Defining CHECK_EOF
+        enables better checking; this option is not on by default because it
+        was introduced too late in the testing process.
+
+      DEBUG
+        Used for debugging purposes; enables Trace() statements.  It is
+        generally best to compile only a single module this way.
+
+  - If you regularly compile new versions of UnZip and always want the same
+    non-standard option(s), add it (them) to the LOCAL_UNZIP environment
+    variable.  Under MS-DOS, for example:
+
+        set LOCAL_UNZIP -DDOSWILD -DOLD_EXDIR
+
+    You can also use the variable to hold special compiler options (e.g.,
+    -FPi87 for Microsoft C, if the x87 libraries are the only ones on your
+    disk and they follow Microsoft's default naming conventions).
+
+  - Choose the appropriate makefile based on the description in the Contents
+    file for the appropriate OS; move or copy it into the current directory
+    and rename if necessary or desired; edit it to include any special macros
+    (e.g., add -DDOSWILD to CFLAGS) or whatever (see special OS-specific notes
+    below); and run the relevant "make" utility as appropriate.
+
+      VMS
+        For a one-time make, one can simply run the supplied command file.
+	To use either DEC C on an Alpha or VAX C on a VAX, simply type
+	"@make" (after copying make.com into the current directory; other-
+	wise do "@[.vms]make").  To use GNU C (gcc) on either platform, do
+	"@make gcc".
+
+        For repeated makes or other hacker-like tinkering with the sources,
+        use one of the included makefiles.  With DEC's MMS or the free MMK
+        clone, copy descrip.mms into the current directory and run MMS or
+        MMK.  Otherwise grab Todd Aven's free MAKE/VMS, copy makefile into
+        the current dir and run make.
+
+        Sources to Rahul Dhesi's BILF (binary/line-feed) program are also
+        included as a convenience; it can be useful for converting between
+        stream-LF and fixed-length-512 formats.  Further information is in
+        the program comments in bilf.c.
+
+      OS/2
+        For Watcom C/386, edit makefile.os2 and change the os2$(OBJ) target
+        so it uses backslashes (i.e., "os2/os2.c" -> "os2\os2.c").
+
+        More generally, read the comments at the top of makefile.os2; note
+        that only nmake, dmake and GNU make are supported.
+
+      MS-DOS
+        See the msdos/Contents file for notes.  Also see msdos/README; it
+        notes some quirks and/or bugs in various MS-DOS compilers (not much
+        to be done about them, but be aware of them).
+
+  - Run the make utility on your chosen makefile.  This should produce two
+    executables in most cases, one for UnZip/ZipInfo and one for fUnZip.
+    There may be some warnings about integer-size mismatches; we haven't
+    been as thorough in eliminating warnings in this release, but they can
+    be ignored.  Test your new UnZip on a few archives and let us know if
+    there are problems (please first make certain that the archives aren't
+    actually corrupted, however--test with PKUNZIP or an existing version
+    of UnZip).
+
+
+To install:
+
+  - Unix:  edit Makefile if manext (man-page extension, usually "1"), MANDIR
+    and BINDIR are not correct; then do "make install".  Check file ownerships
+    and permissions to make sure installation worked correctly.  In general,
+    root must perform installation into a public directory.  Do "rehash" if
+    your shell requires it.
+
+  - VMS:  install UnZip as foreign symbol by adding this to login.com:
+       $ unzip == "$disk:[dir]unzip.exe"
+       $ zipinfo == "$disk:[dir]unzip.exe -Z"
+    where "disk" and "dir" are location of UnZip executable; the "$" before
+    disk name is important.  Some people, including the author, prefer a
+    short alias such as "ii" instead of "zipinfo"; edit to taste.  See
+    vms/README for notes/warnings about zipfiles and UnZip under VMS.
+
+  - OS/2, MS-DOS, NT, Atari, Amiga:  move or copy unzip.exe (or unzip.ttp, or
+    UnZip, or whatever) to a directory in your path; also possibly copy the
+    UnZip executable to zipinfo.exe (or ii.exe), or else create a batch or com-
+    mand file for zipinfo ("@unzip -Z %1 %2 %3 %4 %5 %6 %7 %8 %9" under MS-DOS).
+    The latter is only relevant if zipinfo mode is enabled, obviously...

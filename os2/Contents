@@ -1,10 +1,12 @@
-Contents of the OS2 sub-archive for UnZip 5.0 and later:
+Contents of the "os2" sub-archive for UnZip 5.1 and later:
 
   Contents      this file
-  makefile.os2  makefile for MSC, IBM C Set/2, gcc/emx, or Watcom C/386 9.0
-  os2unzip.c    OS/2 HPFS/FAT support routines
-  unzip.def     OS/2 linker definition file
-  zipinfo.def   OS/2 linker definition file
+  makefile.os2  makefile for almost every compiler available under OS/2
+  os2.c         OS/2-specific support routines
+  unzip16.def   OS/2 linker definition file (16-bit)
+  unzip.def     OS/2 linker definition file (32-bit)
+  zipgrep.cmd   really cool REXX script to search for strings in a zipfile
 
-There is, as yet, no support for the Zortech or gcc2.1 (Michael Johnson port)
-compilers, and the Borland 32-bit OS/2 compiler doesn't exist yet.
+There is no support for the Zortech or GCC/2 (Michael Johnson/Colin
+Jensen) compilers.  emx+gcc is supported.  New makefile targets are
+welcome...

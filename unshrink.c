@@ -2,26 +2,45 @@
 
   unshrink.c
 
-  Shrinking is a Dynamic Lempel-Ziv-Welch compression algorithm with partial
-  clearing.
+  Shrinking is a dynamic Lempel-Ziv-Welch compression algorithm with partial
+  clearing.  Sadly, it uses more memory than any of the other algorithms (at
+  a minimum, 8K+8K+16K, assuming 16-bit short ints), and this does not even
+  include the output buffer (the other algorithms leave the uncompressed data
+  in the work area, typically called slide[]).  For machines with a 64KB data
+  space, this is a problem, particularly when text conversion is required and
+  line endings have more than one character.  UnZip's solution is to use two
+  roughly equal halves of outbuf for the ASCII conversion in such a case; the
+  "unshrink" argument to flush() signals that this is the case.
+
+  For large-memory machines, a second outbuf is allocated for translations,
+  but only if unshrinking and only if translations are required.
+
+              | binary mode  |        text mode
+    ---------------------------------------------------
+    big mem   |  big outbuf  | big outbuf + big outbuf2  <- malloc'd here
+    small mem | small outbuf | half + half small outbuf
+
 
   ---------------------------------------------------------------------------*/
 
 
 #include "unzip.h"
 
+/*      MAX_BITS   13   (in unzip.h; defines size of global work area)  */
+#define INIT_BITS  9
+#define FIRST_ENT  257
+#define CLEAR      256
 
-/*************************************/
-/*  UnShrink Defines, Globals, etc.  */
-/*************************************/
+#define OUTB(c) {\
+    *outptr++=(uch)(c);\
+    if (++outcnt==outbufsiz) {\
+        flush(outbuf,outcnt,TRUE);\
+        outcnt=0L;\
+        outptr=outbuf;\
+    }\
+}
 
-/*      MAX_BITS        13   (in unzip.h; defines size of global work area)  */
-#define INIT_BITS       9
-#define FIRST_ENT       257
-#define CLEAR           256
-#define GetCode(dest)   READBIT(codesize,dest)
-
-static void partial_clear __((void));   /* local prototype */
+static void partial_clear __((void));
 
 int codesize, maxcode, maxcodemax, free_ent;
 
@@ -29,17 +48,33 @@ int codesize, maxcode, maxcodemax, free_ent;
 
 
 /*************************/
-/*  Function unShrink()  */
+/*  Function unshrink()  */
 /*************************/
 
-void unShrink()
+int unshrink()   /* return PK-type error code */
 {
     register int code;
     register int stackp;
     int finchar;
     int oldcode;
     int incode;
+    unsigned int outbufsiz;
 
+
+    /* non-memory-limited machines:  allocate second (large) buffer for
+     * textmode conversion in flush(), but only if needed */
+#ifndef SMALL_MEM
+    if (pInfo->textmode && !outbuf2 &&
+        (outbuf2 = (uch *)malloc(TRANSBUFSIZ)) == NULL)
+        return PK_MEM2;
+#endif
+
+    outptr = outbuf;
+    outcnt = 0L;
+    if (pInfo->textmode)
+        outbufsiz = RAWBUFSIZ;
+    else
+        outbufsiz = OUTBUFSIZ;
 
     /* decompress the file */
     codesize = INIT_BITS;
@@ -48,9 +83,6 @@ void unShrink()
     free_ent = FIRST_ENT;
 
     code = maxcodemax;
-    do {
-        prefix_of[code] = -1;
-    } while (--code > 255);
 /*
     OvdL: -Ox with SCO's 3.2.0 cc gives
     a. warning: overflow in constant multiplication
@@ -58,28 +90,34 @@ void unShrink()
     for (code = maxcodemax; code > 255; code--)
         prefix_of[code] = -1;
  */
+    do {
+        prefix_of[code] = -1;
+    } while (--code > 255);
 
     for (code = 255; code >= 0; code--) {
         prefix_of[code] = 0;
-        suffix_of[code] = (byte) code;
+        suffix_of[code] = (uch)code;
     }
 
-    GetCode(oldcode);
+    READBITS(codesize,oldcode)  /* ; */
     if (zipeof)
-        return;
+        return PK_COOL;
     finchar = oldcode;
 
-    OUTB(finchar);
+    OUTB(finchar)
 
     stackp = HSIZE;
 
     while (!zipeof) {
-        GetCode(code);
-        if (zipeof)
-            return;
+        READBITS(codesize,code)  /* ; */
+        if (zipeof) {
+            if (outcnt > 0L)
+                flush(outbuf, outcnt, TRUE);   /* flush last, partial buffer */
+            return PK_COOL;
+        }
 
         while (code == CLEAR) {
-            GetCode(code);
+            READBITS(codesize,code)  /* ; */
             switch (code) {
                 case 1:
                     codesize++;
@@ -94,22 +132,25 @@ void unShrink()
                     break;
             }
 
-            GetCode(code);
-            if (zipeof)
-                return;
+            READBITS(codesize,code)  /* ; */
+            if (zipeof) {
+                if (outcnt > 0L)
+                    flush(outbuf, outcnt, TRUE);   /* partial buffer */
+                return PK_COOL;
+            }
         }
 
 
         /* special case for KwKwK string */
         incode = code;
         if (prefix_of[code] == -1) {
-            stack[--stackp] = (byte) finchar;
+            stack[--stackp] = (uch)finchar;
             code = oldcode;
         }
         /* generate output characters in reverse order */
         while (code >= FIRST_ENT) {
             if (prefix_of[code] == -1) {
-                stack[--stackp] = (byte) finchar;
+                stack[--stackp] = (uch)finchar;
                 code = oldcode;
             } else {
                 stack[--stackp] = suffix_of[code];
@@ -118,11 +159,14 @@ void unShrink()
         }
 
         finchar = suffix_of[code];
-        stack[--stackp] = (byte) finchar;
+        stack[--stackp] = (uch)finchar;
 
 
         /* and put them out in forward order, block copy */
-        if ((HSIZE - stackp + outcnt) < OUTBUFSIZ) {
+        if ((HSIZE - stackp + outcnt) < outbufsiz) {
+            /* GRR:  this is not necessarily particularly efficient:
+             *       typically output only 2-5 bytes per loop (more
+             *       than a dozen rather rare?) */
             memcpy(outptr, &stack[stackp], HSIZE - stackp);
             outptr += HSIZE - stackp;
             outcnt += HSIZE - stackp;
@@ -131,14 +175,14 @@ void unShrink()
         /* output byte by byte if we can't go by blocks */
         else
             while (stackp < HSIZE)
-                OUTB(stack[stackp++]);
+                OUTB(stack[stackp++])
 
 
         /* generate new entry */
         code = free_ent;
         if (code < maxcodemax) {
             prefix_of[code] = oldcode;
-            suffix_of[code] = (byte) finchar;
+            suffix_of[code] = (uch)finchar;
 
             do
                 code++;
@@ -149,7 +193,15 @@ void unShrink()
         /* remember previous code */
         oldcode = incode;
     }
-}
+
+    /* never reached? */
+    /* flush last, partial buffer */
+    if (outcnt > 0L)
+        flush(outbuf, outcnt, TRUE);
+
+    return PK_OK;
+
+} /* end function unshrink() */
 
 
 

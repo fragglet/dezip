@@ -1,22 +1,19 @@
-Contents of the AMIGA sub-archive for UnZip 5.0 and later:
+Contents of the "amiga" sub-archive for UnZip 5.1 and later:
 
   Contents      this file
-  DMakefile     DICE compiler makefile for UnZip
-  lmkfile       SAS/C makefile for UnZip
-  patch.pw      Paul Wells _TZ patch, subsequently modified (see below)
-  readme.pw     Paul Wells comments
-  stat.c        stat() function for Paul Wells port
-  utime.c       utime() function for Paul Wells port
+  Makefile.AZT  Aztec C makefile for UnZip and fUnZip
+  SMakeFile     SAS/C makefile for UnZip and fUnZip
+  amiga.c       Amiga-specific file I/O routines
+  amiga.h       Amiga-specific header file
+  filedate.c    SetFileDate() clone for OS 1.3, based on Paul Wells' utime()
+  stat.c        stat() emulation for Aztec and Lattice C
+  z-stat.h      "real" stat.h header file for Aztec and Lattice C
 
-Notes:  Paul Wells' original Amiga port for SAS/C and Lattice C (I think)
-was subsequently modified for another compiler (probably DICE by Georg
-Sassen), and possibly no longer compiles under the original compilers.
-The suspect code is in file_io.c and has to do with Paul's _TZ code, which
-is presently commented out and replaced by a specialized SetFileDate call.
-The file patch.pw will give you some idea of how the code originally looked.
-Presumably all three compilers have predefined macros which identify them,
-so there need not be any conflict; but there may be one at the moment.
+Note:  the DICE makefile has been removed since no one is supporting that
+compiler anymore.
 
-Note also that the DICE compiler version does not require either of the
-two source files included here, and that none of the Amiga stuff has been
-tested since UnZip 4.1.
+Note also:  it was discovered on release day that the latest SAS compiler
+revision (6.50 or 6.51) fixes a long-standing timezone bug, with the result
+that the work-around code in UnZip now extracts files with the wrong times.
+For now, either compile with the older compiler/libraries or else send e-
+mail to zip-bugs; we should have a fix available shortly.

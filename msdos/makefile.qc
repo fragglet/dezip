@@ -2,11 +2,13 @@
 #
 # I successfully compiled both Zip and UnZip for MSDOS using the Microsoft
 # Quick C 2.0 compiler and linker.  Here are the NMAKE files that I used.
+#
+# Last revised:  14 Jan 94  (still no funzip)
 
-PROJ	=UNZIP
-CC	=qcl
-CFLAGS  = /AS /W1 /Za /Olt
-LFLAGS  = /NOI /E
+PROJ	= UNZIP
+CC	= qcl
+CFLAGS  = /AL /W1 /Za /Olt /DMSC
+LFLAGS  = /noi /e
 OBJS_EXT =
 LIBS_EXT =
 
@@ -14,44 +16,48 @@ all:	$(PROJ).exe
 
 unzip.obj:      unzip.c unzip.h
 
+crypt.obj:      crypt.c unzip.h zip.h crypt.h
+
 envargs.obj:    envargs.c unzip.h
 
 explode.obj:    explode.c unzip.h
 
-extract.obj:    extract.c unzip.h
+extract.obj:    extract.c unzip.h crypt.h
 
-file_io.obj:    file_io.c unzip.h
+file_io.obj:    file_io.c unzip.h crypt.h tables.h
 
 inflate.obj:    inflate.c unzip.h
 
-mapname.obj:    mapname.c unzip.h
-
 match.obj:      match.c unzip.h
 
-misc.obj:       misc.c unzip.h
+msdos.obj:      msdos/msdos.c unzip.h
+	$(CC) -c $(CFLAGS) /I. msdos/msdos.c
 
 unreduce.obj:   unreduce.c unzip.h
 
 unshrink.obj:   unshrink.c unzip.h
 
-$(PROJ).exe:	unzip.obj envargs.obj explode.obj extract.obj file_io.obj\
-	inflate.obj mapname.obj match.obj misc.obj unreduce.obj unshrink.obj\
-	$(OBJS_EXT)
-	echo >NUL @<<$(PROJ).crf
+zipinfo.obj:    zipinfo.c unzip.h
+
+$(PROJ).exe:	unzip.obj crypt.obj envargs.obj explode.obj extract.obj\
+	file_io.obj inflate.obj match.obj unreduce.obj\
+	unshrink.obj zipinfo.obj msdos.obj $(OBJS_EXT)
+	echo >NUL @<<$(PROJ).rsp
 unzip.obj +
+crypt.obj +
 envargs.obj +
 explode.obj +
 extract.obj +
 file_io.obj +
 inflate.obj +
-mapname.obj +
 match.obj +
-misc.obj +
+msdos.obj +
 unreduce.obj +
 unshrink.obj +
+zipinfo.obj +
 $(OBJS_EXT)
 $(PROJ).exe
 $(LIBS_EXT);
 <<
-	link $(LFLAGS) @$(PROJ).crf
-	del $(PROJ).crf
+	link $(LFLAGS) @$(PROJ).rsp
+	del $(PROJ).rsp

@@ -19,10 +19,9 @@
 
 #define DLE    144
 
-typedef byte f_array[64];       /* for followers[256][64] */
+typedef uch f_array[64];        /* for followers[256][64] */
 
 static void LoadFollowers __((void));
-void flush OF((unsigned));      /* routine from inflate.c */
 
 
 
@@ -30,13 +29,13 @@ void flush OF((unsigned));      /* routine from inflate.c */
 /*  UnReduce Global Variables  */
 /*******************************/
 
-#if (defined(MACOS) || defined(MTS))
+#if defined(MALLOC_WORK) || defined(MTS)
    f_array *followers;     /* shared work space */
 #else
    f_array *followers = (f_array *) (slide + 0x4000);
 #endif
 
-byte Slen[256];
+uch Slen[256];
 int factor;
 
 int L_table[] =
@@ -69,23 +68,23 @@ int B_table[] =
 
 
 /*************************/
-/*  Function unReduce()  */
+/*  Function unreduce()  */
 /*************************/
 
-void unReduce()   /* expand probabilistically reduced data */
+void unreduce()   /* expand probabilistically reduced data */
 {
     register int lchar = 0;
     int nchar;
     int ExState = 0;
     int V = 0;
     int Len = 0;
-    longint s = ucsize;  /* number of bytes left to decompress */
+    long s = ucsize;  /* number of bytes left to decompress */
     unsigned w = 0;      /* position in output window slide[] */
     unsigned u = 1;      /* true if slide[] unflushed */
 
 
-#if (defined(MACOS) || defined(MTS))
-    followers = (f_array *) (slide + 0x4000);
+#if defined(MALLOC_WORK) || defined(MTS)
+    followers = (f_array *)(slide + 0x4000);
 #endif
 
     factor = lrec.compression_method - 1;
@@ -93,15 +92,16 @@ void unReduce()   /* expand probabilistically reduced data */
 
     while (s > 0 /* && (!zipeof) */) {
         if (Slen[lchar] == 0)
-            READBIT(8, nchar)   /* ; */
+            READBITS(8, nchar)   /* ; */
         else {
-            READBIT(1, nchar);
+            READBITS(1, nchar)   /* ; */
             if (nchar != 0)
-                READBIT(8, nchar)       /* ; */
+                READBITS(8, nchar)       /* ; */
             else {
                 int follower;
                 int bitsneeded = B_table[Slen[lchar]];
-                READBIT(bitsneeded, follower);
+
+                READBITS(bitsneeded, follower)   /* ; */
                 nchar = followers[lchar][follower];
             }
         }
@@ -111,9 +111,9 @@ void unReduce()   /* expand probabilistically reduced data */
         case 0:
             if (nchar != DLE) {
                 s--;
-                slide[w++] = (byte) nchar;
+                slide[w++] = (uch)nchar;
                 if (w == 0x4000) {
-                    flush(w);
+                    flush(slide, w, 0);
                     w = u = 0;
                 }
             }
@@ -134,7 +134,7 @@ void unReduce()   /* expand probabilistically reduced data */
                 slide[w++] = DLE;
                 if (w == 0x4000)
                 {
-                  flush(w);
+                  flush(slide, w, 0);
                   w = u = 0;
                 }
                 ExState = 0;
@@ -159,7 +159,7 @@ void unReduce()   /* expand probabilistically reduced data */
                         n : e);
                   if (u && w <= d)
                   {
-                    memset(slide + w, 0, e);
+                    memzero(slide + w, e);
                     w += e;
                     d += e;
                   }
@@ -176,7 +176,7 @@ void unReduce()   /* expand probabilistically reduced data */
                     }
                   if (w == 0x4000)
                   {
-                    flush(w);
+                    flush(slide, w, 0);
                     w = u = 0;
                   }
                 } while (n);
@@ -191,7 +191,7 @@ void unReduce()   /* expand probabilistically reduced data */
     }
 
     /* flush out slide */
-    flush(w);
+    flush(slide, w, 0);
 }
 
 
@@ -208,9 +208,8 @@ static void LoadFollowers()
     register int i;
 
     for (x = 255; x >= 0; x--) {
-        READBIT(6, Slen[x]);
-        for (i = 0; (byte) i < Slen[x]; i++) {
-            READBIT(8, followers[x][i]);
-        }
+        READBITS(6, Slen[x])   /* ; */
+        for (i = 0; (uch)i < Slen[x]; i++)
+            READBITS(8, followers[x][i])   /* ; */
     }
 }

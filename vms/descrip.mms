@@ -1,78 +1,85 @@
 !==========================================================================
-! MMS description file for UnZip 5.0+                          26 June 1992
+! MMS description file for UnZip 5.1                              21 Dec 93
 !==========================================================================
 !
 !   Original by Antonio Querubin, Jr., <querubin@uhccvx.uhcc.hawaii.edu>
 !     (23 Dec 90)
 !   Enhancements by Igor Mandrichenko, <mandrichenko@mx.decnet.ihep.su>
-!     (9 Feb 92)
+!     (9 Feb 92 -> ...)
 
 ! To build UnZip that uses shared libraries,
 !	mms
-! (One-time users will find it easier to use the MAKE_UNZIP_VAXC.COM command
-! file, which generates both UnZip and ZipInfo.  Just type "@MAKE_UNZIP_VAXC";
-! or "@MAKE_UNZIP_GCC" if you have GNU C.)
+! (One-time users will find it easier to use the MAKE_VAXC.COM command
+! file, which generates both UnZip and ZipInfo.  Just type "@MAKE_VAXC";
+! or "@MAKE_GCC" if you have GNU C.)
 
 ! To build UnZip without shared libraries,
 !	mms noshare
 
-! To delete unnecessary .OBJ files,
+! To delete .OBJ, .EXE and .HLP files,
 !	mms clean
 
-CRYPTF =
-CRYPTO =
-! To build decryption version, uncomment next two lines:
-!CRYPTF = /def=(CRYPT)
-!CRYPTO = crypt.obj,
+.IFDEF EXE
+.ELSE
+EXE = .EXE
+OBJ = .OBJ
+OLB = .OLB
+.ENDIF
 
-CC = cc
-CFLAGS = $(CRYPTF)
-LD = link
-LDFLAGS =
-EXE =
-O = .obj;
-OBJS = unzip$(O), $(CRYPTO) envargs$(O), explode$(O), extract$(O),\
-       file_io$(O), inflate$(O), mapname$(O), match$(O), misc$(O),\
-       unreduce$(O), unshrink$(O), vms$(O)
-OBJI = zipinfo$(O), envargs$(O), match$(O), misc.obj_, vms.obj_
+.IFDEF __ALPHA__
+CC = CC/STANDARD=VAXC/NOWARNINGS
+OPTFILE =
+OPTIONS =
+.ELSE
+OPTFILE = ,[.VMS]VMSSHARE.OPT
+OPTIONS = $(OPTFILE)/OPTIONS
+.ENDIF
 
-LDFLAGS2 =
+.IFDEF __DEBUG__
+CFLAGS = $(CFLAGS)/DEBUG/NOOPTIMIZE
+LINKFLAGS = $(LINKFLAGS)/DEBUG
+.ELSE
+LINKFLAGS = $(LINKFLAGS)/NOTRACE
+.ENDIF
 
-default	:	unzip.exe, zipinfo.exe
+OBJS =	unzip$(OBJ),-
+-!	crypt$(OBJ),-
+	envargs$(OBJ),-
+	explode$(OBJ),-
+	extract$(OBJ),-
+	file_io$(OBJ),-
+	inflate$(OBJ),-
+	match$(OBJ),-
+	unreduce$(OBJ),-
+	unshrink$(OBJ),-
+	zipinfo$(OBJ),-
+	[.VMS]vms$(OBJ)
+
+default	:	unzip$(EXE) unzip.hlp
 	@	!	Do nothing.
 
-unzip.exe :	$(OBJS), vmsshare.opt
-	$(LD) $(LDFLAGS) $(OBJS), \
-		vmsshare.opt/options
-
-zipinfo.exe :	$(OBJI), vmsshare.opt
-	$(LD) $(LDFLAGS) $(OBJI), \
-		vmsshare.opt/options
-
+unzip$(EXE) :	UNZIP$(OLB)($(OBJS))$(OPTFILE)
+	$(LINK)$(LINKFLAGS) UNZIP$(OLB)/INCLUDE=UNZIP/LIBRARY$(OPTIONS)
 
 noshare :	$(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS), \
-		sys$library:vaxcrtl.olb/library $(LDFLAGS2)
+	$(LINK) /EXE=$(MMS$TARGET) $(OBJS),SYS$LIBRARY:VAXCRTL.OLB/LIB
 
 clean :
 	delete $(OBJS)	! you may want to change this to 'delete *.obj;*'
+	DELETE UNZIP$(EXE);*
+	DELETE UNZIP.HLP;*
 
-crypt$(O) :	crypt.c unzip.h zip.h	! may or may not be included in distrib
-envargs$(O) :	envargs.c unzip.h
-explode$(O) :	explode.c unzip.h
-extract$(O) :	extract.c unzip.h
-file_io$(O) :	file_io.c unzip.h
-inflate$(O) :	inflate.c unzip.h
-mapname$(O) :	mapname.c unzip.h
-match$(O) :	match.c unzip.h
-misc$(O) :	misc.c unzip.h
-unreduce$(O) :	unreduce.c unzip.h
-unshrink$(O) :	unshrink.c unzip.h
-unzip$(O) :	unzip.c unzip.h
-vms$(O)	  :	vms.c unzip.h
-VMSmunch$(O) :	VMSmunch.c VMSmunch.h
-misc.obj_ :	misc.c unzip.h
-	$(CC)/object=misc.obj_/define="ZIPINFO" misc.c
-
-vms.obj_ :	vms.c unzip.h
-	$(CC)/object=vms.obj_/define="ZIPINFO" vms.c
+unzip.hlp	: [.vms]unzip.rnh
+crypt$(OBJ) 	: crypt.c unzip.h zip.h crypt.h
+envargs$(OBJ)	: envargs.c unzip.h
+explode$(OBJ)	: explode.c unzip.h
+extract$(OBJ)	: extract.c unzip.h crypt.h
+file_io$(OBJ)	: file_io.c unzip.h crypt.h tables.h
+inflate$(OBJ)	: inflate.c inflate.h unzip.h
+match$(OBJ)	: match.c unzip.h
+unreduce$(OBJ)	: unreduce.c unzip.h
+unshrink$(OBJ)	: unshrink.c unzip.h
+unzip$(OBJ)	: unzip.c unzip.h
+zipinfo$(OBJ)	: zipinfo.c unzip.h
+[.VMS]vms$(OBJ)	: [.VMS]vms.c [.VMS]vms.h unzip.h
+	$(CC) $(CFLAGS) /INCLUDE=SYS$DISK:[] /OBJ=$(MMS$TARGET) [.VMS]VMS.C

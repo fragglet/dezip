@@ -1,0 +1,143 @@
+#==============================================================================
+# Makefile for UnZip, ZipInfo & fUnZip:  for DJGPP 1.11 and GNU make
+# Version:  5.1                                                 8 February 1994
+#==============================================================================
+
+# If you use an old version of djgpp (1.10 or earlier), you must set
+# OBJFORMAT=aout.  If anyone can get the .SUFFIXES rule in unix/Makefile
+# to work, please send mail to zip-bugs!  (If it's later than February,
+# 1994, however, assume that someone else has already done so.)  This
+# makefile has explicit rules for every file because the implicit one
+# is ignored by GNU make.
+
+# Defaults most systems use (use LOCAL_UNZIP in environment to add flags, 
+# such as -DDOSWILD).
+
+MAKE=make
+
+# UnZip flags
+CC = gcc
+LD = $(CC)
+LOC = $(LOCAL_UNZIP)
+CF = -O2 -Wall -I. $(LOC)
+LF = -o unzip
+LF2 = 
+
+# fUnZip flags
+FC = -DFUNZIP
+FL = -o funzip
+FL2 = $(LF2)
+
+# general-purpose stuff
+CP = copy
+RM = del
+E =
+O = .o
+M = msdos
+
+# object files
+OBJS1 = unzip$O crypt$O envargs$O explode$O extract$O file_io$O
+OBJS2 = inflate$O match$O unreduce$O unshrink$O zipinfo$O
+OBJS = $(OBJS1) $(OBJS2) $M$O
+LOBJS = $(OBJS)
+OBJF = funzip$O crypt_$O inflate_$O
+
+
+# this is for GNU make; comment out and notify zip-bugs if it causes errors
+# (doesn't seem to work with djgpp's version anyway...)
+.SUFFIXES:
+.SUFFIXES:	.o .c
+
+.c.o:
+	$(CC) -c $(CF) $*.c
+
+all:		gcc_dos
+unzips:		$(UNZIPS)
+
+clean:
+	$(RM) $(OBJS) $(OBJF) unzip$E funzip$E zipinfo$E
+
+unzip$E:	$(OBJS)			# add `&' for parallel makes
+	$(LD) $(LF) $(LOBJS) $(LF2)
+
+funzip$E:	$(OBJF)			# add `&' for parallel makes
+	$(LD) $(FL) $(OBJF) $(FL2)
+
+zipinfo$E:	unzip$E
+	@echo\
+ '  This is a Unix-specific target.  ZipInfo is not enabled in some MS-DOS'
+	@echo\
+ '  versions of UnZip; if it is in yours, copy unzip.exe to zipinfo.exe'
+	@echo\
+ '  or else invoke as "unzip -Z" (in a batch file, for example).'
+	$(LN) unzip$E zipinfo$E
+
+
+crypt$O:	crypt.c unzip.h zip.h crypt.h
+	$(CC) -c $(CF) $*.c
+
+envargs$O:	envargs.c unzip.h
+	$(CC) -c $(CF) $*.c
+
+explode$O:	explode.c unzip.h
+	$(CC) -c $(CF) $*.c
+
+extract$O:	extract.c unzip.h crypt.h
+	$(CC) -c $(CF) $*.c
+
+file_io$O:	file_io.c unzip.h crypt.h tables.h
+	$(CC) -c $(CF) $*.c
+
+funzip$O:	funzip.c unzip.h crypt.h tables.h
+	$(CC) -c $(CF) $*.c
+
+inflate$O:	inflate.c inflate.h unzip.h
+	$(CC) -c $(CF) $*.c
+
+match$O:	match.c unzip.h
+	$(CC) -c $(CF) $*.c
+
+unreduce$O:	unreduce.c unzip.h
+	$(CC) -c $(CF) $*.c
+
+unshrink$O:	unshrink.c unzip.h
+	$(CC) -c $(CF) $*.c
+
+unzip$O:	unzip.c unzip.h
+	$(CC) -c $(CF) $*.c
+
+zipinfo$O:	zipinfo.c unzip.h
+	$(CC) -c $(CF) $*.c
+
+crypt_$O:	crypt.c unzip.h zip.h crypt.h		# funzip only
+	$(CP) crypt.c crypt_.c
+	$(CC) -c $(CF) $(FC) crypt_.c
+	$(RM) crypt_.c
+
+inflate_$O:	inflate.c inflate.h unzip.h crypt.h	# funzip only
+	$(CP) inflate.c inflate_.c
+	$(CC) -c $(CF) $(FC) inflate_.c
+	$(RM) inflate_.c
+
+msdos$O:	msdos/msdos.c unzip.h			# MS-DOS only
+	$(CC) -c $(CF) msdos/msdos.c
+
+
+
+# MS-DOS with D.J. Delorie's djgcc 1.11.  Note that go32 doesn't support
+# DOS function 0x38, so the default date format is used with the -v option.
+#
+gcc_dos: _gcc_dos fu_gcc
+
+_gcc_dos: gcc_rsp unzip
+	coff2exe unzip
+	del gcc_rsp
+	del unzip
+
+gcc_rsp:
+	echo $(OBJS1) > gcc_rsp
+	echo msdos.o $(OBJS2) >> gcc_rsp
+
+fu_gcc: funzip
+	coff2exe funzip
+	del funzip

@@ -1,0 +1,48 @@
+# Makefile for UnZip 5.1+ using Manx Aztec C 5.2             6 February 1994
+#
+# You may need to change directory names for stat.c, filedate.c and amiga.c.
+
+
+CC = cc
+CFLAGS = -d AMIGA -ps -sabfmnpu -wcpr0u
+# -ps means short ints, -s... is optimizations, -w... is type checking
+LD = ln
+LDFLAGS = +q -m
+LDLIBS = -lc16
+
+OBJS = unzip.o crypt.o envargs.o explode.o unshrink.o extract.o \
+       zipinfo.o file_io.o inflate.o match.o unreduce.o amiga/amiga.o
+FOBJS = funzip.o crypt.fo inflate.fo
+
+
+.c.o :
+	$(CC) -o $@ $(CFLAGS) $*.c
+
+.c.fo:
+	$(CC) -o $@ -d FUNZIP $(CFLAGS) $*.c
+
+UnZip :     $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+
+fUnZip :    $(FOBJS)
+	$(LD) $(LDFLAGS) -o $@ $(FOBJS) $(LDLIBS)
+
+f : fUnZip
+
+all : UnZip fUnZip
+
+clean :
+	delete #?.(o|fo) quiet
+
+
+$(OBJS) $(FOBJS) : unzip.h amiga/amiga.h amiga/z-stat.h
+
+crypt.o : zip.h
+
+inflate.o inflate.fo : inflate.h
+
+file_io.o funzip.o : tables.h
+
+crypt.o unzip.o funzip.o file_io.o extract.o inflate.fo : crypt.h
+
+amiga/amiga.o : amiga/filedate.c amiga/stat.c

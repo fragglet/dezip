@@ -1,54 +1,50 @@
-Contents of the UnZip 5.0p1 archive (the OS-specific subdirectories at the
+Contents of the UnZip 5.1 archive (the OS-specific subdirectories at the
 end contain their own Contents listings):
 
   Contents	this file
   README	what UnZip is; general information
+  INSTALL	how to compile and install UnZip and related utilities
   Where		where Zip/UnZip and encryption/decryption support can be found
-  History.501	new features and fixes in this release
+  History.510	new features and fixes in this release
   ZipRules	Info-ZIP guidelines on contributions to the cause
   BUGS		known bugs, problems, and (possible) features to be added
   unzip.1	UnZip manual page, nroff format
   unzip.doc	UnZip manual page, human-readable format
   zipinfo.1	ZipInfo manual page, nroff format
   zipinfo.doc	ZipInfo manual page, human-readable format
-  funzip.1 	FUnZip manual page, nroff format
-  funzip.doc 	FUnZip manual page, human-readable format
+  funzip.1 	fUnZip manual page, nroff format
+  funzip.doc	fUnZip manual page, human-readable format
   CONTRIBS	list of contributors to UnZip
   COPYING	copyrights and distribution policy
-  crypt.c       NOT INCLUDED:  see "Where" file for sites
-  envargs.c	code to read options from UNZIP environment var. (required*)
+  crypt.c	dummy decryption routines (required*)
+  crypt.h	dummy decryption header file (required*)
+  envargs.c	code to read options from UNZIP environment var. (required)
   explode.c	code for exploding (required)
   extract.c	high-level extraction and decryption code (required)
   file_io.c	file manipulation and password code (required)
-  funzip.c 	filter unzip:  extracts in a Unix pipe (not fully supported)
-  inflate.c	code for inflating (required)
-  mapname.c	code to map filenames between different OS's (required)
-  match.c	pattern-matching code for filename wildcards (required*)
-  misc.c	various support routines (required*)
-  unreduce.c	code for unReducing (required)
-  unshrink.c	code for unShrinking (required)
+  funzip.c 	filter unzip:  extracts from stdin to stdout (pipes)
+  inflate.c	code for inflating (required*)
+  inflate.h	header file for inflating (required*)
+  match.c	pattern-matching code for filename wildcards (required)
+  tables.h	static lookup tables used in file_io.c and funzip.c (required*)
+  unreduce.c	code for unreducing (required)
+  unshrink.c	code for unshrinking (required)
   unzip.c	main UnZip driver code (required)
   unzip.h	main UnZip header file (required*)
-  zip.h		header for using crypt.c with UnZip (required for decryption)
-  zipinfo.c	zipfile information utility (useful, but optional)
-  Makefile	main Unix makefile (required)
-  AMIGA/	support files for compiling on Amiga (not recently tested)
-  ATARI/	support files for compiling v4.1 on Atari ST
-  MAC/		support files for compiling on Macintosh
-  MSDOS/	support files for compiling under MS-DOS
-  NT/		support files for compiling under Windows NT
-  OS2/		support files for compiling under OS/2
-  VMS/		support files for compiling under VMS
+  zip.h		dummy header for use with crypt.c (required*)
+  zipinfo.c	UnZip listing routines, mainly for ZipInfo mode (required)
+  amiga/	support files for compiling under AmigaDOS
+  atari/	support files for compiling under Atari TOS
+  human68k/	support files for compiling under X68000/Human68K
+  mac/		support files for compiling under Macintosh OS
+  msdos/	support files for compiling under MS-DOS
+  nt/		support files for compiling under Windows NT
+  os2/		support files for compiling under OS/2
+  tops20/	support files for compiling under TOPS-20
+  unix/		support files for compiling under Unix
+  vms/		support files for compiling under VMS
 
-Files marked "required*" are also needed to compile ZipInfo.  There are Unix
-and MS-DOS targets to make ZipInfo in Makefile (zipinfo, zi_indigo, zi_gcc, 
-zi_dos).  FUnZip is a new program of limited capabilities; for now, it can 
-only extract the first member in a zipfile from stdin and send it to stdout,
-and only if the member is either deflated or stored.  It works under Unix,
-OS/2 and MS-DOS, at least, although it doesn't appear in all of the makefiles
-yet.  It may eventually be absorbed into UnZip itself.
-
-The Atari ST support is in the form of patches against UnZip 4.1; there
-are more details in the ATARI sub-archive Contents file.  Amiga support
-is only partial for this release, but full support is almost complete in 
-the current UnZip 5.1 betas.
+Files marked "required*" are also needed to compile fUnZip.  The normal
+unzip makefile targets now make funzip, too, except in a few cases; zipinfo
+is now incorporated into unzip (and invoked with unzip's -Z option or by
+linking/renaming the executable to "zipinfo[.exe]" or "ii[.exe]").

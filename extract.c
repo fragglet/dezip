@@ -10,38 +10,32 @@
 
 
 #include "unzip.h"
-#ifdef  MSWIN
+#include "crypt.h"
+#ifdef MSWIN
 #  include "wizunzip.h"
 #  include "replace.h"
-#endif /* MSWIN */
+#endif
 
-
-/************************************/
-/*  Extract Local Prototypes, etc.  */
-/************************************/
+int newfile;   /* used also in file_io.c (flush()) */
 
 static int store_info __((void));
 static int extract_or_test_member __((void));
-#ifdef CRYPT
-   static int decrypt_member __((void));
-   static int testp __((byte *hdr));
-#endif
-
-static byte *mem_i_buffer;
-static byte *mem_o_buffer;
-static ULONG mem_i_size, mem_i_offset;
-static ULONG mem_o_size, mem_o_offset;
 
 static char *VersionMsg =
-  " skipping: %-22s  need %s compat. v%u.%u (can do v%u.%u)\n";
+  "   skipping: %-22s  need %s compat. v%u.%u (can do v%u.%u)\n";
 static char *ComprMsg =
-  " skipping: %-22s  compression method %d\n";
+  "   skipping: %-22s  compression method %d\n";
 static char *FilNamMsg =
   "%s:  bad filename length (%s)\n";
 static char *ExtFieldMsg =
   "%s:  bad extra field length (%s)\n";
 static char *OffsetMsg =
-  "file #%d:  bad zipfile offset (%s)\n";
+  "file #%d:  bad zipfile offset (%s):  %ld\n";
+static char *ExtractMsg =
+  "%11s: %-22s  %s%s";
+static char *LengthMsg =
+  "%s  %s:  %ld bytes required to uncompress to %lu bytes;\n       %s\
+   supposed to require %lu bytes%s%s%s\n";
 
 
 
@@ -53,16 +47,13 @@ static char *OffsetMsg =
 
 int extract_or_test_files()    /* return PK-type error code */
 {
-    char **fnamev;
-    byte *cd_inptr;
-    int cd_incnt, error, error_in_archive=0;
-    int renamed, query, len, filnum=(-1), blknum=0;
-#ifdef OS2
-    extern int longname;  /* from os2unzip.c */
-#endif
-    UWORD i, j, members_remaining, num_skipped=0, num_bad_pwd=0;
-    longint cd_bufstart, bufstart, inbuf_offset, request;
-    min_info info[DIR_BLKSIZ];
+    uch *cd_inptr;
+    int cd_incnt, error, error_in_archive=PK_COOL;
+    int i, j, renamed, query, len, filnum=(-1), blknum=0;
+    int *fn_matched=NULL, *xn_matched=NULL;
+    ush members_remaining, num_skipped=0, num_bad_pwd=0;
+    long cd_bufstart, bufstart, inbuf_offset, request;
+    static min_info info[DIR_BLKSIZ];
 
 
 /*---------------------------------------------------------------------------
@@ -93,13 +84,27 @@ int extract_or_test_files()    /* return PK-type error code */
 
     pInfo = info;
     members_remaining = ecrec.total_entries_central_dir;
+#ifdef CRYPT
+    newzip = TRUE;
+#endif
+
+    /* malloc space for check on unmatched filespecs (OK if one or both NULL) */
+    if (filespecs > 0  &&
+        (fn_matched=(int *)malloc(filespecs*sizeof(int))) != NULL)
+        for (i = 0;  i < filespecs;  ++i)
+            fn_matched[i] = FALSE;
+    if (xfilespecs > 0  &&
+        (xn_matched=(int *)malloc(xfilespecs*sizeof(int))) != NULL)
+        for (i = 0;  i < xfilespecs;  ++i)
+            xn_matched[i] = FALSE;
 
     while (members_remaining) {
         j = 0;
 
         /*
          * Loop through files in central directory, storing offsets, file
-         * attributes, and case-conversion flags until block size is reached.
+         * attributes, case-conversion and text-conversion flags until block
+         * size is reached.
          */
 
         while (members_remaining && (j < DIR_BLKSIZ)) {
@@ -107,27 +112,27 @@ int extract_or_test_files()    /* return PK-type error code */
             pInfo = &info[j];
 
             if (readbuf(sig, 4) <= 0) {
-                error_in_archive = 51;  /* 51:  unexpected EOF */
+                error_in_archive = PK_EOF;
                 members_remaining = 0;  /* ...so no more left to do */
                 break;
             }
             if (strncmp(sig, central_hdr_sig, 4)) {  /* just to make sure */
                 fprintf(stderr, CentSigMsg, j);  /* sig not found */
                 fprintf(stderr, ReportMsg);   /* check binary transfers */
-                error_in_archive = 3;   /* 3:  error in zipfile */
+                error_in_archive = PK_BADERR;
                 members_remaining = 0;  /* ...so no more left to do */
                 break;
             }
             /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag */
-            if ((error = process_cdir_file_hdr()) != 0) {
-                error_in_archive = error;   /* only 51 (EOF) defined */
+            if ((error = process_cdir_file_hdr()) != PK_COOL) {
+                error_in_archive = error;   /* only PK_EOF defined */
                 members_remaining = 0;  /* ...so no more left to do */
                 break;
             }
-            if ((error = do_string(crec.filename_length, FILENAME)) != 0) {
+            if ((error = do_string(crec.filename_length,FILENAME)) != PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;
-                if (error > 1) {  /* fatal:  no more left to do */
+                if (error > PK_WARN) {  /* fatal:  no more left to do */
                     fprintf(stderr, FilNamMsg, filename, "central");
                     members_remaining = 0;
                     break;
@@ -137,16 +142,16 @@ int extract_or_test_files()    /* return PK-type error code */
             {
                 if (error > error_in_archive)
                     error_in_archive = error;
-                if (error > 1) {  /* fatal */
+                if (error > PK_WARN) {  /* fatal */
                     fprintf(stderr, ExtFieldMsg, filename, "central");
                     members_remaining = 0;
                     break;
                 }
             }
-            if ((error = do_string(crec.file_comment_length, SKIP)) != 0) {
+            if ((error = do_string(crec.file_comment_length,SKIP)) != PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;
-                if (error > 1) {  /* fatal */
+                if (error > PK_WARN) {  /* fatal */
                     fprintf(stderr, "\n%s:  bad file comment length\n",
                             filename);
                     members_remaining = 0;
@@ -155,20 +160,38 @@ int extract_or_test_files()    /* return PK-type error code */
             }
             if (process_all_files) {
                 if (store_info())
-                    ++num_skipped;
+                    ++j;  /* file is OK; info[] stored; continue with next */
                 else
-                    ++j;  /* file is OK: save info[] and continue with next */
+                    ++num_skipped;
             } else {
-                fnamev = fnv;   /* don't destroy permanent filename pointer */
-                for (--fnamev; *++fnamev;)
-                    if (match(filename, *fnamev)) {
-                        if (store_info())
-                            ++num_skipped;
-                        else
-                            ++j;   /* file is OK */
-                        break;  /* found match for filename, so stop looping */
-                    } /* end if (match), for-loop (fnamev) */
+                int   do_this_file = FALSE;
+                char  **pfn = pfnames-1;
+
+                while (*++pfn)
+                    if (match(filename, *pfn, pInfo->lcflag)) {
+                        do_this_file = TRUE;
+                        if (fn_matched)
+                            fn_matched[pfn-pfnames] = TRUE;
+                        break;       /* found match, so stop looping */
+                    }
+                if (do_this_file) {  /* check if this is an excluded file */
+                    char  **pxn = pxnames-1;
+
+                    while (*++pxn)
+                        if (match(filename, *pxn, pInfo->lcflag)) {
+                            do_this_file = FALSE;
+                            if (xn_matched)
+                                xn_matched[pxn-pxnames] = TRUE;
+                            break;
+                        }
+                }
+                if (do_this_file)
+                    if (store_info())
+                        ++j;            /* file is OK */
+                    else
+                        ++num_skipped;  /* unsupp. compression or encryption */
             } /* end if (process_all_files) */
+
 
         } /* end while-loop (adding files to current block) */
 
@@ -185,26 +208,26 @@ int extract_or_test_files()    /* return PK-type error code */
         for (i = 0; i < j; ++i) {
             filnum = i + blknum*DIR_BLKSIZ;
             pInfo = &info[i];
-            /*
-             * if the target position is not within the current input buffer
+
+            /* if the target position is not within the current input buffer
              * (either haven't yet read far enough, or (maybe) skipping back-
-             * ward) skip to the target position and reset readbuf().
-             */
+             * ward), skip to the target position and reset readbuf(). */
+
             /* LSEEK(pInfo->offset):  */
             request = pInfo->offset + extra_bytes;
             inbuf_offset = request % INBUFSIZ;
             bufstart = request - inbuf_offset;
 
             if (request < 0) {
-                fprintf(stderr, SeekMsg, ReportMsg);
-                error_in_archive = 3;       /* 3:  severe error in zipfile, */
-                continue;                   /*  but can still go on */
+                fprintf(stderr, SeekMsg, zipfn, ReportMsg);
+                error_in_archive = PK_BADERR;
+                continue;   /* but can still go on */
             } else if (bufstart != cur_zipfile_bufstart) {
-                cur_zipfile_bufstart = lseek(zipfd, bufstart, SEEK_SET);
+                cur_zipfile_bufstart = lseek(zipfd,(LONGINT)bufstart,SEEK_SET);
                 if ((incnt = read(zipfd,(char *)inbuf,INBUFSIZ)) <= 0) {
-                    fprintf(stderr, OffsetMsg, filnum, "lseek");
-                    error_in_archive = 3;   /* 3:  error in zipfile, but */
-                    continue;               /*  can still do next file   */
+                    fprintf(stderr, OffsetMsg, filnum, "lseek", bufstart);
+                    error_in_archive = PK_BADERR;
+                    continue;   /* can still do next file */
                 }
                 inptr = inbuf + (int)inbuf_offset;
                 incnt -= (int)inbuf_offset;
@@ -215,37 +238,53 @@ int extract_or_test_files()    /* return PK-type error code */
 
             /* should be in proper position now, so check for sig */
             if (readbuf(sig, 4) <= 0) {  /* bad offset */
-                fprintf(stderr, OffsetMsg, filnum, "EOF");
-                error_in_archive = 3;    /* 3:  error in zipfile */
-                continue;       /* but can still try next one */
+                fprintf(stderr, OffsetMsg, filnum, "EOF", request);
+                error_in_archive = PK_BADERR;
+                continue;   /* but can still try next one */
             }
             if (strncmp(sig, local_hdr_sig, 4)) {
-                fprintf(stderr, OffsetMsg, filnum,
-                        "can't find local header sig");   /* bad offset */
-                error_in_archive = 3;
-                continue;
+                fprintf(stderr, OffsetMsg, filnum, "local header sig", request);
+                error_in_archive = PK_ERR;
+/* GRR testing */
+                if (filnum == 0) {
+                    fprintf(stderr, "  (attempting to re-compensate)\n");
+                    extra_bytes = 0L;
+                    LSEEK(pInfo->offset)
+                    if (readbuf(sig, 4) <= 0) {  /* bad offset */
+                        fprintf(stderr, OffsetMsg, filnum, "EOF", request);
+                        error_in_archive = PK_BADERR;
+                        continue;   /* but can still try next one */
+                    }
+                    if (strncmp(sig, local_hdr_sig, 4)) {
+                        fprintf(stderr, OffsetMsg, filnum, "local header sig",
+                          request);
+                        error_in_archive = PK_BADERR;
+                        continue;
+                    }
+                }
+/* GRR testing */
             }
-            if ((error = process_local_file_hdr()) != 0) {
+            if ((error = process_local_file_hdr()) != PK_COOL) {
                 fprintf(stderr, "\nfile #%d:  bad local header\n", filnum);
-                error_in_archive = error;       /* only 51 (EOF) defined */
-                continue;       /* can still try next one */
+                error_in_archive = error;   /* only PK_EOF defined */
+                continue;   /* can still try next one */
             }
-            if ((error = do_string(lrec.filename_length, FILENAME)) != 0) {
+            if ((error = do_string(lrec.filename_length,FILENAME)) != PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;
-                if (error > 1) {
+                if (error > PK_WARN) {
                     fprintf(stderr, FilNamMsg, filename, "local");
                     continue;   /* go on to next one */
                 }
             }
-            if (extra_field != (byte *)NULL)
+            if (extra_field != (uch *)NULL) {
                 free(extra_field);
-            extra_field = (byte *)NULL;
-            if ((error = do_string(lrec.extra_field_length, EXTRA_FIELD)) != 0)
-            {
+                extra_field = (uch *)NULL;
+            }
+            if ((error = do_string(lrec.extra_field_length,EXTRA_FIELD)) != 0) {
                 if (error > error_in_archive)
                     error_in_archive = error;
-                if (error > 1) {
+                if (error > PK_WARN) {
                     fprintf(stderr, ExtFieldMsg, filename, "local");
                     continue;   /* go on */
                 }
@@ -260,9 +299,6 @@ int extract_or_test_files()    /* return PK-type error code */
              */
             if (!tflag && !cflag) {
                 renamed = FALSE;   /* user hasn't renamed output file yet */
-#ifdef OS2
-                longname = FALSE;  /* no long name has yet been stored */
-#endif
 
 startover:
                 query = FALSE;
@@ -270,9 +306,26 @@ startover:
                 macflag = (pInfo->hostnum == MAC_);
 #endif
                 /* mapname can create dirs if not freshening or if renamed */
-                if ((error = mapname(!fflag || renamed)) > 1) {    /* skip */
-                    if ((error > 2) && (error_in_archive < 2))
-                        error_in_archive = 2;   /* (weak) error in zipfile */
+                if ((error = mapname(renamed)) > PK_WARN) {
+                    if (error == IZ_CREATED_DIR) {
+
+                        /* GRR:  add code to set times/attribs on dirs--
+                         * save to list, sort when done (a la zip), set
+                         * times/attributes on deepest dirs first */
+
+                    } else if (error == IZ_VOL_LABEL) {
+                        fprintf(stderr,
+                          "   skipping: %-22s  %svolume label\n", filename,
+#ifdef DOS_NT_OS2
+                          volflag? "hard disk " :
+#endif
+                          "");
+                    /*  if (!error_in_archive)
+                            error_in_archive = PK_WARN;  */
+                    } else if (error > PK_ERR  &&  error_in_archive < PK_ERR)
+                        error_in_archive = PK_ERR;
+                    Trace((stderr, "mapname(%s) returns error = %d\n", filename,
+                      error));
                     continue;   /* go on to next file */
                 }
 
@@ -294,9 +347,6 @@ startover:
                             query = TRUE;
                         break;
                 }
-/*#ifndef VMS*/ /* VMS creates higher version number instead of overwriting
-                 * (will have to modify for VMS-style names with specific
-                 *  version numbers:  just check V_flag?  don't use stat?) */
                 if (query) {
 #ifdef MSWIN
                     FARPROC lpfnprocReplace;
@@ -313,7 +363,7 @@ startover:
                     switch (ReplaceDlgRetVal) {
                         case IDM_REPLACE_RENAME:
                             renamed = TRUE;
-                            goto startover;   /* sorry for a goto */
+                            goto startover;
                         case IDM_REPLACE_YES:
                             break;
                         case IDM_REPLACE_ALL:
@@ -333,8 +383,14 @@ reprompt:
                     fprintf(stderr,
                       "replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ",
                       filename);
-                    FFLUSH   /* for Amiga and Mac MPW */
-                    fgets(answerbuf, 9, stdin);
+                    FFLUSH(stderr);
+                    if (fgets(answerbuf, 9, stdin) == NULL) {
+                        fprintf(stderr, " NULL\n(assuming [N]one)\n");
+                        FFLUSH(stderr);
+                        *answerbuf = 'N';
+                        if (!error_in_archive)
+                            error_in_archive = 1;  /* not extracted:  warning */
+                    }
                     switch (*answerbuf) {
                         case 'A':   /* dangerous option:  force caps */
                             overwrite_all = TRUE;
@@ -344,7 +400,7 @@ reprompt:
                         case 'R':
                             do {
                                 fprintf(stderr, "new name: ");
-                                FFLUSH   /* for AMIGA and Mac MPW */
+                                FFLUSH(stderr);
                                 fgets(filename, FILNAMSIZ, stdin);
                                 /* usually get \n here:  better check for it */
                                 len = strlen(filename);
@@ -370,26 +426,25 @@ reprompt:
                     } /* end switch (*answerbuf) */
 #endif /* ?MSWIN */
                 } /* end if (query) */
-/*#endif*/ /* !VMS */
             } /* end if (extracting to disk) */
 
 #ifdef CRYPT
-            if (pInfo->encrypted && ((error = decrypt_member()) != 0)) {
-                if (error == 10) {
+            if (pInfo->encrypted && (error = decrypt()) != PK_COOL) {
+                if (error == PK_MEM2) {
                     if (error > error_in_archive)
                         error_in_archive = error;
                     fprintf(stderr,
-                      " skipping: %-22s  unable to get password\n", filename);
-                } else {  /* (error == 1) */
+                      "   skipping: %-22s  unable to get password\n", filename);
+                } else {  /* (error == PK_WARN) */
                     fprintf(stderr,
-                      " skipping: %-22s  incorrect password\n", filename);
+                      "   skipping: %-22s  incorrect password\n", filename);
                     ++num_bad_pwd;
                 }
                 continue;   /* go on to next file */
             }
 #endif /* CRYPT */
             disk_full = 0;
-            if ((error = extract_or_test_member()) != 0) {
+            if ((error = extract_or_test_member()) != PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;       /* ...and keep going */
                 if (disk_full > 1)
@@ -403,7 +458,7 @@ reprompt:
          * the next batch of files.
          */
 
-        cur_zipfile_bufstart = lseek(zipfd, cd_bufstart, SEEK_SET);
+        cur_zipfile_bufstart = lseek(zipfd, (LONGINT)cd_bufstart, SEEK_SET);
         read(zipfd, (char *)inbuf, INBUFSIZ);  /* were there b4 ==> no error */
         inptr = cd_inptr;
         incnt = cd_incnt;
@@ -420,49 +475,75 @@ reprompt:
     } /* end while-loop (blocks of files in central directory) */
 
 /*---------------------------------------------------------------------------
+    Check for unmatched filespecs on command line and print warning if any
+    found.
+  ---------------------------------------------------------------------------*/
+
+    if (fn_matched) {
+        for (i = 0;  i < filespecs;  ++i)
+            if (!fn_matched[i])
+                fprintf(stderr, "caution: filename not matched:  %s\n",
+                  pfnames[i]);
+        free(fn_matched);
+    }
+    if (xn_matched) {
+        for (i = 0;  i < xfilespecs;  ++i)
+            if (!xn_matched[i])
+                fprintf(stderr, "caution: excluded filename not matched:  %s\n",
+                  pxnames[i]);
+        free(xn_matched);
+    }
+
+/*---------------------------------------------------------------------------
     Double-check that we're back at the end-of-central-directory record, and
     print quick summary of results, if we were just testing the archive.  We
     send the summary to stdout so that people doing the testing in the back-
     ground and redirecting to a file can just do a "tail" on the output file.
   ---------------------------------------------------------------------------*/
 
-    readbuf(sig, 4);
+    if (readbuf(sig, 4) <= 0)
+        error_in_archive = PK_EOF;
     if (strncmp(sig, end_central_sig, 4)) {     /* just to make sure again */
         fprintf(stderr, EndSigMsg);  /* didn't find end-of-central-dir sig */
         fprintf(stderr, ReportMsg);  /* check binary transfers */
         if (!error_in_archive)       /* don't overwrite stronger error */
-            error_in_archive = 1;    /* 1:  warning error */
+            error_in_archive = PK_WARN;
     }
-    if (tflag && (quietflg == 1)) {
+    if (tflag) {
         int num=filnum+1 - num_bad_pwd;
 
-        if (error_in_archive)
-            printf("At least one error was detected in %s.\n", zipfn);
-        else if (num == 0)
-            printf("Caution:  zero files tested in %s.\n", zipfn);
-        else if (process_all_files && (num_skipped+num_bad_pwd == 0))
-            printf("No errors detected in %s.\n", zipfn);
-        else
-            printf("No errors detected in %s for the %d file%s tested.\n",
-              zipfn, num, (num==1)? "":"s");
-        if (num_skipped > 0)
-            printf("%d file%s skipped because of unsupported compression or\
- encoding.\n",
-              num_skipped, (num_skipped==1)? "":"s");
+        if (qflag < 2) {         /* GRR 930710:  was (qflag == 1) */
+            if (error_in_archive)
+                printf("At least one %serror was detected in %s.\n",
+                  (error_in_archive == 1)? "warning-" : "", zipfn);
+            else if (num == 0)
+                printf("Caution:  zero files tested in %s.\n", zipfn);
+            else if (process_all_files && (num_skipped+num_bad_pwd == 0))
+                printf("No errors detected in compressed data of %s.\n", zipfn);
+            else
+                printf("No errors detected in %s for the %d file%s tested.\n",
+                  zipfn, num, (num==1)? "":"s");
+            if (num_skipped > 0)
+                printf("%d file%s skipped because of unsupported compression \
+or encoding.\n", num_skipped, (num_skipped==1)? "":"s");
 #ifdef CRYPT
-        if (num_bad_pwd > 0)
-            printf("%d file%s skipped because of incorrect password.\n",
-              num_bad_pwd, (num_bad_pwd==1)? "":"s");
+            if (num_bad_pwd > 0)
+                printf("%d file%s skipped because of incorrect password.\n",
+                  num_bad_pwd, (num_bad_pwd==1)? "":"s");
 #endif /* CRYPT */
+        } else if ((qflag == 0) && !error_in_archive && (num == 0))
+            printf("Caution:  zero files tested in %s.\n", zipfn);
     }
-    if ((num_skipped > 0) && !error_in_archive)   /* files not tested or  */
-        error_in_archive = 1;                     /*  extracted:  warning */
+
+    /* give warning if files not tested or extracted */
+    if ((num_skipped > 0) && !error_in_archive)
+        error_in_archive = PK_WARN;
 #ifdef CRYPT
-    if ((num_bad_pwd > 0) && !error_in_archive)   /* files not tested or  */
-        error_in_archive = 1;                     /*  extracted:  warning */
+    if ((num_bad_pwd > 0) && !error_in_archive)
+        error_in_archive = PK_WARN;
 #endif /* CRYPT */
 
-    return (error_in_archive);
+    return error_in_archive;
 
 } /* end function extract_or_test_files() */
 
@@ -474,26 +555,37 @@ reprompt:
 /*  Function store_info()  */
 /***************************/
 
-static int store_info()   /* return 1 if skipping, 0 if OK */
+static int store_info()   /* return 0 if skipping, 1 if OK */
 {
-    ULONG tmp;
-
-#define UNKN_COMPR \
+#ifdef SFX
+#  define UNKN_COMPR \
+   (crec.compression_method!=STORED && crec.compression_method!=DEFLATED)
+#else
+#  define UNKN_COMPR \
    (crec.compression_method>IMPLODED && crec.compression_method!=DEFLATED)
-#if 0  /* old */
-#  define UNKN_COMPR   (crec.compression_method>IMPLODED)
 #endif
-
 
 /*---------------------------------------------------------------------------
     Check central directory info for version/compatibility requirements.
   ---------------------------------------------------------------------------*/
 
-    pInfo->encrypted = crec.general_purpose_bit_flag & 1;    /* bit field */
-    pInfo->ExtLocHdr = (crec.general_purpose_bit_flag & 8) == 8;  /* bit */
-    pInfo->text = crec.internal_file_attributes & 1;         /* bit field */
+    pInfo->encrypted = crec.general_purpose_bit_flag & 1;       /* bit field */
+    pInfo->ExtLocHdr = (crec.general_purpose_bit_flag & 8) == 8;/* bit field */
+    pInfo->textfile = crec.internal_file_attributes & 1;        /* bit field */
     pInfo->crc = crec.crc32;
-    pInfo->compr_size = crec.compressed_size;
+    pInfo->compr_size = crec.csize;
+
+    switch (aflag) {
+        case 0:
+            pInfo->textmode = FALSE;   /* bit field */
+            break;
+        case 1:
+            pInfo->textmode = pInfo->textfile;   /* auto-convert mode */
+            break;
+        default:  /* case 2: */
+            pInfo->textmode = TRUE;
+            break;
+    }
 
     if (crec.version_needed_to_extract[1] == VMS_) {
         if (crec.version_needed_to_extract[0] > VMS_VERSION) {
@@ -501,17 +593,17 @@ static int store_info()   /* return 1 if skipping, 0 if OK */
               crec.version_needed_to_extract[0] / 10,
               crec.version_needed_to_extract[0] % 10,
               VMS_VERSION / 10, VMS_VERSION % 10);
-            return 1;
+            return 0;
         }
 #ifndef VMS   /* won't be able to use extra field, but still have data */
         else if (!tflag && !force_flag) {  /* if forcing, extract regardless */
             fprintf(stderr,
               "\n%s:  stored in VMS format.  Extract anyway? (y/n) ",
               filename);
-            FFLUSH   /* for Amiga and Mac MPW */
+            FFLUSH(stderr);
             fgets(answerbuf, 9, stdin);
             if ((*answerbuf != 'y') && (*answerbuf != 'Y'))
-                return 1;
+                return 0;
         }
 #endif /* !VMS */
     /* usual file type:  don't need VMS to extract */
@@ -520,54 +612,26 @@ static int store_info()   /* return 1 if skipping, 0 if OK */
           crec.version_needed_to_extract[0] / 10,
           crec.version_needed_to_extract[0] % 10,
           UNZIP_VERSION / 10, UNZIP_VERSION % 10);
-        return 1;
+        return 0;
     }
 
     if UNKN_COMPR {
         fprintf(stderr, ComprMsg, filename, crec.compression_method);
-        return 1;
+        return 0;
     }
 #ifndef CRYPT
     if (pInfo->encrypted) {
-        fprintf(stderr, " skipping: %-22s  encrypted (not supported)\n",
+        fprintf(stderr, "   skipping: %-22s  encrypted (not supported)\n",
           filename);
-        return 1;
+        return 0;
     }
 #endif /* !CRYPT */
 
-/*---------------------------------------------------------------------------
-    Store some central-directory information (encryption, file attributes,
-    offsets) for later use.
-  ---------------------------------------------------------------------------*/
+    /* map whatever file attributes we have into the local format */
+    mapattr();   /* GRR:  worry about return value later */
 
-    tmp = crec.external_file_attributes;
-
-    pInfo->dos_attr = 32;   /* set archive bit:  file is not backed up */
-    switch (pInfo->hostnum) {
-        case UNIX_:
-        case VMS_:
-            pInfo->unix_attr = (unsigned) (tmp >> 16);
-            break;
-        case DOS_OS2_FAT_:
-        case OS2_HPFS_:
-            pInfo->dos_attr = (unsigned) tmp;
-            tmp = (!(tmp & 1)) << 1;   /* read-only bit */
-            pInfo->unix_attr = (unsigned) (0444 | (tmp<<6) | (tmp<<3) | tmp);
-#ifdef UNIX
-            umask( (int)(tmp=umask(0)) );
-            pInfo->unix_attr &= ~tmp;
-#endif
-            break;
-        case MAC_:
-            pInfo->unix_attr = (unsigned) (tmp & 1);   /* read-only bit */
-            break;
-        default:
-            pInfo->unix_attr = 0666;
-            break;
-    } /* end switch (host-OS-created-by) */
-
-    pInfo->offset = (longint) crec.relative_offset_local_header;
-    return 0;
+    pInfo->offset = (long) crec.relative_offset_local_header;
+    return 1;
 
 } /* end function store_info() */
 
@@ -581,11 +645,10 @@ static int store_info()   /* return 1 if skipping, 0 if OK */
 
 static int extract_or_test_member()    /* return PK-type error code */
 {
-#ifdef S_IFLNK
-    int symlnk=FALSE;
-#endif /* S_IFLNK */
-    int r, error=0;
-    UWORD b;
+    /* GRR 930907:  semi-permanent, at least until auto-conv. bugs are found */
+    char *nul="[empty] ", *txt="[text]  ", *bin="[binary]";
+    register int b;
+    int r, error=PK_COOL;
 
 
 
@@ -593,484 +656,276 @@ static int extract_or_test_member()    /* return PK-type error code */
     Initialize variables, buffers, etc.
   ---------------------------------------------------------------------------*/
 
-    bits_left = 0;
-    bitbuf = 0L;
-    outpos = 0L;
-    outcnt = 0;
-    outptr = outbuf;
-    zipeof = 0;
+    bits_left = 0;     /* unreduce and unshrink only */
+    bitbuf = 0L;       /* unreduce and unshrink only */
+    zipeof = 0;        /* unreduce and unshrink only */
+    newfile = TRUE;
     crc32val = 0xFFFFFFFFL;
 
-#ifdef S_IFLNK
-    if ((pInfo->unix_attr & S_IFMT) == S_IFLNK  &&  (pInfo->hostnum == UNIX_)
-        && !tflag && !cflag)
+#ifdef SYMLINKS
+    /* if file came from Unix and is a symbolic link and we are extracting
+     * to disk, prepare to restore the link */
+    if (S_ISLNK(pInfo->file_attr) && (pInfo->hostnum == UNIX_) && !tflag &&
+        !cflag && (lrec.ucsize > 0))
         symlnk = TRUE;
-#endif /* S_IFLNK */
-
-    memset(outbuf, 0xaa, OUTBUFSIZ);
-#if (!defined(DOS_OS2) || defined(MSWIN))
-    if (aflag)                  /* if we have a scratchpad, clear it out */
-#ifdef MSWIN
-        _fmemset(outout, 0xaa, OUTBUFSIZ);
-#else /* !MSWIN */
-        memset(outout, 0xaa, OUTBUFSIZ);
-#endif /* ?MSWIN */
-#endif /* !DOS_OS2 || MSWIN */
+    else
+        symlnk = FALSE;
+#endif /* SYMLINKS */
 
     if (tflag) {
-        if (!quietflg) {
-            fprintf(stdout, "  Testing: %-22s ", filename);
+        if (!qflag) {
+            fprintf(stdout, ExtractMsg, "testing", filename, "", "");
             fflush(stdout);
         }
     } else {
-        if (cflag) {            /* output to stdout (copy of it) */
-#if (defined(MACOS) || defined(AMIGA))
-            outfd = 1;
-#else /* !(MACOS || AMIGA) */
-            outfd = dup(1);     /* GRR: change this to #define for Mac/Amiga */
-#endif /* ?(MACOS || AMIGA) */
-#ifdef DOS_OS2
-            if (!aflag)
-                setmode(outfd, O_BINARY);
-#endif /* DOS_OS2 */
-#ifdef VMS
-            if (create_output_file())   /* VMS version required for stdout! */
-                return 50;      /* 50:  disk full (?) */
+        if (cflag) {
+            outfile = stdout;
+#ifdef DOS_NT_OS2
+            setmode(fileno(outfile), O_BINARY);
 #endif
-        } else
-#ifdef S_IFLNK
-        if (!symlnk)    /* symlink() takes care of file creation */
-#endif /* !S_IFLNK */
-        {
-            if (create_output_file())
-                return 50;      /* 50:  disk full (?) */
-        }
-    } /* endif (!tflag) */
+#ifdef VMS
+            if (open_outfile())   /* VMS:  required even for stdout! */
+                return PK_DISK;
+#endif
+        } else if (open_outfile())
+            return PK_DISK;
+    }
 
 /*---------------------------------------------------------------------------
     Unpack the file.
   ---------------------------------------------------------------------------*/
 
     switch (lrec.compression_method) {
+        case STORED:
+            if (!tflag && QCOND2) {
+#ifdef SYMLINKS
+                if (symlnk)   /* can also be deflated, but rarer... */
+                    fprintf(stdout, ExtractMsg, "linking", filename, "", "");
+                else
+#endif /* SYMLINKS */
+                fprintf(stdout, ExtractMsg, "extracting", filename,
+                  (aflag != 1 /* && pInfo->textfile == pInfo->textmode */ )? ""
+                  : (lrec.ucsize == 0L? nul : (pInfo->textfile? txt : bin)),
+                  cflag? "\n" : "");
+                fflush(stdout);
+            }
+            outptr = slide;
+            outcnt = 0L;
+            while ((b = NEXTBYTE) != EOF && !disk_full) {
+                *outptr++ = (uch)b;
+                if (++outcnt == WSIZE) {
+                    flush(slide, outcnt, 0);
+                    outptr = slide;
+                    outcnt = 0L;
+                }
+            }
+            if (outcnt)          /* flush final (partial) buffer */
+                flush(slide, outcnt, 0);
+            break;
 
-    case STORED:
-        if (!tflag && (quietflg < 2)) {
-            fprintf(stdout, " Extracting: %-22s ", filename);
-            if (cflag)
-                fprintf(stdout, "\n");
-            fflush(stdout);
-        }
-#ifdef S_IFLNK
-        /*
-         * If file came from Unix and is a symbolic link and we are extracting
-         * to disk, allocate a storage area, put the data in it, and create the
-         * link.  Since we know it's a symbolic link to start with, shouldn't
-         * have to worry about overflowing unsigned ints with unsigned longs.
-         * (This doesn't do anything for compressed symlinks, but that can be
-         * added later...it also doesn't set the time or permissions of the
-         * link, but does anyone really care?)
-         */
-        if (symlnk) {
-#if (defined(MTS) || defined(MACOS))
-            fprintf(stdout, "\n  warning:  symbolic link ignored\n");
-            error = 1;          /* 1:  warning error */
-#else /* !(MTS || MACOS) */
-            char *orig = (char *)malloc((unsigned)lrec.uncompressed_size+1);
-            char *p = orig;
+#ifndef SFX
+        case SHRUNK:
+            if (!tflag && QCOND2) {
+                fprintf(stdout, ExtractMsg, "unshrinking", filename,
+                  (aflag != 1 /* && pInfo->textfile == pInfo->textmode */ )? ""
+                  : (pInfo->textfile? txt : bin), cflag? "\n" : "");
+                fflush(stdout);
+            }
+            if ((r = unshrink()) != PK_COOL) {
+                if ((tflag && qflag) || (!tflag && !QCOND2))
+                    fprintf(stderr,
+                      "  error:  not enough memory to unshrink %s\n", filename);
+                else
+                    fprintf(stderr,
+                      "\n  error:  not enough memory for unshrink operation\n");
+                error = r;
+            }
+            break;
 
-            while (ReadByte(&b))
-                *p++ = b;
-            *p = 0;   /* terminate string */
-            UpdateCRC((unsigned char *)orig, p-orig);
-            if (symlink(orig, filename))
-                if ((errno == EEXIST) && overwrite_all) {  /* OK to overwrite */
-                    unlink(filename);
-                    if (symlink(orig, filename))
-                        perror("symlink error");
-                } else
-                    perror("symlink error");
-            free(orig);
-#endif /* ?(MTS || MACOS) */
-        } else
-#endif /* S_IFLNK */
-        while (ReadByte(&b) && !disk_full)
-            OUTB(b)
-        break;
+        case REDUCED1:
+        case REDUCED2:
+        case REDUCED3:
+        case REDUCED4:
+            if (!tflag && QCOND2) {
+                fprintf(stdout, ExtractMsg, "unreducing", filename,
+                  (aflag != 1 /* && pInfo->textfile == pInfo->textmode */ )? ""
+                  : (pInfo->textfile? txt : bin), cflag? "\n" : "");
+                fflush(stdout);
+            }
+            unreduce();
+            break;
 
-    case SHRUNK:
-        if (!tflag && (quietflg < 2)) {
-            fprintf(stdout, "UnShrinking: %-22s ", filename);
-            if (cflag)
-                fprintf(stdout, "\n");
-            fflush(stdout);
-        }
-#ifdef S_IFLNK   /* !!! This code needs to be added to unShrink, etc. !!! */
-        if (symlnk) {
-            fprintf(stdout, "\n  warning:  symbolic link ignored\n");
-            error = 1;          /* 1:  warning error */
-        }
-#endif /* S_IFLNK */
-        unShrink();
-        break;
+        case IMPLODED:
+            if (!tflag && QCOND2) {
+                fprintf(stdout, ExtractMsg, "exploding", filename,
+                  (aflag != 1 /* && pInfo->textfile == pInfo->textmode */ )? ""
+                  : (pInfo->textfile? txt : bin), cflag? "\n" : "");
+                fflush(stdout);
+            }
+            if (((r = explode()) != 0) && (r != 5)) {   /* treat 5 specially */
+                if ((tflag && qflag) || (!tflag && !QCOND2))
+                    fprintf(stderr, "  error:  %s%s\n", r == 3?
+                      "not enough memory to explode " :
+                      "invalid compressed (imploded) data for ", filename);
+                else
+                    fprintf(stderr, "\n  error:  %s\n", r == 3?
+                      "not enough memory for explode operation" :
+                      "invalid compressed data for explode format");
+                error = (r == 3)? PK_MEM2 : PK_ERR;
+            }
+            if (r == 5) {
+                int warning = ((ulg)used_csize <= lrec.csize);
 
-    case REDUCED1:
-    case REDUCED2:
-    case REDUCED3:
-    case REDUCED4:
-        if (!tflag && (quietflg < 2)) {
-            fprintf(stdout, "  Expanding: %-22s ", filename);
-            if (cflag)
-                fprintf(stdout, "\n");
-            fflush(stdout);
-        }
-#ifdef S_IFLNK   /* !!! This code needs to be added to unShrink, etc. !!! */
-        if (symlnk) {
-            fprintf(stdout, "\n  warning:  symbolic link ignored\n");
-            error = 1;          /* 1:  warning error */
-        }
-#endif /* S_IFLNK */
-        unReduce();
-        break;
+                if ((tflag && qflag) || (!tflag && !QCOND2))
+                    fprintf(stderr, LengthMsg, "", warning? "warning":"error",
+                      used_csize, lrec.ucsize, warning? "  ":"", lrec.csize,
+                      " [", filename, "]");
+                else
+                    fprintf(stderr, LengthMsg, "\n", warning? "warning":"error",
+                      used_csize, lrec.ucsize, warning? "  ":"", lrec.csize,
+                      "", "", ".");
+                error = warning? PK_WARN : PK_ERR;
+            }
+            break;
+#endif /* !SFX */
 
-    case IMPLODED:
-        if (!tflag && (quietflg < 2)) {
-            fprintf(stdout, "  Exploding: %-22s ", filename);
-            if (cflag)
-                fprintf(stdout, "\n");
-            fflush(stdout);
-        }
-#ifdef S_IFLNK   /* !!! This code needs to be added to unShrink, etc. !!! */
-        if (symlnk) {
-            fprintf(stdout, "\n  warning:  symbolic link ignored\n");
-            error = 1;          /* 1:  warning error */
-        }
-#endif /* S_IFLNK */
-        if (((r = explode()) != 0) && (r != 5)) {   /* ignore 5 if seekable */
-            if ((tflag && quietflg) || (!tflag && (quietflg > 1)))
-                fprintf(stderr, "  error:  %s%s\n", r == 3?
-                  "not enough memory to explode " :
-                  "invalid compressed (imploded) data for ", filename);
-            else
-                fprintf(stderr, "\n  error:  %s\n", r == 3?
-                  "not enough memory for explode operation" :
-                  "invalid compressed data for explode format");
-            error = (r == 3)? 5 : 2;
-        }
-        break;
+        case DEFLATED:
+            if (!tflag && QCOND2) {
+                fprintf(stdout, ExtractMsg, "inflating", filename,
+                  (aflag != 1 /* && pInfo->textfile == pInfo->textmode */ )? ""
+                  : (pInfo->textfile? txt : bin), cflag? "\n" : "");
+                fflush(stdout);
+            }
+            if ((r = inflate()) != 0) {
+                if ((tflag && qflag) || (!tflag && !QCOND2))
+                    fprintf(stderr, "  error:  %s%s\n", r == 3?
+                      "not enough memory to inflate " :
+                      "invalid compressed (deflated) data for ", filename);
+                else
+                    fprintf(stderr, "\n  error:  %s\n", r == 3?
+                      "not enough memory for inflate operation" :
+                      "invalid compressed data for inflate format");
+                error = (r == 3)? PK_MEM2 : PK_ERR;
+            }
+            break;
 
-    case DEFLATED:
-        if (!tflag && (quietflg < 2)) {
-            fprintf(stdout, "  Inflating: %-22s ", filename);
-            if (cflag)
-                fprintf(stdout, "\n");
-            fflush(stdout);
-        }
-#ifdef S_IFLNK   /* !!! This code needs to be added to unShrink, etc. !!! */
-        if (symlnk) {
-            fprintf(stdout, "\n  warning:  symbolic link ignored\n");
-            error = 1;          /* 1:  warning error */
-        }
-#endif /* S_IFLNK */
-        if ((r = inflate()) != 0) {
-            if ((tflag && quietflg) || (!tflag && (quietflg > 1)))
-                fprintf(stderr, "  error:  %s%s\n", r == 3?
-                  "not enough memory to inflate " :
-                  "invalid compressed (deflated) data for ", filename);
-            else
-                fprintf(stderr, "\n  error:  %s\n", r == 3?
-                  "not enough memory for inflate operation" :
-                  "invalid compressed data for inflate format");
-            error = (r == 3)? 5 : 2;
-        }
-        break;
-
-    default:   /* should never get to this point */
-        fprintf(stderr, "%s:  unknown compression method\n", filename);
-        /* close and delete file before return? */
-        return 1;               /* 1:  warning error */
+        default:   /* should never get to this point */
+            fprintf(stderr, "%s:  unknown compression method\n", filename);
+            /* close and delete file before return? */
+            return PK_WARN;
 
     } /* end switch (compression method) */
 
-    if (disk_full) {            /* set by FlushOutput()/OUTB() macro */
+    if (disk_full) {            /* set by flush() */
         if (disk_full > 1)
-            return 50;          /* 50:  disk full */
-        error = 1;              /* 1:  warning error */
+            return PK_DISK;
+        error = PK_WARN;
     }
 
 /*---------------------------------------------------------------------------
-    Write the last partial buffer, if any; set the file date and time; and
-    close the file (not necessarily in that order).  Then make sure CRC came
-    out OK and print result.
+    Close the file and set its date and time (not necessarily in that order),
+    and make sure the CRC checked out OK.  Logical-AND the CRC for 64-bit
+    machines (redundant on 32-bit machines).
   ---------------------------------------------------------------------------*/
 
-#ifdef S_IFLNK
-    if (!symlnk) {
-#endif /* S_IFLNK */
-    if (!disk_full && FlushOutput())
-        if (disk_full > 1)
-            return 50;          /* 50:  disk full */
-        else {                  /* disk_full == 1 */
-            fprintf(stderr, "%s:  probably corrupt\n", filename);
-            error = 1;          /* 1:  warning error */
-        }
+    if (!tflag && !cflag)   /* don't close NULL file or stdout */
+        close_outfile();
 
-    if (!tflag)
-#ifdef VMS
-        CloseOutputFile();
-#else /* !VMS */
-#ifdef MTS                      /* MTS can't set file time */
-        close(outfd);
-#else /* !MTS */
-        set_file_time_and_close();
-#endif /* ?MTS */
-#endif /* ?VMS */
-
-#ifdef S_IFLNK
-    } /* endif (!symlnk) */
-#endif /* S_IFLNK */
-
-    if (error > 1)   /* don't print redundant CRC error if error already */
+    if (error > PK_WARN)  /* don't print redundant CRC error if error already */
         return error;
 
-    /* logical-AND crc32val for 64-bit machines */
     if ((crc32val = ((~crc32val) & 0xFFFFFFFFL)) != lrec.crc32) {
-        /* if quietflg is set, we haven't output the filename yet:  do it */
-        if (quietflg)
-            printf("%-22s: ", filename);
-        fprintf(stdout, " Bad CRC %08lx  (should be %08lx)\n", crc32val,
+        /* if quiet enough, we haven't output the filename yet:  do it */
+        if ((tflag && qflag) || (!tflag && !QCOND2))
+            fprintf(stderr, "%-22s ", filename);
+        fprintf(stderr, " bad CRC %08lx  (should be %08lx)\n", crc32val,
                 lrec.crc32);
-        error = 1;              /* 1:  warning error */
+        FFLUSH(stderr);
+        error = PK_ERR;
     } else if (tflag) {
-        if (!quietflg)
+        if (!qflag)
             fprintf(stdout, " OK\n");
     } else {
-        if ((quietflg < 2) && !error)
+        if (QCOND2 && !error)
             fprintf(stdout, "\n");
     }
 
     return error;
 
-}       /* end function extract_or_test_member() */
-
-
-
-
-
-#ifdef CRYPT
-
-/*******************************/
-/*  Function decrypt_member()  */
-/*******************************/
-
-static int decrypt_member()   /* return 10 if out of memory or can't get */
-{                             /*  tty; 1 if password bad; 0 if password OK */
-    UWORD b;
-    int n, r;
-    static int nopwd=FALSE;
-    char *m, *prompt;
-    byte h[12];
-
-
-    /* get header once (turn off "encrypted" flag temporarily so we don't
-     * try to decrypt the same data twice) */
-    pInfo->encrypted = FALSE;
-    for (n = 0; n < 12; n++) {
-        ReadByte(&b);
-        h[n] = (byte) b;
-    }
-    pInfo->encrypted = TRUE;
-
-    /* if have key already, test it; else allocate memory for it */
-    if (key) {
-        if (!testp(h))
-            return 0;      /* existing password OK (else prompt for new) */
-        else if (nopwd)
-            return 1;      /* user indicated no more prompting */
-    } else if ((key = (char *)malloc(PWLEN+1)) == (char *)NULL)
-        return 10;
-
-    if ((prompt = (char *)malloc(FILNAMSIZ+15)) != (char *)NULL) {
-        sprintf(prompt, "%s password: ", filename);
-        m = prompt;
-    } else
-        m = "Enter password: ";
-
-    /* try a few keys */
-    for (r = 0;  r < 3;  ++r) {
-        m = getp(m, key, PWLEN+1);
-        if (prompt != (char *)NULL) {
-            free(prompt);
-            prompt = (char *)NULL;
-        }
-        if (m == (char *)NULL)
-            return 10;
-        if (!testp(h))
-            return 0;
-        if (*key == '\0') {
-            nopwd = TRUE;
-            return 1;
-        }
-        m = "password incorrect--reenter: ";
-    }
-    return 1;
-}
-
-
-
-
-
-/**********************/
-/*  Function testp()  */
-/**********************/
-
-static int testp(h)   /* return -1 if bad password; 0 if OK */
-    byte *h;
-{
-    UWORD b;
-    int n, t;
-    byte *p;
-
-    /* set keys */
-    init_keys(key);
-
-    /* check password */
-    for (n = 0; n < 12; n++)
-        b = DECRYPT(h[n]);
-
-#ifdef CRYPT_DEBUG
-    printf("   lrec.crc = %08lx  crec.crc = %08lx  pInfo->ExtLocHdr = %s\n",
-      lrec.crc32, pInfo->crc, pInfo->ExtLocHdr? "true":"false");
-    printf("   incnt = %d  unzip offset into zipfile = %ld\n", incnt,
-      cur_zipfile_bufstart+(inptr-inbuf));
-    printf("   b = %02x  (crc >> 24) = %02x  (lrec.time >> 8) = %02x\n",
-      b, (UWORD)(lrec.crc32 >> 24), (lrec.last_mod_file_time >> 8));
-#endif /* CRYPT_DEBUG */
-
-    /* same test as in zipbare() in crypt.c (now check only one byte): */
-    if (b != (pInfo->ExtLocHdr? lrec.last_mod_file_time >> 8 :
-        (UWORD)(lrec.crc32 >> 24)))
-        return -1;  /* bad */
-
-    /* password OK:  decrypt current buffer contents before leaving */
-    for (n = (longint)incnt > csize ? (int)csize : incnt, p = inptr; n--; p++)
-        *p = (byte) DECRYPT(*p);
-    return 0;       /* OK */
-
-} /* end function testp() */
-
-#endif /* CRYPT */
-
-
-
-
-
-/*******************************/
-/*  Function ReadMemoryByte()  */
-/*******************************/
-
-int ReadMemoryByte(x)   /* return PK-type error code */
-    UWORD *x;
-{
-    if (mem_i_offset < mem_i_size) {
-        *x = (UWORD) mem_i_buffer[mem_i_offset++];
-        return 8;
-    } else
-        return 0;
-}
-
-
-
-
-
-/****************************/
-/*  Function FlushMemory()  */
-/****************************/
-
-int FlushMemory()   /* return PK-type error code */
-{
-    if (outcnt == 0)
-        return 0;
-
-    if (mem_o_offset + outcnt <= mem_o_size) {
-        memcpy((char *)(mem_o_buffer+(UWORD)mem_o_offset), (char *)outbuf,
-          outcnt);
-        mem_o_offset += outcnt;
-        return 0;
-    } else
-        return 50;
-}
+} /* end function extract_or_test_member() */
 
 
 
 
 
 /***************************/
-/*  Function memextract()  */   /* extract compressed extra field block */
+/*  Function memextract()  */
 /***************************/
 
-int memextract(tgt, tgtsize, src, srcsize)  /* return 0 if success, 1 if not */
-    byte *tgt, *src;
-    ULONG tgtsize, srcsize;
+int memextract(tgt, tgtsize, src, srcsize)   /* extract compressed extra */
+    uch *tgt, *src;                          /*  field block; return PK- */
+    ulg tgtsize, srcsize;                    /*  type error level */
 {
-    UWORD method, error = 0;
-    ULONG crc, oldcrc;
-    int r;
+    uch *old_inptr=inptr;
+    int  old_incnt=incnt, r, error=PK_OK;
+    ush  method;
+    ulg  extra_field_crc;
+
 
     method = makeword(src);
-    crc = makelong(src+2);
+    extra_field_crc = makelong(src+2);
 
-    mem_i_buffer = src + 2 + 4;      /* method and crc */
-    mem_i_size   = srcsize - 2 - 4;
-    mem_i_offset = 0;
-  
-    mem_o_buffer = tgt;
-    mem_o_size   = tgtsize;
-    mem_o_offset = 0;
-
-    mem_mode = 1;
-
-    bits_left = 0;
-    bitbuf = 0L;
-    outpos = 0L;
-    outcnt = 0;
-    outptr = outbuf;
-    zipeof = 0;
+    /* compressed extra field exists completely in memory at this location: */
+    inptr = src + 2 + 4;      /* method and extra_field_crc */
+    incnt = (int)(csize = (long)(srcsize - (2 + 4)));
+    mem_mode = TRUE;
 
     switch (method) {
         case STORED:
-            memcpy(tgt, src + 2 + 4, (extent) (srcsize - 2 - 4));
+            memcpy((char *)tgt, (char *)inptr, (extent)incnt);
+            outcnt = csize;   /* for CRC calculation */
             break;
         case DEFLATED:
             if ((r = inflate()) != 0) {
                 fprintf(stderr, "error:  %s\n", r == 3 ?
                   "not enough memory for inflate operation" :
                   "invalid compressed data for the inflate format");
-                error = (r == 3)? 5 : 2;
+                error = (r == 3)? PK_MEM2 : PK_ERR;
             }
-            FlushOutput();
+            if (outcnt == 0L)   /* inflate's final FLUSH sets outcnt */
+                break;
+            if (outcnt <= tgtsize)
+                memcpy((char *)tgt, (char *)slide, (extent)outcnt);
+            else
+                error = PK_MEM3;   /* GRR:  should be passed up via SetEAs() */
             break;
         default:
             fprintf(stderr,
               "warning:  unsupported extra field compression type--skipping\n");
-            error = 1;   /* GRR:  this should be passed on up via SetEAs() */
+            error = PK_WARN;   /* GRR:  should be passed on up via SetEAs() */
             break;
     }
 
-    mem_mode = 0;
+    inptr = old_inptr;
+    incnt = old_incnt;
+    mem_mode = FALSE;
 
     if (!error) {
-        oldcrc = crc32val;
-        crc32val = 0xFFFFFFFFL;
-        UpdateCRC((unsigned char *) mem_o_buffer, (int) mem_o_size);
-        crc32val = (~crc32val) & 0xFFFFFFFFL;
+        register ulg crcval = 0xFFFFFFFFL;
+        register ulg n = outcnt;   /* or tgtsize?? */
+        register uch *p = tgt;
 
-        if (crc32val != crc) {
-            printf("(Bad extra field CRC %08lx, should be %08lx)\n", crc32val,
-              crc);
-            error = 1;
+        while (n--)
+            crcval = crc_32_tab[((uch)crcval ^ (*p++)) & 0xff] ^ (crcval >> 8);
+        crcval = (~crcval) & 0xFFFFFFFFL;
+
+        if (crcval != extra_field_crc) {
+            fprintf(stderr,
+              "error [%s]:  bad extra field CRC %08lx (should be %08lx)\n",
+              zipfn, crcval, extra_field_crc);
+            error = PK_WARN;
         }
-        crc32val = oldcrc; /* grrr ... this ugly kludge should be fixed */
     }
-
     return error;
-}
+
+} /* end function memextract() */

@@ -5,559 +5,274 @@
   The match() routine recursively compares a string to a "pattern" (regular
   expression), returning TRUE if a match is found or FALSE if not.  This
   version is specifically for use with unzip.c:  as did the previous match()
-  from SEA, it leaves the case (upper, lower, or mixed) of the string alone,
-  but converts any uppercase characters in the pattern to lowercase if indi-
-  cated by the global var pInfo->lcflag (which is to say, string is assumed
-  to have been converted to lowercase already, if such was necessary).
+  routines from SEA and J. Kercheval, it leaves the case (upper, lower, or
+  mixed) of the string alone, but converts any uppercase characters in the
+  pattern to lowercase if indicated by the global var pInfo->lcflag (which
+  is to say, string is assumed to have been converted to lowercase already,
+  if such was necessary).
+
+  GRR:  reversed order of text, pattern in matche() (now same as match());
+        added ignore_case/ic flags, Case() macro.
+
+  PK:   replaced matche() with recmatch() from Zip, modified to have an
+        ignore_case argument; replaced test frame with simpler one.
+
+  ---------------------------------------------------------------------------
+
+  Copyright on recmatch() from Zip's util.c (although recmatch() was almost
+  certainly written by Mark Adler...ask me how I can tell :-) ):
+
+     Copyright (C) 1990-1992 Mark Adler, Richard B. Wales, Jean-loup Gailly,
+     Kai Uwe Rommel and Igor Mandrichenko.
+
+     Permission is granted to any individual or institution to use, copy,
+     or redistribute this software so long as all of the original files are
+     included unmodified, that it is not sold for profit, and that this copy-
+     right notice is retained.
+
+  ---------------------------------------------------------------------------
+
+  Match the pattern (wildcard) against the string (fixed):
+
+     match(string, pattern, ignore_case);
+
+  returns TRUE if string matches pattern, FALSE otherwise.  In the pattern:
+
+     `*' matches any sequence of characters (zero or more)
+     `?' matches any character
+     [SET] matches any character in the specified set,
+     [!SET] or [^SET] matches any character not in the specified set.
+
+  A set is composed of characters or ranges; a range looks like ``character
+  hyphen character'' (as in 0-9 or A-Z).  [0-9a-zA-Z_] is the minimal set of
+  characters allowed in the [..] pattern construct.  Other characters are
+  allowed (ie. 8 bit characters) if your system will support them.
+
+  To suppress the special syntactic significance of any of ``[]*?!^-\'', in-
+  side or outside a [..] construct and match the character exactly, precede
+  it with a ``\'' (backslash).
+
+  Note that "*.*" and "*." are treated specially under MS-DOS if DOSWILD is
+  defined.  See the DOSWILD section below for an explanation.
 
   ---------------------------------------------------------------------------*/
 
 
-#ifdef ZIPINFO
-#  undef ZIPINFO   /* make certain there is only one version of match.o */
-#endif /* ZIPINFO */
-#include "unzip.h"
 
-static int  matche              __((register char *p, register char *t));
-static int  matche_after_star   __((register char *p, register char *t));
+#include "unzip.h"    /* define ToLower() in here (for Unix, define ToLower
+                       * to be macro (using isupper()); otherwise just use
+                       * tolower() */
 
-/* #include "filmatch.h": */
-#ifndef BOOLEAN
-#  define BOOLEAN short int      /* v1.2 made it short */
+#if 0  /* this is not useful until it matches Amiga names insensitively */
+#ifdef AMIGA        /* some other platforms might also want to use this */
+#  define ANSI_CHARSET       /* MOVE INTO UNZIP.H EVENTUALLY */
 #endif
+#endif /* 0 */
+  
+#ifdef ANSI_CHARSET
+#  ifdef ToLower
+#    undef ToLower
+#  endif
+   /* uppercase letters are values 41 thru 5A, C0 thru D6, and D8 thru DE */
+#  define IsUpper(c) (c>=0xC0 ? c<=0xDE && c!=0xD7 : c>=0x41 && c<=0x5A)
+#  define ToLower(c) (IsUpper((uch) c) ? (unsigned) c | 0x20 : (unsigned) c)
+#endif
+#define Case(x)  (ic? ToLower(x) : (x))
 
-/* match defines */
-#define MATCH_PATTERN  6    /* bad pattern */
-#define MATCH_LITERAL  5    /* match failure on literal match */
-#define MATCH_RANGE    4    /* match failure on [..] construct */
-#define MATCH_ABORT    3    /* premature end of text string */
-#define MATCH_END      2    /* premature end of pattern string */
-#define MATCH_VALID    1    /* valid match */
+#if 0                /* GRR:  add this to unzip.h someday... */
+#if !(defined(MSDOS) && defined(DOSWILD))
+#define match(s,p,ic)   (recmatch((uch *)p,(uch *)s,ic) == 1)
+int recmatch OF((uch *pattern, uch *string, int ignore_case));
+#endif
+#endif /* 0 */
+static int recmatch OF((uch *pattern, uch *string, int ignore_case));
 
-/* pattern defines */
-#define PATTERN_VALID  0    /* valid pattern */
-#define PATTERN_ESC   -1    /* literal escape at end of pattern */
-#define PATTERN_RANGE -2    /* malformed range in [..] construct */
-#define PATTERN_CLOSE -3    /* no end bracket in [..] construct */
-#define PATTERN_EMPTY -4    /* [..] contstruct is empty */
 
-/*----------------------------------------------------------------------------
-*
-*  Match the pattern PATTERN against the string TEXT;
-*
-*       match() returns TRUE if pattern matches, FALSE otherwise.
-*       matche() returns MATCH_VALID if pattern matches, or an errorcode
-*           as follows otherwise:
-*
-*            MATCH_PATTERN  - bad pattern
-*            MATCH_RANGE    - match failure on [..] construct
-*            MATCH_ABORT    - premature end of text string
-*            MATCH_END      - premature end of pattern string
-*            MATCH_VALID    - valid match
-*
-*
-*  A match means the entire string TEXT is used up in matching.
-*
-*  In the pattern string:
-*       `*' matches any sequence of characters (zero or more)
-*       `?' matches any character
-*       [SET] matches any character in the specified set,
-*       [!SET] or [^SET] matches any character not in the specified set.
-*
-*  A set is composed of characters or ranges; a range looks like
-*  character hyphen character (as in 0-9 or A-Z).  [0-9a-zA-Z_] is the
-*  minimal set of characters allowed in the [..] pattern construct.
-*  Other characters are allowed (ie. 8 bit characters) if your system
-*  will support them.
-*
-*  To suppress the special syntactic significance of any of `[]*?!^-\',
-*  in a [..] construct and match the character exactly, precede it
-*  with a `\'.
-*
-----------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------------
-*
-*  Match the pattern PATTERN against the string TEXT;
-*
-*  returns MATCH_VALID if pattern matches, or an errorcode as follows
-*  otherwise:
-*
-*            MATCH_PATTERN  - bad pattern
-*            MATCH_RANGE    - match failure on [..] construct
-*            MATCH_ABORT    - premature end of text string
-*            MATCH_END      - premature end of pattern string
-*            MATCH_VALID    - valid match
-*
-*
-*  A match means the entire string TEXT is used up in matching.
-*
-*  In the pattern string:
-*       `*' matches any sequence of characters (zero or more)
-*       `?' matches any character
-*       [SET] matches any character in the specified set,
-*       [!SET] or [^SET] matches any character not in the specified set.
-*       \ is allowed within a set to escape a character like ']' or '-'
-*
-*  A set is composed of characters or ranges; a range looks like
-*  character hyphen character (as in 0-9 or A-Z).  [0-9a-zA-Z_] is the
-*  minimal set of characters allowed in the [..] pattern construct.
-*  Other characters are allowed (ie. 8 bit characters) if your system
-*  will support them.
-*
-*  To suppress the special syntactic significance of any of `[]*?!^-\',
-*  within a [..] construct and match the character exactly, precede it
-*  with a `\'.
-*
-----------------------------------------------------------------------------*/
+/* match() is a shell to recmatch() to return only Boolean values. */
 
-static int matche(p, t)
-register char *p;
-register char *t;
+int match(string, pattern, ignore_case)
+    char *string, *pattern;
+    int ignore_case;
 {
-    register char range_start, range_end;  /* start and end in range */
+#if (defined(MSDOS) && defined(DOSWILD))
+    char *dospattern;
+    int j = strlen(pattern);
 
-    BOOLEAN invert;             /* is this [..] or [!..] */
-    BOOLEAN member_match;       /* have I matched the [..] construct? */
-    BOOLEAN loop;               /* should I terminate? */
+/*---------------------------------------------------------------------------
+    Optional MS-DOS preprocessing section:  compare last three chars of the
+    wildcard to "*.*" and translate to "*" if found; else compare the last
+    two characters to "*." and, if found, scan the non-wild string for dots.
+    If in the latter case a dot is found, return failure; else translate the
+    "*." to "*".  In either case, continue with the normal (Unix-like) match
+    procedure after translation.  (If not enough memory, default to normal
+    match.)  This causes "a*.*" and "a*." to behave as MS-DOS users expect.
+  ---------------------------------------------------------------------------*/
 
-    for (;  *p;  p++, t++) {
+    if ((dospattern = (char *)malloc(j+1)) != NULL) {
+        strcpy(dospattern, pattern);
+        if (!strcmp(dospattern+j-3, "*.*")) {
+            dospattern[j-2] = '\0';                    /* nuke the ".*" */
+        } else if (!strcmp(dospattern+j-2, "*.")) {
+            char *p = strchr(string, '.');
 
-        /* if this is the end of the text then this is the end of the match */
-        if (!*t)
-            return ((*p == '*') && (*++p == '\0'))?  MATCH_VALID : MATCH_ABORT;
-
-        /* determine and react to pattern type */
-        switch (*p) {
-
-            /* single any character match */
-            case '?':
-                break;
-
-            /* multiple any character match */
-            case '*':
-                return matche_after_star (p, t);
-
-            /* [..] construct, single member/exclusion character match */
-            case '[': {
-
-                /* move to beginning of range */
-                p++;
-
-                /* check if this is a member match or exclusion match */
-                invert = FALSE;
-                if ((*p == '!') || (*p == '^')) {
-                    invert = TRUE;
-                    p++;
-                }
-
-                /* if closing bracket here or at range start then we have a
-                   malformed pattern */
-                if (*p == ']')
-                    return MATCH_PATTERN;
-
-                member_match = FALSE;
-                loop = TRUE;
-
-                while (loop) {
-
-                    /* if end of construct then loop is done */
-                    if (*p == ']') {
-                        loop = FALSE;
-                        continue;
-                    }
-
-                    /* matching a '!', '^', '-', '\' or a ']' */
-                    if (*p == '\\')
-                        range_start = range_end = *++p;
-                    else
-                        range_start = range_end = *p;
-
-                    /* if end of pattern then bad pattern (Missing ']') */
-                    if (!*p)
-                        return MATCH_PATTERN;
-
-                    /* check for range bar */
-                    if (*++p == '-') {
-
-                        /* get the range end */
-                        range_end = *++p;
-
-                        /* if end of pattern or construct then bad pattern */
-                        if ((range_end == '\0') || (range_end == ']'))
-                            return MATCH_PATTERN;
-
-                        /* special character range end */
-                        if (range_end == '\\') {
-                            range_end = *++p;
-
-                            /* if end of text then we have a bad pattern */
-                            if (!range_end)
-                                return MATCH_PATTERN;
-                        }
-
-                        /* move just beyond this range */
-                        p++;
-                    }
-
-                    /* if the text character is in range then match found.
-                     * make sure the range letters have the proper
-                     * relationship to one another before comparison
-                     */
-                    if (range_start < range_end) {
-                        if ((*t >= range_start) && (*t <= range_end)) {
-                            member_match = TRUE;
-                            loop = FALSE;
-                        }
-                    } else {
-                        if ((*t >= range_end) && (*t <= range_start)) {
-                            member_match = TRUE;
-                            loop = FALSE;
-                        }
-                    }
-                }
-
-                /* if there was a match in an exclusion set then no match */
-                /* if there was no match in a member set then no match */
-                if ((invert && member_match) ||
-                   !(invert || member_match))
-                    return MATCH_RANGE;
-
-                /* if this is not an exclusion then skip the rest of the [...]
-                    construct that already matched. */
-                if (member_match) {
-                    while (*p != ']') {
-
-                        /* bad pattern (Missing ']') */
-                        if (!*p)
-                            return MATCH_PATTERN;
-
-                        /* skip exact match */
-                        if (*p == '\\') {
-                            p++;
-
-                            /* if end of text then we have a bad pattern */
-                            if (!*p)
-                                return MATCH_PATTERN;
-                        }
-
-                        /* move to next pattern char */
-                        p++;
-                    }
-                }
-
-                break;
-            }  /* switch '[' */
-
-            /* must match this character exactly */
-            default:
-#ifdef OLDSTUFF
-                if (*p != *t)
-#else /* !OLDSTUFF */
-                /* do it like arcmatch() (old unzip) did it (v1.2) */
-                if (*t != (char) ((pInfo->lcflag && isupper((int)(*p)))?
-                    tolower((int)(*p)) : *p))
-#endif /* ?OLDSTUFF */
-                    return MATCH_LITERAL;
-
-        }  /* switch */
-    }  /* for */
-
-        /* if end of text not reached then the pattern fails */
-    if (*t)
-        return MATCH_END;
-    else
-        return MATCH_VALID;
+            if (p) {   /* found a dot:  match fails */
+                free(dospattern);
+                return 0;
+            }
+            dospattern[j-1] = '\0';                    /* nuke the end "." */
+        }
+        j = recmatch((uch *)dospattern, (uch *)string, ignore_case);
+        free(dospattern);
+        return j == 1;
+    } else
+#endif /* MSDOS && DOSWILD */
+    return recmatch((uch *)pattern, (uch *)string, ignore_case) == 1;
 }
 
 
-/*----------------------------------------------------------------------------
-*
-* recursively call matche() with final segment of PATTERN and of TEXT.
-*
-----------------------------------------------------------------------------*/
 
-static int matche_after_star (p,t)
-register char *p;
-register char *t;
+static int recmatch(p, s, ic)
+    uch *p;               /* sh pattern to match */
+    uch *s;               /* string to which to match it */
+    int ic;               /* true for case insensitivity */
+/* Recursively compare the sh pattern p with the string s and return 1 if
+ * they match, and 0 or 2 if they don't or if there is a syntax error in the
+ * pattern.  This routine recurses on itself no more deeply than the number
+ * of characters in the pattern. */
 {
-    register int match = 0;
-    register int nextp;
+    unsigned int c;       /* pattern char or start of range in [-] loop */ 
 
-    /* pass over existing ? and * in pattern */
-    while ((*p == '?') || (*p == '*')) {
+    /* Get first character, the pattern for new recmatch calls follows */
+    c = *p++;
 
-        /* take one char for each ? and +; if end of text then no match */
-        if ((*p == '?') && (!*t++))
-                return MATCH_ABORT;
+    /* If that was the end of the pattern, match if string empty too */
+    if (c == 0)
+        return *s == 0;
 
-        /* move to next char in pattern */
-        p++;
+    /* '?' (or '%') matches any character (but not an empty string) */
+#ifdef VMS
+    if (c == '%')         /* GRR:  make this conditional, too? */
+#else /* !VMS */
+    if (c == '?')
+#endif /* ?VMS */
+        return *s ? recmatch(p, s + 1, ic) : 0;
+
+    /* '*' matches any number of characters, including zero */
+#ifdef AMIGA
+    if (c == '#' && *p == '?')     /* "#?" is Amiga-ese for "*" */
+        c = '*', p++;
+#endif /* AMIGA */
+    if (c == '*') {
+        if (*p == 0)
+            return 1;
+        for (; *s; s++)
+            if ((c = recmatch(p, s, ic)) != 0)
+                return (int)c;
+        return 2;       /* 2 means give up--match will return false */
     }
 
-    /* if end of pattern we have matched regardless of text left */
-    if (!*p)
-        return MATCH_VALID;
+    /* Parse and process the list of characters and ranges in brackets */
+    if (c == '[') {
+        int e;          /* flag true if next char to be taken literally */
+        uch *q;         /* pointer to end of [-] group */
+        int r;          /* flag true to match anything but the range */
 
-    /* get the next character to match which must be a literal or '[' */
-    nextp = *p;
+        if (*s == 0)                           /* need a character to match */
+            return 0;
+        p += (r = (*p == '!' || *p == '^'));   /* see if reverse */
+        for (q = p, e = 0; *q; q++)            /* find closing bracket */
+            if (e)
+                e = 0;
+            else
+                if (*q == '\\')      /* GRR:  change to ^ for MS-DOS, OS/2? */
+                    e = 1;
+                else if (*q == ']')
+                    break;
+        if (*q != ']')               /* nothing matches if bad syntax */
+            return 0;
+        for (c = 0, e = *p == '-'; p < q; p++) {  /* go through the list */
+            if (e == 0 && *p == '\\')             /* set escape flag if \ */
+                e = 1;
+            else if (e == 0 && *p == '-')         /* set start of range if - */
+                c = *(p-1);
+            else {
+                unsigned int cc = Case(*s);
 
-    /* Continue until we run out of text or definite result seen */
-    do {
-        /* a precondition for matching is that the next character
-         * in the pattern match the next character in the text or that
-         * the next pattern char is the beginning of a range.  Increment
-         * text pointer as we go here.
-         */
-        if ((nextp == *t) || (nextp == '['))
-            match = matche(p, t);
+                if (*(p+1) != '-')
+                    for (c = c ? c : *p; c <= *p; c++)  /* compare range */
+                        if (Case(c) == cc)
+                            return r ? 0 : recmatch(q + 1, s + 1, ic);
+                c = e = 0;   /* clear range, escape flags */
+            }
+        }
+        return r ? recmatch(q + 1, s + 1, ic) : 0;  /* bracket match failed */
+    }
 
-        /* if the end of text is reached then no match */
-        if (!*t++)
-            match = MATCH_ABORT;
+    /* if escape ('\'), just compare next character */
+    if (c == '\\' && (c = *p++) == 0)     /* if \ at end, then syntax error */
+        return 0;
 
-    } while ((match != MATCH_VALID) &&
-             (match != MATCH_ABORT) &&
-             (match != MATCH_PATTERN));
+    /* just a character--compare it */
+    return Case((uch)c) == Case(*s) ? recmatch(p, ++s, ic) : 0;
 
-    /* return result */
-    return match;
-}
+} /* end function recmatch() */
 
 
-/*----------------------------------------------------------------------------
-*
-* match() is a shell to matche() to return only BOOLEAN values.
-*
-----------------------------------------------------------------------------*/
 
-int match(string,pattern)
-char *string;
-char *pattern;
+
+#ifdef WILD_STAT_BUG   /* Turbo/Borland C, Watcom C, VAX C, Atari MiNT libs */
+
+int iswild(p)
+    char *p;
 {
-    int error_type;
-    error_type = matche(pattern,string);
-    return (error_type == MATCH_VALID ) ? TRUE : FALSE;
-}
+    for (; *p; ++p)
+        if (*p == '\\' && *(p+1))
+            ++p;
+#ifdef VMS
+        else if (*p == '%' || *p == '*')
+#else /* !VMS */
+#ifdef AMIGA
+        else if (*p == '?' || *p == '*' || (*p=='#' && p[1]=='?') || *p == '[')
+#else /* !AMIGA */
+        else if (*p == '?' || *p == '*' || *p == '[')
+#endif /* ?AMIGA */
+#endif /* ?VMS */
+            return TRUE;
+
+    return FALSE;
+
+} /* end function iswild() */
+
+#endif /* WILD_STAT_BUG */
+
+
 
 
 #ifdef TEST_MATCH
 
-/*----------------------------------------------------------------------------
-*
-* Return TRUE if PATTERN has any special wildcard characters
-*
-----------------------------------------------------------------------------*/
+#define put(s) { fputs(s, stdout); fflush(stdout); }
 
-BOOLEAN is_pattern (char *pattern);
-
-/*----------------------------------------------------------------------------
-*
-* Return TRUE if PATTERN has is a well formed regular expression according
-* to the above syntax
-*
-* error_type is a return code based on the type of pattern error.  Zero is
-* returned in error_type if the pattern is a valid one.  error_type return
-* values are as follows:
-*
-*   PATTERN_VALID - pattern is well formed
-*   PATTERN_RANGE - [..] construct has a no end range in a '-' pair (ie [a-])
-*   PATTERN_CLOSE - [..] construct has no end bracket (ie [abc-g )
-*   PATTERN_EMPTY - [..] construct is empty (ie [])
-*
-----------------------------------------------------------------------------*/
-
-BOOLEAN is_valid_pattern (char *pattern, int *error_type);
-int fast_match_after_star (register char *pattern, register char *text);
-
-/*----------------------------------------------------------------------------
-*
-* Return TRUE if PATTERN has any special wildcard characters
-*
-----------------------------------------------------------------------------*/
-
-BOOLEAN is_pattern (char *p)
+void main(void)
 {
-    while (*p)
-        switch (*p++) {
-            case '?':
-            case '*':
-            case '[':
-                return TRUE;
-        }
-    return FALSE;
-}
+    char pat[256], str[256];
 
-
-/*----------------------------------------------------------------------------
-*
-* Return TRUE if PATTERN has is a well formed regular expression according
-* to the above syntax
-*
-* error_type is a return code based on the type of pattern error.  Zero is
-* returned in error_type if the pattern is a valid one.  error_type return
-* values are as follows:
-*
-*   PATTERN_VALID - pattern is well formed
-*   PATTERN_RANGE - [..] construct has a no end range in a '-' pair (ie [a-])
-*   PATTERN_CLOSE - [..] construct has no end bracket (ie [abc-g )
-*   PATTERN_EMPTY - [..] construct is empty (ie [])
-*
-----------------------------------------------------------------------------*/
-
-BOOLEAN is_valid_pattern (char *p, int *error_type)
-{
-    /* init error_type */
-    *error_type = PATTERN_VALID;
-
-    /* loop through pattern to EOS */
-    while (*p) {
-
-        /* determine pattern type */
-        switch (*p) {
-
-            /* the [..] construct must be well formed */
-            case '[':
-                p++;
-
-                /* if the next character is ']' then bad pattern */
-                if (*p == ']') {
-                    *error_type = PATTERN_EMPTY;
-                    return FALSE;
-                }
-
-                /* if end of pattern here then bad pattern */
-                if (!*p) {
-                    *error_type = PATTERN_CLOSE;
-                    return FALSE;
-                }
-
-                /* loop to end of [..] construct */
-                while (*p != ']') {
-
-                    /* check for literal escape */
-                    if (*p == '\\') {
-                        p++;
-
-                        /* if end of pattern here then bad pattern */
-                        if (!*p++) {
-                            *error_type = PATTERN_ESC;
-                            return FALSE;
-                        }
-                    } else
-                        p++;
-
-                    /* if end of pattern here then bad pattern */
-                    if (!*p) {
-                        *error_type = PATTERN_CLOSE;
-                        return FALSE;
-                    }
-
-                    /* if this a range */
-                    if (*p == '-') {
-
-                        /* we must have an end of range */
-                        if (!*++p || (*p == ']')) {
-                            *error_type = PATTERN_RANGE;
-                            return FALSE;
-                        } else {
-
-                            /* check for literal escape */
-                            if (*p == '\\')
-                                p++;
-
-                            /* if end of pattern here then bad pattern */
-                            if (!*p++) {
-                                *error_type = PATTERN_ESC;
-                                return FALSE;
-                            }
-                        }
-                    }
-                }
+    for (;;) {
+        put("Pattern (return to exit): ");
+        gets(pat);
+        if (!pat[0])
+            break;
+        for (;;) {
+            put("String (return for new pattern): ");
+            gets(str);
+            if (!str[0])
                 break;
-
-            /* all other characters are valid pattern elements */
-            case '*':
-            case '?':
-            default:
-                p++;                /* "normal" character */
-                break;
-        }    /* switch */
-    }
-
-    return TRUE;
-}
-
-
-    /*
-    * This test main expects as first arg the pattern and as second arg
-    * the match string.  Output is yay or nay on match.  If nay on
-    * match then the error code is parsed and written.
-    */
-
-#include <stdio.h>
-
-int main(int argc, char *argv[])
-{
-    int error;
-    int is_valid_error;
-
-    if (argc != 3)
-        printf("Usage:  MATCH Pattern Text\n");
-    else {
-        printf("Pattern: %s\n", argv[1]);
-        printf("Text   : %s\n", argv[2]);
-
-        if (!is_pattern(argv[1]))
-            printf("    First Argument Is Not A Pattern\n");
-        else {
-            match(argv[1],argv[2]) ? printf("TRUE") : printf("FALSE");
-            error = matche(argv[1],argv[2]);
-            is_valid_pattern(argv[1],&is_valid_error);
-
-            switch (error) {
-                case MATCH_VALID:
-                    printf("    Match Successful");
-                    if (is_valid_error != PATTERN_VALID)
-                        printf(" -- is_valid_pattern() is complaining\n");
-                    else
-                        printf("\n");
-                    break;
-                case MATCH_RANGE:
-                    printf("    Match Failed on [..]\n");
-                    break;
-                case MATCH_ABORT:
-                    printf("    Match Failed on Early Text Termination\n");
-                    break;
-                case MATCH_END:
-                    printf("    Match Failed on Early Pattern Termination\n");
-                    break;
-                case MATCH_PATTERN:
-                    switch (is_valid_error) {
-                        case PATTERN_VALID:
-                            printf("    Internal Disagreement On Pattern\n");
-                            break;
-                        case PATTERN_RANGE:
-                            printf("    No End of Range in [..] Construct\n");
-                            break;
-                        case PATTERN_CLOSE:
-                            printf("    [..] Construct is Open\n");
-                            break;
-                        case PATTERN_EMPTY:
-                            printf("    [..] Construct is Empty\n");
-                            break;
-                        default:
-                            printf("    Internal Error in is_valid_pattern()\n");
-                    }
-                    break;
-                default:
-                    printf("    Internal Error in matche()\n");
-                    break;
-            } /* switch */
+            printf("Case sensitive: %s  insensitive: %s\n",
+              match(str, pat, 0) ? "YES" : "NO",
+              match(str, pat, 1) ? "YES" : "NO");
         }
-
     }
-    return(0);
+    exit(0);
 }
 
-#endif  /* TEST_MATCH */
+#endif /* TEST_MATCH */

@@ -1,41 +1,46 @@
-Contents of the MSDOS sub-archive for UnZip 5.0 and later:
+Contents of the "msdos" sub-archive for UnZip 5.1 and later:
 
-  Contents          this file
-  Borland.fix       patches to fix Borland executables for grokking Unix EOLs
-  makefile          makefile for Turbo C and old Microsoft C
-  makefile.bcc      makefile for Borland C++
-  makefile.qc       makefile for Quick C and nmake
-  tcc/unzip.prj     Turbo C project file for UnZip
-  tcc/unzip.tc      Turbo C configuration file for UnZip (binary)
-  tcc/unzip_cr.prj  Turbo C project file for UnZip + decryption (need crypt.c)
-  tcc/unzip_cr.tc   Turbo C configuration file for UnZip + decryption (binary)
-  tcc/zi_make.bat   batch file to make ZipInfo with Turbo C
-  tcc/zipinfo.prj   Turbo C project file for ZipInfo
-  tcc/zipinfo.tc    Turbo C configuration file for ZipInfo (binary)
-  bcc/tcconfig.tc   BC++ general configuration file (binary)
-  bcc/unzip.prj     BC++ project file for UnZip (binary)
-  bcc/unzip_cr.prj  BC++ project file for UnZip/decryption (binary; need crypt)
-  bcc/zipinfo.prj   BC++ project file for ZipInfo (binary)
+  Contents       this file
+  README         notes about quirks in MS-DOS executables and compilers
+  msdos.c        OS-dependent UnZip routines for MS-DOS
+  makefile.bc    makefile for Borland C++ and Turbo C++
+  makefile.gcc   makefile for djgpp 1.11 and GNU make
+  makefile.msc   makefile for Microsoft C and make or nmake
+  makefile.qc    makefile for Microsoft Quick C and nmake
+  makefile.tc    makefile for Turbo C and make
+  Borland.fix    patches to fix Borland executables for grokking Unix EOLs
 
-Note:  despite the similarity in names to the corresponding Turbo C files,
-the Borland C++ files apparently are NOT compatible with the older compilers
-(although they seem to be compatible with Turbo C++).  So the old TC project
-files are also included.  FOR BOTH COMPILERS, you must indicate "rebuild" for
-unzip or zipinfo (whichever you do second), because the two misc.obj's are not
-compatible with each other.  This is not a problem if you use the makefile(s),
-in which case zipinfo's is called misc_.obj, but (1) the project files are
-much faster on older machines, and (2) the Turbo C makefile doesn't seem to 
-work properly yet.  As always, if anyone manages to make it go, please send
-us your fixes.
+Notes:
 
-Note also:  for MSC 6.0 or later, use the msc_dos and zi_dos targets in the
-main Unix Makefile--with NMAKE, not MAKE.  The msc_dos target has been re-
-written to use a response file in order to get around the DOS 128-character 
-command-line limit, but the nmake command itself may have trouble.  Give it 
-a try, however.
+(1) As of UnZip 5.1, Borland project files are no longer included.  They
+    were not as flexible as the makefiles, and the binary ones caused prob-
+    lems for both the comp.sources.misc moderator and the UnZip maintainer.
+    By way of compensation, what used to be called simply "makefile" has
+    been split into makefile.msc and makefile.tc (the latter for old Turbo C
+    compilers).
 
-One last note:  the binary patches in Borland.fix are NOT required; they may
-be useful if you regularly deal with Unix sources, but casual users should
-probably make use of an external utility like Rahul Dhesi's FLIP to convert 
-between Unix and DOS/OS2 end-of-line characters.  If you know how to patch
-binary executables, you should be able to figure out how to use these patches.
+(2) The Unix makefile has an msc_dos target which can be used for MSC 6.0 or
+    later, but such use is discouraged and the target may disappear in the
+    future--use makefile.msc instead.
+
+(3) For djgpp and GNU make, makefile.gcc is provided.  It should be possible
+    to use the gcc_dos target in the main Unix makefile (unix/Makefile), but
+    GNU make seems incapable of understanding the implicit .c$(OBJ) rule,
+    even with .SUFFIXES included.  Bug or oversight, for now use this kludge.
+
+(4) For DOS emx+gcc use the gccdos target in the OS/2 makefile.os2.  This
+    target has only been tested in cross-compilation from OS/2 to MS-DOS,
+    but it should work under plain MS-DOS with a proper make utility.  The
+    resulting executables require emx.exe to run (akin to go32.exe).
+
+(5) The djgpp/emx version of the volume-label code has not been tested as
+    widely as the other versions; the author is very careful, however, so
+    problems are unlikely.
+
+(6) The binary patches in Borland.fix are NOT required; they may be useful
+    if you regularly deal with Unix sources, but casual users should probably
+    make use of an external utility like Rahul Dhesi's FLIP to convert between
+    Unix and DOS/OS2 end-of-line characters.  If you know how to patch binary
+    executables, you should be able to figure out how to use these patches.
+    Presumably they don't work for more recent versions of the executables
+    anyway; they'll probably be removed in the next version.
