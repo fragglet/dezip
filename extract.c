@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -16,11 +16,13 @@
 
   Contains:  extract_or_test_files()
              store_info()
+             extract_or_test_entrylist()
              extract_or_test_member()
              TestExtraField()
              test_compr_eb()
              memextract()
              memflush()
+             extract_izvms_block()    (VMS or VMS_TEXT_CONV)
              fnfilter()
 
   ---------------------------------------------------------------------------*/
@@ -78,6 +80,16 @@
 }
 
 static int store_info OF((__GPRO));
+#ifdef SET_DIR_ATTRIB
+static int extract_or_test_entrylist OF((__GPRO__ unsigned numchunk,
+                ulg *pfilnum, ulg *pnum_bad_pwd, LONGINT *pold_extra_bytes,
+                unsigned *pnum_dirs, dirtime **pdirlist,
+                int error_in_archive));
+#else
+static int extract_or_test_entrylist OF((__GPRO__ unsigned numchunk,
+                ulg *pfilnum, ulg *pnum_bad_pwd, LONGINT *pold_extra_bytes,
+                int error_in_archive));
+#endif
 static int extract_or_test_member OF((__GPRO));
 #ifndef SFX
    static int TestExtraField OF((__GPRO__ uch *ef, unsigned ef_len));
@@ -85,6 +97,10 @@ static int extract_or_test_member OF((__GPRO));
         unsigned compr_offset,
         int (*test_uc_ebdata)(__GPRO__ uch *eb, unsigned eb_size,
                               uch *eb_ucptr, ulg eb_ucsize)));
+#endif
+#if (defined(VMS) || defined(VMS_TEXT_CONV))
+   static void decompress_bits OF((uch *outptr, unsigned needlen,
+                                   ZCONST uch *bitptr));
 #endif
 #ifdef SET_DIR_ATTRIB
    static int dircomp OF((ZCONST zvoid *a, ZCONST zvoid *b));
@@ -121,7 +137,7 @@ static ZCONST char Far FilNamMsg[] =
 static ZCONST char Far ExtFieldMsg[] =
   "%s:  bad extra field length (%s)\n";
 static ZCONST char Far OffsetMsg[] =
-  "file #%u:  bad zipfile offset (%s):  %ld\n";
+  "file #%lu:  bad zipfile offset (%s):  %ld\n";
 static ZCONST char Far ExtractMsg[] =
   "%8sing: %-22s  %s%s";
 #ifndef SFX
@@ -139,6 +155,8 @@ static ZCONST char Far AttemptRecompensate[] =
    static ZCONST char Far BackslashPathSep[] =
      "warning:  %s appears to use backslashes as path separators\n";
 #endif
+static ZCONST char Far AbsolutePathWarning[] =
+  "warning:  stripped absolute path spec from %s\n";
 static ZCONST char Far SkipVolumeLabel[] =
   "   skipping: %-22s  %svolume label\n";
 
@@ -175,7 +193,7 @@ static ZCONST char Far ZeroFilesTested[] =
    static ZCONST char Far SkipIncorrectPasswd[] =
      "   skipping: %-22s  incorrect password\n";
    static ZCONST char Far FilesSkipBadPasswd[] =
-     "%u file%s skipped because of incorrect password.\n";
+     "%lu file%s skipped because of incorrect password.\n";
    static ZCONST char Far MaybeBadPasswd[] =
      "    (may instead be incorrect password)\n";
 #else
@@ -253,29 +271,21 @@ static ZCONST char Far BadExtraFieldCRC[] =
 int extract_or_test_files(__G)    /* return PK-type error code */
      __GDEF
 {
-    uch *cd_inptr;
     unsigned i, j;
+    long cd_bufstart;
+    uch *cd_inptr;
+    int cd_incnt;
     ulg filnum=0L, blknum=0L;
     int reached_end, no_endsig_found;
-    int cd_incnt, renamed, query;
-    int skip_entry;
-    int error, error_in_archive=PK_COOL, *fn_matched=NULL, *xn_matched=NULL;
-#ifndef WINDLL
-    extent len;
-#endif
+    int error, error_in_archive=PK_COOL;
+    int *fn_matched=NULL, *xn_matched=NULL;
     unsigned members_processed;
     ulg num_skipped=0L, num_bad_pwd=0L;
-    long cd_bufstart, bufstart, inbuf_offset, request;
     LONGINT old_extra_bytes = 0L;
 #ifdef SET_DIR_ATTRIB
     unsigned num_dirs=0;
     dirtime *dirlist=(dirtime *)NULL, **sorted_dirlist=(dirtime **)NULL;
 #endif
-
-/* possible values for local skip_entry flag: */
-#define SKIP_NO         0       /* do not skip this entry */
-#define SKIP_Y_EXISTING 1       /* skip this entry, do not overwrite file */
-#define SKIP_Y_NONEXIST 2       /* skip this entry, do not create new file */
 
 /*---------------------------------------------------------------------------
     The basic idea of this function is as follows.  Since the central di-
@@ -344,7 +354,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
 
             if (readbuf(__G__ G.sig, 4) == 0) {
                 error_in_archive = PK_EOF;
-		reached_end = TRUE;     /* ...so no more left to do */
+                reached_end = TRUE;     /* ...so no more left to do */
                 break;
             }
             if (strncmp(G.sig, central_hdr_sig, 4)) {  /* is it a new entry? */
@@ -472,474 +482,23 @@ int extract_or_test_files(__G)    /* return PK-type error code */
         each one.
       -----------------------------------------------------------------------*/
 
-        for (i = 0; i < j; ++i) {
-            filnum++;   /* filnum = i + blknum*DIR_BLKSIZ + 1; */
-            G.pInfo = &G.info[i];
-#ifdef NOVELL_BUG_FAILSAFE
-            G.dne = FALSE;  /* assume file exists until stat() says otherwise */
-#endif
-
-            /* if the target position is not within the current input buffer
-             * (either haven't yet read far enough, or (maybe) skipping back-
-             * ward), skip to the target position and reset readbuf(). */
-
-            /* ZLSEEK(pInfo->offset):  */
-            request = G.pInfo->offset + G.extra_bytes;
-            inbuf_offset = request % INBUFSIZ;
-            bufstart = request - inbuf_offset;
-
-            Trace((stderr, "\ndebug: request = %ld, inbuf_offset = %ld\n",
-              request, inbuf_offset));
-            Trace((stderr,
-              "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
-              bufstart, G.cur_zipfile_bufstart));
-            if (request < 0) {
-                Info(slide, 0x401, ((char *)slide, LoadFarStringSmall(SeekMsg),
-                  G.zipfn, LoadFarString(ReportMsg)));
-                error_in_archive = PK_ERR;
-                if (filnum == 1 && G.extra_bytes != 0L) {
-                    Info(slide, 0x401, ((char *)slide,
-                      LoadFarString(AttemptRecompensate)));
-                    old_extra_bytes = G.extra_bytes;
-                    G.extra_bytes = 0L;
-                    request = G.pInfo->offset;  /* could also check if != 0 */
-                    inbuf_offset = request % INBUFSIZ;
-                    bufstart = request - inbuf_offset;
-                    Trace((stderr, "debug: request = %ld, inbuf_offset = %ld\n",
-                      request, inbuf_offset));
-                    Trace((stderr,
-                      "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
-                      bufstart, G.cur_zipfile_bufstart));
-                } else {
-                    error_in_archive = PK_BADERR;
-                    continue;  /* this one hosed; try next */
-                }
-            }
-            /* try again */
-            if (request < 0) {
-                Trace((stderr, "debug: recompensated request still < 0\n"));
-                Info(slide, 0x401, ((char *)slide, LoadFarStringSmall(SeekMsg),
-                  G.zipfn, LoadFarString(ReportMsg)));
-                error_in_archive = PK_BADERR;
-                continue;
-            } else if (bufstart != G.cur_zipfile_bufstart) {
-                Trace((stderr, "debug: bufstart != cur_zipfile_bufstart\n"));
-#ifdef USE_STRM_INPUT
-                fseek((FILE *)G.zipfd,(LONGINT)bufstart,SEEK_SET);
-                G.cur_zipfile_bufstart = ftell((FILE *)G.zipfd);
-#else /* !USE_STRM_INPUT */
-                G.cur_zipfile_bufstart =
-                  lseek(G.zipfd,(LONGINT)bufstart,SEEK_SET);
-#endif /* ?USE_STRM_INPUT */
-                if ((G.incnt = read(G.zipfd,(char *)G.inbuf,INBUFSIZ)) <= 0)
-                {
-                    Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
-                      filnum, "lseek", bufstart));
-                    error_in_archive = PK_BADERR;
-                    continue;   /* can still do next file */
-                }
-                G.inptr = G.inbuf + (int)inbuf_offset;
-                G.incnt -= (int)inbuf_offset;
-            } else {
-                G.incnt += (int)(G.inptr-G.inbuf) - (int)inbuf_offset;
-                G.inptr = G.inbuf + (int)inbuf_offset;
-            }
-
-            /* should be in proper position now, so check for sig */
-            if (readbuf(__G__ G.sig, 4) == 0) {  /* bad offset */
-                Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
-                  filnum, "EOF", request));
-                error_in_archive = PK_BADERR;
-                continue;   /* but can still try next one */
-            }
-            if (strncmp(G.sig, local_hdr_sig, 4)) {
-                Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
-                  filnum, LoadFarStringSmall(LocalHdrSig), request));
-                /*
-                    GRRDUMP(G.sig, 4)
-                    GRRDUMP(local_hdr_sig, 4)
-                 */
-                error_in_archive = PK_ERR;
-                if ((filnum == 1 && G.extra_bytes != 0L) ||
-                    (G.extra_bytes == 0L && old_extra_bytes != 0L)) {
-                    Info(slide, 0x401, ((char *)slide,
-                      LoadFarString(AttemptRecompensate)));
-                    if (G.extra_bytes) {
-                        old_extra_bytes = G.extra_bytes;
-                        G.extra_bytes = 0L;
-                    } else
-                        G.extra_bytes = old_extra_bytes;  /* third attempt */
-                    ZLSEEK(G.pInfo->offset)
-                    if (readbuf(__G__ G.sig, 4) == 0) {  /* bad offset */
-                        Info(slide, 0x401, ((char *)slide,
-                          LoadFarString(OffsetMsg), filnum, "EOF", request));
-                        error_in_archive = PK_BADERR;
-                        continue;   /* but can still try next one */
-                    }
-                    if (strncmp(G.sig, local_hdr_sig, 4)) {
-                        Info(slide, 0x401, ((char *)slide,
-                          LoadFarString(OffsetMsg), filnum,
-                          LoadFarStringSmall(LocalHdrSig), request));
-                        error_in_archive = PK_BADERR;
-                        continue;
-                    }
-                } else
-                    continue;  /* this one hosed; try next */
-            }
-            if ((error = process_local_file_hdr(__G)) != PK_COOL) {
-                Info(slide, 0x421, ((char *)slide, LoadFarString(BadLocalHdr),
-                  filnum));
-                error_in_archive = error;   /* only PK_EOF defined */
-                continue;   /* can still try next one */
-            }
-            if ((error = do_string(__G__ G.lrec.filename_length, DS_FN_L)) !=
-                 PK_COOL)
-            {
-                if (error > error_in_archive)
-                    error_in_archive = error;
-                if (error > PK_WARN) {
-                    Info(slide, 0x401, ((char *)slide, LoadFarString(FilNamMsg),
-                      FnFilter1(G.filename), "local"));
-                    continue;   /* go on to next one */
-                }
-            }
-            if (G.extra_field != (uch *)NULL) {
-                free(G.extra_field);
-                G.extra_field = (uch *)NULL;
-            }
-            if ((error =
-                 do_string(__G__ G.lrec.extra_field_length, EXTRA_FIELD)) != 0)
-            {
-                if (error > error_in_archive)
-                    error_in_archive = error;
-                if (error > PK_WARN) {
-                    Info(slide, 0x401, ((char *)slide,
-                      LoadFarString(ExtFieldMsg),
-                      FnFilter1(G.filename), "local"));
-                    continue;   /* go on */
-                }
-            }
-
-#if CRYPT
-            if (G.pInfo->encrypted &&
-                (error = decrypt(__G__ uO.pwdarg)) != PK_COOL) {
-                if (error == PK_WARN) {
-                    if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
-                        Info(slide, 0x401, ((char *)slide,
-                          LoadFarString(SkipIncorrectPasswd),
-                          FnFilter1(G.filename)));
-                    ++num_bad_pwd;
-                } else {  /* (error > PK_WARN) */
-                    if (error > error_in_archive)
-                        error_in_archive = error;
-                    Info(slide, 0x401, ((char *)slide,
-                      LoadFarString(SkipCannotGetPasswd),
-                      FnFilter1(G.filename)));
-                }
-                continue;   /* go on to next file */
-            }
-#endif /* CRYPT */
-
-            /*
-             * just about to extract file:  if extracting to disk, check if
-             * already exists, and if so, take appropriate action according to
-             * fflag/uflag/overwrite_all/etc. (we couldn't do this in upper
-             * loop because we don't store the possibly renamed filename[] in
-             * info[])
-             */
-#ifdef DLL
-            if (!uO.tflag && !uO.cflag && !G.redirect_data)
-#else
-            if (!uO.tflag && !uO.cflag)
-#endif
-            {
-                renamed = FALSE;   /* user hasn't renamed output file yet */
-
-startover:
-                query = FALSE;
-                skip_entry = SKIP_NO;
-                /* for files from DOS FAT, check for use of backslash instead
-                 *  of slash as directory separator (bug in some zipper(s); so
-                 *  far, not a problem in HPFS, NTFS or VFAT systems)
-                 */
-#ifndef SFX
-                if (G.pInfo->hostnum == FS_FAT_ && !MBSCHR(G.filename, '/')) {
-                    char *p=G.filename;
-
-                    if (*p) do {
-                        if (*p == '\\') {
-                            if (!G.reported_backslash) {
-                                Info(slide, 0x21, ((char *)slide,
-                                  LoadFarString(BackslashPathSep), G.zipfn));
-                                G.reported_backslash = TRUE;
-                                if (!error_in_archive)
-                                    error_in_archive = PK_WARN;
-                            }
-                            *p = '/';
-                        }
-                    } while (*PREINCSTR(p));
-                }
-#endif /* !SFX */
-
-                /* mapname can create dirs if not freshening or if renamed */
-                if ((error = mapname(__G__ renamed)) > PK_WARN) {
-                    if (error == IZ_CREATED_DIR) {
+        error = extract_or_test_entrylist(__G__ j,
+                        &filnum, &num_bad_pwd, &old_extra_bytes,
 #ifdef SET_DIR_ATTRIB
-                        dirtime *d_entry;
-
-                        d_entry = (dirtime *)malloc(sizeof(dirtime));
-                        if (d_entry == (dirtime *)NULL) {
-                            Info(slide, 0x401, ((char *)slide,
-                                 LoadFarString(DirlistEntryNoMem)));
-                        } else {
-                            unsigned eb_izux_flg;
-
-                            d_entry->next = dirlist;
-                            dirlist = d_entry;
-                            dirlist->fn =
-                              (char *)malloc(strlen(G.filename) + 1);
-                            if (dirlist->fn == (char *)NULL) {
-                                Info(slide, 0x401, ((char *)slide,
-                                  LoadFarString(DirlistEntryNoMem)));
-                                dirlist = d_entry->next;
-                                free(d_entry);
-                                if (!error_in_archive)
-                                    error_in_archive = PK_WARN;
-                                continue;
-                            }
-                            strcpy(dirlist->fn, G.filename);
-                            dirlist->perms = G.pInfo->file_attr;
-#ifdef USE_EF_UT_TIME
-                            eb_izux_flg = G.extra_field? ef_scan_for_izux(
-                              G.extra_field, G.lrec.extra_field_length, 0,
-                              G.lrec.last_mod_dos_datetime,
-#ifdef IZ_CHECK_TZ
-                              (G.tz_is_valid ? &(dirlist->u.t3) : NULL),
-#else
-                              &(dirlist->u.t3),
+                        &num_dirs, &dirlist,
 #endif
-                              dirlist->uidgid)
-                              : 0;
-#else /* !USE_EF_UT_TIME */
-                            eb_izux_flg = 0;
-#endif /* ?USE_EF_UT_TIME */
-                            if (eb_izux_flg & EB_UT_FL_MTIME) {
-                                TTrace((stderr,
-                                  "\nextract:  Unix dir e.f. modtime = %ld\n",
-                                  dirlist->u.t3.mtime));
-                            } else {
-                                dirlist->u.t3.mtime = dos_to_unix_time(
-                                  G.lrec.last_mod_dos_datetime);
-                            }
-                            if (eb_izux_flg & EB_UT_FL_ATIME) {
-                                TTrace((stderr,
-                                  "\nextract:  Unix dir e.f. actime = %ld\n",
-                                  dirlist->u.t3.atime));
-                            } else {
-                                dirlist->u.t3.atime =
-                                  dirlist->u.t3.mtime;
-                            }
-                            dirlist->have_uidgid =
-#ifdef RESTORE_UIDGID
-                                (uO.X_flag && (eb_izux_flg & EB_UX2_VALID));
-#else
-                                0;
-#endif
-                            ++num_dirs;
-                        }
-#endif /* SET_DIR_ATTRIB */
-                    } else if (error == IZ_VOL_LABEL) {
-#ifdef DOS_OS2_W32
-                        Info(slide, 0x401, ((char *)slide,
-                          LoadFarString(SkipVolumeLabel),
-                          FnFilter1(G.filename),
-                          uO.volflag? "hard disk " : ""));
-#else
-                        Info(slide, 1, ((char *)slide,
-                          LoadFarString(SkipVolumeLabel),
-                          FnFilter1(G.filename), ""));
-#endif
-                    /*  if (!error_in_archive)
-                            error_in_archive = PK_WARN;  */
-                    } else if (error > PK_ERR  &&  error_in_archive < PK_ERR)
-                        error_in_archive = PK_ERR;
-                    Trace((stderr, "mapname(%s) returns error = %d\n",
-                      FnFilter1(G.filename), error));
-                    continue;   /* go on to next file */
-                }
-
-#ifdef QDOS
-                QFilename(__G__ G.filename);
-#endif
-                switch (check_for_newer(__G__ G.filename)) {
-                    case DOES_NOT_EXIST:
-#ifdef NOVELL_BUG_FAILSAFE
-                        G.dne = TRUE;   /* stat() says file DOES NOT EXIST */
-#endif
-                        /* freshen (no new files): skip unless just renamed */
-                        if (uO.fflag && !renamed)
-                            skip_entry = SKIP_Y_NONEXIST;
-                        break;
-                    case EXISTS_AND_OLDER:
-                        if (IS_OVERWRT_NONE) {
-                            /* never overwrite:  skip file */
-                            skip_entry = SKIP_Y_EXISTING;
-                        } else {
-#ifdef UNIXBACKUP
-                            if (!IS_OVERWRT_ALL && !uO.B_flag)
-#else
-                            if (!IS_OVERWRT_ALL)
-#endif
-                                query = TRUE;
-                        }
-                        break;
-                    case EXISTS_AND_NEWER:             /* (or equal) */
-                        if (IS_OVERWRT_NONE || (uO.uflag && !renamed)) {
-                            /* skip if update/freshen & orig name */
-                            skip_entry = SKIP_Y_EXISTING;
-                        } else {
-#ifdef UNIXBACKUP
-                            if (!IS_OVERWRT_ALL && !uO.B_flag)
-#else
-                            if (!IS_OVERWRT_ALL)
-#endif
-                                query = TRUE;
-                        }
-                        break;
-                }
-                if (query) {
-#ifdef WINDLL
-                    switch (G.lpUserFunctions->replace != NULL ?
-                            (*G.lpUserFunctions->replace)(G.filename) :
-                            IDM_REPLACE_NONE) {
-                        case IDM_REPLACE_RENAME:
-                            _ISO_INTERN(G.filename);
-                            renamed = TRUE;
-                            goto startover;
-                        case IDM_REPLACE_ALL:
-                            G.overwrite_mode = OVERWRT_ALWAYS;
-                            /* FALL THROUGH, extract */
-                        case IDM_REPLACE_YES:
-                            break;
-                        case IDM_REPLACE_NONE:
-                            G.overwrite_mode = OVERWRT_NEVER;
-                            /* FALL THROUGH, skip */
-                        case IDM_REPLACE_NO:
-                            skip_entry = SKIP_Y_EXISTING;
-                            break;
-                    }
-#else /* !WINDLL */
-reprompt:
-                    Info(slide, 0x81, ((char *)slide,
-                      LoadFarString(ReplaceQuery),
-                      FnFilter1(G.filename)));
-                    if (fgets(G.answerbuf, 9, stdin) == (char *)NULL) {
-                        Info(slide, 1, ((char *)slide,
-                          LoadFarString(AssumeNone)));
-                        *G.answerbuf = 'N';
-                        if (!error_in_archive)
-                            error_in_archive = 1;  /* not extracted:  warning */
-                    }
-                    switch (*G.answerbuf) {
-                        case 'r':
-                        case 'R':
-                            do {
-                                Info(slide, 0x81, ((char *)slide,
-                                  LoadFarString(NewNameQuery)));
-                                fgets(G.filename, FILNAMSIZ, stdin);
-                                /* usually get \n here:  better check for it */
-                                len = strlen(G.filename);
-                                if (lastchar(G.filename, len) == '\n')
-                                    G.filename[--len] = '\0';
-                            } while (len == 0);
-#ifdef WIN32  /* WIN32 fgets( ... , stdin) returns OEM coded strings */
-                            _OEM_INTERN(G.filename);
-#endif
-                            renamed = TRUE;
-                            goto startover;   /* sorry for a goto */
-                        case 'A':   /* dangerous option:  force caps */
-                            G.overwrite_mode = OVERWRT_ALWAYS;
-                            /* FALL THROUGH, extract */
-                        case 'y':
-                        case 'Y':
-                            break;
-                        case 'N':
-                            G.overwrite_mode = OVERWRT_NEVER;
-                            /* FALL THROUGH, skip */
-                        case 'n':
-                            /* skip file */
-                            skip_entry = SKIP_Y_EXISTING;
-                            break;
-                        default:
-                            Info(slide, 1, ((char *)slide,
-                              LoadFarString(InvalidResponse), *G.answerbuf));
-                            goto reprompt;   /* yet another goto? */
-                    } /* end switch (*answerbuf) */
-#endif /* ?WINDLL */
-                } /* end if (query) */
-                if (skip_entry != SKIP_NO) {
-#ifdef WINDLL
-                    if (skip_entry == SKIP_Y_EXISTING) {
-                        /* report skipping of an existing entry */
-                        Info(slide, 0, ((char *)slide,
-                          ((IS_OVERWRT_NONE || !uO.uflag || renamed) ?
-                           "Target file exists.\nSkipping %s\n" :
-                           "Target file newer.\nSkipping %s\n"),
-                          FnFilter1(G.filename)));
-                    }
-#endif /* WINDLL */
-                    continue;
-                }
-            } /* end if (extracting to disk) */
-
-#ifdef DLL
-            if ((G.statreportcb != NULL) &&
-                (*G.statreportcb)(__G__ UZ_ST_START_EXTRACT, G.zipfn,
-                                  G.filename, NULL)) {
+                        error_in_archive);
+        if (error != PK_COOL) {
+            if (error > error_in_archive)
+                error_in_archive = error;       /* ...and keep going */
+            if (G.disk_full > 1 || error_in_archive == IZ_CTRLC) {
                 if (fn_matched)
                     free((zvoid *)fn_matched);
                 if (xn_matched)
                     free((zvoid *)xn_matched);
-                return IZ_CTRLC;        /* cancel operation by user request */
+                return error_in_archive;        /* (unless disk full) */
             }
-#endif
-#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
-            UserStop();
-#endif
-#ifdef AMIGA
-            G.filenote_slot = i;
-#endif
-            G.disk_full = 0;
-            if ((error = extract_or_test_member(__G)) != PK_COOL) {
-                if (error > error_in_archive)
-                    error_in_archive = error;       /* ...and keep going */
-#ifdef DLL
-                if (G.disk_full > 1 || error_in_archive == IZ_CTRLC) {
-#else
-                if (G.disk_full > 1) {
-#endif
-                    if (fn_matched)
-                        free((zvoid *)fn_matched);
-                    if (xn_matched)
-                        free((zvoid *)xn_matched);
-                    return error_in_archive;        /* (unless disk full) */
-                }
-            }
-#ifdef DLL
-            if ((G.statreportcb != NULL) &&
-                (*G.statreportcb)(__G__ UZ_ST_FINISH_MEMBER, G.zipfn,
-                                  G.filename, (zvoid *)&G.lrec.ucsize)) {
-                if (fn_matched)
-                    free((zvoid *)fn_matched);
-                if (xn_matched)
-                    free((zvoid *)xn_matched);
-                return IZ_CTRLC;        /* cancel operation by user request */
-            }
-#endif
-#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
-            UserStop();
-#endif
-        } /* end for-loop (i:  files in current block) */
+        }
 
 
         /*
@@ -951,7 +510,8 @@ reprompt:
         fseek((FILE *)G.zipfd, (LONGINT)cd_bufstart, SEEK_SET);
         G.cur_zipfile_bufstart = ftell((FILE *)G.zipfd);
 #else /* !USE_STRM_INPUT */
-        G.cur_zipfile_bufstart = lseek(G.zipfd,(LONGINT)cd_bufstart,SEEK_SET);
+        G.cur_zipfile_bufstart =
+          lseek(G.zipfd, (LONGINT)cd_bufstart, SEEK_SET);
 #endif /* ?USE_STRM_INPUT */
         read(G.zipfd, (char *)G.inbuf, INBUFSIZ);  /* been here before... */
         G.inptr = cd_inptr;
@@ -1072,7 +632,7 @@ reprompt:
         if (uO.qflag < 2) {        /* GRR 930710:  was (uO.qflag == 1) */
             if (error_in_archive)
                 Info(slide, 0, ((char *)slide, LoadFarString(ErrorInArchive),
-                  (error_in_archive == 1)? "warning-" : "", G.zipfn));
+                  (error_in_archive == PK_WARN)? "warning-" : "", G.zipfn));
             else if (num == 0L)
                 Info(slide, 0, ((char *)slide, LoadFarString(ZeroFilesTested),
                   G.zipfn));
@@ -1242,10 +802,543 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
     /* map whatever file attributes we have into the local format */
     mapattr(__G);   /* GRR:  worry about return value later */
 
+    G.pInfo->diskstart = G.crec.disk_number_start;
     G.pInfo->offset = (long)G.crec.relative_offset_local_header;
     return 1;
 
 } /* end function store_info() */
+
+
+
+
+
+/******************************************/
+/*  Function extract_or_test_entrylist()  */
+/******************************************/
+
+static int extract_or_test_entrylist(__G__ numchunk,
+                pfilnum, pnum_bad_pwd, pold_extra_bytes,
+#ifdef SET_DIR_ATTRIB
+                pnum_dirs, pdirlist,
+#endif
+                error_in_archive)    /* return PK-type error code */
+    __GDEF
+    unsigned numchunk;
+    ulg *pfilnum;
+    ulg *pnum_bad_pwd;
+    LONGINT *pold_extra_bytes;
+#ifdef SET_DIR_ATTRIB
+    unsigned *pnum_dirs;
+    dirtime **pdirlist;
+#endif
+    int error_in_archive;
+{
+    unsigned i;
+    int renamed, query;
+    int skip_entry;
+    long bufstart, inbuf_offset, request;
+    int error, errcode;
+
+/* possible values for local skip_entry flag: */
+#define SKIP_NO         0       /* do not skip this entry */
+#define SKIP_Y_EXISTING 1       /* skip this entry, do not overwrite file */
+#define SKIP_Y_NONEXIST 2       /* skip this entry, do not create new file */
+
+    /*-----------------------------------------------------------------------
+        Second loop:  process files in current block, extracting or testing
+        each one.
+      -----------------------------------------------------------------------*/
+
+    for (i = 0; i < numchunk; ++i) {
+        (*pfilnum)++;   /* *pfilnum = i + blknum*DIR_BLKSIZ + 1; */
+        G.pInfo = &G.info[i];
+#ifdef NOVELL_BUG_FAILSAFE
+        G.dne = FALSE;  /* assume file exists until stat() says otherwise */
+#endif
+
+        /* if the target position is not within the current input buffer
+         * (either haven't yet read far enough, or (maybe) skipping back-
+         * ward), skip to the target position and reset readbuf(). */
+
+        /* seek_zipf(__G__ pInfo->offset);  */
+        request = G.pInfo->offset + G.extra_bytes;
+        inbuf_offset = request % INBUFSIZ;
+        bufstart = request - inbuf_offset;
+
+        Trace((stderr, "\ndebug: request = %ld, inbuf_offset = %ld\n",
+          request, inbuf_offset));
+        Trace((stderr,
+          "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
+          bufstart, G.cur_zipfile_bufstart));
+        if (request < 0) {
+            Info(slide, 0x401, ((char *)slide, LoadFarStringSmall(SeekMsg),
+              G.zipfn, LoadFarString(ReportMsg)));
+            error_in_archive = PK_ERR;
+            if (*pfilnum == 1 && G.extra_bytes != 0L) {
+                Info(slide, 0x401, ((char *)slide,
+                  LoadFarString(AttemptRecompensate)));
+                *pold_extra_bytes = G.extra_bytes;
+                G.extra_bytes = 0L;
+                request = G.pInfo->offset;  /* could also check if != 0 */
+                inbuf_offset = request % INBUFSIZ;
+                bufstart = request - inbuf_offset;
+                Trace((stderr, "debug: request = %ld, inbuf_offset = %ld\n",
+                  request, inbuf_offset));
+                Trace((stderr,
+                  "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
+                  bufstart, G.cur_zipfile_bufstart));
+                /* try again */
+                if (request < 0) {
+                    Trace((stderr,
+                      "debug: recompensated request still < 0\n"));
+                    Info(slide, 0x401, ((char *)slide,
+                      LoadFarStringSmall(SeekMsg),
+                      G.zipfn, LoadFarString(ReportMsg)));
+                    error_in_archive = PK_BADERR;
+                    continue;
+                }
+            } else {
+                error_in_archive = PK_BADERR;
+                continue;  /* this one hosed; try next */
+            }
+        }
+
+        if (bufstart != G.cur_zipfile_bufstart) {
+            Trace((stderr, "debug: bufstart != cur_zipfile_bufstart\n"));
+#ifdef USE_STRM_INPUT
+            fseek((FILE *)G.zipfd, (LONGINT)bufstart, SEEK_SET);
+            G.cur_zipfile_bufstart = ftell((FILE *)G.zipfd);
+#else /* !USE_STRM_INPUT */
+            G.cur_zipfile_bufstart =
+              lseek(G.zipfd, (LONGINT)bufstart, SEEK_SET);
+#endif /* ?USE_STRM_INPUT */
+            if ((G.incnt = read(G.zipfd,(char *)G.inbuf,INBUFSIZ)) <= 0)
+            {
+                Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
+                  *pfilnum, "lseek", bufstart));
+                error_in_archive = PK_BADERR;
+                continue;   /* can still do next file */
+            }
+            G.inptr = G.inbuf + (int)inbuf_offset;
+            G.incnt -= (int)inbuf_offset;
+        } else {
+            G.incnt += (int)(G.inptr-G.inbuf) - (int)inbuf_offset;
+            G.inptr = G.inbuf + (int)inbuf_offset;
+        }
+
+        /* should be in proper position now, so check for sig */
+        if (readbuf(__G__ G.sig, 4) == 0) {  /* bad offset */
+            Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
+              *pfilnum, "EOF", request));
+            error_in_archive = PK_BADERR;
+            continue;   /* but can still try next one */
+        }
+        if (strncmp(G.sig, local_hdr_sig, 4)) {
+            Info(slide, 0x401, ((char *)slide, LoadFarString(OffsetMsg),
+              *pfilnum, LoadFarStringSmall(LocalHdrSig), request));
+            /*
+                GRRDUMP(G.sig, 4)
+                GRRDUMP(local_hdr_sig, 4)
+             */
+            error_in_archive = PK_ERR;
+            if ((*pfilnum == 1 && G.extra_bytes != 0L) ||
+                (G.extra_bytes == 0L && *pold_extra_bytes != 0L)) {
+                Info(slide, 0x401, ((char *)slide,
+                  LoadFarString(AttemptRecompensate)));
+                if (G.extra_bytes) {
+                    *pold_extra_bytes = G.extra_bytes;
+                    G.extra_bytes = 0L;
+                } else
+                    G.extra_bytes = *pold_extra_bytes; /* third attempt */
+                if (((error = seek_zipf(__G__ G.pInfo->offset)) != PK_OK) ||
+                    (readbuf(__G__ G.sig, 4) == 0)) {  /* bad offset */
+                    if (error != PK_BADERR)
+                      Info(slide, 0x401, ((char *)slide,
+                        LoadFarString(OffsetMsg), *pfilnum, "EOF", request));
+                    error_in_archive = PK_BADERR;
+                    continue;   /* but can still try next one */
+                }
+                if (strncmp(G.sig, local_hdr_sig, 4)) {
+                    Info(slide, 0x401, ((char *)slide,
+                      LoadFarString(OffsetMsg), *pfilnum,
+                      LoadFarStringSmall(LocalHdrSig), request));
+                    error_in_archive = PK_BADERR;
+                    continue;
+                }
+            } else
+                continue;  /* this one hosed; try next */
+        }
+        if ((error = process_local_file_hdr(__G)) != PK_COOL) {
+            Info(slide, 0x421, ((char *)slide, LoadFarString(BadLocalHdr),
+              *pfilnum));
+            error_in_archive = error;   /* only PK_EOF defined */
+            continue;   /* can still try next one */
+        }
+        if ((error = do_string(__G__ G.lrec.filename_length, DS_FN_L)) !=
+             PK_COOL)
+        {
+            if (error > error_in_archive)
+                error_in_archive = error;
+            if (error > PK_WARN) {
+                Info(slide, 0x401, ((char *)slide, LoadFarString(FilNamMsg),
+                  FnFilter1(G.filename), "local"));
+                continue;   /* go on to next one */
+            }
+        }
+        if (G.extra_field != (uch *)NULL) {
+            free(G.extra_field);
+            G.extra_field = (uch *)NULL;
+        }
+        if ((error =
+             do_string(__G__ G.lrec.extra_field_length, EXTRA_FIELD)) != 0)
+        {
+            if (error > error_in_archive)
+                error_in_archive = error;
+            if (error > PK_WARN) {
+                Info(slide, 0x401, ((char *)slide,
+                  LoadFarString(ExtFieldMsg),
+                  FnFilter1(G.filename), "local"));
+                continue;   /* go on */
+            }
+        }
+
+#if CRYPT
+        if (G.pInfo->encrypted &&
+            (error = decrypt(__G__ uO.pwdarg)) != PK_COOL) {
+            if (error == PK_WARN) {
+                if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
+                    Info(slide, 0x401, ((char *)slide,
+                      LoadFarString(SkipIncorrectPasswd),
+                      FnFilter1(G.filename)));
+                ++(*pnum_bad_pwd);
+            } else {  /* (error > PK_WARN) */
+                if (error > error_in_archive)
+                    error_in_archive = error;
+                Info(slide, 0x401, ((char *)slide,
+                  LoadFarString(SkipCannotGetPasswd),
+                  FnFilter1(G.filename)));
+            }
+            continue;   /* go on to next file */
+        }
+#endif /* CRYPT */
+
+        /*
+         * just about to extract file:  if extracting to disk, check if
+         * already exists, and if so, take appropriate action according to
+         * fflag/uflag/overwrite_all/etc. (we couldn't do this in upper
+         * loop because we don't store the possibly renamed filename[] in
+         * info[])
+         */
+#ifdef DLL
+        if (!uO.tflag && !uO.cflag && !G.redirect_data)
+#else
+        if (!uO.tflag && !uO.cflag)
+#endif
+        {
+            renamed = FALSE;   /* user hasn't renamed output file yet */
+
+startover:
+            query = FALSE;
+            skip_entry = SKIP_NO;
+            /* for files from DOS FAT, check for use of backslash instead
+             *  of slash as directory separator (bug in some zipper(s); so
+             *  far, not a problem in HPFS, NTFS or VFAT systems)
+             */
+#ifndef SFX
+            if (G.pInfo->hostnum == FS_FAT_ && !MBSCHR(G.filename, '/')) {
+                char *p=G.filename;
+
+                if (*p) do {
+                    if (*p == '\\') {
+                        if (!G.reported_backslash) {
+                            Info(slide, 0x21, ((char *)slide,
+                              LoadFarString(BackslashPathSep), G.zipfn));
+                            G.reported_backslash = TRUE;
+                            if (!error_in_archive)
+                                error_in_archive = PK_WARN;
+                        }
+                        *p = '/';
+                    }
+                } while (*PREINCSTR(p));
+            }
+#endif /* !SFX */
+
+            if (!renamed) {
+               /* remove absolute path specs */
+               if (G.filename[0] == '/') {
+                   Info(slide, 0x401, ((char *)slide,
+                        LoadFarString(AbsolutePathWarning),
+                        FnFilter1(G.filename)));
+                   if (!error_in_archive)
+                       error_in_archive = PK_WARN;
+                   do {
+                       char *p = G.filename + 1;
+                       do {
+                           *(p-1) = *p;
+                       } while (*p++ != '\0');
+                   } while (G.filename[0] == '/');
+               }
+            }
+
+            /* mapname can create dirs if not freshening or if renamed */
+            error = mapname(__G__ renamed);
+            if ((errcode = error & ~MPN_MASK) != PK_OK &&
+                error_in_archive < errcode)
+                error_in_archive = errcode;
+            if ((errcode = error & MPN_MASK) > MPN_INF_TRUNC) {
+                if (errcode == MPN_CREATED_DIR) {
+#ifdef SET_DIR_ATTRIB
+                    dirtime *d_entry;
+
+                    d_entry = (dirtime *)malloc(sizeof(dirtime));
+                    if (d_entry == (dirtime *)NULL) {
+                        Info(slide, 0x401, ((char *)slide,
+                             LoadFarString(DirlistEntryNoMem)));
+                    } else {
+                        unsigned eb_izux_flg;
+
+                        d_entry->next = (*pdirlist);
+                        (*pdirlist) = d_entry;
+                        (*pdirlist)->fn =
+                          (char *)malloc(strlen(G.filename) + 1);
+                        if ((*pdirlist)->fn == (char *)NULL) {
+                            Info(slide, 0x401, ((char *)slide,
+                              LoadFarString(DirlistEntryNoMem)));
+                            (*pdirlist) = d_entry->next;
+                            free(d_entry);
+                            if (!error_in_archive)
+                                error_in_archive = PK_WARN;
+                            continue;
+                        }
+                        strcpy((*pdirlist)->fn, G.filename);
+                        (*pdirlist)->perms = G.pInfo->file_attr;
+#ifdef USE_EF_UT_TIME
+                        eb_izux_flg = G.extra_field? ef_scan_for_izux(
+                          G.extra_field, G.lrec.extra_field_length, 0,
+                          G.lrec.last_mod_dos_datetime,
+#ifdef IZ_CHECK_TZ
+                          (G.tz_is_valid ? &((*pdirlist)->u.t3) : NULL),
+#else
+                          &((*pdirlist)->u.t3),
+#endif
+                          (*pdirlist)->uidgid)
+                          : 0;
+#else /* !USE_EF_UT_TIME */
+                        eb_izux_flg = 0;
+#endif /* ?USE_EF_UT_TIME */
+                        if (eb_izux_flg & EB_UT_FL_MTIME) {
+                            TTrace((stderr,
+                              "\nextract:  Unix dir e.f. modtime = %ld\n",
+                              (*pdirlist)->u.t3.mtime));
+                        } else {
+                            (*pdirlist)->u.t3.mtime = dos_to_unix_time(
+                              G.lrec.last_mod_dos_datetime);
+                        }
+                        if (eb_izux_flg & EB_UT_FL_ATIME) {
+                            TTrace((stderr,
+                              "\nextract:  Unix dir e.f. actime = %ld\n",
+                              (*pdirlist)->u.t3.atime));
+                        } else {
+                            (*pdirlist)->u.t3.atime =
+                              (*pdirlist)->u.t3.mtime;
+                        }
+                        (*pdirlist)->have_uidgid =
+#ifdef RESTORE_UIDGID
+                            (uO.X_flag && (eb_izux_flg & EB_UX2_VALID));
+#else
+                            0;
+#endif
+                        ++(*pnum_dirs);
+                    }
+#endif /* SET_DIR_ATTRIB */
+                } else if (errcode == MPN_VOL_LABEL) {
+#ifdef DOS_OS2_W32
+                    Info(slide, 0x401, ((char *)slide,
+                      LoadFarString(SkipVolumeLabel),
+                      FnFilter1(G.filename),
+                      uO.volflag? "hard disk " : ""));
+#else
+                    Info(slide, 1, ((char *)slide,
+                      LoadFarString(SkipVolumeLabel),
+                      FnFilter1(G.filename), ""));
+#endif
+                } else if (errcode > MPN_INF_SKIP &&
+                           error_in_archive < PK_ERR)
+                    error_in_archive = PK_ERR;
+                Trace((stderr, "mapname(%s) returns error code = %d\n",
+                  FnFilter1(G.filename), error));
+                continue;   /* go on to next file */
+            }
+
+#ifdef QDOS
+            QFilename(__G__ G.filename);
+#endif
+            switch (check_for_newer(__G__ G.filename)) {
+                case DOES_NOT_EXIST:
+#ifdef NOVELL_BUG_FAILSAFE
+                    G.dne = TRUE;   /* stat() says file DOES NOT EXIST */
+#endif
+                    /* freshen (no new files): skip unless just renamed */
+                    if (uO.fflag && !renamed)
+                        skip_entry = SKIP_Y_NONEXIST;
+                    break;
+                case EXISTS_AND_OLDER:
+#ifdef UNIXBACKUP
+                    if (!uO.B_flag)
+#endif
+                    {
+                        if (IS_OVERWRT_NONE)
+                            /* never overwrite:  skip file */
+                            skip_entry = SKIP_Y_EXISTING;
+                        else if (!IS_OVERWRT_ALL)
+                            query = TRUE;
+                    }
+                    break;
+                case EXISTS_AND_NEWER:             /* (or equal) */
+#ifdef UNIXBACKUP
+                    if ((!uO.B_flag && IS_OVERWRT_NONE) ||
+#else
+                    if (IS_OVERWRT_NONE ||
+#endif
+                        (uO.uflag && !renamed)) {
+                        /* skip if update/freshen & orig name */
+                        skip_entry = SKIP_Y_EXISTING;
+                    } else {
+#ifdef UNIXBACKUP
+                        if (!IS_OVERWRT_ALL && !uO.B_flag)
+#else
+                        if (!IS_OVERWRT_ALL)
+#endif
+                            query = TRUE;
+                    }
+                    break;
+                }
+            if (query) {
+#ifdef WINDLL
+                switch (G.lpUserFunctions->replace != NULL ?
+                        (*G.lpUserFunctions->replace)(G.filename) :
+                        IDM_REPLACE_NONE) {
+                    case IDM_REPLACE_RENAME:
+                        _ISO_INTERN(G.filename);
+                        renamed = TRUE;
+                        goto startover;
+                    case IDM_REPLACE_ALL:
+                        G.overwrite_mode = OVERWRT_ALWAYS;
+                        /* FALL THROUGH, extract */
+                    case IDM_REPLACE_YES:
+                        break;
+                    case IDM_REPLACE_NONE:
+                        G.overwrite_mode = OVERWRT_NEVER;
+                        /* FALL THROUGH, skip */
+                    case IDM_REPLACE_NO:
+                        skip_entry = SKIP_Y_EXISTING;
+                        break;
+                }
+#else /* !WINDLL */
+                extent fnlen;
+reprompt:
+                Info(slide, 0x81, ((char *)slide,
+                  LoadFarString(ReplaceQuery),
+                  FnFilter1(G.filename)));
+                if (fgets(G.answerbuf, 9, stdin) == (char *)NULL) {
+                    Info(slide, 1, ((char *)slide,
+                      LoadFarString(AssumeNone)));
+                    *G.answerbuf = 'N';
+                    if (!error_in_archive)
+                        error_in_archive = 1;  /* not extracted:  warning */
+                }
+                switch (*G.answerbuf) {
+                    case 'r':
+                    case 'R':
+                        do {
+                            Info(slide, 0x81, ((char *)slide,
+                              LoadFarString(NewNameQuery)));
+                            fgets(G.filename, FILNAMSIZ, stdin);
+                            /* usually get \n here:  better check for it */
+                            fnlen = strlen(G.filename);
+                            if (lastchar(G.filename, fnlen) == '\n')
+                                G.filename[--fnlen] = '\0';
+                        } while (fnlen == 0);
+#ifdef WIN32  /* WIN32 fgets( ... , stdin) returns OEM coded strings */
+                        _OEM_INTERN(G.filename);
+#endif
+                        renamed = TRUE;
+                        goto startover;   /* sorry for a goto */
+                    case 'A':   /* dangerous option:  force caps */
+                        G.overwrite_mode = OVERWRT_ALWAYS;
+                        /* FALL THROUGH, extract */
+                    case 'y':
+                    case 'Y':
+                        break;
+                    case 'N':
+                        G.overwrite_mode = OVERWRT_NEVER;
+                        /* FALL THROUGH, skip */
+                    case 'n':
+                        /* skip file */
+                        skip_entry = SKIP_Y_EXISTING;
+                        break;
+                    default:
+                        Info(slide, 1, ((char *)slide,
+                          LoadFarString(InvalidResponse), *G.answerbuf));
+                        goto reprompt;   /* yet another goto? */
+                } /* end switch (*answerbuf) */
+#endif /* ?WINDLL */
+            } /* end if (query) */
+            if (skip_entry != SKIP_NO) {
+#ifdef WINDLL
+                if (skip_entry == SKIP_Y_EXISTING) {
+                    /* report skipping of an existing entry */
+                    Info(slide, 0, ((char *)slide,
+                      ((IS_OVERWRT_NONE || !uO.uflag || renamed) ?
+                       "Target file exists.\nSkipping %s\n" :
+                       "Target file newer.\nSkipping %s\n"),
+                      FnFilter1(G.filename)));
+                }
+#endif /* WINDLL */
+                continue;
+            }
+        } /* end if (extracting to disk) */
+
+#ifdef DLL
+        if ((G.statreportcb != NULL) &&
+            (*G.statreportcb)(__G__ UZ_ST_START_EXTRACT, G.zipfn,
+                              G.filename, NULL)) {
+            return IZ_CTRLC;        /* cancel operation by user request */
+        }
+#endif
+#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
+        UserStop();
+#endif
+#ifdef AMIGA
+        G.filenote_slot = i;
+#endif
+        G.disk_full = 0;
+        if ((error = extract_or_test_member(__G)) != PK_COOL) {
+            if (error > error_in_archive)
+                error_in_archive = error;       /* ...and keep going */
+#ifdef DLL
+            if (G.disk_full > 1 || error_in_archive == IZ_CTRLC) {
+#else
+            if (G.disk_full > 1) {
+#endif
+                return error_in_archive;        /* (unless disk full) */
+            }
+        }
+#ifdef DLL
+        if ((G.statreportcb != NULL) &&
+            (*G.statreportcb)(__G__ UZ_ST_FINISH_MEMBER, G.zipfn,
+                              G.filename, (zvoid *)&G.lrec.ucsize)) {
+            return IZ_CTRLC;        /* cancel operation by user request */
+        }
+#endif
+#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
+        UserStop();
+#endif
+    } /* end for-loop (i:  files in current block) */
+
+    return error_in_archive;
+
+} /* end function extract_or_test_entrylist() */
 
 
 
@@ -1473,7 +1566,9 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
 #ifndef USE_ZLIB  /* zlib's function is called inflate(), too */
 #  define UZinflate inflate
 #endif
-            if ((r = UZinflate(__G)) != 0) {
+            if ((r = UZinflate(__G__
+                               (G.lrec.compression_method == ENHDEFLATED)))
+                != 0) {
                 if (r < PK_DISK) {
                     if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                         Info(slide, 0x401, ((char *)slide,
@@ -1744,6 +1839,12 @@ static int TestExtraField(__G__ ef, ef_len)
                 }
                 break;
             case EF_PKVMS:
+                if (makelong(ef+EB_HEADSIZE) !=
+                    crc32(CRCVAL_INITIAL, ef+(EB_HEADSIZE+4),
+                          (extent)(ebLen-4)))
+                    Info(slide, 1, ((char *)slide,
+                      LoadFarString(BadCRC_EAs)));
+                break;
             case EF_PKW32:
             case EF_PKUNIX:
             case EF_ASIUNIX:
@@ -1833,8 +1934,10 @@ static int test_compr_eb(__G__ eb, eb_size, compr_offset, test_uc_ebdata)
 
 int memextract(__G__ tgt, tgtsize, src, srcsize)  /* extract compressed */
     __GDEF                                        /*  extra field block; */
-    uch *tgt, *src;                               /*  return PK-type error */
-    ulg tgtsize, srcsize;                         /*  level */
+    uch *tgt;                                     /*  return PK-type error */
+    ulg tgtsize;                                  /*  level */
+    ZCONST uch *src;
+    ulg srcsize;
 {
     long old_csize=G.csize;
     uch *old_inptr=G.inptr;
@@ -1848,7 +1951,7 @@ int memextract(__G__ tgt, tgtsize, src, srcsize)  /* extract compressed */
     extra_field_crc = makelong(src+2);
 
     /* compressed extra field exists completely in memory at this location: */
-    G.inptr = src + 2 + 4;      /* method and extra_field_crc */
+    G.inptr = (uch *)src + (2 + 4);     /* method and extra_field_crc */
     G.incnt = (int)(G.csize = (long)(srcsize - (2 + 4)));
     G.mem_mode = TRUE;
     G.outbufptr = tgt;
@@ -1860,8 +1963,11 @@ int memextract(__G__ tgt, tgtsize, src, srcsize)  /* extract compressed */
             G.outcnt = G.csize;   /* for CRC calculation */
             break;
         case DEFLATED:
+#ifdef USE_DEFLATE64
+        case ENHDEFLATED:
+#endif
             G.outcnt = 0L;
-            if ((r = UZinflate(__G)) != 0) {
+            if ((r = UZinflate(__G__ (method == ENHDEFLATED))) != 0) {
                 if (!uO.tflag)
                     Info(slide, 0x401, ((char *)slide,
                       LoadFarStringSmall(ErrUnzipNoFile), r == 3?
@@ -1917,7 +2023,7 @@ int memextract(__G__ tgt, tgtsize, src, srcsize)  /* extract compressed */
 
 int memflush(__G__ rawbuf, size)
     __GDEF
-    uch *rawbuf;
+    ZCONST uch *rawbuf;
     ulg size;
 {
     if (size > G.outsize)
@@ -1940,6 +2046,124 @@ int memflush(__G__ rawbuf, size)
 
 
 
+#if (defined(VMS) || defined(VMS_TEXT_CONV))
+
+/************************************/
+/*  Function extract_izvms_block()  */
+/************************************/
+
+/*
+ * Extracts block from p. If resulting length is less then needed, fill
+ * extra space with corresponding bytes from 'init'.
+ * Currently understands 3 formats of block compression:
+ * - Simple storing
+ * - Compression of zero bytes to zero bits
+ * - Deflation (see memextract())
+ * The IZVMS block data is returned in malloc'd space.
+ */
+uch *extract_izvms_block(__G__ ebdata, size, retlen, init, needlen)
+    __GDEF
+    ZCONST uch *ebdata;
+    unsigned size;
+    unsigned *retlen;
+    ZCONST uch *init;
+    unsigned needlen;
+{
+    uch *ucdata;       /* Pointer to block allocated */
+    int cmptype;
+    unsigned usiz, csiz;
+
+    cmptype = (makeword(ebdata+EB_IZVMS_FLGS) & EB_IZVMS_BCMASK);
+    csiz = size - EB_IZVMS_HLEN;
+    usiz = (cmptype == EB_IZVMS_BCSTOR ?
+            csiz : makeword(ebdata+EB_IZVMS_UCSIZ));
+
+    if (retlen)
+        *retlen = usiz;
+
+    if ((ucdata = (uch *)malloc(MAX(needlen, usiz))) == NULL)
+        return NULL;
+
+    if (init && (usiz < needlen))
+        memcpy((char *)ucdata, (ZCONST char *)init, needlen);
+
+    switch (cmptype)
+    {
+        case EB_IZVMS_BCSTOR: /* The simplest case */
+            memcpy(ucdata, ebdata+EB_IZVMS_HLEN, usiz);
+            break;
+        case EB_IZVMS_BC00:
+            decompress_bits(ucdata, usiz, ebdata+EB_IZVMS_HLEN);
+            break;
+        case EB_IZVMS_BCDEFL:
+            memextract(__G__ ucdata, (ulg)usiz,
+                       ebdata+EB_IZVMS_HLEN, (ulg)csiz);
+            break;
+        default:
+            free(ucdata);
+            ucdata = NULL;
+    }
+    return ucdata;
+
+} /* end of extract_izvms_block */
+
+
+
+
+
+/********************************/
+/*  Function decompress_bits()  */
+/********************************/
+/*
+ *  Simple uncompression routine. The compression uses bit stream.
+ *  Compression scheme:
+ *
+ *  if (byte!=0)
+ *      putbit(1),putbyte(byte)
+ *  else
+ *      putbit(0)
+ */
+static void decompress_bits(outptr, needlen, bitptr)
+    uch *outptr;        /* Pointer into output block */
+    unsigned needlen;   /* Size of uncompressed block */
+    ZCONST uch *bitptr; /* Pointer into compressed data */
+{
+    ulg bitbuf = 0;
+    int bitcnt = 0;
+
+#define _FILL   {       bitbuf |= (*bitptr++) << bitcnt;\
+                        bitcnt += 8;                    \
+                }
+
+    while (needlen--)
+    {
+        if (bitcnt <= 0)
+            _FILL;
+
+        if (bitbuf & 1)
+        {
+            bitbuf >>= 1;
+            if ((bitcnt -= 1) < 8)
+                _FILL;
+            *outptr++ = (uch)bitbuf;
+            bitcnt -= 8;
+            bitbuf >>= 8;
+        }
+        else
+        {
+            *outptr++ = '\0';
+            bitcnt -= 1;
+            bitbuf >>= 1;
+        }
+    }
+} /* end function decompress_bits() */
+
+#endif /* VMS || VMS_TEXT_CONV */
+
+
+
+
+
 /*************************/
 /*  Function fnfilter()  */        /* here instead of in list.c for SFX */
 /*************************/
@@ -1949,7 +2173,8 @@ char *fnfilter(raw, space)         /* convert name to safely printable form */
     uch *space;
 {
 #ifndef NATIVE   /* ASCII:  filter ANSI escape codes, etc. */
-    uch *r=(uch *)raw, *s=space;
+    ZCONST uch *r=(ZCONST uch *)raw;
+    uch *s=space;
 
     while (*r) {
 #ifdef QDOS
@@ -1973,7 +2198,7 @@ char *fnfilter(raw, space)         /* convert name to safely printable form */
 #endif
          }
     }
-    *s = 0;
+    *s = '\0';
 
 #ifdef WINDLL
     INTERN_TO_ISO((char *)space, (char *)space);  /* translate to ANSI */

@@ -2,7 +2,7 @@ $ ! MAKE_UNZ.COM
 $ !
 $ !     "Makefile" for VMS versions of UnZip/ZipInfo and UnZipSFX
 $ !
-$ !     last revised:  14 September 1997
+$ !     last revised:  13 February 2001
 $ !
 $ !     Command args:
 $ !     - select compiler environment: "VAXC", "DECC", "GNUC"
@@ -260,19 +260,27 @@ $ !
 $ !-------------------------- UnZipSFX section --------------------------------
 $ !
 $ cc/NOLIST'DEF_SXUNX' /OBJ=unzipsfx.'ARCH_CC_P'obj unzip.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=crc32_.'ARCH_CC_P'obj crc32.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=crctab_.'ARCH_CC_P'obj crctab.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=crypt_.'ARCH_CC_P'obj crypt.c
 $ cc/NOLIST'DEF_SXUNX' /OBJ=extract_.'ARCH_CC_P'obj extract.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=fileio_.'ARCH_CC_P'obj fileio.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=globals_.'ARCH_CC_P'obj globals.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=inflate_.'ARCH_CC_P'obj inflate.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=match_.'ARCH_CC_P'obj match.c
 $ cc/NOLIST'DEF_SXUNX' /OBJ=process_.'ARCH_CC_P'obj process.c
+$ cc/NOLIST'DEF_SXUNX' /OBJ=ttyio_.'ARCH_CC_P'obj ttyio.c
 $ cc/NOLIST'DEF_SXUNX'/INCLUDE=SYS$DISK:[] /OBJ=vms_.'ARCH_CC_P'obj; -
         [.vms]vms.c
 $ if f$search("unzipsfx.''ARCH_CC_P'olb") .eqs. "" then -
         lib/obj/create unzipsfx.'ARCH_CC_P'olb
 $ lib/obj/replace unzipsfx.'ARCH_CC_P'olb -
-        unzipsfx.'ARCH_CC_P'obj, crc32.'ARCH_CC_P'obj, -
-        crctab.'ARCH_CC_P'obj, crypt.'ARCH_CC_P'obj, -
-        extract_.'ARCH_CC_P'obj, fileio.'ARCH_CC_P'obj, -
-        globals.'ARCH_CC_P'obj, inflate.'ARCH_CC_P'obj, -
-        match.'ARCH_CC_P'obj, process_.'ARCH_CC_P'obj, -
-        ttyio.'ARCH_CC_P'obj, vms_.'ARCH_CC_P'obj
+        unzipsfx.'ARCH_CC_P'obj, crc32_.'ARCH_CC_P'obj, -
+        crctab_.'ARCH_CC_P'obj, crypt_.'ARCH_CC_P'obj, -
+        extract_.'ARCH_CC_P'obj, fileio_.'ARCH_CC_P'obj, -
+        globals_.'ARCH_CC_P'obj, inflate_.'ARCH_CC_P'obj, -
+        match_.'ARCH_CC_P'obj, process_.'ARCH_CC_P'obj, -
+        ttyio_.'ARCH_CC_P'obj, vms_.'ARCH_CC_P'obj
 $ !
 $ link'LFLAGS'/exe='unzsfx_unx'.'ARCH_CC_P'exe -
         unzipsfx.'ARCH_CC_P'olb;/lib/incl=unzip -

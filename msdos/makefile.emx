@@ -1,7 +1,7 @@
 # Makefile for UnZip, fUnZip and UnZipSFX
 # for emx 0.9c / gcc under MS-DOS. Derived from makefile.os2
 # By E-Yen Tan (with mods by Christian Spieler).
-# Last updated 23 September 1997 (Christian Spieler).
+# Last updated 10 February 2001 (Christian Spieler).
 #
 # This makefile should work fine with GNU make and hopefully some others.
 # Tested with GNU make 3.71 gnuish 16-bit and djgpp 32-bit versions.
@@ -139,7 +139,7 @@ unzipsfx.exe:	$(OBJX)
 
 # dependencies
 
-apihelp$(OBJ):	apihelp.c $(UNZIP_H) version.h
+apihelp$(OBJ):	apihelp.c $(UNZIP_H) unzvers.h
 crc32$(OBJ):	crc32.c $(UNZIP_H) zip.h
 crctab$(OBJ):	crctab.c $(UNZIP_H) zip.h
 envargs$(OBJ):	envargs.c $(UNZIP_H)
@@ -154,14 +154,14 @@ process$(OBJ):	process.c $(UNZIP_H)
 ttyio$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(OBJ):	unreduce.c $(UNZIP_H)
 unshrink$(OBJ):	unshrink.c $(UNZIP_H)
-unzip$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h
-api$(OBJ):	api.c $(UNZIP_H) version.h
+unzip$(OBJ):	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
+api$(OBJ):	api.c $(UNZIP_H) unzvers.h
 zipinfo$(OBJ):	zipinfo.c $(UNZIP_H)
 
 funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h	# funzip only
 	$(CC) -c $(CFLAGS) $(OUT)$@ funzip.c
 
-msdos$(OBJ):	msdos/msdos.c $(UNZIP_H) version.h		# DOS only
+msdos$(OBJ):	msdos/msdos.c $(UNZIP_H) unzvers.h		# DOS only
 	$(CC) -c $(CFLAGS) $(OUT)$@ msdos$(DIRSEP)msdos.c
 
 msdos_$(OBJ):	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
@@ -219,5 +219,5 @@ process_$(OBJ):	process.c $(UNZIP_H)				# unzipsfx only
 ttyio_$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ ttyio.c
 
-unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
+unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ unzip.c

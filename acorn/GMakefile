@@ -1,7 +1,10 @@
 # Makefile for UnZip, UnZipSFX, ZipInfo and fUnZip (5.2 or later)
+# using gcc 2.95.4 (or later).
+# You may look at <URL:http://hard-mofo.dsvr.net/gcc/> for an up-to-date
+# gcc port.
 
-CC   = gcc
-BIND = drlink
+CC   = gcc -mlibscl
+BIND = $(CC)
 AS   = $(CC) -c
 ASM  = as
 SQUEEZE = squeeze -v
@@ -12,22 +15,21 @@ E    =
 #   LFLAGS1   flags after output file spec, before obj file list
 #   LFLAGS2   flags after obj file list (libraries, etc)
 #
-LIB	 =
-CFLAGS	 = -O2 -mstubs -mthrowback
-CFLAGS	 = $(CFLAGS)
+LIB      =
+CFLAGS   = -O2 -mthrowback -DNO_STRNICMP
 ASMFLAGS = -throwback -objasm -upper
 LFLAGS1  =
-LFLAGS2  = $(LIB) C:o.stubs gcc:o.libgcc
+LFLAGS2  = $(LIB)
 
 # object file lists
 OBJS1 = o.unzip o.crc32 o.crctab o.crypt o.envargs o.explode
 OBJS2 = o.extract o.fileio o.globals o.inflate o.list o.match
 OBJS3 = o.process o.ttyio o.unreduce o.unshrink o.zipinfo
 OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) o.riscos o.swiven o.acorn
-OBJF  = o.funzip o.crc32 o.crypt_ o.globals_ o.inflate_ o.ttyio_ \
+OBJF  = o.funzip o.crc32 o.cryptf o.globalsf o.inflatef o.ttyiof \
 	o.riscos o.swiven
-OBJX  = o.unzipsfx o.crc32 o.crctab o.crypt o.extract_ o.fileio o.globals \
-	o.inflate o.match o.process_ o.ttyio o.acorn_ o.swiven o.riscos_
+OBJX  = o.unzipsfx o.crc32 o.crctab_ o.crypt_ o.extract_ o.fileio_ o.globals_ \
+	o.inflate_ o.match_ o.process_ o.ttyio_ o.acorn_ o.swiven o.riscos_
 
 UNZIP_H = h.unzip h.unzpriv h.globals acorn.h.riscos acorn.h.swiven
 
@@ -73,26 +75,41 @@ o.unreduce:	c.unreduce $(UNZIP_H)
 	$(CC) $(CFLAGS) -c c.unreduce -o o.unreduce
 o.unshrink:	c.unshrink $(UNZIP_H)
 	$(CC) $(CFLAGS) -c c.unshrink -o o.unshrink
-o.unzip:	c.unzip $(UNZIP_H) h.crypt h.version h.consts
+o.unzip:	c.unzip $(UNZIP_H) h.crypt h.unzvers h.consts
 	$(CC) $(CFLAGS) -c c.unzip -o o.unzip
 o.zipinfo:	c.zipinfo $(UNZIP_H)
 	$(CC) $(CFLAGS) -c c.zipinfo -o o.zipinfo
 
+o.crctab_:	c.crctab $(UNZIP_H) h.zip
+	$(CC) $(CFLAGS) -DSFX -c c.crctab -o o.crctab_
 o.crypt_:	c.crypt $(UNZIP_H) h.zip h.crypt h.ttyio
-	$(CC) $(CFLAGS) -DFUNZIP -c c.crypt -o o.crypt_
+	$(CC) $(CFLAGS) -DSFX -c c.crypt -o o.crypt_
 o.extract_:	c.extract $(UNZIP_H) h.crypt
 	$(CC) $(CFLAGS) -DSFX -c c.extract -o o.extract_
+o.fileio_:	c.fileio $(UNZIP_H) h.crypt h.ttyio h.ebcdic
+	$(CC) $(CFLAGS) -DSFX -c c.fileio -o o.fileio_
 o.globals_:	c.globals $(UNZIP_H)
-	$(CC) $(CFLAGS) -DFUNZIP -c c.globals -o o.globals_
+	$(CC) $(CFLAGS) -DSFX -c c.globals -o o.globals_
 o.inflate_:	c.inflate h.inflate $(UNZIP_H) h.crypt
-	$(CC) $(CFLAGS) -DFUNZIP -c c.inflate -o o.inflate_
+	$(CC) $(CFLAGS) -DSFX -c c.inflate -o o.inflate_
+o.match_:	c.match $(UNZIP_H)
+	$(CC) $(CFLAGS) -DSFX -c c.match -o o.match_
 o.process_:	c.process $(UNZIP_H)
 	$(CC) $(CFLAGS) -DSFX -c c.process -o o.process_
 o.ttyio_:	c.ttyio $(UNZIP_H) h.zip h.crypt h.ttyio
-	$(CC) $(CFLAGS) -DFUNZIP -c c.ttyio -o o.ttyio_
+	$(CC) $(CFLAGS) -DSFX -c c.ttyio -o o.ttyio_
 
-o.unzipsfx:	c.unzip $(UNZIP_H) h.crypt h.version h.consts
+o.unzipsfx:	c.unzip $(UNZIP_H) h.crypt h.unzvers h.consts
 	$(CC) $(CFLAGS) -DSFX -c c.unzip -o o.unzipsfx
+
+o.cryptf:	c.crypt $(UNZIP_H) h.zip h.crypt h.ttyio
+	$(CC) $(CFLAGS) -DFUNZIP -c c.crypt -o o.cryptf
+o.globalsf:	c.globals $(UNZIP_H)
+	$(CC) $(CFLAGS) -DFUNZIP -c c.globals -o o.globalsf
+o.inflatef:	c.inflate h.inflate $(UNZIP_H) h.crypt
+	$(CC) $(CFLAGS) -DFUNZIP -c c.inflate -o o.inflatef
+o.ttyiof:	c.ttyio $(UNZIP_H) h.zip h.crypt h.ttyio
+	$(CC) $(CFLAGS) -DFUNZIP -c c.ttyio -o o.ttyiof
 
 o.acorn:	acorn.c.acorn $(UNZIP_H)
 	$(CC) $(CFLAGS) -I@ -c acorn.c.acorn
@@ -114,8 +131,11 @@ funzip:	  $(OBJF)
 unzipsfx: $(OBJX)
 	  $(BIND) -o unzipsfx$(E) $(LFLAGS1) $(OBJX) $(LFLAGS2)
 
-clean:  ;remove unzip; remove funzip;
-	remove zipinfo; remove unzipsfx;
+clean:
+	remove unzip
+	remove funzip
+	remove zipinfo
+	remove unzipsfx
 	create o.!fake! 0
 	wipe o.* ~cf
 

@@ -1,12 +1,12 @@
 ;===========================================================================
-; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+; Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 ;
 ; See the accompanying file LICENSE, version 2000-Apr-09 or later
 ; (the contents of which are also included in unzip.h) for terms of use.
 ; If, for some reason, all these files are missing, the Info-ZIP license
 ; also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 ;===========================================================================
-; flate.a created by Paul Kienitz, 20 June 94.  Last modified 21 Feb 96.
+; flate.a created by Paul Kienitz, 20 June 94.  Last modified 03 Mar 2001.
 ;
 ; 68000 assembly language version of inflate_codes(), for Amiga.  Prototype:
 ;
@@ -26,7 +26,9 @@
 ;
 ; Define INT16 if ints are short, otherwise it assumes ints are long.
 ;
-; *DO NOT* define WSIZE -- this only works with the default value of 32K.
+; Define USE_DEFLATE64 if we're supporting Deflate64 decompression.
+;
+; Do NOT define WSIZE; it is always 32K or 64K depending on USE_DEFLATE64.
 ;
 ; 1999/09/23: for Human68k: Modified by Shimazaki Ryo.
 
@@ -38,7 +40,7 @@ MOVINT           MACRO  _1,_2
                  ENDM
 INTSIZE equ     2
                 ELSE    ; !INT16
-MOVINT:          MACRO  _1,_2
+MOVINT           MACRO  _1,_2
         move.l          _1,_2
                  ENDM
 INTSIZE equ     4
@@ -47,6 +49,32 @@ INTSIZE equ     4
                 IFDEF   REENTRANT
                  IFNDEF FUNZIP
 REENT_G equ     1
+                 ENDC
+                ENDC
+
+; The following include file is generated from globals.h, and gives us equates
+; that give the offsets in Uz_Globs of the fields we use, which are:
+;       ulg bb
+;       unsigned int bk, wp
+;       (either array of unsigned char, or pointer to unsigned char) redirslide
+; For fUnZip:
+;       FILE *in
+; For regular UnZip but not fUnZip:
+;       int incnt, mem_mode
+;       long csize
+;       uch *inptr
+; It also defines a value SIZEOF_slide, which tells us whether the appropriate
+; slide field in G (either area.Slide or redirect_pointer) is a pointer or an
+; array instance.  It is 4 in the former case and a large value in the latter.
+; Lastly, this include will define CRYPT as 1 if appropriate.
+
+                IFDEF   FUNZIP
+        INCLUDE  human68k/G_offs_.mac
+                ELSE
+                 IFDEF  SFX
+        INCLUDE  human68k/G_offsf.mac"
+                 ELSE
+        INCLUDE  human68k/G_offs.mac
                  ENDC
                 ENDC
 
@@ -61,35 +89,8 @@ REENT_G equ     1
 ;     } v;
 ;   };                      /* sizeof(struct huft) == 6 */
 ;
-; so here we define the offsets of the various members of this struct:
-
-h_e             equ     0
-h_b             equ     1
-h_n             equ     2
-h_t             equ     2
-SIZEOF_HUFT     equ     6
-
-; The following include file is generated from globals.h, and gives us equates
-; that give the offsets in Uz_Globs of the fields we use, which are:
-;       ulg bb
-;       unsigned int bk, wp
-;       (either array of or pointer to unsigned char) slide
-; For fUnZip:
-;       FILE *in
-; For regular UnZip but not fUnZip:
-;       int incnt, mem_mode
-;       long csize
-;       uch *inptr
-; It also defines a value SIZEOF_slide, which tells us whether the appropriate
-; slide field in G (either area.Slide or redirect_pointer) is a pointer or an
-; array instance.  It is 4 in the former case and a large value in the latter.
-; Lastly, this include will define CRYPT as 1 if appropriate.
-
-                IFDEF   FUNZIP
-        INCLUDE  human68k/g_offs_.mac
-                ELSE
-        INCLUDE  human68k/g_offs.mac
-                ENDC
+; The G_offs include defines offsets h_e, h_b, h_v_n, and h_v_t in this
+; struct, plus SIZEOF_huft.
 
 ; G.bb is the global buffer that holds bits from the huffman code stream, which
 ; we cache in the register variable b.  G.bk is the number of valid bits in it,
@@ -109,7 +110,7 @@ G_PUSH           MACRO
                  ENDM
                 ENDC    ; REENT_G
 
-        xref    _mask_bits      ; const ush near mask_bits[17];
+;;      xref    _mask_bits      ; const ush mask_bits[17];
                 IFDEF   FUNZIP
                  IF     CRYPT
         xref    _encrypted      ; int -- boolean flag
@@ -121,38 +122,48 @@ G_PUSH           MACRO
         xref    _readbyte       ; int readbyte(__GPRO)
                 ENDC    ; FUNZIP
 
-        xref    _fgetc          ; int fgetc(FILE *)
         xref    _flush          ; if FUNZIP:  int flush(__GPRO__ ulg)
-                                ; else:  int flush(__GPRO__ uch *, ulg *, int)
+                                ; else:  int flush(__GPRO__ uch *, ulg, int)
 
 ; Here are our register variables.
 
-b       reg     d2              ; ulg
-k       reg     d3              ; ush <= 32
-e       reg     d4              ; ush < 256 for most use
-w       reg     d5              ; unsigned int
-n       reg     d6              ; ush
-d       reg     d7              ; unsigned int
+b       reg     d2              ; unsigned long
+k       reg     d3              ; unsigned short <= 32
+e       reg     d4              ; unsigned int, mostly used as unsigned char
+w       reg     d5              ; unsigned long (was short before deflate64)
+n       reg     d6              ; unsigned long (was short before deflate64)
+d       reg     d7              ; unsigned int, used as unsigned short
 
-; We always maintain w and d as valid unsigned longs, though they may be short.
-
-mask    reg     a3              ; ush *
-t       reg     a4              ; struct huft *
-*       reg     a5              ; stack frame
+t       reg     a2              ; struct huft *
+lmask   reg     a3              ; ulg *
 G       reg     a6              ; Uz_Globs *
 
 ; Couple other items we need:
 
-savregs reg     d2-d7/a3/a4/a6
-
-WSIZE   equ     $8000           ; 32k... be careful not to treat as negative!
+savregs reg     d2-d7/a2/a3/a6
+                IFDEF   USE_DEFLATE64
+WSIZE   equ     $10000          ; 64K... be careful not to treat as short!
+                ELSE
+WSIZE   equ     $08000          ; 32K... be careful not to treat as negative!
+                ENDC
 EOF     equ     -1
+INVALID equ     99
+
+; inflate_codes() returns one of the following status codes:
+;          0  OK
+;          1  internal inflate error or EOF on input stream
+;         the following return codes are passed through from FLUSH() errors
+;          50 (PK_DISK)   "overflow of output space"
+;          80 (IZ_CTRLC)  "canceled by user's request"
+
+RET_OK  equ     0
+RET_ERR equ     1
 
                 IFDEF   FUNZIP
-; This does fgetc(in).  LIBC version is based on #define getc(fp) in stdio.h
-; break d2
+; This does getc(in).  LIBC version is based on #define getc(fp) in stdio.h
 
 GETC              MACRO
+        xref    _fgetc          ; int fgetc(FILE *)
         move.l          in-X(G),-(sp)
         jsr             _fgetc
         addq.l          #4,sp
@@ -182,10 +193,10 @@ NEXTBYTE         MACRO
         jsr             _update_keys
         addq            #INTSIZE+G_SIZE,sp
 @nbe:
-                   IFEQ INTSIZE-2
-        ext.l           d0              ; assert -1 <= d0 <= 255
-                   ENDC
                   ENDC  ; !CRYPT
+                  IFEQ INTSIZE-2
+        ext.l           d0              ; assert -1 <= d0 <= 255
+                  ENDC
         move.l   (sp)+,d2
                  ENDM
 
@@ -201,11 +212,7 @@ FLUSH            MACRO  _1
                 ELSE    ; !FUNZIP
 
 NEXTBYTE         MACRO
-;;        subq.l          #1,csize-X(G)
-;;        bge.s           @nbg
-;;        moveq           #EOF,d0
-;;        bra.s           @nbe
-@nbg:   subq.w          #1,incnt+INTSIZE-2-X(G)   ; treat as short
+        subq.w          #1,incnt+INTSIZE-2-X(G)   ; treat as short
         bge.s           @nbs
                 IFNE INTSIZE-2
         subq.w          #1,incnt-X(G)
@@ -214,10 +221,13 @@ NEXTBYTE         MACRO
         move.l          d2,-(sp)
         G_PUSH
         jsr             _readbyte
-                IFNE    G_SIZE
+                  IFNE G_SIZE
         addq            #G_SIZE,sp
-                ENDC
+                  ENDC
         move.l          (sp)+,d2
+                  IFEQ 2-INTSIZE
+        ext.l           d0            ; assert -1 <= d0 <= 255
+                  ENDC
         bra.s           @nbe
 @nbs:   moveq           #0,d0
         move.l          inptr-X(G),a0
@@ -231,9 +241,9 @@ FLUSH            MACRO  _1
         clr.l           -(sp)                   ; unshrink flag: always false
         move.l          _1,-(sp)                ; length
                   IF    SIZEOF_slide>4
-        pea             slide-X(G)                ; buffer to flush
+        pea             redirslide-X(G)           ; buffer to flush
                   ELSE
-        move.l          slide-X(G),-(sp)
+        move.l          redirslide-X(G),-(sp)
                   ENDC
         G_PUSH
         tst.w           mem_mode+INTSIZE-2-X(G)   ; test lower word if long
@@ -276,7 +286,7 @@ NEEDBITS        MACRO   _1
         addq.w          #8,k
         cmp.w           _1,k            ;bra.s @nb
         bcs             @loop           ;
-@ne:    move.w          b,d1
+@ne:    move.l          b,d1            ; return a copy of b in d1
                 ENDM
 
 DUMPBITS        MACRO   _1
@@ -285,26 +295,34 @@ DUMPBITS        MACRO   _1
                 ENDM
 
 
+; This is a longword version of the mask_bits constant array:
+longmasks:      dc.l    $00000000,$00000001,$00000003,$00000007,$0000000F
+                dc.l    $0000001F,$0000003F,$0000007F,$000000FF,$000001FF
+                dc.l    $000003FF,$000007FF,$00000FFF,$00001FFF,$00003FFF
+                dc.l    $00007FFF,$0000FFFF,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    xdef longmasks  ; XXX
+
+
 ; ******************************************************************************
 ; Here we go, finally:
 
         xdef    _inflate_codes
 
 _inflate_codes:
-        link            a5,#-4
+        link            a5,#-8
         movem.l         savregs,-(sp)
 ; 8(a5) = tl, 12(a5) = td, 16(a5) = bl, 18|20(a5) = bd... add 4 for REENT_G
-; -2(a5) = ml, -4(a5) = md.  Here we cache some globals and args:
+; -4(a5) = ml, -8(a5) = md, both unsigned long.
+; Here we cache some globals and args:
                 IFDEF   REENT_G
         move.l          8(a5),G
                 ELSE
-;;      move.l          _G,G            ; old global pointer version
         lea             _G,G            ; G is now a global instance
                 IFDEF   X
         lea             (X,G),G
                 ENDIF
                 ENDC
-        lea             _mask_bits,mask
+        lea             longmasks,lmask
         move.l          bb-X(G),b
         MOVINT          bk-X(G),k
                 IFDEF   INT16
@@ -313,138 +331,165 @@ _inflate_codes:
         MOVINT          wp-X(G),w
         moveq           #0,e            ; keep this usable as longword too
         MOVINT          16+G_SIZE(a5),d0
-        add.w           d0,d0
-        move.w          (mask,d0.w),-2(a5)      ; ml = mask_bits[bl]
+        asl.w           #2,d0
+        move.l          (lmask,d0.w),-4(a5)     ; ml = mask_bits[bl]
         MOVINT          16+INTSIZE+G_SIZE(a5),d0
-        add.w           d0,d0
-        move.w          (mask,d0.w),-4(a5)      ; md = mask_bits[bd]
+        asl.w           #2,d0
+        move.l          (lmask,d0.w),-8(a5)     ; md = mask_bits[bd]
 
 main_loop:
-        NEEDBITS        14+INTSIZE+G_SIZE(a5)   ; bl, lower word if long
-        and.w           -2(a5),d1               ; ml
-        mulu            #SIZEOF_HUFT,d1
-        move.l          8+G_SIZE(a5),a0         ; tl
-        lea             (a0,d1.l),t
-        move.b          h_e(t),e
-        cmp.w           #16,e
-        bls.s           topdmp
-intop:   cmp.w          #99,e
-         beq            error_return    ; error in zipfile
-         move.b         h_b(t),d0
+        NEEDBITS        14+INTSIZE+G_SIZE(a5)   ; (unsigned) bl
+        and.l           -4(a5),d1               ; ml
+                IFNE SIZEOF_huft-8
+        mulu            #SIZEOF_huft,d1
+                ELSE
+        asl.l           #3,d1
+                ENDC
+        move.l          8+G_SIZE(a5),t          ; tl
+        add.l           d1,t
+newtop:  move.b         h_b(t),d0
          DUMPBITS       d0
-         sub.w          #16,e
+         move.b         h_e(t),e
+         cmp.b          #32,e                   ; is it a literal?
+         bne            nonlit                  ; no
+          move.w        h_v_n(t),d0             ; yes
+                IFGT SIZEOF_slide-4
+          lea           redirslide-X(G),a0
+                ELSE
+          move.l        redirslide-X(G),a0
+                ENDC
+          move.b        d0,(a0,w.l)             ; stick in the decoded byte
+          addq.l        #1,w
+          cmp.l         #WSIZE,w
+          blo           main_loop
+           FLUSH        w
+           ext.l        d0                      ; does a test as it casts long
+           bne          return
+           moveq        #0,w
+           bra          main_loop               ; break (newtop loop)
+
+nonlit:  cmp.b          #31,e                   ; is it a length?
+         beq            finish                  ; no, it's the end marker
+         bhi            nonleng                 ; no, it's something else
+          NEEDBITS      e                       ; yes: a duplicate string
+          move.w        e,d0
+          asl.w         #2,d0
+          and.l         (lmask,d0.w),d1
+          moveq         #0,n                    ; cast h_v_n(t) to long
+          move.w        h_v_n(t),n
+          add.l         d1,n                    ; length of block to copy
+          DUMPBITS      e
+          NEEDBITS      14+(2*INTSIZE)+G_SIZE(a5)   ; bd, lower word if long
+          and.l         -8(a5),d1                   ; md
+                IFNE SIZEOF_huft-8
+          mulu          #SIZEOF_huft,d1
+                ELSE
+          asl.l         #3,d1
+                ENDC
+          move.l        12+G_SIZE(a5),t                 ; td
+          add.l         d1,t
+distop:    move.b       h_b(t),d0
+           DUMPBITS     d0
+           move.b       h_e(t),e
+           cmp.b        #32,e                   ; is it a literal?
+           blo.s        disbrk                  ; then stop doing this
+            cmp.b       #INVALID,e              ; is it bogus?
+            bne.s       disgo
+             bra        error_return            ; then fail
+disgo:      and.w       #$001F,e
+            NEEDBITS    e
+            move.w      e,d0
+            asl.w       #2,d0
+            and.l       (lmask,d0.w),d1
+                IFNE SIZEOF_huft-8
+            mulu        #SIZEOF_huft,d1
+                ELSE
+            asl.l       #3,d1
+                ENDC
+            move.l      h_v_t(t),t
+            add.l       d1,t
+            bra         distop
+disbrk:   NEEDBITS      e
+          move.l        e,d0
+          asl.w         #2,d0
+          and.l         (lmask,d0.w),d1
+          move.l        w,d
+          move.w        h_v_n(t),d0     ; assert top word of d0 is zero
+          sub.l         d0,d
+          sub.l         d1,d            ; distance back to copy the block
+          DUMPBITS      e
+
+docopy:    move.l       #WSIZE,e        ; copy the duplicated string
+           and.l        #WSIZE-1,d      ; ...but first check if the length
+           cmp.l        d,w             ; will overflow the window...
+           blo.s        ddgw
+            sub.l       w,e
+           bra.s        dadw
+ddgw:       sub.l       d,e
+dadw:      cmp.l        #$08000,e       ; also, only copy <= 32K, so we can
+           bls.s        dnox            ; use a dbra loop to do it
+            move.l      #$08000,e
+dnox:      cmp.l        n,e
+           bls.s        delen
+            move.l      n,e
+delen:     sub.l        e,n             ; size of sub-block to copy in this pass
+                IF      SIZEOF_slide>4
+           lea          redirslide-X(G),a0
+                ELSE
+           move.l       redirslide-X(G),a0
+                ENDC
+           move.l       a0,a1
+           add.l        w,a0            ; w and d are valid longwords
+           add.l        d,a1
+; Now at this point we could do tests to see if we should use an optimized
+; large block copying method such as movem's, but since (a) such methods require
+; the source and destination to be compatibly aligned -- and odd bytes at each
+; end have to be handled separately, (b) it's only worth checking for if the
+; block is pretty large, and (c) most strings are only a few bytes long, we're
+; just not going to bother.  Therefore we check above to make sure we move at
+; most 32K in one sub-block, so a dbra loop can handle it.
+dshort:    move.l       e,d0
+           subq         #1,d0           ; assert >= 0
+dspin:      move.b      (a1)+,(a0)+
+            dbra        d0,dspin
+           add.l        e,w
+           add.l        e,d
+           cmp.l        #WSIZE,w
+           blo.s        dnfl
+            FLUSH       w
+            ext.l       d0              ; does a test as it casts to long
+            bne         return
+            moveq       #0,w
+dnfl:      tst.l        n               ; need to do more sub-blocks?
+           bne          docopy          ; yes
+          moveq         #0,e            ; restore zeroness in upper bytes of e
+          bra           main_loop       ; break (newtop loop)
+
+nonleng: cmp.w          #INVALID,e      ; bottom of newtop loop -- misc. code
+         bne.s          tailgo          ; invalid code?
+          bra           error_return    ; then fail
+tailgo:  and.w          #$001F,e
          NEEDBITS       e
          move.w         e,d0
-         add.w          d0,d0
-         and.w          (mask,d0.w),d1
-         mulu           #SIZEOF_HUFT,d1
-         move.l         h_t(t),a0
-         lea            (a0,d1.l),t
-         move.b         h_e(t),e
-         cmp.w          #16,e
-         bgt.s          intop
-topdmp: move.b          h_b(t),d0
-        DUMPBITS        d0
-
-        cmp.w           #16,e           ; is this huffman code a literal?
-        bne             lenchk          ; no
-        move.w          h_n(t),d0       ; yes
-                IF      SIZEOF_slide>4
-        lea             slide-X(G),a0
+         asl.w          #2,d0
+         and.l          (lmask,d0.w),d1
+                IFNE SIZEOF_huft-8
+         mulu           #SIZEOF_huft,d1
                 ELSE
-        move.l          slide-X(G),a0
+         asl.l          #3,d1
                 ENDC
-        move.b          d0,(a0,w.l)     ; stick in the decoded byte
-        addq.w          #1,w
-        bpl             main_loop       ; w < WSIZE(=$8000)
-        FLUSH           w
-        moveq           #0,w
-        bra             main_loop       ; do some more
+         move.l         h_v_t(t),t
+         add.l          d1,t
+         bra            newtop
 
-lenchk: cmp.w           #15,e           ; is it an end-of-block code?
-        beq             finish          ; if yes, we're done
-        NEEDBITS        e               ; no: we have a duplicate string
-        move.w          e,d0
-        add.w           d0,d0
-        and.w           (mask,d0.w),d1
-        move.w          h_n(t),n
-        add.w           d1,n            ; length of block to copy
-        DUMPBITS        e
-        NEEDBITS        14+(2*INTSIZE)+G_SIZE(a5)       ; bd, lower word if long
-        and.w           -4(a5),d1                       ; md
-        mulu            #SIZEOF_HUFT,d1
-        move.l          12+G_SIZE(a5),a0                ; td
-        lea             (a0,d1.l),t
-        move.b          h_e(t),e
-        cmp.w           #16,e
-        bls.s           middmp
-inmid:   cmp.w          #99,e
-         beq            return          ; error in zipfile
-         move.b         h_b(t),d0
-         DUMPBITS       d0
-         sub.w          #16,e
-         NEEDBITS       e
-         move.w         e,d0
-         add.w          d0,d0
-         and.w          (mask,d0.w),d1
-         mulu           #SIZEOF_HUFT,d1
-         move.l         h_t(t),a0
-         lea            (a0,d1.l),t
-         move.b         h_e(t),e
-         cmp.w          #16,e
-         bgt.s          inmid
-middmp: move.b          h_b(t),d0
-        DUMPBITS        d0
-        NEEDBITS        e
-        move.w          e,d0
-        add.w           d0,d0
-        and.w           (mask,d0.w),d1
-        move.l          w,d
-        sub.w           h_n(t),d
-        sub.w           d1,d            ; distance back to block to copy
-        DUMPBITS        e
-
-indup:   move.w         #WSIZE,e        ; violate the e < 256 rule
-         and.w          #WSIZE-1,d
-         cmp.w          d,w
-         blo.s          ddgw
-          sub.w         w,e
-         bra.s          dadw
-ddgw:     sub.w         d,e
-dadw:    cmp.w          n,e
-         bls.s          delen
-          move.w        n,e
-delen:
-                IF      SIZEOF_slide>4
-         lea            slide-X(G),a0
-                ELSE
-         move.l         slide-X(G),a0
-                ENDC
-         move.l         a0,a1
-         add.l          w,a0            ; w and d are valid longwords
-         add.l          d,a1
-         move.w         e,d0
-         subq           #1,d0           ; assert >= 0 if sign extended
-dspin:    move.b        (a1)+,(a0)+     ; string is probably short, so
-          dbra          d0,dspin        ; don't use any fancier copy method
-         add.w          e,d
-         add.w          e,w
-         bpl            dnfl            ; w < WSIZE(=$8000)
-         FLUSH          w
-         moveq          #0,w
-dnfl:    sub.w          e,n
-         bne            indup           ; need to do more sub-blocks
-        moveq           #0,e            ; restore zeroness in upper bytes
-        bra             main_loop       ; do some more
-
-finish: MOVINT          w,wp-X(G)         ; restore cached globals
+finish: MOVINT          w,wp-X(G)       ; done: restore cached globals
         MOVINT          k,bk-X(G)
         move.l          b,bb-X(G)
-        moveq           #0,d0           ; return "no error"
+        moveq           #RET_OK,d0      ; return "no error"
 return: movem.l         (sp)+,savregs
         unlk            a5
         rts
 
 error_return:
-        moveq           #1,d0           ; PK_WARN?
+        moveq           #RET_ERR,d0     ; return "error occured"
         bra             return

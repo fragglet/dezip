@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -9,17 +9,24 @@
 #ifndef __tandem_h   /* prevent multiple inclusions */
 #define __tandem_h
 
-#define TANDEM       /* better than __TANDEM */
+#ifndef TANDEM
+#  define TANDEM     /* better than __TANDEM */
+#endif
 
 /* LICENSED define now supplied by compile time option (MAKE) */
 
 #define NO_UNISTD_H
 #define NO_RMDIR
 #define NO_MKTEMP
-#ifdef ZIP
-#  define USE_CASE_MAP
+
+/* TANDEM supplies proper UTC vs. local time conversion, so enable Info-ZIP's
+   UT e.f. support unless explicitely suppressed by a compilation option. */
+#if (!defined(USE_EF_UT_TIME) && !defined(NO_EF_UT_TIME))
 #  define USE_EF_UT_TIME
-#endif /* ZIP */
+#endif
+#if (defined(NO_EF_UT_TIME) && defined(USE_EF_UT_TIME))
+#  undef USE_EF_UT_TIME
+#endif
 
 /* Include file for TANDEM */
 
@@ -32,6 +39,7 @@
 #include <sysstat.h>
 #include <unistd.h>
 #include <errno.h>
+#include <ctype.h>
 
 #define PASSWD_FROM_STDIN
                   /* Kludge until we know how to open a non-echo tty channel */
@@ -54,63 +62,15 @@
 #define EXTENSION_MAX      3
 /* FILENAME_MAX is defined in stdio.h */
 
-#define EXIT zexit     /*  To stop creation of Abend files */
-#define RETURN zexit   /*  To stop creation of Abend files */
-#define fopen zipopen  /*  To allow us to set extent sizes */
-#define putc zputc     /*  To allow us to auto flush  */
-
-
-/* Prototype function declarations */
-
-void zexit (int);
-
-FILE *zipopen(
-const char *,
-const char *
-);
-
-int zputc(
-int,
-FILE *
-);
-
-int zgetch (void);
-
-short parsename(
-  const char *,
-  char *,
-  char *
-);
-
-int islicensed (void);
-
-time_t gmt_to_time_t (long long *);
-
-/* End of prototype function declarations */
+#define EXIT zexit      /*  To stop creation of Abend files */
+#define RETURN zexit    /*  To stop creation of Abend files */
+#define putc zputc      /*  To allow us to auto flush  */
 
 
 #define FOPR "rb"
 #define FOPM "r+"
 #define FOPW "wb"
 #define FOPWT "w"
-
-#define CBSZ 0x10000  /* Was used for both fcopy and file_read.        */
-                      /* Created separate define (SBSZ) for file_read  */
-                      /* fcopy param is type size_t (unsigned long)    */
-                      /* For Guardian we choose a multiple of 4K       */
-
-#define ZBSZ 0x10000  /* This is used in call to setvbuf, 64K seems to work  */
-                      /* in all memory models. Again it is an unsigned long  */
-                      /* For Guardian we choose a multiple of 4K             */
-
-#ifndef __INT32
-#define SBSZ 0x0e000  /* Maximum of size unsigned (int). Only used in STORE  */
-                      /* method.  We can use up to 56K bytes thanks to large */
-                      /* transfer mode.  Note WSIZE is limited to 32K, which */
-                      /* limits the DEFLATE read size to same value.         */
-#else
-#define SBSZ 0x10000  /* WIDE model so we can use 64K                        */
-#endif /* __INT32 */
 
 #define NAMELEN FILENAME_MAX+1+EXTENSION_MAX   /* allow for space extension */
 
@@ -137,6 +97,7 @@ char *         readd(DIR *dirp);
 #define SET_FILE_SECURITY   1
 #define SET_FILE_OWNER      2
 #define SET_FILE_BUFFERED   90
+#define SET_FILE_MAXEXTENTS 92
 #define SET_FILE_BUFFERSIZE 93
 #define SET_LARGE_TRANSFERS 141
 
@@ -218,7 +179,7 @@ struct nsk_file_attrs_def
   unsigned short block;     /* 16 */  /* Allow of block > 4096 one day ! */
   struct nsk_file_flags flags;     /* 16 */
   struct nsk_owner owner;   /* 16 */
-  unsigned short primext;   /* 16 */
+  unsigned short priext;    /* 16 */
   unsigned short secext;    /* 16 */
   unsigned maxext    : 10;
   unsigned read      : 3;
@@ -250,5 +211,26 @@ typedef union
   struct nsk_stat_reserved reserved;
   struct nsk_stat_overlay  ov;
 } nsk_stat_ov;
+
+/* Prototype function declarations */
+
+void zexit (int);
+
+int zputc(
+  int,
+  FILE *
+);
+
+int zgetch (void);
+
+short parsename(
+  const char *,
+  char *,
+  char *
+);
+
+int islicensed (void);
+
+/* End of prototype function declarations */
 
 #endif /* !__tandem_h */

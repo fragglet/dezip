@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -10,8 +10,8 @@
 .\" =========================================================================
 .\" define .X macro (for long-line ZipInfo output examples; small Courier):
 .de X
-.ft CW
 .nf
+.ft CW
 .ie n .ti -5
 .el \{ .ti +2m
 .ps -1 \}
@@ -22,18 +22,19 @@
 .ft
 .fi
 ..
-.\" define .Y macro (for user-command examples; normal Courier font):
-.de Y
-.ft CW
+.\" define .EX/.EE (for multiline user-command examples; normal Courier font)
+.de EX
 .in +4n
 .nf
-\&\\$1
+.ft CW
+..
+.de EE
 .ft
-.in
 .fi
+.in -4n
 ..
 .\" =========================================================================
-.TH ZIPINFO 1L "14 January 2001 (v2.32)" "Info-ZIP"
+.TH ZIPINFO 1L "17 February 2002 (v2.4)" "Info-ZIP"
 .SH NAME
 zipinfo \- list detailed information about a ZIP archive
 .PD
@@ -307,19 +308,19 @@ to the "\fCzipinfo \-hst\fR" command (except when individual zipfile members
 are specified).
 A user who prefers the long-listing format (\fB\-l\fP) can make use of the
 \fIzipinfo\fP's environment variable to change this default:
-.PP
-.DT
-.ft CW
-.in +4n
-.ta \w'ZIPINFO=\-l; export ZIPINFO'u+4n
-.in
-.ft
-.PD 0
-.Y "ZIPINFO=\-l; export ZIPINFO\t\fRUnix Bourne shell"
-.Y "setenv ZIPINFO \-l\t\fRUnix C shell"
-.Y "set ZIPINFO=\-l\t\fROS/2 or MS-DOS"
-.Y "define ZIPINFO_OPTS ""\-l""\t\fRVMS (quotes for \fIlowercase\fP)"
-.PD
+.TP
+Unix Bourne shell:
+\f(CW\&ZIPINFO=\-l; export ZIPINFO\fP
+.TP
+Unix C shell:
+\f(CW\&setenv ZIPINFO \-l\fP
+.TP
+OS/2 or MS-DOS:
+\f(CW\&set ZIPINFO=\-l\fP
+.TP
+VMS (quotes for \fIlowercase\fP):
+\f(CW\&define ZIPINFO_OPTS "\-l"\fP
+.EE
 .PP
 If, in addition, the user dislikes the trailer line, \fIzipinfo\fP's
 concept of ``negative options'' may be used to override the default
@@ -346,42 +347,46 @@ To get a basic, short-format listing of the complete contents of a ZIP
 archive \fIstorage.zip\fP, with both header and totals lines, use only
 the archive name as an argument to zipinfo:
 .PP
-.Y "zipinfo storage"
+.EX
+zipinfo storage
+.EE
 .PP
 To produce a basic, long-format listing (not verbose), including header and
 totals lines, use \fB\-l\fP:
 .PP
-.Y "zipinfo \-l storage"
+.EX
+zipinfo \-l storage
+.EE
 .PP
 To list the complete contents of the archive without header and totals
 lines, either negate the \fB\-h\fP and \fB\-t\fP options or else specify the
 contents explicitly:
 .PP
-.PD 0
-.Y "zipinfo \-\-h\-t storage"
-.Y "zipinfo storage \e*"
-.PD
+.EX
+zipinfo \-\-h\-t storage
+zipinfo storage \e*
+.EE
 .PP
 (where the backslash is required only if the shell would otherwise expand
 the `*' wildcard, as in Unix when globbing is turned on--double quotes around
 the asterisk would have worked as well).  To turn off the totals line by
 default, use the environment variable (C shell is assumed here):
 .PP
-.PD 0
-.Y "setenv ZIPINFO \-\-t"
-.Y "zipinfo storage"
-.PD
+.EX
+setenv ZIPINFO \-\-t
+zipinfo storage
+.EE
 .PP
 To get the full, short-format listing of the first example again, given
 that the environment variable is set as in the previous example, it is
 necessary to specify the \fB\-s\fP option explicitly, since the \fB\-t\fP
 option by itself implies that ONLY the footer line is to be printed:
 .PP
-.PD 0
-.Y "setenv ZIPINFO \-\-t"
-.Y "zipinfo \-t storage\t\fR[only totals line]"
-.Y "zipinfo \-st storage\t\fR[full listing]"
-.PD
+.EX
+setenv ZIPINFO \-\-t
+zipinfo \-t storage            \fR[only totals line]\fP
+zipinfo \-st storage           \fR[full listing]\fP
+.EE
 .PP
 The \fB\-s\fP option, like \fB\-m\fP and \fB\-l\fP, includes headers and
 footers by default, unless otherwise specified.  Since the environment
@@ -398,7 +403,9 @@ are then summarized with a single command.
 To list information on a single file within the archive, in medium format,
 specify the filename explicitly:
 .PP
-.Y "zipinfo \-m storage unshrink.c"
+.EX
+zipinfo \-m storage unshrink.c
+.EE
 .PP
 The specification of any member file, as in this example, will override
 the default header and totals lines; only the single line of information
@@ -407,19 +414,25 @@ would expect when requesting information about a single file.  For multiple
 files, it is often useful to know the total compressed and uncompressed
 size; in such cases \fB\-t\fP may be specified explicitly:
 .PP
-.Y "zipinfo \-mt storage ""*.[ch]"" Mak\e*"
+.EX
+zipinfo \-mt storage "*.[ch]" Mak\e*
+.EE
 .PP
 To get maximal information about the ZIP archive, use the verbose
 option.  It is usually wise to pipe the output into a filter such as
 Unix \fImore\fP(1) if the operating system allows it:
 .PP
-.Y "zipinfo \-v storage | more"
+.EX
+zipinfo \-v storage | more
+.EE
 .PP
 Finally, to see the most recently modified files in the archive, use
 the \fB\-T\fP option in conjunction with an external sorting utility
 such as Unix \fIsort\fP(1) (and \fItail\fP(1) as well, in this example):
 .PP
-.Y "zipinfo \-T storage | sort -n +6 | tail -15"
+.EX
+zipinfo \-T storage | sort -n +6 | tail -15
+.EE
 .PP
 The \fB\-n\fP option to \fIsort\fP(1) tells it to sort numerically
 rather than in ASCII order, and the \fB\+6\fP option tells it to sort
@@ -460,9 +473,13 @@ be simplified.  (This is not to say that it will be.)
 .\" =========================================================================
 .SH URL
 The Info-ZIP home page is currently at
+.EX
 \fChttp://www.info-zip.org/pub/infozip/\fR
+.EE
 or
+.EX
 \fCftp://ftp.info-zip.org/pub/infozip/\fR .
+.EE
 .PD
 .\" =========================================================================
 .SH AUTHOR

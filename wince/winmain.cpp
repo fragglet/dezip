@@ -114,7 +114,7 @@ extern "C" {
 
 #include "crypt.h"     // Needed to pick up CRYPT define setting and return values.
 
-#include "version.h"   // Only needed by consts.h (VERSION_DATE & VersionDate)
+#include "unzvers.h"   // Only needed by consts.h (VERSION_DATE & VersionDate)
 #include "consts.h"    // Only include once - defines constant string messages.
 
 #include <commctrl.h>  // Common controls - mainly ListView and ImageList

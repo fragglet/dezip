@@ -1,6 +1,6 @@
 #===========================================================================
 # Makefile for UnZip, ZipInfo, fUnZip, MakeSFX      AMIGA SAS/C Version 6.58
-# Version:  5.42                                    last revised:  19 Jun 00
+# Version:  5.5                                     last revised:  13 Feb 01
 #===========================================================================
 # from John Bush <john.bush@east.sun.com>
 #            or: <JBush@bix.com>
@@ -315,8 +315,8 @@ OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) $(OBJSA)
 
 # UnZipSFX Objects
 OBJX1 = unzip$(OX) extract$(OX) inflate$(OX) match$(OX) process$(OX)
-OBJXI = crypt$(O) crc32$(O) crctab$(O) fileio$(O) globals$(O) ttyio$(O)
-OBJXA = amiga$(OX) timezone$(O)
+OBJXI = crypt$(OX) crc32$(O) crctab$(OX) fileio$(OX) globals$(OX) ttyio$(OX)
+OBJXA = amiga$(OX) timezone$(OX)
 OBJX  = $(OBJX1) $(OBJXI) $(OBJXA)
 
 # fUnZip Objects
@@ -427,8 +427,8 @@ spotless: clean
 amiga$(O):          amiga/amiga.c amiga/filedate.c amiga/stat.c $(UNZIP_H) crypt.h timezone.h env:Workbench
 stat$(O):           amiga/stat.c     amiga/z-stat.h
 filedate$(O):       amiga/filedate.c crypt.h timezone.h
-api$(O):            api.c      $(UNZIP_H) version.h #zlib.h
-apihelp$(O):        apihelp.c  $(UNZIP_H) version.h
+api$(O):            api.c      $(UNZIP_H) unzvers.h #zlib.h
+apihelp$(O):        apihelp.c  $(UNZIP_H) unzvers.h
 crc32$(O):          crc32.c    $(UNZIP_H) zip.h
 crctab$(O):         crctab.c   $(UNZIP_H) zip.h
 crypt$(O):          crypt.c    $(UNZIP_H) zip.h crypt.h ttyio.h
@@ -445,8 +445,8 @@ timezone$(O):       timezone.c $(UNZIP_H) zip.h timezone.h
 ttyio$(O):          ttyio.c    $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(O):       unreduce.c $(UNZIP_H)
 unshrink$(O):       unshrink.c $(UNZIP_H)
-unzip$(O):          unzip.c    $(UNZIP_H) crypt.h version.h consts.h #zlib.h
-#unzipstb$(O):       unzipstb.c $(UNZIP_H) version.h
+unzip$(O):          unzip.c    $(UNZIP_H) crypt.h unzvers.h consts.h #zlib.h
+#unzipstb$(O):       unzipstb.c $(UNZIP_H) unzvers.h
 zipinfo$(O):        zipinfo.c  $(UNZIP_H)
 
 
@@ -454,11 +454,17 @@ zipinfo$(O):        zipinfo.c  $(UNZIP_H)
 #
 # special rule for adding Amiga internal version number to UnZipSFX
 amiga$(OX):      amiga/amiga.c amiga/filedate.c amiga/stat.c $(UNZIP_H) crypt.h timezone.h
-unzip$(OX):      unzip.c    $(UNZIP_H) crypt.h version.h consts.h
+unzip$(OX):      unzip.c    $(UNZIP_H) crypt.h unzvers.h consts.h
+crctab$(OX):     crctab.c   $(UNZIP_H) zip.h
+crypt$(OX):      crypt.c    $(UNZIP_H) zip.h crypt.h ttyio.h
 extract$(OX):    extract.c  $(UNZIP_H) crypt.h
+fileio$(OX):     fileio.c   $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+globals$(OX):    globals.c  $(UNZIP_H)
 inflate$(OX):    inflate.c  $(UNZIP_H) inflate.h #zlib.h
 match$(OX):      match.c    $(UNZIP_H)
 process$(OX):    process.c  $(UNZIP_H)
+timezone$(OX):   timezone.c $(UNZIP_H) zip.h timezone.h
+ttyio$(OX):      ttyio.c    $(UNZIP_H) zip.h crypt.h ttyio.h
 
 
 # fUnZip dependencies:

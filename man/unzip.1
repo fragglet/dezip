@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -8,23 +8,24 @@
 .\" unzip.1 by Greg Roelofs, Fulvio Marino, Jim van Zandt and others.
 .\"
 .\" =========================================================================
-.\" define .Y macro (for user-command examples; normal Courier font):
-.de Y
-.ft CW
+.\" define .EX/.EE (for multiline user-command examples; normal Courier font)
+.de EX
 .in +4n
 .nf
-\&\\$1
-.ft
-.in
+.ft CW
+..
+.de EE
+.ft R
 .fi
+.in -4n
 ..
 .\" =========================================================================
-.TH UNZIP 1L "14 January 2001 (v5.42)" "Info-ZIP"
+.TH UNZIP 1L "17 February 2002 (v5.5)" "Info-ZIP"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
 .SH SYNOPSIS
-\fBunzip\fP [\fB\-Z\fP] [\fB\-cflptuvz\fP[\fBabjnoqsCLMVX$/\fP]]
+\fBunzip\fP [\fB\-Z\fP] [\fB\-cflptuvz\fP[\fBabjnoqsCLMVX$/:\fP]]
 \fIfile\fP[\fI.zip\fP] [\fIfile(s)\fP\ .\|.\|.]
 [\fB\-x\fP\ \fIxfile(s)\fP\ .\|.\|.] [\fB\-d\fP\ \fIexdir\fP]
 .PD
@@ -45,8 +46,8 @@ options or default behaviors differ.
 Path of the ZIP archive(s).  If the file specification is a wildcard,
 each matching file is processed in an order determined by the operating
 system (or file system).  Only the filename can be a wildcard; the path
-itself cannot.  Wildcard expressions are similar to Unix \fIegrep\fP(1)
-(regular) expressions and may contain:
+itself cannot.  Wildcard expressions are similar to those supported in
+commonly used Unix shells (\fIsh\fP, \fIksh\fP, \fIcsh\fP) and may contain:
 .RS
 .IP *
 matches a sequence of 0 or more characters
@@ -217,7 +218,10 @@ by default, see above).
 .B \-b
 [VMS] auto-convert binary files (see \fB\-a\fP above) to fixed-length,
 512-byte record format.  Doubling the option (\fB\-bb\fP) forces all files
-to be extracted in this format.
+to be extracted in this format. When extracting to standard output
+(\fB\-c\fP or \fB\-p\fP option in effect), the default conversion of text
+record delimiters is disabled for binary (\fB\-b\fP) resp. all (\fB\-bb\fP)
+files.
 .TP
 .B \-B
 [Unix only, and only if compiled with UNIXBACKUP defined] save a backup copy
@@ -249,7 +253,8 @@ affects files in both the normal file list and the excluded-file list (xlist).
 [Acorn only] suppress removal of NFS filetype extension from stored filenames.
 .TP
 .B \-F
-[Unix only, and only if compiled with ACORN_FTYPE_NFS defined] translate
+[non-Acorn systems supporting long filenames with embedded commas,
+and only if compiled with ACORN_FTYPE_NFS defined] translate
 filetype information from ACORN RISC OS extra field blocks into a
 NFS filetype extension and append it to the names of the extracted files.
 (When the stored filename appears to already have an appended NFS filetype
@@ -288,7 +293,7 @@ converted to lowercase.  The \fB\-LL\fP option forces conversion of every
 filename to lowercase, regardless of the originating file system.
 .TP
 .B \-M
-pipe all output through an internal pager similar to the Unix\fImore\fP(1)
+pipe all output through an internal pager similar to the Unix \fImore\fP(1)
 command.  At the end of a screenful of output, \fIunzip\fP pauses with a
 ``\-\-More\-\-'' prompt; the next screenful may be viewed by pressing the
 Enter (Return) key or the space bar.  \fIunzip\fP can be terminated by
@@ -380,6 +385,18 @@ ignored.
 variable. During extraction, filename extensions that match one of the items
 in this extension list are swapped in front of the base name of the extracted
 file.
+.TP
+.B \-:
+[all but Acorn, VM/CMS, MVS, Tandem] allows to extract archive members into
+locations outside of the current `` extraction root folder''. For security
+reasons, \fIunzip\fP normally removes ``parent dir'' path components
+(``../'') from the names of extracted file.  This safety feature (new for
+version 5.50) prevents \fIunzip\fP from accidentally writing files to
+``sensitive'' areas outside the active extraction folder tree head.  The
+\fB\-:\fP option lets \fIunzip\fP switch back to its previous, more liberal
+behaviour, to allow exact extraction of (older) archives that used ``../''
+components to create multiple directory trees at the level of the current
+extraction folder.
 .PD
 .\" =========================================================================
 .SH "ENVIRONMENT OPTIONS"
@@ -392,19 +409,18 @@ lowercase, make it match names case-insensitively, make it quieter,
 or make it always overwrite or never overwrite files as it extracts
 them.  For example, to make \fIunzip\fP act as quietly as possible, only
 reporting errors, one would use one of the following commands:
-.PP
-.DT
-.ft CW
-.in +4n
-.ta \w'UNZIP=\-qq; export UNZIP'u+4n
-.in
-.ft
-.PD 0
-.Y "UNZIP=\-qq; export UNZIP\t\fRUnix Bourne shell"
-.Y "setenv UNZIP \-qq\t\fRUnix C shell"
-.Y "set UNZIP=\-qq\t\fROS/2 or MS-DOS"
-.Y "define UNZIP_OPTS ""\-qq""\t\fRVMS (quotes for \fIlowercase\fP)"
-.PD
+.TP
+  Unix Bourne shell:
+UNZIP=\-qq; export UNZIP
+.TP
+  Unix C shell:
+setenv UNZIP \-qq
+.TP
+  OS/2 or MS-DOS:
+set UNZIP=\-qq
+.TP
+  VMS (quotes for \fIlowercase\fP):
+define UNZIP_OPTS ""\-qq""
 .PP
 Environment options are, in effect, considered to be just like any other
 command-line options, except that they are effectively the first options
@@ -412,17 +428,19 @@ on the command line.  To override an environment option, one may use the
 ``minus operator'' to remove it.  For instance, to override one of the
 quiet-flags in the example above, use the command
 .PP
-.Y "unzip \-\-q[\fIother options\fC] zipfile"
+.EX
+unzip \-\-q[\fIother options\fP] zipfile
+.EE
 .PP
 The first hyphen is the normal
 switch character, and the second is a minus sign, acting on the q option.
 Thus the effect here is to cancel one quantum of quietness.  To cancel
 both quiet flags, two (or more) minuses may be used:
 .PP
-.PD 0
-.Y "unzip \-t\-\-q zipfile"
-.Y "unzip \-\-\-qt zipfile"
-.PD
+.EX
+unzip \-t\-\-q zipfile
+unzip \-\-\-qt zipfile
+.EE
 .PP
 (the two are equivalent).  This may seem awkward
 or confusing, but it is reasonably intuitive:  just ignore the first
@@ -494,12 +512,12 @@ such characters, including Latin-1 (ISO 8859-1) and OEM code page 850.  DOS
 Latin-1 (and is therefore incompatible with DOS \fIPKZIP\fP); Info-ZIP uses
 the OEM code page on DOS, OS/2 and Win3.x ports but Latin-1 everywhere
 else; and Nico Mak's \fIWinZip\fP 6.x does not allow 8-bit passwords at all.
-\fIUnZip\fP 5.3 attempts to use the default character set first (e.g.,
-Latin-1), followed by the alternate one (e.g., OEM code page) to test
+\fIUnZip\fP 5.3 (or newer) attempts to use the default character set first
+(e.g., Latin-1), followed by the alternate one (e.g., OEM code page) to test
 passwords.  On EBCDIC systems, if both of these fail, EBCDIC encoding will
-be tested as a last resort.  (Since there are no known archivers that encrypt
-using EBCDIC encoding, EBCDIC is not tested on non-EBCDIC systems.)  ISO
-character encodings other than Latin-1 are not supported.
+be tested as a last resort.  (EBCDIC is not tested on non-EBCDIC systems,
+because there are no known archivers that encrypt using EBCDIC encoding.)
+ISO character encodings other than Latin-1 are not supported.
 .PD
 .\" =========================================================================
 .SH EXAMPLES
@@ -507,21 +525,29 @@ To use \fIunzip\fP to extract all members of the archive \fIletters.zip\fP
 into the current directory and subdirectories below it, creating any
 subdirectories as necessary:
 .PP
-.Y "unzip letters"
+.EX
+unzip letters
+.EE
 .PP
 To extract all members of \fIletters.zip\fP into the current directory only:
 .PP
-.Y "unzip -j letters"
+.EX
+unzip -j letters
+.EE
 .PP
 To test \fIletters.zip\fP, printing only a summary message indicating
 whether the archive is OK or not:
 .PP
-.Y "unzip -tq letters"
+.EX
+unzip -tq letters
+.EE
 .PP
 To test \fIall\fP zipfiles in the current directory, printing only the
 summaries:
 .PP
-.Y "unzip -tq \e*.zip"
+.EX
+unzip -tq \e*.zip
+.EE
 .PP
 (The backslash before the asterisk is only required if the shell expands
 wildcards, as in Unix; double quotes could have been used instead, as in
@@ -529,29 +555,39 @@ the source examples below.)\ \ To extract to standard output all members of
 \fIletters.zip\fP whose names end in \fI.tex\fP, auto-converting to the
 local end-of-line convention and piping the output into \fImore\fP(1):
 .PP
-.Y "unzip \-ca letters \e*.tex | more"
+.EX
+unzip \-ca letters \e*.tex | more
+.EE
 .PP
 To extract the binary file \fIpaper1.dvi\fP to standard output and pipe it
 to a printing program:
 .PP
-.Y "unzip \-p articles paper1.dvi | dvips"
+.EX
+unzip \-p articles paper1.dvi | dvips
+.EE
 .PP
 To extract all FORTRAN and C source files--*.f, *.c, *.h, and Makefile--into
 the /tmp directory:
 .PP
-.Y "unzip source.zip ""*.[fch]"" Makefile -d /tmp"
+.EX
+unzip source.zip "*.[fch]" Makefile -d /tmp
+.EE
 .PP
 (the double quotes are necessary only in Unix and only if globbing is turned
 on).  To extract all FORTRAN and C source files, regardless of case (e.g.,
 both *.c and *.C, and any makefile, Makefile, MAKEFILE or similar):
 .PP
-.Y "unzip \-C source.zip ""*.[fch]"" makefile -d /tmp"
+.EX
+unzip \-C source.zip "*.[fch]" makefile -d /tmp
+.EE
 .PP
 To extract any such files but convert any uppercase MS-DOS or VMS names to
 lowercase and convert the line-endings of all of the files to the local
 standard (without respect to any files that might be marked ``binary''):
 .PP
-.Y "unzip \-aaCL source.zip ""*.[fch]"" makefile -d /tmp"
+.EX
+unzip \-aaCL source.zip "*.[fch]" makefile -d /tmp
+.EE
 .PP
 To extract only newer versions of the files already in the current
 directory, without querying (NOTE:  be careful of unzipping in one timezone a
@@ -559,39 +595,53 @@ zipfile created in another--ZIP archives other than those created by Zip 2.1
 or later contain no timezone information, and a ``newer'' file from an eastern
 timezone may, in fact, be older):
 .PP
-.Y "unzip \-fo sources"
+.EX
+unzip \-fo sources
+.EE
 .PP
 To extract newer versions of the files already in the current directory and
 to create any files not already there (same caveat as previous example):
 .PP
-.Y "unzip \-uo sources"
+.EX
+unzip \-uo sources
+.EE
 .PP
 To display a diagnostic screen showing which \fIunzip\fP and \fIzipinfo\fP
 options are stored in environment variables, whether decryption support was
 compiled in, the compiler with which \fIunzip\fP was compiled, etc.:
 .PP
-.Y "unzip \-v"
+.EX
+unzip \-v
+.EE
 .PP
 In the last five examples, assume that UNZIP or UNZIP_OPTS is set to -q.
 To do a singly quiet listing:
 .PP
-.Y "unzip \-l file.zip"
+.EX
+unzip \-l file.zip
+.EE
 .PP
 To do a doubly quiet listing:
 .PP
-.Y "unzip \-ql file.zip"
+.EX
+unzip \-ql file.zip
+.EE
 .PP
 (Note that the ``\fC.zip\fR'' is generally not necessary.)  To do a standard
 listing:
 .PP
-.PD 0
-.Y "unzip \-\-ql file.zip"
-.PP
+.EX
+unzip \-\-ql file.zip
+.EE
 or
-.Y "unzip \-l\-q file.zip"
-.PP
+.EX
+unzip \-l\-q file.zip
+.EE
 or
-.Y "unzip \-l\-\-q file.zip\t\fR(extra minuses don't hurt)"
+.EX
+unzip \-l\-\-q file.zip
+.EE
+\fR(Extra minuses in options don't hurt.)
 .PD
 .\" =========================================================================
 .SH TIPS
@@ -738,9 +788,13 @@ deleted.
 .\" =========================================================================
 .SH URL
 The Info-ZIP home page is currently at
+.EX
 \fChttp://www.info-zip.org/pub/infozip/\fR
+.EE
 or
+.EX
 \fCftp://ftp.info-zip.org/pub/infozip/\fR .
+.EE
 .PD
 .\" =========================================================================
 .SH AUTHORS
@@ -805,5 +859,7 @@ Info-ZIP (Zip-Bugs subgroup, SPC)
 .IP "v5.41\t16 Apr 00"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .IP "v5.42\t14 Jan 01"
+Info-ZIP (Zip-Bugs subgroup, SPC)
+.IP "v5.5\t17 Feb 02"
 Info-ZIP (Zip-Bugs subgroup, SPC)
 .PD

@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -8,18 +8,19 @@
 .\" unzipsfx.1 by Greg Roelofs
 .\"
 .\" =========================================================================
-.\" define .Y macro (for user-command examples; normal Courier font):
-.de Y
-.ft CW
+.\" define .EX/.EE (for multiline user-command examples; normal Courier font)
+.de EX
 .in +4n
 .nf
-\&\\$1
-.ft
-.in
+.ft CW
+..
+.de EE
+.ft R
 .fi
+.in -4n
 ..
 .\" =========================================================================
-.TH UNZIPSFX 1L "14 January 2001 (v5.42)" "Info-ZIP"
+.TH UNZIPSFX 1L "17 February 2002 (v5.5)" "Info-ZIP"
 .SH NAME
 unzipsfx \- self-extracting stub for prepending to ZIP archives
 .PD
@@ -39,9 +40,14 @@ be as small as possible), a number of the less-vital capabilities in regular
 \fIunzip\fP have been removed.  Among these are the usage (or help) screen,
 the listing and diagnostic functions (\fB\-l\fP and \fB\-v\fP), the ability
 to decompress older compression formats (the ``reduce,'' ``shrink'' and
-``implode'' methods), and the ability to extract to a directory other than
-the current one.  Decryption is supported as a compile-time option but
-should be avoided unless the attached archive contains encrypted files.
+``implode'' methods).  The ability to extract to a directory other than
+the current one can be selected as a compile-time option, which is now enabled
+by default since UnZipSFX version 5.5.  Similary, decryption is supported as
+a compile-time option but should be avoided unless the attached archive
+contains encrypted files. Starting with release 5.5, another compile-time
+option adds a simple ``run command after extraction'' feature.  This feature
+is currently incompatible with the ``extract to different directory''
+feature and remains disabled by default.
 .PP
 \fBNote that
 self-extracting archives made with\fP \fIunzipsfx\fP \fBare no more (or less)
@@ -119,7 +125,7 @@ See \fIunzip\fP(1L) for a more complete description of these options.
 \fIunzipsfx\fP currently supports all \fIunzip\fP(1L) modifiers:  \fB\-a\fP
 (convert text files), \fB\-n\fP (never overwrite), \fB\-o\fP (overwrite
 without prompting), \fB\-q\fP (operate quietly), \fB\-C\fP (match names
-case-insenstively), \fB\-L\fP (convert uppercase-OS names to lowercase),
+case-insensitively), \fB\-L\fP (convert uppercase-OS names to lowercase),
 \fB\-j\fP (junk paths) and \fB\-V\fP (retain version numbers); plus the
 following operating-system specific options:  \fB\-X\fP (restore VMS
 owner/protection info), \fB\-s\fP (convert spaces in filenames to underscores
@@ -148,68 +154,110 @@ is no reason to use a version of \fIunzipsfx\fP with decryption support;
 that only adds to the size of the archive.
 .PD
 .\" =========================================================================
+.SH AUTORUN COMMAND
+When \fIunzipsfx\fP was compiled with CHEAP_SFX_AUTORUN defined, a simple
+``command autorun'' feature is supported. You may enter a command into the
+Zip archive comment, using the following format:
+.PP
+.EX
+$AUTORUN$>[command line string]
+.EE
+.PP
+When \fIunzipsfx\P recognizes the ``$AUTORUN$>'' token at the beginning
+of the Zip archive comment, the remainder of the first line of the comment
+(until the first newline character) is passed as a shell command to the
+operating system using the C rtl ``system'' function. Before executing
+the command, \fIunzipsfx\P displays the command on the console and prompts
+the user for confirmation.  When the user has switched off prompting by
+specifying the \fB-q\fP option, autorun commands are never executed.
+.PP
+In case the archive comment contains additonal lines of text, the remainder
+of the archive comment following the first line is displayed normally, unless
+quiet operation was requested by supplying a \fB-q\fP option.
+.PD
+.\" =========================================================================
 .SH EXAMPLES
 To create a self-extracting archive \fIletters\fP from a regular zipfile
 \fIletters.zip\fP and change the new archive's permissions to be
 world-executable under Unix:
 .PP
-.PD 0
-.Y "cat unzipsfx letters.zip > letters"
-.Y "chmod 755 letters"
-.Y "zip -A letters"
-.PD
+.EX
+cat unzipsfx letters.zip > letters
+chmod 755 letters
+zip -A letters
+.EE
 .PP
 To create the same archive under MS-DOS, OS/2 or NT (note the use of the
 \fB/b\fP [binary] option to the \fIcopy\fP command):
 .PP
-.Y "copy /b unzipsfx.exe+letters.zip letters.exe"
-.Y "zip -A letters.exe"
+.EX
+copy /b unzipsfx.exe+letters.zip letters.exe
+zip -A letters.exe
+.EE
 .PP
 Under VMS:
 .PP
-.Y "copy unzipsfx.exe,letters.zip letters.exe"
-.Y "letters == ""$currentdisk:[currentdir]letters.exe"""
-.Y "zip -A letters.exe"
+.EX
+copy unzipsfx.exe,letters.zip letters.exe
+letters == "$currentdisk:[currentdir]letters.exe"
+zip -A letters.exe
+.EE
 .PP
 (The VMS \fIappend\fP command may also be used.  The second command installs
 the new program as a ``foreign command'' capable of taking arguments.  The
 third line assumes that Zip is already installed as a foreign command.)
 Under AmigaDOS:
 .PP
-.Y "MakeSFX letters letters.zip UnZipSFX"
+.EX
+MakeSFX letters letters.zip UnZipSFX
+.EE
 .PP
 (MakeSFX is included with the UnZip source distribution and with Amiga
 binary distributions.  ``\fCzip -A\fR'' doesn't work on Amiga self-extracting
 archives.)
 To test (or list) the newly created self-extracting archive:
 .PP
-.Y "letters \-t"
+.EX
+letters \-t
+.EE
 .PP
 To test \fIletters\fP quietly, printing only a summary message indicating
 whether the archive is OK or not:
 .PP
-.Y "letters \-tqq"
+.EX
+letters \-tqq
+.EE
 .PP
 To extract the complete contents into the current directory, recreating all
 files and subdirectories as necessary:
 .PP
-.Y "letters"
+.EX
+letters
+.EE
 .PP
 To extract all \fC*.txt\fR files (in Unix quote the `*'):
 .PP
-.Y "letters *.txt"
+.EX
+letters *.txt
+.EE
 .PP
 To extract everything \fIexcept\fP the \fC*.txt\fR files:
 .PP
-.Y "letters -x *.txt"
+.EX
+letters -x *.txt
+.EE
 .PP
 To extract only the README file to standard output (the screen):
 .PP
-.Y "letters -c README"
+.EX
+letters -c README
+.EE
 .PP
 To print only the zipfile comment:
 .PP
-.Y "letters \-z"
+.EX
+letters \-z
+.EE
 .PD
 .\" =========================================================================
 .SH LIMITATIONS
@@ -271,9 +319,13 @@ All current bugs in \fIunzip\fP(1L) exist in \fIunzipsfx\fP as well.
 .\" =========================================================================
 .SH URL
 The Info-ZIP home page is currently at
+.EX
 \fChttp://www.info-zip.org/pub/infozip/\fR
+.EE
 or
+.EX
 \fCftp://ftp.info-zip.org/pub/infozip/\fR .
+.EE
 .PD
 .\" =========================================================================
 .SH AUTHORS

@@ -30,8 +30,7 @@ Contents of the "macos" sub-archive for UnZip 5.42 and later:
     getenv.c        simulation of unix compatible getenv() on MacOS
     helpers.c       some helper functions
     helpers.h
-    macstuff.c      Mac filemanager routines copied from MoreFiles 1.4.8
-    macstuff.h
+    macstuff.h      wrapper to pull in some "MoreFiles" filemanager stuff
     mactime.c       replacement for broken Metrowerks RTL time functions
     mactime.h
     pathname.c      functions for handling MacOS HFS path- /filenames

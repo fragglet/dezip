@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -29,7 +29,7 @@
   also be done by any API function that jumps into the middle of the
   code.
 
-  The DESTROYGLOBALS; statement should be inserted before EVERY "EXIT(n)".
+  The DESTROYGLOBALS(); statement should be inserted before EVERY "EXIT(n)".
   Naturally, it also needs to be put before any API returns as well.
   In fact, it's much more important in API functions since the process
   will NOT end, and therefore the memory WON'T automatically be freed
@@ -190,9 +190,13 @@ typedef struct Globals {
      int redirect_text;   /* redirect text output to buffer */
 # ifndef NO_SLIDE_REDIR
      int redirect_slide;  /* redirect decompression area to mem buffer */
-     unsigned _wsize;
+#  if (defined(USE_DEFLATE64) && defined(INT_16BIT))
+     ulg _wsize;          /* size of sliding window exceeds "unsigned" range */
+#  else
+     unsigned _wsize;     /* sliding window size can be hold in unsigned */
+#  endif
 # endif
-     unsigned redirect_size;       /* size of redirected output buffer */
+     ulg redirect_size;            /* size of redirected output buffer */
      uch *redirect_buffer;         /* pointer to head of allocated buffer */
      uch *redirect_pointer;        /* pointer past end of written data */
 # ifndef NO_SLIDE_REDIR
@@ -306,6 +310,17 @@ typedef struct Globals {
     struct huft *fixed_tl;    /* inflate static */
     struct huft *fixed_td;    /* inflate static */
     int fixed_bl, fixed_bd;   /* inflate static */
+#ifdef USE_DEFLATE64
+    struct huft *fixed_tl64;    /* inflate static */
+    struct huft *fixed_td64;    /* inflate static */
+    int fixed_bl64, fixed_bd64; /* inflate static */
+    struct huft *fixed_tl32;    /* inflate static */
+    struct huft *fixed_td32;    /* inflate static */
+    int fixed_bl32, fixed_bd32; /* inflate static */
+    ZCONST ush *cplens;         /* inflate static */
+    ZCONST uch *cplext;         /* inflate static */
+    ZCONST uch *cpdext;         /* inflate static */
+#endif
     unsigned wp;              /* inflate static: current position in slide */
     ulg bb;                   /* inflate static: bit buffer */
     unsigned bk;              /* inflate static: bits in bit buffer */
@@ -331,9 +346,13 @@ typedef struct Globals {
     uch *inptr_leftover;
 
 #ifdef VMS_TEXT_CONV
-    int VMS_line_state;       /* so native VMS variable-length text files are */
-    int VMS_line_length;      /*  readable on other platforms */
-    int VMS_line_pad;
+    unsigned VMS_line_length; /* so native VMS variable-length text files */
+    int      VMS_line_state;  /*  are readable on other platforms */
+    int      VMS_line_pad;
+#endif
+
+#if (defined(SFX) && defined(CHEAP_SFX_AUTORUN))
+    char autorun_command[FILNAMSIZ];
 #endif
 #endif /* !FUNZIP */
 
@@ -380,12 +399,13 @@ extern char end_central_sig[4];
      extern int               lastScan;
      void deregisterGlobalPointer OF((__GPRO));
      Uz_Globs *getGlobalPointer   OF((void));
-#    define GETGLOBALS()      Uz_Globs *pG = getGlobalPointer();
-#    define DESTROYGLOBALS()  {free_G_buffers(pG); deregisterGlobalPointer(pG);}
+#    define GETGLOBALS()      Uz_Globs *pG = getGlobalPointer()
+#    define DESTROYGLOBALS()  do {free_G_buffers(pG); \
+                                  deregisterGlobalPointer(pG);} while (0)
 #  else
      extern Uz_Globs          *GG;
-#    define GETGLOBALS()      Uz_Globs *pG = GG;
-#    define DESTROYGLOBALS()  {free_G_buffers(pG); free(pG);}
+#    define GETGLOBALS()      Uz_Globs *pG = GG
+#    define DESTROYGLOBALS()  do {free_G_buffers(pG); free(pG);} while (0)
 #  endif /* ?USETHREADID */
 #  define CONSTRUCTGLOBALS()  Uz_Globs *pG = globalsCtor()
 #else /* !REENTRANT */

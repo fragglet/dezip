@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -27,7 +27,7 @@
 #include <time.h>
 #include <string.h>
 #include "uzexampl.h"
-#include "unzver.h"
+#include "../unzvers.h"
 #ifdef WIN32
 #  include <winver.h>
 #else
@@ -71,12 +71,8 @@ int WINAPI password(char *, int, const char *, const char *);
 void WINAPI ReceiveDllMessage(unsigned long, unsigned long, unsigned,
     unsigned, unsigned, unsigned, unsigned, unsigned,
     char, LPSTR, LPSTR, unsigned long, char);
-_DLL_UNZIP Wiz_SingleEntryUnzip;
-_USER_FUNCTIONS Wiz_Init;
+_DLL_UNZIP pWiz_SingleEntryUnzip;
 void FreeUpMemory(void);
-#ifdef WIN32
-BOOL IsNT(VOID);
-#endif
 
 int main(int argc, char **argv)
 {
@@ -196,7 +192,7 @@ if (dwVerInfoSize)
                &cchVer);
       if (!fRet || !fRetName ||
          (lstrcmpi(lszVer, UNZ_DLL_VERSION) != 0) ||
-         (lstrcmpi(lszVerName, COMPANY_NAME) != 0))
+         (lstrcmpi(lszVerName, IZ_COMPANY_NAME) != 0))
          {
          wsprintf (str, DLL_VERSION_WARNING, UNZ_DLL_NAME);
          printf("%s\n", str);
@@ -228,7 +224,7 @@ if (hUnzipDll > HINSTANCE_ERROR)
 if (hUnzipDll != NULL)
 #endif
    {
-   Wiz_SingleEntryUnzip =
+   pWiz_SingleEntryUnzip =
      (_DLL_UNZIP)GetProcAddress(hUnzipDll, "Wiz_SingleEntryUnzip");
    }
 else
@@ -251,7 +247,7 @@ lpDCL->fQuiet = 0; /* We want all messages.
 lpDCL->ntflag = 0; /* test zip file if true */
 lpDCL->nvflag = 0; /* give a verbose listing if true */
 lpDCL->nzflag = 0; /* display a zip file comment if true */
-lpDCL->ndflag = 1; /* Recreate directories if true */
+lpDCL->ndflag = 1; /* Recreate directories != 0, skip "../" if < 2 */
 lpDCL->naflag = 0; /* Do not convert CR to CRLF */
 lpDCL->nfflag = 0; /* Do not freshen existing files only */
 lpDCL->noflag = 1; /* Over-write all files if true */
@@ -297,8 +293,8 @@ if (argc > 2) {
   infc = exfc = 0;
   infv = exfv = NULL;
 }
-retcode = (*Wiz_SingleEntryUnzip)(infc, infv, exfc, exfv, lpDCL,
-                                  lpUserFunctions);
+retcode = (*pWiz_SingleEntryUnzip)(infc, infv, exfc, exfv, lpDCL,
+                                   lpUserFunctions);
 if (x_opt) {
   infv[infc] = x_opt;
   x_opt = NULL;
@@ -333,26 +329,6 @@ if (hUF)
    GlobalFree(hUF);
    }
 }
-
-/* This simply determines if we are running on NT or Windows 95 */
-#ifdef WIN32
-BOOL IsNT(VOID)
-{
-if (dwPlatformId == 0xFFFFFFFF)
-   {
-   /* note: GetVersionEx() doesn't exist on WinNT 3.1 */
-   if (GetVersion() < 0x80000000)
-      {
-      dwPlatformId = TRUE;
-      }
-   else
-      {
-      dwPlatformId = FALSE;
-      }
-    }
-return (BOOL)dwPlatformId;
-}
-#endif
 
 /* This is a very stripped down version of what is done in Wiz. Essentially
    what this function is for is to do a listing of an archive contents. It

@@ -1,26 +1,32 @@
 ?section CC ROUTINE
 #FRAME
-[#PUSH stem src obj htime file prev time stime otime
+[#PUSH file stem src obj htime file prev time stime otime
        comp out options sup buf col locn group
 ]
 
-[#IF [#ARGUMENT /VALUE src/ WORD /SPACE/ END]]
-[#IF [#EMPTYV src] |THEN|
+[#IF [#ARGUMENT /VALUE file/ WORD /SPACE/ END]]
+[#IF [#EMPTYV file] |THEN|
   #OUTPUT Syntax: CC <file> <collector> <comp-options>
   #RESET FRAMES
   #RETURN
 ]
 
-[#IF NOT [#FILEINFO /EXISTENCE/ [src]]
+[#IF NOT [#FILEINFO /EXISTENCE/ [file]]
 |THEN|
-  #OUTPUT [src] does not exist !
+  #OUTPUT [file] does not exist !
   #RESET FRAMES
   #RETURN
 ]
 
-#SETV stem src
+#PUSH #DEFAULTS vol subvol
+#SETMANY vol subvol src, [#FILEINFO /VOLUME, SUBVOL, FILE/ [file]]
+VOLUME [vol].[subvol]
+
+#SETV stem file
 #CHARDEL stem [#CHARCOUNT stem]
 #SET obj [stem]O
+#SETV stem src
+#CHARDEL stem [#CHARCOUNT stem]
 
 [#IF [#ARGUMENT /VALUE out/ DEVICE END]]
 [#IF [#EMPTYV out] |THEN| #SET out $T.#C]
@@ -28,7 +34,6 @@
 #SETMANY col group, [#FILEINFO /VOLUME, SUBVOL/ [out]]
 #SET locn [group].[stem]
 #SET sup [#LOOKUPPROCESS /ANCESTOR/ [col]]
-
 
 #SET options [#REST]
 
@@ -64,7 +69,7 @@
 [#IF comp
 |THEN|
   SPOOLCOM /OUTV buf/ OPEN [sup];JOB (OWNER, LOC [locn]),STATUS,DELETE !
-  #OUTPUTV buf
+  #SET buf
   #OUTPUT Compiling [src]... [options]
   C /IN [src], OUT [out].[stem]/[obj];SYMBOLS,HIGHPIN [options]
   [#CASE [tacl^completioncode]
@@ -74,8 +79,12 @@
     #SET _completion:completioncode 0
   | 1 |
     #OUTPUT [src]: Compile Warnings
+    SPOOLCOM /OUTV buf/ OPEN [sup];JOB (OWNER, LOC [locn]),STATUS
+    #OUTPUTV buf
   |OTHERWISE|
     #OUTPUT [src]: Compile FAILED !
+    SPOOLCOM /OUTV buf/ OPEN [sup];JOB (OWNER, LOC [locn]),STATUS
+    #OUTPUTV buf
   ]
 |ELSE|
   #OUTPUT Object file [obj] is up to date

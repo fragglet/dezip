@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -104,6 +104,17 @@
 #   define nearmalloc malloc
 #   define nearfree free
 # endif
+# ifdef USE_DEFLATE64
+#   if (defined(M_I86TM) || defined(M_I86SM) || defined(M_I86MM))
+#     error Deflate64(tm) requires compact or large memory model
+#   endif
+#   if (defined(__TINY__) || defined(__SMALL__) || defined(__MEDIUM__))
+#     error Deflate64(tm) requires compact or large memory model
+#   endif
+    /* the 64k history buffer for Deflate64 must be allocated specially */
+#   define MALLOC_WORK
+#   define MY_ZCALLOC
+# endif
 #endif
 
 /* TIMESTAMP is now supported on OS/2, so enable it by default */
@@ -114,6 +125,10 @@
 /* check that TZ environment variable is defined before using UTC times */
 #if (!defined(NO_IZ_CHECK_TZ) && !defined(IZ_CHECK_TZ))
 #  define IZ_CHECK_TZ
+#endif
+
+#ifndef RESTORE_ACL
+#  define RESTORE_ACL
 #endif
 
 #ifndef OS2_EAS

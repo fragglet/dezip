@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -92,10 +92,18 @@ struct XAB {                    /* This definition may be skipped */
 
 #endif /* !VAXC && !_RMS_H && !__RMS_LOADED */
 
-#define BC_MASK    07   /* 3 bits for compression type */
-#define BC_STORED  0    /* Stored */
-#define BC_00      1    /* 0byte -> 0bit compression */
-#define BC_DEFL    2    /* Deflated */
+#ifndef EB_IZVMS_BCMASK
+#  define EB_IZVMS_BCMASK   07  /* 3 bits for compression type */
+#endif
+#ifndef EB_IZVMS_BCSTOR
+#  define EB_IZVMS_BCSTOR   0   /*  Stored */
+#endif
+#ifndef EB_IZVMS_BC00
+#  define EB_IZVMS_BC00     1   /*  0byte -> 0bit compression */
+#endif
+#ifndef EB_IZVMS_BCDEFL
+#  define EB_IZVMS_BCDEFL   2   /*  Deflated */
+#endif
 
 /*
  *  Extra record format
@@ -265,9 +273,9 @@ struct PK_header
 struct ioctx
 {
     struct iosb         iosb;
-    long                vbn;
-    long                size;
-    long                rest;
+    ulg                 vbn;
+    ulg                 size;
+    ulg                 rest;
     int                 status;
     ush                 chan;
     ush                 chan_pad;       /* alignment member */

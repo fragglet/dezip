@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -46,10 +46,16 @@
 #include <lib$routines.h>
 #include <unixlib.h>
 
-#define ASYNCH_QIO              /* Try out asynchronous PK-style QIO writes */
+#define ASYNCH_QIO              /* Use asynchronous PK-style QIO writes */
 
-#define BUFS512 (OUTBUFSIZ&(~512))      /* Must be a multiple of 512 ! */
-#define BUFDBLS512 (BUFS512 * 2)        /* locbuf size, max. record size */
+/* buffer size for a single block write (using RMS or QIO WRITEVBLK),
+   must be less than 64k and a multiple of 512 ! */
+#define BUFS512 (((OUTBUFSIZ>0xFFFF) ? 0xFFFF : OUTBUFSIZ) & (~511))
+/* buffer size for record output (RMS limit for max. record size) */
+#define BUFSMAXREC 32767
+/* allocation size for RMS and QIO output buffers */
+#define BUFSALLOC (BUFS512 * 2 > BUFSMAXREC ? BUFS512 * 2 : BUFSMAXREC)
+        /* locbuf size */
 
 #define OK(s)   ((s)&1)         /* VMS success or warning status */
 #define STRICMP(s1,s2)  STRNICMP(s1,s2,2147483647)
@@ -73,16 +79,11 @@ static struct XABKEY *xabkey = NULL;
 static struct XABALL *xaball = NULL;
 static struct XAB *first_xab = NULL, *last_xab = NULL;
 
-static char query = 0;
-static int  text_output = 0,
-            bin_fixed = 0;
-#ifdef USE_ORIG_DOS
-static int  hostnum;
-#endif
+static char query = '\0';
 
 static uch rfm;
 
-static uch locbuf[BUFDBLS512];          /* Space for 2 buffers of BUFS512 */
+static uch locbuf[BUFSALLOC];           /* Space for 2 buffers of BUFS512 */
 static unsigned loccnt = 0;
 static uch *locptr;
 static char got_eol = 0;
@@ -123,9 +124,6 @@ static void free_up(void);
 #ifdef CHECK_VERSIONS
 static int  get_vms_version(char *verbuf, int len);
 #endif /* CHECK_VERSIONS */
-static uch  *extract_block(__GPRO__ struct IZ_block *p, int *retlen,
-                           uch *init, int needlen);
-static void decompress_bits(uch *outptr, int needlen, uch *bitptr);
 static unsigned find_eol(uch *p, unsigned n, unsigned *l);
 #ifdef TIMESTAMP
 static time_t mkgmtime(struct tm *tm);
@@ -148,7 +146,7 @@ int check_format(__G)
     {
         Info(slide, 1, ((char *)slide, "\n\
      error:  cannot open zipfile [ %s ] (access denied?).\n\n",
-          G.zipfn));
+          FnFilter1(G.zipfn)));
         return PK_ERR;
     }
     rtype = fab.fab$b_rfm;
@@ -160,7 +158,7 @@ int check_format(__G)
      Error:  zipfile is in variable-length record format.  Please\n\
      run \"bilf l %s\" to convert the zipfile to stream-LF\n\
      record format.  (BILF is available at various VMS archives.)\n\n",
-          G.zipfn));
+          FnFilter1(G.zipfn)));
         return PK_ERR;
     }
 
@@ -179,8 +177,6 @@ int check_format(__G)
 #define VAT_IZ      1   /* old Info-ZIP format */
 #define VAT_PK      2   /* PKWARE format */
 
-static int  vet;
-
 /*
  *  open_outfile() assignments:
  *
@@ -191,26 +187,27 @@ static int  vet;
  *                                          no  -> 'block'
  *
  *  yes, in IZ format       'rms'           uO.cflag ?
- *                                          yes -> switch(fab.rfm)
+ *                                          yes -> switch (fab.rfm)
  *                                              VAR  -> 'varlen'
  *                                              STM* -> 'stream'
  *                                              default -> 'block'
  *                                          no -> 'block'
  *
  *  yes, in PK format       'qio'           uO.cflag ?
- *                                          yes -> switch(pka_rattr)
+ *                                          yes -> switch (pka_rattr)
  *                                              VAR  -> 'varlen'
  *                                              STM* -> 'stream'
  *                                              default -> 'block'
  *                                          no -> 'qio'
  *
- *  "text mode" == G.pInfo->textmode || uO.cflag
+ *  "text mode" == G.pInfo->textmode || (uO.cflag && !uO.bflag)
+ *  (simplified, for complete expression see create_default_output() code)
  */
 
 int open_outfile(__G)           /* return 1 (PK_WARN) if fail */
     __GDEF
 {
-    switch(vet = find_vms_attrs(__G))
+    switch (find_vms_attrs(__G))
     {
         case VAT_NONE:
         default:
@@ -306,19 +303,27 @@ static void set_default_datetime_XABs(__GPRO)
 }
 
 
-static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
+static int create_default_output(__GPRO)      /* return 1 (PK_WARN) if fail */
 {
     int ierr;
+    int text_output, bin_fixed;
 
+    /* extract the file in text (variable-length) format, when
+     * a) explicitely requested by the user (through the -a option)
+     *  or
+     * b) piping to SYS$OUTPUT, unless "binary" piping was requested
+     *    by the user (through the -b option)
+     */
     text_output = G.pInfo->textmode ||
-                  uO.cflag;     /* extract the file in text
-                                 * (variable-length) format */
-    bin_fixed = text_output || (uO.bflag == 0)
-                ? 0
-                : ((uO.bflag - 1) ? 1 : !G.pInfo->textfile);
-#ifdef USE_ORIG_DOS
-    hostnum = G.pInfo->hostnum;
-#endif
+                  (uO.cflag &&
+                   (!uO.bflag || (!(uO.bflag - 1) && G.pInfo->textfile)));
+    /* use fixed length 512 byte record format for disk file when
+     * a) explicitly requested by the user (-b option)
+     *  and
+     * b) entry is not extracted in text mode
+     */
+    bin_fixed = !text_output &&
+                (uO.bflag != 0) && ((uO.bflag != 1) || !G.pInfo->textfile);
 
     rfm = FAB$C_STMLF;  /* Default, stream-LF format from VMS or UNIX */
 
@@ -396,7 +401,7 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
             vms_msg(__G__ "", outfab->fab$l_stv);
 #endif
             Info(slide, 1, ((char *)slide,
-                 "Can't create output file:  %s\n", G.filename));
+                 "Can't create output file:  %s\n", FnFilter1(G.filename)));
             free_up();
             return PK_WARN;
         }
@@ -411,26 +416,28 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
 
 
 
-static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
+static int create_rms_output(__GPRO)          /* return 1 (PK_WARN) if fail */
 {
     int ierr;
+    int text_output;
 
-    text_output = uO.cflag;     /* extract the file in text
-                                 * (variable-length) format;
-                                 * we ignore "-a" when attributes saved */
-#ifdef USE_ORIG_DOS
-    hostnum = G.pInfo->hostnum;
-#endif
+    /* extract the file in text (variable-length) format, when
+     * piping to SYS$OUTPUT, unless "binary" piping was requested
+     * by the user (through the -b option); the "-a" option is
+     * ignored when extracting zip entries with VMS attributes saved
+     */
+    text_output = uO.cflag &&
+                  (!uO.bflag || (!(uO.bflag - 1) && G.pInfo->textfile));
 
     rfm = outfab->fab$b_rfm;    /* Use record format from VMS extra field */
 
     if (uO.cflag)
     {
-        if (!PRINTABLE_FORMAT(rfm))
+        if (text_output && !PRINTABLE_FORMAT(rfm))
         {
             Info(slide, 1, ((char *)slide,
                "[ File %s has illegal record format to put to screen ]\n",
-               G.filename));
+               FnFilter1(G.filename)));
             free_up();
             return PK_WARN;
         }
@@ -509,7 +516,7 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
             vms_msg(__G__ "", outfab->fab$l_stv);
 #endif
             Info(slide, 1, ((char *)slide,
-                 "Can't create output file:  %s\n", G.filename));
+                 "Can't create output file:  %s\n", FnFilter1(G.filename)));
             free_up();
             return PK_WARN;
         }
@@ -518,7 +525,7 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
     init_buf_ring();
 
     if ( text_output )
-        switch(rfm)
+        switch (rfm)
         {
             case FAB$C_VAR:
                 _flush_routine = _flush_varlen;
@@ -590,25 +597,42 @@ static char res_nam[NAM$C_MAXRSS];
                                 || (x) == FAT$C_STREAM   )
 
 
-static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
+static int create_qio_output(__GPRO)          /* return 1 (PK_WARN) if fail */
 {
     int status;
     int i;
+    int text_output;
+
+    /* extract the file in text (variable-length) format, when
+     * piping to SYS$OUTPUT, unless "binary" piping was requested
+     * by the user (through the -b option); the "-a" option is
+     * ignored when extracting zip entries with VMS attributes saved
+     */
+    text_output = uO.cflag &&
+                  (!uO.bflag || (!(uO.bflag - 1) && G.pInfo->textfile));
 
     if ( uO.cflag )
     {
-        int rtype = pka_rattr.fat$v_rtype;
-        if (!PK_PRINTABLE_RECTYP(rtype))
+        int rtype;
+
+        if (text_output)
         {
-            Info(slide, 1, ((char *)slide,
-               "[ File %s has illegal record format to put to screen ]\n",
-               G.filename));
-            return PK_WARN;
+            rtype = pka_rattr.fat$v_rtype;
+            if (!PK_PRINTABLE_RECTYP(rtype))
+            {
+                Info(slide, 1, ((char *)slide,
+                   "[ File %s has illegal record format to put to screen ]\n",
+                   FnFilter1(G.filename)));
+                return PK_WARN;
+            }
         }
+        else
+            /* force "block I/O" for binary piping mode */
+            rtype = FAT$C_UNDEFINED;
 
         init_buf_ring();
 
-        switch(rtype)
+        switch (rtype)
         {
             case FAT$C_VARIABLE:
                 _flush_routine = _flush_varlen;
@@ -714,14 +738,14 @@ static int replace(__GPRO)
     struct NAM nam;
     int ierr;
 
-    if (query == 0)
+    if (query == '\0')
     {
         do
         {
             Info(slide, 0x81, ((char *)slide,
                  "%s exists:  [o]verwrite, new [v]ersion or [n]o extract?\n\
   (uppercase response [O,V,N] = do same for all files): ",
-                 G.filename));
+                 FnFilter1(G.filename)));
             fflush(stderr);
         } while (fgets(answ, 9, stderr) == NULL && !isalpha(answ[0])
                  && tolower(answ[0]) != 'o'
@@ -774,7 +798,7 @@ static int replace(__GPRO)
  * and looks for VMS attribute records. Returns 0 if either no  *
  * attributes found or no fab given.                            *
  ****************************************************************/
-int find_vms_attrs(__G)
+static int find_vms_attrs(__G)
     __GDEF
 {
     uch *scan = G.extra_field;
@@ -805,66 +829,55 @@ int find_vms_attrs(__G)
 
     while (len > 0)
     {
-        hdr = (struct EB_header *) scan;
+        hdr = (struct EB_header *)scan;
         if (EQL_W(&hdr->tag, IZ_SIGNATURE))
         {
             /*
              *  Info-ZIP style extra block decoding
              */
-            struct IZ_block *blk;
+            uch *blk;
+            unsigned siz;
             uch *block_id;
 
             type = VAT_IZ;
 
-            blk = (struct IZ_block *)hdr;
-            block_id = (uch *) &blk->bid;
-            if (EQL_L(block_id, FABSIG))
-            {
-                outfab = (struct FAB *) extract_block(__G__ blk, 0,
-                                                (uch *)&cc$rms_fab, FABL);
-            }
-            else if (EQL_L(block_id, XALLSIG))
-            {
-                xaball = (struct XABALL *) extract_block(__G__ blk, 0,
-                                                (uch *)&cc$rms_xaball, XALLL);
+            siz = hdr->size;
+            blk = (uch *)(&hdr->data[0]);
+            block_id = (uch *)(&((struct IZ_block *)hdr)->bid);
+
+            if (EQL_L(block_id, FABSIG)) {
+                outfab = (struct FAB *)extract_izvms_block(__G__ blk, siz,
+                                        NULL, (uch *)&cc$rms_fab, FABL);
+            } else if (EQL_L(block_id, XALLSIG)) {
+                xaball = (struct XABALL *)extract_izvms_block(__G__ blk, siz,
+                                        NULL, (uch *)&cc$rms_xaball, XALLL);
                 LINK(xaball);
-            }
-            else if (EQL_L(block_id, XKEYSIG))
-            {
-                xabkey = (struct XABKEY *) extract_block(__G__ blk, 0,
-                                                (uch *)&cc$rms_xabkey, XKEYL);
+            } else if (EQL_L(block_id, XKEYSIG)) {
+                xabkey = (struct XABKEY *)extract_izvms_block(__G__ blk, siz,
+                                        NULL, (uch *)&cc$rms_xabkey, XKEYL);
                 LINK(xabkey);
-            }
-            else if (EQL_L(block_id, XFHCSIG))
-            {
-                xabfhc = (struct XABFHC *) extract_block(__G__ blk, 0,
-                                                (uch *)&cc$rms_xabfhc, XFHCL);
-            }
-            else if (EQL_L(block_id, XDATSIG))
-            {
-                xabdat = (struct XABDAT *) extract_block(__G__ blk, 0,
-                                                (uch *)&cc$rms_xabdat, XDATL);
-            }
-            else if (EQL_L(block_id, XRDTSIG))
-            {
-                xabrdt = (struct XABRDT *) extract_block(__G__ blk, 0,
-                                                (uch *)&cc$rms_xabrdt, XRDTL);
-            }
-            else if (EQL_L(block_id, XPROSIG))
-            {
-                xabpro = (struct XABPRO *) extract_block(__G__ blk, 0,
-                                                (uch *)&cc$rms_xabpro, XPROL);
-            }
-            else if (EQL_L(block_id, VERSIG))
-            {
+            } else if (EQL_L(block_id, XFHCSIG)) {
+                xabfhc = (struct XABFHC *) extract_izvms_block(__G__ blk, siz,
+                                        NULL, (uch *)&cc$rms_xabfhc, XFHCL);
+            } else if (EQL_L(block_id, XDATSIG)) {
+                xabdat = (struct XABDAT *) extract_izvms_block(__G__ blk, siz,
+                                        NULL, (uch *)&cc$rms_xabdat, XDATL);
+            } else if (EQL_L(block_id, XRDTSIG)) {
+                xabrdt = (struct XABRDT *) extract_izvms_block(__G__ blk, siz,
+                                        NULL, (uch *)&cc$rms_xabrdt, XRDTL);
+            } else if (EQL_L(block_id, XPROSIG)) {
+                xabpro = (struct XABPRO *) extract_izvms_block(__G__ blk, siz,
+                                        NULL, (uch *)&cc$rms_xabpro, XPROL);
+            } else if (EQL_L(block_id, VERSIG)) {
 #ifdef CHECK_VERSIONS
                 char verbuf[80];
-                int verlen = 0;
+                unsigned verlen = 0;
                 uch *vers;
                 char *m;
 
                 get_vms_version(verbuf, sizeof(verbuf));
-                vers = extract_block(__G__ blk, &verlen, 0, 0);
+                vers = extract_izvms_block(__G__ blk, siz,
+                                           &verlen, NULL, 0);
                 if ((m = strrchr((char *) vers, '-')) != NULL)
                     *m = '\0';  /* Cut out release number */
                 if (strcmp(verbuf, (char *) vers) && uO.qflag < 2)
@@ -881,11 +894,11 @@ int find_vms_attrs(__G)
                 }
                 free(vers);
 #endif /* CHECK_VERSIONS */
-            }
-            else
+            } else {
                 Info(slide, 1, ((char *)slide,
                      "[ Warning: Unknown block signature %s ]\n",
                      block_id));
+            }
         }
         else if (hdr->tag == PK_SIGNATURE)
         {
@@ -1034,112 +1047,6 @@ static int get_vms_version(verbuf, len)
 }
 
 #endif /* CHECK_VERSIONS */
-
-
-
-/*
- * Extracts block from p. If resulting length is less then needed, fill
- * extra space with corresponding bytes from 'init'.
- * Currently understands 3 formats of block compression:
- * - Simple storing
- * - Compression of zero bytes to zero bits
- * - Deflation (see memextract() in extract.c)
- */
-static uch *extract_block(__G__ p, retlen, init, needlen)
-    __GDEF
-    struct IZ_block *p;
-    int *retlen;
-    uch *init;
-    int needlen;
-{
-    uch *block;         /* Pointer to block allocated */
-    int cmptype;
-    int usiz, csiz, max;
-
-    cmptype = p->flags & BC_MASK;
-    csiz = p->size - EXTBSL - RESL;
-    usiz = (cmptype == BC_STORED ? csiz : p->length);
-
-    if (needlen == 0)
-        needlen = usiz;
-
-    if (retlen)
-        *retlen = usiz;
-
-#ifndef MAX
-# define MAX(a,b)   ((a) > (b) ? (a) : (b))
-#endif
-
-    if ((block = (uch *) malloc(MAX(needlen, usiz))) == NULL)
-        return NULL;
-
-    if (init && (usiz < needlen))
-        memcpy(block, init, needlen);
-
-    switch (cmptype)
-    {
-        case BC_STORED: /* The simplest case */
-            memcpy(block, &(p->body[0]), usiz);
-            break;
-        case BC_00:
-            decompress_bits(block, usiz, &(p->body[0]));
-            break;
-        case BC_DEFL:
-            memextract(__G__ block, usiz, &(p->body[0]), csiz);
-            break;
-        default:
-            free(block);
-            block = NULL;
-    }
-    return block;
-}
-
-
-
-/*
- *  Simple uncompression routine. The compression uses bit stream.
- *  Compression scheme:
- *
- *  if (byte!=0)
- *      putbit(1),putbyte(byte)
- *  else
- *      putbit(0)
- */
-static void decompress_bits(outptr, needlen, bitptr)
-    uch *outptr;        /* Pointer into output block */
-    int needlen;        /* Size of uncompressed block */
-    uch *bitptr;        /* Pointer into compressed data */
-{
-    ulg bitbuf = 0;
-    int bitcnt = 0;
-
-#define _FILL   if (bitcnt+8 <= 32)                     \
-                {       bitbuf |= (*bitptr++) << bitcnt;\
-                        bitcnt += 8;                    \
-                }
-
-    while (needlen--)
-    {
-        if (bitcnt <= 0)
-            _FILL;
-
-        if (bitbuf & 1)
-        {
-            bitbuf >>= 1;
-            if ((bitcnt -= 1) < 8)
-                _FILL;
-            *outptr++ = (uch) bitbuf;
-            bitcnt -= 8;
-            bitbuf >>= 8;
-        }
-        else
-        {
-            *outptr++ = '\0';
-            bitcnt -= 1;
-            bitbuf >>= 1;
-        }
-    }
-}
 
 
 
@@ -1405,7 +1312,7 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
         nneed = reclen + 2 - loccnt;
         if ( nneed > size )
         {
-            if ( size+loccnt > BUFDBLS512 )
+            if ( size+loccnt > BUFSMAXREC )
             {
                 char buf[80];
                 Info(buf, 1, (buf,
@@ -1492,7 +1399,10 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
  * a Unix file, etc. */
 
 #ifdef USE_ORIG_DOS
-# define ORG_DOS   (hostnum==FS_FAT_ || hostnum==FS_HPFS_ || hostnum==FS_NTFS_)
+# define ORG_DOS \
+          (G.pInfo->hostnum==FS_FAT_    \
+        || G.pInfo->hostnum==FS_HPFS_   \
+        || G.pInfo->hostnum==FS_NTFS_)
 #else
 # define ORG_DOS    1
 #endif
@@ -1605,7 +1515,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
 
             eol_off = find_eol(rawbuf, size, &eol_len);
 
-            if ( loccnt+eol_off > BUFDBLS512 )
+            if ( loccnt+eol_off > BUFSMAXREC )
             {
                 /*
                  *  No room in locbuf. Dump it and clear
@@ -1693,7 +1603,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
 
     if (rest > 0)
     {
-        if ( rest > BUFDBLS512 )
+        if ( rest > BUFSMAXREC )
         {
             unsigned recsize;
             char buf[80];               /* CANNOT use slide for Info() */
@@ -1723,20 +1633,27 @@ static int WriteBuffer(__G__ buf, len)
 {
     int status;
 
-    status = sys$wait(outrab);
-    if (ERR(status))
+    if (uO.cflag)
     {
-        vms_msg(__G__ "[ WriteBuffer: sys$wait failed ]\n", status);
-        vms_msg(__G__ "", outrab->rab$l_stv);
+        (void)(*G.message)((zvoid *)&G, buf, len, 0);
     }
-    outrab->rab$w_rsz = len;
-    outrab->rab$l_rbf = (char *) buf;
-
-    if (ERR(status = sys$write(outrab)))
+    else
     {
-        vms_msg(__G__ "[ WriteBuffer: sys$write failed ]\n", status);
-        vms_msg(__G__ "", outrab->rab$l_stv);
-        return PK_DISK;
+        status = sys$wait(outrab);
+        if (ERR(status))
+        {
+            vms_msg(__G__ "[ WriteBuffer: sys$wait failed ]\n", status);
+            vms_msg(__G__ "", outrab->rab$l_stv);
+        }
+        outrab->rab$w_rsz = len;
+        outrab->rab$l_rbf = (char *) buf;
+
+        if (ERR(status = sys$write(outrab)))
+        {
+            vms_msg(__G__ "[ WriteBuffer: sys$write failed ]\n", status);
+            vms_msg(__G__ "", outrab->rab$l_stv);
+            return PK_DISK;
+        }
     }
     return PK_COOL;
 }
@@ -2520,25 +2437,26 @@ int mapattr(__G)
 static  int created_dir;
 
 int mapname(__G__ renamed)
-            /* returns: */
-            /* 0 (PK_COOL) if no error, */
-            /* 1 (PK_WARN) if caution (filename trunc), */
-            /* 2 (PK_ERR)  if warning (skip file because dir doesn't exist), */
-            /* 3 (PK_BADERR) if error (skip file), */
-            /* 77 (IZ_CREATED_DIR) if has created directory, */
-            /* 78 (IZ_VOL_LABEL) if path was volume label (skip it) */
-            /* 10 if no memory (skip file) */
+        /* returns: */
+        /* MPN_OK if no error, */
+        /* MPN_INF_TRUNC if caution (filename trunc), */
+        /* MPN_INF_SKIP if warning (skip file, dir doesn't exist), */
+        /* MPN_ERR_SKIP if error (skip file), */
+        /* MPN_CREATED_DIR if has created directory, */
+        /* MPN_VOL_LABEL if path was volume label (skip it) */
+        /* MPN_NOMEM if no memory (skip file) */
     __GDEF
     int renamed;
 {
-    char pathcomp[FILNAMSIZ];   /* path-component buffer */
-    char *pp, *cp=NULL;         /* character pointers */
-    char *lastsemi = NULL;      /* pointer to last semi-colon in pathcomp */
-    char *last_dot = NULL;      /* last dot not converted to underscore */
-    int quote = FALSE;          /* flag:  next char is literal */
-    int dotname = FALSE;        /* flag:  path component begins with dot */
-    int error = 0;
-    register unsigned workch;   /* hold the character being tested */
+    char pathcomp[FILNAMSIZ];      /* path-component buffer */
+    char *pp, *cp=(char *)NULL;    /* character pointers */
+    char *lastsemi = NULL;         /* pointer to last semi-colon in pathcomp */
+    char *last_dot = NULL;         /* last dot not converted to underscore */
+    int quote = FALSE;             /* flag:  next char is literal */
+    int dotname = FALSE;           /* flag:  path component begins with dot */
+    int killed_ddot = FALSE;       /* is set when skipping "../" pathcomp */
+    int error = MPN_OK;
+    register unsigned workch;      /* hold the character being tested */
 
     if ( renamed )
     {
@@ -2552,7 +2470,7 @@ int mapname(__G__ renamed)
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels on VMS */
+        return MPN_VOL_LABEL;   /* can't set disk volume labels on VMS */
 
     /* can create path as long as not just freshening, or if user told us */
     G.create_dirs = !uO.fflag;
@@ -2561,7 +2479,7 @@ int mapname(__G__ renamed)
 
 /* GRR:  for VMS, convert to internal format now or later? or never? */
     if (checkdir(__G__ pathcomp, INIT) == 10)
-        return 10;              /* initialize path buffer, unless no memory */
+        return MPN_NOMEM;       /* initialize path buffer, unless no memory */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
@@ -2574,7 +2492,7 @@ int mapname(__G__ renamed)
         ++cp;                   /* point to start of last component of path */
 
 /*---------------------------------------------------------------------------
-    Begin main loop through characters in G.filename.
+    Begin main loop through characters in filename.
   ---------------------------------------------------------------------------*/
 
     while ((workch = (uch)*cp++) != 0) {
@@ -2586,28 +2504,31 @@ int mapname(__G__ renamed)
             switch (workch) {
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
-                if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
+                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
+                     > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
                 last_dot = NULL;  /* directory names must not contain dots */
                 lastsemi = NULL;  /* leave directory semi-colons alone */
                 break;
 
-            case ':':
-                *pp++ = '_';      /* drive names not stored in zipfile, */
-                break;            /*  so no colons allowed */
-
             case '.':
                 if (pp == pathcomp) {     /* nothing appended yet... */
                     if (*cp == '/') {     /* don't bother appending a "./" */
                         ++cp;             /*  component to the path:  skip */
                                           /*  to next char after the '/' */
+                        break;
                     } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
-                        *pp++ = '.';      /* add first dot, unchanged... */
-                        *pp++ = '.';      /* add second dot, unchanged... */
-                        ++cp;             /* skip second dot */
-                    }                     /* next char is  the '/' */
-                    break;
+                        if (!uO.ddotflag) { /* "../" dir traversal detected */
+                            cp += 2;        /*  skip over behind the '/' */
+                            killed_ddot = TRUE;
+                        } else {
+                            *pp++ = '.';    /* add first dot, unchanged... */
+                            *pp++ = '.';    /* add second dot, unchanged... */
+                            ++cp;           /* skip second dot */
+                        }                   /* next char is  the '/' */
+                        break;
+                    }
                 }
                 last_dot = pp;    /* point at last dot so far... */
                 *pp++ = '_';      /* convert dot to underscore for now */
@@ -2620,6 +2541,7 @@ int mapname(__G__ renamed)
                 *pp++ = ';';      /* keep for now; remove VMS vers. later */
                 break;
 
+            case ':':   /* drive names illegal in zipfile, so no ':' allowed */
             case ' ':
                 *pp++ = '_';
                 break;
@@ -2635,9 +2557,39 @@ int mapname(__G__ renamed)
 
     } /* end while loop */
 
+    /* Show warning when stripping insecure "parent dir" path components */
+    if (killed_ddot && QCOND2) {
+        Info(slide, 0, ((char *)slide,
+          "warning:  skipped \"../\" path component(s) in %s\n",
+          FnFilter1(G.filename)));
+        if (!(error & ~MPN_MASK))
+            error = (error & MPN_MASK) | PK_WARN;
+    }
+
+/*---------------------------------------------------------------------------
+    Report if directory was created (and no file to create:  filename ended
+    in '/'), check name to be sure it exists, and combine path and name be-
+    fore exiting.
+  ---------------------------------------------------------------------------*/
+
+    if (G.filename[strlen(G.filename) - 1] == '/') {
+        checkdir(__G__ "", APPEND_NAME);   /* create directory, if not found */
+        checkdir(__G__ G.filename, GETPATH);
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  FnFilter1(G.filename)));
+            }
+            /* set dir time (note trailing '/') */
+            return (error & ~MPN_MASK) | MPN_CREATED_DIR;
+        }
+        /* dir existed already; don't look for data to extract */
+        return (error & ~MPN_MASK) | MPN_INF_SKIP;
+    }
+
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
-    /* if not saving them, remove VMS version numbers (appended "###") */
+    /* if not saving them, remove VMS version numbers (appended ";###") */
     if (lastsemi) {
         pp = lastsemi + 1;        /* expect all digits after semi-colon */
         while (isdigit((uch)(*pp)))
@@ -2652,29 +2604,10 @@ int mapname(__G__ renamed)
     if (last_dot != NULL)         /* one dot is OK:  put it back in */
         *last_dot = '.';
 
-/*---------------------------------------------------------------------------
-    Report if directory was created (and no file to create:  filename ended
-    in '/'), check name to be sure it exists, and combine path and name be-
-    fore exiting.
-  ---------------------------------------------------------------------------*/
-
-    if (G.filename[strlen(G.filename) - 1] == '/') {
-        checkdir(__G__ "", APPEND_NAME);   /* create directory, if not found */
-        checkdir(__G__ G.filename, GETPATH);
-        if (created_dir) {
-            if (QCOND2) {
-                Info(slide, 0, ((char *)slide, "   creating: %s\n",
-                  G.filename));
-            }
-            return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
-        }
-        return 2;   /* dir existed already; don't look for data to extract */
-    }
-
     if (*pathcomp == '\0') {
-        Info(slide, 1, ((char *)slide,
-             "mapname:  conversion of %s failed\n", G.filename));
-        return 3;
+        Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
+          FnFilter1(G.filename)));
+        return (error & ~MPN_MASK) | MPN_ERR_SKIP;
     }
 
     checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
@@ -2688,12 +2621,14 @@ int mapname(__G__ renamed)
 
 int checkdir(__G__ pathcomp, fcn)
 /*
- * returns:  1 - (on APPEND_NAME) truncated filename
- *           2 - path doesn't exist, not allowed to create
- *           3 - path doesn't exist, tried to create and failed; or
- *               path exists and is not a directory, but is supposed to be
- *           4 - path is too long
- *          10 - can't allocate memory for filename buffers
+ * returns:
+ *  MPN_OK          - no problem detected
+ *  MPN_INF_TRUNC   - (on APPEND_NAME) truncated filename
+ *  MPN_INF_SKIP    - path doesn't exist, not allowed to create
+ *  MPN_ERR_SKIP    - path doesn't exist, tried to create and failed; or path
+ *                    exists and is not a directory, but is supposed to be
+ *  MPN_ERR_TOOLONG - path is too long
+ *  MPN_NOMEM       - can't allocate memory for filename buffers
  */
     __GDEF
     char *pathcomp;
@@ -2740,7 +2675,7 @@ int checkdir(__G__ pathcomp, fcn)
         struct dsc$descriptor  pthcmp;
 
         if (rootlen > 0)        /* rootpath was already set, nothing to do */
-            return 0;
+            return MPN_OK;
 
         /*
          *  Initialize everything
@@ -2750,11 +2685,11 @@ int checkdir(__G__ pathcomp, fcn)
 
         pthcmp.dsc$a_pointer = pathcomp;
         if ( (pthcmp.dsc$w_length = strlen(pathcomp)) > 255 )
-            return 4;
+            return MPN_ERR_TOOLONG;
 
         status = sys$filescan(&pthcmp, itl, &fields);
         if ( !OK(status) )
-            return 3;
+            return MPN_ERR_SKIP;
 
         if ( fields & FSCN$M_DEVICE )
         {
@@ -2806,7 +2741,7 @@ int checkdir(__G__ pathcomp, fcn)
         root_dirlen = end - dirptr;
         *(rootend = end) = '\0';
         rootlen = rootend - devptr;
-        return 0;
+        return MPN_OK;
     }
 #endif /* !SFX || SFX_EXDIR */
 
@@ -2818,7 +2753,7 @@ int checkdir(__G__ pathcomp, fcn)
     if ( function == INIT )
     {
         if ( strlen(G.filename) + rootlen + 13 > 255 )
-            return 4;
+            return MPN_ERR_TOOLONG;
 
         if ( rootlen == 0 )     /* No root given, reset everything. */
         {
@@ -2830,7 +2765,7 @@ int checkdir(__G__ pathcomp, fcn)
         if ( dirlen = root_dirlen )
             end[-1] = '.';
         *end = '\0';
-        return 0;
+        return MPN_OK;
     }
 
 
@@ -2862,7 +2797,7 @@ int checkdir(__G__ pathcomp, fcn)
         }
 
         else if ( cmplen + (end-pathptr) > 255 )
-            return 4;
+            return MPN_ERR_TOOLONG;
 
         else
         {
@@ -2872,7 +2807,7 @@ int checkdir(__G__ pathcomp, fcn)
         }
         dirlen = end - dirptr;
         *end = '\0';
-        return 0;
+        return MPN_OK;
     }
 
 
@@ -2917,7 +2852,7 @@ int checkdir(__G__ pathcomp, fcn)
                 created_dir = TRUE;
             }                                /* if (sys$parse... */
             pathcomp[nam.nam$b_esl] = '\0';
-            return 0;
+            return MPN_OK;
         }                                /* if (USE_DEFAULT) */
         else
         {
@@ -2958,10 +2893,10 @@ int checkdir(__G__ pathcomp, fcn)
                 }
             }
             if ( strlen(pathcomp) + (end-pathbuf) > 255 )
-                return 1;
+                return MPN_INF_TRUNC;
             strcpy(end, pathcomp);
             end += strlen(pathcomp);
-            return 0;
+            return MPN_OK;
         }
     }
 
@@ -2972,10 +2907,10 @@ int checkdir(__G__ pathcomp, fcn)
     if ( function == GETPATH )
     {
         if ( mkdir_failed )
-            return 3;
+            return MPN_ERR_SKIP;
         *end = '\0';                    /* To be safe */
         strcpy( pathcomp, pathbuf );
-        return 0;
+        return MPN_OK;
     }
 
 
@@ -2986,10 +2921,10 @@ int checkdir(__G__ pathcomp, fcn)
     {
         Trace((stderr, "checkdir(): nothing to free...\n"));
         rootlen = 0;
-        return 0;
+        return MPN_OK;
     }
 
-    return 99;  /* should never reach */
+    return MPN_INVALID; /* should never reach */
 
 }
 
@@ -3292,7 +3227,7 @@ static int getscreeninfo(int *tt_rows, int *tt_cols, int *tt_wrap)
         if (tt_wrap != NULL)
             *tt_wrap = ((ttmode.ttdef_area.ttcharflags & TT$M_WRAP) != 0);
     } else {
-	/* VT 100 defaults */
+        /* VT 100 defaults */
         if (tt_rows != NULL)
             *tt_rows = 24;
         if (tt_cols != NULL)

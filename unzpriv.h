@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -42,8 +42,30 @@
 #  ifdef DLL
 #    undef DLL
 #  endif
-#  ifdef USE_DEFLATE64          /* the preliminary deflate64 code does not */
-#    undef USE_DEFLATE64        /*  work for fUnZip */
+#  ifdef SFX    /* fUnZip is NOT the sfx stub! */
+#    undef SFX
+#  endif
+#endif
+
+#ifdef NO_DEFLATE64
+   /* disable support for Deflate64(tm) */
+#  ifdef USE_DEFLATE64
+#    undef USE_DEFLATE64
+#  endif
+#else
+   /* enable Deflate64(tm) support unless compiling for SFX stub */
+#  if (!defined(USE_DEFLATE64) && !defined(SFX))
+#    define USE_DEFLATE64
+#  endif
+#endif
+
+#if (defined(NO_VMS_TEXT_CONV) || defined(VMS))
+#  ifdef VMS_TEXT_CONV
+#    undef VMS_TEXT_CONV
+#  endif
+#else
+#  if (!defined(VMS_TEXT_CONV) && !defined(SFX))
+#    define VMS_TEXT_CONV
 #  endif
 #endif
 
@@ -302,11 +324,13 @@
     Human68k/X680x0 section:
   ---------------------------------------------------------------------------*/
 
-#ifdef __human68k__   /* DO NOT DEFINE DOS_OS2 HERE!  If Human68k is so much */
+#ifdef __human68k__
+   /* DO NOT DEFINE DOS_OS2 HERE!  If Human68k is so much */
+   /*  like MS-DOS and/or OS/2, create DOS_H68_OS2 macro. */
 #  ifndef _MBCS
 #    define _MBCS
 #  endif
-#  include <time.h>   /*  like MS-DOS and/or OS/2, create DOS_H68_OS2 macro. */
+#  include <time.h>
 #  include <fcntl.h>
 #  include <io.h>
 #  include <conio.h>
@@ -474,6 +498,9 @@
 #ifdef TANDEM
 #  include "tandem.h"
 #  include <fcntl.h>
+#  if (!defined(__INT32) && !defined(INT_16BIT))
+#    define INT_16BIT   /* report "int" size is 16-bit to inflate setup */
+#  endif
    /* use a single LF delimiter so that writes to 101 text files work */
 #  define PutNativeEOL  *q++ = native(LF);
 #  define lenEOL        1
@@ -481,7 +508,7 @@
 #    define DATE_FORMAT  DF_DMY
 #  endif
 #  define SCREENLINES   25
-#  define USE_EF_UT_TIME
+   /* USE_EF_UT_TIME is set in tandem.h */
 #  define RESTORE_UIDGID
 #  define NO_STRNICMP
 #endif
@@ -817,7 +844,11 @@
 #  endif
 #endif
 
-#ifndef __16BIT__
+#ifdef __16BIT__
+#  ifndef INT_16BIT
+#    define INT_16BIT       /* on 16-bit systems int size is 16 bits */
+#  endif
+#else
 #  define nearmalloc  malloc
 #  define nearfree    free
 #  if (!defined(__IBMC__) || !defined(OS2))
@@ -880,9 +911,9 @@
 #    define LoadFarStringSmall(x)   Qstrfix(x)
 #    define LoadFarStringSmall2(x)  Qstrfix(x)
 #  else
-#    define LoadFarString(x)        x
-#    define LoadFarStringSmall(x)   x
-#    define LoadFarStringSmall2(x)  x
+#    define LoadFarString(x)        (char *)(x)
+#    define LoadFarStringSmall(x)   (char *)(x)
+#    define LoadFarStringSmall2(x)  (char *)(x)
 #  endif
 #  ifdef MED_MEM
 #    define OUTBUFSIZ 0xFF80         /* can't malloc arrays of 0xFFE8 or more */
@@ -914,6 +945,23 @@
 #  endif
 #  ifdef TIMESTAMP
 #    undef TIMESTAMP
+#  endif
+#endif
+
+#ifdef SFX
+#  ifdef CHEAP_SFX_AUTORUN
+#    ifndef NO_SFX_EXDIR
+#      define NO_SFX_EXDIR
+#    endif
+#  endif
+#  ifndef NO_SFX_EXDIR
+#    ifndef SFX_EXDIR
+#      define SFX_EXDIR
+#    endif
+#  else
+#    ifdef SFX_EXDIR
+#      undef SFX_EXDIR
+#    endif
 #  endif
 #endif
 
@@ -1060,6 +1108,13 @@
 #define INCSTR(ptr) PREINCSTR(ptr)
 
 
+#if (defined(MALLOC_WORK) && !defined(MY_ZCALLOC))
+   /* Any system without a special calloc function */
+#  define zcalloc(items, size) \
+          (zvoid far *)calloc((unsigned)(items), (unsigned)(size))
+#  define zcfree    free
+#endif /* MALLOC_WORK && !MY_ZCALLOC */
+
 #ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
 #  define stat(p,s) zstat((p),(s))
 #endif
@@ -1173,6 +1228,23 @@
 #define END_CENTRAL_SIG   "\005\006"   /*  mistaken for zipfile itself) */
 #define EXTD_LOCAL_SIG    "\007\010"   /* [ASCII "\113" == EBCDIC "\080" ??] */
 
+/** internal-only return codes **/
+#define IZ_DIR            76   /* potential zipfile is a directory */
+/* special return codes for mapname() */
+#define MPN_OK            0     /* mapname successful */
+#define MPN_INF_TRUNC     1<<8  /* caution - filename truncated */
+#define MPN_INF_SKIP      2<<8  /* info  - skipped because nothing to do */
+#define MPN_ERR_SKIP      3<<8  /* error - entry skipped */
+#define MPN_ERR_TOOLONG   4<<8  /* error - path too long */
+#define MPN_NOMEM         10<<8 /* error - out of memory, file skipped */
+#define MPN_CREATED_DIR   16<<8 /* directory created: set time & permissions */
+#define MPN_VOL_LABEL     17<<8 /* volume label, but can't set on hard disk */
+#define MPN_INVALID       99<<8 /* internal logic error, should never reach */
+/* mask for internal mapname&checkdir return codes */
+#define MPN_MASK          0x7F00
+/* error code for extracting/testing extra field blocks */
+#define IZ_EF_TRUNC       79   /* local extra field truncated (PKZIP'd) */
+
 /* choice of activities for do_string() */
 #define SKIP              0             /* skip header block */
 #define DISPLAY           1             /* display archive comment (ASCII) */
@@ -1183,7 +1255,11 @@
 #define EXTRA_FIELD       3             /* copy extra field into buffer */
 #define DS_EF             3
 #ifdef AMIGA
-#  define FILENOTE        4
+#  define FILENOTE        4             /* convert file comment to filenote */
+#endif
+#if (defined(SFX) && defined(CHEAP_SFX_AUTORUN))
+#  define CHECK_AUTORUN   7             /* copy command, display remainder */
+#  define CHECK_AUTORUN_Q 8             /* copy command, skip remainder */
 #endif
 
 #define DOES_NOT_EXIST    -1   /* return values for check_for_newer() */
@@ -1252,6 +1328,7 @@
     Extra-field block ID values and offset info.
   ---------------------------------------------------------------------------*/
 /* extra-field ID values, all little-endian: */
+#define EF_PKSZ64    0x0001    /* PKWARE's 64-bit filesize extensions */
 #define EF_AV        0x0007    /* PKWARE's authenticity verification */
 #define EF_OS2       0x0009    /* OS/2 extended attributes */
 #define EF_PKW32     0x000a    /* PKWARE's Win95/98/WinNT filetimes */
@@ -1306,7 +1383,7 @@
 #define EB_UT_FL_CTIME    (1 << 2)      /* ctime present */
 
 #define EB_FLGS_OFFS      4    /* offset of flags area in generic compressed
-                                  extra field blocks (OS2, NT, and others) */
+                                  extra field blocks (BEOS, MAC, and others) */
 #define EB_OS2_HLEN       4    /* size of OS2/ACL compressed data header */
 #define EB_BEOS_HLEN      5    /* length of BeOS e.f attribute header */
 #define EB_BE_FL_UNCMPR   0x01 /* "BeOS attributes uncompressed" bit flag */
@@ -1324,6 +1401,15 @@
 
 #define EB_ASI_CRC32      0    /* offset of ASI Unix field's crc32 checksum */
 #define EB_ASI_MODE       4    /* offset of ASI Unix permission mode field */
+
+#define EB_IZVMS_HLEN     12   /* length of IZVMS attribute block header */
+#define EB_IZVMS_FLGS     4    /* offset of compression type flag */
+#define EB_IZVMS_UCSIZ    6    /* offset of ucsize field in IZVMS header */
+#define EB_IZVMS_BCMASK   07   /* 3 bits for compression type */
+#define EB_IZVMS_BCSTOR   0    /*  Stored */
+#define EB_IZVMS_BC00     1    /*  0byte -> 0bit compression */
+#define EB_IZVMS_BCDEFL   2    /*  Deflated */
+
 
 /*---------------------------------------------------------------------------
     True sizes of the various headers, as defined by PKWARE--so it is not
@@ -1432,8 +1518,9 @@ typedef struct min_info {
     ulg crc;                 /* crc (needed if extended header) */
     ulg compr_size;          /* compressed size (needed if extended header) */
     ulg uncompr_size;        /* uncompressed size (needed if extended header) */
-    int hostver;
-    int hostnum;
+    ush diskstart;           /* no of volume where this entry starts */
+    uch hostver;
+    uch hostnum;
     unsigned file_attr;      /* local flavor, as used by creat(), chmod()... */
     unsigned encrypted : 1;  /* file encrypted: decrypt before uncompressing */
     unsigned ExtLocHdr : 1;  /* use time instead of CRC for decrypt check */
@@ -1456,9 +1543,9 @@ typedef struct VMStimbuf {
 #ifdef MALLOC_WORK
    union work {
      struct {                 /* unshrink(): */
-       shrint *Parent;          /* (8193 * sizeof(shrint)) */
-       uch *value;
-       uch *Stack;
+       shrint *Parent;          /* pointer to (8192 * sizeof(shrint)) */
+       uch *value;              /* pointer to 8KB char buffer */
+       uch *Stack;              /* pointer to another 8KB char buffer */
      } shrink;
      uch *Slide;              /* explode(), inflate(), unreduce() */
    };
@@ -1573,9 +1660,9 @@ typedef struct VMStimbuf {
 
 /* Huffman code lookup table entry--this entry is four bytes for machines
    that have 16-bit pointers (e.g. PC's in the small or medium model).
-   Valid extra bits are 0..13.  e == 15 is EOB (end of block), e == 16
-   means that v is a literal, 16 < e < 32 means that v is a pointer to
-   the next table, which codes e - 16 bits, and lastly e == 99 indicates
+   Valid extra bits are 0..16.  e == 31 is EOB (end of block), e == 32
+   means that v is a literal, 32 < e < 64 means that v is a pointer to
+   the next table, which codes (e & 31)  bits, and lastly e == 99 indicates
    an unused code.  If a code with e == 99 is looked up, this implies an
    error in the data. */
 
@@ -1638,9 +1725,12 @@ int      uz_end_central          OF((__GPRO));
 int      process_cdir_file_hdr   OF((__GPRO));
 int      get_cdir_ent            OF((__GPRO));
 int      process_local_file_hdr  OF((__GPRO));
-unsigned ef_scan_for_izux        OF((uch *ef_buf, unsigned ef_len, int ef_is_c,
-                                     ulg dos_mdatetime,
+unsigned ef_scan_for_izux        OF((ZCONST uch *ef_buf, unsigned ef_len,
+                                     int ef_is_c, ulg dos_mdatetime,
                                      iztimes *z_utim, ush *z_uidgid));
+#if (defined(RISCOS) || defined(ACORN_FTYPE_NFS))
+   zvoid *getRISCOSexfield       OF((ZCONST uch *ef_buf, unsigned ef_len));
+#endif
 
 #ifndef SFX
 
@@ -1685,6 +1775,7 @@ void     defer_leftover_input OF((__GPRO));
 unsigned readbuf              OF((__GPRO__ char *buf, register unsigned len));
 int      readbyte             OF((__GPRO));
 int      fillinbuf            OF((__GPRO));
+int      seek_zipf            OF((__GPRO__ LONGINT abs_offset));
 #ifdef FUNZIP
    int   flush                OF((__GPRO__ ulg size));  /* actually funzip.c */
 #else
@@ -1694,7 +1785,7 @@ int      fillinbuf            OF((__GPRO));
 void     handler              OF((int signal));
 time_t   dos_to_unix_time     OF((ulg dos_datetime));
 int      check_for_newer      OF((__GPRO__ char *filename)); /* os2,vmcms,vms */
-int      do_string            OF((__GPRO__ unsigned int len, int option));
+int      do_string            OF((__GPRO__ unsigned int length, int option));
 ush      makeword             OF((ZCONST uch *b));
 ulg      makelong             OF((ZCONST uch *sig));
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
@@ -1745,8 +1836,13 @@ int    extract_or_test_files     OF((__GPRO));
 /* static int   test_OS2         OF((__GPRO__ uch *eb, unsigned eb_size)); */
 /* static int   test_NT          OF((__GPRO__ uch *eb, unsigned eb_size)); */
 int    memextract                OF((__GPRO__ uch *tgt, ulg tgtsize,
-                                     uch *src, ulg srcsize));
-int    memflush                  OF((__GPRO__ uch *rawbuf, ulg size));
+                                     ZCONST uch *src, ulg srcsize));
+int    memflush                  OF((__GPRO__ ZCONST uch *rawbuf, ulg size));
+#if (defined(VMS) || defined(VMS_TEXT_CONV))
+   uch   *extract_izvms_block    OF((__GPRO__ ZCONST uch *ebdata,
+                                     unsigned size, unsigned *retlen,
+                                     ZCONST uch *init, unsigned needlen));
+#endif
 char  *fnfilter                  OF((ZCONST char *raw, uch *space));
 
 /*---------------------------------------------------------------------------
@@ -1758,13 +1854,13 @@ int    explode                   OF((__GPRO));                  /* explode.c */
 #endif
 int    huft_free                 OF((struct huft *t));          /* inflate.c */
 int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
-                                     unsigned s, ZCONST ush *d, ZCONST ush *e,
+                                     unsigned s, ZCONST ush *d, ZCONST uch *e,
                                      struct huft **t, int *m));
 #ifdef USE_ZLIB
-   int    UZinflate              OF((__GPRO));                  /* inflate.c */
+   int    UZinflate              OF((__GPRO__ int is_defl64));  /* inflate.c */
 #  define inflate_free(x)        inflateEnd(&((Uz_Globs *)(&G))->dstrm)
 #else
-   int    inflate                OF((__GPRO));                  /* inflate.c */
+   int    inflate                OF((__GPRO__ int is_defl64));  /* inflate.c */
    int    inflate_free           OF((__GPRO));                  /* inflate.c */
 #endif /* ?USE_ZLIB */
 #if (!defined(SFX) && !defined(FUNZIP))
@@ -1788,12 +1884,13 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
    int      unzipToMemory         OF((__GPRO__ char *zip, char *file,
                                       UzpBuffer *retstr));          /* api.c */
    int      redirect_outfile      OF((__GPRO));                     /* api.c */
-   int      writeToMemory         OF((__GPRO__ uch *rawbuf, ulg size));
+   int      writeToMemory         OF((__GPRO__ ZCONST uch *rawbuf,
+                                      extent size));                /* api.c */
    int      close_redirect        OF((__GPRO));                     /* api.c */
    /* this obsolescent entry point kept for compatibility: */
    int      UzpUnzip              OF((int argc, char **argv));/* use UzpMain */
 #ifdef OS2DLL
-   int      varmessage            OF((__GPRO__ uch *buf, ulg size));
+   int      varmessage            OF((__GPRO__ ZCONST uch *buf, ulg size));
    int      varputchar            OF((__GPRO__ int c));         /* rexxapi.c */
    int      finish_REXX_redirect  OF((__GPRO));                 /* rexxapi.c */
 #endif
@@ -1803,16 +1900,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 #endif /* DLL */
 
 /*---------------------------------------------------------------------------
-    Acorn RISC OS-only functions:
-  ---------------------------------------------------------------------------*/
-
-#ifdef RISCOS
-   int   isRISCOSexfield     OF((void *extra_field));             /* acorn.c */
-   void  setRISCOSexfield    OF((char *path, void *extra_field)); /* acorn.c */
-   void  printRISCOSexfield  OF((int isdir, void *extra_field));  /* acorn.c */
-#endif
-
-/*---------------------------------------------------------------------------
     MSDOS-only functions:
   ---------------------------------------------------------------------------*/
 
@@ -1820,8 +1907,8 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
    unsigned _dos_getcountryinfo(void *);                          /* msdos.c */
 #if (!defined(__DJGPP__) || (__DJGPP__ < 2))
    unsigned _dos_setftime(int, unsigned, unsigned);               /* msdos.c */
-   unsigned _dos_setfileattr(char *, unsigned);                   /* msdos.c */
-   unsigned _dos_creat(char *, unsigned, int *);                  /* msdos.c */
+   unsigned _dos_setfileattr(const char *, unsigned);             /* msdos.c */
+   unsigned _dos_creat(const char *, unsigned, int *);            /* msdos.c */
    void _dos_getdrive(unsigned *);                                /* msdos.c */
    unsigned _dos_close(int);                                      /* msdos.c */
 #endif /* !__DJGPP__ || (__DJGPP__ < 2) */
@@ -1959,6 +2046,9 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
    int screenlinewrap    OF((void));                                /* local */
 # endif
 #endif /* MORE && (BEO_UNX || QDOS || VMS) */
+#ifdef OS2_W32
+   int   SetFileSize     OF((FILE *file, ulg filesize));            /* local */
+#endif
 #ifndef MTS /* macro in MTS */
    void  close_outfile   OF((__GPRO));                              /* local */
 #endif
@@ -1973,6 +2063,10 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
    int   stamp_file      OF((ZCONST char *fname, time_t modtime));  /* local */
 # endif
 #endif
+#if (defined(MALLOC_WORK) && defined(MY_ZCALLOC))
+   zvoid far *zcalloc    OF((unsigned int, unsigned int));
+   zvoid zcfree          OF((zvoid far *));
+#endif /* MALLOC_WORK && MY_ZCALLOC */
 #ifdef SYSTEM_SPECIFIC_CTOR
    void  SYSTEM_SPECIFIC_CTOR   OF((__GPRO));                       /* local */
 #endif
@@ -2075,76 +2169,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #ifndef TEST_NTSD               /* "NTSD valid?" checking function */
 #  define TEST_NTSD     NULL    /*   ... is not available */
 #endif
-
-/*
- *  Seek to the block boundary of the block which includes abs_offset,
- *  then read block into input buffer and set pointers appropriately.
- *  If block is already in the buffer, just set the pointers.  This macro
- *  is used by uz_end_central (process.c), zi_end_central (zipinfo.c) and
- *  do_string (fileio.c).  A slightly modified version is embedded within
- *  extract_or_test_files (extract.c).  readbyte() and readbuf() (fileio.c)
- *  are compatible.  NOTE THAT abs_offset is intended to be the "proper off-
- *  set" (i.e., if there were no extra bytes prepended); cur_zipfile_bufstart
- *  contains the corrected offset.
- *
- *  Since ZLSEEK is never used during decompression, it is safe to use the
- *  slide[] buffer for the error message.
- *
- *  The awkward "%cbs_offset" construct is provided for the obnoxious Solaris
- *  compiler, which wants to do macro substitution inside strings.
- */
-
-#ifndef ZLSEEK
-#  ifdef USE_STRM_INPUT
-#    define _ZLS_RELOAD(abs_offset) {\
-         MTrace((stderr, "ZLSEEK: %cbs_offset = %ld, G.extra_bytes = %ld\n",\
-           'a', (abs_offset), G.extra_bytes));\
-         fseek(G.zipfd,(LONGINT)bufstart,SEEK_SET);\
-         G.cur_zipfile_bufstart = ftell(G.zipfd);\
-         MTrace((stderr,\
-           "       request = %ld, (abs+extra) = %ld, inbuf_offset = %ld\n",\
-           request, ((abs_offset)+G.extra_bytes), inbuf_offset));\
-         MTrace((stderr, "       bufstart = %ld, cur_zipfile_bufstart = %ld\n",\
-           bufstart, G.cur_zipfile_bufstart));\
-         if ((G.incnt = fread((char *)G.inbuf,1,INBUFSIZ,G.zipfd)) <= 0)\
-             return(PK_EOF);\
-         G.inptr = G.inbuf + (int)inbuf_offset;\
-         G.incnt -= (int)inbuf_offset;\
-     }
-#  else /* !USE_STRM_INPUT */
-#    define _ZLS_RELOAD(abs_offset) {\
-         MTrace((stderr, "ZLSEEK: %cbs_offset = %ld, G.extra_bytes = %ld\n",\
-           'a', (abs_offset), G.extra_bytes));\
-         G.cur_zipfile_bufstart = lseek(G.zipfd,(LONGINT)bufstart,SEEK_SET);\
-         MTrace((stderr,\
-           "       request = %ld, (abs+extra) = %ld, inbuf_offset = %ld\n",\
-           request, ((abs_offset)+G.extra_bytes), inbuf_offset));\
-         MTrace((stderr, "       bufstart = %ld, cur_zipfile_bufstart = %ld\n",\
-           bufstart, G.cur_zipfile_bufstart));\
-         if ((G.incnt = read(G.zipfd,(char *)G.inbuf,INBUFSIZ)) <= 0)\
-             return(PK_EOF);\
-         G.inptr = G.inbuf + (int)inbuf_offset;\
-         G.incnt -= (int)inbuf_offset;\
-     }
-#  endif /* ?USE_STRM_INPUT */
-
-#  define ZLSEEK(abs_offset) {\
-       LONGINT request = (abs_offset) + G.extra_bytes;\
-       LONGINT inbuf_offset = request % INBUFSIZ;\
-       LONGINT bufstart = request - inbuf_offset;\
-\
-       if (request < 0) {\
-           Info(slide, 1, ((char *)slide, LoadFarStringSmall(SeekMsg),\
-             G.zipfn, LoadFarString(ReportMsg)));\
-           return(PK_BADERR);\
-       } else if (bufstart != G.cur_zipfile_bufstart)\
-           _ZLS_RELOAD(abs_offset)\
-       else {\
-           G.incnt += (G.inptr-G.inbuf) - (int)inbuf_offset;\
-           G.inptr = G.inbuf + (int)inbuf_offset;\
-       }\
-   }
-#endif /* !ZLSEEK */
 
 #define SKIP_(length) if(length&&((error=do_string(__G__ length,SKIP))!=0))\
   {error_in_archive=error; if(error>1) return error;}
@@ -2385,8 +2409,9 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  *  -> OS/2                                    (FS_HPFS_)
  *  -> Win95/WinNT with Nico Mak's WinZip      (FS_NTFS_ && hostver == "5.0")
  * EXCEPTIONS:
- *  PKZIP for Windows 2.5 and 2.6 flag their entries as "FS_FAT_", but the
- *  filename stored in the local header is coded in Windows ANSI (ISO 8859-1).
+ *  PKZIP for Windows 2.5, 2.6, and 4.0 flag their entries as "FS_FAT_", but
+ *  the filename stored in the local header is coded in Windows ANSI (CP 1252
+ *  resp. ISO 8859-1 on US and western Europe locale settings).
  *  Likewise, PKZIP for UNIX 2.51 flags its entries as "FS_FAT_", but the
  *  filenames stored in BOTH the local and the central header are coded
  *  in the local system's codepage (usually ANSI codings like ISO 8859-1).
@@ -2397,7 +2422,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #  define Ext_ASCII_TO_Native(string, hostnum, hostver, isuxatt, islochdr) \
     if (((hostnum) == FS_FAT_ && \
          !(((islochdr) || (isuxatt)) && \
-           (hostver) >= 25 && (hostver) <= 26)) || \
+           ((hostver) == 25 || (hostver) == 26 || (hostver) == 40))) || \
         (hostnum) == FS_HPFS_ || \
         ((hostnum) == FS_NTFS_ && (hostver) == 50)) { \
         _OEM_INTERN((string)); \

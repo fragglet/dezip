@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -22,7 +22,7 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#include "version.h"
+#include "unzvers.h"
 #include "pathname.h"
 #include "helpers.h"
 
@@ -842,7 +842,7 @@ int main(argc, argv) int argc; char *argv[];
 
     screenClose();
 
-    DESTROYGLOBALS()
+    DESTROYGLOBALS();
 
     ExitToShell();
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -32,7 +32,7 @@
  *     them nevertheless adds only 4 single byte instructions.)
  *
  * This source generates the function
- * ulg crc32(ulg crc, ZCONST uch *buf, ulg len).
+ * ulg crc32(ulg crc, ZCONST uch *buf, extent len).
  *
  * The loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
  * This results in shorter code at the expense of reduced performance.

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -144,7 +144,7 @@ int unshrink(__G)
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
     if (G.redirect_slide) { /* use normal outbuf unless we're a DLL routine */
         realbuf = G.redirect_buffer;
-        outbufsiz = G.redirect_size;
+        outbufsiz = (unsigned)G.redirect_size;
     } else
 #endif
 #ifdef DLL

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -45,6 +45,43 @@ const char  ResourceMark[] = "XtraStuf.mac:";  /* see also macos.c */
 /*****************************************************************************/
 
 
+/*
+ *----------------------------------------------------------------------
+ *
+ * FSpFindFolder --
+ *
+ *  This function is a version of the FindFolder function that
+ *  returns the result as a FSSpec rather than a vRefNum and dirID.
+ *
+ * Results:
+ *  Results will be simaler to that of the FindFolder function.
+ *
+ * Side effects:
+ *  None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+OSErr
+FSpFindFolder(
+    short vRefNum,      /* Volume reference number. */
+    OSType folderType,      /* Folder type taken by FindFolder. */
+    Boolean createFolder,   /* Should we create it if non-existant. */
+    FSSpec *spec)       /* Pointer to resulting directory. */
+{
+    short foundVRefNum;
+    long foundDirID;
+    OSErr err;
+
+    err = FindFolder(vRefNum, folderType, createFolder,
+        &foundVRefNum, &foundDirID);
+    if (err != noErr) {
+    return err;
+    }
+
+    err = FSMakeFSSpecCompat(foundVRefNum, foundDirID, "\p", spec);
+    return err;
+}
 
 
 /*
@@ -230,15 +267,14 @@ short   actVolCount, volIndex = 1, VolCount = 0;
 OSErr   err;
 short     i, foundVRefNum;
 FSSpec spec;
-UnsignedWide freeBytes;
-UnsignedWide totalBytes;
-UnsignedWide MaxFreeBytes;
+UInt64 freeBytes;
+UInt64 totalBytes;
+UInt64 MaxFreeBytes;
 
 err = OnLine(volumes, 50, &actVolCount, &volIndex);
 printerr("OnLine:", (err != -35) && (err != 0), err, __LINE__, __FILE__, "");
 
-MaxFreeBytes.hi = 0;
-MaxFreeBytes.lo = 0;
+MaxFreeBytes = 0;
 
 for (i=0; i < actVolCount; i++)
     {
@@ -248,15 +284,13 @@ for (i=0; i < actVolCount; i++)
               &freeBytes,
               &totalBytes);
 
-    if (MaxFreeBytes.hi < freeBytes.hi) {
-        MaxFreeBytes.hi = freeBytes.hi;
-        MaxFreeBytes.lo = freeBytes.lo;
+    if (MaxFreeBytes < freeBytes) {
+        MaxFreeBytes = freeBytes;
         foundVRefNum = volumes[i].vRefNum;
     }
 
-    if ((freeBytes.hi == 0) && (MaxFreeBytes.lo < freeBytes.lo)) {
-        MaxFreeBytes.hi = freeBytes.hi;
-        MaxFreeBytes.lo = freeBytes.lo;
+    if ((freeBytes == 0) && (MaxFreeBytes < freeBytes)) {
+        MaxFreeBytes = freeBytes;
         foundVRefNum = volumes[i].vRefNum;
     }
 

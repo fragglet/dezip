@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -154,7 +154,7 @@ int open_outfile(__G)           /* return 1 if fail */
     Trace((stderr, "Output file='%s' opening with '%s'\n", G.filename, mode));
     if ((G.outfile = fopen(G.filename, mode)) == NULL) {
         Info(slide, 0x401, ((char *)slide, "\nerror:  cannot create %s\n",
-             G.filename));
+             FnFilter1(G.filename)));
         Trace((stderr, "error %d: '%s'\n", errno, strerror(errno)));
         return 1;
     }
@@ -277,24 +277,27 @@ int mapattr(__G)
 /************************/
 
 int mapname(__G__ renamed)
-            /* returns: */
-            /* 0 (PK_COOL) if no error, */
-            /* 1 (PK_WARN) if caution (filename trunc), */
-            /* 2 (PK_ERR)  if warning (skip file because dir doesn't exist), */
-            /* 3 (PK_BADERR) if error (skip file), */
-            /* 10 if no memory (skip file) */
-            /* 78 (IZ_VOL_LABEL) if path was volume label (skip it) */
     __GDEF
     int renamed;
+/*
+ * returns:
+ *  MPN_OK          - no problem detected
+ *  MPN_INF_TRUNC   - caution (truncated filename)
+ *  MPN_INF_SKIP    - info "skip entry" (dir doesn't exist)
+ *  MPN_ERR_SKIP    - error -> skip entry
+ *  MPN_ERR_TOOLONG - error -> path is too long
+ *  MPN_NOMEM       - error (memory allocation failed) -> skip entry
+ *  [also MPN_VOL_LABEL, MPN_CREATED_DIR]
+ */
 {
     char newname[FILNAMSIZ], *lbar;
 #ifdef MVS
     char *pmember;
 #endif
-    int name_changed = 0;
+    int name_changed = MPN_OK;
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels in CMS_MVS */
+        return MPN_VOL_LABEL;   /* can't set disk volume labels in CMS_MVS */
 
 #ifdef MVS
     /* Remove bad characters for MVS from the filename */
@@ -302,14 +305,14 @@ int mapname(__G__ renamed)
        /* Must use memmove() here because data overlaps.  */
        /* strcpy() gives undefined behavior in this case. */
        memmove(lbar, lbar+1, strlen(lbar));
-       name_changed = 1;
+       name_changed = MPN_INF_TRUNC;
     }
 #endif
 
     /* Remove bad characters for MVS/CMS from the filename */
     while ((lbar = strpbrk(G.filename, "()")) != NULL) {
        memmove(lbar, lbar+1, strlen(lbar));
-       name_changed = 1;
+       name_changed = MPN_INF_TRUNC;
     }
 
 #ifdef VM_CMS
@@ -317,7 +320,7 @@ int mapname(__G__ renamed)
         strcpy(newname, lbar+1);
         Trace((stderr, "File '%s' renamed to '%s'\n", G.filename, newname));
         strcpy(G.filename, newname);
-        name_changed = 1;
+        name_changed = MPN_INF_TRUNC;
     }
 #else /* MVS */
     if ((pmember = strrchr(G.filename, '/')) == NULL)
@@ -339,7 +342,7 @@ int mapname(__G__ renamed)
      * MVS path delimiters! */
     while ((lbar = strrchr(G.filename, '.')) != NULL) {
         memmove(lbar, lbar+1, strlen(lbar));
-        name_changed = 1;
+        name_changed = MPN_INF_TRUNC;
     }
 
     /* Finally, convert path delimiters from internal '/' to external '.' */
@@ -352,7 +355,7 @@ int mapname(__G__ renamed)
         printf("WARNING: file '%s' has no extension - renamed to '%s.NONAME'\n"\
               ,G.filename, G.filename);
        strcat(G.filename, ".NONAME");
-       name_changed = 1;
+       name_changed = MPN_INF_TRUNC;
     }
 #endif
     checkdir(__G__ G.filename, GETPATH);
@@ -367,12 +370,14 @@ int checkdir(__G__ pathcomp, flag)
     char *pathcomp;
     int flag;
 /*
- * returns:  1 - (on APPEND_NAME) truncated filename
- *           2 - path doesn't exist, not allowed to create
- *           3 - path doesn't exist, tried to create and failed; or
- *               path exists and is not a directory, but is supposed to be
- *           4 - path is too long
- *          10 - can't allocate memory for filename buffers
+ * returns:
+ *  MPN_OK          - no problem detected
+ *  MPN_INF_TRUNC   - (on APPEND_NAME) truncated filename
+ *  MPN_INF_SKIP    - path doesn't exist, not allowed to create
+ *  MPN_ERR_SKIP    - path doesn't exist, tried to create and failed; or path
+ *                    exists and is not a directory, but is supposed to be
+ *  MPN_ERR_TOOLONG - path is too long
+ *  MPN_NOMEM       - can't allocate memory for filename buffers
  */
 {
     static int rootlen = 0;     /* length of rootpath */
@@ -380,6 +385,7 @@ int checkdir(__G__ pathcomp, flag)
 
 #   define FN_MASK   7
 #   define FUNCTION  (flag & FN_MASK)
+
 
 /*---------------------------------------------------------------------------
     ROOT:  if appropriate, store the path in rootpath and create it if neces-
@@ -394,19 +400,20 @@ int checkdir(__G__ pathcomp, flag)
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
-        Trace((stderr, "initializing root path to [%s]\n", pathcomp));
+        Trace((stderr, "initializing root path to [%s]\n",
+          FnFilter1(pathcomp)));
         if (pathcomp == (char *)NULL) {
             rootlen = 0;
         }
         else if ((rootlen = strlen(pathcomp)) > 0) {
             if ((rootpath = (char *)malloc(rootlen+1)) == NULL) {
                 rootlen = 0;
-                return 10;
+                return MPN_NOMEM;
             }
             strcpy(rootpath, pathcomp);
             Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
-        return 0;
+        return MPN_OK;
     }
 #endif /* !SFX || SFX_EXDIR */
 
@@ -456,7 +463,7 @@ int checkdir(__G__ pathcomp, flag)
            strcpy(pathcomp, newfilename);
 #endif /* ?VM_CMS */
         }
-        return 0;
+        return MPN_OK;
     }
 
 /*---------------------------------------------------------------------------
@@ -469,12 +476,14 @@ int checkdir(__G__ pathcomp, flag)
             free(rootpath);
             rootlen = 0;
         }
-        return 0;
+        return MPN_OK;
     }
 
-    return 99;  /* should never reach */
+    return MPN_INVALID; /* should never reach */
 
 } /* end function checkdir() */
+
+
 
 
 /******************************/

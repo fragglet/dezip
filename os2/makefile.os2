@@ -1,4 +1,4 @@
-# Makefile for UnZip, UnZipSFX and fUnZip                     24 November 1998
+# Makefile for UnZip, UnZipSFX and fUnZip                     17 February 2002
 #
 #  supported compilers:
 #  - Microsoft C, version 6.00 or higher, for use under OS/2 1.x (16-bit)
@@ -81,6 +81,7 @@ msc:
 	CRC32="crc_i86" \
 	CRC32F="crc_i86" \
 	CRC32X="crc_i86" \
+	OBJF2="os2f.obj" \
 	DEF="os2\unzip.def"
 
 # MS C 6.00 for OS/2, debug version
@@ -99,18 +100,19 @@ mscdebug:
 	CRC32="crc_i86" \
 	CRC32F="crc_i86" \
 	CRC32X="crc_i86" \
+	OBJF2="os2f.obj" \
 	DEF="os2\unzip.def"
 
 # cross-compilation for MS-DOS with MS C 6.00 (same comment as above...formerly;
-# now unzip is medium model again, with [almost] all strings in far memory)
+# now unzip is large model again, because of DEFLATE_64 support)
 mscdos:
 	$(MAKE) -f os2/makefile.os2 all \
-	CC="cl -nologo -AM -Oaict -Gs -I. $(FP)" \
+	CC="cl -nologo -AL -Oaict -Gs -I. $(FP)" \
 	CFLAGS="-Zp1 -W3 -DASM_CRC $(LOCAL_UNZIP)" \
 	NFLAGS="" \
 	DLLFLAG="" \
 	AS="ml -nologo -c -Zm -Cp" \
-	ASFLAGS="-D__MEDIUM__" \
+	ASFLAGS="-D__LARGE__" \
 	LDFLAGS="-F 0C00 -Lr -Fe" \
 	LDFLAGS2="-link /noe /exe" \
 	OUT="-Fo" \
@@ -120,6 +122,7 @@ mscdos:
 	CRC32X="crc_i86" \
 	OBJU2="msdos.obj" \
 	OBJX2="msdos_.obj" \
+	OBJF2="msdosf.obj" \
 	OSDEP_H="msdos/doscfg.h"
 
 # IBM C Set, statically linked runtime
@@ -274,6 +277,7 @@ watcom16:
 	CRC32="crc_i86" \
 	CRC32F="crc_i86" \
 	CRC32X="crc_i86" \
+	OBJF2="os2f.obj" \
 	DIRSEP="\\" \
 	AS_DIRSEP="\\"
 
@@ -328,14 +332,15 @@ watcom16dos:
 	CFLAGS="-Zp1 -DMSDOS $(LOCAL_UNZIP)" \
 	NFLAGS="" \
 	DLLFLAG="" \
-	AS="wasm -bt=dos -0 -mm" \
-	ASFLAGS="-D__MEDIUM__" \
+	AS="wasm -bt=dos -0 -ml" \
+	ASFLAGS="-D__LARGE__" \
 	LDFLAGS="-k0xC00 -x -l=dos -Fe=" \
 	LDFLAGS2="" \
 	OUT="-Fo" \
 	OBJ=".obj" \
 	OBJU2="msdos.obj" \
 	OBJX2="msdos_.obj" \
+	OBJF2="msdosf.obj" \
 	OSDEP_H="msdos/doscfg.h" \
 	DIRSEP="\\" \
 	AS_DIRSEP="\\"
@@ -353,11 +358,12 @@ watcomwin32:
 	LDFLAGS2="" \
 	OUT="-Fo" \
 	OBJ=".obj" \
-	OBJU2="win32.obj nt.obj" \
-	OBJX2="win32_.obj nt_.obj" \
 	CRC32="crc_i386" \
 	CRC32F="crc_i386" \
 	CRC32X="crc_i386" \
+	OBJU2="win32.obj nt.obj" \
+	OBJX2="win32_.obj nt_.obj" \
+	OBJF2="win32f.obj" \
 	DEF="" \
 	DIRSEP="\\" \
 	AS_DIRSEP="\\"
@@ -544,7 +550,7 @@ unzip.stb: unzipstb$(OBJ) $(STUBDEF)
 
 # dependencies
 
-apihelp$(OBJ):	apihelp.c $(UNZIP_H) version.h
+apihelp$(OBJ):	apihelp.c $(UNZIP_H) unzvers.h
 crc32$(OBJ):	crc32.c $(UNZIP_H) zip.h
 crctab$(OBJ):	crctab.c $(UNZIP_H) zip.h
 envargs$(OBJ):	envargs.c $(UNZIP_H)
@@ -559,8 +565,8 @@ process$(OBJ):	process.c $(UNZIP_H)
 ttyio$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(OBJ):	unreduce.c $(UNZIP_H)
 unshrink$(OBJ):	unshrink.c $(UNZIP_H)
-unzip$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h
-api$(OBJ):	api.c $(UNZIP_H) version.h
+unzip$(OBJ):	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
+api$(OBJ):	api.c $(UNZIP_H) unzvers.h
 zipinfo$(OBJ):	zipinfo.c $(UNZIP_H)
 
 funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h	# funzip only
@@ -569,13 +575,16 @@ funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h	# funzip only
 unzipstb$(OBJ):	unzipstb.c					# DLL version
 	$(CC) -c $(CFLAGS) unzipstb.c
 
-msdos$(OBJ):	msdos/msdos.c $(UNZIP_H) version.h		# DOS only
+msdos$(OBJ):	msdos/msdos.c $(UNZIP_H) unzvers.h		# DOS only
 	$(CC) -c $(CFLAGS) msdos$(DIRSEP)msdos.c
 
 msdos_$(OBJ):	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ msdos$(DIRSEP)msdos.c
 
-win32$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h version.h	# Win32 only
+msdosf$(OBJ):	msdos/msdos.c $(UNZIP_H)			# DOS funzip
+	$(CC) -c $(CFLAGS) -DFUNZII $(OUT)$@ msdos$(DIRSEP)msdos.c
+
+win32$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h unzvers.h	# Win32 only
 	$(CC) -c $(CFLAGS) win32$(DIRSEP)win32.c
 
 nt$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h		# Win32 only
@@ -590,16 +599,19 @@ nt_$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h		# Win32 unzipsfx
 win32f$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h		# Win32 funzip
 	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ win32$(DIRSEP)win32.c
 
-os2$(OBJ):	os2/os2.c $(UNZIP_H) version.h			# OS/2 only
+os2$(OBJ):	os2/os2.c $(UNZIP_H) unzvers.h			# OS/2 only
 	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2.c
 
 os2_$(OBJ):	os2/os2.c $(UNZIP_H)				# OS/2 unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ os2$(DIRSEP)os2.c
 
-os2acl$(OBJ):	os2/os2acl.c $(UNZIP_H) version.h		# OS/2 only
+os2f$(OBJ):	os2/os2.c $(UNZIP_H)				# OS/2 funzip
+	$(CC) -c $(CFLAGS) -DFUNZIP $(OUT)$@ os2$(DIRSEP)os2.c
+
+os2acl$(OBJ):	os2/os2acl.c $(UNZIP_H) unzvers.h		# OS/2 only
 	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2acl.c
 
-os2acl_$(OBJ):	os2/os2acl.c $(UNZIP_H) version.h		# OS/2 unzipsfx
+os2acl_$(OBJ):	os2/os2acl.c $(UNZIP_H) unzvers.h		# OS/2 unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ os2$(DIRSEP)os2acl.c
 
 rexxhelp$(OBJ):	os2/rexxhelp.c					# OS/2 DLL only
@@ -666,5 +678,5 @@ process_$(OBJ):	process.c $(UNZIP_H)				# unzipsfx only
 ttyio_$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ ttyio.c
 
-unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
+unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ unzip.c

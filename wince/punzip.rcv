@@ -54,7 +54,7 @@
 #else
 #include <winver.h>
 #endif
-#include "../version.h"
+#include "../unzvers.h"
 
 //******************************************************************************
 //***** User Modifiable Version Defines

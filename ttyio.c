@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -257,7 +257,7 @@ int tt_getch()
 {
     short           DevChan, iosb[4];
     long            status;
-    char            kbbuf[16];	/* input buffer with - some - excess length */
+    char            kbbuf[16];  /* input buffer with - some - excess length */
 
     /* assign a channel to standard input */
     status = sys$assign(&DevDesc, &DevChan, 0, 0);
@@ -272,7 +272,7 @@ int tt_getch()
                       &iosb, 0, 0,
                       &kbbuf, 1, 0, 0, 0, 0);
     if ((status&1) == 1)
-	status = iosb[0];
+        status = iosb[0];
 
     /* deassign the sys$input channel by way of clean-up
      * (for this step, we do not need to check the completion status)

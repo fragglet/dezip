@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.2 and later                             Derek Fawcus
-# Version:  MetaWare High C with PAMAKE                        3 Jun 96
+# Makefile for UnZip 5.5 and later                             Derek Fawcus
+# Version:  MetaWare High C with PAMAKE                        13 Feb 2001
 
 #
 ###########################################################################
@@ -133,9 +133,9 @@ $(PORT_LIB),
 $(HC_LIB)
 <
 
-UNZIPSFX_OBJS =	unzip.obs crc32.obj crctab.obj crypt.obj extract.obs \
-		fileio.obj globals.obj inflate.obj match.obj process.obs \
-		ttyio.obj flexos.obs $(ASMOBJS)
+UNZIPSFX_OBJS =	unzip.obs crc32.obs crctab.obs crypt.obs extract.obs \
+		fileio.obs globals.obs inflate.obs match.obs process.obs \
+		ttyio.obs flexos.obs $(ASMOBJS)
 
 unzipsfx.286: $(UNZIPSFX_OBJS)
 	$(LD) $@[dbi,map[all],st[add[17e]]] = $-[input]
@@ -162,7 +162,7 @@ $(HC_LIB)
 
 unreduce.obj:	unreduce.c $(UNZIP_H)
 unshrink.obj:	unshrink.c $(UNZIP_H)
-unzip.obj:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.obj:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.obj:	zipinfo.c $(UNZIP_H)
 process.obj:	process.c $(UNZIP_H)
 list.obj:	list.c $(UNZIP_H)
@@ -188,6 +188,13 @@ inflate.obf:	inflate.c inflate.h $(UNZIP_H) crypt.h
 ttyio.obf:	ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h
 
 flexos.obs:	flexos/flexos.c $(UNZIP_H)
+crc32.obs:	crc32.c $(UNZIP_H) zip.h
+crctab.obs:	crctab.c $(UNZIP_H) zip.h
 extract.obs:	extract.c $(UNZIP_H) crypt.h
+fileio.obs:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+globals.obs:	globals.c $(UNZIP_H)
+inflate.obs:	inflate.c inflate.h $(UNZIP_H) crypt.h
+match.obs:	match.c $(UNZIP_H)
 process.obs:	process.c $(UNZIP_H)
-unzip.obs:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+ttyio.obs:	ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h
+unzip.obs:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h

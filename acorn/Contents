@@ -3,7 +3,7 @@ Contents of the "acorn" subdirectory for UnZip 5.4 and later:
   acorn.c.acorn     Acorn-specific resources
   acorn.c.riscos    mainly file-handling routines for FileCore-based filesystems
   acorn.Contents    this file
-  acorn.GMakeFile   Makefile for gcc 2.7.2.1
+  acorn.GMakeFile   Makefile for gcc
   acorn.h.riscos
   acorn.h.swiven
   acorn.makefile    Makefile script for default Acorn C compiler

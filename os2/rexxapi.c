@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -40,7 +40,7 @@
 
 #define UNZIP_INTERNAL
 #include "../unzip.h"
-#include "../version.h"
+#include "../unzvers.h"
 
 
 /*********************************************************************/
@@ -651,7 +651,7 @@ ULONG UZUnZip(CHAR *name, ULONG numargs, RXSTRING args[],
   return RexxReturn(__G__ 1,retstr);
 }
 
-int varmessage(__GPRO__ uch *buf, ulg size)
+int varmessage(__GPRO__ ZCONST uch *buf, ulg size)
 {
   if (size > 0)
     memcpy(G.os2.buffer+G.os2.putchar_idx,buf,size);

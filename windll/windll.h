@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -36,7 +36,6 @@ extern jmp_buf dll_error_return;
 
 extern HANDLE hInst;        /* current instance */
 
-void FreeDllMem(__GPRO);
 int win_fprintf(zvoid *pG, FILE *file, unsigned int, char far *);
 #endif
 

@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.42                                                  28 April 2000
+# Version:  5.5                                                16 February 2002
 #==============================================================================
 
 
@@ -87,10 +87,10 @@ OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS:.o=.pic.o) api.pic.o
-OBJX = unzipsfx$O $(CRC32)$O crctab$O crypt$O extract_$O fileio$O globals$O \
-	inflate$O match$O process_$O ttyio$O $M_$O
+OBJX = unzipsfx$O $(CRC32)$O crctab_$O crypt_$O extract_$O fileio_$O \
+	globals_$O inflate_$O match_$O process_$O ttyio_$O $M_$O
 LOBJX = $(OBJX)
-OBJF = funzip$O $(CRC32)$O crypt_$O globals_$O inflate_$O ttyio_$O
+OBJF = funzip$O $(CRC32)$O cryptf$O globalsf$O inflatef$O ttyiof$O
 #OBJS_OS2 = $(OBJS1:.o=.obj) $(OBJS2:.o=.obj) os2.obj
 #OBJF_OS2 = $(OBJF:.o=.obj)
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
@@ -98,6 +98,7 @@ UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 # installation
 # (probably can change next two to `install' and `install -d' if you have it)
 INSTALL = cp
+INSTALL_PROGRAM = $(INSTALL)
 INSTALL_D = mkdir -p
 # on some systems, manext=l and MANDIR=/usr/man/man$(manext) may be appropriate
 manext = 1
@@ -112,7 +113,7 @@ INSTALLEDMAN = $(MANDIR)/funzip.$(manext) $(MANDIR)/unzip.$(manext) \
 
 # Solaris 2.x stuff:
 PKGDIR = IZunzip
-VERSION = Version 5.41
+VERSION = Version 5.5
 
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, OK, it's a lot ugly:
@@ -120,15 +121,16 @@ MANS = man/funzip.1 man/unzip.1 man/unzipsfx.1 man/zipgrep.1 man/zipinfo.1
 DOCS = funzip.txt unzip.txt unzipsfx.txt zipgrep.txt zipinfo.txt
 
 # list of supported systems/targets in this version
-SYSTEMS1 = generic generic2 generic3 generic_zlib generic_shlib
-SYSTEMS2 = 386i 3Bx 7300 7300_gcc aix aix_rt amdahl amdahl_eft apollo aviion
-SYSTEMS3 = bsd bsdi bsdi_noasm bull coherent convex cray cray_opt cyber_sgi
-SYSTEMS4 = dec dnix encore eta freebsd gcc gould hk68 hp hpux isc isc_gcc isi
-SYSTEMS5 = linux linux_dos linux_noasm linux_shlib linux_shlibz lynx minix
-SYSTEMS6 = mips mpeix next next10 next2x next3x nextfat osf1 pixel ptx pyramid
-SYSTEMS7 = qnxnto realix regulus rs6000 sco sco_dos sco_sl sco_x286 sequent sgi
-SYSTEMS8 = solaris solaris_pkg stardent stellar sunos3 sunos4 sysv sysv_gcc
-SYSTEMS9 = sysv6300 tahoe ti_sysv ultrix vax v7 wombat xenix xos
+SYSTEMSG = generic generic2 generic3 generic_zlib generic_shlib
+SYSTEMS1 = 386i 3Bx 7300 7300_gcc aix aix_rt amdahl amdahl_eft apollo aviion
+SYSTEMS2 = bsd bsdi bsdi_noasm bull coherent convex cray cray_opt cyber_sgi
+SYSTEMS3 = dec dnix encore eta freebsd gcc gould hk68 hp hpux isc isc_gcc
+SYSTEMS4 = isi linux linux_dos linux_noasm linux_shlib linux_shlibz lynx
+SYSTEMS5 = maxosx macosx_gcc minix mips mpeix next next10 next2x next3x
+SYSTEMS6 = nextfat osf1 pixel ptx pyramid qnxnto realix regulus rs6000 sco
+SYSTEMS7 = sco_dos sco_sl sco_x286 sequent sgi solaris solaris_pkg stardent
+SYSTEMS8 = stellar sunos3 sunos4 sysv sysv_gcc sysv6300 tahoe ti_sysv ultrix
+SYSTEMS9 = vax v7 wombat xenix xos
 
 
 ####################
@@ -173,8 +175,9 @@ list:
 	@echo\
  'Type "make <system>", where <system> is one of the following:'
 	@echo ""
-	@echo  "	$(SYSTEMS1)"
+	@echo  "	$(SYSTEMSG)"
 	@echo ""
+	@echo  "	$(SYSTEMS1)"
 	@echo  "	$(SYSTEMS2)"
 	@echo  "	$(SYSTEMS3)"
 	@echo  "	$(SYSTEMS4)"
@@ -296,12 +299,22 @@ process$O:	process.c $(UNZIP_H)
 ttyio$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$O:	unreduce.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
-unzip$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo$O:	zipinfo.c $(UNZIP_H)
 
-crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
+	-$(CP) unzip.c unzipsfx.c
+	$(CC) -c $(CF) -DSFX unzipsfx.c
+	$(RM) unzipsfx.c
+
+crctab_$O:	crctab.c $(UNZIP_H) zip.h
+	-$(CP) crctab.c crctab_.c
+	$(CC) -c $(CF) -DSFX crctab_.c
+	$(RM) crctab_.c
+
+crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
 	-$(CP) crypt.c crypt_.c
-	$(CC) -c $(CF) -DFUNZIP crypt_.c
+	$(CC) -c $(CF) -DSFX crypt_.c
 	$(RM) crypt_.c
 
 extract_$O:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
@@ -309,20 +322,57 @@ extract_$O:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
 	$(CC) -c $(CF) -DSFX extract_.c
 	$(RM) extract_.c
 
-globals_$O:	globals.c $(UNZIP_H)				# funzip only
+fileio_$O:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+	-$(CP) fileio.c fileio_.c
+	$(CC) -c $(CF) -DSFX fileio_.c
+	$(RM) fileio_.c
+
+globals_$O:	globals.c $(UNZIP_H)				# unzipsfx only
 	-$(CP) globals.c globals_.c
-	$(CC) -c $(CF) -DFUNZIP globals_.c
+	$(CC) -c $(CF) -DSFX globals_.c
 	$(RM) globals_.c
 
-inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
+inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx only
 	-$(CP) inflate.c inflate_.c
-	$(CC) -c $(CF) -DFUNZIP inflate_.c
+	$(CC) -c $(CF) -DSFX inflate_.c
 	$(RM) inflate_.c
 
-ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+match_$O:	match.c $(UNZIP_H)				# unzipsfx only
+	-$(CP) match.c match_.c
+	$(CC) -c $(CF) -DSFX match_.c
+	$(RM) match_.c
+
+process_$O:	process.c $(UNZIP_H)				# unzipsfx only
+	-$(CP) process.c process_.c
+	$(CC) -c $(CF) -DSFX process_.c
+	$(RM) process_.c
+
+ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
 	-$(CP) ttyio.c ttyio_.c
-	$(CC) -c $(CF) -DFUNZIP ttyio_.c
+	$(CC) -c $(CF) -DSFX ttyio_.c
 	$(RM) ttyio_.c
+
+
+cryptf$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+	-$(CP) crypt.c cryptf.c
+	$(CC) -c $(CF) -DFUNZIP cryptf.c
+	$(RM) cryptf.c
+
+globalsf$O:	globals.c $(UNZIP_H)				# funzip only
+	-$(CP) globals.c globalsf.c
+	$(CC) -c $(CF) -DFUNZIP globalsf.c
+	$(RM) globalsf.c
+
+inflatef$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
+	-$(CP) inflate.c inflatef.c
+	$(CC) -c $(CF) -DFUNZIP inflatef.c
+	$(RM) inflatef.c
+
+ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+	-$(CP) ttyio.c ttyiof.c
+	$(CC) -c $(CF) -DFUNZIP ttyiof.c
+	$(RM) ttyiof.c
+
 
 # optional assembler replacements
 crc_i86$O:	msdos/crc_i86.asm				# 16bit only
@@ -339,7 +389,7 @@ crc_sysv$O:	crc_i386.S					# 32bit, SysV AS
 	$(AS) -o $@ crc_i386.s
 	$(RM) crc_i386.s
 
-msdos$O:	msdos/msdos.c $(UNZIP_H) version.h		# DOS only
+msdos$O:	msdos/msdos.c $(UNZIP_H) unzvers.h		# DOS only
 	$(CC) -c $(CF) msdos/msdos.c
 
 msdos_$O:	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
@@ -350,13 +400,7 @@ msdos_$O:	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
 #os2$O:		os2/os2.c $(UNZIP_H)				# OS/2 only
 #	$(CC) -c $(CF) os2/os2.c
 
-
-process_$O:	process.c $(UNZIP_H)				# unzipsfx only
-	-$(CP) process.c process_.c
-	$(CC) -c $(CF) -DSFX process_.c
-	$(RM) process_.c
-
-unix$O:		unix/unix.c $(UNZIP_H) version.h		# Unix only
+unix$O:		unix/unix.c $(UNZIP_H) unzvers.h		# Unix only
 	$(CC) -c $(CF) unix/unix.c
 
 unix_$O:	unix/unix.c $(UNZIP_H)				# Unix unzipsfx
@@ -364,13 +408,8 @@ unix_$O:	unix/unix.c $(UNZIP_H)				# Unix unzipsfx
 	$(CC) -c $(CF) -DSFX unix_.c
 	$(RM) unix_.c
 
-unix.pic.o:	unix/unix.c $(UNZIP_H) version.h		# Unix shlib
+unix.pic.o:	unix/unix.c $(UNZIP_H) unzvers.h		# Unix shlib
 	$(CC) -c $(CF) -o $@ unix/unix.c
-
-unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
-	-$(CP) unzip.c unzipsfx.c
-	$(CC) -c $(CF) -DSFX unzipsfx.c
-	$(RM) unzipsfx.c
 
 
 unix_make:
@@ -411,7 +450,7 @@ svr4package:	unzips
 
 install:	$(MANS)
 	-$(INSTALL_D) $(BINDIR)
-	$(INSTALL) $(UNZIPS) $(BINDIR)
+	$(INSTALL_PROGRAM) $(UNZIPS) $(BINDIR)
 	$(INSTALL) unix/zipgrep $(BINDIR)
 	$(RM) $(BINDIR)/zipinfo$E
 	$(LN) $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E
@@ -784,7 +823,17 @@ linux_shlibz:	unix_make
 
 # LynxOS-x86 2.3.0 and newer, a real-time BSD-like OS; uses gcc.
 lynx:		unix_make
-	$(MAKE) unzips CC=gcc CF="$(CF) -DLynx -DLYNX -DBSD"
+	$(MAKE) unzips CC=gcc CF="$(CF) -DLynx -DLYNX -DBSD -DUNIX"
+
+# Macintosh MacOS X (Unix-compatible enviroment), using standard compiler
+macosx:	unix_make
+	$(MAKE) unzips CF="-O3 -Wall -I. -DBSD -DUNIX $(LOC)" LF2=""
+	$(STRIP) $(UNZIPS)
+
+# Macintosh MacOS X (Unix-compatible enviroment), using gcc
+macosx_gcc:	unix_make
+	$(MAKE) unzips CC=gcc CF="-O3 -Wall -I. -DBSD -DUNIX $(LOC)" LF2=""
+	$(STRIP) $(UNZIPS)
 
 # Minix 1.5 PC for the 386.  Invoke as is to use default cc, or as "make
 # minix CC=gcc" to use gcc.  Try "make linux" if you have a working termios.h.

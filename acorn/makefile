@@ -1,5 +1,5 @@
-# Makefile for UnZip, UnZipSFX, ZipInfo and fUnZip (5.41 or later)
-# last modified:  27 Oct 1999
+# Makefile for UnZip, UnZipSFX, ZipInfo and fUnZip (5.5 or later)
+# last modified:  15 Jan 2002
 
 # add -g to CC to debug
 # add -d to BIND to debug
@@ -16,9 +16,9 @@ E    =
 #   LFLAGS2   flags after obj file list (libraries, etc)
 #
 LIB      =
-CFLAGS   = -throwback -wn -DNO_STRNICMP
-CFLAGS   = $(CFLAGS) -IC:,@.
-ASMFLAGS = -Throwback -Stamp -NoCache -CloseExec -quit
+CBASE    = -throwback -apcs 3/26 -wn -DNO_STRNICMP
+CFLAGS   = $(CBASE) -IC:,@.
+ASMFLAGS = -Throwback -Stamp -NoCache -CloseExec -quit -apcs 3/26
 LFLAGS1  =
 LFLAGS2  = $(LIB) C:o.Stubs
 
@@ -67,7 +67,7 @@ process.o:      process.c $(UNZIP_H)
 ttyio.o:        ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce.o:     unreduce.c $(UNZIP_H)
 unshrink.o:     unshrink.c $(UNZIP_H)
-unzip.o:        unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.o:        unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.o:      zipinfo.c $(UNZIP_H)
 
 crypt_.o:       crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
@@ -83,7 +83,7 @@ process_.o:     process.c $(UNZIP_H)
 ttyio_.o:       ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
         $(CC) $(CFLAGS) -DFUNZIP -c c.ttyio -o o.ttyio_
 
-unzipsfx.o:     unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzipsfx.o:     unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
         $(CC) $(CFLAGS) -DSFX -c c.unzip -o o.unzipsfx
 
 acorn.o:       acorn/acorn.c $(UNZIP_H)

@@ -336,7 +336,6 @@ BOOL FAR PASCAL InitDialogProc (HWND hDlg, WORD wMsg, WORD wParam, LONG lParam) 
 /* external return codes for unzip library */
 //#define PK_OK              0   /* no error */
 //#define PK_COOL            0   /* no error */
-//#define PK_GNARLY          0   /* no error */
 //#define PK_WARN            1   /* warning error */
 //#define PK_ERR             2   /* error in zipfile */
 //#define PK_BADERR          3   /* severe error in zipfile */
@@ -354,12 +353,6 @@ BOOL FAR PASCAL InitDialogProc (HWND hDlg, WORD wMsg, WORD wParam, LONG lParam) 
 //#define IZ_CTRLC          80   /* user hit ^C to terminate */
 //#define IZ_UNSUP          81   /* no files found: all unsup. compr/encrypt. */
 //#define IZ_BADPWD         82   /* no files found: all had bad password */
-
-/* internal and DLL-only return codes */
-//#define IZ_DIR            76   /* potential zipfile is a directory */
-//#define IZ_CREATED_DIR    77   /* directory created: set time and permissions */
-//#define IZ_VOL_LABEL      78   /* volume label, but can't set on hard disk */
-//#define IZ_EF_TRUNC       79   /* local extra field truncated (PKZIP'd) */
 
 /* return codes of password fetches (negative = user abort; positive = error) */
 //#define IZ_PW_ENTERED      0   /* got some password string; use/try it */

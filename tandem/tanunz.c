@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -12,8 +12,9 @@
 
   Tandem/NSK routines for use with Info-ZIP's UnZip 5.3 and later.
 
-  Contains:  ef_scan_for_tandem()
-             do_wild()           <-- generic enough to put in fileio.c?
+  Contains:  do_wild()           <-- generic enough to put in fileio.c?
+             ef_scan_for_tandem()
+             open_outfile()
              mapattr()
              mapname()
              checkdir()
@@ -33,55 +34,25 @@
 #include "tannsk.h"
 
 
-char *in2ex OF((char *));
+char *in2ex OF((__GPRO__ char *));
 
 static nsk_file_attrs *ef_scan_for_tandem (
     uch *ef_buf,
     unsigned ef_len
   );
 
+
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
 
 
-/*********************************/
-/* Function ef_scan_for_tandem() */
-/*********************************/
+/****************************/
+/* Strings used in tanunz.c */
+/****************************/
 
-static nsk_file_attrs *ef_scan_for_tandem(ef_buf, ef_len)
-    uch *ef_buf;                /* buffer containing extra fields */
-    unsigned ef_len;            /* length of extra field */
-{
-    unsigned eb_id;
-    unsigned eb_len;
-
-  /*---------------------------------------------------------------------------
-    This function scans the extra field for EF_TANDEM
-    -------------------------------------------------------------------------*/
-
-    if (ef_buf == NULL)
-      return NULL;
-
-    while (ef_len >= EB_HEADSIZE) {
-      eb_id = makeword(EB_ID + ef_buf);
-      eb_len = makeword(EB_LEN + ef_buf);
-
-      switch (eb_id) {
-        case EF_TANDEM:
-          return (nsk_file_attrs *) (char *)(ef_buf + EB_HEADSIZE);
-          break;
-
-        default:
-          break;
-      }
-
-      /* Skip this extra field block */
-      ef_buf += (eb_len + EB_HEADSIZE);
-      ef_len -= (eb_len + EB_HEADSIZE);
-  }
-
-  return NULL;
-}
+static ZCONST char Far CannotDeleteOldFile[] =
+  "error:  cannot delete old %s\n";
+static ZCONST char Far CannotCreateFile[] = "error:  cannot create %s\n";
 
 
 #ifndef SFX
@@ -130,7 +101,8 @@ char *do_wild(__G__ wildspec)
 
         if ((wild_dir = opendir(dirname)) != (DIR *)NULL) {
             while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
-                Trace((stderr, "do_wild: readdir returns %s\n", file->d_name));
+                Trace((stderr, "do_wild: readdir returns %s\n",
+                  FnFilter1(file->d_name)));
                 if (file->d_name[0] == '.' && wildname[0] != '.')
                     continue;  /* Unix: '*' and '?' do not match leading dot */
                 if (match(file->d_name, wildname, 0) &&  /* 0 == case sens. */
@@ -169,7 +141,8 @@ char *do_wild(__G__ wildspec)
      * matchname already.
      */
     while ((file = readdir(wild_dir)) != (struct dirent *)NULL) {
-        Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
+        Trace((stderr, "do_wild:  readdir returns %s\n",
+          FnFilter1(file->d_name)));
         if (file->d_name[0] == '.' && wildname[0] != '.')
             continue;   /* Unix:  '*' and '?' do not match leading dot */
         if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
@@ -192,6 +165,177 @@ char *do_wild(__G__ wildspec)
 } /* end function do_wild() */
 
 #endif /* !SFX */
+
+
+
+/*********************************/
+/* Function ef_scan_for_tandem() */
+/*********************************/
+
+static nsk_file_attrs *ef_scan_for_tandem(ef_buf, ef_len)
+    uch *ef_buf;                /* buffer containing extra field */
+    unsigned ef_len;            /* total length of extra field */
+{
+    unsigned eb_id;
+    unsigned eb_len;
+
+  /*---------------------------------------------------------------------------
+    This function scans the extra field for EF_TANDEM
+    -------------------------------------------------------------------------*/
+
+    if (ef_buf == NULL)
+      return NULL;
+
+    while (ef_len >= EB_HEADSIZE) {
+      eb_id = makeword(EB_ID + ef_buf);
+      eb_len = makeword(EB_LEN + ef_buf);
+
+      if (eb_len > (ef_len - EB_HEADSIZE)) {
+          /* discovered some extra field inconsistency! */
+          TTrace((stderr,
+            "ef_scan_for_tandem: block length %u > rest ef_size %u\n", eb_len,
+            ef_len - EB_HEADSIZE));
+          break;
+      }
+
+      switch (eb_id) {
+        case EF_TANDEM:
+          return (nsk_file_attrs *)(char *)(ef_buf + EB_HEADSIZE);
+          break;
+
+        default:
+          break;
+      }
+
+      /* Skip this extra field block */
+      ef_buf += (eb_len + EB_HEADSIZE);
+      ef_len -= (eb_len + EB_HEADSIZE);
+  }
+
+  return NULL;
+}
+
+
+/***************************/
+/* Function open_outfile() */
+/***************************/
+
+int open_outfile(__G)         /* return 1 if fail */
+    __GDEF
+{
+    int fdesc;
+    short fnum, err, len;
+    int priext, secext;
+    short maxext, filecode, blocksize;
+
+    #define alist_items 1
+    #define vlist_bytes 2
+    short alist[alist_items]={42};
+    unsigned short vlist[alist_items];
+    short extra, *err_item=&extra;
+    nsk_file_attrs *znsk_attr;
+    ulg eof, pages;
+    char nsk_work[FILENAME_MAX + 1], *nsk_fname=&nsk_work[0];
+
+#ifdef DLL
+    if (G.redirect_data)
+        return (redirect_outfile(__G) == FALSE);
+#endif
+    if (SSTAT(G.filename, &G.statbuf) == 0) {
+        Trace((stderr, "open_outfile:  stat(%s) returns 0:  file exists\n",
+          FnFilter1(G.filename)));
+        if (unlink(G.filename) != 0) {
+            Trace((stderr, "open_outfile:  existing file %s is read-only\n",
+              FnFilter1(G.filename)));
+            chmod(G.filename, S_IRUSR | S_IWUSR);
+            Trace((stderr, "open_outfile:  %s now writable\n",
+              FnFilter1(G.filename)));
+            if (unlink(G.filename) != 0) {
+                Info(slide, 0x401, ((char *)slide,
+                  LoadFarString(CannotDeleteOldFile), FnFilter1(G.filename)));
+                return 1;
+            }
+        }
+        Trace((stderr, "open_outfile:  %s now deleted\n",
+          FnFilter1(G.filename)));
+    }
+
+    /* Set up Tandem specific file information if present */
+    znsk_attr = ef_scan_for_tandem(G.extra_field, G.lrec.extra_field_length);
+    if (znsk_attr != NULL) {
+        /* Set extent sizes */
+        priext = znsk_attr->priext;
+        secext  = znsk_attr->secext;
+        maxext  = (int) znsk_attr->maxext;
+        filecode = znsk_attr->filecode;
+        blocksize = znsk_attr->block;
+    } else {
+        /* Try to work out some decent sizes based on how big the file is */
+        eof = G.lrec.ucsize;
+        pages = (eof/2048) + 2;
+        if (pages <= 500) {
+            priext = pages; /* fits into one extent */
+            maxext = 16;
+        } else {
+            priext = 500; /* Try and fit into 500 page chunks */
+            maxext = pages/(priext - 50); /* Allow for Enscribe overhead */
+            if (maxext > 978) {
+                priext = eof >> 10;         /* 512 equal extents */
+                maxext = 978;                /* 2048 * 512 == 2^10 */
+            }
+        }
+        secext = priext;
+        filecode = (G.pInfo->textmode ? NSK_EDITFILECODE : NSK_OBJECTFILECODE);
+        blocksize = TANDEM_BLOCKSIZE;
+    }
+
+    if ((fdesc = creat(G.filename,,priext,secext)) != -1){
+        fnum = fdtogfn ((short)fdesc);
+        err = (SETMODE (fnum, SET_FILE_BUFFERSIZE, blocksize) != CCE);
+        err = (SETMODE (fnum, SET_FILE_BUFFERED, 0, 0) != CCE);
+        err = (SETMODE (fnum, SET_FILE_BUFFERED, 0, 1) != CCE);
+        err = (SETMODE (fnum, SET_FILE_MAXEXTENTS, maxext) != CCE);
+        err = close(fdesc);
+
+        vlist[0] = filecode;
+
+        /* Note that FILE_ALTERLIST_ expects uppercase names */
+        /* Need to call strlen and upshift                   */
+        len = strlen(G.filename);
+        err = STRING_UPSHIFT_(G.filename,
+                              len,
+                              nsk_fname,
+                              len);
+
+        err = FILE_ALTERLIST_(nsk_fname,
+                              len,
+                              alist,
+                              alist_items,
+                              vlist,
+                              vlist_bytes,
+                              ,
+                              err_item);
+    };
+
+    G.outfile = fopen(G.filename, (G.pInfo->textmode ? FOPWT : FOPW));
+
+    if (G.outfile == (FILE *)NULL) {
+        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
+          FnFilter1(G.filename)));
+        return 1;
+    }
+
+#ifdef USE_FWRITE
+#ifdef _IOFBF  /* make output fully buffered (works just about like write()) */
+    setvbuf(G.outfile, (char *)slide, _IOFBF, WSIZE);
+#else
+    setbuf(G.outfile, (char *)slide);
+#endif
+#endif /* USE_FWRITE */
+    return 0;
+
+} /* end function open_outfile() */
+
 
 
 /**********************/
@@ -294,7 +438,7 @@ int mapattr(__G)
              * in a '/'.  Some third-party Zip programs fail to set the subdir
              * bit for directory entries.
              */
-            if ((tmp | 0x10) == 0) {
+            if ((tmp & 0x10) == 0) {
                 extent fnlen = strlen(G.filename);
                 if (fnlen > 0 && G.filename[fnlen-1] == '/')
                     tmp |= 0x10;
@@ -325,16 +469,26 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-                             /* return 0 if no error, 1 if caution (filename */
-int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
-    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
-    int renamed;             /*  or 10 if out of memory (skip file) */
-{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
+
+int mapname(__G__ renamed)
+    __GDEF
+    int renamed;
+/*
+ * returns:
+ *  MPN_OK          - no problem detected
+ *  MPN_INF_TRUNC   - caution (truncated filename)
+ *  MPN_INF_SKIP    - info "skip entry" (dir doesn't exist)
+ *  MPN_ERR_SKIP    - error -> skip entry
+ *  MPN_ERR_TOOLONG - error -> path is too long
+ *  MPN_NOMEM       - error (memory allocation failed) -> skip entry
+ *  [also MPN_VOL_LABEL, MPN_CREATED_DIR]
+ */
+{
     char pathcomp[FILNAMSIZ];      /* path-component buffer */
     char *pp, *cp;                 /* character pointers */
     char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
     int quote = FALSE;             /* flags */
-    int error = 0;
+    int error = MPN_OK;
     register unsigned workch;      /* hold the character being tested */
 
 
@@ -343,7 +497,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     if (G.pInfo->vollabel)
-        return IZ_VOL_LABEL;    /* can't set disk volume labels on Tandem */
+        return MPN_VOL_LABEL;   /* can't set disk volume labels on Tandem */
 
     /* can create path as long as not just freshening, or if user told us */
     G.create_dirs = (!uO.fflag || renamed);
@@ -353,13 +507,13 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
     /* user gave full pathname:  don't prepend rootpath */
     renamed_fullpath = (renamed && (*G.filename == '/'));
 
-    if (checkdir(__G__ (char *)NULL, INIT) == 10)
-        return 10;              /* initialize path buffer, unless no memory */
+    if (checkdir(__G__ (char *)NULL, INIT) == MPN_NOMEM)
+        return MPN_NOMEM;       /* initialize path buffer, unless no memory */
 
     /* TANDEM - call in2ex */
-    pp = in2ex(G.filename);
+    pp = in2ex(__G__ G.filename);
     if (pp == (char *)NULL)
-        return 10;
+        return MPN_NOMEM;
     strcpy(G.filename, pp);
     free(pp);
 
@@ -381,7 +535,8 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
             switch (workch) { /* includes space char, let checkdir handle it */
             case TANDEM_DELIMITER: /* can assume -j flag not given */
                 *pp = '\0';
-                if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
+                if (((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK)
+                     > MPN_INF_TRUNC)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
                 lastsemi = (char *)NULL; /* leave directory semi-colons alone */
@@ -404,17 +559,6 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
 
     } /* end while loop */
 
-    *pp = '\0';                   /* done with pathcomp:  terminate it */
-
-    /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!uO.V_flag && lastsemi) {
-        pp = lastsemi + 1;
-        while (isdigit((uch)(*pp)))
-            ++pp;
-        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
-            *lastsemi = '\0';
-    }
-
 /*---------------------------------------------------------------------------
     Report if directory was created (and no file to create:  filename ended
     in '/'), check name to be sure it exists, and combine path and name be-
@@ -426,17 +570,30 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
         if (created_dir) {
             if (QCOND2) {
                 Info(slide, 0, ((char *)slide, "   creating: %s\n",
-                  G.filename));
+                  FnFilter1(G.filename)));
             }
-            return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
+            /* set dir time (note trailing '/') */
+            return (error & ~MPN_MASK) | MPN_CREATED_DIR;
         }
-        return 2;   /* dir existed already; don't look for data to extract */
+        /* dir existed already; don't look for data to extract */
+        return (error & ~MPN_MASK) | MPN_INF_SKIP;
+    }
+
+    *pp = '\0';                   /* done with pathcomp:  terminate it */
+
+    /* if not saving them, remove VMS version numbers (appended ";###") */
+    if (!uO.V_flag && lastsemi) {
+        pp = lastsemi + 1;
+        while (isdigit((uch)(*pp)))
+            ++pp;
+        if (*pp == '\0')          /* only digits between ';' and end:  nuke */
+            *lastsemi = '\0';
     }
 
     if (*pathcomp == '\0') {
         Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
-          G.filename));
-        return 3;
+          FnFilter1(G.filename)));
+        return (error & ~MPN_MASK) | MPN_ERR_SKIP;
     }
 
     checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
@@ -456,12 +613,14 @@ int checkdir(__G__ pathcomp, flag)
     char *pathcomp;
     int flag;
 /*
- * returns:  1 - (on APPEND_NAME) truncated filename
- *           2 - path doesn't exist, not allowed to create
- *           3 - path doesn't exist, tried to create and failed; or
- *               path exists and is not a directory, but is supposed to be
- *           4 - path is too long
- *          10 - can't allocate memory for filename buffers
+ * returns:
+ *  MPN_OK          - no problem detected
+ *  MPN_INF_TRUNC   - (on APPEND_NAME) truncated filename
+ *  MPN_INF_SKIP    - path doesn't exist, not allowed to create
+ *  MPN_ERR_SKIP    - path doesn't exist, tried to create and failed; or path
+ *                    exists and is not a directory, but is supposed to be
+ *  MPN_ERR_TOOLONG - path is too long
+ *  MPN_NOMEM       - can't allocate memory for filename buffers
  */
 /* By using in2ex() to pre-process the filename we do not need to worry
    about the lengths of filename parts.  We just need to cope with mapping the
@@ -493,34 +652,38 @@ int checkdir(__G__ pathcomp, flag)
     if (FUNCTION == APPEND_DIR) {
         int too_long = FALSE;
 
-        Trace((stderr, "appending dir segment [%s]\n", pathcomp));
+        Trace((stderr, "appending dir segment [%s]\n", FnFilter1(pathcomp)));
         while ((*end = *pathcomp++) != '\0')
             ++end;
 
         if (stat(buildpath, &G.statbuf)) {  /* path doesn't exist */
             if (!G.create_dirs) { /* told not to create (freshening) */
                 free(buildpath);
-                return 2;         /* path doesn't exist:  nothing to do */
+                return MPN_INF_SKIP;    /* path doesn't exist: nothing to do */
             }
             if (mkdir(buildpath, 0777) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
                   "checkdir error:  cannot create %s\n\
-                 unable to process %s.\n", buildpath, G.filename));
+                 unable to process %s.\n",
+                  FnFilter2(buildpath), FnFilter1(G.filename)));
                 free(buildpath);
-                return 3;      /* path didn't exist, tried to create, failed */
+                /* path didn't exist, tried to create, failed */
+                return MPN_ERR_SKIP;
             }
             created_dir = TRUE;
         } else if (!S_ISDIR(G.statbuf.st_mode)) {
             Info(slide, 1, ((char *)slide,
               "checkdir error:  %s exists but is not directory\n\
-                 unable to process %s.\n", buildpath, G.filename));
+                 unable to process %s.\n",
+                  FnFilter2(buildpath), FnFilter1(G.filename)));
             free(buildpath);
-            return 3;          /* path existed but wasn't dir */
+            /* path existed but wasn't dir */
+            return MPN_ERR_SKIP;
         }
         *end++ = TANDEM_DELIMITER;
         *end = '\0';
-        Trace((stderr, "buildpath now = [%s]\n", buildpath));
-        return 0;
+        Trace((stderr, "buildpath now = [%s]\n", FnFilter1(buildpath)));
+        return MPN_OK;
 
     } /* end if (FUNCTION == APPEND_DIR) */
 
@@ -531,10 +694,11 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == GETPATH) {
         strcpy(pathcomp, buildpath);
-        Trace((stderr, "getting and freeing path [%s]\n", pathcomp));
+        Trace((stderr, "getting and freeing path [%s]\n",
+          FnFilter1(pathcomp)));
         free(buildpath);
         buildpath = end = (char *)NULL;
-        return 0;
+        return MPN_OK;
     }
 
 /*---------------------------------------------------------------------------
@@ -543,7 +707,7 @@ int checkdir(__G__ pathcomp, flag)
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == APPEND_NAME) {
-        Trace((stderr, "appending filename [%s]\n", pathcomp));
+        Trace((stderr, "appending filename [%s]\n", FnFilter1(pathcomp)));
 
         extension = parsename(pathcomp, fname, ext);
         if (extension) {
@@ -579,8 +743,9 @@ int checkdir(__G__ pathcomp, flag)
             while ((*end = *pathcomp++) != '\0')
               ++end;
 
-        Trace((stderr, "buildpath now = [%s]\n", buildpath));
-        return 0;  /* could check for existence here, prompt for new name... */
+        Trace((stderr, "buildpath now = [%s]\n", FnFilter1(buildpath)));
+        /* could check for existence here, prompt for new name... */
+        return MPN_OK;
     }
 
 /*---------------------------------------------------------------------------
@@ -593,9 +758,9 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1)) ==
-            (char *)NULL)
-            return 10;
+        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1))
+            == (char *)NULL)
+            return MPN_NOMEM;
         if ((rootlen > 0) && !renamed_fullpath) {
             strcpy(buildpath, rootpath);
             end = buildpath + rootlen;
@@ -603,54 +768,58 @@ int checkdir(__G__ pathcomp, flag)
             *buildpath = '\0';
             end = buildpath;
         }
-        Trace((stderr, "[%s]\n", buildpath));
-        return 0;
+        Trace((stderr, "[%s]\n", FnFilter1(buildpath)));
+        return MPN_OK;
     }
 
 /*---------------------------------------------------------------------------
-    ROOT:  if appropriate, store the path in rootpath and create it if neces-
-    sary; else assume it's a zipfile member and return.  This path segment
-    gets used in extracting all members from every zipfile specified on the
-    command line.
+    ROOT:  if appropriate, store the path in rootpath and create it if
+    necessary; else assume it's a zipfile member and return.  This path
+    segment gets used in extracting all members from every zipfile specified
+    on the command line.
   ---------------------------------------------------------------------------*/
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
-        Trace((stderr, "initializing root path to [%s]\n", pathcomp));
+        Trace((stderr, "initializing root path to [%s]\n",
+          FnFilter1(pathcomp)));
         if (pathcomp == (char *)NULL) {
             rootlen = 0;
-            return 0;
+            return MPN_OK;
         }
         if (rootlen > 0)        /* rootpath was already set, nothing to do */
-            return 0;
+            return MPN_OK;
         if ((rootlen = strlen(pathcomp)) > 0) {
             char *tmproot;
 
             if ((tmproot = (char *)malloc(rootlen+2)) == (char *)NULL) {
                 rootlen = 0;
-                return 10;
+                return MPN_NOMEM;
             }
             strcpy(tmproot, pathcomp);
             if (tmproot[rootlen-1] == TANDEM_DELIMITER) {
                 tmproot[--rootlen] = '\0';
             }
             if (rootlen > 0 && (stat(tmproot, &G.statbuf) ||
-                !S_ISDIR(G.statbuf.st_mode)))       /* path does not exist */
-            {
+                                !S_ISDIR(G.statbuf.st_mode)))
+            {   /* path does not exist */
                 if (!G.create_dirs /* || iswild(tmproot) */ ) {
                     free(tmproot);
                     rootlen = 0;
-                    return 2;   /* skip (or treat as stored file) */
+                    /* skip (or treat as stored file) */
+                    return MPN_INF_SKIP;
                 }
                 /* create the directory (could add loop here scanning tmproot
                  * to create more than one level, but why really necessary?) */
                 if (mkdir(tmproot, 0777) == -1) {
                     Info(slide, 1, ((char *)slide,
                       "checkdir:  cannot create extraction directory: %s\n",
-                      tmproot));
+                      FnFilter1(tmproot)));
                     free(tmproot);
-                    rootlen = 0;  /* path didn't exist, tried to create, and */
-                    return 3; /* failed:  file exists, or 2+ levels required */
+                    rootlen = 0;
+                    /* path didn't exist, tried to create, and failed: */
+                    /* file exists, or 2+ subdir levels required */
+                    return MPN_ERR_SKIP;
                 }
             }
             tmproot[rootlen++] = TANDEM_DELIMITER;
@@ -658,11 +827,11 @@ int checkdir(__G__ pathcomp, flag)
             if ((rootpath = (char *)realloc(tmproot, rootlen+1)) == NULL) {
                 free(tmproot);
                 rootlen = 0;
-                return 10;
+                return MPN_NOMEM;
             }
-            Trace((stderr, "rootpath now = [%s]\n", rootpath));
+            Trace((stderr, "rootpath now = [%s]\n", FnFilter1(rootpath)));
         }
-        return 0;
+        return MPN_OK;
     }
 #endif /* !SFX || SFX_EXDIR */
 
@@ -676,10 +845,10 @@ int checkdir(__G__ pathcomp, flag)
             free(rootpath);
             rootlen = 0;
         }
-        return 0;
+        return MPN_OK;
     }
 
-    return 99;  /* should never reach */
+    return MPN_INVALID; /* should never reach */
 
 } /* end function checkdir() */
 
@@ -713,12 +882,15 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     unsigned eb_izux_flg;
     nsk_file_attrs *znsk_attr;
     short err;
+    unsigned short len;
 
     #define alist_items 1
     #define vlist_bytes 2
     short alist[alist_items]={42     };
     unsigned short vlist[alist_items];
     short extra, *err_item=&extra;
+
+    char nsk_work[FILENAME_MAX + 1], *nsk_fname=&nsk_work[0];
 
     fclose(G.outfile);
 
@@ -735,8 +907,18 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
           && znsk_attr->filetype == NSK_UNSTRUCTURED) {
         /* leave type 101 files alone */
         vlist[0] = znsk_attr->filecode;
-        err = FILE_ALTERLIST_(G.filename,
-                              G.lrec.filename_length,
+
+        /* Note that FILE_ALTERLIST_ expect uppercase names and that        */
+        /* G.lrec.filename_length is the length of original zipped filename */
+        /* not any 'rename' name.  Need to re call strlen and upshift       */
+        len = strlen(G.filename);
+        err = STRING_UPSHIFT_(G.filename,
+                              len,
+                              nsk_fname,
+                              len);
+
+        err = FILE_ALTERLIST_(nsk_fname,
+                              len,
                               alist,
                               alist_items,
                               vlist,
@@ -787,7 +969,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     if (utime(G.filename, (ztimbuf *)&zt))
         if (uO.qflag)
             Info(slide, 0x201, ((char *)slide,
-              "warning:  cannot set times for %s\n", G.filename));
+              "warning:  cannot set times for %s\n", FnFilter1(G.filename)));
         else
             Info(slide, 0x201, ((char *)slide,
               " (warning) cannot set times"));
@@ -815,7 +997,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
             if (uO.qflag)
                 Info(slide, 0x201, ((char *)slide,
                   "warning:  cannot set UID %d and/or GID %d for %s\n",
-                  z_uidgid[0], z_uidgid[1], G.filename));
+                  z_uidgid[0], z_uidgid[1], FnFilter1(G.filename)));
             else
                 Info(slide, 0x201, ((char *)slide,
                   " (warning) cannot set UID %d and/or GID %d",
@@ -839,23 +1021,10 @@ void version(__G)
     /* Pyramid, NeXT have problems with huge macro expansion, too: no Info() */
     sprintf((char *)slide, LoadFarString(CompiledWith),
 
-#ifdef __GNUC__
-      "gcc ", __VERSION__,
-#else
-#  ifdef __VERSION__
-      "cc ", __VERSION__,
-#  else
-      "cc", "",
-#  endif
-#endif
-
-      "Unix",
-
-#ifdef TANDEM
-      " (Tandem/NSK)",
-#else
-      "",
-#endif /* TANDEM */
+    "C ",
+    "T9255D44 - (16OCT98)",
+    "NonStop ",
+    "(Tandem/NSK)",
 
 #ifdef __DATE__
       " on ", __DATE__

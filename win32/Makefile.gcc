@@ -2,7 +2,7 @@
 # Currently supported implementations: Cygnus/Win32 and MinGW32.
 #
 # First version: Cosmin Truta <cosmint@cs.ubbcluj.ro>, Dec 1997.
-# Last revision: Christian Spieler, 14-Jan-2001
+# Last revision: Christian Spieler, 10-Nov-2001
 #
 # To use, do "make -f win32/makefile.gcc".
 
@@ -51,7 +51,9 @@ AS_RELEASE_OPT =
 LD_RELEASE_OPT = -s
 
 # Prefered target CPU (instruction scheduling optimized for...)
-CC_CPU_OPT = -mpentium
+#ifndef CC_CPU_OPT
+CC_CPU_OPT = -mcpu=pentium
+#endif
 
 # Smallest code  (-Os is new since EGC 1.1, use -O1 for 2.8.1 and earlier)
 CC_SIZE_OPT = -Os $(CC_CPU_OPT)
@@ -220,7 +222,7 @@ process$(OBJ):  process.c $(UNZIP_H)
 ttyio$(OBJ):    ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(OBJ): unreduce.c $(UNZIP_H)
 unshrink$(OBJ): unshrink.c $(UNZIP_H)
-unzip$(OBJ):    unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip$(OBJ):    unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo$(OBJ):  zipinfo.c $(UNZIP_H)
 crc_i386$(OBJ): crc_i386.S
 
@@ -281,14 +283,14 @@ ttyiox$(OBJ): ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h		# unzipsfx only
 ttyiof$(OBJ): ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h		# funzip only
 	$(CC) $(CFLAGS) $(CVER) $(FFLAGS) ttyio.c
 
-unzipsfx$(OBJ): unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
+unzipsfx$(OBJ): unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
 	$(CC) $(CFLAGS) $(CVER) $(SFXFLAGS) unzip.c
 
 uzexampl$(OBJ):	windll/uzexampl.c windll/uzexampl.h		# WINDLL sample
 	$(CC) $(CFLAGS) $(CVER) $(GENFLAGS) -I. windll/uzexampl.c
 
 # DLL compilation section
-api$(OBJ): api.c $(UNZIP_H) $(WINDLL_H) version.h
+api$(OBJ): api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) api.c
 
 crc32l$(OBJ):	crc32.c $(UNZIP_H) zip.h
@@ -339,14 +341,14 @@ win32l$(OBJ): win32/win32.c $(UNZIP_H) win32/nt.h
 ntl$(OBJ): win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) -I. win32/nt.c
 
-windll$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+windll$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(CC) $(CFLAGS) $(CVER) $(GENDLLFL) -I. windll/windll.c
 
-windllrc$(OBJ):	windll/windll.rc
+windllrc$(OBJ):	windll/windll.rc unzvers.h
 	- $(RC) -o $@ windll/windll.rc
 
 # SFX Lib compilation section
-apig$(OBJ):	api.c $(UNZIP_H) $(WINDLL_H) version.h
+apig$(OBJ):	api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
 	$(CC) $(CFLAGS) $(CVER) $(GENGUILB) api.c
 
 crc32g$(OBJ):	crc32.c $(UNZIP_H) zip.h
@@ -382,7 +384,7 @@ win32g$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
 ntg$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENGUILB) -I. win32/nt.c
 
-windllg$(OBJ):  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+windllg$(OBJ):  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(CC) $(CFLAGS) $(CVER) $(GENGUILB) windll/windll.c
 
 sfxwiz$(OBJ):	windll/guisfx/sfxwiz.c windll/guisfx/dialog.h $(WINDLL_IMP_H)
@@ -393,7 +395,7 @@ sfxwizrc$(OBJ):	windll/guisfx/sfxwiz.rc
 		windll/guisfx/sfxwiz.rc
 
 # Static LIB compilation section
-apib$(OBJ): api.c $(UNZIP_H) $(WINDLL_H) version.h
+apib$(OBJ): api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
 	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) api.c
 
 crc32b$(OBJ):	crc32.c $(UNZIP_H) zip.h
@@ -444,7 +446,7 @@ win32b$(OBJ): win32/win32.c $(UNZIP_H) win32/nt.h
 ntb$(OBJ): win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) -I. win32/nt.c
 
-windllb$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+windllb$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(CC) $(CFLAGS) $(CVER) $(GENLIBFL) -I. windll/windll.c
 
 clean:

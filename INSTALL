@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 06 May 2000.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 28 Apr 2001.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -213,7 +213,7 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         For DOS derivatives the format is automatically obtained from the
         operating system; most others default to DF_MDY.
 
-      ACORN_FTYPE_NFS  (currently, Unix only)
+      ACORN_FTYPE_NFS  (needs support for long filenames with embedded commas)
         This option enables a -F option that instructs UnZip to interpret the
         filetype information extracted from Acorn RiscOS extra field blocks.
         The filetype IDs are translated into "NFS filetype extensions" and
@@ -256,10 +256,22 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         No longer supported.
 
       SFX_EXDIR
-        Enable the "-d <extract_dir>" option for UnZipSFX.  By default it is
-        disabled so as to generate the smallest possible executable stub, but
-        for use with automated installation scripts and the like it may be
-        useful to enable -d.
+        Enable the "-d <extract_dir>" option for UnZipSFX.  This is now
+        enabled by default (since UnZip 5.5) to facilitate use with
+        automated installation scripts and the like.  For disabling
+        this feature, see the NO_SFX_EXDIR option.
+
+      NO_SFX_EXDIR
+        Disables the "-d <extract_dir>" option for UnZipSFX to generate the
+        smallest possible executable stub.  (Prior to the UnZip 5.5 release,
+        this was the default.)
+
+      CHEAP_SFX_AUTORUN
+        Enable a simple "run command after extraction" feature for
+        the (command line) UnZipSFX stub.  This feature is currently
+        incompatible with the "-d <extract_dir>" command line option,
+        therefore CHEAP_SFX_AUTORUN implicitely sets the NO_SFX_EXDIR
+        option.
 
       NO_ZIPINFO
         Compile without ZipInfo mode (-Z) enabled; makes a smaller executable
@@ -268,6 +280,30 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         is no need to specify this explicitly.  (Note that even with this
         defined, the resulting executable may still be too big to extract
         some zipfiles correctly, if compiled with the small memory model.)
+
+      USE_DEFLATE64 (default for UnZip and fUnZip)
+      NO_DEFLATE64 (default for UnZipSFX stub)
+        The "deflate64" algorithm from PKZIP 4.0 (or newer) is an enhanced
+        variant of the deflate algorithm that achieves slightly better
+        compression ratios on highly redundant data.  Normally, UnZip should
+        be compiled with support for this compression algorithm enabled.
+        However, this results in significantly larger memory requirements
+        to run the program.  For 16-bit executables (DOS and OS/2), the
+        special memory management to support the 64k history buffer results
+        in a slight performance (= speed) penalty.  And for the SFX stub,
+        "deflate64" support might be unnessessary as long as the Info-ZIP
+        Zip utility does not support it (quite likely, this will never
+        get implemented).  So, the NO_DEFLATE64 option is provided to allow
+        exclusion of the deflate64 support.
+
+      MULT_VOLUME (experimental for 5.5x, do NOT use in production versions!)
+      NO_MULT_VOLUME (default)
+        The symbol MULT_VOLUME is used to flag code portions needed for
+        support of multi-volume archives. For now, this flag MUST NOT be
+        used to compile a production versions of UnZip. This flag has been
+        introduced to allow integration of experimental code for multi-volume
+        support in the master source tree. This feature will become a default
+        option in the future 6.0 release of UnZip.
 
       LZW_CLEAN   (now default)
       USE_UNSHRINK
@@ -560,7 +596,8 @@ Macintosh
   Panel or directly on your desktop.
   This port supports also Apple-event.So you can install it in your
   WWW-Browser as a helper-app.
-  Look into ":macos:README.TXT" for further info.
+  Look into "macos/README.TXT" (or ":macos:README.TXT" on Mac) for further
+  info.
 
 Human68K, TOPS-20, AOS/VS, MVS, VM/CMS, etc.
   Dunno, sorry...

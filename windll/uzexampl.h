@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -35,7 +35,6 @@
 
 typedef int (WINAPI * _DLL_UNZIP)(int, char **, int, char **,
                                   LPDCL, LPUSERFUNCTIONS);
-typedef int (WINAPI * _USER_FUNCTIONS)(LPUSERFUNCTIONS);
 
 /* Global variables */
 
@@ -48,8 +47,7 @@ extern int hFile;                 /* file handle             */
 
 /* Global functions */
 
-extern _DLL_UNZIP Wiz_SingleEntryUnzip;
-extern _USER_FUNCTIONS Wiz_Init;
+extern _DLL_UNZIP pWiz_SingleEntryUnzip;
 int WINAPI DisplayBuf(LPSTR, unsigned long);
 
 /* Procedure Calls */

@@ -1,6 +1,6 @@
 # Makefile for UnZip, fUnZip and UnZipSFX using LCC-Win32.
 # By E-Yen Tan (3 June 1998).
-# Last updated 14 January 2001 (Christian Spieler).
+# Last updated 27 December 2001 (Christian Spieler).
 #
 # This version includes rules to build the 32-bit windll DLL.
 
@@ -65,7 +65,7 @@ OBJDS=win32l$(OBJ) ntl$(OBJ)
 OBLXS=win32g$(OBJ) ntg$(OBJ) windllg$(OBJ)
 OSDEP_H=win32/w32cfg.h
 WINDLL_H=windll/windll.h windll/structs.h windll/decs.h
-DLLDEF=.\windll\windllgcc.def	# lcclink requires backslashes as dir-sep!!
+DLLDEF=.\windll\windll_lc.def	# lcclink requires backslashes as dir-sep!!
 WINDLL_IMP_H = windll/decs.h windll/structs.h
 
 
@@ -136,8 +136,8 @@ uzexampl.exe: uzexampl$(OBJ)
 
 # dependencies
 
-api$(OBJ):	api.c $(UNZIP_H) version.h
-apihelp$(OBJ):	apihelp.c $(UNZIP_H) version.h
+api$(OBJ):	api.c $(UNZIP_H) unzvers.h
+apihelp$(OBJ):	apihelp.c $(UNZIP_H) unzvers.h
 crc32$(OBJ):	crc32.c $(UNZIP_H) zip.h
 crctab$(OBJ):	crctab.c $(UNZIP_H) zip.h
 envargs$(OBJ):	envargs.c $(UNZIP_H)
@@ -152,7 +152,7 @@ process$(OBJ):	process.c $(UNZIP_H)
 ttyio$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(OBJ):	unreduce.c $(UNZIP_H)
 unshrink$(OBJ):	unshrink.c $(UNZIP_H)
-unzip$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip$(OBJ):	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo$(OBJ):	zipinfo.c $(UNZIP_H)
 
 funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
@@ -161,7 +161,7 @@ funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
 uzexampl$(OBJ):	windll/uzexampl.c windll/uzexampl.h
 	$(CC) -c $(CFLAGS_UN) -I./windll $(OUT)$@ windll/uzexampl.c
 
-win32$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h version.h
+win32$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h unzvers.h
 	$(CC) -c $(CFLAGS_UN) -Iwin32 $(OUT)$@ win32/win32.c
 
 nt$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
@@ -221,7 +221,7 @@ process_$(OBJ):	process.c $(UNZIP_H)
 ttyio_$(OBJ):	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CC) -c $(CFLAGS_SX) $(OUT)$@ ttyio.c
 
-unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzipsf_$(OBJ):	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) -c $(CFLAGS_SX) $(OUT)$@ unzip.c
 
 win32_$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
@@ -231,8 +231,8 @@ nt_$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) -c $(CFLAGS_SX) -Iwin32 $(OUT)$@ win32/nt.c
 
 # DLL compilation section
-api$(OBJ):	api.c $(UNZIP_H) $(WINDLL_H) version.h
-	$(CC) $(CFLAGS_DL) $(OUT)$@ api.c
+api$(OBJ):	api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
+	$(CC) -c $(CFLAGS_DL) $(OUT)$@ api.c
 
 crc32l$(OBJ):	crc32.c $(UNZIP_H) zip.h
 	$(CC) -c $(CFLAGS_DL) $(OUT)$@ crc32.c
@@ -259,7 +259,7 @@ inflatel$(OBJ):	inflate.c inflate.h $(UNZIP_H) crypt.h
 	$(CC) -c $(CFLAGS_DL) $(OUT)$@ inflate.c
 
 listl$(OBJ):	list.c $(UNZIP_H) $(WINDLL_H)
-	$(CC) $(CFLAGS_DL) $(OUT)$@ list.c
+	$(CC) -c $(CFLAGS_DL) $(OUT)$@ list.c
 
 matchl$(OBJ):	match.c $(UNZIP_H)
 	$(CC) -c $(CFLAGS_DL) $(OUT)$@ match.c
@@ -282,15 +282,15 @@ win32l$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
 ntl$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) -c $(CFLAGS_DL) -Iwin32 $(OUT)$@ win32/nt.c
 
-windll$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+windll$(OBJ): windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(CC) -c $(CFLAGS_DL) $(OUT)$@ windll/windll.c
 
-windll32.res:	windll/windll.rc
+windll32.res:	windll/windll.rc unzvers.h
 	- lrc -v -m -r $(DLLFLAG) -DWIN32 -o$@ windll/windll.rc
 
 # SFX Lib compilation section
-apig$(OBJ):	api.c $(UNZIP_H) $(WINDLL_H) version.h
-	$(CC) $(CFLAGS_SL) $(OUT)$@ api.c
+apig$(OBJ):	api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
+	$(CC) -c $(CFLAGS_SL) $(OUT)$@ api.c
 
 crc32g$(OBJ):	crc32.c $(UNZIP_H) zip.h
 	$(CC) -c $(CFLAGS_SL) $(OUT)$@ crc32.c
@@ -325,7 +325,7 @@ win32g$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h
 ntg$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(CC) -c $(CFLAGS_SL) -Iwin32 $(OUT)$@ win32/nt.c
 
-windllg$(OBJ):  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+windllg$(OBJ):  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(CC) -c $(CFLAGS_SL) $(OUT)$@ windll/windll.c
 
 sfxwiz$(OBJ):	windll/guisfx/sfxwiz.c windll/guisfx/dialog.h $(WINDLL_IMP_H)

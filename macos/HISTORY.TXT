@@ -10,15 +10,55 @@ www.haase-online.de/dirk/maczip
 
 
 
+Release MacZip ver1.07 beta 1
+22. Februray 2001
+-----------------
 
-Release MacZip ver1.06 beta 1
-05. August 2000
-------------
+1) CHG: {unzip} switch to latest final release
+         unzip 5.42
 
 2) CHG: {zip} switch to latest beta release
+         zip 2.40a
+
+
+
+
+
+Release MacZip ver1.06 final
+22. Februray 2001
+-----------------
+
+1) CHG: {unzip} switch to latest final release
+         unzip 5.42
+
+2) CHG: switch to latest release of Apples
+        Universal Interfaces 3.3.2
+
+3) CHG: switch to latest release of
+        Morefiles 1.5
+
+
+
+
+Release MacZip ver1.06 beta 2
+02. August 2000
+---------------
+
+1) CHG: {unzip} switch to latest beta release
+         unzip 5.42d
+
+
+
+
+
+Release MacZip ver1.06 beta 1
+27. July 2000
+-------------
+
+1) CHG: {zip} switch to latest beta release
          unzip 2.30
 
-3) CHG: {unzip} switch to latest beta release
+2) CHG: {unzip} switch to latest beta release
          unzip 5.42c
 
 
@@ -26,8 +66,8 @@ Release MacZip ver1.06 beta 1
 
 
 Release MacZip ver1.05 final
-05. August 2000
-------------
+27. July 2000
+-------------
 
 1) CHG: {unzip} switch to latest final release
          unzip 5.41
@@ -38,8 +78,8 @@ Release MacZip ver1.05 final
 
 4) CHG: {unzip/zip} added exported Codewarrior project-file in xml-format
 
-5) FIX: {unzip} added extra-field recognition for Mac SmartZip in
-	    zipinfo.c and unzpriv.h.
+5) ADD: {unzip} added extra-field recognition for Mac SmartZip in
+         zipinfo.c and unzpriv.h.
 
 
 

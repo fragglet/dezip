@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -25,6 +25,11 @@
 
 #ifndef COPYRIGHT_CLEAN
 
-#error This dummy-module does not support the unreduce method!
+ /* This line is indented to hide the #error directive from pure traditional
+  * K&R C preprocessors. These do not recognize the #error directive, but
+  * they also recognize only lines that start with a '#' in column 1 as
+  * preprocessor directives.
+  */
+ #error This dummy-module does not support the unreduce method!
 
 #endif /* !COPYRIGHT_CLEAN */

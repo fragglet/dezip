@@ -219,16 +219,16 @@ add^list ZIPINFOO
 #OUTPUT Building [lib]
 #APPEND bin CLEAR
 add^list CRC32O
-add^list CRCTABO
+add^list CRCTABX
 add^list EXTRACTX
-add^list FILEIOO
-add^list GLOBALSO
-add^list INFLATEO
-add^list MATCHO
+add^list FILEIOX
+add^list GLOBALSX
+add^list INFLATEX
+add^list MATCHX
 add^list PROCESSX
-add^list TANDEMO
+add^list TANDEMX
 add^list TANUNZX
-add^list TTYIOO
+add^list TTYIOX
 #APPEND bin INFO UNRESOLVED *
 #APPEND bin BUILD [lib] ! , LIST * OFF
 
@@ -339,6 +339,236 @@ add^list TTYIOO
   logon [old^user]
   #SET current^user [#USERNAME [#PROCESSINFO /PAID/]]
   #OUTPUT
+]
+
+#UNFRAME
+
+
+?section CODE routine
+#FRAME
+#PUSH delta arg
+
+#SET /TYPE delta/ DELTA
+
+[#LOOP |WHILE| [#COMPUTE [#ARGUMENT /VALUE arg/ NUMBER END] = 1 ]
+|DO|
+  #APPEND DELTA [arg]I
+]
+
+#RESULT [#DELTA /COMMANDS DELTA/]
+
+#UNFRAME
+
+
+?section TACL^COMPLETIONCODE routine
+#RESULT [_completion:completioncode]
+
+?SECTION INCREMENT routine
+#FRAME
+#PUSH increment_variable increment_value
+
+[#IF [#ARGUMENT /VALUE increment_variable/ VARIABLE]]
+[#IF [#EMPTYV [increment_variable]]|THEN|#SET [increment_variable] 0]
+[#IF [#MORE]
+  |THEN|
+    [#IF [#ARGUMENT /VALUE increment_value/ NUMBER]]
+  |ELSE|
+    #SET increment_value 1
+]
+[#IF [#ARGUMENT END]]
+
+#SET [increment_variable] [#COMPUTE [increment_variable] + [increment_value]]
+
+#UNFRAME
+
+?section ERROR^IN^FUP^OUTPUT routine
+#FRAME
+#PUSH err output last line type
+
+#SETMANY err output, 0 0
+
+[#LOOP |WHILE| NOT [#EMPTYV fup^out]
+|DO|
+   #EXTRACTV fup^out line
+   [#SETMANY type, [#CHARGET line 1 TO 7] .]
+   [#CASE [type]
+     | ERROR     | #SETMANY output err, -1 -1
+     | WARNING   | #SET output -1
+     | OTHERWISE |
+   ]
+   [#IF output |THEN|
+     #OUTPUTV last
+     #OUTPUTV line
+     #SET output 0
+     #EXTRACTV fup^out line
+   ]
+   #SETV last line
+]
+
+#RESULT [err]
+
+#UNFRAME
+
+?section SECURE^FILE routine
+#FRAME
+
+[#DEF fup^out TEXT |BODY|]
+[#DEF fup^buf TEXT |BODY|]
+
+[#DEF fup^cmd MACRO |BODY|
+  FUP /OUTV fup^out/ %*%
+  #SETV fup^buf fup^out
+  [#IF [error^in^fup^output]
+  |THEN|
+    #OUTPUT Error detected in FUP output, ABORTING !!
+    #OUTPUT ..............................................................
+    #OUTPUTV fup^buf
+    #OUTPUT ..............................................................
+    #RAISE _BREAK
+  ]
+]
+
+[#DEF display^action MACRO |BODY|
+  [#IF NOT action |THEN|
+    #OUTPUT /HOLD/ Updating [file] ...
+    #SET action -1
+    #SET count 0
+  ]
+  #OUTPUT /COLUMN 3/ ... %*%
+]
+
+[#DEF display^noaction MACRO |BODY|
+  [#IF count
+  |THEN|
+    increment count
+  |ELSE|
+    #OUTPUT
+    #SET count 1
+  ]
+  [#IF count |THEN|
+    #OUTPUT /COLUMN [count]/ [code 27]A.
+    [#IF count > 75
+    |THEN|
+      #SET count 0
+    ]
+  ]
+]
+
+[#DEF process^file TEXT |BODY|
+  #SET action 0
+  #SETMANY cur^owner cur^security cur^license cur^progid, &
+    [#FILEINFO /OWNER, SECURITY, LICENSED, PROGID/ [file]]
+
+  #SET cur^owner [#USERNAME [cur^owner]]
+
+  [#IF NOT [#EMPTYV owner]
+  |THEN|
+    [#IF owner '<>' cur^owner
+    |THEN|
+      display^action giving to [owner]  (was [cur^owner])
+      fup^cmd GIVE [file], [owner]
+      [#IF cur^progid
+      |THEN|
+        #OUTPUT /COLUMN 3/... WARNING!  Loss of PROGID flag
+        #SET cur^progid 0
+      ]
+    ]
+  ]
+  [#IF NOT [#EMPTYV security]
+  |THEN|
+    [#IF security '<>' cur^security
+    |THEN|
+      display^action securing to [security] (was [cur^security])
+      fup^cmd SECURE [file], [security]
+    ]
+  ]
+  [#IF license |THEN|
+    [#IF NOT cur^license
+    |THEN|
+      display^action licensed
+      fup^cmd LICENSE [file]
+    ]
+  ]
+  [#IF progid |THEN|
+    [#IF NOT cur^progid
+    |THEN|
+      display^action PROGID flag set
+      fup^cmd SECURE [file],, PROGID
+    ]
+  ]
+  [#IF action
+  |THEN|
+    fup^cmd INFO [file]
+  |ELSE|
+    [#IF tflag
+    |THEN|
+      display^noaction
+    |ELSE|
+      #OUTPUT  /HOLD/ Unchanged : [file]
+      [#IF cur^progid  |THEN| #OUTPUT /COLUMN 39,HOLD/ P]
+      [#IF cur^license |THEN| #OUTPUT /COLUMN 40,HOLD/ L]
+      #OUTPUTV /COLUMN 43,HOLD/ cur^security
+      #OUTPUTV /COLUMN 50,HOLD/ cur^owner
+      #OUTPUT
+    ]
+ ]
+]
+
+#PUSH arg template file security owner progid license prev action count tflag
+#PUSH cur^security cur^owner cur^license cur^progid
+
+#SETMANY license progid, 0 0
+#SET count 0
+#SET tflag 0
+
+[#LOOP |WHILE| [#MORE]
+|DO|
+  [#CASE [#ARGUMENT /VALUE arg/ FILENAME
+                                USER /USERNAME/
+                                USER
+                                SECURITY
+                                KEYWORD /WORDLIST LICENSE/
+                                KEYWORD /WORDLIST PROGID/
+                                TEMPLATE
+         ]
+  | 1 | #SETV file     arg
+  | 2 | #SETV owner    arg
+  | 3 | #SET  owner [#USERNAME [arg]]
+  | 4 | #SETV security arg
+  | 5 | #SET  license  -1
+  | 6 | #SET  progid   -1
+  | 7 | #SETV template arg
+  ]
+]
+[#IF [#ARGUMENT END]]
+
+
+[#IF [#EMPTYV template]
+|THEN|
+  #SETV template file
+|ELSE|
+  #SET tflag -1
+  #OUTPUT /HOLD/ Template : [template]
+  [#IF progid  |THEN| #OUTPUT /COLUMN 39,HOLD/ P]
+  [#IF license |THEN| #OUTPUT /COLUMN 40,HOLD/ L]
+  [#IF NOT [#EMPTYV security] |THEN| #OUTPUTV /HOLD/ "  "[security]""]
+  [#IF NOT [#EMPTYV owner]    |THEN| #OUTPUTV /HOLD/ "  [owner]"]
+  #OUTPUT
+]
+
+[#IF [#EMPTYV template]
+|THEN|
+  #OUTPUT ERROR!  No filename specified
+  #RESET FRAMES
+  #RETURN
+|ELSE|
+  #SET file [#FILENAMES /MAXIMUM 1/ [template]]
+  [#LOOP |WHILE| NOT [#EMPTYV file]
+  |DO|
+    process^file
+    #SETV prev file
+    #SET file [#FILENAMES /MAXIMUM 1, PREVIOUS [prev]/ [template]]
+  ]
 ]
 
 #UNFRAME

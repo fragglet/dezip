@@ -22,11 +22,17 @@ DESCRIPTION
        have been removed.  Among these are the  usage  (or  help)
        screen,  the listing and diagnostic functions (-l and -v),
        the ability to decompress older compression  formats  (the
-       ``reduce,''  ``shrink''  and ``implode'' methods), and the
+       ``reduce,''  ``shrink''  and  ``implode''  methods).   The
        ability to extract to a directory other than  the  current
-       one.  Decryption is supported as a compile-time option but
+       one can be selected as a compile-time option, which is now
+       enabled by default since UnZipSFX version 5.5.   Similary,
+       decryption  is  supported  as  a  compile-time  option but
        should be avoided unless  the  attached  archive  contains
-       encrypted files.
+       encrypted  files.  Starting with release 5.5, another com-
+       pile-time option adds a simple ``run command after extrac-
+       tion''  feature.   This  feature is currently incompatible
+       with the ``extract to different  directory''  feature  and
+       remains disabled by default.
 
        Note  that self-extracting archives made with unzipsfx are
        no more (or less) portable across different operating sys-
@@ -48,16 +54,17 @@ ARGUMENTS
        [file(s)]
               An  optional  list  of  archive  members to be pro-
               cessed.  Regular expressions (wildcards) similar to
-              those  in Unix egrep(1) may be used to match multi-
-              ple members.  These wildcards may contain:
+              those  in  Unix  egrep(1)  may  be  used  to  match
+
+Info-ZIP             17 February 2002 (v5.5)                    1
+
+UNZIPSFX(1L)                                         UNZIPSFX(1L)
+
+              multiple members.  These wildcards may contain:
 
               *      matches a sequence of 0 or more characters
 
               ?      matches exactly 1 character
-
-Info-ZIP             14 January 2001 (v5.42)                    1
-
-UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
               [...]  matches any single  character  found  inside
                      the  brackets;  ranges  are  specified  by a
@@ -106,16 +113,17 @@ OPTIONS
        unzipsfx supports the following unzip(1L) options:  -c and
        -p (extract to standard output/screen), -f and -u (freshen
        and  update  existing  files  upon  extraction),  -t (test
-       archive) and -z (print archive comment).  All normal list-
-       ing  options  (-l,  -v  and -Z) have been removed, but the
+       archive) and  -z  (print  archive  comment).   All  normal
+
+Info-ZIP             17 February 2002 (v5.5)                    2
+
+UNZIPSFX(1L)                                         UNZIPSFX(1L)
+
+       listing options (-l, -v and -Z) have been removed, but the
        testing option (-t) may be used as a ``poor man's''  list-
        ing.    Alternatively,   those   creating  self-extracting
        archives may wish to include a short listing in  the  zip-
        file comment.
-
-Info-ZIP             14 January 2001 (v5.42)                    2
-
-UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
        See  unzip(1L)  for  a  more complete description of these
        options.
@@ -124,12 +132,12 @@ MODIFIERS
        unzipsfx currently supports all unzip(1L)  modifiers:   -a
        (convert  text files), -n (never overwrite), -o (overwrite
        without prompting), -q (operate quietly), -C (match  names
-       case-insenstively), -L (convert uppercase-OS names to low-
-       ercase), -j (junk paths) and -V (retain version  numbers);
-       plus  the following operating-system specific options:  -X
-       (restore VMS owner/protection info), -s (convert spaces in
-       filenames  to underscores [DOS, OS/2, NT]) and -$ (restore
-       volume label [DOS, OS/2, NT, Amiga]).
+       case-insensitively),  -L  (convert  uppercase-OS  names to
+       lowercase), -j (junk paths) and -V  (retain  version  num-
+       bers);   plus   the  following  operating-system  specific
+       options:  -X (restore VMS owner/protection info), -s (con-
+       vert  spaces  in filenames to underscores [DOS, OS/2, NT])
+       and -$ (restore volume label [DOS, OS/2, NT, Amiga]).
 
        (Support for regular ASCII text-conversion may be  removed
        in  future  versions,  since  it  is simple enough for the
@@ -155,6 +163,34 @@ DECRYPTION
        reason  to  use a version of unzipsfx with decryption sup-
        port; that only adds to the size of the archive.
 
+AUTORUN COMMAND
+       When unzipsfx was compiled with CHEAP_SFX_AUTORUN defined,
+       a simple ``command autorun'' feature is supported. You may
+       enter a command into the Zip archive  comment,  using  the
+       following format:
+
+           $AUTORUN$>[command line string]
+
+       When  unzipsfxP recognizes the ``$AUTORUN$>'' token at the
+       beginning of the Zip archive comment, the remainder of the
+
+Info-ZIP             17 February 2002 (v5.5)                    3
+
+UNZIPSFX(1L)                                         UNZIPSFX(1L)
+
+       first line of the comment (until the first newline charac-
+       ter) is passed as a shell command to the operating  system
+       using  the C rtl ``system'' function. Before executing the
+       command, unzipsfxP displays the command on the console and
+       prompts  the  user  for  confirmation.   When the user has
+       switched  off  prompting  by  specifying  the  -q  option,
+       autorun commands are never executed.
+
+       In  case  the  archive comment contains additonal lines of
+       text, the remainder of the archive comment  following  the
+       first  line  is displayed normally, unless quiet operation
+       was requested by supplying a -q option.
+
 EXAMPLES
        To create a self-extracting archive letters from a regular
        zipfile  letters.zip  and change the new archive's permis-
@@ -171,10 +207,6 @@ EXAMPLES
            zip -A letters.exe
 
        Under VMS:
-
-Info-ZIP             14 January 2001 (v5.42)                    3
-
-UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
            copy unzipsfx.exe,letters.zip letters.exe
            letters == "$currentdisk:[currentdir]letters.exe"
@@ -199,6 +231,10 @@ UNZIPSFX(1L)                                         UNZIPSFX(1L)
        indicating whether the archive is OK or not:
 
            letters -tqq
+
+Info-ZIP             17 February 2002 (v5.5)                    4
+
+UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
        To  extract  the complete contents into the current direc-
        tory, recreating all files and  subdirectories  as  neces-
@@ -230,10 +266,6 @@ LIMITATIONS
        For  some architectures there is limited portability, how-
        ever (e.g., between some flavors of Intel-based Unix).
 
-Info-ZIP             14 January 2001 (v5.42)                    4
-
-UNZIPSFX(1L)                                         UNZIPSFX(1L)
-
        Another problem with the current  implementation  is  that
        any archive with ``junk'' prepended to the beginning tech-
        nically is no longer a zipfile (unless zip(1) is  used  to
@@ -258,6 +290,10 @@ UNZIPSFX(1L)                                         UNZIPSFX(1L)
        name,  so  the archive may be invoked from anywhere in the
        user's path.  The situation is  not  known  for  AmigaDOS,
        Atari TOS, MacOS, etc.
+
+Info-ZIP             17 February 2002 (v5.5)                    5
+
+UNZIPSFX(1L)                                         UNZIPSFX(1L)
 
        As noted above, a number of the normal unzip(1L) functions
        have been removed  in  order  to  make  unzipsfx  smaller:
@@ -289,14 +325,11 @@ SEE ALSO
        funzip(1L), unzip(1L), zip(1L), zipcloak(1L), zipgrep(1L),
        zipinfo(1L), zipnote(1L), zipsplit(1L)
 
-Info-ZIP             14 January 2001 (v5.42)                    5
-
-UNZIPSFX(1L)                                         UNZIPSFX(1L)
-
 URL
-       The  Info-ZIP  home  page is currently at http://www.info-
-       zip.org/pub/infozip/          or           ftp://ftp.info-
-       zip.org/pub/infozip/ .
+       The Info-ZIP home page is currently at
+           http://www.info-zip.org/pub/infozip/
+       or
+           ftp://ftp.info-zip.org/pub/infozip/ .
 
 AUTHORS
        Greg  Roelofs  was responsible for the basic modifications
@@ -305,5 +338,5 @@ AUTHORS
        in the UnZip source distribution  for  the  full  list  of
        Info-ZIP contributors.
 
-Info-ZIP             14 January 2001 (v5.42)                    6
+Info-ZIP             17 February 2002 (v5.5)                    6
 

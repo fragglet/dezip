@@ -2,6 +2,8 @@
 
   unzip.h (new)
 
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+
   This header file contains the public macros and typedefs required by
   both the UnZip sources and by any application using the UnZip API.  If
   UNZIP_INTERNAL is defined, it includes unzpriv.h (containing includes,
@@ -255,8 +257,17 @@ freely, subject to the following restrictions:
 #endif
 
 #ifdef WINDLL
+   /* for UnZip, the "basic" part of the win32 api is sufficient */
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#    define IZ_HASDEFINED_WIN32LEAN
+#  endif
 #  include <windows.h>
 #  include "windll/structs.h"
+#  ifdef IZ_HASDEFINEd_WIN32LEAN
+#    undef WIN32_LEAN_AND_MEAN
+#    undef IZ_HASDEFINED_WIN32LEAN
+#  endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -445,6 +456,9 @@ typedef struct _UzpOpts {
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
 #endif
     int zflag;          /* -z: display the zipfile comment (only, for unzip) */
+#if (!defined(RISCOS) && !defined(CMS_MVS) && !defined(TANDEM))
+    int ddotflag;       /* -:: don't skip over "../" path elements */
+#endif
 #endif /* !FUNZIP */
 } UzpOpts;
 
@@ -512,7 +526,6 @@ typedef struct central_directory_file_header { /* CENTRAL */
 /* external return codes */
 #define PK_OK              0   /* no error */
 #define PK_COOL            0   /* no error */
-#define PK_GNARLY          0   /* no error */
 #define PK_WARN            1   /* warning error */
 #define PK_ERR             2   /* error in zipfile */
 #define PK_BADERR          3   /* severe error in zipfile */
@@ -530,12 +543,6 @@ typedef struct central_directory_file_header { /* CENTRAL */
 #define IZ_CTRLC          80   /* user hit ^C to terminate */
 #define IZ_UNSUP          81   /* no files found: all unsup. compr/encrypt. */
 #define IZ_BADPWD         82   /* no files found: all had bad password */
-
-/* internal and DLL-only return codes */
-#define IZ_DIR            76   /* potential zipfile is a directory */
-#define IZ_CREATED_DIR    77   /* directory created: set time and permissions */
-#define IZ_VOL_LABEL      78   /* volume label, but can't set on hard disk */
-#define IZ_EF_TRUNC       79   /* local extra field truncated (PKZIP'd) */
 
 /* return codes of password fetches (negative = user abort; positive = error) */
 #define IZ_PW_ENTERED      0   /* got some password string; use/try it */
@@ -566,9 +573,7 @@ void     UZ_EXP UzpFreeMemBuffer   OF((UzpBuffer *retstr));
 #ifndef WINDLL
 int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file, UzpOpts *optflgs,
                                        UzpCB *UsrFunc, UzpBuffer *retstr));
-#endif
-#ifndef WINDLL
-   int   UZ_EXP UzpGrep            OF((char *archive, char *file,
+int      UZ_EXP UzpGrep            OF((char *archive, char *file,
                                        char *pattern, int cmd, int SkipBin,
                                        UzpCB *UsrFunc));
 #endif

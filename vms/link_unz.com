@@ -3,7 +3,7 @@ $ !
 $ !     Command procedure to (re)link the VMS versions of
 $ !     UnZip/ZipInfo and UnZipSFX
 $ !
-$ !     last updated:  11 September 1997
+$ !     last updated:  13 February 2001
 $ !
 $ !     Command args:
 $ !     - select compiler environment: "VAXC", "DECC", "GNUC"

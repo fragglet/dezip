@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -54,6 +54,7 @@ static char         *argv[MAX_ARGS + 1];
 **  Copy a C string to a Pascal string
 **
 */
+
 unsigned char *CToPCpy(unsigned char *pstr, char *cstr)
 {
     register char *dptr;
@@ -65,7 +66,6 @@ unsigned char *CToPCpy(unsigned char *pstr, char *cstr)
     *pstr= (unsigned char)len;
   return pstr;
 }
-
 
 
 /*
@@ -103,6 +103,7 @@ char *sstrcat(char *to,const char *from)
 **  Alloc memory and init it
 **
 */
+
 char *StrCalloc(unsigned short size)
 {
 char *strPtr = NULL;
@@ -120,6 +121,7 @@ return strPtr;
 **  Release only non NULL pointers
 **
 */
+
 char *StrFree(char *strPtr)
 {
 

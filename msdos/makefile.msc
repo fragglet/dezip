@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.42 and later                     Greg Roelofs and others
-# Version:  Microsoft C (5.x and later)                               14 Jan 01
+# Makefile for UnZip 5.5 and later                      Greg Roelofs and others
+# Version:  Microsoft C (5.x and later)                               04 Mar 01
 #------------------------------------------------------------------------------
 
 # Users of MSC 6/7 and NMAKE can use the Unix Makefile (target msc_dos),
@@ -33,19 +33,19 @@ LOC = $(LOCAL_UNZIP)
 # Type for CPU required: 0: 8086, 1: 80186, 2: 80286, 3: 80386, etc.
 CPU_TYP = 0
 
-# small model for MSC 6.0 and 7.0?
-#UNMODEL=S	# small model for UnZip and UnZipSFX
-# with MSC 5.1 and 8.x, small model exceeds 64k code segment; use medium instead
-UNMODEL=M	# medium model for UnZip
-FUMODEL=S	# always use small model for fUnZip
-SXMODEL=S	# small model for UnZipSFX
+#UNMODEL=M	# medium model for UnZip
+# with MSC 5.1, 6.0 and 8.x, small model exceeds 64k code segment; use medium
+# deflate64 support requires large or compact model
+UNMODEL=L	# large model for UnZip with Deflate64 support
+FUMODEL=C	# compact model for fUnZip (Deflate64 support enabled)
+SXMODEL=S	# small model for UnZipSFX (without Deflate64 support)
 
 # name of Flag to select memory model for assembler compiles, supported
 # values are __SMALL__ , __MEDIUM__ , __COMPACT__ , __LARGE__ :
 #ASUNMODEL=__SMALL__	# keep in sync with UNMODEL definition !!
 # for MSC 5.1 and 8.x use:
-ASUNMODEL=__MEDIUM__	# keep in sync with UNMODEL definition !!
-ASFUMODEL=__SMALL__	# keep in sync with FUMODEL definition !!
+ASUNMODEL=__LARGE__	# keep in sync with UNMODEL definition !!
+ASFUMODEL=__COMPACT__	# keep in sync with FUMODEL definition !!
 ASSXMODEL=__SMALL__	# keep in sync with SXMODEL definition !!
 
 # Uncomment the following three macros to use the optimized CRC32 assembler
@@ -91,7 +91,7 @@ OBJX3 = msdosx.obj $(ASMOBJX)
 OBJX = $(OBJX1) $(OBJX2) $(OBJX3)
 
 OBJF = funzip.obj crc32_.obj crypt_.obj globals_.obj inflate_.obj ttyio_.obj \
-	$(ASMOBJF)
+	msdos_.obj $(ASMOBJF)
 
 UNZIP_H = unzip.h unzpriv.h globals.h msdos/doscfg.h
 
@@ -184,6 +184,9 @@ matchx.obj:     match.c $(UNZIP_H)
 msdos.obj:      msdos/msdos.c $(UNZIP_H)
 	$(CC) -c $(CFLAGS_UN) msdos/msdos.c
 
+msdos_.obj:     msdos/msdos.c $(UNZIP_H)
+	$(CC) -c $(CFLAGS_FU) -Fomsdos_.obj msdos/msdos.c
+
 msdosx.obj:     msdos/msdos.c $(UNZIP_H)
 	$(CC) -c $(CFLAGS_SX) -Fomsdosx.obj msdos/msdos.c
 
@@ -204,9 +207,9 @@ unreduce.obj:   unreduce.c $(UNZIP_H)
 
 unshrink.obj:   unshrink.c $(UNZIP_H)
 
-unzip.obj:      unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.obj:      unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 
-unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) -c $(CFLAGS_SX) -Founzipsfx.obj unzip.c
 
 zipinfo.obj:    zipinfo.c $(UNZIP_H)

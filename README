@@ -1,10 +1,10 @@
-This is the README file for the 14 January 2001 public release of the
+This is the README file for the 17 February 2002 public release of the
 Info-ZIP group's portable UnZip zipfile-extraction program (and related
 utilities).
 
-unzip542.zip      portable UnZip, version 5.42, source code distribution
-unzip542.tar.Z    same as above, but compress'd tar format
-unzip542.tar.gz   same as above, but gzip'd tar format
+unzip550.zip       portable UnZip, version 5.5, source code distribution
+unzip550.tar.Z     same as above, but compress'd tar format
+unzip550.tar.gz    same as above, but gzip'd tar format
 
 __________________________________________________________________________
 
@@ -53,6 +53,22 @@ vms/descrip.mms.
 
 CHANGES AND NEW FEATURES
 ------------------------
+The main addition in the 5.5 release is support for PKWARE's new Deflate64(tm)
+algorithm, which appeared first in PKZIP 4.0 (published November 2000).
+As usual, some other bugfixes and clean-ups have been integrated:
+
+   - support for Deflate64 (Zip compression method #9)
+   - support for extracting VMS variable length record text files on
+     any system
+   - optional "cheap autorun" feature for the SFX stub
+   - security fixes:
+     * strip leading slash from stored pathspecs,
+     * remove "../" parent dir path components from extracted file names
+   - new option "-:" to allow verbatim extraction of file names containing
+     "../" parent dir path specs
+   - fixed file handle leak for the DLL code
+   - repaired OS2 & WinNT ACL extraction which was broken in 5.42
+
 The 5.42 maintance release fixes more bugs and cleans up the redistribution
 conditions:
 

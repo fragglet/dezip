@@ -1,4 +1,4 @@
-# Makefile for UnZip 5.42 using Manx Aztec C 5.2, last revised 19 Jun 00.
+# Makefile for UnZip 5.5 using Manx Aztec C 5.2, last revised 13 Jan 02.
 # Define EXTRA=xxx on the Make command line for e.g. -dUSE_UNSHRINK.
 
 EXTRA =
@@ -20,12 +20,12 @@ OBJS = unzip.o envargs.o process.o extract.o \
          list.o globals.o crypt.o ttyio.o fileio.o crctab.o timezone.o \
          amiga/amiga.o amiga/crc_68.o amiga/flate.o
 
-XOBJS = unzip.xo process.xo extract.xo inflate.o \
-         match.o globals.o crypt.o ttyio.o fileio.o crctab.o timezone.o \
-         amiga/flate.o amiga/amiga.xo amiga/crc_68.o
+XOBJS = unzip.xo process.xo extract.xo inflate.xo match.xo \
+         globals.xo crypt.xo ttyio.xo fileio.xo crctab.xo timezone.xo \
+         amiga/amiga.xo amiga/crc_68.o amiga/flate.xo
 
 FOBJS = funzip.o inflate.fo crypt.fo ttyio.fo globals.fo \
-         amiga/flate.fo amiga/crc_68.o amiga/filedate.fo
+         amiga/filedate.fo amiga/crc_68.o amiga/flate.fo
 
 
 .c.o :
@@ -65,7 +65,7 @@ clean :
 	-delete $(OBJS)
 	-delete $(XOBJS)
 	-delete $(FOBJS)
-	-delete amiga/G_offs.a amiga/G_offs.fa amiga/mkGoff amiga/FmkGoff
+	-delete amiga/G_offs.a amiga/G_offs.fa amiga/gbloffs amiga/Fgbloffs
 
 cleaner : clean
 	-delete UnZip fUnZip UnZipSFX MakeSFX
@@ -79,52 +79,58 @@ crypt.o crypt.fo timezone.o ttyio.o ttyio.fo : zip.h
 inflate.o inflate.fo : inflate.h
 
 fileio.o : ebcdic.h
+
 funzip.o : tables.h
 
-crypt.o crypt.fo ttyio.o ttyio.fo unzip.o unzip.xo funzip.o : crypt.h
-fileio.o extract.o extract.xo inflate.o inflate.fo amiga/filedate.fo : crypt.h
-amiga/mkGoff amiga/FmkGoff : crypt.h
+crypt.o crypt.fo crypt.xo ttyio.o ttyio.fo ttyio.xo : crypt.h
+unzip.o unzip.xo funzip.o : crypt.h
+fileio.o fileio.xo extract.o extract.xo : crypt.h
+inflate.o inflate.fo inflate.xo amiga/filedate.fo : crypt.h
+amiga/gbloffs amiga/Fgbloffs amiga/Xgbloffs : crypt.h
 
-crypt.o crypt.fo ttyio.o ttyio.fo funzip.o fileio.o : ttyio.h
+crypt.o crypt.fo crypt.xo ttyio.o ttyio.fo ttyio.xo : ttyio.h
+funzip.o fileio.o fileio.xo : ttyio.h
 
-timezone.o amiga/amiga.o amiga/amiga.xo : timezone.h
+timezone.o timezone.xo amiga/amiga.o amiga/amiga.xo : timezone.h
 
-unzip.o unzip.xo : version.h consts.h
+unzip.o unzip.xo : unzvers.h consts.h
 
 
 # Special case object files:
 
-amiga/amiga.o : amiga/filedate.c amiga/stat.c amiga/amiga.c
+amiga/amiga.o : amiga/filedate.c amiga/stat.c amiga/amiga.c unzvers.h
 	rx > env:VersionDate "say '""'translate(date('E'), '.', '/')'""'"
 	$(CC) -o amiga/amiga.o $(CFLAGS) $(VERNUMS) amiga/amiga.c
 
-amiga/amiga.xo : amiga/filedate.c amiga/stat.c amiga/amiga.c
+amiga/amiga.xo : amiga/filedate.c amiga/stat.c amiga/amiga.c unzvers.h
 	$(CC) -o amiga/amiga.xo $(CFLAGS) $(VERNUMS) -d SFX amiga/amiga.c
 
 amiga/crc_68.o : amiga/crc_68.a
 	as -n -o amiga/crc_68.o amiga/crc_68.a
 
-amiga/flate.o : amiga/flate.a amiga/G_offs.a
+amiga/flate.o : amiga/flate.a amiga/gbloffs
+	amiga/gbloffs > amiga/G_offs.a
 	as -n -o amiga/flate.o -eINT16 amiga/flate.a
 
-amiga/flate.fo : amiga/flate.a amiga/G_offs.fa
-	as -n -o amiga/flate.fo -eINT16 -eFUNZIP -eAZTEC amiga/flate.a
+amiga/flate.fo : amiga/flate.a amiga/Fgbloffs
+	amiga/Fgbloffs > amiga/G_offs.a
+	as -n -o amiga/flate.fo -eINT16 -eAZTEC amiga/flate.a
 
-# These special files are generated on the fly by a program we compile and
-# then run, and then included into amiga/flate.a to provide definitions for it:
+amiga/flate.xo : amiga/flate.a amiga/Xgbloffs
+	amiga/Xgbloffs > amiga/G_offs.a
+	as -n -o amiga/flate.xo -eINT16 amiga/flate.a
 
-amiga/G_offs.a : amiga/mkGoff
-	amiga/mkGoff > amiga/G_offs.a
+amiga/gbloffs : gbloffs.c unzip.h unzpriv.h globals.h amiga/amiga.h crypt.h
+	$(CC) -o t:gbloffs.o $(CFLAGS) gbloffs.c
+	$(LD) $(LDFLAGS) -o amiga/gbloffs t:gbloffs.o $(LDLIBS)
+	-@delete t:gbloffs.o
 
-amiga/G_offs.fa : amiga/FmkGoff
-	amiga/FmkGoff > amiga/G_offs.fa
+amiga/Fgbloffs : gbloffs.c unzip.h unzpriv.h globals.h amiga/amiga.h crypt.h
+	$(CC) -o t:gbloffs.o $(CFLAGS) -d FUNZIP gbloffs.c
+	$(LD) $(LDFLAGS) -o amiga/Fgbloffs t:gbloffs.o $(LDLIBS)
+	-@delete t:gbloffs.o
 
-amiga/mkGoff : amiga/mkGoff.c globals.h crypt.h
-	$(CC) -o t:mkgoff.o $(CFLAGS) amiga/mkGoff.c
-	$(LD) $(LDFLAGS) -o amiga/mkGoff t:mkgoff.o $(LDLIBS)
-	-@delete t:mkgoff.o
-
-amiga/FmkGoff : amiga/mkGoff.c globals.h crypt.h
-	$(CC) -o t:mkgoff.o $(CFLAGS) -d FUNZIP amiga/mkGoff.c
-	$(LD) $(LDFLAGS) -o amiga/FmkGoff t:mkgoff.o $(LDLIBS)
-	-@delete t:mkgoff.o
+amiga/Xgbloffs : gbloffs.c unzip.h unzpriv.h globals.h amiga/amiga.h crypt.h
+	$(CC) -o t:gbloffs.o $(CFLAGS) -d SFX gbloffs.c
+	$(LD) $(LDFLAGS) -o amiga/Xgbloffs t:gbloffs.o $(LDLIBS)
+	-@delete t:gbloffs.o

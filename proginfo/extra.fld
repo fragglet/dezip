@@ -20,7 +20,7 @@ format unless otherwise specified.  Note that "Short" means two bytes,
 of their native sizes.  Unless specifically noted, all integer fields should
 be interpreted as unsigned (non-negative) numbers.
 
-Christian Spieler, 20000729
+Christian Spieler, 20010517
 
                         -------------------------
 
@@ -30,9 +30,10 @@ Christian Spieler, 20000729
 
           The current Header ID mappings defined by PKWARE are:
 
+          0x0001        ZIP64 extended information extra field
           0x0007        AV Info
           0x0009        OS/2 extended attributes      (also Info-ZIP)
-          0x000a        PKWARE NTFS (Win9x/WinNT FileTimes)
+          0x000a        NTFS (Win9x/WinNT FileTimes)
           0x000c        OpenVMS                       (also Info-ZIP)
           0x000d        Unix
           0x000f        Patch Descriptor
@@ -43,6 +44,8 @@ Christian Spieler, 20000729
 
           The Header ID mappings defined by Info-ZIP and third parties are:
 
+          0x0065        IBM S/390 attributes - uncompressed
+          0x0066        IBM S/390 attributes - compressed
           0x07c8        Info-ZIP Macintosh (old, J. Lee)
           0x2605        ZipIt Macintosh (first version)
           0x2705        ZipIt Macintosh v 1.3.5 and newer (w/o full filename)
@@ -53,13 +56,15 @@ Christian Spieler, 20000729
           0x4704        VM/CMS
           0x470f        MVS
           0x4854        Theos, old inofficial port
-          0x4b46        FWKCS MD5 (third party, see below)
+          0x4b46        FWKCS MD5 (see below)
           0x4c41        OS/2 access control list (text ACL)
           0x4d49        Info-ZIP OpenVMS (obsolete)
           0x4d63        Macintosh SmartZIP, by Macro Bambini
+          0x4f4c        Xceed original location extra field
           0x5356        AOS/VS (binary ACL)
           0x5455        extended timestamp
           0x5855        Info-ZIP Unix (original; also OS/2, NT, etc.)
+          0x554e        Xceed unicode extra field
           0x6542        BeOS (BeBox, PowerMac, etc.)
           0x6854        Theos
           0x756e        ASi Unix
@@ -183,6 +188,8 @@ The following are detailed descriptions of the known extra-field block types:
           "extra" block, introduced with the release of PKZIP 2.50 for
           Windows. (Last Revision 20001118)
 
+          (Note: At this time the Mtime, Atime and Ctime values may
+          be used on any WIN32 system.)
          [Info-ZIP note: In the current implementations, this field has
           a fixed total data size of 32 bytes and is only stored as local
           extra field.]
@@ -202,16 +209,19 @@ The following are detailed descriptions of the known extra-field block types:
           SizeN         Short       Size of attribute #N, in bytes
           (var.)        SubSize1    Attribute #N data
 
-          Currently, only one type of attributes block is defined, containing
-          the Win32 format filetimes for NTFS & VFAT. This block has a fixed
-          total length of 28 bytes, resulting in the fixed size value of 32
-          for the TSize field of the NTFS block.
+          For NTFS, values for Tag1 through TagN are as follows:
+          (currently only one set of attributes is defined for NTFS)
 
-          0x0001        Short       Tag for NTFS filetimes attribute
-          SubSize1      Short       Size of NTFS filetimes attribute (24)
-          ModTime       Long-Long   64-bit NTFS last-modified filetime
-          AccTime       Long-Long   64-bit NTFS last-access filetime
-          CreTime       Long-Long   64-bit NTFS creation filetime
+          Tag        Size       Description
+          -----      ----       -----------
+          0x0001     2 bytes    Tag for attribute #1
+          Size1      2 bytes    Size of attribute #1, in bytes (24)
+          Mtime      8 bytes    64-bit NTFS file last modification time
+          Atime      8 bytes    64-bit NTFS file last access time
+          Ctime      8 bytes    64-bit NTFS file creation time
+
+          The total length for this block is 28 bytes, resulting in a
+          fixed size value of 32 for the TSize field of the NTFS block.
 
           The NTFS filetimes are 64-bit unsigned integers, stored in Intel
           (least significant byte first) byte order. They determine the
@@ -232,13 +242,13 @@ The following are detailed descriptions of the known extra-field block types:
   (VMS)   0x000c        Short       Tag for this "extra" block type
           TSize         Short       Total Data Size for this block
           CRC           Long        32-bit CRC for remainder of the block
-          Tag1          Short       VMS attribute tag value #1
+          Tag1          Short       OpenVMS attribute tag value #1
           Size1         Short       Size of attribute #1, in bytes
           (var.)        Size1       Attribute #1 data
           .
           .
           .
-          TagN          Short       VMS attribute tage value #N
+          TagN          Short       OpenVMS attribute tage value #N
           SizeN         Short       Size of attribute #N, in bytes
           (var.)        SizeN       Attribute #N data
 
@@ -473,7 +483,6 @@ The following are detailed descriptions of the known extra-field block types:
 
           The following is the layout of the SmartZIP extra
           block for Macintosh, designed by Marco Bambini.
-          All values are in little-endian.
 
           Local-header version:
 
@@ -595,13 +604,13 @@ The following are detailed descriptions of the known extra-field block types:
           name of the original file stored.  This name is NOT NULL
           terminated.  Its size can be determined by checking TSize -
           12.  Device entries will have eight bytes stored as two 4
-          byte entries (in little endian format).  The first entry
+          byte entries (in little-endian format).  The first entry
           will be the major device number, and the second the minor
           device number.
 
-          The fixed part of this field has the same layout as Info-ZIP's
-          abandoned "Unix1 timestamps & owner ID info" extra field;
-          only the two tag bytes are different.
+         [Info-ZIP note: The fixed part of this field has the same layout as
+          Info-ZIP's abandoned "Unix1 timestamps & owner ID info" extra field;
+          only the two tag bytes are different.]
 
 
          -PATCH Descriptor Extra Field:
@@ -763,6 +772,39 @@ The following are detailed descriptions of the known extra-field block types:
   (CDID)  0x0016        2 bytes     Tag for this "extra" block type
           CSize         2 bytes     Size of Method
           Method       (variable)
+
+
+         -ZIP64 Extended Information Extra Field:
+          ======================================
+
+          The following is the layout of the ZIP64 extended
+          information "extra" block. If one of the size or
+          offset fields in the Local or Central directory
+          record is too small to hold the required data,
+          a ZIP64 extended information record is created.
+          The order of the fields in the ZIP64 extended
+          information record is fixed, but the fields will
+          only appear if the corresponding Local or Central
+          directory record field is set to 0xFFFF or 0xFFFFFFFF.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value      Size       Description
+          -----      ----       -----------
+  (ZIP64) 0x0001     2 bytes    Tag for this "extra" block type
+          Size       2 bytes    Size of this "extra" block
+          Original
+          Size       8 bytes    Original uncompresseed file size
+          Compressed
+          Size       8 bytes    Size of compressed data
+          Relative Header
+          Offset     8 bytes    Offset of local header record
+          Disk Start
+          Number     4 bytes    Number of the disk on which
+                                this file starts
+
+          This entry in the Local header must include BOTH original
+          and compressed file sizes.
 
 
          -Extended Timestamp Extra Field:
@@ -1178,11 +1220,12 @@ The following are detailed descriptions of the known extra-field block types:
           TSize         Short       total data size for this block (19)
           "MD5"         3 bytes     extra-field signature
           MD5hash       16 bytes    128-bit MD5 hash of uncompressed data
+                                    (low byte first)
 
           When FWKCS revises a .ZIP file central directory to add
           this extra field for a file, it also replaces the
           central directory entry for that file's uncompressed
-          filelength with a measured value.
+          file length with a measured value.
 
           FWKCS provides an option to strip this extra field, if
           present, from a .ZIP file central directory. In adding

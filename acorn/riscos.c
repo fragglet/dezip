@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -158,6 +158,11 @@ struct dirent *readdir(DIR *d)
 
  strcpy(dent.d_name,d->act);
  dent.d_namlen=strlen(dent.d_name);
+
+ /* If we're returning the last item, check if there are any more.
+  * If there are, nothing will happen; if not, then d->offset = -1 */
+ if (!d->read)
+   SWI_OS_GBPB_9(d->dirname,d->buf,&d->read,&d->offset,0,NULL);
 
  return &dent;
 }

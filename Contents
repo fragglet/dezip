@@ -1,4 +1,4 @@
-Contents of the UnZip 5.42 source archive.  The OS-specific subdirectories
+Contents of the UnZip 5.50 source archive.  The OS-specific subdirectories
 at the end contain their own Contents listings:
 
   Contents      this file
@@ -7,9 +7,7 @@ at the end contain their own Contents listings:
   COPYING.OLD   historic copyrights and distribution policy (obsolete)
   INSTALL       how to compile and install UnZip and related utilities
   WHERE         where Zip/UnZip and encryption/decryption support can be found
-  History.540   new features and fixes of the last major release
-  History.541   new features and fixes in the previous maintance release
-  History.542   new features and fixes in this release
+  History.550   new features and fixes in this release
   ToDo          rough priority list of new features to be added in next release
   BUGS          known bugs, problems, and (possible) other features to be added
   unzip.txt     UnZip manual page, human-readable format
@@ -33,6 +31,7 @@ at the end contain their own Contents listings:
   extract.c     high-level extraction and decryption code (required)
   fileio.c      file manipulation and password code (required)
   funzip.c      filter unzip:  extracts in a pipe from stdin to stdout
+  gbloffs.c     helper program to retrieve offsets of globals struct members
   globals.c     code to support global variables with reentrancy (required)
   globals.h     definition of global structure G (required)
   inflate.c     code for inflating (required*)
@@ -51,7 +50,7 @@ at the end contain their own Contents listings:
   unzip.h       public half of main UnZip header file (required*)
   unzipstb.c    minimal UnZip "stub" file demonstrating use of DLL versions
   unzpriv.h     private (internal) half of main UnZip header file (required*)
-  version.h     header with UnZip/UnZipSFX and ZipInfo version info (required)
+  unzvers.h     header with UnZip/UnZipSFX and ZipInfo version info (required)
   zip.h         dummy header for use with crypt.c (required*)
   zipinfo.c     UnZip listing routines, ZipInfo mode (required)
   acorn/        support files for compiling under Acorn RISC OS

@@ -56,7 +56,7 @@ ARGUMENTS
               matches are found, the specification is assumed  to
               be  a literal filename; and if that also fails, the
 
-Info-ZIP             14 January 2001 (v2.32)                    1
+Info-ZIP             17 February 2002 (v2.4)                    1
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -115,7 +115,7 @@ OPTIONS
               forward-searching  or  editing  capability.   Also,
               zipinfo  doesn't  notice  if long lines wrap at the
 
-Info-ZIP             14 January 2001 (v2.32)                    2
+Info-ZIP             17 February 2002 (v2.4)                    2
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -174,7 +174,7 @@ DETAILED DESCRIPTION
        character  (`T'  or  `B').   The second character may also
        take on four values, depending  on  whether  there  is  an
 
-Info-ZIP             14 January 2001 (v2.32)                    3
+Info-ZIP             17 February 2002 (v2.4)                    3
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -233,7 +233,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
 
        The medium and long listings are almost identical  to  the
 
-Info-ZIP             14 January 2001 (v2.32)                    4
+Info-ZIP             17 February 2002 (v2.4)                    4
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -292,7 +292,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
        lists  file  comments and the zipfile comment, if any, and
        the type and number of bytes in any stored  extra  fields.
 
-Info-ZIP             14 January 2001 (v2.32)                    5
+Info-ZIP             17 February 2002 (v2.4)                    5
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -325,10 +325,17 @@ ENVIRONMENT OPTIONS
        the long-listing format (-l) can make use of the zipinfo's
        environment variable to change this default:
 
-           ZIPINFO=-l; export ZIPINFO    Unix Bourne shell
-           setenv ZIPINFO -l             Unix C shell
-           set ZIPINFO=-l                OS/2 or MS-DOS
-           define ZIPINFO_OPTS "-l"      VMS (quotes for lowercase)
+       Unix Bourne shell:
+              ZIPINFO=-l; export ZIPINFO
+
+       Unix C shell:
+              setenv ZIPINFO -l
+
+       OS/2 or MS-DOS:
+              set ZIPINFO=-l
+
+       VMS (quotes for lowercase):
+              define ZIPINFO_OPTS "-l"
 
        If,  in addition, the user dislikes the trailer line, zip-
        info's concept of ``negative  options''  may  be  used  to
@@ -342,19 +349,19 @@ ENVIRONMENT OPTIONS
        go from there.  It is also consistent with the behavior of
        the Unix command nice(1).
 
-       As  suggested  above,  the default variable names are ZIP-
-       INFO_OPTS for VMS (where the symbol used to  install  zip-
-       info as a foreign command would otherwise be confused with
-       the environment variable), and ZIPINFO for all other oper-
-       ating systems.  For compatibility with zip(1L), ZIPINFOOPT
-       is also accepted (don't ask).  If both ZIPINFO and  ZIPIN-
-       FOOPT  are  defined,  however,  ZIPINFO  takes precedence.
-       unzip's diagnostic option (-v with no zipfile name) can be
+       As   suggested  above,  the  default  variable  names  are
 
-Info-ZIP             14 January 2001 (v2.32)                    6
+Info-ZIP             17 February 2002 (v2.4)                    6
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
+       ZIPINFO_OPTS for VMS (where the  symbol  used  to  install
+       zipinfo  as  a foreign command would otherwise be confused
+       with the environment variable), and ZIPINFO for all  other
+       operating systems.  For compatibility with zip(1L), ZIPIN-
+       FOOPT is also accepted (don't ask).  If both  ZIPINFO  and
+       ZIPINFOOPT are defined, however, ZIPINFO takes precedence.
+       unzip's diagnostic option (-v with no zipfile name) can be
        used  to  check  the values of all four possible unzip and
        zipinfo environment variables.
 
@@ -402,20 +409,20 @@ EXAMPLES
        ers by default, unless  otherwise  specified.   Since  the
        environment  variable  specified no footers and that has a
        higher precedence than the  default  behavior  of  -s,  an
+
+Info-ZIP             17 February 2002 (v2.4)                    7
+
+ZIPINFO(1L)                                           ZIPINFO(1L)
+
        explicit -t option was necessary to produce the full list-
        ing.  Nothing was indicated about the header, however,  so
        the  -s  option was sufficient.  Note that both the -h and
        -t options, when used by themselves or  with  each  other,
        override  any  default  listing  of member files; only the
        header and/or footer are printed.  This behavior is useful
-       when   zipinfo   is   used   with   a   wildcard   zipfile
-
-Info-ZIP             14 January 2001 (v2.32)                    7
-
-ZIPINFO(1L)                                           ZIPINFO(1L)
-
-       specification; the contents of all zipfiles are then  sum-
-       marized with a single command.
+       when  zipinfo  is  used with a wildcard zipfile specifica-
+       tion; the contents of all  zipfiles  are  then  summarized
+       with a single command.
 
        To  list  information on a single file within the archive,
        in medium format, specify the filename explicitly:
@@ -461,6 +468,11 @@ TIPS
        The  author  finds it convenient to define an alias ii for
        zipinfo on systems that allow aliases (or, on  other  sys-
        tems,  copy/rename the executable, create a link or create
+
+Info-ZIP             17 February 2002 (v2.4)                    8
+
+ZIPINFO(1L)                                           ZIPINFO(1L)
+
        a command file with the name ii).  The ii usage  parallels
        the  common  ll  alias  for long listings in Unix, and the
        similarity between the outputs of  the  two  commands  was
@@ -468,11 +480,6 @@ TIPS
 
 BUGS
        As  with  unzip,  zipinfo's -M (``more'') option is overly
-
-Info-ZIP             14 January 2001 (v2.32)                    8
-
-ZIPINFO(1L)                                           ZIPINFO(1L)
-
        simplistic in its handling  of  screen  output;  as  noted
        above,  it  fails to detect the wrapping of long lines and
        may thereby cause lines at the top of  the  screen  to  be
@@ -491,9 +498,10 @@ SEE ALSO
        cloak(1L), zipnote(1L), zipsplit(1L)
 
 URL
-       The Info-ZIP home page is  currently  at  http://www.info-
-       zip.org/pub/infozip/           or          ftp://ftp.info-
-       zip.org/pub/infozip/ .
+       The Info-ZIP home page is currently at
+           http://www.info-zip.org/pub/infozip/
+       or
+           ftp://ftp.info-zip.org/pub/infozip/ .
 
 AUTHOR
        Greg ``Cave Newt''  Roelofs.   ZipInfo  contains  pattern-
@@ -501,5 +509,5 @@ AUTHOR
        others.  Please refer to the CONTRIBS file  in  the  UnZip
        source distribution for a more complete list.
 
-Info-ZIP             14 January 2001 (v2.32)                    9
+Info-ZIP             17 February 2002 (v2.4)                    9
 

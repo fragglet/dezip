@@ -324,7 +324,7 @@ DEP_CPP_API_C=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\
 	"..\wince.h"\
@@ -350,7 +350,7 @@ DEP_CPP_API_C=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\
 	"..\wince.h"\
@@ -376,7 +376,7 @@ DEP_CPP_API_C=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\
 	"..\wince.h"\
@@ -402,7 +402,7 @@ DEP_CPP_API_C=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\
 	"..\wince.h"\
@@ -2034,7 +2034,7 @@ SOURCE=..\..\unzpriv.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\version.h
+SOURCE=..\..\unzvers.h
 # End Source File
 # Begin Source File
 
@@ -2281,7 +2281,7 @@ DEP_CPP_WINMA=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\intrface.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\
@@ -2311,7 +2311,7 @@ DEP_CPP_WINMA=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\intrface.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\
@@ -2341,7 +2341,7 @@ DEP_CPP_WINMA=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\intrface.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\
@@ -2371,7 +2371,7 @@ DEP_CPP_WINMA=\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
-	"..\..\version.h"\
+	"..\..\unzvers.h"\
 	"..\intrface.h"\
 	"..\punzip.h"\
 	"..\punzip.rcv"\

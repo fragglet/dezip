@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -57,7 +57,7 @@
 #ifdef BSD
 #  include <sys/time.h>
 #  include <sys/timeb.h>
-#  ifdef _AIX
+#  if (defined(_AIX) || defined(__GNU__))
 #    include <time.h>
 #  endif
 #else
@@ -67,7 +67,7 @@
 
 #if (defined(BSD4_4) || (defined(SYSV) && defined(MODERN)))
 #  include <unistd.h>           /* this includes utime.h on SGIs */
-#  if (defined(BSD4_4) || defined(linux))
+#  if (defined(BSD4_4) || defined(linux) || defined(__GNU__))
 #    include <utime.h>
 #    define GOT_UTIMBUF
 #  endif

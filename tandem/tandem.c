@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -17,6 +17,8 @@
 #include <cextdecs> nolist
 #include "tannsk.h"
 
+static time_t gmt_to_time_t (long long *);
+
 int isatty (fnum)
 int fnum;
 {
@@ -27,19 +29,30 @@ int fnum;
 /* Function in2ex() */
 /********************/
 
+#ifdef UNZIP
+char *in2ex(__G__ n)
+  __GDEF
+#else
 char *in2ex(n)
+#endif
   char *n;              /* internal file name */
 /* Convert the zip file name to an external file name, returning the malloc'ed
    string or NULL if not enough memory. */
 {
-  char *x;              /* external file name */
-  char *t;              /* pointer to internal */
-  char *p;              /* pointer to internal */
-  char *e;              /* pointer to internal */
+  char *x;              /* external file name buffer */
+  char *y;              /* pointer to external buffer */
+  char *max;            /* pointer to max end of next file part */
+  char *t;              /* pointer to internal - start of substring */
+  char *p;              /* pointer to internal - TANDEM delimiter */
+  char *e;              /* pointer to internal - DOS extension delimiter */
+  char *z;              /* pointer to internal - end of substring */
+  int len;              /* length of substring to copy to external name */
+  int allow_dollar;     /* $ symbol allowed as next character */
 
   if ((x = malloc(strlen(n) + 4)) == NULL)  /* + 4 for safety */
     return NULL;
-  *x= '\0';
+
+  *x = '\0';
 
   /* Junk pathname as requested */
 #ifdef UNZIP
@@ -55,6 +68,8 @@ char *in2ex(n)
     t = n;
 #endif /* ZIP */
 
+  allow_dollar = TRUE;
+
   while (*t != '\0') {  /* File part could be sys, vol, subvol or file */
     if (*t == INTERNAL_DELIMITER) {    /* System, Volume or Subvol Name */
       t++;
@@ -62,27 +77,74 @@ char *in2ex(n)
         strcat(x, TANDEM_NODE_STR);
         t++;
       }
-      else
+      else {
         strcat(x, TANDEM_DELIMITER_STR);
+        allow_dollar = FALSE;
+      }
     }
-    p = strchr(t, INTERNAL_DELIMITER);
-    if (p == NULL)
-      break;
-    if ((e = strchr(t, DOS_EXTENSION)) == NULL)
-      e = p;
-    else
-      e = _min(e, p);
-    /* can't have Tandem name longer than 8 characters */
-    strncat(x, t, _min(MAXFILEPARTLEN, (e - t)));
-    t = p;
-  }
+    /* Work out where end of current external string is */
+    y = x + strlen(x);
 
-  if ((e = strchr(t, DOS_EXTENSION)) == NULL)
-    strncat(x, t, _min(MAXFILEPARTLEN, strlen(t)));
-  else {
-    strncat(x, t, _min(MAXFILEPARTLEN, (e - t)));
-    strcat(x, TANDEM_EXTENSION_STR);
-    strcat(x, e+1);  /* no restriction on extension length as its virtual*/
+    /* Work out substring to copy and externalise */
+    p = strchr(t, INTERNAL_DELIMITER);
+    e = strchr(t, DOS_EXTENSION);
+    if (p != NULL) {
+      if (e > p)
+        e = NULL;
+    }
+
+    z = e;
+    if (z == NULL)
+      z = p;
+    if (z == NULL)
+      z = t + strlen(t);
+
+    /* can't have Tandem name longer than 8 characters */
+    max = y + MAXFILEPARTLEN;
+
+    /* Allow $ symbol as first character in some cases */
+    if (*t == '$') {
+      if (allow_dollar)
+        *y++ = *t++;
+      else;
+        *t++;
+    }
+
+    /* Make sure first real character is alpha */
+    if (! isalpha(*t) )
+      *y++ = 'A';
+
+    /* Characters left to process */
+    len = z - t;
+
+    while ( len > 0 ) {
+      if ( isalnum(*t) ) {
+        *y++ = toupper(*t++);
+        if (y >= max)
+          break;
+      }
+      else
+        t++;
+      len--;
+    }
+    *y = '\0';
+    t = p;
+
+    if (p == NULL) {
+      /* Last part of filename, store pseudo extension if available */
+      if (e != NULL) {
+        strcat(x, TANDEM_EXTENSION_STR);
+        y = x + strlen(x);
+
+        /* no restriction on extension length as its virtual */
+        z = e + 1;
+        while ( *z != '\0' ) {
+          *y++ = toupper(*z++);
+        }
+        *y = '\0';
+      }
+      break;
+    }
   }
 
   return x;
@@ -95,48 +157,9 @@ void zexit(status)
   terminate_program (0,0,(short)status,,,);
 }
 
-
-#ifdef fopen
-#  undef fopen
-#endif
-
-FILE *zipopen(fname, opt)
-const char *fname;
-const char *opt;
-{
-  int fdesc;
-  short fnum, err;
-
-#ifdef ZIP
-  #define alist_items 1
-  #define vlist_bytes 2
-  short alist[alist_items]={42};
-  unsigned short vlist[alist_items]={NSK_ZIPFILECODE};
-  short extra, *err_item=&extra;
-#endif /* ZIP */
-
-  if (strcmp(opt,FOPW) == 0)
-    if ((fdesc = creat(fname,,100,500)) != -1){
-      fnum = fdtogfn ((short)fdesc);
-      err = (SETMODE (fnum, SET_FILE_BUFFERSIZE, TANDEM_BLOCKSIZE) != CCE);
-      err = (SETMODE (fnum, SET_FILE_BUFFERED, 0, 0) != CCE);
-      err = (SETMODE (fnum, SET_FILE_BUFFERED, 0, 1) != CCE);
-      err = close(fdesc);
-#ifdef ZIP
-      err = FILE_ALTERLIST_((char *)fname,
-                            (short)(strlen(fname)),
-                            alist,
-                            alist_items,
-                            vlist,
-                            vlist_bytes,
-                            ,
-                            err_item);
-#endif /* ZIP */
-    };
-
-  return fopen(fname,opt);
-}
-#define fopen zipopen
+/************************/
+/*  Function zputc()    */
+/************************/
 
 #ifdef putc
 #  undef putc
@@ -409,9 +432,42 @@ int zgetch(void)
   return (int)ch;
 }
 
-/* TANDEM version of stat() function */
+short parsename(srce, fname, ext)
+  const char *srce;
+  char *fname;
+  char *ext;
+{
+  /* As a way of supporting DOS extensions from Tandem we look for a space
+     separated extension string after the Guardian filename
+     e.g. ZIP ZIPFILE "$DATA4.TESTING.INVOICE TXT"
+  */
 
-time_t gmt_to_time_t (gmt)
+  char *fstart;
+  char *fptr;
+  short extension = 0;
+
+  *fname = *ext = '\0';  /* set to null string */
+
+  fstart = (char *) srce;
+
+  if ((fptr = strrchr(fstart, TANDEM_EXTENSION)) != NULL) {
+    extension = 1;
+
+    fptr++;
+    strncat(ext, fptr, _min(EXTENSION_MAX, strlen(fptr)));
+
+    fptr = strchr(fstart, TANDEM_EXTENSION);  /* End of filename */
+    strncat(fname, fstart, _min(FILENAME_MAX, (fptr - fstart)));
+  }
+  else {
+    /* just copy string */
+    strncat(fname, srce, _min(FILENAME_MAX, strlen(srce)));
+  }
+
+  return extension;
+}
+
+static time_t gmt_to_time_t (gmt)
   long long *gmt;
 {
   #define GMT_TO_LCT 0
@@ -448,41 +504,7 @@ time_t gmt_to_time_t (gmt)
   return (mktime(&temp_tm));
 }
 
-short parsename(srce, fname, ext)
-  const char *srce;
-  char *fname;
-  char *ext;
-{
-  /* As a way of supporting DOS extensions from Tandem we look for a space
-     separated extension string after the Guardian filename
-     e.g. ZIP ZIPFILE "$DATA4.TESTING.INVOICE TXT"
-  */
-
-  char *fstart;
-  char *fptr;
-  short extension = 0;
-
-  *fname = *ext = '\0';  /* set to null string */
-
-  fstart = (char *) srce;
-
-  if ((fptr = strrchr(fstart, TANDEM_EXTENSION)) != NULL) {
-    extension = 1;
-
-    fptr++;
-    strncat(ext, fptr, _min(EXTENSION_MAX, strlen(fptr)));
-
-    fptr = strchr(fstart, TANDEM_EXTENSION);  /* End of filename */
-    strncat(fname, fstart, _min(FILENAME_MAX, (fptr - fstart)));
-  }
-  else {
-    /* just copy string */
-    strncat(fname, srce, _min(FILENAME_MAX, strlen(srce)));
-  }
-
-  return extension;
-}
-
+/* TANDEM version of stat() function */
 int stat(n, s)
   const char *n;
   struct stat *s;
@@ -655,7 +677,7 @@ int stat(n, s)
   nsk_attr->filetype = (unsigned) flist[ioff[7]];
   nsk_attr->filecode = (unsigned) flist[ioff[8]];
   nsk_attr->block    = (unsigned short) flist[ioff[9]];
-  nsk_attr->primext  = (unsigned short) flist[ioff[10]];
+  nsk_attr->priext   = (unsigned short) flist[ioff[10]];
   nsk_attr->secext   = (unsigned short) flist[ioff[11]];
   nsk_attr->maxext   = (unsigned short) flist[ioff[12]];
   nsk_attr->flags.clearonpurge = (unsigned) flist[ioff[13]];
@@ -732,7 +754,7 @@ int stat(n, s)
       koff[0] = 0;
 
       /*  Build up table of offets into result list */
-      for (i=1; i < slist_items; i++)
+      for (i=1; i < klist_items; i++)
         koff[i] = koff[i-1] + klen[i-1];
 
       nsk_attr->keyoff   = (unsigned) flist[koff[0]];

@@ -21,6 +21,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Wim Bonner             original OS/2 port; Unix makefile entry
   Paul Borman            BSD/386 (BSDI) fixes; Unix makefile entry
   Carlton Brewster       mapname bugfix
+  Marcus Brinkmann       Unix configuration fix for GNU/Hurd
   Rodney Brown           stdin-/dev/null bugfix; VMS error levels; CRC optimiz.
   Stan Brown             "zipinfo -M"/isatty(1) bugfix
   Jens von Buelow        port to MPE/iX, a Unix variant running on HP 3000
@@ -29,8 +30,10 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Valter Cavecchia       Unix makefile entry
   Rudolf Cejka           Unix UID/GID extraction bugfix
   Peter Chang            optional UNIXBACKUP option (-B)
+  Kevin Cheng            windll MBCS fix (setlocale initialization)
   Andrey Chernov         BSD 4.4 utime fix
   Brad Clarke            Win32 XX_flag bugfix; Borland debug code removal
+  Mark Clayton           LynxOS (unix/Makefile update)
   John Cowan             mods to original match.c; other stuff?
   Frank da Cruz          xxu.c, on which original mapname.c was based
   Bill Davidsen          -q(q); mapname stuff; envargs; Xenix stuff; opts; etc.
@@ -137,6 +140,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Fulvio Marino          revised UnZip and ZipInfo man pages; Makefile entry
   Carl Mascott           original Unix port
   Rafal Maszkowski       Convex unzip.h fixes; Unix makefile entry
+  Jim Mathies            signal handler installing bugfix
   Eberhard Mattes        handler() bugfix; docs update
   Peter Mauzey           Unix makefile entry
   Scott Maxwell          version.h; massive reentrancy fixes; OS/2 DLL port
@@ -156,6 +160,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Anthony Naggs          MS-DOS error handling stuff
   Jim Neeland            unused-variables fix; Unix makefile entry
   Harry Nyberg           Macintosh INSTALL info
+  Mauricio Ponzo         UNIXBACKUP fix
   NIIMI Satoshi          Human68k port
   Mike O'Carroll         early OS/2 stuff
   Michael D. O'Connor    DOS ifdef/elif mismatch fix; makefile.tc fixes
@@ -175,6 +180,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Clint Pulley           Unix makefile entry
   Antonio Querubin, Jr.  descrip.mms (VMS makefile)
   Alistair Rae           Encore preprocessor bugfix
+  Eric S. Raymond        manpage tweaks for DocBook compatibility
   Wally Reiher           timezone bugfix
   Stephen Ritcey         vms/README installation correction
   Phil Ritzenthaler      ANSIfication bugfix
@@ -200,7 +206,9 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Alex Sergejew          fileio.c, stat(), Makefile fixes; Down Under jokes :-)
   Jim Seymour            Borland OS/2 fixes
   Mark Shadley           Unix -X, FGETCH, DESTROYGLOBALS & Unix makefile fixes
+  Miki Shapiro           DLL: zipfilehandle leak (unhandled lseek errors)
   Timur Shaporev         inflate optimizations
+  Eric Siegerman         bugfix for Unix' port attribute mapper
   Dave Smith             Tandem/NSK port
   Fred Smith             Coherent 4.0 fixes
   Nick Smith             return code for user abort (control-C)

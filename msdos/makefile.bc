@@ -1,7 +1,7 @@
 # Makefile for UnZip(SFX) and fUnZip for Borland C++ 2.x-4.x and Turbo C++ 1.0
-# Version: 5.42 and later        Alvin Koh, Jim Knoble, Christian Spieler, etc.
+# Version: 5.5 and later         Alvin Koh, Jim Knoble, Christian Spieler, etc.
 #
-# Last revised:  14 Jan 01
+# Last revised:  04 Mar 01
 #
 # To compile with Turbo C++ 1.0, set the macro CC_REV to 1 at the command line
 # (make -fmsdos/makefile.bc -DCC_REV=1).
@@ -50,13 +50,14 @@ AS = tasm
 # to compile zipinfo, reported for BC++ 4.51 and TC++ 1.0
 # (compilation worked with 624k DOS memory and TC++ 1.0, but that much free
 # space requires an almost "empty" DOS system)
+# for 5.5: large or compact model required for Deflate64 support
 UNMODEL = l		# large model for UnZip and ZipInfo
 ASUNMODEL=__LARGE__	# keep in sync with UNMODEL definition !!
 
-FUMODEL = s		# always use small model for fUnZip
-ASFUMODEL=__SMALL__	# keep in sync with FUMODEL definition !!
+FUMODEL = c		# need compact model for fUnZip with Deflate64 support
+ASFUMODEL=__COMPACT__	# keep in sync with FUMODEL definition !!
 
-SXMODEL = s		# always use small model for SFXUnZip
+SXMODEL = s		# use small model for SFXUnZip (no Deflate64 support)
 ASSXMODEL=__SMALL__	# keep in sync with SXMODEL definition !!
 
 !if $(USE_ASMCRC)
@@ -108,7 +109,7 @@ OBJU3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj
 OBJUS = msdos.obj $(ASMOBJS)
 OBJU  = $(OBJU1) $(OBJU2) $(OBJU3) $(OBJUS)
 OBJF  = funzip.obj crc32f.obj cryptf.obj globalsf.obj inflatef.obj \
-	ttyiof.obj $(ASMOBJF)
+	ttyiof.obj msdosf.obj $(ASMOBJF)
 OBJX1 = unzipsfx.obj crc32x.obj crctabx.obj cryptx.obj extractx.obj fileiox.obj
 OBJX2 = globalsx.obj inflatex.obj matchx.obj processx.obj ttyiox.obj
 OBJXS = msdosx.obj $(ASMOBJX)
@@ -162,7 +163,7 @@ process.obj:    process.c $(UNZIP_H)
 ttyio.obj:      ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce.obj:   unreduce.c $(UNZIP_H)
 unshrink.obj:   unshrink.c $(UNZIP_H)
-unzip.obj:      unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.obj:      unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.obj:    zipinfo.c $(UNZIP_H)
 
 crc_i86.obj:    msdos/crc_i86.asm
@@ -195,7 +196,10 @@ inflatef.obj:   inflate.c inflate.h $(UNZIP_H) crypt.h
 ttyiof.obj:     ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CC) -c $(FUFLAGS) -DFUNZIP -ottyiof.obj ttyio.c
 
-unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h version.h consts.h
+msdosf.obj:     msdos/msdos.c $(UNZIP_H)
+	$(CC) -c $(FUFLAGS) -DFUNZIP -omsdosf.obj msdos/msdos.c
+
+unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) -c $(SXFLAGS) -DSFX -ounzipsfx.obj unzip.c
 
 crc32x.obj:     crc32.c $(UNZIP_H) zip.h

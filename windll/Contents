@@ -1,20 +1,19 @@
 Contents of the "windll" subdirectory for UnZip 5.4 and later:
 
   Contents       this file
+  decs.h         Exported function declarations.
+  structs.h      header file, used by both the DLL and by calling applications,
+                 defines the structures used in the DLL interface
+  unziplib.def   definition file for 32-bit UnZip library
   windll16.def   definition file for 16-bit UnZip DLL
   windll32.def   definition file for 32-bit UnZip DLL
   windllgcc.def  definition file for 32-bit UnZip DLL, variant for GCC tools
-  unziplib.def   definition file for 32-bit UnZip library
+  windll_lc.def  definition file for 32-bit UnZip DLL, variant for LCC tools
   windll.c       contains the entry point for the DLL, "fake" printing,
                  sound, rename, replace and password functions
   windll.h       header file for both 16- and 32-bit DLLs
-  unzver.h       versioning information for resource file, and also
-                 used by WiZ application itself
-  decs.h         Exported function declarations.
   windll.rc      resource file for both 16- and 32-bit DLLs
   windll.txt     simplistic explanation of how to use DLL
-  structs.h      header file, used by both the DLL and by WiZ, that defines
-                 several structures passed to the DLL
   uzexampl.c     a very simplistic example of how to load the DLL and make
                  a call into it
   uzexampl.h     header file for uzexampl.c

@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.12                                                 25 August 1994
+# Version:  5.5                                                13 February 2001
 #==============================================================================
 
 
@@ -69,10 +69,10 @@ OBJS4 = _sprintf.o _fprintf.o _isatty.o _stat.o _setargv.o
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $(OBJS4) theos.o
 #LOBJS = $(OBJS)
 LOBJS = $(OBJS1) $(OBJS2) $(OBJS3) theos.o
-OBJX = unzipsfx.o $(CRC32).o crctab.o crypt.o extract_.o fileio.o globals.o \
-	inflate.o match.o process_.o ttyio.o theos_.o
+OBJX = unzipsfx.o $(CRC32).o crctab_.o crypt_.o extract_.o fileio_.o \
+	globals_.o inflate_.o match_.o process_.o ttyio_.o theos_.o
 LOBJX = $(OBJX)
-OBJF = funzip.o $(CRC32).o crypt_.o globals_.o inflate_.o ttyio_.o _sprintf.o \
+OBJF = funzip.o $(CRC32).o cryptf.o globalsf.o inflatef.o ttyiof.o _sprintf.o \
        _fprintf.o _isatty.o
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 
@@ -97,50 +97,71 @@ process.o:	process.c $(UNZIP_H)
 ttyio.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce.o:	unreduce.c $(UNZIP_H)
 unshrink.o:	unshrink.c $(UNZIP_H)
-unzip.o:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.o:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.o:	zipinfo.c $(UNZIP_H)
 
-crypt_.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
-	$(CC) $(CF) -DFUNZIP -Fo$@ crypt.c
+crctab_.o:	crctab.c $(UNZIP_H) zip.h			# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ crctab.c
+
+crypt_.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ crypt.c
 
 extract_.o:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
 	$(CC) $(CF) -DSFX -Fo$@ extract.c
 
-globals_.o:	globals.c $(UNZIP_H)				# funzip only
+fileio_.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ fileio.c
+
+globals_.o:	globals.c $(UNZIP_H)				# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ globals.c
+
+inflate_.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ inflate.c
+
+match_.o:	match.c $(UNZIP_H)				# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ match.c
+
+process_.o:	process.c $(UNZIP_H)				# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ process.c
+
+ttyio_.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ ttyio.c
+
+unzipsfx.o:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
+	$(CC) $(CF) -DSFX -Fo$@ unzip.c
+
+cryptf.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+	$(CC) $(CF) -DFUNZIP -Fo$@ crypt.c
+
+globalsf.o:	globals.c $(UNZIP_H)				# funzip only
 	$(CC) $(CF) -DFUNZIP -Fo$@ globals.c
 
-inflate_.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
+inflatef.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
 	$(CC) $(CF) -DFUNZIP -Fo$@ inflate.c
 
-ttyio_.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+ttyiof.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
 	$(CC) $(CF) -DFUNZIP -Fo$@ ttyio.c
 
-theos.o:	theos/theos.c $(UNZIP_H) version.h		# THEOS only
+theos.o:	theos/theos.c $(UNZIP_H) unzvers.h		# THEOS only
 	$(CC) $(CF) theos/theos.c
 
 theos_.o:	theos/theos.c $(UNZIP_H)			# THEOS unzipsfx
 	$(CC) $(CF) -DSFX -Fo$@ theos/theos.c
 
-_sprintf.o:	theos/_sprintf.c $(UNZIP_H) version.h		# THEOS only
+_sprintf.o:	theos/_sprintf.c $(UNZIP_H)			# THEOS only
 	$(CC) $(CF) theos/_sprintf.c
 
-_fprintf.o:	theos/_fprintf.c $(UNZIP_H) version.h		# THEOS only
+_fprintf.o:	theos/_fprintf.c $(UNZIP_H)			# THEOS only
 	$(CC) $(CF) theos/_fprintf.c
 
-_isatty.o:	theos/_isatty.c $(UNZIP_H) version.h		# THEOS only
+_isatty.o:	theos/_isatty.c $(UNZIP_H)			# THEOS only
 	$(CC) $(CF) theos/_isatty.c
 
-_stat.o:	theos/_stat.c $(UNZIP_H) version.h		# THEOS only
+_stat.o:	theos/_stat.c $(UNZIP_H)			# THEOS only
 	$(CC) $(CF) theos/_stat.c
 
-_setargv.o:	theos/_setargv.c $(UNZIP_H) version.h		# THEOS only
+_setargv.o:	theos/_setargv.c $(UNZIP_H)			# THEOS only
 	$(CC) $(CF) theos/_setargv.c
-
-process_.o:	process.c $(UNZIP_H)				# unzipsfx only
-	$(CC) $(CF) -DSFX -Fo$@ process.c
-
-unzipsfx.o:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
-	$(CC) $(CF) -DSFX -Fo$@ unzip.c
 
 unzip.command:	$(OBJS)
 	$(LD) $(LF) $@ $(LOBJS) $(LF2)

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -134,6 +134,17 @@
      /* for MSC 5.1, prevent macro expansion space overflow in DEBUG mode */
 #    define NO_DEBUG_IN_MACROS
 #  endif
+#  ifdef USE_DEFLATE64
+#    if (defined(M_I86TM) || defined(M_I86SM) || defined(M_I86MM))
+#      error Deflate64(tm) requires compact or large memory model
+#    endif
+#    if (defined(__TINY__) || defined(__SMALL__) || defined(__MEDIUM__))
+#      error Deflate64(tm) requires compact or large memory model
+#    endif
+     /* the 64k history buffer for Deflate64 must be allocated specially */
+#    define MALLOC_WORK
+#    define MY_ZCALLOC
+#  endif
 #endif
 
 
@@ -218,9 +229,14 @@
 #  ifndef MAYBE_PLAIN_FAT
 #    define MAYBE_PLAIN_FAT
 #  endif
+#else
+#  ifdef USE_LFN
+#    define MAYBE_PLAIN_FAT
+#  endif
 #endif
-#ifdef USE_LFN
-#  define MAYBE_PLAIN_FAT
+
+#ifdef ACORN_FTYPE_NFS
+#  undef ACORN_FTYPE_NFS        /* no commas allowed in short filenames */
 #endif
 
 /* handlers for OEM <--> ANSI string conversions */
@@ -291,6 +307,12 @@
 #endif
 
 #ifdef __EMX__
+#  define SCREENWIDTH 80
+#  define SCREENSIZE(scrrows, scrcols)  screensize(scrrows, scrcols)
+   int screensize(int *tt_rows, int *tt_cols);
+#endif
+
+#ifdef WATCOMC_386
 #  define SCREENWIDTH 80
 #  define SCREENSIZE(scrrows, scrcols)  screensize(scrrows, scrcols)
    int screensize(int *tt_rows, int *tt_cols);

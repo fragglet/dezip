@@ -1,6 +1,6 @@
 _______________________________________________________________________________
 
-   This is the Windows CE Info-ZIP port README, last updated 13 January 2001.
+   This is the Windows CE Info-ZIP port README, last updated 10 February 2001.
 _______________________________________________________________________________
 
    Copyright and Disclaimer
@@ -125,7 +125,7 @@ subdirectory as well as the following files in the Info-ZIP root:
 
      api.c        crypt.h      globals.c    process.c    unzip.h
      consts.h     ebcdic.h     globals.h    ttyio.c      unzpriv.h
-     crc32.c      explode.c    inflate.c    ttyio.h      version.h
+     crc32.c      explode.c    inflate.c    ttyio.h      unzvers.h
      crctab.c     extract.c    inflate.h    unreduce.c   zip.h
      crypt.c      fileio.c     list.c       unshrink.c
 

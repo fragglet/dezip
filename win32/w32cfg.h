@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -37,12 +37,18 @@
 #if (defined(__CYGWIN__) && defined(_MBCS))
 #  undef _MBCS                  /* CygWin RTL lacks support for __mb_cur_max */
 #endif
+#if (defined(__DJGPP__) && !defined(__EMX__) && defined(_MBCS))
+#  undef _MBCS                  /* __mb_cur_max missing for RSXNTdj 1.6 beta */
+#endif
 
 #include <sys/types.h>          /* off_t, time_t, dev_t, ... */
 #include <sys/stat.h>
 #include <io.h>                 /* read(), open(), etc. */
 #include <time.h>
-#if (defined(__RSXNT__) || defined(__EMX__)) && !defined(tzset)
+#if ((defined(__RSXNT__) || defined(__EMX__)) && !defined(tzset))
+#  define tzset _tzset
+#endif
+#if (defined(__LCC__) && !defined(tzset))
 #  define tzset _tzset
 #endif
 #ifdef __MINGW32__
@@ -54,6 +60,9 @@
 #ifdef W32_USE_IZ_TIMEZONE
 #  ifdef __BORLANDC__
 #    define tzname tzname
+#    define IZTZ_DEFINESTDGLOBALS
+#  endif
+#  ifdef __WATCOMC__
 #    define IZTZ_DEFINESTDGLOBALS
 #  endif
 #  ifndef tzset
@@ -75,7 +84,7 @@
 #    undef IZTZ_GETLOCALETZINFO
 #  endif
 #  define IZTZ_GETLOCALETZINFO GetPlatformLocalTimezone
-#endif
+#endif /* W32_USE_IZ_TIMEZONE */
 #include <memory.h>
 #if (!defined(__RSXNT__) && !defined(__CYGWIN__))
 #  include <direct.h>           /* mkdir() */
@@ -94,12 +103,14 @@
 
 #ifdef _MBCS
 #  if (!defined(__EMX__) && !defined(__MINGW32__) && !defined(__CYGWIN__))
+#  if (!defined(__DJGPP__))
 #    include <stdlib.h>
 #    include <mbstring.h>
      /* for MSC (and compatible compilers), use routines supplied by RTL */
 #    define PREINCSTR(ptr) (ptr = (char *)_mbsinc((const uch *)(ptr)))
 #    define MBSCHR(str, c) (char *)_mbschr((const uch *)(str), (c))
 #    define MBSRCHR(str, c) (char *)_mbsrchr((const uch *)(str), (c))
+#  endif
 #  endif
 #  if (defined(__MINGW32__) && !defined(MB_CUR_MAX))
 #    ifdef __MSVCRT__
@@ -111,6 +122,10 @@
 #    endif
 #  endif
 #  if (defined(__LCC__) && !defined(MB_CUR_MAX))
+     extern int *_imp____mb_cur_max;
+#    define MB_CUR_MAX (*_imp____mb_cur_max)
+#  endif
+#  if (defined(__DJGPP__) && !defined(__EMX__) && !defined(MB_CUR_MAX))
      extern int *_imp____mb_cur_max;
 #    define MB_CUR_MAX (*_imp____mb_cur_max)
 #  endif
@@ -186,6 +201,9 @@
 #endif
 #if (!defined(NO_NTSD_EAS) && !defined(NTSD_EAS))
 #  define NTSD_EAS      /* enable NTSD support unless explicitly suppressed */
+#endif
+#if (defined(NTSD_EAS) && !defined(RESTORE_ACL))
+#  define RESTORE_ACL   /* "restore ACLs" only needed when NTSD_EAS active */
 #endif
 
 /* handlers for OEM <--> ANSI string conversions */
@@ -264,15 +282,6 @@
  */
 int getch_win32  OF((void));
 
-/* This patch of stat() is useful for at least two compilers.  It is   */
-/* difficult to take a stat() of a root directory under Windows95, so  */
-/* zstat_win32() detects that case and fills in suitable values.       */
-#ifndef __RSXNT__
-#  ifndef W32_STATROOT_FIX
-#    define W32_STATROOT_FIX
-#  endif
-#endif /* !__RSXNT__ */
-
 /* Up to now, all versions of Microsoft C runtime libraries lack the support
  * for customized (non-US) switching rules between daylight saving time and
  * standard time in the TZ environment variable string.
@@ -290,6 +299,15 @@ int getch_win32  OF((void));
 #   define iz_w32_prepareTZenv()        putenv("TZ=")
 # endif
 #endif
+
+/* This patch of stat() is useful for at least two compilers.  It is   */
+/* difficult to take a stat() of a root directory under Windows95, so  */
+/* zstat_win32() detects that case and fills in suitable values.       */
+#ifndef __RSXNT__
+#  ifndef W32_STATROOT_FIX
+#    define W32_STATROOT_FIX
+#  endif
+#endif /* !__RSXNT__ */
 
 #if (defined(NT_TZBUG_WORKAROUND) || defined(W32_STATROOT_FIX))
 #  define W32_STAT_BANDAID
@@ -320,6 +338,9 @@ int getch_win32  OF((void));
 #    define far
 #    undef near
 #    define near
+
+/* gaah -- Watcom's docs claim that _get_osfhandle exists, but it doesn't.  */
+#    define _get_osfhandle _os_handle
 
 /* Get asm routines to link properly without using "__cdecl": */
 #    ifndef USE_ZLIB

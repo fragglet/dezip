@@ -1,5 +1,5 @@
 !==========================================================================
-! MMS description file for UnZip/UnZipSFX 5.32 or later           14 Sep 97
+! MMS description file for UnZip/UnZipSFX 5.5 or later            23 Mar 01
 !==========================================================================
 !
 ! To build UnZip that uses shared libraries, edit the USER CUSTOMIZATION
@@ -156,12 +156,12 @@ COMMON_OBJS2 =	inflate$(O),list$(O),match$(O),process$(O),ttyio$(O),-
 		vms$(O)
 OBJUNZLIB =	$(COMMON_OBJS1),$(COMMON_OBJS2)
 
-COMMON_OBJX1 =	crc32$(O),crctab$(O),crypt$(O),-
+COMMON_OBJX1 =	CRC32=crc32_$(O),CRCTAB=crctab_$(O),CRYPT=crypt_$(O),-
 		EXTRACT=extract_$(O),-
-		fileio$(O),globals$(O)
-COMMON_OBJX2 =	inflate$(O),match$(O),-
+		FILEIO=fileio_$(O),GLOBALS=globals_$(O)
+COMMON_OBJX2 =	INFLATE=inflate_$(O),MATCH=match_$(O),-
 		PROCESS=process_$(O),-
-		ttyio$(O),-
+		TTYIO=ttyio_$(O),-
 		VMS=vms_$(O)
 OBJSFXLIB =	$(COMMON_OBJX1),$(COMMON_OBJX2)
 
@@ -339,31 +339,55 @@ process$(O)		: process.c $(UNZIP_H)
 ttyio$(O)		: ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(O)		: unreduce.c $(UNZIP_H)
 unshrink$(O)		: unshrink.c $(UNZIP_H)
-unzip$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip$(O)		: unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo$(O)		: zipinfo.c $(UNZIP_H)
 
-unzipcli$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzipcli$(O)		: unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) $(CFLAGS_CLI) /OBJ=$(MMS$TARGET) $(MMS$SOURCE)
 
-cmdline$(O)		: [.vms]cmdline.c $(UNZIP_H) version.h
+cmdline$(O)		: [.vms]cmdline.c $(UNZIP_H) unzvers.h
 	$(CC) $(CFLAGS_CLI) /OBJ=$(MMS$TARGET) $(MMS$SOURCE)
 
 unz_cli$(O)		: [.vms]unz_cli.cld
 
 
-cmdline_$(O)		: [.vms]cmdline.c $(UNZIP_H) version.h
+cmdline_$(O)		: [.vms]cmdline.c $(UNZIP_H) unzvers.h
 	$(CC) $(CFLAGS_SXC) /OBJ=$(MMS$TARGET) [.vms]cmdline.c
+
+crc32_$(O)		: crc32.c $(UNZIP_H) zip.h
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) crc32.c
+
+crctab_$(O)		: crctab.c $(UNZIP_H) zip.h
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) crctab.c
+
+crypt_$(O)		: crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) crypt.c
 
 extract_$(O)		: extract.c $(UNZIP_H) crypt.h
 	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) extract.c
 
+fileio_$(O)		: fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) fileio.c
+
+globals_$(O)		: globals.c $(UNZIP_H)
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) globals.c
+
+inflate_$(O)		: inflate.c inflate.h $(UNZIP_H)
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) inflate.c
+
+match_$(O)		: match.c $(UNZIP_H)
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) match.c
+
 process_$(O)		: process.c $(UNZIP_H)
 	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) process.c
 
-unzipsfx$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
+ttyio_$(O)		: ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) ttyio.c
+
+unzipsfx$(O)		: unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) unzip.c
 
-unzsxcli$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzsxcli$(O)		: unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) $(CFLAGS_SXC) /OBJ=$(MMS$TARGET) unzip.c
 
 vms$(O)			: [.vms]vms.c [.vms]vms.h [.vms]vmsdefs.h $(UNZIP_H)

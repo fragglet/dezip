@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -194,36 +194,31 @@ static int recmatch(p, s, ic)
 #  ifdef AMIGA
         if ((c = p[0]) == '#' && p[1] == '?') /* "#?" is Amiga-ese for "*" */
             c = '*', p++;
-        if (c == '*') {
+        if (c != '*') {
 #  else /* !AMIGA */
-        if (*p == '*') {
+        if (*p != '*') {
 #  endif /* ?AMIGA */
-            /* '**': this matches slashes */
-            if (*++p == 0)
-                return 1;
-            for (; *s; INCSTR(s))
+            /* single '*': this doesn't match slashes */
+            for (; *s && *s != '/'; INCSTR(s))
                 if ((c = recmatch(p, s, ic)) != 0)
                     return (int)c;
-            return 2;   /* 2 means give up--match will return false */
+            /* end of pattern: matched if at end of string, else continue */
+            if (*p == 0)
+                return (*s == 0);
+            /* continue to match if at '/' in pattern, else give up */
+            return (*p == '/' || (*p == '\\' && p[1] == '/'))
+                   ? recmatch(p, s, ic) : 2;
         }
-        /* '*': this doesn't match slashes */
-        for (; *s && *s != '/'; INCSTR(s))
-            if ((c = recmatch(p, s, ic)) != 0)
-                return (int)c;
-        /* end of pattern: matched if at end of string, else continue */
-        if (*p == 0)
-            return (*s == 0);
-        /* continue to match if at '/' in pattern, else give up */
-        return (*p == '/' || (*p == '\\' && p[1] == '/'))
-               ? recmatch(p, s, ic) : 2;
-#else /* !WILD_STOP_AT_DIR */
+        /* '**': this matches slashes */
+        ++p;        /* move p behind the second '*' */
+        /* continue with the non-WILD_STOP_AT_DIR code variant */
+#endif /* WILD_STOP_AT_DIR */
         if (*p == 0)
             return 1;
         for (; *s; INCSTR(s))
             if ((c = recmatch(p, s, ic)) != 0)
                 return (int)c;
         return 2;       /* 2 means give up--match will return false */
-#endif /* ?WILD_STOP_AT_DIR */
     }
 
     /* Parse and process the list of characters and ranges in brackets */

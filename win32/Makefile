@@ -4,7 +4,7 @@
 #   J. Lee 8/95 (johnnyl@microsoft.com)
 #   C. Spieler 03/99
 #
-# Last revised:  14 Jan 2001
+# Last revised:  10 Feb 2001
 #
 # Tested with VC++ 2.0 for NT for MIPS and Alpha, Visual C++ 2.2 for Intel CPUs
 # Revision tested with VC++ 5.0 and 6.0 for Intel CPUs
@@ -235,7 +235,7 @@ timezone.obj:	timezone.c $(UNZIP_H) zip.h timezone.h
 ttyio.obj:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce.obj:	unreduce.c $(UNZIP_H)
 unshrink.obj:	unshrink.c $(UNZIP_H)
-unzip.obj:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.obj:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.obj:	zipinfo.c $(UNZIP_H)
 
 win32.obj:	win32/win32.c $(UNZIP_H) win32/nt.h
@@ -314,11 +314,11 @@ ttyio_.obj:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
 ttyiof.obj:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
 	$(cc) $(CFLAGS_FU) ttyio.c -Fo$@
 
-unzipsfx.obj:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
+unzipsfx.obj:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
 	$(cc) $(CFLAGS_SX) unzip.c -Fo$@
 
 # DLL compilation section
-api.obj:	api.c $(UNZIP_H) $(WINDLL_H) version.h
+api.obj:	api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
 	$(cc) $(CFLAGS_DL) api.c -Fo$@
 crc32l.obj:	crc32.c $(UNZIP_H) zip.h
 	$(cc) $(CFLAGS_DL) crc32.c -Fo$@
@@ -357,7 +357,7 @@ win32l.obj:	win32/win32.c $(UNZIP_H) win32/nt.h
 ntl.obj:	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(cc) $(CFLAGS_DL) -I. win32/nt.c -Fo$@
 
-windll.obj:  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+windll.obj:  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(cc) $(CFLAGS_DL) -I. windll/windll.c -Fo$@
 
 !ifdef USEMASM
@@ -373,14 +373,14 @@ crci386l.obj:	win32/crc_i386.c
 !endif
 !endif
 
-windll.res:	windll/windll.rc windll/unzver.h
+windll.res:	windll/windll.rc unzvers.h
 	$(rc) /l 0x409 /fo$@ /i windll /d WIN32 windll/windll.rc
 
 uzexampl.obj:	windll/uzexampl.c windll/uzexampl.h
 	$(cc) $(CFLAGS_UN) -I. windll/uzexampl.c -Fo$@
 
 # SFX Lib compilation section
-apig.obj:	api.c $(UNZIP_H) $(WINDLL_H) version.h
+apig.obj:	api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
 	$(cc) $(CFLAGS_SL) api.c -Fo$@
 crc32g.obj:	crc32.c $(UNZIP_H) zip.h
 	$(cc) $(CFLAGS_SL) crc32.c -Fo$@
@@ -409,7 +409,7 @@ win32g.obj:	win32/win32.c $(UNZIP_H) win32/nt.h
 ntg.obj:	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(cc) $(CFLAGS_SL) -I. win32/nt.c -Fo$@
 
-windllg.obj:  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+windllg.obj:  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(cc) $(CFLAGS_SL) -I. windll/windll.c -Fo$@
 
 !ifdef USEMASM
@@ -432,7 +432,7 @@ sfxwiz.res:	windll/guisfx/sfxwiz.rc
 	$(rc) /l 0x409 /fo$@ /i windll/guisfx /d WIN32 windll/guisfx/sfxwiz.rc
 
 # static LIB compilation section
-$(OB)apib.obj:	api.c $(UNZIP_H) $(WINDLL_H) version.h
+$(OB)apib.obj:	api.c $(UNZIP_H) $(WINDLL_H) unzvers.h
 	$(cc) $(CFLAGS_LB) api.c -Fo$@
 $(OB)crc32b.obj:	crc32.c $(UNZIP_H) zip.h
 	$(cc) $(CFLAGS_LB) crc32.c -Fo$@
@@ -471,7 +471,7 @@ $(OB)win32b.obj:	win32/win32.c $(UNZIP_H) win32/nt.h
 $(OB)ntb.obj:	win32/nt.c $(UNZIP_H) win32/nt.h
 	$(cc) $(CFLAGS_LB) -I. win32/nt.c -Fo$@
 
-$(OB)windllb.obj:  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h version.h consts.h
+$(OB)windllb.obj:  windll/windll.c $(UNZIP_H) $(WINDLL_H) crypt.h unzvers.h consts.h
 	$(cc) $(CFLAGS_LB) -I. windll/windll.c -Fo$@
 
 !ifdef USEMASM

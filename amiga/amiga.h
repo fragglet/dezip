@@ -42,6 +42,18 @@
 #  define ASM_INFLATECODES
 #  define ASM_CRC
 
+   /* This compiler environment supplies a flat 32-bit address space    */
+   /* where C rtl functions are capable of handling large (32-bit-wide) */
+   /* allocations and I/O.  But, for speed on old 68000 CPUs, standard  */
+   /* ints are 16-bits wide per default.  ("size_t" is defined as       */
+   /* "unsigned long" in this case.)  The Deflate64 support requires    */
+   /* the variables for handling the decompression buffer to hold       */
+   /* 32-bit wide integers.  The INT_16BIT symbol defined below forces  */
+   /* the declarations of these variables to use "unsigned long" type.  */
+#  ifndef _INT32
+#    define INT_16BIT                   /* or deflate64 stuff will fail */
+#  endif
+
 /* Note that defining REENTRANT will not eliminate all global/static */
 /* variables.  The functions we use from c.lib, including stdio, are */
 /* not reentrant.  Neither are the stuff in amiga/stat.c or the time */

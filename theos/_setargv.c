@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -57,7 +57,7 @@ static int allocarg(int n, int asize, char ***nargv, char *s)
 
 /* check if file is a member of a library */
 
-int ismember(char* path)
+static int ismember(char* path)
 {
     char* p;
 
@@ -68,7 +68,7 @@ int ismember(char* path)
 
 /* extract library name from a file name */
 
-char* libname(char* path)
+static char* libname(char* path)
 {
     char* p;
     static char lib[256];

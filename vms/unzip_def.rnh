@@ -43,6 +43,10 @@
 .!      02-005          Christian Spieler       28-APR-2000 03:22
 .!              Changed references to plaintext UnZip documentation file
 .!              into "UNZIP.TXT".
+.!      02-006          Christian Spieler       15-APR-2001 22:29
+.!              Added description for extended functionality of -b option.
+.!      02-007          Christian Spieler       10-DEC-2001 13:58
+.!              Added description for extended functionality of -b option.
 .!
 .noflags
 .lm4 .rm72
@@ -141,19 +145,27 @@ options and modifiers can be provided:
    -P<password> supply decryption password on the command line (insecure!)
    -V   retain (VMS) file version numbers
    -X   restore owner/protection info (may require privileges)
+   -:   allow "../" path components that traverse across extract dir root
 .end literal;.sk
 Note that uppercase options (-C, -L, -M, -P, -V and -X) must be specified
 in quotes. For example:
 .sk;.literal
     unzip "-VX" -a zipfile
 .end literal;.sk
+When extracting to SYS$OUTPUT (-c or -p options) redirected to a file,
+you may want to override the default text file converion by specifying
+the -b option. A single "-b" option switches to "binary piping" mode
+for Zip entries marked as non-text, only. To force "binary piping" mode
+even for Zip file entries marked as text, the "-bb" option should be used.
+(Please note that a later "-a" cancels any -b option, see below.)
+.sk
 The output conversion options -b and -a may be combined to perform
 binary conversions on binary files and text conversion on text files.
 But note: For compatibility with implementation on other systems, -b cancels
 any -a option; to get the intended result, -a must be specified AFTER -b.
 And, in combination, "text" recognition takes precedence; this means
-that -bb has the same effect as -b, and -aa overrides binary conversion
-for ALL files.
+that -bba (-bb -a) has the same effect as -ba (-b -a), and -aa overrides
+binary conversion for ALL files.
 .sk
 Please note that using the "-P<password>" option is higly insecure, the
 plaintext password may be seen by others. For this reason (and because of
@@ -274,7 +286,7 @@ both are defined, the logical name takes precedence.
 .indent -4
 2 Authors
 .br
-Info-ZIP; currently maintained by Greg Roelofs.  VMS support maintained
+Info-ZIP; currently maintained by Christian Spieler.  VMS support maintained
 by Christian Spieler and Hunter Goatley.  Originally based on a program
 by Samuel H. Smith.
 .sk

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include "unzip.h"
-#include "version.h"
+#include "unzvers.h"
 
 int main(int argc, char *argv[])
 {

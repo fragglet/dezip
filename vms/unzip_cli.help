@@ -39,6 +39,13 @@
 .!      02-007          Christian Spieler       28-APR-2000 03:22
 .!              Changed references to plaintext UnZip documentation file
 .!              into UNZIP.TXT (no version number change).
+.!      02-007          Hunter Goatley          07-Feb-2001 15:43
+.!              Reformatted qualifier item headers to show negated form of
+.!              option qualifier on separate line (no version number change).
+.!      02-008          Christian Spieler       18-Apr-2001 22:29
+.!              Added description for extended functionality of -b option.
+.!      02-009          Christian Spieler       10-Dec-2001 13:37
+.!              Added description for new /TRAVERSE_DIRS option.
 .!
 <INIT>
 <MAIN>
@@ -127,10 +134,14 @@ The following qualifiers may be specified with /ZIPINFO:
 /BINARY
 
 /BINARY[=KEYWORD]
+<NEXT>
 /NOBINARY (default)
 
-Selects conversion to VMS "standard" binary file format, which is
-"fixed length 512 byte records, no record attributes".
+Selects conversion to VMS "standard" binary file format for
+extracted files, which is "fixed length 512 byte records,
+no record attributes". When extracting to SYS$OUTPUT (/SCREEN
+or /PIPE qualifier), this qualifier deactivates the default
+"text data" conversion, instead.
 The optional keywords recognized are:
 <LITERAL>
 |  AUTO     Automatically extracts files marked as "binary" (rather
@@ -153,6 +164,7 @@ time, and file name for the files in the archive.
 /CASE_INSENSITIVE
 
 /CASE_INSENSITIVE
+<NEXT>
 /NOCASE_INSENSITIVE (default)
 
 Match filenames case-insensitively.  (Good default option under VMS.)
@@ -160,6 +172,7 @@ Match filenames case-insensitively.  (Good default option under VMS.)
 /COMMENT
 
 /COMMENT
+<NEXT>
 /NOCOMMENT
 
 Display the archive comment.
@@ -183,6 +196,7 @@ parentheses.
 /FRESHEN
 
 /FRESHEN
+<NEXT>
 /NOFRESHEN
 
 Freshen existing files; replace if newer.  Does not cause any new files to
@@ -206,6 +220,7 @@ Displays a one-page brief help screen and exits quietly.
 /JUNK
 
 /JUNK
+<NEXT>
 /NOJUNK (default)
 
 Junk the stored paths (don't recreated the archive's directory
@@ -221,6 +236,7 @@ specify the amount of information displayed.  The default is /BRIEF.
 /LOWERCASE
 
 /LOWERCASE
+<NEXT>
 /NOLOWERCASE (default)
 
 Convert filenames from all-uppercase operating systems to lowercase.  This
@@ -229,6 +245,7 @@ option has no effect under VMS.
 /OVERWRITE
 
 /OVERWRITE
+<NEXT>
 /NOOVERWRITE
 
 The qualifier /OVERWRITE forces overwriting of existing files when extracting.
@@ -242,6 +259,7 @@ unless version numbers are stored in the archive and /VERSION is specified.
 /PAGE
 
 /PAGE
+<NEXT>
 /NOPAGE
 
 Feed all screen output through the built-in "more" pager.
@@ -271,6 +289,7 @@ operations even more quiet.
 /RESTORE
 
 /RESTORE
+<NEXT>
 /NORESTORE
 
 Restore file owner and protection settings.
@@ -278,6 +297,7 @@ Restore file owner and protection settings.
 /SCREEN
 
 /SCREEN
+<NEXT>
 /NOSCREEN
 
 Extracts matching files to SYS$OUTPUT (the terminal).
@@ -285,6 +305,7 @@ Extracts matching files to SYS$OUTPUT (the terminal).
 /TEST
 
 /TEST
+<NEXT>
 /NOTEST
 
 Test archive files.
@@ -292,6 +313,7 @@ Test archive files.
 /TEXT
 
 /TEXT[=KEYWORD]
+<NEXT>
 /NOTEXT (default)
 
 Selects conversion to VMS standard text file format.
@@ -305,9 +327,26 @@ The optional keywords recognized are:
 
 A similar functionality is available for binary files, see qualifier /BINARY.
 <QUALIFIER>
+/TRAVERSE_DIRS
+
+/TRAVERSE_DIRS
+<NEXT>
+/NOTRAVERSE_DIRS (default)
+
+Allows to extract archive members into locations outside of the currently
+active "extraction root dir".  For security reasons, UnZip normally
+removes "parent dir" path components ("../") from the names of extracted
+files.  This feature (new for UnZip 5.50) prevents UnZip from accidentally
+writing files to "sensitive" areas outside the directory tree below the
+specified "extraction root".  By specifying the /TRAVERSE_DIRS option,
+this security feature can be switched off. This allows users to extract
+(older) archives that made use of "../" to create multiple directory
+trees at the level of the current extraction folder.
+<QUALIFIER>
 /UPDATE
 
 /UPDATE
+<NEXT>
 /NOUPDATE
 
 Update existing files; create new ones if needed.
@@ -315,6 +354,7 @@ Update existing files; create new ones if needed.
 /VERSION
 
 /VERSION
+<NEXT>
 /NOVERSION (default)
 
 Retain VMS file version numbers.
@@ -446,6 +486,7 @@ options and modifiers can be provided:
 |  -M   page output through built-in "more" function
 |  -V   retain (VMS) file version numbers
 |  -X   restore owner/protection info (may require privileges)
+|  -:   allow "../" path components that traverse across extract dir root
 <LARETIL>
 
 Note that uppercase options such as -C, -L, -M, -P, -V, -X and -Z must

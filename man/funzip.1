@@ -1,4 +1,4 @@
-.\"  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+.\"  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 .\"
 .\"  See the accompanying file LICENSE, version 2000-Apr-09 or later
 .\"  (the contents of which are also included in unzip.h) for terms of use.
@@ -8,40 +8,46 @@
 .\" funzip.1 by Greg Roelofs and others.
 .\"
 .\" =========================================================================
-.\" define .Y macro (for user-command examples; normal Courier font):
-.de Y
-.ft CW
+.\" define .EX/.EE (for multiline user-command examples; normal Courier font)
+.de EX
 .in +4n
 .nf
-\&\\$1
-.ft
-.in
+.ft CW
+..
+.de EE
+.ft R
 .fi
+.in -4n
 ..
 .\" =========================================================================
-.TH FUNZIP 1L "14 January 2001 (v3.93)" "Info-ZIP"
+.TH FUNZIP 1L "17 February 2002 (v3.94)" "Info-ZIP"
 .SH NAME
 funzip \- filter for extracting from a ZIP archive in a pipe
 .PD
 .SH SYNOPSIS
-[.\|.\|.]  |\ \ \fBfunzip\fP [\fB\-password\fP]\ \ |  [.\|.\|.]
-.PP
-\fBfunzip\fP [\fB\-password\fP] \fIinput.zip\fP\ \ |  [.\|.\|.]
-\fBfunzip\fP [\fB\-password\fP] \fIinput.gz\fP\ \ |  [.\|.\|.]
+\fBfunzip\fP [\fB\-password\fP] [\fIinput[.zip|.gz]\fP]
 .\" =========================================================================
 .SH ARGUMENTS
 .IP [\fI\-password\fP]
 Optional password to be used if ZIP archive is encrypted.  Decryption
 may not be supported at some sites.  See DESCRIPTION for more details.
+.IP [\fIinput[.zip|.gz]\fP]
+Optional input archive file specification. See DESCRIPTION for details.
 .PD
 .\" =========================================================================
 .SH DESCRIPTION
 .I funzip
-acts as a filter; that is, it assumes that a ZIP archive (or a \fIgzip\fP'd(1)
-file) is being piped into
+without a file argument acts as a filter; that is, it assumes that a
+ZIP archive (or a \fIgzip\fP'd(1) file) is being piped into
 standard input, and it extracts the first member from the archive to stdout.
-If there is an argument, then the input comes from the specified file
-instead of from stdin.  A password for encrypted zip files can be specified
+When stdin comes from a tty device,
+.I funzip
+assumes that this cannot be a stream of (binary) compressed data and
+shows a short help text, instead.
+If there is a file argument, then input is read from the specified file
+instead of from stdin.
+.PP
+A password for encrypted zip files can be specified
 on the command line (preceding the file name, if any) by prefixing the
 password with a dash.  Note that this constitutes a security risk on many
 systems; currently running processes are often visible via simple commands
@@ -60,20 +66,24 @@ case of disk backups to tape.
 To use \fIfunzip\fP to extract the first member file of the archive test.zip
 and to pipe it into \fImore\fP(1):
 .PP
-.Y "funzip test.zip | more"
+.EX
+funzip test.zip | more
+.EE
 .PP
 To use \fIfunzip\fP to test the first member file of test.zip (any errors
 will be reported on standard error):
 .PP
-.Y "funzip test.zip > /dev/null"
+.EX
+funzip test.zip > /dev/null
+.EE
 .PP
 To use \fIzip\fP and \fIfunzip\fP in place of \fIcompress\fP(1) and
 \fIzcat\fP(1) (or \fIgzip\fP(1L) and \fIgzcat\fP(1L)) for tape backups:
 .PP
-.PD 0
-.Y "tar cf \- . | zip \-7 | dd of=/dev/nrst0 obs=8k"
-.Y "dd if=/dev/nrst0 ibs=8k | funzip | tar xf \-"
-.PD
+.EX
+tar cf \- . | zip \-7 | dd of=/dev/nrst0 obs=8k
+dd if=/dev/nrst0 ibs=8k | funzip | tar xf \-
+.EE
 .PP
 (where, for example, nrst0 is a SCSI tape drive).
 .PD
@@ -104,9 +114,13 @@ itself (future release).
 .\" =========================================================================
 .SH URL
 The Info-ZIP home page is currently at
+.EX
 \fChttp://www.info-zip.org/pub/infozip/\fR
+.EE
 or
+.EX
 \fCftp://ftp.info-zip.org/pub/infozip/\fR .
+.EE
 .PD
 .\" =========================================================================
 .SH AUTHOR

@@ -58,7 +58,7 @@ Thank you for trying this port of UNZIP for VM/CMS and MVS!
      3.1. If the ZIP file has been zipped on an ASCII based system
           it will be automatically translated to EBCDIC
           ( I hope I got all those translation tables OK :-).
-	  You can force ASCII to EBCDIC conversion with the -a flag.
+          You can force ASCII to EBCDIC conversion with the -a flag.
 
      3.2. The date/time of the output files is set to the
           current system date/time - not according the date/time in
@@ -107,11 +107,11 @@ Thank you for trying this port of UNZIP for VM/CMS and MVS!
           TSO prefix.  To prevent this, quote the filename to -d, for
           example
 
-		//UNZIP   EXEC PGM=UNZIP,
-		// PARM='/-a -o ''userid.zip'' -d ''hlq.test'' *'
-		//STEPLIB  DD  DSN=USERID.UNZIP.LOAD,DISP=SHR
-		//SYSPRINT DD  SYSOUT=*
-		//SYSOUT   DD  SYSOUT=*
+                //UNZIP   EXEC PGM=UNZIP,
+                // PARM='/-a -o ''userid.zip'' -d ''hlq.test'' *'
+                //STEPLIB  DD  DSN=USERID.UNZIP.LOAD,DISP=SHR
+                //SYSPRINT DD  SYSOUT=*
+                //SYSOUT   DD  SYSOUT=*
 
           The above JCL converts from ASCII to EBCDIC (-a), always
           overwrites existing members (-o), extracts from 'userid.zip',

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -56,6 +56,14 @@
     c16b 25 Mar 98  C. Spieler      modified DLL code for slide redirection.
     c16d 05 Jul 99  C. Spieler      take care of flush() return values and
                                     stop processing in case of errors
+    c17  04 Feb 01  C. Spieler      reorganized code to reduce repetitions
+                                    of large code parts; adapted huft decoding
+                                    to the changes in inflate's huft_build()
+                                    due to support of deflate64; fixed memory
+                                    leaks (huft tables were not free'd when
+                                    get_tree() failed).
+    c17b 16 Feb 02  C. Spieler      changed type of the "extra lengths" array
+                                    "extra" from ush into uch (to save space)
  */
 
 
@@ -111,21 +119,22 @@
 #endif                  /* at least 8K for zip's implode method */
 
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-#  define wsize G._wsize
+#  define wszimpl (unsigned)(G._wsize)
 #else
-#  define wsize WSIZE
+#  if defined(USE_DEFLATE64) && defined(INT_16BIT)
+#    define wszimpl (unsigned)(WSIZE>>1)
+#  else /* !(USE_DEFLATE64 && INT_16BIT) */
+#    define wszimpl WSIZE
+#  endif /* !(USE_DEFLATE64 && INT_16BIT) */
 #endif
 
 /* routines here */
 static int get_tree OF((__GPRO__ unsigned *l, unsigned n));
-static int explode_lit8 OF((__GPRO__ struct huft *tb, struct huft *tl,
-                            struct huft *td, int bb, int bl, int bd));
-static int explode_lit4 OF((__GPRO__ struct huft *tb, struct huft *tl,
-                            struct huft *td, int bb, int bl, int bd));
-static int explode_nolit8 OF((__GPRO__ struct huft *tl, struct huft *td,
-                              int bl, int bd));
-static int explode_nolit4 OF((__GPRO__ struct huft *tl, struct huft *td,
-                              int bl, int bd));
+static int explode_lit OF((__GPRO__ struct huft *tb, struct huft *tl,
+                           struct huft *td, int bb, int bl, int bd,
+                           unsigned bdl));
+static int explode_nolit OF((__GPRO__ struct huft *tl, struct huft *td,
+                             int bl, int bd, unsigned bdl));
 int explode OF((__GPRO));
 
 
@@ -142,6 +151,9 @@ int explode OF((__GPRO));
  */
 
 
+#define INVALID_CODE 99
+#define IS_INVALID_CODE(c)  ((c) == INVALID_CODE)
+
 /* Tables for length and distance */
 static ZCONST ush cplen2[] =
         {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
@@ -153,7 +165,7 @@ static ZCONST ush cplen3[] =
         19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
         36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
         53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66};
-static ZCONST ush extra[] =
+static ZCONST uch extra[] =
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -190,6 +202,18 @@ static ZCONST ush cpdist8[] =
 #define NEEDBITS(n) {while(k<(n)){b|=((ulg)NEXTBYTE)<<k;k+=8;}}
 #define DUMPBITS(n) {b>>=(n);k-=(n);}
 
+#define DECODEHUFT(htab, bits, mask) {\
+  NEEDBITS((unsigned)(bits))\
+  t = (htab) + ((~(unsigned)b)&(mask));\
+  while (1) {\
+    DUMPBITS(t->b)\
+    if ((e=t->e) <= 32) break;\
+    if (IS_INVALID_CODE(e)) return 1;\
+    e &= 31;\
+    NEEDBITS(e)\
+    t = t->v.t + ((~(unsigned)b)&mask_bits[e]);\
+  }\
+}
 
 
 static int get_tree(__G__ l, n)
@@ -223,12 +247,13 @@ unsigned n;             /* number expected */
 
 
 
-static int explode_lit8(__G__ tb, tl, td, bb, bl, bd)
+static int explode_lit(__G__ tb, tl, td, bb, bl, bd, bdl)
      __GDEF
 struct huft *tb, *tl, *td;      /* literal, length, and distance tables */
 int bb, bl, bd;                 /* number of bits decoded by those */
-/* Decompress the imploded data using coded literals and an 8K sliding
-   window. */
+unsigned bdl;                   /* number of distance low bits */
+/* Decompress the imploded data using coded literals and a sliding
+   window (of size 2^(6+bdl) bytes). */
 {
   ulg s;                /* bytes to decompress */
   register unsigned e;  /* table entry flag/number of extra bits */
@@ -236,6 +261,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   unsigned w;           /* current window position */
   struct huft *t;       /* pointer to table entry */
   unsigned mb, ml, md;  /* masks for bb, bl, and bd bits */
+  unsigned mdl;         /* mask for bdl (distance lower) bits */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
   unsigned u;           /* true if unflushed */
@@ -248,6 +274,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   mb = mask_bits[bb];           /* precompute masks for speed */
   ml = mask_bits[bl];
   md = mask_bits[bd];
+  mdl = mask_bits[bdl];
   s = G.lrec.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
@@ -256,18 +283,9 @@ int bb, bl, bd;                 /* number of bits decoded by those */
     {
       DUMPBITS(1)
       s--;
-      NEEDBITS((unsigned)bb)    /* get coded literal */
-      if ((e = (t = tb + ((~(unsigned)b) & mb))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
+      DECODEHUFT(tb, bb, mb)    /* get coded literal */
       redirSlide[w++] = (uch)t->v.n;
-      if (w == wsize)
+      if (w == wszimpl)
       {
         if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
           return retval;
@@ -277,30 +295,12 @@ int bb, bl, bd;                 /* number of bits decoded by those */
     else                        /* else distance/length */
     {
       DUMPBITS(1)
-      NEEDBITS(7)               /* get distance low bits */
-      d = (unsigned)b & 0x7f;
-      DUMPBITS(7)
-      NEEDBITS((unsigned)bd)    /* get coded distance high bits */
-      if ((e = (t = td + ((~(unsigned)b) & md))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
+      NEEDBITS(bdl)             /* get distance low bits */
+      d = (unsigned)b & mdl;
+      DUMPBITS(bdl)
+      DECODEHUFT(td, bd, md)    /* get coded distance high bits */
       d = w - d - t->v.n;       /* construct offset */
-      NEEDBITS((unsigned)bl)    /* get coded length */
-      if ((e = (t = tl + ((~(unsigned)b) & ml))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
+      DECODEHUFT(tl, bl, ml)    /* get coded length */
       n = t->v.n;
       if (e)                    /* get length extra bits */
       {
@@ -314,13 +314,15 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       do {
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
         if (G.redirect_slide) {
-          /* &= w/ wsize not needed and wrong if redirect */
-          if (d >= wsize)
+          /* &= w/ wszimpl not needed and wrong if redirect */
+          if (d >= wszimpl)
             return 1;
-          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+          e = wszimpl - (d > w ? d : w);
         } else
 #endif
-        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
+          e = wszimpl - ((d &= wszimpl-1) > w ? d : w);
+        if (e > n) e = n;
+        n -= e;
         if (u && w <= d)
         {
           memzero(redirSlide + w, e);
@@ -340,7 +342,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
             do {
               redirSlide[w++] = redirSlide[d++];
             } while (--e);
-        if (w == wsize)
+        if (w == wszimpl)
         {
           if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
             return retval;
@@ -363,152 +365,13 @@ int bb, bl, bd;                 /* number of bits decoded by those */
 
 
 
-static int explode_lit4(__G__ tb, tl, td, bb, bl, bd)
-     __GDEF
-struct huft *tb, *tl, *td;      /* literal, length, and distance tables */
-int bb, bl, bd;                 /* number of bits decoded by those */
-/* Decompress the imploded data using coded literals and a 4K sliding
-   window. */
-{
-  ulg s;                /* bytes to decompress */
-  register unsigned e;  /* table entry flag/number of extra bits */
-  unsigned n, d;        /* length and index for copy */
-  unsigned w;           /* current window position */
-  struct huft *t;       /* pointer to table entry */
-  unsigned mb, ml, md;  /* masks for bb, bl, and bd bits */
-  register ulg b;       /* bit buffer */
-  register unsigned k;  /* number of bits in bit buffer */
-  unsigned u;           /* true if unflushed */
-  int retval = 0;       /* error code returned: initialized to "no error" */
-
-
-  /* explode the coded data */
-  b = k = w = 0;                /* initialize bit buffer, window */
-  u = 1;                        /* buffer unflushed */
-  mb = mask_bits[bb];           /* precompute masks for speed */
-  ml = mask_bits[bl];
-  md = mask_bits[bd];
-  s = G.lrec.ucsize;
-  while (s > 0)                 /* do until ucsize bytes uncompressed */
-  {
-    NEEDBITS(1)
-    if (b & 1)                  /* then literal--decode it */
-    {
-      DUMPBITS(1)
-      s--;
-      NEEDBITS((unsigned)bb)    /* get coded literal */
-      if ((e = (t = tb + ((~(unsigned)b) & mb))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
-      redirSlide[w++] = (uch)t->v.n;
-      if (w == wsize)
-      {
-        if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
-          return retval;
-        w = u = 0;
-      }
-    }
-    else                        /* else distance/length */
-    {
-      DUMPBITS(1)
-      NEEDBITS(6)               /* get distance low bits */
-      d = (unsigned)b & 0x3f;
-      DUMPBITS(6)
-      NEEDBITS((unsigned)bd)    /* get coded distance high bits */
-      if ((e = (t = td + ((~(unsigned)b) & md))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
-      d = w - d - t->v.n;       /* construct offset */
-      NEEDBITS((unsigned)bl)    /* get coded length */
-      if ((e = (t = tl + ((~(unsigned)b) & ml))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
-      n = t->v.n;
-      if (e)                    /* get length extra bits */
-      {
-        NEEDBITS(8)
-        n += (unsigned)b & 0xff;
-        DUMPBITS(8)
-      }
-
-      /* do the copy */
-      s = (s > (ulg)n ? s - (ulg)n : 0);
-      do {
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-        if (G.redirect_slide) {
-          /* &= w/ wsize not needed and wrong if redirect */
-          if (d >= wsize)
-            return 1;
-          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-        } else
-#endif
-        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
-        if (u && w <= d)
-        {
-          memzero(redirSlide + w, e);
-          w += e;
-          d += e;
-        }
-        else
-#ifndef NOMEMCPY
-          if (w - d >= e)       /* (this test assumes unsigned comparison) */
-          {
-            memcpy(redirSlide + w, redirSlide + d, e);
-            w += e;
-            d += e;
-          }
-          else                  /* do it slow to avoid memcpy() overlap */
-#endif /* !NOMEMCPY */
-            do {
-              redirSlide[w++] = redirSlide[d++];
-            } while (--e);
-        if (w == wsize)
-        {
-          if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
-            return retval;
-          w = u = 0;
-        }
-      } while (n);
-    }
-  }
-
-  /* flush out redirSlide */
-  if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
-    return retval;
-  if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
-  {                        /* sometimes read one too many:  k>>3 compensates */
-    G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
-    return 5;
-  }
-  return 0;
-}
-
-
-
-static int explode_nolit8(__G__ tl, td, bl, bd)
+static int explode_nolit(__G__ tl, td, bl, bd, bdl)
      __GDEF
 struct huft *tl, *td;   /* length and distance decoder tables */
 int bl, bd;             /* number of bits decoded by tl[] and td[] */
-/* Decompress the imploded data using uncoded literals and an 8K sliding
-   window. */
+unsigned bdl;           /* number of distance low bits */
+/* Decompress the imploded data using uncoded literals and a sliding
+   window (of size 2^(6+bdl) bytes). */
 {
   ulg s;                /* bytes to decompress */
   register unsigned e;  /* table entry flag/number of extra bits */
@@ -516,6 +379,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   unsigned w;           /* current window position */
   struct huft *t;       /* pointer to table entry */
   unsigned ml, md;      /* masks for bl and bd bits */
+  unsigned mdl;         /* mask for bdl (distance lower) bits */
   register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
   unsigned u;           /* true if unflushed */
@@ -527,6 +391,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   u = 1;                        /* buffer unflushed */
   ml = mask_bits[bl];           /* precompute masks for speed */
   md = mask_bits[bd];
+  mdl = mask_bits[bdl];
   s = G.lrec.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
@@ -537,7 +402,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       s--;
       NEEDBITS(8)
       redirSlide[w++] = (uch)b;
-      if (w == wsize)
+      if (w == wszimpl)
       {
         if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
           return retval;
@@ -548,30 +413,12 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
     else                        /* else distance/length */
     {
       DUMPBITS(1)
-      NEEDBITS(7)               /* get distance low bits */
-      d = (unsigned)b & 0x7f;
-      DUMPBITS(7)
-      NEEDBITS((unsigned)bd)    /* get coded distance high bits */
-      if ((e = (t = td + ((~(unsigned)b) & md))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
+      NEEDBITS(bdl)             /* get distance low bits */
+      d = (unsigned)b & mdl;
+      DUMPBITS(bdl)
+      DECODEHUFT(td, bd, md)    /* get coded distance high bits */
       d = w - d - t->v.n;       /* construct offset */
-      NEEDBITS((unsigned)bl)    /* get coded length */
-      if ((e = (t = tl + ((~(unsigned)b) & ml))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
+      DECODEHUFT(tl, bl, ml)    /* get coded length */
       n = t->v.n;
       if (e)                    /* get length extra bits */
       {
@@ -585,13 +432,15 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       do {
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
         if (G.redirect_slide) {
-          /* &= w/ wsize not needed and wrong if redirect */
-          if (d >= wsize)
+          /* &= w/ wszimpl not needed and wrong if redirect */
+          if (d >= wszimpl)
             return 1;
-          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+          e = wszimpl - (d > w ? d : w);
         } else
 #endif
-        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
+          e = wszimpl - ((d &= wszimpl-1) > w ? d : w);
+        if (e > n) e = n;
+        n -= e;
         if (u && w <= d)
         {
           memzero(redirSlide + w, e);
@@ -611,138 +460,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
             do {
               redirSlide[w++] = redirSlide[d++];
             } while (--e);
-        if (w == wsize)
-        {
-          if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
-            return retval;
-          w = u = 0;
-        }
-      } while (n);
-    }
-  }
-
-  /* flush out redirSlide */
-  if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
-    return retval;
-  if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
-  {                        /* sometimes read one too many:  k>>3 compensates */
-    G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
-    return 5;
-  }
-  return 0;
-}
-
-
-
-static int explode_nolit4(__G__ tl, td, bl, bd)
-     __GDEF
-struct huft *tl, *td;   /* length and distance decoder tables */
-int bl, bd;             /* number of bits decoded by tl[] and td[] */
-/* Decompress the imploded data using uncoded literals and a 4K sliding
-   window. */
-{
-  ulg s;                /* bytes to decompress */
-  register unsigned e;  /* table entry flag/number of extra bits */
-  unsigned n, d;        /* length and index for copy */
-  unsigned w;           /* current window position */
-  struct huft *t;       /* pointer to table entry */
-  unsigned ml, md;      /* masks for bl and bd bits */
-  register ulg b;       /* bit buffer */
-  register unsigned k;  /* number of bits in bit buffer */
-  unsigned u;           /* true if unflushed */
-  int retval = 0;       /* error code returned: initialized to "no error" */
-
-
-  /* explode the coded data */
-  b = k = w = 0;                /* initialize bit buffer, window */
-  u = 1;                        /* buffer unflushed */
-  ml = mask_bits[bl];           /* precompute masks for speed */
-  md = mask_bits[bd];
-  s = G.lrec.ucsize;
-  while (s > 0)                 /* do until ucsize bytes uncompressed */
-  {
-    NEEDBITS(1)
-    if (b & 1)                  /* then literal--get eight bits */
-    {
-      DUMPBITS(1)
-      s--;
-      NEEDBITS(8)
-      redirSlide[w++] = (uch)b;
-      if (w == wsize)
-      {
-        if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
-          return retval;
-        w = u = 0;
-      }
-      DUMPBITS(8)
-    }
-    else                        /* else distance/length */
-    {
-      DUMPBITS(1)
-      NEEDBITS(6)               /* get distance low bits */
-      d = (unsigned)b & 0x3f;
-      DUMPBITS(6)
-      NEEDBITS((unsigned)bd)    /* get coded distance high bits */
-      if ((e = (t = td + ((~(unsigned)b) & md))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
-      d = w - d - t->v.n;       /* construct offset */
-      NEEDBITS((unsigned)bl)    /* get coded length */
-      if ((e = (t = tl + ((~(unsigned)b) & ml))->e) > 16)
-        do {
-          if (e == 99)
-            return 1;
-          DUMPBITS(t->b)
-          e -= 16;
-          NEEDBITS(e)
-        } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
-      n = t->v.n;
-      if (e)                    /* get length extra bits */
-      {
-        NEEDBITS(8)
-        n += (unsigned)b & 0xff;
-        DUMPBITS(8)
-      }
-
-      /* do the copy */
-      s = (s > (ulg)n ? s - (ulg)n : 0);
-      do {
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-        if (G.redirect_slide) {
-          /* &= w/ wsize not needed and wrong if redirect */
-          if (d >= wsize)
-            return 1;
-          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-        } else
-#endif
-        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
-        if (u && w <= d)
-        {
-          memzero(redirSlide + w, e);
-          w += e;
-          d += e;
-        }
-        else
-#ifndef NOMEMCPY
-          if (w - d >= e)       /* (this test assumes unsigned comparison) */
-          {
-            memcpy(redirSlide + w, redirSlide + d, e);
-            w += e;
-            d += e;
-          }
-          else                  /* do it slow to avoid memcpy() overlap */
-#endif /* !NOMEMCPY */
-            do {
-              redirSlide[w++] = redirSlide[d++];
-            } while (--e);
-        if (w == wsize)
+        if (w == wszimpl)
         {
           if ((retval = flush(__G__ redirSlide, (ulg)w, 0)) != 0)
             return retval;
@@ -783,14 +501,25 @@ int explode(__G)
   int bb;               /* bits for tb */
   int bl;               /* bits for tl */
   int bd;               /* bits for td */
+  unsigned bdl;         /* number of uncoded lower distance bits */
   unsigned l[256];      /* bit lengths for codes */
 
 #if (defined(DLL) && !defined(NO_SLIDE_REDIR))
   if (G.redirect_slide)
-    wsize = G.redirect_size, redirSlide = G.redirect_buffer;
+    /* For 16-bit systems, it has already been checked at DLL entrance that
+     * the buffer size in G.redirect_size does not exceed unsigned range.
+     */
+    G._wsize = G.redirect_size, redirSlide = G.redirect_buffer;
   else
-    wsize = WSIZE, redirSlide = slide;
-#endif
+#if defined(USE_DEFLATE64) && defined(INT_16BIT)
+    /* For systems using 16-bit ints, reduce the used buffer size below
+     * the limit of "unsigned int" numbers range.
+     */
+    G._wsize = WSIZE>>1, redirSlide = slide;
+#else /* !(USE_DEFLATE64 && INT_16BIT) */
+    G._wsize = WSIZE, redirSlide = slide;
+#endif /* !(USE_DEFLATE64 && INT_16BIT) */
+#endif /* DLL && !NO_SLIDE_REDIR */
 
   /* Tune base table sizes.  Note: I thought that to truly optimize speed,
      I would have to select different bl, bd, and bb values for different
@@ -800,12 +529,12 @@ int explode(__G)
   bl = 7;
   bd = (G.csize + G.incnt) > 200000L ? 8 : 7;
 
-
-  /* With literal tree--minimum match length is 3 */
 #ifdef DEBUG
   G.hufts = 0;                    /* initialize huft's malloc'ed */
 #endif
+
   if (G.lrec.general_purpose_bit_flag & 4)
+  /* With literal tree--minimum match length is 3 */
   {
     bb = 9;                     /* base table size for literals */
     if ((r = get_tree(__G__ l, 256)) != 0)
@@ -816,8 +545,10 @@ int explode(__G)
         huft_free(tb);
       return (int)r;
     }
-    if ((r = get_tree(__G__ l, 64)) != 0)
+    if ((r = get_tree(__G__ l, 64)) != 0) {
+      huft_free(tb);
       return (int)r;
+    }
     if ((r = huft_build(__G__ l, 64, 0, cplen3, extra, &tl, &bl)) != 0)
     {
       if (r == 1)
@@ -825,41 +556,11 @@ int explode(__G)
       huft_free(tb);
       return (int)r;
     }
-    if ((r = get_tree(__G__ l, 64)) != 0)
-      return (int)r;
-    if (G.lrec.general_purpose_bit_flag & 2)      /* true if 8K */
-    {
-      if ((r = huft_build(__G__ l, 64, 0, cpdist8, extra, &td, &bd)) != 0)
-      {
-        if (r == 1)
-          huft_free(td);
-        huft_free(tl);
-        huft_free(tb);
-        return (int)r;
-      }
-      r = explode_lit8(__G__ tb, tl, td, bb, bl, bd);
-    }
-    else                                        /* else 4K */
-    {
-      if ((r = huft_build(__G__ l, 64, 0, cpdist4, extra, &td, &bd)) != 0)
-      {
-        if (r == 1)
-          huft_free(td);
-        huft_free(tl);
-        huft_free(tb);
-        return (int)r;
-      }
-      r = explode_lit4(__G__ tb, tl, td, bb, bl, bd);
-    }
-    huft_free(td);
-    huft_free(tl);
-    huft_free(tb);
   }
   else
-
-
   /* No literal tree--minimum match length is 2 */
   {
+    tb = (struct huft *)NULL;
     if ((r = get_tree(__G__ l, 64)) != 0)
       return (int)r;
     if ((r = huft_build(__G__ l, 64, 0, cplen2, extra, &tl, &bl)) != 0)
@@ -868,38 +569,47 @@ int explode(__G)
         huft_free(tl);
       return (int)r;
     }
-    if ((r = get_tree(__G__ l, 64)) != 0)
-      return (int)r;
-    if (G.lrec.general_purpose_bit_flag & 2)      /* true if 8K */
-    {
-      if ((r = huft_build(__G__ l, 64, 0, cpdist8, extra, &td, &bd)) != 0)
-      {
-        if (r == 1)
-          huft_free(td);
-        huft_free(tl);
-        return (int)r;
-      }
-      r = explode_nolit8(__G__ tl, td, bl, bd);
-    }
-    else                                        /* else 4K */
-    {
-      if ((r = huft_build(__G__ l, 64, 0, cpdist4, extra, &td, &bd)) != 0)
-      {
-        if (r == 1)
-          huft_free(td);
-        huft_free(tl);
-        return (int)r;
-      }
-      r = explode_nolit4(__G__ tl, td, bl, bd);
-    }
-    huft_free(td);
-    huft_free(tl);
   }
+
+  if ((r = get_tree(__G__ l, 64)) != 0) {
+    huft_free(tl);
+    if (tb != (struct huft *)NULL) huft_free(tb);
+    return (int)r;
+  }
+  if (G.lrec.general_purpose_bit_flag & 2)      /* true if 8K */
+  {
+    bdl = 7;
+    r = huft_build(__G__ l, 64, 0, cpdist8, extra, &td, &bd);
+  }
+  else                                          /* else 4K */
+  {
+    bdl = 6;
+    r = huft_build(__G__ l, 64, 0, cpdist4, extra, &td, &bd);
+  }
+  if (r != 0)
+  {
+    if (r == 1)
+      huft_free(td);
+    huft_free(tl);
+    if (tb != (struct huft *)NULL) huft_free(tb);
+    return (int)r;
+  }
+
+  if (tb != NULL) {
+    r = explode_lit(__G__ tb, tl, td, bb, bl, bd, bdl);
+    huft_free(tb);
+  } else {
+    r = explode_nolit(__G__ tl, td, bl, bd, bdl);
+  }
+
+  huft_free(td);
+  huft_free(tl);
   Trace((stderr, "<%u > ", G.hufts));
   return (int)r;
 }
 
 /* so explode.c and inflate.c can be compiled together into one object: */
-#undef NEXTBYTE
+#undef DECODEHUFT
 #undef NEEDBITS
 #undef DUMPBITS
+#undef wszimpl

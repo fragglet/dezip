@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.41 and later                      Mark Wright and others
-# Version:  Watcom C                                                   6 Feb 97
+# Makefile for UnZip 5.5 and later                       Mark Wright and others
+# Version:  Watcom C                                                  10 Feb 01
 #------------------------------------------------------------------------------
 
 
@@ -19,8 +19,8 @@
 # Macro definitions
 NLMNAME = unzip
 DESCRIPTION = unzip utility
-VERSION = 5.41.0
-COPYRIGHT = Copyright 1990-2000 Info-ZIP (Zip-Bugs@lists.wku.edu).
+VERSION = 5.5.0
+COPYRIGHT = Copyright 1990-2001 Info-ZIP (Zip-Bugs@lists.wku.edu).
 SCREENNAME = Info-ZIP's UnZip Utility
 CLIBIMP = \watcom\novi\clib.imp
 OBJFILE = $NLMNAME.obj
@@ -64,7 +64,7 @@ process.obj:    process.c $(UNZIP_H)
 ttyio.obj:      ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h
 unreduce.obj:   unreduce.c $(UNZIP_H)
 unshrink.obj:   unshrink.c $(UNZIP_H)
-unzip.obj:      unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.obj:      unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.obj:    zipinfo.c $(UNZIP_H)
 
 # individual dependencies and action rules:

@@ -21,6 +21,7 @@
              get_cdir_ent()
              process_local_file_hdr()
              ef_scan_for_izux()
+             getRISCOSexfield()
 
   ---------------------------------------------------------------------------*/
 
@@ -44,6 +45,12 @@ static ZCONST char Far CannotAllocateBuffers[] =
 #ifdef SFX
    static ZCONST char Far CannotFindMyself[] =
      "unzipsfx:  cannot find myself! [%s]\n";
+# ifdef CHEAP_SFX_AUTORUN
+   static ZCONST char Far AutorunPrompt[] =
+     "\nAuto-run command: %s\nExecute this command? [y/n] ";
+   static ZCONST char Far NotAutoRunning[] =
+     "Not executing auto-run command.";
+# endif
 
 #else /* !SFX */
    /* process_zipfiles() strings */
@@ -286,6 +293,17 @@ int process_zipfiles(__G)    /* return PK-type error code */
             Info(slide, 1, ((char *)slide, LoadFarString(CannotFindMyself),
               G.zipfn));
     }
+#ifdef CHEAP_SFX_AUTORUN
+    if (G.autorun_command[0] && !uO.qflag) { /* NO autorun without prompt! */
+        Info(slide, 0x81, ((char *)slide, LoadFarString(AutorunPrompt),
+                      FnFilter1(G.autorun_command)));
+        if (fgets(G.answerbuf, 9, stdin) != (char *)NULL
+            && toupper(*G.answerbuf) == 'Y')
+            system(G.autorun_command);
+        else
+            Info(slide, 1, ((char *)slide, LoadFarString(NotAutoRunning)));
+    }
+#endif /* CHEAP_SFX_AUTORUN */
 
 #else /* !SFX */
     NumWinFiles = NumLoseFiles = NumWarnFiles = 0;
@@ -315,9 +333,9 @@ int process_zipfiles(__G)    /* return PK-type error code */
         else
             ++NumWinFiles;
 
+        Trace((stderr, "do_seekable(0) returns %d\n", error));
         if (error != IZ_DIR && error > error_in_archive)
             error_in_archive = error;
-        Trace((stderr, "do_seekable(0) returns %d\n", error));
 #ifdef WINDLL
         if (error == IZ_CTRLC) {
             free_G_buffers(__G);
@@ -362,21 +380,30 @@ int process_zipfiles(__G)    /* return PK-type error code */
 #else
             error = do_seekable(__G__ 1);
 #endif
-            if (error == PK_WARN)   /* GRR: make this a switch/case stmt ... */
+            Trace((stderr, "do_seekable(1) returns %d\n", error));
+            switch (error) {
+              case PK_WARN:
                 ++NumWarnFiles;
-            else if (error == IZ_DIR)
+                break;
+              case IZ_DIR:
                 ++NumMissDirs;
-            else if (error == PK_NOZIP)
-                /* increment again => bug: "1 file had no zipfile directory." */
+                error = PK_NOZIP;
+                break;
+              case PK_NOZIP:
+                /* increment again => bug:
+                   "1 file had no zipfile directory." */
                 /* ++NumMissFiles */ ;
-            else if (error)
-                ++NumLoseFiles;
-            else
-                ++NumWinFiles;
+                break;
+              default:
+                if (error)
+                    ++NumLoseFiles;
+                else
+                    ++NumWinFiles;
+                break;
+            }
 
             if (error > error_in_archive)
                 error_in_archive = error;
-            Trace((stderr, "do_seekable(1) returns %d\n", error));
 #ifdef WINDLL
             if (error == IZ_CTRLC) {
                 free_G_buffers(__G);
@@ -582,16 +609,21 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 
     /* initialize the CRC table pointer (once) */
     if (CRC_32_TAB == NULL) {
-        if ((CRC_32_TAB = get_crc_table()) == NULL)
+        if ((CRC_32_TAB = get_crc_table()) == NULL) {
+            CLOSE_INFILE();
             return PK_MEM;
+        }
     }
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
     /* check out if specified extraction root directory exists */
     if (uO.exdir != (char *)NULL && G.extract_flag) {
         G.create_dirs = !uO.fflag;
-        if ((error = checkdir(__G__ uO.exdir, ROOT)) > 2)
-            return error;   /* out of memory, or file in way */
+        if ((error = checkdir(__G__ uO.exdir, ROOT)) > MPN_INF_SKIP) {
+            /* out of memory, or file in way */
+            CLOSE_INFILE();
+            return (error == MPN_NOMEM ? PK_MEM : PK_ERR);
+        }
     }
 #endif /* !SFX || SFX_EXDIR */
 
@@ -736,16 +768,20 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
         with STZip, as well as archives created by J.H. Holm's ZIPSPLIT 1.1).
       -----------------------------------------------------------------------*/
 
-        ZLSEEK( G.ecrec.offset_start_central_directory )
+        error = seek_zipf(__G__ G.ecrec.offset_start_central_directory);
+        if (error == PK_BADERR) {
+            CLOSE_INFILE();
+            return PK_BADERR;
+        }
 #ifdef OLD_SEEK_TEST
-        if (readbuf(G.sig, 4) == 0) {
+        if (error != PK_OK || readbuf(__G__ G.sig, 4) == 0) {
             CLOSE_INFILE();
             return PK_ERR;  /* file may be locked, or possibly disk error(?) */
         }
         if (strncmp(G.sig, central_hdr_sig, 4))
 #else
-        if ((readbuf(__G__ G.sig, 4) == 0) ||
-             strncmp(G.sig, central_hdr_sig, 4))
+        if ((error != PK_OK) || (readbuf(__G__ G.sig, 4) == 0) ||
+            strncmp(G.sig, central_hdr_sig, 4))
 #endif
         {
 #ifndef SFX
@@ -753,15 +789,16 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 #endif
 
             G.extra_bytes = 0;
-            ZLSEEK( G.ecrec.offset_start_central_directory )
-            if ((readbuf(__G__ G.sig, 4) == 0) ||
+            error = seek_zipf(__G__ G.ecrec.offset_start_central_directory);
+            if ((error != PK_OK) || (readbuf(__G__ G.sig, 4) == 0) ||
                 strncmp(G.sig, central_hdr_sig, 4))
             {
-                Info(slide, 0x401, ((char *)slide,
-                  LoadFarString(CentDirStartNotFound), G.zipfn,
-                  LoadFarStringSmall(ReportMsg)));
+                if (error != PK_BADERR)
+                  Info(slide, 0x401, ((char *)slide,
+                    LoadFarString(CentDirStartNotFound), G.zipfn,
+                    LoadFarStringSmall(ReportMsg)));
                 CLOSE_INFILE();
-                return PK_BADERR;
+                return (error != PK_OK ? error : PK_BADERR);
             }
 #ifndef SFX
             Info(slide, 0x401, ((char *)slide, LoadFarString(CentDirTooLong),
@@ -776,10 +813,14 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
         or test member files as instructed, and close the zipfile.
       -----------------------------------------------------------------------*/
 
+        error = seek_zipf(__G__ G.ecrec.offset_start_central_directory);
+        if (error != PK_OK) {
+            CLOSE_INFILE();
+            return error;
+        }
+
         Trace((stderr, "about to extract/list files (error = %d)\n",
           error_in_archive));
-
-        ZLSEEK( G.ecrec.offset_start_central_directory )
 
 #ifdef DLL
         /* G.fValidate is used only to look at an archive to see if
@@ -1028,12 +1069,25 @@ int uz_end_central(__G)    /* return PK-type error code */
                                         !uO.qflag)))
 #endif /* ?WINDLL */
     {
+#if (defined(SFX) && defined(CHEAP_SFX_AUTORUN))
+        if (do_string(__G__ G.ecrec.zipfile_comment_length, CHECK_AUTORUN)) {
+#else
         if (do_string(__G__ G.ecrec.zipfile_comment_length, DISPLAY)) {
+#endif
             Info(slide, 0x401, ((char *)slide,
               LoadFarString(ZipfileCommTrunc1)));
             error = PK_WARN;
         }
     }
+#if (defined(SFX) && defined(CHEAP_SFX_AUTORUN))
+    else if (G.ecrec.zipfile_comment_length) {
+        if (do_string(__G__ G.ecrec.zipfile_comment_length, CHECK_AUTORUN_Q)) {
+            Info(slide, 0x401, ((char *)slide,
+              LoadFarString(ZipfileCommTrunc1)));
+            error = PK_WARN;
+        }
+    }
+#endif
     return error;
 
 } /* end function uz_end_central() */
@@ -1229,7 +1283,7 @@ int process_local_file_hdr(__G)    /* return PK-type error code */
 
 unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
                           z_utim, z_uidgid)
-    uch *ef_buf;        /* buffer containing extra field */
+    ZCONST uch *ef_buf; /* buffer containing extra field */
     unsigned ef_len;    /* total length of extra field */
     int ef_is_c;        /* flag indicating "is central extra field" */
     ulg dos_mdatetime;  /* last_mod_file_date_time in DOS format */
@@ -1545,3 +1599,61 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
 }
 
 #endif /* USE_EF_UT_TIME */
+
+
+#if (defined(RISCOS) || defined(ACORN_FTYPE_NFS))
+
+#define SPARKID_2 0x30435241    /* = "ARC0" */
+
+/*******************************/
+/* Function getRISCOSexfield() */
+/*******************************/
+
+zvoid *getRISCOSexfield(ef_buf, ef_len)
+    ZCONST uch *ef_buf; /* buffer containing extra field */
+    unsigned ef_len;    /* total length of extra field */
+{
+    unsigned eb_id;
+    unsigned eb_len;
+
+/*---------------------------------------------------------------------------
+    This function scans the extra field for a Acorn SPARK filetype ef-block.
+    If a valid block is found, the function returns a pointer to the start
+    of the SPARK_EF block in the extra field buffer.  Otherwise, a NULL
+    pointer is returned.
+  ---------------------------------------------------------------------------*/
+
+    if (ef_len == 0 || ef_buf == NULL)
+        return NULL;
+
+    TTrace((stderr,"\ngetRISCOSexfield: scanning extra field of length %u\n",
+      ef_len));
+
+    while (ef_len >= EB_HEADSIZE) {
+        eb_id = makeword(EB_ID + ef_buf);
+        eb_len = makeword(EB_LEN + ef_buf);
+
+        if (eb_len > (ef_len - EB_HEADSIZE)) {
+            /* discovered some extra field inconsistency! */
+            TTrace((stderr,
+              "getRISCOSexfield: block length %u > rest ef_size %u\n", eb_len,
+              ef_len - EB_HEADSIZE));
+            break;
+        }
+
+        if (eb_id == EF_SPARK && (eb_len == 24 || eb_len == 20)) {
+            if (makelong(EB_HEADSIZE + ef_buf) == SPARKID_2) {
+                /* Return a pointer to the valid SPARK filetype ef block */
+                return (zvoid *)ef_buf;
+            }
+        }
+
+        /* Skip this extra field block */
+        ef_buf += (eb_len + EB_HEADSIZE);
+        ef_len -= (eb_len + EB_HEADSIZE);
+    }
+
+    return NULL;
+}
+
+#endif /* (RISCOS || ACORN_FTYPE_NFS) */

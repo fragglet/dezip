@@ -14,22 +14,22 @@
    If unzip.nlm does not load or run correctly, try the following in
    this order:
 
-	a) Load clibaux.nlm version 1.21a or later before loading
-	   unzip.nlm.  The clibaux.nlm is part of the NetWare SDK package
-	   mentioned above.  It's also part of the 3.x C library package
-	   mentioned below.
+        a) Load clibaux.nlm version 1.21a or later before loading
+           unzip.nlm.  The clibaux.nlm is part of the NetWare SDK package
+           mentioned above.  It's also part of the 3.x C library package
+           mentioned below.
 
-	b) On NetWare 3.x, install the latest 3.x C library modules.
-	   Go to http://support.novell.com/misc/patlst.htm#nw and look for
-	   "NetWare 3.12/3.2 CLIB".
+        b) On NetWare 3.x, install the latest 3.x C library modules.
+           Go to http://support.novell.com/misc/patlst.htm#nw and look for
+           "NetWare 3.12/3.2 CLIB".
 
-	c) On NetWare 4.10, install the latest 4.10 C library modules.
-	   Go to http://support.novell.com/misc/patlst.htm#nw and look for
-	   "Updated modular CLIB and DSAPI".
+        c) On NetWare 4.10, install the latest 4.10 C library modules.
+           Go to http://support.novell.com/misc/patlst.htm#nw and look for
+           "Updated modular CLIB and DSAPI".
 
-	d) On NetWare 4.11 and 4.2, install the latest support pack.
-	   Go to http://support.novell.com/misc/patlst.htm#nw and look for
-	   "NetWare 4 Support Pack".
+        d) On NetWare 4.11 and 4.2, install the latest support pack.
+           Go to http://support.novell.com/misc/patlst.htm#nw and look for
+           "NetWare 4 Support Pack".
 
 4) This unzip.nlm assumes that support for the long name space (also
    known as the OS/2 name space) has already been added to the current
@@ -47,11 +47,11 @@
 6) To change the current working volume and current working directory
    in which unzip.nlm loads and runs, load unzip.nlm like this:
 
-	load unzip <unzip options> (CLIB_OPT)/P<volume>:<directory>
+        load unzip <unzip options> (CLIB_OPT)/P<volume>:<directory>
 
    For example:
 
-	load unzip archive.zip (CLIB_OPT)/Pvol1:\usr\home
+        load unzip archive.zip (CLIB_OPT)/Pvol1:\usr\home
 
    For more information on CLIB_OPT, go to http://developer.novell.com/search/
    and enter "CLIB_OPT" in the "Novell Developer Kit Search" box.

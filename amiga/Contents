@@ -1,4 +1,4 @@
-Contents of the "amiga" directory for UnZip 5.42 and later:
+Contents of the "amiga" directory for UnZip 5.5 and later:
 
   Contents      this file
   amiga.c       Amiga-specific file I/O routines
@@ -13,7 +13,6 @@ Contents of the "amiga" directory for UnZip 5.42 and later:
   crc_68.a      assembler version of crc32.c
   flate.a       assembler version of inflate_codes() (define ASM_INFLATECODES)
 
-  mkGoff.c      source for MkGoff which generates include file used by flate.a
   makesfx.c     source for MakeSFX, without which UnZipSFX is not usable
 
 Notes:

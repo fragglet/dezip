@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -63,14 +63,31 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"      /* includes, typedefs, macros, prototypes, etc. */
 #include "crypt.h"
-#include "version.h"
+#include "unzvers.h"
 
 #ifndef WINDLL          /* The WINDLL port uses windll/windll.c instead... */
+
+/***************************/
+/* Local type declarations */
+/***************************/
+
+#ifdef REENTRANT
+typedef struct _sign_info
+    {
+        struct _sign_info *previous;
+        void (*sighandler)(int);
+        int sigtype;
+    } savsigs_info;
+#endif
 
 /*******************/
 /* Local Functions */
 /*******************/
 
+#ifdef REENTRANT
+static int setsignalhandler OF((__GPRO__ savsigs_info **p_savedhandler_chain,
+                                int signal_type, void (*newhandler)(int)));
+#endif
 #ifndef SFX
 static void  show_version_info  OF((__GPRO));
 #endif
@@ -95,6 +112,11 @@ static void  show_version_info  OF((__GPRO));
 #endif /* RISCOS */
   static ZCONST char Far NoMemArguments[] =
     "envargs:  cannot get memory for arguments";
+#endif
+
+#ifdef REENTRANT
+  static ZCONST char Far CantSaveSigHandler[] =
+    "error:  cannot save signal handler settings\n";
 #endif
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
@@ -418,6 +440,10 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far Use_Deflate64[] =
      "USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)";
 #  endif
+#  ifdef MULT_VOLUME
+     static ZCONST char Far Use_MultiVol[] =
+     "MULT_VOLUME (multi-volume archives supported)";
+#  endif
 #  if (defined(__DJGPP__) && (__DJGPP__ >= 2))
 #    ifdef USE_DJGPP_ENV
        static ZCONST char Far Use_DJGPP_Env[] = "USE_DJGPP_ENV";
@@ -594,7 +620,7 @@ int MAIN(argc, argv)   /* return PK-type error code (except under VMS) */
 
     CONSTRUCTGLOBALS();
     r = unzip(__G__ argc, argv);
-    DESTROYGLOBALS()
+    DESTROYGLOBALS();
     RETURN(r);
 }
 
@@ -617,6 +643,16 @@ int unzip(__G__ argc, argv)
     int i;
 #endif
     int retcode, error=FALSE;
+#ifdef REENTRANT
+    savsigs_info *oldsighandlers = NULL;
+#   define SET_SIGHANDLER(sigtype, newsighandler) \
+      if ((retcode = setsignalhandler(__G__ &oldsighandlers, (sigtype), \
+                                      (newsighandler))) > PK_WARN) \
+          goto cleanup_and_exit
+#else
+#   define SET_SIGHANDLER(sigtype, newsighandler) \
+      signal((sigtype), (newsighandler))
+#endif
 
     SETLOCALE(LC_CTYPE,"");
 
@@ -624,6 +660,52 @@ int unzip(__G__ argc, argv)
     extern void DebugMalloc(void);
 
     atexit(DebugMalloc);
+#endif
+
+#ifdef MALLOC_WORK
+    /* The following (rather complex) expression determines the allocation
+       size of the decompression work area.  It simulates what the
+       combined "union" and "struct" declaration of the "static" work
+       area reservation achieves automatically at compile time.
+       Any decent compiler should evaluate this expression completely at
+       compile time and provide constants to the zcalloc() call.
+       (For better readability, some subexpressions are encapsulated
+       in temporarly defined macros.)
+     */
+#   define UZ_SLIDE_CHUNK (sizeof(shrint)+sizeof(uch)+sizeof(uch))
+#   define UZ_NUMOF_CHUNKS \
+      (unsigned)(((WSIZE+UZ_SLIDE_CHUNK-1)/UZ_SLIDE_CHUNK > HSIZE) ? \
+                 (WSIZE+UZ_SLIDE_CHUNK-1)/UZ_SLIDE_CHUNK : HSIZE)
+    G.area.Slide = (uch *)zcalloc(UZ_NUMOF_CHUNKS, UZ_SLIDE_CHUNK);
+#   undef UZ_SLIDE_CHUNK
+#   undef UZ_NUMOF_CHUNKS
+    G.area.shrink.Parent = (shrint *)G.area.Slide;
+    G.area.shrink.value = G.area.Slide + (sizeof(shrint)*(HSIZE));
+    G.area.shrink.Stack = G.area.Slide +
+                           (sizeof(shrint) + sizeof(uch))*(HSIZE);
+#endif
+
+/*---------------------------------------------------------------------------
+    Set signal handler for restoring echo, warn of zipfile corruption, etc.
+  ---------------------------------------------------------------------------*/
+
+#ifdef SIGINT
+    SET_SIGHANDLER(SIGINT, handler);
+#endif
+#ifdef SIGTERM                 /* some systems really have no SIGTERM */
+    SET_SIGHANDLER(SIGTERM, handler);
+#endif
+#ifdef SIGBUS
+    SET_SIGHANDLER(SIGBUS, handler);
+#endif
+#ifdef SIGSEGV
+    SET_SIGHANDLER(SIGSEGV, handler);
+#endif
+
+#if (defined(WIN32) && defined(__RSXNT__))
+    for (i = 0 ; i < argc; i++) {
+       _ISO_INTERN(argv[i]);
+    }
 #endif
 
 /*---------------------------------------------------------------------------
@@ -667,38 +749,8 @@ int unzip(__G__ argc, argv)
      */
     if (! _setargv(&argc, &argv)) {
         Info(slide, 0x401, ((char *)slide, "cannot process argv\n"));
-        return(PK_MEM);
-    }
-#endif
-
-#ifdef MALLOC_WORK
-    G.area.Slide =(uch *)calloc(8193, sizeof(shrint)+sizeof(uch)+sizeof(uch));
-    G.area.shrink.Parent = (shrint *)G.area.Slide;
-    G.area.shrink.value = G.area.Slide + (sizeof(shrint)*(HSIZE+1));
-    G.area.shrink.Stack = G.area.Slide +
-                           (sizeof(shrint) + sizeof(uch))*(HSIZE+1);
-#endif
-
-/*---------------------------------------------------------------------------
-    Set signal handler for restoring echo, warn of zipfile corruption, etc.
-  ---------------------------------------------------------------------------*/
-
-#ifdef SIGINT
-    signal(SIGINT, handler);
-#endif
-#ifdef SIGTERM                 /* some systems really have no SIGTERM */
-    signal(SIGTERM, handler);
-#endif
-#ifdef SIGBUS
-    signal(SIGBUS, handler);
-#endif
-#ifdef SIGSEGV
-    signal(SIGSEGV, handler);
-#endif
-
-#if (defined(WIN32) && defined(__RSXNT__))
-    for (i = 0 ; i < argc; i++) {
-       _ISO_INTERN(argv[i]);
+        retcode = PK_MEM;
+        goto cleanup_and_exit;
     }
 #endif
 
@@ -720,11 +772,8 @@ int unzip(__G__ argc, argv)
     {
         ulg status = vms_unzip_cmdline(&argc, &argv);
         if (!(status & 1)) {
-#if (defined(MALLOC_WORK) && !defined(REENTRANT))
-            free(G.area.Slide);
-            G.area.Slide = (uch *)NULL;
-#endif
-            return status;
+            retcode = (int)status;
+            goto cleanup_and_exit;
         }
     }
 #endif /* VMSCLI */
@@ -748,11 +797,8 @@ int unzip(__G__ argc, argv)
     {
         ulg status = vms_unzip_cmdline(&argc, &argv);
         if (!(status & 1)) {
-#if (defined(MALLOC_WORK) && !defined(REENTRANT))
-            free(G.area.Slide);
-            G.area.Slide = (uch *)NULL;
-#endif
-            return status;
+            retcode = (int)status;
+            goto cleanup_and_exit;
         }
     }
 #endif /* VMSCLI */
@@ -799,11 +845,8 @@ int unzip(__G__ argc, argv)
 #endif /* ?SFX */
 
     if ((argc < 0) || error) {
-#if (defined(MALLOC_WORK) && !defined(REENTRANT))
-            free(G.area.Slide);
-            G.area.Slide = (uch *)NULL;
-#endif
-        return error;
+        retcode = error;
+        goto cleanup_and_exit;
     }
 
 /*---------------------------------------------------------------------------
@@ -902,11 +945,9 @@ int unzip(__G__ argc, argv)
                     else {
                         Info(slide, 0x401, ((char *)slide,
                           LoadFarString(MustGiveExdir)));
-#if (defined(MALLOC_WORK) && !defined(REENTRANT))
-                        free(G.area.Slide);
-                        G.area.Slide = (uch *)NULL;
-#endif
-                        return(PK_PARAM);  /* don't extract here by accident */
+                        /* don't extract here by accident */
+                        retcode = PK_PARAM;
+                        goto cleanup_and_exit;
                     }
                 }
                 if (firstarg) { /* ... zipfile -d exdir ... */
@@ -949,6 +990,18 @@ int unzip(__G__ argc, argv)
   ---------------------------------------------------------------------------*/
 
     retcode = process_zipfiles(__G);
+
+cleanup_and_exit:
+#ifdef REENTRANT
+    /* restore all signal handlers back to their state at function entry */
+    while (oldsighandlers != NULL) {
+        savsigs_info *thissigsav = oldsighandlers;
+
+        signal(thissigsav->sigtype, thissigsav->sighandler);
+        oldsighandlers = thissigsav->previous;
+        free(thissigsav);
+    }
+#endif
 #if (defined(MALLOC_WORK) && !defined(REENTRANT))
     if (G.area.Slide != (uch *)NULL) {
         free(G.area.Slide);
@@ -958,6 +1011,44 @@ int unzip(__G__ argc, argv)
     return(retcode);
 
 } /* end main()/unzip() */
+
+
+
+
+
+#ifdef REENTRANT
+/*******************************/
+/* Function setsignalhandler() */
+/*******************************/
+
+static int setsignalhandler(__G__ p_savedhandler_chain, signal_type,
+                            newhandler)
+    __GDEF
+    savsigs_info **p_savedhandler_chain;
+    int signal_type;
+    void (*newhandler)(int);
+{
+    savsigs_info *savsig;
+
+    savsig = malloc(sizeof(savsigs_info));
+    if (savsig == NULL) {
+        /* error message and break */
+        Info(slide, 0x401, ((char *)slide, LoadFarString(CantSaveSigHandler)));
+        return PK_MEM;
+    }
+    savsig->sigtype = signal_type;
+    savsig->sighandler = signal(SIGINT, newhandler);
+    if (savsig->sighandler == SIG_ERR) {
+        free(savsig);
+    } else {
+        savsig->previous = *p_savedhandler_chain;
+        *p_savedhandler_chain = savsig;
+    }
+    return PK_OK;
+
+} /* end function setsignalhandler() */
+
+#endif /* REENTRANT */
 
 
 
@@ -1376,6 +1467,15 @@ int uz_opts(__G__ pargc, pargv)
                         ++uO.volflag;
                     break;
 #endif /* DOS_H68_OS2_W32 */
+#if (!defined(RISCOS) && !defined(CMS_MVS) && !defined(TANDEM))
+                case (':'):
+                    if (negative) {
+                        uO.ddotflag = MAX(uO.ddotflag-negative,0);
+                        negative = 0;
+                    } else
+                        ++uO.ddotflag;
+                    break;
+#endif /* !RISCOS && !CMS_MVS && !TANDEM */
                 default:
                     error = TRUE;
                     break;
@@ -1753,6 +1853,11 @@ static void show_version_info(__G)
 #ifdef USE_DEFLATE64
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Deflate64)));
+        ++numopts;
+#endif
+#ifdef MULT_VOLUME
+        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
+          LoadFarStringSmall(Use_MultiVol)));
         ++numopts;
 #endif
 #  if (defined(__DJGPP__) && (__DJGPP__ >= 2))

@@ -2,13 +2,16 @@
 For UnZip 6.0/6.1/who knows:
 ================================
 
-   o add support for PKWARE's deflate64(Tm) compression algorithm
+   o implement handling of file sizes beyond the 32-bit limit of
+     2GByte (resp. 4GByte), using the new 64-bit extra field extensions
+     as defined by PKWARE (this will not get implemented for the present
+     16-bit ports - plain DOS and OS/2 1.x)
 
-        will appear in 5.50 (alpha state code present in 5.42)
+        top of the list for 6.0!
 
    o add multi-part zipfile handling
 
-        top of the list for 6.0!
+        major feature for 6.0!
 
    o add new low-level, binary API; rewrite "normal" (command-line) UnZip
      to use it
@@ -19,11 +22,19 @@ For UnZip 6.0/6.1/who knows:
 
         very soon (6.0 or 6.1)
 
+   o add precautions against extracting files outside the tree below
+     the current directory resp. the specified extraction folder.
+     (automatically remove absolute path specs from zip entries; emit
+      warnings when traversing outside the extraction tree...)
+
    o MSDOS/WIN32/others: detection of "reserved" names (= names of character
      devices, or system extensions that look like a characters device driver)
      at runtime; with the goal of emitting "meaningful" error messages and/or
      rename queries.
-     (Currently, these reserved names are catched as "non-deletable files".)
+     (Currently, these reserved names are catched as "non-deletable files".
+      On MSDOS and WIN32, when the RTL stat() function allows to identify
+      character devices, the "reserved" names are automatically prefixed with
+      an underscore.)
 
    o redesign "file exists -- is newer/older -- overwrite/skip/rename"
      logic in extract.c and the corresponding system specific mapname()
@@ -60,6 +71,12 @@ For UnZip 6.0/6.1/who knows:
    o add Unix hard-link support?
 
         way, way later...
+
+   o add ".ini" file support as a (more elaborate) alternative to the presently
+     supported preconfiguring abilities via special environment variables
+     (UNZIP on many systems...)?
+
+        way, way later (if ever)...
 
    o add option to search zipfile contents for a string and print the
      results? ("zipgrep" option--e.g., unzip -g or unzip -S) (easy for

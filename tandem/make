@@ -1,19 +1,20 @@
 ?tacl routine
 #FRAME
-load /keep 1/ commacs
+SINK [#LOAD /keep 1/ commacs]
+SINK [#LOAD /keep 1/ macros]
 
 [#PUSH file prev memory clib OK model unzip lib accel unlicensed licensed
-       options
+       options fileset nocrypt crypt
 ]
 #PUSH #DEFAULTS
-
-load /keep 1/ macros
 
 #SET OK -1
 
 [#IF [#ARGUMENT /VALUE memory/ KEYWORD /WORDLIST LARGE SMALL/ OTHERWISE ]]
 [#IF [#ARGUMENT /VALUE model/ KEYWORD /WORDLIST NOWIDE WIDE/ OTHERWISE ]]
 [#IF [#ARGUMENT /VALUE unlicensed/ KEYWORD /WORDLIST UNLICENSED/ OTHERWISE ]]
+[#IF [#ARGUMENT /VALUE nocrypt/ KEYWORD /WORDLIST NOCRYPT/ OTHERWISE ]]
+[#IF [#ARGUMENT /VALUE fileset/ TEMPLATE FILENAME OTHERWISE ]]
 
 [#IF [#EMPTYV memory] |THEN| #SET memory LARGE]
 [#IF [#EMPTYV model] |THEN| #SET model NOWIDE]
@@ -43,6 +44,16 @@ load /keep 1/ macros
   #SET options [options], define [licensed]
 ]
 
+[#IF nocrypt '=' "NOCRYPT"
+|THEN|
+|ELSE|
+  #SET crypt USE_CRYPT
+  #SET options [options], define [crypt]
+]
+
+[#IF [#EMPTYV fileset] |THEN| #SET fileset *C]
+
+#OUTPUT Files to compile: [fileset]
 #OUTPUT Pointer Model   : [model]
 #OUTPUT Memory Model    : [memory]
 #OUTPUT C Library       : [clib]
@@ -52,13 +63,13 @@ load /keep 1/ macros
 #OUTPUT Compile Options : [options]
 #OUTPUT
 
-#SET file [#FILENAMES /MAXIMUM 1/ *C]
+#SET file [#FILENAMES /MAXIMUM 1/ [fileset]]
 [#LOOP |while| NOT [#EMPTYV file]
 |DO|
   #SETV prev file
   CC [file] $T.#UNZIP [options]
   [#IF [tacl^completioncode] > 1 |THEN| #set OK 0 ]
-  #SET file [#FILENAMES /MAXIMUM 1, PREVIOUS [prev]/ *C]
+  #SET file [#FILENAMES /MAXIMUM 1, PREVIOUS [prev]/ [fileset]]
 ]
 
 [#IF OK |THEN|

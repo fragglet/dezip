@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -23,7 +23,7 @@ ZCONST ush near mask_bits[] = {
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
 
-ZCONST char Far VersionDate[] = UZ_VERSION_DATE; /* now defined in version.h */
+ZCONST char Far VersionDate[] = UZ_VERSION_DATE; /* now defined in unzvers.h */
 
 #ifndef SFX
    ZCONST char Far EndSigMsg[] =

@@ -1,5 +1,5 @@
 ;===========================================================================
-; Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+; Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 ;
 ; See the accompanying file LICENSE, version 2000-Apr-09 or later
 ; (the contents of which are also included in zip.h) for terms of use.
@@ -308,7 +308,7 @@ endif
 ;
 ;ulg crc32(ulg crc,
 ;    ZCONST uch *buf,
-;    extend len)
+;    extent len)
 ;
         PUBLIC  _crc32
 if @CodeSize

@@ -2,8 +2,8 @@ There are now several entry points to the dll.
 
 There is a single "unzipping" entry point of:
 
-Wiz_SingleEntryUnzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
-                     LPDCL lpDCL, LPUSERFUNCTIONS lpUserFunc)
+int Wiz_SingleEntryUnzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
+                         LPDCL lpDCL, LPUSERFUNCTIONS lpUserFunc)
 
 where the arguments are:
 
@@ -37,7 +37,11 @@ int ntflag              = test zip file
 int nvflag              = verbose listing
 int nfflag              = "freshen" (replace existing files by newer versions)
 int nzflag              = display zip file comment
-int ndflag              = all args are files/dir to be extracted
+int ndflag              = retain (create) subdirectories when extracting
+ndflag                  = controls (sub)directory recreation during extraction
+                          0 = junk paths from filenames
+                          1 = "safe" usage of paths in filenames (skip "../")
+                          2 = allow also unsafe path components (dir traversal)
 int noflag              = true if you are to always over-write files, false if not
 int naflag              = do end-of-line translation
 int nZIflag;            = get zip info if true
@@ -105,6 +109,10 @@ unsigned long CompFactor = value to be filled in by the dll for the overall
 unsigned long NumMembers = total number of files in the archive.
 WORD cchComment;        = flag to be set if archive has a comment
 } USERFUNCTIONS, far * LPUSERFUNCTIONS;
+
+Wiz_SingleEntryUnzip() returns a PKWARE compatible error code (0 if no
+error or warning). For an explanation of the supported error codes see
+the UnZip user documentation (the UnZip man page).
 
 For examples of how the actual calls to the dll are set up in WiZ, look in
 the files action.c and wizmain.c in the WiZ source directory. For a trival
@@ -234,14 +242,17 @@ follows (explanations for each function are shown further below):
         /* zvoid *pG, LPUSERFUNCTIONS lpUserFunctions */
         .
         .
-        .
-        Wiz_SetOpts(pG, C); /* Set up unzipping options */
-        /* zvoid *pG, LPDCL C */
-        .
-        .
-        .
-        Wiz_Unzip(pG, ifnc, ifnv, xfnc, xfnv); /* Unzip files */
-        .
+        do {
+          .
+          .
+          Wiz_SetOpts(pG, C); /* Set up unzipping options */
+          /* zvoid *pG, LPDCL C */
+          .
+          .
+          Wiz_Unzip(pG, ifnc, ifnv, xfnc, xfnv); /* Unzip files */
+          .
+          .
+        } while (!finished_condition)
         .
         .
         DESTROYGLOBALS();
@@ -255,10 +266,14 @@ Each entry point is as defined below:
 
     int WINAPI Wiz_Unzip(zvoid *, int, char **, int, char **);
 
-Note that you should use either windll_unzip OR the series of calls
+Note that you should use either Wiz_SingleEntryUnzip OR the series of calls
 described above. Using both, depending on how you do it, could cause
-problems.
+problems. The series of "lower level" gives you more freedom to add additional
+functionalities, whereas the single-entry api is easier to use. When using
+the "series" of calls, make sure that Wiz_SetOpts and Wiz_Unzip are always
+used together! When successfully called, Wiz_SetOpts has allocated some
+internal structures which are in turn free'd by Wiz_Unzip.
 
-Last revised June 21, 1999.
+Last revised January 12, 2002.
 
 Mike White, Christian Spieler

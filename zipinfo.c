@@ -225,11 +225,11 @@ static ZCONST char Far LocalHeaderOffset[] =
 static ZCONST char Far HostOS[] =
   "  file system or operating system of origin:        %s\n";
 static ZCONST char Far EncodeSWVer[] =
-  "  version of encoding software:                     %d.%d\n";
+  "  version of encoding software:                     %u.%u\n";
 static ZCONST char Far MinOSCompReq[] =
   "  minimum file system compatibility required:       %s\n";
 static ZCONST char Far MinSWVerReq[] =
-  "  minimum software version required to extract:     %d.%d\n";
+  "  minimum software version required to extract:     %u.%u\n";
 static ZCONST char Far CompressMethod[] =
   "  compression method:                               %s\n";
 static ZCONST char Far SlideWindowSizeImplode[] =
@@ -303,6 +303,7 @@ static ZCONST char Far ExtraFields[] = "\n\
   The central-directory extra field contains:";
 static ZCONST char Far ExtraFieldType[] = "\n\
   - A subfield with ID 0x%04x (%s) and %u data bytes";
+static ZCONST char Far efPKSZ64[] = "PKWARE 64-bit sizes";
 static ZCONST char Far efAV[] = "PKWARE AV";
 static ZCONST char Far efOS2[] = "OS/2";
 static ZCONST char Far efPKVMS[] = "PKWARE VMS";
@@ -335,7 +336,7 @@ static ZCONST char Far OS2EAs[] = ".\n\
     The local extra field has %lu bytes of OS/2 extended attributes.\n\
     (May not match OS/2 \"dir\" amount due to storage method)";
 static ZCONST char Far izVMSdata[] = ".  The extra\n\
-    field is %s and has %lu bytes of VMS %s information%s";
+    field is %s and has %u bytes of VMS %s information%s";
 static ZCONST char Far izVMSstored[] = "stored";
 static ZCONST char Far izVMSrleenc[] = "run-length encoded";
 static ZCONST char Far izVMSdeflat[] = "deflated";
@@ -935,7 +936,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     iztimes z_utime;
 #endif
     int  error, error_in_archive=PK_COOL;
-    ush  hostnum, hostver, extnum, extver, methnum, xattr;
+    unsigned  hostnum, hostver, extnum, extver, methnum, xattr;
     char workspace[12], attribs[22];
     ZCONST char *varmsg_str;
     char unkn[16];
@@ -996,11 +997,11 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     Print out various interesting things about the compressed file.
   ---------------------------------------------------------------------------*/
 
-    hostnum = (ush)(G.pInfo->hostnum);
-    hostver = (ush)(G.pInfo->hostver);
-    extnum = (ush)MIN(G.crec.version_needed_to_extract[1], NUM_HOSTS);
-    extver = G.crec.version_needed_to_extract[0];
-    methnum = (ush)MIN(G.crec.compression_method, NUM_METHODS);
+    hostnum = (unsigned)(G.pInfo->hostnum);
+    hostver = (unsigned)(G.pInfo->hostver);
+    extnum = (unsigned)MIN(G.crec.version_needed_to_extract[1], NUM_HOSTS);
+    extver = (unsigned)G.crec.version_needed_to_extract[0];
+    methnum = (unsigned)MIN(G.crec.compression_method, NUM_METHODS);
 
     (*G.message)((zvoid *)&G, (uch *)"  ", 2L, 0);  fnprint(__G);
 
@@ -1113,7 +1114,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     printf("  external file attributes (hex):                   %.8lx\n",
       G.crec.external_file_attributes);
 #endif
-    xattr = (ush)((G.crec.external_file_attributes >> 16) & 0xFFFF);
+    xattr = (unsigned)((G.crec.external_file_attributes >> 16) & 0xFFFF);
     if (hostnum == VMS_) {
         char   *p=attribs, *q=attribs+1;
         int    i, j, k;
@@ -1155,7 +1156,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                 while ((*p++ = *q++) != ',')
                     ;                         /* system, owner perms are same */
         }
-        *p-- = 0;
+        *p-- = '\0';
         *p = ')';   /* overwrite last comma */
         Info(slide, 0, ((char *)slide, LoadFarString(VMSFileAttributes), xattr,
           attribs));
@@ -1283,7 +1284,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
 
     } /* endif (hostnum: external attributes format) */
 
-    if ((xattr=(ush)(G.crec.external_file_attributes & 0xFF)) == 0)
+    if ((xattr=(unsigned)(G.crec.external_file_attributes & 0xFF)) == 0)
         Info(slide, 0, ((char *)slide, LoadFarString(MSDOSFileAttributes),
           xattr));
     else if (xattr == 1)
@@ -1333,6 +1334,9 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
             }
 
             switch (eb_id) {
+                case EF_PKSZ64:
+                    ef_fieldname = efPKSZ64;
+                    break;
                 case EF_AV:
                     ef_fieldname = efAV;
                     break;
@@ -1359,7 +1363,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
                 case EF_IZUNIX:
                     ef_fieldname = efIZUnix;
-                    if (G.pInfo->hostnum == UNIX_ && *pEndprev > 0L)
+                    if (hostnum == UNIX_ && *pEndprev > 0L)
                         *pEndprev += 4L;  /* also have UID/GID in local copy */
                     break;
                 case EF_IZUNIX2:
@@ -1449,7 +1453,8 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                 case EF_IZVMS:
                     if (eb_datalen >= 8) {
                         char *p, q[8];
-                        int compr = makeword(ef_ptr+4) & 7;
+                        unsigned compr = makeword(ef_ptr+EB_IZVMS_FLGS)
+                                        & EB_IZVMS_BCMASK;
 
                         *q = '\0';
                         if (compr > 3)
@@ -1473,15 +1478,16 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                             if (eb_datalen >= 16) {
                                 q[0] = ' ';
                                 q[1] = '(';
-                                strncpy(q+2, (char *)ef_ptr+12, 4);
+                                strncpy(q+2, (char *)ef_ptr+EB_IZVMS_HLEN, 4);
                                 q[6] = ')';
                                 q[7] = '\0';
                             }
                         } else
-                            p = "version";
-                        Info(slide, 0, ((char *)slide, LoadFarString(izVMSdata),
+                            p = "unknown";
+                        Info(slide, 0, ((char *)slide,
+                          LoadFarString(izVMSdata),
                           LoadFarStringSmall(izVMScomp[compr]),
-                          makeword(ef_ptr+6), p, q));
+                          makeword(ef_ptr+EB_IZVMS_UCSIZ), p, q));
                     }
                     break;
                 case EF_TIME:
@@ -1555,7 +1561,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                         strncmp((char *)ef_ptr, "ZPIT", 4) == 0) {
                         unsigned fnlen = ef_ptr[4];
 
-                        if (eb_datalen >= fnlen + (5 + 8)) {
+                        if ((unsigned)eb_datalen >= fnlen + (5 + 8)) {
                             uch nullchar = ef_ptr[fnlen+5];
 
                             ef_ptr[fnlen+5] = '\0'; /* terminate filename */
@@ -1691,7 +1697,8 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     }
 
     /* high bit == Unix/OS2/NT GMT times (mtime, atime); next bit == UID/GID */
-    if ((xattr = (ush)((G.crec.external_file_attributes & 0xC000) >> 12)) & 8)
+    if ((xattr = (unsigned)((G.crec.external_file_attributes & 0xC000) >> 12))
+        & 8)
     {
         if (hostnum == UNIX_ || hostnum == FS_HPFS_ || hostnum == FS_NTFS_)
         {
@@ -1741,7 +1748,7 @@ static int zi_short(__G)   /* return PK-type error code */
     time_t      *z_modtim;
 #endif
     int         k, error, error_in_archive=PK_COOL;
-    ush         methnum, hostnum, hostver, xattr;
+    unsigned    hostnum, hostver, methnum, xattr;
     char        *p, workspace[12], attribs[16];
     char        methbuf[5];
     static ZCONST char dtype[5]="NXFS"; /* normal, maximum, fast, superfast */
@@ -1763,12 +1770,12 @@ static int zi_short(__G)   /* return PK-type error code */
     Print out various interesting things about the compressed file.
   ---------------------------------------------------------------------------*/
 
-    methnum = (ush)MIN(G.crec.compression_method, NUM_METHODS);
-    hostnum = (ush)(G.pInfo->hostnum);
-    hostver = (ush)(G.pInfo->hostver);
+    methnum = (unsigned)MIN(G.crec.compression_method, NUM_METHODS);
+    hostnum = (unsigned)(G.pInfo->hostnum);
+    hostver = (unsigned)(G.pInfo->hostver);
 /*
-    extnum = MIN(G.crec.version_needed_to_extract[1], NUM_HOSTS);
-    extver = G.crec.version_needed_to_extract[0];
+    extnum = (unsigned)MIN(G.crec.version_needed_to_extract[1], NUM_HOSTS);
+    extver = (unsigned)G.crec.version_needed_to_extract[0];
  */
 
     zfstrcpy(methbuf, method[methnum]);
@@ -1786,7 +1793,7 @@ static int zi_short(__G)   /* return PK-type error code */
         attribs[k] = ' ';
     attribs[15] = 0;
 
-    xattr = (ush)((G.crec.external_file_attributes >> 16) & 0xFFFF);
+    xattr = (unsigned)((G.crec.external_file_attributes >> 16) & 0xFFFF);
     switch (hostnum) {
         case VMS_:
             {   int    i, j;
@@ -1827,7 +1834,7 @@ static int zi_short(__G)   /* return PK-type error code */
                 }
                 *--p = ' ';   /* overwrite last comma */
                 if ((p - attribs) < 12)
-                    sprintf(&attribs[12], "%d.%d", hostver/10, hostver%10);
+                    sprintf(&attribs[12], "%u.%u", hostver/10, hostver%10);
             }
             break;
 
@@ -1845,7 +1852,7 @@ static int zi_short(__G)   /* return PK-type error code */
             attribs[6] = (xattr & AMI_IWRITE)?    'w' : '-';
             attribs[7] = (xattr & AMI_IEXECUTE)?  'e' : '-';
             attribs[8] = (xattr & AMI_IDELETE)?   'd' : '-';
-            sprintf(&attribs[12], "%d.%d", hostver/10, hostver%10);
+            sprintf(&attribs[12], "%u.%u", hostver/10, hostver%10);
             break;
 
         case THEOS_:
@@ -1870,7 +1877,7 @@ static int zi_short(__G)   /* return PK-type error code */
             attribs[6] = (xattr & THS_IXUSR) ? '.' : 'X';
             attribs[7] = (xattr & THS_IWUSR) ? '.' : 'W';
             attribs[8] = (xattr & THS_IRUSR) ? '.' : 'R';
-            sprintf(&attribs[12], "%d.%d", hostver/10, hostver%10);
+            sprintf(&attribs[12], "%u.%u", hostver/10, hostver%10);
             break;
 
         case FS_VFAT_:
@@ -1897,7 +1904,7 @@ static int zi_short(__G)   /* return PK-type error code */
                 attribs[6] = (xattr & _THS_IXUSR) ? '.' : 'X';
                 attribs[7] = (xattr & _THS_IWUSR) ? '.' : 'W';
                 attribs[8] = (xattr & _THS_IRUSR) ? '.' : 'R';
-                sprintf(&attribs[12], "%d.%d", hostver/10, hostver%10);
+                sprintf(&attribs[12], "%u.%u", hostver/10, hostver%10);
                 break;
             } /* else: fall through! */
 #endif /* OLD_THEOS_EXTRA */
@@ -1911,12 +1918,12 @@ static int zi_short(__G)   /* return PK-type error code */
             if (hostnum != FS_FAT_ ||
                 (unsigned)(xattr & 0700) !=
                  ((unsigned)0400 |
-                  (unsigned)!(G.crec.external_file_attributes & 1) << 7 |
-                  (unsigned)(G.crec.external_file_attributes & 0x10) << 2)
+                  ((unsigned)!(G.crec.external_file_attributes & 1) << 7) |
+                  ((unsigned)(G.crec.external_file_attributes & 0x10) << 2))
                )
             {
-                xattr = (ush)(G.crec.external_file_attributes & 0xFF);
-                sprintf(attribs, ".r.-...     %d.%d", hostver/10, hostver%10);
+                xattr = (unsigned)(G.crec.external_file_attributes & 0xFF);
+                sprintf(attribs, ".r.-...     %u.%u", hostver/10, hostver%10);
                 attribs[2] = (xattr & 0x01)? '-' : 'w';
                 attribs[5] = (xattr & 0x02)? 'h' : '-';
                 attribs[6] = (xattr & 0x04)? 's' : '-';
@@ -1972,7 +1979,7 @@ static int zi_short(__G)   /* return PK-type error code */
             else
                 attribs[9] = (xattr & UNX_ISVTX)? 'T' : '-';  /* T==undefined */
 
-            sprintf(&attribs[12], "%d.%d", hostver/10, hostver%10);
+            sprintf(&attribs[12], "%u.%u", hostver/10, hostver%10);
             break;
 
     } /* end switch (hostnum: external attributes format) */

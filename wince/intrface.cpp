@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -66,6 +66,7 @@
 //              mapattr
 //              utimeToFileTime
 //              GetFileTimes
+//              SetFileSize
 //              close_outfile
 //              do_wild
 //              mapname
@@ -83,6 +84,7 @@
 // 02/01/97  Steve Miller  Created (Version 1.0 using Info-ZIP UnZip 5.30)
 // 08/01/99  Johnny Lee, Christian Spieler, Steve Miller, and others
 //                         Adapted to UnZip 5.41 (Version 1.1)
+// 12/01/02  Chr. Spieler  Updated interface for UnZip 5.50
 //
 //*****************************************************************************
 
@@ -499,7 +501,7 @@ void FreeGlobals(Uz_Globs *pG) {
    }
 
    // Free everything else.
-   DESTROYGLOBALS()
+   DESTROYGLOBALS();
 }
 
 //******************************************************************************
@@ -529,7 +531,8 @@ BOOL SmartCreateDirectory(Uz_Globs *pG, LPCSTR szDirectory) {
    // Create the directory if it does not exist.
    if (x == 0) {
       if (!CreateDirectory(szBuffer, NULL)) {
-         Info(slide, 1, ((char *)slide, "error creating directory: %s\n", szDirectory));
+         Info(slide, 1, ((char *)slide, "error creating directory: %s\n",
+           FnFilter1( szDirectory)));
          return FALSE;
       }
 
@@ -537,7 +540,7 @@ BOOL SmartCreateDirectory(Uz_Globs *pG, LPCSTR szDirectory) {
    } else if (x == 1) {
       Info(slide, 1, ((char *)slide,
            "cannot create %s as a file with same name already exists.\n",
-           szDirectory));
+           FnFilter1(szDirectory)));
       return FALSE;
    }
 
@@ -862,7 +865,7 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, unsigned ratio,
    }
 
    // We get our Globals structure and then retrieve the real file name.
-   GETGLOBALS()
+   GETGLOBALS();
    szPath = pG->filename;
 
    // Allocate a FILE_NODE large enough to hold this file.
@@ -1175,6 +1178,44 @@ int GetFileTimes(Uz_Globs *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
 }
 
 //******************************************************************************
+int SetFileSize(FILE *file, ulg filesize)
+{
+#if (defined(_WIN32_WCE) || defined(__RSXNT__))
+    // For native Windows CE, it is not known whether the API supports
+    // presetting a file's size.
+    // RSXNT environment lacks a translation function from C file pointer
+    // to Win32-API file handle.
+    // So, simply do nothing.
+    return 0;
+#else /* !(_WIN32_WCE || __RSXNT__) */
+    /* not yet verified, if that really creates an unfragmented file
+      rommel@ars.de
+     */
+    HANDLE os_fh;
+
+    /* Win9x supports FAT file system, only; presetting file size does
+       not help to prevent fragmentation. */
+    if ((long)GetVersion() < 0) return 0;
+
+    /* Win32-API calls require access to the Win32 file handle.
+       The interface function used to retrieve the Win32 handle for
+       a file opened by the C rtl is non-standard and may not be
+       available for every Win32 compiler environment.
+       (see also win32/win32.c of the Zip distribution)
+     */
+    os_fh = (HANDLE)_get_osfhandle(fileno(file));
+    /* move file pointer behind the last byte of the expected file size */
+    if (SetFilePointer(os_fh, filesize, 0, FILE_BEGIN) == 0xFFFFFFFF)
+        return -1;
+    /* extend/truncate file to the current position */
+    if (SetEndOfFile(os_fh) == 0)
+        return -1;
+    /* move file position pointer back to the start of the file! */
+    return (SetFilePointer(os_fh, 0, 0, FILE_BEGIN) == 0xFFFFFFFF) ? -1 : 0;
+#endif /* ?(_WIN32_WCE || __RSXNT__) */
+} /* end function SetFileSize() */
+
+//******************************************************************************
 void close_outfile(Uz_Globs *pG) {
 
    // Get the 3 time stamps for the file.
@@ -1266,17 +1307,20 @@ char* do_wild(Uz_Globs *pG, ZCONST char *wildspec) {
 //******************************************************************************
 // Called from EXTRACT.C
 //
-// returns:  1 - (on APPEND_NAME) truncated filename
-//           2 - path doesn't exist, not allowed to create
-//           3 - path doesn't exist, tried to create and failed; or
-//               path exists and is not a directory, but is supposed to be
-//           4 - path is too long
-//          10 - can't allocate memory for filename buffers
+// returns:
+//  MPN_OK          - no problem detected
+//  MPN_INF_TRUNC   - (on APPEND_NAME) truncated filename
+//  MPN_INF_SKIP    - path doesn't exist, not allowed to create
+//  MPN_ERR_SKIP    - path doesn't exist, tried to create and failed; or path
+//                    exists and is not a directory, but is supposed to be
+//  MPN_ERR_TOOLONG - path is too long
+//  MPN_NOMEM       - can't allocate memory for filename buffers
 //
-// IZ_VOL_LABEL   - Path was a volume label, skip it.
-// IZ_CREATED_DIR - Created a directory.
+//  MPN_VOL_LABEL   - Path was a volume label, skip it.
+//  MPN_CREATED_DIR - Created a directory.
 //
 int mapname(Uz_Globs *pG, int renamed) {
+   int error = MPN_OK;
 
    // mapname() is a great place to reset all our status counters for the next
    // file to be processed since it is called for every zip file member before
@@ -1285,14 +1329,17 @@ int mapname(Uz_Globs *pG, int renamed) {
 
    // If Volume Label, skip the "extraction" quietly
    if (pG->pInfo->vollabel) {
-      return IZ_VOL_LABEL;
+      return MPN_VOL_LABEL;
    }
 
    CHAR szBuffer[countof(pG->filename)] = "", *pIn, *pOut, *pLastSemi = NULL;
+   CHAR *pPathComp;
+   int killed_ddot = FALSE;
 
    // Initialize file path buffer with our "extract to" path.
    strcpy(szBuffer, g_szExtractToDirectory);
    pOut = szBuffer + strlen(szBuffer);
+   pPathComp = pOut;
 
    // Point pIn to beginning of our internal pathname.
    // If we are junking paths, then locate the file portion of the path.
@@ -1303,8 +1350,9 @@ int mapname(Uz_Globs *pG, int renamed) {
 
       // Make sure we don't overflow our output buffer.
       if (pOut >= (szBuffer + countof(szBuffer) - 2)) {
-         Info(slide, 1, ((char*)slide, "path too long: %s\n", pG->filename));
-         return 4;
+         Info(slide, 1, ((char*)slide, "path too long: %s\n",
+           FnFilter1(pG->filename)));
+         return MPN_ERR_TOOLONG;
       }
 
       // Examine the next character in our input buffer.
@@ -1316,11 +1364,28 @@ int mapname(Uz_Globs *pG, int renamed) {
             *pOut = '\0';
             if (!SmartCreateDirectory(pG, szBuffer)) {
                Info(slide, 1, ((char*)slide, "failure extracting: %s\n",
-                    pG->filename));
-               return 3;
+                    FnFilter1(pG->filename)));
+               return MPN_ERR_SKIP;
             }
             *(pOut++) = '\\';
+            pPathComp = pOut;  // Remember start pos of new path component
             pLastSemi = NULL;  // Leave any directory semi-colons alone
+            break;
+
+         // Check for dir traversals and skip them unless explicitely allowed.
+         case '.':
+             if (pOut == pPathComp) {   // nothing appended yet...
+               if (pIn[1] == '/') {     // don't bother appending "./" to
+                  ++pIn;                //  the path: skip behind the '/'
+                  break;
+               } else if (!uO.ddotflag && pIn[1] == '.' && pIn[2] == '/') {
+                  /* "../" dir traversal detected */
+                  pIn += 2;             //  skip over behind the '/'
+                  killed_ddot = TRUE;   //  set "show message" flag
+                  break;
+               }
+            }
+            *(pOut++) = '.';
             break;
 
          // Check for illegal characters and replace with underscore.
@@ -1371,6 +1436,15 @@ int mapname(Uz_Globs *pG, int renamed) {
       }
    }
 
+    // Show warning when stripping insecure "parent dir" path components
+    if (killed_ddot && QCOND2) {
+        Info(slide, 0, ((char *)slide,
+          "warning:  skipped \"../\" path component(s) in %s\n",
+          FnFilter1(G.filename)));
+        if (!(error & ~MPN_MASK))
+            error = (error & MPN_MASK) | PK_WARN;
+    }
+
    // Copy the mapped name back to the internal path buffer
    strcpy(pG->filename, szBuffer);
 
@@ -1381,11 +1455,12 @@ int mapname(Uz_Globs *pG, int renamed) {
 
    // If it is a directory, then display the "creating" status text.
    if ((pOut > szBuffer) && (lastchar(szBuffer, pOut-szBuffer) == '\\')) {
-      Info(slide, 0, ((char *)slide, "creating: %s\n", pG->filename));
-      return IZ_CREATED_DIR;
+      Info(slide, 0, ((char *)slide, "creating: %s\n",
+        FnFilter1(pG->filename)));
+      return (error & ~MPN_MASK) | MPN_CREATED_DIR;
    }
 
-   return PK_OK;
+   return error;
 }
 
 //******************************************************************************
@@ -1401,7 +1476,7 @@ int test_NT(Uz_Globs *pG, uch *eb, unsigned eb_size) {
 int checkdir(Uz_Globs *pG, char *pathcomp, int flag) {
    // This function is only called by free_G_buffers() from PROCESS.C with the
    // flag set to END.  We have nothing to do, so we just return success.
-   return PK_OK;
+   return MPN_OK;
 }
 
 //******************************************************************************

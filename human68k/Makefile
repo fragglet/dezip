@@ -1,9 +1,9 @@
-# Makefile for UnZip 5.40 and later:  Human68k with gcc        NIIMI Satoshi
+# Makefile for UnZip 5.50 and later:  Human68k with gcc        NIIMI Satoshi
 #
 # The original Makefile maybe works fine, but X680x0 is too slow
 # to process it.  So I split out needed part.
 #
-# Last revised:  11 Feb 96
+# Last revised:  27 Feb 01
 #
 # 1999/09/23: Modified by Shimazaki Ryo.
 
@@ -32,9 +32,9 @@ FC = -DFUNZIP
 OBJS = unzip.o crc_68.o crctab.o crypt.o envargs.o explode.o extract.o \
 	fileio.o globals.o inflate.o flate.o list.o match.o process.o \
 	ttyio.o unreduce.o unshrink.o zipinfo.o human68k.o
-OBJX = unzipsfx.o crc_68.o crctab.o crypt.o extract_.o fileio.o globals.o \
-	inflate.o flate.o match.o process_.o ttyio.o human68k_.o
-OBJF = funzip.o crc_68.o crypt_.o globals_.o inflate_.o flate_.o ttyio_.o
+OBJX = unzipsfx.o crc_68.o crctab_.o crypt_.o extract_.o fileio_.o globals_.o \
+	inflate_.o flate_.o match_.o process_.o ttyio_.o human68k_.o
+OBJF = funzip.o crc_68.o cryptf.o globalsf.o inflatef.o flatef.o ttyiof.o
 
 UNZIP_H = unzip.h unzpriv.h globals.h
 
@@ -82,17 +82,52 @@ process.o:	process.c $(UNZIP_H)
 ttyio.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce.o:	unreduce.c $(UNZIP_H)
 unshrink.o:	unshrink.c $(UNZIP_H)
-unzip.o:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip.o:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.o:	zipinfo.c $(UNZIP_H)
 
-crypt_.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip
-	$(CC) $(CFLAGS) $(FC) -c $< -o $@
+crctab_.o:	crctab.c $(UNZIP_H) zip.h			# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+crypt_.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
 extract_.o:	extract.c $(UNZIP_H) crypt.h			# unzipsfx
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-globals_.o:	globals.c $(UNZIP_H)				# funzip
+fileio_.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+globals_.o:	globals.c $(UNZIP_H)				# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+inflate_.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+process_.o:	process.c $(UNZIP_H)				# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+match_.o:	match.c $(UNZIP_H)				# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+ttyio_.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+unzipsfx.o:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+
+cryptf.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip
 	$(CC) $(CFLAGS) $(FC) -c $< -o $@
+
+globalsf.o:	globals.c $(UNZIP_H)				# funzip
+	$(CC) $(CFLAGS) $(FC) -c $< -o $@
+
+inflatef.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip
+	$(CC) $(CFLAGS) $(FC) -c $< -o $@
+
+ttyiof.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip
+	$(CC) $(CFLAGS) $(FC) -c $< -o $@
+
 
 human68k.o:	human68k/human68k.c $(UNZIP_H)
 	$(CC) $(CFLAGS) -I. -c human68k/human68k.c -o $@
@@ -100,38 +135,35 @@ human68k.o:	human68k/human68k.c $(UNZIP_H)
 human68k_.o:	human68k/human68k.c $(UNZIP_H)			# unzipsfx
 	$(CC) $(CFLAGS) $(XC) -I. -c human68k/human68k.c -o $@
 
-inflate_.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip
-	$(CC) $(CFLAGS) $(FC) -c $< -o $@
-
-process_.o:	process.c $(UNZIP_H)				# unzipsfx
-	$(CC) $(CFLAGS) $(XC) -c $< -o $@
-
-ttyio_.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip
-	$(CC) $(CFLAGS) $(FC) -c $< -o $@
-
-unzipsfx.o:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx
-	$(CC) $(CFLAGS) $(XC) -c $< -o $@
-
 crc_68.o:	human68k/crc_68.s
 	$(AS) $(ASFLAGS) $< -o $@
 
 flate.o:	human68k/flate.s human68k/g_offs.mac
 	$(AS) $(ASFLAGS) $< -o $@
 
-flate_.o:	human68k/flate.s human68k/g_offs_.mac		# funzip
+flate_.o:	human68k/flate.s human68k/g_offs_.mac		# unzipsfx
+	$(AS) $(ASFLAGS) $< -o $@ -sSFX
+
+flatef.o:	human68k/flate.s human68k/g_offsf.mac		# funzip
 	$(AS) $(ASFLAGS) $< -o $@ -sFUNZIP
 
-human68k/g_offs.mac:	human68k/mkgoff.x
+human68k/g_offs.mac:	human68k/gbloffs.x
 	human68k/mkgoff.x >! $@
-	
-human68k/g_offs_.mac:	human68k/mkgoff_.x			# funzip
+
+human68k/g_offs_.mac:	human68k/gbloffs_.x			# unzipsfx
 	human68k/mkgoff_.x >! $@
 
-human68k/mkgoff.x:	human68k/mkgoff.c $(UNZIP_H) crypt.h
-	$(CC) $(CFLAGS) human68k/mkgoff.c -o $@
+human68k/g_offsf.mac:	human68k/gbloffsf.x			# funzip
+	human68k/mkgofff.x >! $@
 
-human68k/mkgoff_.x:	human68k/mkgoff.c $(UNZIP_H) crypt.h	# funzip
-	$(CC) $(CFLAGS) human68k/mkgoff.c -o $@ $(FC)
+human68k/gbloffs.x:	gbloffs.c $(UNZIP_H) crypt.h
+	$(CC) $(CFLAGS) gbloffs.c -o $@
+
+human68k/gbloffs_.x:	gbloffs.c $(UNZIP_H) crypt.h		# unzipsfx
+	$(CC) $(CFLAGS) gbloffs.c -o $@ $(XC)
+
+human68k/gbloffsf.x:	gbloffs.c $(UNZIP_H) crypt.h		# funzip
+	$(CC) $(CFLAGS) gbloffs.c -o $@ $(FC)
 
 # the test zipfile
 TESTZIP = testmake.zip

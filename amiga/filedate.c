@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -101,6 +101,8 @@
  *            back in here, from 'timezone.c'.
  * 07 Jan 01, Paul Kienitz, Chr. Spieler, added missing #include "timezone.h"
  *            and "symbolic" preprocessor constants for time calculations.
+ * 15 Jan 02, Paul Kienitz, excluded all time handling code from compilation
+ *            for Zip utilities (when "defined(UTIL)")
  */
 
 #ifndef __amiga_filedate_c
@@ -151,7 +153,7 @@
 #include "crypt.h"            /* just so we can tell if CRYPT is supported */
 
 
-#ifndef FUNZIP
+#if (!defined(FUNZIP) && !defined(UTIL))
 
 #include "timezone.h"         /* for AMIGA-specific timezone callbacks */
 
@@ -497,7 +499,7 @@ time_t time(time_t *tp)
 }
 #endif /* ZIP */
 
-#endif /* !FUNZIP */
+#endif /* !FUNZIP && !UTIL */
 
 
 #if CRYPT || !defined(FUNZIP)

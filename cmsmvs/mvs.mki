@@ -67,7 +67,7 @@ OBJECTS= $(BLD_P)unzip$(O) $(BLD_P)crc32$(O) $(BLD_P)crctab$(O) \
 HFILES= $(SRC_P)consts.h $(SRC_P)crypt.h $(SRC_P)ebcdic.h \
     $(SRC_P)globals.h $(SRC_P)inflate.h $(SRC_P)tables.h \
     $(SRC_P)ttyio.h $(SRC_P)unzip.h $(SRC_P)unzpriv.h \
-    $(SRC_P)version.h $(SRC_P)zip.h $(CMSMVS_P)vmmvs.h \
+    $(SRC_P)unzvers.h $(SRC_P)zip.h $(CMSMVS_P)vmmvs.h \
     $(CMSMVS_P)vmstat.h
 
 # Rules

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -31,6 +31,11 @@ char *GetAppName(void);
 void createArchiveName(char *Path);
 void FindDesktopFolder(char *Path);
 char *FindNewExtractFolder(char *ExtractPath, Boolean uniqueFolder);
+OSErr FSpFindFolder(
+    short vRefNum,          /* Volume reference number. */
+    OSType folderType,      /* Folder type taken by FindFolder. */
+    Boolean createFolder,   /* Should we create it if non-existant. */
+    FSSpec *spec);          /* Pointer to resulting directory. */
 
 char *MakeFilenameShorter(const char *LongFilename);
 

@@ -1,5 +1,5 @@
 # Makefile for Info-ZIP's UnZip, UnZipSFX and fUnZip using DJGPP v2.01 or
-# higher, by Frank Donahoe.                      Last updated: 05 May 00
+# higher, by Frank Donahoe.                      Last updated: 17 Feb 02
 
 # This Makefile is specifically tailored for GNU make and GNU C and
 # may not work with a generic Unix-compatible make utility.  The latest
@@ -22,10 +22,10 @@
 #
 #   ftp://ftp.simtel.net/pub/simtelnet/gnu/djgpp/v2misc/csdpmi?[b,s].zip
 #
-# and on its mirrors worldwide.  The latest version as of this writing is 4.
+# and on its mirrors worldwide.  The latest version as of this writing is 5.
 # Archives with the b postscript contain the binaries.  An alternate server
-# is found, l.c., in the archive pmode??[b,s].zip.  The latest (970730) is
-# v1.2.
+# is found, l.c., in the archive pmode??[b,s].zip.  The latest (20001022) is
+# v1.3.
 
 # Separators colon and <sp> are used in Unix, semi-colon and <sp> in DOS.
 VPATH=. msdos
@@ -48,12 +48,12 @@ endif
 # See, for example, DOSWILD, in the file INSTALL.
 
 # [make]
-# +BUTT=-m486
+# +BUTT=-mcpu=pentiumpro
 # +LOC=-W -Wall
 # +LOCAL_UNZIP=-DUSE_UNSHRINK
 
 # BUTT may be defined to specify the target system.  With gcc v2.95,
-# optimizing options like "-mpentiumpro -march=pentiumpro" are supported,
+# optimizing options like "-mcpu=pentiumpro -march=pentiumpro" are supported,
 # but the traditional "-m386" and "-m486" options of previous gcc 2.x
 # version will continue to work.
 # So if you are in the habit of compiling from source, programs for your
@@ -93,16 +93,16 @@ INSTALL=ginstall
 # Laszlo Molnar who wrote DJ Packer and Markus F. X. J. Oberhumer who wrote
 # the compression library used by the DJ Packer have collaborated on the
 # Ultimate Packer for eXecutables, which has recently been released.  Look
-# for upx???d.zip at     http://upx.tsx.org/
+# for upx???d.zip at     http://upx.sourceforge.net/
 # As an alternative, look for "djp.exe", now two years old, in the archive
-# mlp107[b,s].zip, found in the same directory as csdpmi4[b,s].zip (see below)
+# mlp107[b,s].zip, found in the same location as csdpmi?[b,s].zip (see above).
 # Do not add the option -s to djp.exe without making the required changes
 # to the target zipinfo$E.  Uncomment the three lines beginning with $(DJP)
 # or $(DJPSX).
 
 #DJP = djp -q
 #DJPSX = djp -q -s
-DJP = upx -qq
+DJP = upx -qq --best
 DJPSX = $(DJP)
 E = .exe
 O = .o
@@ -204,28 +204,35 @@ endif
 crc_gcc$O:      crc_i386.S
 crc32$O:        crc32.c $(UNZIP_H) zip.h
 crctab$O:       crctab.c $(UNZIP_H) zip.h
+crctab_$O:       crctab.c $(UNZIP_H) zip.h
 crypt$O:        crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 crypt-$O:       crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+crypt_$O:       crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 envargs$O:      envargs.c $(UNZIP_H)
 explode$O:      explode.c $(UNZIP_H)
 extract$O:      extract.c $(UNZIP_H) crypt.h
 extract_$O:     extract.c $(UNZIP_H) crypt.h
 fileio$O:       fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileio_$O:      fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
 funzip$O:       funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
 globals$O:      globals.c $(UNZIP_H)
 globals-$O:     globals.c $(UNZIP_H)
+globals_$O:     globals.c $(UNZIP_H)
 inflate$O:      inflate.c inflate.h $(UNZIP_H)
 inflate-$O:     inflate.c inflate.h $(UNZIP_H) crypt.h
+inflate_$O:     inflate.c inflate.h $(UNZIP_H)
 list$O:         list.c $(UNZIP_H)
 match$O:        match.c $(UNZIP_H)
+match_$O:       match.c $(UNZIP_H)
 msdos$O:        msdos/msdos.c $(UNZIP_H)
 msdos_$O:       msdos/msdos.c $(UNZIP_H)
 process$O:      process.c $(UNZIP_H)
 process_$O:     process.c $(UNZIP_H)
 ttyio$O:        ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 ttyio-$O:       ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+ttyio_$O:       ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$O:     unreduce.c $(UNZIP_H)
 unshrink$O:     unshrink.c $(UNZIP_H)
-unzip$O:        unzip.c $(UNZIP_H) crypt.h version.h consts.h
-unzipsfx$O:     unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip$O:        unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
+unzipsfx$O:     unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo$O:      zipinfo.c $(UNZIP_H)

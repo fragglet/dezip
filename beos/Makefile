@@ -2,7 +2,7 @@
 #
 # Makefile for Info-ZIP's unzip, unzipsfx, and funzip on BeOS
 #
-# Copyright (c) 1998-2000 Info-ZIP
+# Copyright (c) 1998-2001 Info-ZIP
 #             Chris Herborth (chrish@qnx.com)
 #
 # This is the new New and Improved Makefile for BeOS; it will:
@@ -81,10 +81,10 @@ OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O $(BEOS_MAIN)
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS) api$O
-OBJX = unzipsfx$O $(CRC32)$O crctab$O crypt$O extract_$O fileio$O globals$O \
-	inflate$O match$O process_$O ttyio$O $M_$O $(BEOS_MAIN)
+OBJX = unzipsfx$O $(CRC32)$O crctab_$O crypt_$O extract_$O fileio_$O \
+	globals_$O inflate_$O match_$O process_$O ttyio_$O $M_$O $(BEOS_MAIN)
 LOBJX = $(OBJX)
-OBJF = funzip$O $(CRC32)$O crypt_$O globals_$O inflate_$O ttyio_$O
+OBJF = funzip$O $(CRC32)$O cryptf$O globalsf$O inflatef$O ttyiof$O
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 
 # installation
@@ -259,47 +259,82 @@ process$O:	process.c $(UNZIP_H)
 ttyio$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$O:	unreduce.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
-unzip$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo$O:	zipinfo.c $(UNZIP_H)
 
-crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
+	$(CP) unzip.c unzipsfx.c
+	$(CC) -c $(CF) -DSFX unzipsfx.c
+	$(RM) unzipsfx.c
+
+crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
 	$(CP) crypt.c crypt_.c
-	$(CC) -c $(CF) -DFUNZIP crypt_.c
+	$(CC) -c $(CF) -DSFX crypt_.c
 	$(RM) crypt_.c
+
+crctab_$O:	crctab.c $(UNZIP_H) zip.h			# unzipsfx only
+	$(CP) crctab.c crctab_.c
+	$(CC) -c $(CF) -DSFX crctab_.c
+	$(RM) crctab_.c
+
+fileio_$O:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx only
+	$(CP) fileio.c fileio_.c
+	$(CC) -c $(CF) -DSFX fileio_.c
+	$(RM) fileio_.c
 
 extract_$O:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
 	$(CP) extract.c extract_.c
 	$(CC) -c $(CF) -DSFX extract_.c
 	$(RM) extract_.c
 
-globals_$O:	globals.c $(UNZIP_H)				# funzip only
+globals_$O:	globals.c $(UNZIP_H)				# unzipsfx only
 	$(CP) globals.c globals_.c
-	$(CC) -c $(CF) -DFUNZIP globals_.c
+	$(CC) -c $(CF) -DSFX globals_.c
 	$(RM) globals_.c
 
-inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
+inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx only
 	$(CP) inflate.c inflate_.c
-	$(CC) -c $(CF) -DFUNZIP inflate_.c
+	$(CC) -c $(CF) -DSFX inflate_.c
 	$(RM) inflate_.c
-
-ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
-	$(CP) ttyio.c ttyio_.c
-	$(CC) -c $(CF) -DFUNZIP ttyio_.c
-	$(RM) ttyio_.c
 
 process_$O:	process.c $(UNZIP_H)				# unzipsfx only
 	$(CP) process.c process_.c
 	$(CC) -c $(CF) -DSFX process_.c
 	$(RM) process_.c
 
-beos$O:		beos/beos.c $(UNZIP_H) version.h		# BeOS only
+ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
+	$(CP) ttyio.c ttyio_.c
+	$(CC) -c $(CF) -DSFX ttyio_.c
+	$(RM) ttyio_.c
+
+cryptf$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+	$(CP) crypt.c cryptf.c
+	$(CC) -c $(CF) -DFUNZIP cryptf.c
+	$(RM) cryptf.c
+
+globalsf$O:	globals.c $(UNZIP_H)				# funzip only
+	$(CP) globals.c globalsf.c
+	$(CC) -c $(CF) -DFUNZIP globalsf.c
+	$(RM) globalsf.c
+
+inflatef$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
+	$(CP) inflate.c inflatef.c
+	$(CC) -c $(CF) -DFUNZIP inflatef.c
+	$(RM) inflatef.c
+
+ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+	$(CP) ttyio.c ttyiof.c
+	$(CC) -c $(CF) -DFUNZIP ttyiof.c
+	$(RM) ttyiof.c
+
+beos$O:		beos/beos.c $(UNZIP_H) unzvers.h		# BeOS only
 	$(CC) -c $(CF) beos/beos.c
 
-beosmain$O:	beos/beosmain.cpp $(UNZIP_H) version.h	# BeOS only
+beosmain$O:	beos/beosmain.cpp $(UNZIP_H) unzvers.h		# BeOS only
 	$(CCPP) -c $(CPPF) beos/beosmain.cpp
 
-# version() not used by unzipsfx, so no version.h dependency
-beos_$O:		beos/beos.c $(UNZIP_H)				# unzipsfx only
+# version() not used by unzipsfx, so no unzvers.h dependency
+beos_$O:	beos/beos.c $(UNZIP_H)				# unzipsfx only
 	$(CP) beos/beos.c beos_.c
 	$(CC) -c $(CF) -Ibeos -DSFX beos_.c
 	$(RM) beos_.c
@@ -308,11 +343,6 @@ beosmain_$O:	beos/beosmain.cpp $(UNZIP_H)
 	$(CP) beos/beosmain.cpp beosmain_.cpp
 	$(CCPP) -c $(CPPF) -Ibeos -DSFX beosmain_.cpp
 	$(RM) beosmain_.cpp
-
-unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
-	$(CP) unzip.c unzipsfx.c
-	$(CC) -c $(CF) -DSFX unzipsfx.c
-	$(RM) unzipsfx.c
 
 
 # this really only works for Unix targets, unless E and O specified on cmd line
