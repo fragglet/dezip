@@ -1,10 +1,10 @@
-Contents of the UnZip 5.0 archive (the OS-specific subdirectories at the
+Contents of the UnZip 5.0p1 archive (the OS-specific subdirectories at the
 end contain their own Contents listings):
 
   Contents	this file
-  Readme	what UnZip is; general information
+  README	what UnZip is; general information
   Where		where Zip/UnZip and encryption/decryption support can be found
-  History.500	new features and fixes in this release
+  History.501	new features and fixes in this release
   ZipRules	Info-ZIP guidelines on contributions to the cause
   BUGS		known bugs, problems, and (possible) features to be added
   unzip.1	UnZip manual page, nroff format
@@ -31,7 +31,7 @@ end contain their own Contents listings):
   unzip.h	main UnZip header file (required*)
   zip.h		header for using crypt.c with UnZip (required for decryption)
   zipinfo.c	zipfile information utility (useful, but optional)
-  Makefile	main Unix and OS/2 makefile (required)
+  Makefile	main Unix makefile (required)
   AMIGA/	support files for compiling on Amiga (not recently tested)
   ATARI/	support files for compiling v4.1 on Atari ST
   MAC/		support files for compiling on Macintosh
@@ -42,14 +42,13 @@ end contain their own Contents listings):
 
 Files marked "required*" are also needed to compile ZipInfo.  There are Unix
 and MS-DOS targets to make ZipInfo in Makefile (zipinfo, zi_indigo, zi_gcc, 
-zi_dos).  FUnZip is a new, last-minute program of limited capabilities; for
-now, it can only extract the first member in a zipfile from stdin and send
-it to stdout, and only if the member is either deflated or stored.  It will 
-probably have evolved by the time you read this, and it may even be absorbed 
-into UnZip itself.
+zi_dos).  FUnZip is a new program of limited capabilities; for now, it can 
+only extract the first member in a zipfile from stdin and send it to stdout,
+and only if the member is either deflated or stored.  It works under Unix,
+OS/2 and MS-DOS, at least, although it doesn't appear in all of the makefiles
+yet.  It may eventually be absorbed into UnZip itself.
 
 The Atari ST support is in the form of patches against UnZip 4.1; there
 are more details in the ATARI sub-archive Contents file.  Amiga support
-has not been tested since version 4.1 or earlier (the makefiles, however,
-have been updated to reflect the new code structure, and any changes
-required shouldn't be TOO extensive).
+is only partial for this release, but full support is almost complete in 
+the current UnZip 5.1 betas.

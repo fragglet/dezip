@@ -20,9 +20,11 @@
 #  undef unix
 #endif
 
-#if (defined(unix) && !defined(UNIX))
+#if defined(unix) || defined(__convexc__) || defined(M_XENIX)
+#  ifndef UNIX
 #  define UNIX
-#endif /* unix && !UNIX */
+#  endif /* !UNIX */
+#endif /* unix || __convexc__ || M_XENIX */
 
 /* Much of the following is swiped from zip's tailor.h: */
 
@@ -643,6 +645,9 @@ typedef char              boolean;
 typedef long              longint;
 typedef unsigned short    UWORD;
 typedef unsigned long     ULONG;
+typedef unsigned char     uch;
+typedef unsigned short    ush;
+typedef unsigned long     ulg;
 
 typedef struct min_info {
     unsigned unix_attr;
@@ -798,7 +803,7 @@ int    ReadMemoryByte            __((UWORD *x));
 
 int    explode                   __((void));                    /* explode.c */
 
-void   inflate                   __((void));                    /* inflate.c */
+int    inflate                   __((void));                    /* inflate.c */
 
 void   unReduce                  __((void));                   /* unreduce.c */
 /* static void  LoadFollowers    __((void));                    * unreduce.c */

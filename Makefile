@@ -409,7 +409,7 @@ minix:
 #	 LF="/noi/nol" LF2=",unzip;"
 
 msc_dos:	rsp
-	$(MAKE) unzip.exe CF="-Ox $(LOC) -nologo" CC=cl LD=link E=.exe\
+	$(MAKE) unzip.exe CF="-Oait -Gs $(LOC) -nologo" CC=cl LD=link E=.exe\
 	 O=.obj LOBJS="" LF="@rsp" LF2=""
 	del rsp
 
@@ -521,7 +521,7 @@ zi_indigo:		# SGI Iris Indigo
 	$(MAKE) zipinfo CF="-cckr -O -DUNIX $(LOC)"
 
 zi_dos:			# MSC 6.0 + nmake, MS-DOS
-	$(MAKE) zipinfo.exe CF="-Ox -nologo $(LOC) -G2" CC=cl\
+	$(MAKE) zipinfo.exe CF="-Oait -Gs -nologo $(LOC)" CC=cl\
 	 LD=link E=.exe O=.obj ZL="/noi /nol" ZL2=",zipinfo;"\
 	 LN="copy" RM="DEL"
 

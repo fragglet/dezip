@@ -4,7 +4,7 @@
 
   This file contains the high-level routines ("driver routines") for extrac-
   ting and testing zipfile members.  It calls the low-level routines in files
-  inflate.c, unimplod.c, unreduce.c and unshrink.c.
+  explode.c, inflate.c, unreduce.c and unshrink.c.
 
   ---------------------------------------------------------------------------*/
 
@@ -584,7 +584,7 @@ static int extract_or_test_member()    /* return PK-type error code */
 #ifdef S_IFLNK
     int symlnk=FALSE;
 #endif /* S_IFLNK */
-    int error=0;
+    int r, error=0;
     UWORD b;
 
 
@@ -745,7 +745,17 @@ static int extract_or_test_member()    /* return PK-type error code */
             error = 1;          /* 1:  warning error */
         }
 #endif /* S_IFLNK */
-        explode();   /* ignore return code for now */
+        if (((r = explode()) != 0) && (r != 5)) {   /* ignore 5 if seekable */
+            if ((tflag && quietflg) || (!tflag && (quietflg > 1)))
+                fprintf(stderr, "  error:  %s%s\n", r == 3?
+                  "not enough memory to explode " :
+                  "invalid compressed (imploded) data for ", filename);
+            else
+                fprintf(stderr, "\n  error:  %s\n", r == 3?
+                  "not enough memory for explode operation" :
+                  "invalid compressed data for explode format");
+            error = (r == 3)? 5 : 2;
+        }
         break;
 
     case DEFLATED:
@@ -761,7 +771,17 @@ static int extract_or_test_member()    /* return PK-type error code */
             error = 1;          /* 1:  warning error */
         }
 #endif /* S_IFLNK */
-        inflate();
+        if ((r = inflate()) != 0) {
+            if ((tflag && quietflg) || (!tflag && (quietflg > 1)))
+                fprintf(stderr, "  error:  %s%s\n", r == 3?
+                  "not enough memory to inflate " :
+                  "invalid compressed (deflated) data for ", filename);
+            else
+                fprintf(stderr, "\n  error:  %s\n", r == 3?
+                  "not enough memory for inflate operation" :
+                  "invalid compressed data for inflate format");
+            error = (r == 3)? 5 : 2;
+        }
         break;
 
     default:   /* should never get to this point */
@@ -809,6 +829,9 @@ static int extract_or_test_member()    /* return PK-type error code */
     } /* endif (!symlnk) */
 #endif /* S_IFLNK */
 
+    if (error > 1)   /* don't print redundant CRC error if error already */
+        return error;
+
     /* logical-AND crc32val for 64-bit machines */
     if ((crc32val = ((~crc32val) & 0xFFFFFFFFL)) != lrec.crc32) {
         /* if quietflg is set, we haven't output the filename yet:  do it */
@@ -848,11 +871,14 @@ static int decrypt_member()   /* return 10 if out of memory or can't get */
     byte h[12];
 
 
-    /* get header once */
+    /* get header once (turn off "encrypted" flag temporarily so we don't
+     * try to decrypt the same data twice) */
+    pInfo->encrypted = FALSE;
     for (n = 0; n < 12; n++) {
         ReadByte(&b);
         h[n] = (byte) b;
     }
+    pInfo->encrypted = TRUE;
 
     /* if have key already, test it; else allocate memory for it */
     if (key) {
@@ -900,7 +926,7 @@ static int decrypt_member()   /* return 10 if out of memory or can't get */
 static int testp(h)   /* return -1 if bad password; 0 if OK */
     byte *h;
 {
-    UWORD b, c;
+    UWORD b;
     int n, t;
     byte *p;
 
@@ -908,22 +934,21 @@ static int testp(h)   /* return -1 if bad password; 0 if OK */
     init_keys(key);
 
     /* check password */
-    for (n = 0; n < 11; n++)
-        c = DECRYPT(h[n]);
-    b = DECRYPT(h[11]);
+    for (n = 0; n < 12; n++)
+        b = DECRYPT(h[n]);
 
 #ifdef CRYPT_DEBUG
     printf("   lrec.crc = %08lx  crec.crc = %08lx  pInfo->ExtLocHdr = %s\n",
       lrec.crc32, pInfo->crc, pInfo->ExtLocHdr? "true":"false");
     printf("   incnt = %d  unzip offset into zipfile = %ld\n", incnt,
       cur_zipfile_bufstart+(inptr-inbuf));
-    printf("   (c | (b<<8)) = %04x  (crc >> 16) = %04x  lrec.time = %04x\n",
-      (UWORD)(c | (b<<8)), (UWORD)(lrec.crc32 >> 16), lrec.last_mod_file_time);
+    printf("   b = %02x  (crc >> 24) = %02x  (lrec.time >> 8) = %02x\n",
+      b, (UWORD)(lrec.crc32 >> 24), (lrec.last_mod_file_time >> 8));
 #endif /* CRYPT_DEBUG */
 
-    /* same test as in zipbare() in crypt.c: */
-    if ((UWORD)(c | (b<<8)) != (pInfo->ExtLocHdr? lrec.last_mod_file_time :
-        (UWORD)(lrec.crc32 >> 16)))
+    /* same test as in zipbare() in crypt.c (now check only one byte): */
+    if (b != (pInfo->ExtLocHdr? lrec.last_mod_file_time >> 8 :
+        (UWORD)(lrec.crc32 >> 24)))
         return -1;  /* bad */
 
     /* password OK:  decrypt current buffer contents before leaving */
@@ -967,7 +992,8 @@ int FlushMemory()   /* return PK-type error code */
         return 0;
 
     if (mem_o_offset + outcnt <= mem_o_size) {
-        memcpy((char *)(mem_o_buffer+mem_o_offset), (char *)outbuf, outcnt);
+        memcpy((char *)(mem_o_buffer+(UWORD)mem_o_offset), (char *)outbuf,
+          outcnt);
         mem_o_offset += outcnt;
         return 0;
     } else
@@ -988,6 +1014,7 @@ int memextract(tgt, tgtsize, src, srcsize)  /* return 0 if success, 1 if not */
 {
     UWORD method, error = 0;
     ULONG crc, oldcrc;
+    int r;
 
     method = makeword(src);
     crc = makelong(src+2);
@@ -1014,7 +1041,12 @@ int memextract(tgt, tgtsize, src, srcsize)  /* return 0 if success, 1 if not */
             memcpy(tgt, src + 2 + 4, (extent) (srcsize - 2 - 4));
             break;
         case DEFLATED:
-            inflate();
+            if ((r = inflate()) != 0) {
+                fprintf(stderr, "error:  %s\n", r == 3 ?
+                  "not enough memory for inflate operation" :
+                  "invalid compressed data for the inflate format");
+                error = (r == 3)? 5 : 2;
+            }
             FlushOutput();
             break;
         default:

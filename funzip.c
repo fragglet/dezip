@@ -1,5 +1,6 @@
-/* funzip.c -- Not copyrighted 1992 by Mark Adler
-   version 1.3, 16 August 1992 */
+/* funzip.c -- Not copyrighted 1992 by Mark Adler */
+
+#define VERSION "1.3p1 of 10 January 1993"
 
 
 /* You can do whatever you like with this source file, though I would
@@ -17,7 +18,15 @@
                                     entries, added more help.
     1.3  16 Aug 92  M. Adler        removed redundant #define's, added
                                     decryption.
-
+   1.3p1 10 Jan 93  G. Roelofs      incorporated fixes from 2.2 beta:
+           [1.4]    G. Roelofs        added exit(0).
+           [1.5]    K. U. Rommel      changed read/write modes for OS/2.
+           [1.7]    G. Roelofs        changed to use DOS_OS2.
+           [1.8]    M. Adler          improved inflation error msgs.
+           [1.9]    G. Roelofs        changed ULONG/UWORD/byte to ulg/ush/uch;
+                                      renamed inflate_entry() to inflate().
+           [2.1]    J. Gailly         fixed crypt/store bug,
+                    G. Roelofs        fixed decryption check (single byte).
  */
 
 
@@ -37,12 +46,16 @@
 #include "unzip.h"
 
 /* enforce binary i/o if recognized */
-#ifdef __STDC__
+#if defined(__STDC__) || defined(DOS_OS2)
+#  define BINIO
+#endif
+
+#ifdef BINIO
 #  define FOPR "rb"
-#  define FOPW "w+b"
+#  define FOPW "wb"
 #else
 #  define FOPR "r"
-#  define FOPW "w+"
+#  define FOPW "w"
 #endif
 
 /* PKZIP header definitions */
@@ -60,13 +73,15 @@
 #define LOCHDR 30               /* size of local header, including sig */
 #define EXTHDR 16               /* size of extended local header, inc sig */
 
+#define RAND_HEAD_LEN 12        /* length of encryption header */
+
 /* Macros for getting two byte and four byte header values */
 #define SH(p) ((UWORD)(byte)((p)[0]) | ((UWORD)(byte)((p)[1]) << 8))
 #define LG(p) ((ULONG)(SH(p)) | ((ULONG)(SH((p)+2)) << 16))
 
 /* Function prototypes */
 ULONG updcrc OF((byte *, int));
-int inflate_entry OF((void));
+int inflate OF((void));
 void err OF((int, char *));
 void main OF((int, char **));
 
@@ -202,7 +217,7 @@ int FlushOutput()
   if (outcnt)
   {
     updcrc(outbuf, outcnt);
-    if (fwrite(outbuf, 1, outcnt, out) != outcnt)
+    if (fwrite((char *)outbuf, 1,outcnt,out) != outcnt)
       err(9, "out of space on stdout");
     outsiz += outcnt;
     outptr = outbuf;
@@ -222,7 +237,7 @@ char **argv;
   /* if stdin not redirected, give the user help */
   if (isatty(0))
   {
-    fprintf(stderr,
+    fprintf(stderr, "FUnZip (Filter UnZip), version %s\n%s", VERSION,
 #ifdef CRYPT
       "usage: funzip [password] < infile.zip > outfile\n");
 #else /* !CRYPT */
@@ -236,8 +251,14 @@ char **argv;
   /* prepare to be a binary filter */
   if ((outbuf = (byte *)malloc(OUTBUFSIZ)) == NULL)
     err(1, "out of memory");
+#ifdef DOS_OS2
+  setmode(0, O_BINARY); /* some buggy C libraries require BOTH :-( the  */
+#endif                  /*  setmode() call AND the fdopen() in binary mode */
   if ((in = fdopen(0, FOPR)) == NULL)
     err(2, "cannot find stdin");
+#ifdef DOS_OS2
+  setmode(1, O_BINARY);
+#endif
   if ((out = fdopen(1, FOPW)) == NULL)
     err(2, "cannot write to stdout");
 
@@ -257,12 +278,9 @@ char **argv;
     if (argc < 2)
       err(3, "need password on command line for encrypted entry");
     init_keys(argv[1]);
-    for (i = 0; i < 10; i++)
+    for (i = 0; i < RAND_HEAD_LEN; i++)
       ReadByte(&e);
-    ReadByte(&e);
-    ReadByte(&i);
-    e += i << 8;
-    if (e != (h[LOCFLG] & EXTFLG ? SH(h + LOCTIM) : SH(h + LOCCRC + 2)))
+    if (e != (ush)(h[LOCFLG] & EXTFLG ? h[LOCTIM + 1] : h[LOCCRC + 3]))
       err(3, "incorrect password for first entry");
   }
 #else /* !CRYPT */
@@ -278,18 +296,31 @@ char **argv;
   /* decompress */
   if (h[LOCHOW])
   {                             /* deflated entry */
-    if (inflate_entry())
-      err(4, "invalid compressed data or out of memory");
+    int r;
+ 
+    if ((r = inflate()) != 0)
+      if (r == 3)
+        err(1, "out of memory");
+      else
+        err(4, "invalid compressed data--format violated");
   }
   else
   {                             /* stored entry */
     register ULONG n;
 
     n = LG(h + LOCLEN);
-    if (n != LG(h + LOCSIZ))
+    if (n != LG(h + LOCSIZ) - (decrypt ? RAND_HEAD_LEN : 0)) {
+      fprintf(stderr, "len %ld, siz %ld\n", n, LG(h + LOCSIZ));
       err(4, "invalid compressed data--length mismatch");
-    while (n--)
-      OUTB(getc(in));
+  }
+    while (n--) {
+      ush c = getc(in);
+#ifdef CRYPT
+      if (decrypt)
+        update_keys(c ^= decrypt_byte());
+#endif
+      OUTB(c);
+    }
   }
   FlushOutput();
   fflush(out);
@@ -309,4 +340,6 @@ char **argv;
   if (fread((char *)h, 1, 4, in) == 4 && LG(h) == LOCSIG)
     fprintf(stderr,
       "funzip warning: zip file has more than one entry--rest ignored\n");
+
+  exit(0);
 }

@@ -4,8 +4,6 @@
 #define SKIP_TIME_H   /* don't include time.h again in crypt.c */
 
 #define local
-typedef unsigned short ush;
-typedef unsigned long ulg;
 
 extern ULONG crc_32_tab[];
 #define crc32(c, b) (crc_32_tab[((int)(c) ^ (b)) & 0xff] ^ ((c) >> 8))

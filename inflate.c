@@ -1,5 +1,5 @@
 /* inflate.c -- Not copyrighted 1992 by Mark Adler
-   version c7, 27 June 1992 */
+   version c10p1, 10 January 1993 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -39,7 +39,16 @@
                                     the 32K window size for specialized
                                     applications.
     c6   31 May 92  M. Adler        added some typecasts to eliminate warnings
-    c7   27 Jun 92  G. Roelofs      added some more typecasts (439:  MSC bug)
+    c7   27 Jun 92  G. Roelofs      added some more typecasts (444:  MSC bug).
+    c8    5 Oct 92  J-l. Gailly     added ifdef'd code to deal with PKZIP bug.
+    c9    9 Oct 92  M. Adler        removed a memory error message (~line 416).
+    c10  17 Oct 92  G. Roelofs      changed ULONG/UWORD/byte to ulg/ush/uch,
+                                    removed old inflate, renamed inflate_entry
+                                    to inflate, added Mark's fix to a comment.
+   c10p1 10 Jan 93  G. Roelofs      version c10 plus Mark's c13 patch:
+           [c13]    M. Adler          allow empty code sets in huft_build (the
+    				      new pkz204c.exe file has a null distance
+				      tree for the file pkzip.exe)
  */
 
 
@@ -61,9 +70,9 @@
    sliding window of previously emitted data.
 
    There are (currently) three kinds of inflate blocks: stored, fixed, and
-   dynamic.  The compressor deals with some chunk of data at a time, and
-   decides which method to use on a chunk-by-chunk basis.  A chunk might
-   typically be 32K or 64K.  If the chunk is uncompressible, then the
+   dynamic.  The compressor outputs a chunk of data at a time, and decides
+   which method to use on a chunk-by-chunk basis.  A chunk might typically
+   be 32K to 64K, uncompressed.  If the chunk is uncompressible, then the
    "stored" method is used.  In this case, the bytes are simply stored as
    is, eight bits per byte, with none of the above coding.  The bytes are
    preceded by a count, since there is no longer an EOB code.
@@ -75,10 +84,10 @@
    coded, and so is preceded by a description of that code.  These code
    descriptions take up a little space, and so for small blocks, there is
    a predefined set of codes, called the fixed codes.  The fixed method is
-   used if the block codes up smaller that way (usually for quite small
+   used if the block ends up smaller that way (usually for quite small
    chunks), otherwise the dynamic method is used.  In the latter case, the
    codes are customized to the probabilities in the current block, and so
-   can code it much better than the pre-determined fixed codes.
+   can code it much better than the pre-determined fixed codes can.
  
    The Huffman codes themselves are decoded using a mutli-level table
    lookup, in order to maximize the speed of decoding plus the speed of
@@ -101,7 +110,9 @@
    5. There is no way of sending zero distance codes--a dummy must be
       sent if there are none.  (History: a pre 2.0 version of PKZIP would
       store blocks with no distance codes, but this was discovered to be
-      too harsh a criterion.)
+      too harsh a criterion.)  Valid only for 1.93a.  2.04c does allow
+      zero distance codes, which is sent as one code of zero bits in
+      length.
    6. There are up to 286 literal/length codes.  Code 256 represents the
       end-of-block.  Note however that the static length tree defines
       288 codes just to fill out the Huffman codes.  Codes 286 and 287
@@ -130,12 +141,18 @@
       the two sets of lengths.
  */
 
-#include "unzip.h"      /* this must supply the slide[] (byte) array */
+#include "unzip.h"      /* this must supply the slide[] (uch) array */
 
 #ifndef WSIZE
 #  define WSIZE 0x8000  /* window size--must be a power of two, and at least
                            32K for zip's deflate method */
 #endif /* !WSIZE */
+
+#ifdef DEBUG
+#  define Trace(x) fprintf x
+#else
+#  define Trace(x)
+#endif
 
 
 /* Huffman code lookup table entry--this entry is four bytes for machines
@@ -146,17 +163,17 @@
    an unused code.  If a code with e == 99 is looked up, this implies an
    error in the data. */
 struct huft {
-  byte e;               /* number of extra bits or operation */
-  byte b;               /* number of bits in this code or subcode */
+  uch e;                /* number of extra bits or operation */
+  uch b;                /* number of bits in this code or subcode */
   union {
-    UWORD n;            /* literal, length base, or distance base */
+    ush n;              /* literal, length base, or distance base */
     struct huft *t;     /* pointer to next level of table */
   } v;
 };
 
 
 /* Function prototypes */
-int huft_build OF((unsigned *, unsigned, unsigned, UWORD *, UWORD *,
+int huft_build OF((unsigned *, unsigned, unsigned, ush *, ush *,
                    struct huft **, int *));
 int huft_free OF((struct huft *));
 void flush OF((unsigned));
@@ -165,8 +182,7 @@ int inflate_stored OF((void));
 int inflate_fixed OF((void));
 int inflate_dynamic OF((void));
 int inflate_block OF((int *));
-int inflate_entry OF((void));
-void inflate OF((void));
+int inflate OF((void));
 
 
 /* The inflate algorithm uses a sliding 32K byte window on the uncompressed
@@ -174,8 +190,8 @@ void inflate OF((void));
    circular buffer.  The index is updated simply by incrementing and then
    and'ing with 0x7fff (32K-1). */
 /* It is left to other modules to supply the 32K area.  It is assumed
-   to be usable as if it were declared "byte slide[32768];" or as just
-   "byte *slide;" and then malloc'ed in the latter case.  The definition
+   to be usable as if it were declared "uch slide[32768];" or as just
+   "uch *slide;" and then malloc'ed in the latter case.  The definition
    must be in unzip.h, included above. */
 unsigned wp;            /* current position in slide */
 
@@ -183,18 +199,18 @@ unsigned wp;            /* current position in slide */
 /* Tables for deflate from PKZIP's appnote.txt. */
 static unsigned border[] = {    /* Order of the bit length code lengths */
         16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
-static UWORD cplens[] = {       /* Copy lengths for literal codes 257..285 */
+static ush cplens[] = {         /* Copy lengths for literal codes 257..285 */
         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
         /* note: see note #13 above about the 258 in this list. */
-static UWORD cplext[] = {       /* Extra bits for literal codes 257..285 */
+static ush cplext[] = {         /* Extra bits for literal codes 257..285 */
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
         3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99}; /* 99==invalid */
-static UWORD cpdist[] = {       /* Copy offsets for distance codes 0..29 */
+static ush cpdist[] = {         /* Copy offsets for distance codes 0..29 */
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
         8193, 12289, 16385, 24577};
-static UWORD cpdext[] = {       /* Extra bits for distance codes */
+static ush cpdext[] = {         /* Extra bits for distance codes */
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
         12, 12, 13, 13};
@@ -222,19 +238,21 @@ static UWORD cpdext[] = {       /* Extra bits for distance codes */
 
    However, this assumption is not true for fixed blocks--the EOB code
    is 7 bits, but the other literal/length codes can be 8 or 9 bits.
-   (Why PK made the EOB code, which can only occur once in a block,
-   the *shortest* code in the set, I'll never know.)  However, by
-   making the first table have a lookup of seven bits, the EOB code
-   will be found in that first lookup, and so will not require that too
-   many bits be pulled from the stream.
+   (The EOB code is shorter than other codes becuase fixed blocks are
+   generally short.  So, while a block always has an EOB, many other
+   literal/length codes have a significantly lower probability of
+   showing up at all.)  However, by making the first table have a
+   lookup of seven bits, the EOB code will be found in that first
+   lookup, and so will not require that too many bits be pulled from
+   the stream.
  */
 
-ULONG bb;                       /* bit buffer */
+ulg bb;                         /* bit buffer */
 unsigned bk;                    /* bits in bit buffer */
 
-UWORD bytebuf;
+ush bytebuf;
 #define NEXTBYTE    (ReadByte(&bytebuf), bytebuf)
-#define NEEDBITS(n) {while(k<(n)){b|=((ULONG)NEXTBYTE)<<k;k+=8;}}
+#define NEEDBITS(n) {while(k<(n)){b|=((ulg)NEXTBYTE)<<k;k+=8;}}
 #define DUMPBITS(n) {b>>=(n);k-=(n);}
 
 
@@ -275,7 +293,7 @@ int lbits = 9;          /* bits in base literal/length lookup table */
 int dbits = 6;          /* bits in base distance lookup table */
 
 
-/* If BMAX needs to be larger than 16, then h and x[] should be ULONG. */
+/* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
 #define BMAX 16         /* maximum bit length of any code (16 for explode) */
 #define N_MAX 288       /* maximum number of codes in any set */
 
@@ -287,8 +305,8 @@ int huft_build(b, n, s, d, e, t, m)
 unsigned *b;            /* code lengths in bits (all assumed <= BMAX) */
 unsigned n;             /* number of codes (assumed <= N_MAX) */
 unsigned s;             /* number of simple-valued codes (0..s-1) */
-UWORD *d;               /* list of base values for non-simple codes */
-UWORD *e;               /* list of extra bits for non-simple codes */
+ush *d;                 /* list of base values for non-simple codes */
+ush *e;                 /* list of extra bits for non-simple codes */
 struct huft **t;        /* result: starting table */
 int *m;                 /* maximum lookup bits, returns actual */
 /* Given a list of code lengths and a maximum table size, make a set of
@@ -324,8 +342,12 @@ int *m;                 /* maximum lookup bits, returns actual */
   do {
     c[*p++]++;                  /* assume all entries <= BMAX */
   } while (--i);
-  if (c[0] == n)
-    return 2;                   /* bad input--all zero length codes */
+  if (c[0] == n)                /* null input--all zero length codes */
+  {
+    *t = (struct huft *)NULL;
+    *m = 0;
+    return 0;
+  }
 
 
   /* Find minimum and maximum length, bound *m by those */
@@ -413,7 +435,6 @@ int *m;                 /* maximum lookup bits, returns actual */
         {
           if (h)
             huft_free(u[0]);
-          fprintf(stderr, "\n*** inflate out of memory *** ");
           return 3;             /* not enough memory */
         }
         hufts += z + 1;         /* track memory usage */
@@ -425,8 +446,8 @@ int *m;                 /* maximum lookup bits, returns actual */
         if (h)
         {
           x[h] = i;             /* save pattern for backing up */
-          r.b = (byte)l;        /* bits to dump before this table */
-          r.e = (byte)(16 + j); /* bits in this table */
+          r.b = (uch)l;         /* bits to dump before this table */
+          r.e = (uch)(16 + j);  /* bits in this table */
           r.v.t = q;            /* pointer to this table */
           j = i >> (w - l);     /* (get around Turbo C bug) */
           u[h-1][j] = r;        /* connect to last table */
@@ -434,17 +455,17 @@ int *m;                 /* maximum lookup bits, returns actual */
       }
 
       /* set up table entry in r */
-      r.b = (byte)(k - w);
+      r.b = (uch)(k - w);
       if (p >= v + n)
         r.e = 99;               /* out of values--invalid code */
       else if (*p < s)
       {
-        r.e = (byte)(*p < 256 ? 16 : 15);    /* 256 is end-of-block code */
+        r.e = (uch)(*p < 256 ? 16 : 15);    /* 256 is end-of-block code */
         r.v.n = *p++;           /* simple code is just the value */
       }
       else
       {
-        r.e = (byte)e[*p - s];  /* non-simple--look up in lists */
+        r.e = (uch)e[*p - s];   /* non-simple--look up in lists */
         r.v.n = d[*p++ - s];
       }
 
@@ -469,7 +490,7 @@ int *m;                 /* maximum lookup bits, returns actual */
 
 
   /* Return true (1) if we were given an incomplete table */
-  return y != 0 && n != 1;
+  return y != 0 && g != 1;
 }
 
 
@@ -501,7 +522,7 @@ unsigned w;             /* number of bytes to flush */
 /* Do the equivalent of OUTB for the bytes slide[0..w-1]. */
 {
   unsigned n;
-  byte *p;
+  uch *p;
 
   p = slide;
   while (w)
@@ -529,7 +550,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   unsigned w;           /* current window position */
   struct huft *t;       /* pointer to table entry */
   unsigned ml, md;      /* masks for bl and bd bits */
-  register ULONG b;     /* bit buffer */
+  register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
 
 
@@ -556,7 +577,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
     DUMPBITS(t->b)
     if (e == 16)                /* then it's a literal */
     {
-      slide[w++] = (byte)t->v.n;
+      slide[w++] = (uch)t->v.n;
       if (w == WSIZE)
       {
         flush(w);
@@ -631,7 +652,7 @@ int inflate_stored()
 {
   unsigned n;           /* number of bytes in block */
   unsigned w;           /* current window position */
-  register ULONG b;     /* bit buffer */
+  register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
 
 
@@ -660,7 +681,7 @@ int inflate_stored()
   while (n--)
   {
     NEEDBITS(8)
-    slide[w++] = (byte)b;
+    slide[w++] = (uch)b;
     if (w == WSIZE)
     {
       flush(w);
@@ -745,8 +766,12 @@ int inflate_dynamic()
   unsigned nb;          /* number of bit length codes */
   unsigned nl;          /* number of literal/length codes */
   unsigned nd;          /* number of distance codes */
+#ifdef PKZIP_BUG_WORKAROUND
+  unsigned ll[288+32];  /* literal/length and distance code lengths */
+#else
   unsigned ll[286+30];  /* literal/length and distance code lengths */
-  register ULONG b;     /* bit buffer */
+#endif
+  register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
 
 
@@ -765,7 +790,11 @@ int inflate_dynamic()
   NEEDBITS(4)
   nb = 4 + ((unsigned)b & 0xf);         /* number of bit length codes */
   DUMPBITS(4)
+#ifdef PKZIP_BUG_WORKAROUND
+  if (nl > 288 || nd > 32)
+#else
   if (nl > 286 || nd > 30)
+#endif
     return 1;                   /* bad lengths */
 
 
@@ -850,17 +879,26 @@ int inflate_dynamic()
   bl = lbits;
   if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0)
   {
-    if (i == 1)
+    if (i == 1) {
+      fprintf(stderr, " incomplete literal tree\n");
       huft_free(tl);
+    }
     return i;                   /* incomplete code set */
   }
   bd = dbits;
   if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0)
   {
-    if (i == 1)
+    if (i == 1) {
+      fprintf(stderr, " incomplete distance tree\n");
+#ifdef PKZIP_BUG_WORKAROUND
+      i = 0;
+    }
+#else
       huft_free(td);
+    }
     huft_free(tl);
     return i;                   /* incomplete code set */
+#endif
   }
 
 
@@ -882,7 +920,7 @@ int *e;                 /* last block flag */
 /* decompress an inflated block */
 {
   unsigned t;           /* block type */
-  register ULONG b;     /* bit buffer */
+  register ulg b;       /* bit buffer */
   register unsigned k;  /* number of bits in bit buffer */
 
 
@@ -923,7 +961,7 @@ int *e;                 /* last block flag */
 
 
 
-int inflate_entry()
+int inflate()
 /* decompress an inflated entry */
 {
   int e;                /* last block flag */
@@ -942,7 +980,10 @@ int inflate_entry()
   do {
     hufts = 0;
     if ((r = inflate_block(&e)) != 0)
+    {
+      Trace((stderr, "\ninflate_block returned %d", r));
       return r;
+    }
     if (hufts > h)
       h = hufts;
   } while (!e);
@@ -957,11 +998,4 @@ int inflate_entry()
   fprintf(stderr, "<%u> ", h);
 #endif /* DEBUG */
   return 0;
-}
-
-
-void inflate()
-/* ignore the return code for now ... */
-{
-  inflate_entry();
 }

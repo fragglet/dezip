@@ -205,15 +205,14 @@ int do_string(len, option)      /* return PK-type error code */
             outbuf[block_length] = '\0';        /* terminate w/zero:  ASCIIZ */
 
             A_TO_N(outbuf);     /* translate string to native */
-
-            printf("%s", outbuf);
-        }
 #ifdef MSWIN
         /* ran out of local mem -- had to cheat */
         WriteStringToMsgWin(outbuf, bRealTimeMsgUpdate);
 #else /* !MSWIN */
-        printf("\n");   /* assume no newline at end */
+            printf("%s", outbuf);
 #endif /* ?MSWIN */
+        }
+        printf("\n");   /* assume no newline at end */
         break;
 
     /*
@@ -354,7 +353,7 @@ time_t dos_to_unix_time(ddate, dtime)
 #endif /* !MACOS && !__GO32__ */
 
 #ifdef __386BSD__
-    m_time += localtime((time_t *) &m_time))->tm_gmtoff;
+    m_time += localtime((time_t *) &m_time)->tm_gmtoff;
 #else
     if (localtime((time_t *)&m_time)->tm_isdst)
         m_time -= 60L * 60L;    /* adjust for daylight savings time */

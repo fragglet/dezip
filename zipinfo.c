@@ -40,7 +40,7 @@
 
   ---------------------------------------------------------------------------
 
-  Source:     unzip50.zip (.tar.Z, etc.) for Unix, VMS, OS/2 and MS-DOS; see
+  Source:     unz50p1.zip (.tar.Z, etc.) for Unix, VMS, OS/2 and MS-DOS; see
               `Where' in source distribution for ftp, uucp and mail-server
               sites.
   Author:     Greg Roelofs, roelofs@nas.nasa.gov, 23 August 1990
@@ -57,7 +57,7 @@
 #endif /* !ZIPINFO */
 #include "unzip.h"
 
-#define VERSION  "v1.0 of 21 August 92"
+#define VERSION  "v1.0p1 of 10 January 1993"
 
 #define LFLAG    3        /* for short "ls -l" type listing */
 
@@ -688,8 +688,8 @@ int process_end_central_dir()   /* return PK-type error code */
   Actual offset of end-of-central-dir record:   %9ld (%.8lXh)\n\
   Expected offset of end-of-central-dir record: %9ld (%.8lXh)\n\
   (based on the length of the central directory and its expected offset)\n\n",
-          expect_ecrec_offset, expect_ecrec_offset,
-          real_ecrec_offset, real_ecrec_offset);
+          real_ecrec_offset, real_ecrec_offset,
+          expect_ecrec_offset, expect_ecrec_offset);
 
         if (ecrec.number_this_disk == 0) {
             printf("\
@@ -971,7 +971,7 @@ int long_info()   /* return PK-type error code */
                       "reduced (factor 1)", "reduced (factor 2)",
                       "reduced (factor 3)", "reduced (factor 4)",
                       "imploded", "tokenized", "deflated", unkn};
-    static char   *dtype[4] = {"normal", "maximum", "fastest", "undefined"};
+    static char   *dtype[4] = {"normal", "maximum", "fast", "superfast"};
 
 
 /*---------------------------------------------------------------------------
@@ -1249,7 +1249,7 @@ int short_info()   /* return PK-type error code */
     UWORD         hostver, xattr;
     char          workspace[12], attribs[16];
     static char   impl[5]="i#:#", defl[5]="def#", unkn[8];
-    static char   dtype[5]="NXF?";  /* normal, maximum, fastest, undefined */
+    static char   dtype[5]="NXFS";  /* normal, maximum, fast, superfast */
     static char   *os[NUM_HOSTS+1] = {"dos", "ami", "vms", "unx", "cms",
                       "atr", "os2", "mac", "zzz", "cpm", "???" };
     static char   *method[NUM_METHODS+1] = {"stor", "shrk", "re:1", "re:2",

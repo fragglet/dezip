@@ -50,7 +50,7 @@
 
   ---------------------------------------------------------------------------
 
-  Version:  unzip50.{tar.Z | zip | zoo} for Unix, VMS, OS/2, MS-DOS, Windows,
+  Version:  unz50p1.{tar.Z | zip | zoo} for Unix, VMS, OS/2, MS-DOS, Windows,
               Windows NT, Macintosh and Amiga.  Decryption requires sources
               in zcrypt19.zip, and Windows (not NT) support requires sources
               in wunz12sr.zip.  See accompanying file "Where" in the main
@@ -68,7 +68,7 @@
 #  include "wizunzip.h"          /* see History.500 for version history */
 #endif
 
-#define VERSION  "v5.0 of 21 August 1992"
+#define VERSION  "5.0p1 of 12 January 1993"
 /* #define VERSION  "v5.0p BETA of 8-21-92" */   /* internal beta level */
 #define PAKFIX   /* temporary(?) solution to PAK-created zipfiles */
 
@@ -755,9 +755,9 @@ int usage(error)   /* return PK-type error code */
         usagefp = (FILE *) stdout;
 
     fprintf(usagefp, "\
-UnZip:  Zipfile Extract %s;  (c) 1989 S.H.Smith and others\n\
-Versions 3.0 and later by Info-ZIP.  Bug reports ONLY to zip-bugs@cs.ucla.edu\
-\n\n", VERSION);
+UnZip %s, by Info-ZIP.  Portions (c) 1989 by S. H. Smith.\n\
+Bug reports ONLY to zip-bugs%%wkuvx1.bitnet@ukcc.uky.edu; see README for detail\
+s\n\n", VERSION);
 
     fprintf(usagefp, "\
 Usage: unzip [ -options[modifiers] ] file[.zip] [filespec...]\n\
@@ -774,7 +774,7 @@ modifiers:\n\
   -q  quiet mode (-qq => quieter)            -V  retain VMS version numbers\
 \n\n\
 Examples: (See manual for more information)\n\
-  unzip data1 Readme   => extracts file Readme from zipfile data1.zip\n\
+  unzip data1 ReadMe   => extracts file ReadMe from zipfile data1.zip\n\
   unzip -p foo | more  => send contents of foo.zip via pipe into program more\n\
   unzip -fo foo        => quietly replace existing files if archive files newer\
 \n", astring);
