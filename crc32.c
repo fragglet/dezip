@@ -10,8 +10,12 @@
 #ifndef USE_ZLIB
 #ifndef ASM_CRC
 
+#ifndef ZCONST
+#  define ZCONST const
+#endif
+
 #ifdef CRC32
-# undef CRC32
+#  undef CRC32
 #endif
 #define CRC32(c, b) (crc_table[((int)(c) ^ (b)) & 0xff] ^ ((c) >> 8))
 #define DO1(buf)  crc = CRC32(crc, *buf++)
@@ -22,7 +26,7 @@
 /* ========================================================================= */
 ulg crc32(crc, buf, len)
     register ulg crc;           /* crc shift register */
-    register const uch *buf;    /* pointer to bytes to pump through */
+    register ZCONST uch *buf;   /* pointer to bytes to pump through */
     extent len;                 /* number of bytes in buf[] */
 /* Run a set of bytes through the crc shift register.  If buf is a NULL
    pointer, then initialize the crc shift register contents instead.

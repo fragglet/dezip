@@ -5,6 +5,7 @@
   This file contains the non-ZipInfo-specific listing routines for UnZip.
 
   Contains:  list_files()
+             time_stamp()       [still experimental and Unix-only]
              ratio()
              fnprint()
 
@@ -13,13 +14,20 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#ifdef MSWIN
-#  include <windows.h>
-#  include "wingui\wizunzip.h"
+#ifdef WINDLL
+#  ifdef POCKET_UNZIP
+#    include "wince/intrface.h"
+#  else
+#    include "windll/windll.h"
+#  endif
 #endif
 
 
-/* Headers also referenced in UpdateListBox() in updatelb.c (Windows version) */
+#ifdef TIME_STAMP
+   static int  fn_is_dir   OF((__GPRO));
+#endif
+
+/* GRR 970327:  Headers*[] formerly referenced in WinGUI code; no longer? */
 
 #ifdef OS2_EAS
    char Far HeadersS[]  = " Length    EAs   ACLs    Date    Time    Name";
@@ -29,23 +37,16 @@
    char Far HeadersS1[] = " ------    ----    ----    ----";
 #endif
 
-char Far HeadersL[]  =
-  " Length  Method   Size  Ratio   Date    Time   CRC-32     Name";
-char Far HeadersL1[] =
-  " ------  ------   ----  -----   ----    ----   ------     ----";
-
-char Far *Headers[][2] = { {HeadersS, HeadersS1}, {HeadersL, HeadersL1} };
-
 static char Far CompFactorStr[] = "%c%d%%";
 static char Far CompFactor100[] = "100%%";
-#ifdef MSWIN
-   static char Far LongHdrStats[] =
-     "%7lu  %-7s%7lu %4s  %02u-%02u-%02u  %02u:%02u  %08lx  %c%s";
-   static char Far LongFileTrailer[] =
-     "%7lu         %7lu %4s                              %u file%s";
-   static char Far ShortHdrStats[] = "%7lu  %02u-%02u-%02u  %02u:%02u  %c%s";
-   static char Far ShortFileTrailer[] = "%7lu                    %u file%s";
-#else /* !MSWIN */
+
+#ifndef WINDLL
+   char Far HeadersL[]  =
+     " Length  Method   Size  Ratio   Date    Time   CRC-32     Name";
+   char Far HeadersL1[] =
+     " ------  ------   ----  -----   ----    ----   ------     ----";
+   char Far *Headers[][2] = { {HeadersS, HeadersS1}, {HeadersL, HeadersL1} };
+
    static char Far CaseConversion[] = "%s (\"^\" ==> case\n%s   conversion)\n";
    static char Far LongHdrStats[] =
      "%7lu  %-7s%7lu %4s  %02u-%02u-%02u  %02u:%02u  %08lx  %c";
@@ -53,7 +54,8 @@ static char Far CompFactor100[] = "100%%";
      " ------          ------  ---                         \
      -------\n%7lu         %7lu %4s                              %u file%s\n";
 #ifdef OS2_EAS
-   static char Far ShortHdrStats[] = "%7lu %6lu %6lu  %02u-%02u-%02u  %02u:%02u  %c";
+   static char Far ShortHdrStats[] =
+     "%7lu %6lu %6lu  %02u-%02u-%02u  %02u:%02u  %c";
    static char Far ShortFileTrailer[] = " ------  -----  -----        \
             -------\n%7lu %6lu %6lu                    %u file%s\n";
    static char Far OS2ExtAttrTrailer[] =
@@ -64,8 +66,8 @@ static char Far CompFactor100[] = "100%%";
    static char Far ShortHdrStats[] = "%7lu  %02u-%02u-%02u  %02u:%02u  %c";
    static char Far ShortFileTrailer[] =
      " ------                    -------\n%7lu                    %u file%s\n";
-#endif
-#endif /* ?MSWIN */
+#endif /* ?OS2_EAS */
+#endif /* ?WINDLL */
 
 
 
@@ -80,10 +82,13 @@ int list_files(__G)    /* return PK-type error code */
 {
     char sgn, cfactorstr[10];
     int do_this_file=FALSE, cfactor, error, error_in_archive=PK_COOL;
-    int longhdr=(G.vflag>1), date_format;
+#ifndef WINDLL
+    int longhdr=(G.vflag>1);
+#endif
+    int date_format;
     unsigned methnum;
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 #endif
     ush j, yr, mo, dy, hh, mm, members=0;
     ulg csiz, tot_csize=0L, tot_ucsize=0L;
@@ -91,15 +96,12 @@ int list_files(__G)    /* return PK-type error code */
     ulg ea_size, tot_easize=0L, tot_eafiles=0L;
     ulg acl_size, tot_aclsize=0L, tot_aclfiles=0L;
 #endif
-#ifdef MSWIN
-    PSTR psLBEntry;  /* list box entry */
-#endif
     min_info info;
     char methbuf[8];
     static char dtype[]="NXFS";   /* see zi_short() */
     static char Far method[NUM_METHODS+1][8] =
         {"Stored", "Shrunk", "Reduce1", "Reduce2", "Reduce3", "Reduce4",
-         "Implode", "Token", "Defl:#", "Unk:###"};
+         "Implode", "Token", "Defl:#", "EnhDefl", "ImplDCL", "Unk:###"};
 
 
 
@@ -120,7 +122,7 @@ int list_files(__G)    /* return PK-type error code */
     G.pInfo = &info;
     date_format = DATE_FORMAT;
 
-#ifndef MSWIN
+#ifndef WINDLL
     if (G.qflag < 2)
         if (G.L_flag)
             Info(slide, 0, ((char *)slide, LoadFarString(CaseConversion),
@@ -130,7 +132,7 @@ int list_files(__G)    /* return PK-type error code */
             Info(slide, 0, ((char *)slide, "%s\n%s\n",
                LoadFarString(Headers[longhdr][0]),
                LoadFarStringSmall(Headers[longhdr][1])));
-#endif /* !MSWIN */
+#endif /* !WINDLL */
 
     for (j = 0; j < G.ecrec.total_entries_central_dir; ++j) {
 
@@ -201,7 +203,7 @@ int list_files(__G)    /* return PK-type error code */
 
         if (G.process_all_files || do_this_file) {
 
-#ifdef OS2API  /* OS2DLL */
+#ifdef OS2DLL
             /* this is used by UzpFileTree() to allow easy processing of lists
              * of zip directory contents */
             if (G.processExternally)
@@ -231,11 +233,15 @@ int list_files(__G)    /* return PK-type error code */
                 }
             }
 #endif
-#ifdef USE_EF_UX_TIME
+#ifdef USE_EF_UT_TIME
             if (G.extra_field &&
-                ef_scan_for_izux(G.extra_field, G.crec.extra_field_length,
-                                 &z_utime, NULL) > 0) {
-                struct tm *t = localtime(&(z_utime.modtime));
+                (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
+                                  &z_utime, NULL) & EB_UT_FL_MTIME))
+            {
+                struct tm *t;
+
+                TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0, Mac */
+                t = localtime(&(z_utime.mtime));
                 switch (date_format) {
                     case DF_YMD:
                         mo = (ush)(t->tm_year);
@@ -255,7 +261,7 @@ int list_files(__G)    /* return PK-type error code */
                 hh = (ush)(t->tm_hour);
                 mm = (ush)(t->tm_min);
             } else
-#endif /* USE_EF_UX_TIME */
+#endif /* USE_EF_UT_TIME */
             {
                 yr = (ush)((((G.crec.last_mod_file_date >> 9) & 0x7f) + 80) %
                            (unsigned)100);
@@ -306,32 +312,12 @@ int list_files(__G)    /* return PK-type error code */
 #endif /* DOS_OS2_W32 || UNIX */
 #endif /* 0 */
 
-#ifdef MSWIN
-#ifdef NEED_EARLY_REDRAW
-            /* turn on listbox redrawing just before adding last line */
-            if (j == (G.ecrec.total_entries_central_dir-1))
-                (void)SendMessage(hWndList, WM_SETREDRAW, TRUE, 0L);
-#endif /* NEED_EARLY_REDRAW */
-            psLBEntry =
-              (PSTR)GlobalAlloc(GMEM_FIXED, FILNAMSIZ+LONG_FORM_FNAME_INX);
-            /* GRR:  does OemToAnsi filter out escape and CR characters? */
-            OemToAnsi(G.filename, G.filename);  /* translate to ANSI */
-            if (longhdr) {
-                wsprintf(psLBEntry, LoadFarString(LongHdrStats),
-                  G.crec.ucsize, (LPSTR)methbuf, csiz, cfactorstr,
-                  mo, dy, yr, hh, mm, G.crec.crc32,
-                  (G.pInfo->lcflag? '^':' '), (LPSTR)G.filename);
-                SendMessage(hWndList, LB_ADDSTRING, 0,
-                  (LONG)(LPSTR)psLBEntry);
-            } else {
-                wsprintf(psLBEntry, LoadFarString(ShortHdrStats),
-                  G.crec.ucsize, mo, dy, yr, hh, mm,
-                  (G.pInfo->lcflag? '^':' '), (LPSTR)G.filename);
-                SendMessage(hWndList, LB_ADDSTRING, 0,
-                  (LONG)(LPSTR)psLBEntry);
-            }
-            GlobalFree((HANDLE)psLBEntry);
-#else /* !MSWIN */
+#ifdef WINDLL
+            /* Send data to application for formatting and printing */
+            (*lpUserFunctions->SendApplicationMessage)(G.crec.ucsize, csiz,
+               (ush)cfactor, mo, dy, yr, hh, mm, (G.pInfo->lcflag ? '^' : ' '),
+               fnfilter(G.filename, slide), methbuf, G.crec.crc32);
+#else /* !WINDLL */
             if (longhdr)
                 Info(slide, 0, ((char *)slide, LoadFarString(LongHdrStats),
                   G.crec.ucsize, methbuf, csiz, cfactorstr, mo, dy,
@@ -347,43 +333,10 @@ int list_files(__G)    /* return PK-type error code */
                   mo, dy, yr, hh, mm, (G.pInfo->lcflag? '^':' ')));
 #endif
             fnprint(__G);
-#ifdef WINDLL
-            /* if this is the Windows 3.1 DLL, fill in our linked list with
-             * the filenames (GRR:  also useful for OS/2 and other DLLs?) */
-            {
-                /* pointer to current ScFileList, used to move down chain;
-                 * start at beginning of chain */
-                struct ScFileList *pCurFileList = G.WinDLL.pGlobalZipFileList;
-
-                /* move down the chain until we reach the end */
-                while (pCurFileList->Next != NULL)
-                    pCurFileList = pCurFileList->Next;
-
-                /* if this is not the very first time through... */
-                if (!(pCurFileList == G.WinDLL.pGlobalZipFileList &&
-                      pCurFileList->Name == NULL))
-                {
-                    /* now that we are pointing at the last item in the chain,
-                     * allocate space for a new one and add it */
-                    pCurFileList->Next =
-                      (struct ScFileList *)malloc(sizeof(struct ScFileList));
-                    /* set the items in the next entry to NULL to mark end */
-                    pCurFileList->Next->Name = NULL;
-                    pCurFileList->Next->Next = NULL;
-
-                    /* move up to the entry we just created */
-                    pCurFileList = pCurFileList->Next;
-                }
-
-                /* allocate space for the name and copy the filename into it */
-                pCurFileList->Name = (char *)malloc(strlen(G.filename)+1);
-                strcpy(pCurFileList->Name, G.filename);
-            }
-#endif /* WINDLL */
-#endif /* ?MSWIN */
+#endif /* ?WINDLL */
 
             if ((error = do_string(__G__ G.crec.file_comment_length,
-                                   QCOND? DISPLAY : SKIP)) != 0)
+                                   QCOND? DISPL_8 : SKIP)) != 0)
             {
                 error_in_archive = error;  /* might be just warning */
                 if (error > PK_WARN)       /* fatal */
@@ -424,16 +377,14 @@ int list_files(__G)    /* return PK-type error code */
             sprintf(cfactorstr, LoadFarString(CompFactor100));
         else
             sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
-#ifdef MSWIN
-        /* Display just the totals since the dashed lines get displayed
-         * in UpdateListBox(). Get just enough space to display total. */
-        if (longhdr)
-            wsprintf(lpumb->szTotalsLine,LoadFarString(LongFileTrailer),
-              tot_ucsize, tot_csize, cfactorstr, members, members == 1? "":"s");
-        else
-            wsprintf(lpumb->szTotalsLine, LoadFarString(ShortFileTrailer),
-              tot_ucsize, members, members == 1? "" : "s");
-#else /* !MSWIN */
+#ifdef WINDLL
+        /* pass the totals back to the calling application */
+        lpUserFunctions->TotalSizeComp = tot_csize;
+        lpUserFunctions->TotalSize = tot_ucsize;
+        lpUserFunctions->CompFactor = cfactor;
+        lpUserFunctions->NumMembers = members;
+
+#else /* !WINDLL */
         if (longhdr) {
             Info(slide, 0, ((char *)slide, LoadFarString(LongFileTrailer),
               tot_ucsize, tot_csize, cfactorstr, members, members==1? "":"s"));
@@ -458,7 +409,7 @@ int list_files(__G)    /* return PK-type error code */
             Info(slide, 0, ((char *)slide, LoadFarString(ShortFileTrailer),
               tot_ucsize, members, members == 1? "" : "s"));
 #endif /* OS2_EAs */
-#endif /* ?MSWIN */
+#endif /* ?WINDLL */
     }
 /*---------------------------------------------------------------------------
     Double check that we're back at the end-of-central-directory record.
@@ -466,7 +417,7 @@ int list_files(__G)    /* return PK-type error code */
 
     if (readbuf(__G__ G.sig, 4) == 0)
         return PK_EOF;
-    if (strncmp(G.sig, G.end_central_sig, 4)) {     /* just to make sure again */
+    if (strncmp(G.sig, G.end_central_sig, 4)) {   /* just to make sure again */
         Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
         error_in_archive = PK_WARN;
     }
@@ -483,6 +434,26 @@ int list_files(__G)    /* return PK-type error code */
 
 #ifdef TIMESTAMP
 
+/************************/
+/* Function fn_is_dir() */
+/************************/
+
+static int fn_is_dir(__G)    /* returns TRUE if G.filename is directory */
+    __GDEF
+{
+    extent fn_len = strlen(G.filename);
+    register char   endc;
+
+    return  fn_len > 0 &&
+            ((endc = G.filename[fn_len-1]) == '/' ||
+             (G.pInfo->hostnum == FS_FAT_ && !strchr(G.filename, '/') &&
+              endc == '\\'));
+}
+
+
+
+
+
 /*************************/
 /* Function time_stamp() */
 /*************************/
@@ -491,9 +462,7 @@ int time_stamp(__G)    /* return PK-type error code */
     __GDEF
 {
     int do_this_file=FALSE, error, error_in_archive=PK_COOL;
-#if (defined(USE_EF_UX_TIME) || defined(UNIX))
-    ztimbuf z_utime;
-#endif
+    iztimes z_utime;
     time_t last_modtime=0L;   /* assuming no zipfile data older than 1970 */
     ush j, members=0;
     min_info info;
@@ -560,16 +529,19 @@ int time_stamp(__G)    /* return PK-type error code */
         /* If current file was specified on command line, or if no names were
          * specified, check the time for this file.  Either way, get rid of the
          * file comment and go back for the next file.
+         * Directory entries are always ignored, to stay compatible with both
+         * Zip and PKZIP.
          */
-        if (G.process_all_files || do_this_file) {
-#ifdef USE_EF_UX_TIME
-            if (G.extra_field && ef_scan_for_izux(G.extra_field,
-                G.crec.extra_field_length, &z_utime, NULL) > 0)
+        if ((G.process_all_files || do_this_file) && !fn_is_dir(__G)) {
+#ifdef USE_EF_UT_TIME
+            if (G.extra_field &&
+                (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
+                                  &z_utime, NULL) & EB_UT_FL_MTIME))
             {
-                if (last_modtime < z_utime.modtime)
-                    last_modtime = z_utime.modtime;
+                if (last_modtime < z_utime.mtime)
+                    last_modtime = z_utime.mtime;
             } else
-#endif /* USE_EF_UX_TIME */
+#endif /* USE_EF_UT_TIME */
             {
                 time_t modtime = dos_to_unix_time(G.crec.last_mod_file_date,
                                                   G.crec.last_mod_file_time);
@@ -589,8 +561,8 @@ int time_stamp(__G)    /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     if (members > 0) {
-        z_utime.modtime = z_utime.actime = last_modtime;
-        if (utime(G.zipfn, &z_utime))
+        z_utime.mtime = z_utime.atime = last_modtime;
+        if (utime(G.zipfn, (ztimbuf *)&z_utime))
             Info(slide, 0x201, ((char *)slide,
               "warning:  can't set time for %s\n", G.zipfn));
     }
@@ -601,7 +573,7 @@ int time_stamp(__G)    /* return PK-type error code */
 
     if (readbuf(__G__ G.sig, 4) == 0)
         return PK_EOF;
-    if (strncmp(G.sig, G.end_central_sig, 4)) {     /* just to make sure again */
+    if (strncmp(G.sig, G.end_central_sig, 4)) {   /* just to make sure again */
         Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
         error_in_archive = PK_WARN;
     }

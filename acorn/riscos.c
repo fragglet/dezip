@@ -11,7 +11,7 @@
 
 #define MAXEXT 16
 
-char *exts2swap = NULL; /* Extesions to swap (actually, directory names) */
+char *exts2swap = ""; /* Extensions to swap (actually, directory names) */
 
 int stat(char *filename,struct stat *res)
 {
@@ -64,10 +64,10 @@ int stat(char *filename,struct stat *res)
    if (t1 < tc)
      t2--;
    t1 -= tc;
-   t2 -= 0x33;		/* 00:00:00 Jan. 1 1970 = 0x336e996a00 */
+   t2 -= 0x33;          /* 00:00:00 Jan. 1 1970 = 0x336e996a00 */
 
-   t1 = (t1 / 100) + (t2 * 42949673U);	/* 0x100000000 / 100 = 42949672.96 */
-   t1 -= (t2 / 25);		/* compensate for .04 error */
+   t1 = (t1 / 100) + (t2 * 42949673U);  /* 0x100000000 / 100 = 42949672.96 */
+   t1 -= (t2 / 25);             /* compensate for .04 error */
 
    res->st_atime = res->st_mtime = res->st_ctime = t1;
  }
@@ -260,9 +260,9 @@ int checkext(char *suff)
    if (!e && !s) {
      return 1;
    }
-   while(*extptr!=':')    /* skip to next extension */
+   while(*extptr!=':' && *extptr!='\0')    /* skip to next extension */
      extptr++;
-   if (*extptr!=NULL)
+   if (*extptr!='\0')
      extptr++;
  }
  return 0;
@@ -316,4 +316,35 @@ void set_prefix(void)
 
  free(pref);
  }
+}
+
+#ifdef localtime
+#  undef localtime
+#endif
+
+#ifdef gmtime
+#  undef gmtime
+#endif
+
+/* Acorn's implementation of localtime() and gmtime()
+ * doesn't consider the timezone offset, so we have to
+ * add it before calling the library functions
+ */
+
+struct tm *riscos_localtime(const time_t *timer)
+{
+ time_t localt=*timer;
+
+ localt+=SWI_Read_Timezone()/100;
+
+ return localtime(&localt);
+}
+
+struct tm *riscos_gmtime(const time_t *timer)
+{
+ time_t localt=*timer;
+
+ localt+=SWI_Read_Timezone()/100;
+
+ return gmtime(&localt);
 }

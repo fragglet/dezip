@@ -20,7 +20,7 @@ CFLAGS   = -throwback -wn
 CFLAGS   = $(CFLAGS) -IC:,@.
 ASMFLAGS = -Throwback -Stamp -NoCache -CloseExec -quit
 LFLAGS1  =
-LFLAGS2  = $(LIB) C:o.Stubs #$.RISC_OSLib.o.RISC_OSLib
+LFLAGS2  = $(LIB) C:o.Stubs
 
 # object file lists
 OBJS1 = unzip.o crc32.o crctab.o crypt.o envargs.o explode.o
@@ -32,7 +32,7 @@ OBJF  = funzip.o crc32.o crypt_.o globals_.o inflate_.o ttyio_.o \
 OBJX  = unzipsfx.o crc32.o crctab.o crypt.o extract_.o fileio.o globals.o \
         inflate.o match.o process_.o ttyio.o acorn_.o swiven.o riscos_.o
 
-UNZIP_H = unzip.h unzpriv.h globals.h
+UNZIP_H = unzip.h unzpriv.h globals.h acorn/riscos.h acorn/swiven.h
 
 all:      unzip funzip unzipsfx
 
@@ -86,17 +86,17 @@ ttyio_.o:       ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unzipsfx.o:     unzip.c $(UNZIP_H) crypt.h version.h consts.h
         $(CC) $(CFLAGS) -DSFX -c c.unzip -o o.unzipsfx
 
-acorn.o:       acorn/acorn.c acorn/riscos.h
+acorn.o:       acorn/acorn.c $(UNZIP_H)
         $(CC) $(CFLAGS) -c acorn/acorn.c
-acorn_.o:       acorn/acorn.c acorn/riscos.h
+acorn_.o:       acorn/acorn.c $(UNZIP_H)
         $(CC) $(CFLAGS) -c -DSFX -DSFX_EXDIR -o acorn_.o acorn/acorn.c
 
-riscos.o:       acorn/riscos.c acorn/riscos.h
+riscos.o:       acorn/riscos.c $(UNZIP_H)
         $(CC) $(CFLAGS) -c acorn/riscos.c
-riscos_.o:      acorn/riscos.c acorn/riscos.h
+riscos_.o:      acorn/riscos.c $(UNZIP_H)
         $(CC) $(CFLAGS) -c -DSFX -DSFX_EXDIR -o riscos_.o acorn/riscos.c
 
-swiven.o:
+swiven.o:       acorn/swiven.s
         $(ASM) $(ASMFLAGS) -from acorn.s.swiven -to o.swiven
 
 unzip:    $(OBJS)

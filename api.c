@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------
 
-  unzipapi.c
+  api.c
 
   This module supplies an UnZip engine for use directly from C/C++
   programs.  The functions are:
@@ -39,9 +39,9 @@
   ---------------------------------------------------------------------------*/
 
 
-UzpVer *UzpVersion()   /* should be pointer to const struct */
+UzpVer * UZ_EXP UzpVersion()   /* should be pointer to const struct */
 {
-    static UzpVer version;   /* doesn't change between calls */
+    static UzpVer version;     /* doesn't change between calls */
 
 
     version.structlen = UZPVER_LEN;
@@ -70,12 +70,13 @@ UzpVer *UzpVersion()   /* should be pointer to const struct */
     version.zipinfo.minor = ZI_MINORVER;
     version.zipinfo.patchlevel = PATCHLEVEL;
 
-    version.os2dll.major = D2_MAJORVER;
-    version.os2dll.minor = D2_MINORVER;
+    /* these are retained for backward compatibility only: */
+    version.os2dll.major = UZ_MAJORVER;
+    version.os2dll.minor = UZ_MINORVER;
     version.os2dll.patchlevel = PATCHLEVEL;
 
-    version.windll.major = DW_MAJORVER;
-    version.windll.minor = DW_MINORVER;
+    version.windll.major = UZ_MAJORVER;
+    version.windll.minor = UZ_MINORVER;
     version.windll.patchlevel = PATCHLEVEL;
 
     return &version;
@@ -83,7 +84,9 @@ UzpVer *UzpVersion()   /* should be pointer to const struct */
 
 
 
-int UzpAltMain(int argc, char *argv[], UzpInit *init)
+#ifndef WINDLL
+
+int UZ_EXP UzpAltMain(int argc, char *argv[], UzpInit *init)
 {
     int r, (*dummyfn)();
 
@@ -107,9 +110,10 @@ int UzpAltMain(int argc, char *argv[], UzpInit *init)
     RETURN(r);
 }
 
+#endif
 
 
-int UzpUnzipToMemory(char *zip,char *file,UzpBuffer *retstr)
+int UZ_EXP UzpUnzipToMemory(char *zip,char *file,UzpBuffer *retstr)
 {
     int r;
 
@@ -122,9 +126,9 @@ int UzpUnzipToMemory(char *zip,char *file,UzpBuffer *retstr)
 
 
 
-#ifdef OS2API
+#ifdef OS2DLL
 
-int UzpFileTree(char *name, cbList(callBack), char *cpInclude[],
+int UZ_EXP UzpFileTree(char *name, cbList(callBack), char *cpInclude[],
                 char *cpExclude[])
 {
     int r;
@@ -146,7 +150,7 @@ int UzpFileTree(char *name, cbList(callBack), char *cpInclude[],
     return r;
 }
 
-#endif /* OS2API */
+#endif /* OS2DLL */
 
 
 
@@ -181,7 +185,7 @@ int unzipToMemory(__GPRO__ char *zip, char *file, UzpBuffer *retstr)
 
     r = process_zipfiles(__G);
     if (retstr) {
-        retstr->strptr = G.redirect_buffer;
+        retstr->strptr = (char *)G.redirect_buffer;
         retstr->strlength = G.redirect_size;
     }
     r |= G.filenotfound;

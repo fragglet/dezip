@@ -1,0 +1,12 @@
+Contents of the "beos" sub-directory for UnZip 5.3 and later:
+
+  Contents      this file
+  README        notes from the author of the BeOS port
+  Makefile      makefile for building UnZip (sorry, no project files)
+  beos.c        BeOS-specific routines (similar to the Unix ones)
+  beos.h        structures for the BeOS extra field
+  zipinfo       shell script to mimic the zipinfo command
+
+This port supports both Metrowerks CodeWarrior and GNU C.
+
+- Chris Herborth (chrish@qnx.com)

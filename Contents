@@ -1,4 +1,4 @@
-Contents of the UnZip 5.2 source archive.  The OS-specific subdirectories
+Contents of the UnZip 5.30 source archive.  The OS-specific subdirectories
 at the end contain their own Contents listings:
 
   Contents	this file
@@ -6,19 +6,22 @@ at the end contain their own Contents listings:
   COPYING	copyrights and distribution policy
   INSTALL	how to compile and install UnZip and related utilities
   Where		where Zip/UnZip and encryption/decryption support can be found
-  History.520	new features and fixes in this release
+  History.530	new features and fixes in this release
   ToDo		rough priority list of new features to be added in next release
   BUGS		known bugs, problems, and (possible) other features to be added
   unzip.doc	UnZip manual page, human-readable format
   unzipsfx.doc	UnZipSFX manual page, human-readable format
   zipinfo.doc	ZipInfo manual page, human-readable format
+  zipgrep.doc	zipgrep manual page, human-readable format
   funzip.doc	fUnZip manual page, human-readable format
   file_id.diz	BBS-oriented file describing this archive
+  testmake.zip	test archive for checking whether newly compiled UnZip works
   api.c		generic DLL entry points, support functions (required for DLLs)
-  apihelp.c     API help text for DLL versions (currently OS/2 only)
+  apihelp.c	API help text for DLL versions (currently OS/2 only)
+  consts.h	global, initialized variables that never change (required)
   crc32.c	code for calculation 32bit CRC of a string buffer (required*)
   crc_i386.S	fast assembler replacement for crc32.c (Intel 386 and newer)
-  crctab.c	supplies polynom table for CRC calculation
+  crctab.c	supplies polynomial table for CRC calculation
   crypt.c	dummy decryption routines (required*)
   crypt.h	dummy decryption header file (required*)
   ebcdic.h	static lookup table for ASCII <-> EBCDIC translation (required)
@@ -46,22 +49,24 @@ at the end contain their own Contents listings:
   version.h	header with UnZip/UnZipSFX and ZipInfo version info (required)
   zip.h		dummy header for use with crypt.c (required*)
   zipinfo.c	UnZip listing routines, ZipInfo mode (required)
-  acorn/	support files for compiling under Acorn RISCOS
+  acorn/	support files for compiling under Acorn RISC OS
   amiga/	support files for compiling under AmigaDOS
   aosvs/	support files for compiling under Data General AOS/VS
   atari/	support files for compiling under Atari TOS
+  beos/		support files for compiling under BeOS
   cmsmvs/	support files for compiling under VM/CMS and MVS
   human68k/	support files for compiling under X68000/Human68K
   mac/		support files for compiling under Macintosh OS
   msdos/	support files for compiling under MS-DOS
   novell/	support files for compiling for Novell Netware NLM (preliminary)
   os2/		support files for compiling under OS/2 (includes DLL stuff)
+  qdos/		support files for compiling under SMS/QDOS
   tops20/	support files for compiling under TOPS-20
   unix/		support files for compiling under Unix
   vms/		support files for compiling under VMS
-  win32/	support files for compiling under Windows NT and Windows 95
-  wingui/	support files for compiling WizUnZip (Win3/NT/95 GUI version)
-  wizdll/	support files for compiling WizUnZip 16- and 32-bit DLLs
+  win32/	support files for compiling under Windows 95 and Windows NT
+  wince/	support files for compiling under Windows CE (GUI version)
+  windll/	support files for compiling Windows 3.x/95/NT DLLs
   proginfo/	programming docs and additional technical info
 
 Files marked "required*" are also needed to compile fUnZip.  The normal

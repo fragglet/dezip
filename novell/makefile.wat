@@ -1,13 +1,13 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.2 and later                       Mark Wright and others
-# Version:  Watcom C                                                  31 Mar 96
+# Makefile for UnZip 5.3 and later                       Mark Wright and others
+# Version:  Watcom C                                                   6 Feb 97
 #------------------------------------------------------------------------------
 
-# NOTE:  this is a hacked-up version of an ancient (1993) makefile.  It will
-#   not work without modifications to the UnZip 5.2 sources.  This makefile is
+
+# WARNING:  this is a hacked-up version of an ancient (1993) makefile.  It will
+#   not work without modifications to the UnZip 5.3 sources.  This makefile is
 #   (for now) included only for completeness and as a starting point for a real
 #   Novell Netware NLM port.  (This makefile was intended for Netware 3.11.)
-
 
 
 # Commands to execute before making any target
@@ -20,7 +20,7 @@
 NLMNAME = unzip
 DESCRIPTION = unzip utility
 VERSION = 0.50
-COPYRIGHT = Copyright (C) 1990-1996 Info-ZIP (zip-bugs@wkuvx1.wku.edu).
+COPYRIGHT = Copyright 1990-1997 Info-ZIP (Zip-Bugs@lists.wku.edu).
 SCREENNAME = Info-ZIP's UnZip Utility
 CLIBIMP = \watcom\novi\clib.imp
 OBJFILE = $NLMNAME.obj
@@ -28,7 +28,7 @@ PRELUDE = \watcom\novi\prelude.obj
 
 # Compile switches
 # d2    include full symbolic debugging information
-# 3s    generate 386 instructions, use stack-based argument pasing conventions
+# 3s    generate 386 instructions, use stack-based argument-passing conventions
 # zdp   allows DS register to "peg" it to DGROUP
 # zq    "quiet" mode
 # NLM   produce Novell Loadable Module
@@ -45,7 +45,7 @@ DESTDIR = target
    @$COMPILE $[*.c
 
 
-UNZIP_H = unzip.h unzpriv.h globals.h msdos\doscfg.h
+UNZIP_H = unzip.h unzpriv.h globals.h os2\os2cfg.h
 
 crc32.obj:      crc32.c $(UNZIP_H) zip.h
 crctab.obj:     crctab.c $(UNZIP_H) zip.h
@@ -69,9 +69,8 @@ zipinfo.obj:    zipinfo.c $(UNZIP_H)
 #crc_i86.obj:    msdos\crc_i86.asm
 #	$(AS) $(ASFLAGS) -D$(ASUNMODEL) msdos\crc_i86.asm, $@;
 
-# originally used os2.c:  ???
-msdos.obj:      msdos\msdos.c $(UNZIP_H)
-	$(CC) -c -A$(UNMODEL) $(CFLAGS) msdos\msdos.c
+os2.obj:      os2\os2.c $(UNZIP_H)
+	$(CC) -c -A$(UNMODEL) $(CFLAGS) os2\os2.c
 
 
 OBJ01 = unzip.obj
@@ -91,14 +90,14 @@ OBJ14 = ttyio.obj
 OBJ15 = unreduce.obj
 OBJ16 = unshrink.obj
 OBJ17 = zipinfo.obj
-OBJ18 = msdos.obj
+OBJ18 = os2.obj
 #OBJ19 = $(ASMOBJS)
 OBJS = $OBJFILE $OBJ01 $OBJ02 $OBJ03 $OBJ04 $OBJ05 $OBJ06 $OBJ07 $OBJ08 \
 	$OBJ09 $OBJ10 $OBJ11 $OBJ12 $OBJ13 $OBJ14 $OBJ15 $OBJ16 $OBJ17 \
 	$OBJ18
 
 
-# If .obj or .lnk files are modified, link new .nlm and maybe copy to DESTDIR
+# if .obj or .lnk files are modified, link new .nlm and maybe copy to DESTDIR
 $NLMNAME.nlm : $OBJS
    @echo Linking...
    @$LINK @$NLMNAME
@@ -106,7 +105,7 @@ $NLMNAME.nlm : $OBJS
 #   @copy $NLMNAME.nlm $DESTDIR
 
 
-# If makefile is modified, create new linker option file
+# if makefile is modified, create new linker option file
 $NLMNAME.lnk : $NLMNAME.mak
    @echo FORMAT   NOVELL NLM	'$DESCRIPTION'	 >$NLMNAME.lnk
    @echo OPTION   THREADNAME    '$NLMNAME'	>>$NLMNAME.lnk
@@ -124,15 +123,23 @@ $NLMNAME.lnk : $NLMNAME.mak
    @echo OPTION   MAP				>>$NLMNAME.lnk
    @echo FILE $PRELUDE				>>$NLMNAME.lnk
    @echo FILE $OBJFILE				>>$NLMNAME.lnk
-   @echo FILE $OBJ2				>>$NLMNAME.lnk
-   @echo FILE $OBJ3				>>$NLMNAME.lnk
-   @echo FILE $OBJ4				>>$NLMNAME.lnk
-   @echo FILE $OBJ5				>>$NLMNAME.lnk
-   @echo FILE $OBJ6				>>$NLMNAME.lnk
-   @echo FILE $OBJ7				>>$NLMNAME.lnk
-   @echo FILE $OBJ8				>>$NLMNAME.lnk
-   @echo FILE $OBJ9				>>$NLMNAME.lnk
+   @echo FILE $OBJ01				>>$NLMNAME.lnk
+   @echo FILE $OBJ02				>>$NLMNAME.lnk
+   @echo FILE $OBJ03				>>$NLMNAME.lnk
+   @echo FILE $OBJ04				>>$NLMNAME.lnk
+   @echo FILE $OBJ05				>>$NLMNAME.lnk
+   @echo FILE $OBJ06				>>$NLMNAME.lnk
+   @echo FILE $OBJ07				>>$NLMNAME.lnk
+   @echo FILE $OBJ08				>>$NLMNAME.lnk
+   @echo FILE $OBJ09				>>$NLMNAME.lnk
    @echo FILE $OBJ10				>>$NLMNAME.lnk
    @echo FILE $OBJ11				>>$NLMNAME.lnk
+   @echo FILE $OBJ12				>>$NLMNAME.lnk
+   @echo FILE $OBJ13				>>$NLMNAME.lnk
+   @echo FILE $OBJ14				>>$NLMNAME.lnk
+   @echo FILE $OBJ15				>>$NLMNAME.lnk
+   @echo FILE $OBJ16				>>$NLMNAME.lnk
+   @echo FILE $OBJ17				>>$NLMNAME.lnk
+   @echo FILE $OBJ18				>>$NLMNAME.lnk
    @echo MODULE   clib				>>$NLMNAME.lnk
    @echo IMPORT   @$CLIBIMP			>>$NLMNAME.lnk

@@ -12,50 +12,63 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <dos/dos.h>
+#include <clib/dos_protos.h>
+#if (defined(DEBUG) && defined(__SASC))
+#  include <sprof.h>
+#endif
 
-typedef unsigned long ulong;
+typedef unsigned long ulg;
+typedef unsigned char uch;
 typedef unsigned short bool;
 #define false 0
 #define true  1
 
 /* the following are extracted from Commodore include file dos/doshunks.h: */
-#define HUNK_NAME       1000
-#define HUNK_CODE       1001
-#define HUNK_DATA       1002
-#define HUNK_BSS        1003
-#define HUNK_RELOC32    1004
-#define HUNK_SYMBOL     1008
-#define HUNK_DEBUG      1009
-#define HUNK_END        1010
-#define HUNK_HEADER     1011
-#define HUNK_OVERLAY    1013
-#define HUNK_BREAK      1014
+#define HUNK_NAME       1000L
+#define HUNK_CODE       1001L
+#define HUNK_DATA       1002L
+#define HUNK_BSS        1003L
+#define HUNK_RELOC32    1004L
+#define HUNK_SYMBOL     1008L
+#define HUNK_DEBUG      1009L
+#define HUNK_END        1010L
+#define HUNK_HEADER     1011L
+#define HUNK_OVERLAY    1013L
+#define HUNK_BREAK      1014L
 
 /* Convert a big-endian (Motorola) sequence of four bytes to a longword: */
-#define CHARS2LONG(b)   (((b)[0]<<24)|((b)[1]<<16)|((b)[2]<<8)|(b)[3])
-/* b must be (unsigned char *) in the above.  Now the reverse: */
-#define LONG2CHARS(b,l) ((b)[0]=(l)>>24,(b)[1]=(l)>>16,(b)[2]=(l)>>8,(b)[3]=l)
+#define CHARS2LONG(b)   (((ulg)(b)[0] << 24) | ((ulg)(b)[1] << 16) | \
+                         ((ulg)(b)[2] << 8) | ((ulg)(b)[3]))
+/* b must be (uch *) in each of these.  Now the reverse: */
+#define LONG2CHARS(b,l) ((b)[0] = (uch)((l) >> 24), (b)[1] = (uch)((l) >> 16),\
+                         (b)[2] = (uch)((l) >> 8), (b)[3] = (uch)(l))
 
 #define COPYBUFFER      16384
 
+ulg totalwritten = 0;
 
-bool CopyData(FILE *out, FILE *inn, ulong archivesize,
+
+bool CopyData(FILE *out, FILE *inn, ulg archivesize,
               char *outname, char *inname)
 {
-    static unsigned char buf[COPYBUFFER];
-    long bufend, written = 0;
+    static uch buf[COPYBUFFER];
+    ulg written;
+    size_t chunk;
 
     if (archivesize) {
         LONG2CHARS(buf, HUNK_DEBUG);
-        bufend = (archivesize + 3) / 4;
-        LONG2CHARS(buf + 4, (ulong) bufend);
+        written = (archivesize + 3) / 4;
+        LONG2CHARS(buf + 4, written);
         if (fwrite(buf, 1, 8, out) < 8) {
             printf("Error writing in-between data to %s\n", outname);
             return false;
         }
+        totalwritten += 8;
     }
+    written = 0;
     do {
-        bufend = fread(buf, 1, COPYBUFFER, inn);
+        chunk = fread(buf, 1, COPYBUFFER, inn);
         if (ferror(inn)) {
             printf("Error reading data from %s\n", inname);
             return false;
@@ -66,12 +79,13 @@ bool CopyData(FILE *out, FILE *inn, ulong archivesize,
                 return false;
             }
         }
-        if (fwrite(buf, 1, bufend, out) < bufend) {
+        if (fwrite(buf, 1, chunk, out) < chunk) {
             printf("Error writing %s to %s\n", archivesize ? "archive data" :
                                                "self-extractor code", outname);
             return false;
         }
-        written += bufend;
+        written += chunk;
+        totalwritten += chunk;
     } while (!feof(inn));
     if (archivesize) {
         if (written != archivesize) {
@@ -79,13 +93,14 @@ bool CopyData(FILE *out, FILE *inn, ulong archivesize,
             return false;
         }
         LONG2CHARS(buf, 0);
-        bufend = 3 - (written + 3) % 4;
-        LONG2CHARS(buf + bufend, HUNK_END);
-        bufend += 4;
-        if (fwrite(buf, 1, bufend, out) < bufend) {
+        chunk = 3 - (written + 3) % 4;
+        LONG2CHARS(buf + chunk, HUNK_END);
+        chunk += 4;
+        if (fwrite(buf, 1, chunk, out) < chunk) {
             printf("Error writing end-marker data to %s\n", outname);
             return false;
         }
+        totalwritten += chunk;
     }
     return true;
 }
@@ -97,12 +112,12 @@ void main(int argc, char **argv)
     char *toolname = argv[3];
     struct stat ss;
     int ret;
-    ulong archivesize;
+    ulg archivesize;
 
     if (argc < 3 || argc > 4) {
         printf("Usage: %s <result-file> <zip-archive> [<self-extractor-"
                "program>]\nThe third arg defaults to \"UnZipSFX\" in the"
-               " current dir.\n", argv[0]);
+               " current dir or C:.\n", argv[0]);
         exit(20);
     }
     if (!(arch = fopen(argv[2], "rb"))) {
@@ -118,9 +133,17 @@ void main(int argc, char **argv)
     if (argc < 4)
         toolname = "UnZipSFX";
     if (!(tool = fopen(toolname, "rb"))) {
-        fclose(arch);
-        printf("Could not find self-extractor program %s\n", toolname);
-        exit(10);
+        BPTR lk = Lock("C:", ACCESS_READ);
+        BPTR ocd = lk ? CurrentDir(lk) : 0;
+        if (!(tool = fopen(toolname, "rb"))) {
+            fclose(arch);
+            printf("Could not find self-extractor program %s\n", toolname);
+            if (lk)
+                UnLock(CurrentDir(ocd));
+            exit(10);
+        }
+        if (lk)
+            UnLock(CurrentDir(ocd));
     }
     if (!(out = fopen(argv[1], "wb"))) {
         fclose(arch);
@@ -137,11 +160,12 @@ void main(int argc, char **argv)
         printf("Deleting %s\n", argv[1]);
         remove(argv[1]);
     } else
-        printf("%s successfully written.\n", argv[1]);
+        printf("%s successfully written, size %lu bytes.\n",
+                argv[1], totalwritten);
     exit(ret);
 }
 
 
 #if (defined(AZTEC_C) && defined(MCH_AMIGA))
-void _wb_parse(void) { }
+void _wb_parse(void) { }        /* avoid unneeded infrastructure */
 #endif

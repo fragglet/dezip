@@ -1,0 +1,235 @@
+#
+# Borland C++ IDE generated makefile
+# Generated 2/22/97 at 2:58:50 PM 
+#
+.AUTODEPEND
+
+
+#
+# Borland C++ tools
+#
+IMPLIB  = Implib
+BCC32   = Bcc32 +BccW32.cfg 
+BCC32I  = Bcc32i +BccW32.cfg 
+TLINK32 = TLink32
+TLIB    = TLib
+BRC32   = Brc32
+TASM32  = Tasm32
+#
+# IDE macros
+#
+
+
+#
+# Options
+#
+IDE_LinkFLAGS32 =  -LC:\BC5\LIB -v
+IDE_ResFLAGS32 = 
+LinkerLocalOptsAtW32_CcbUNZIPbDLL32bunzip32dlib =  -Tpd -aa -V4.0 -c
+ResLocalOptsAtW32_CcbUNZIPbDLL32bunzip32dlib = 
+BLocalOptsAtW32_CcbUNZIPbDLL32bunzip32dlib = 
+CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib = -IC:\BC5\INCLUDE;C:\UNZIP;C:\UNZIP\WINDLL;C:\UNZIP\WIN32 -DWINDLL;USE_EF_UT_TIME;REENTRANT;DLL;WIN32;
+LinkerInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib = -x
+LinkerOptsAt_CcbUNZIPbDLL32bunzip32dlib = $(LinkerLocalOptsAtW32_CcbUNZIPbDLL32bunzip32dlib)
+ResOptsAt_CcbUNZIPbDLL32bunzip32dlib = $(ResLocalOptsAtW32_CcbUNZIPbDLL32bunzip32dlib)
+BOptsAt_CcbUNZIPbDLL32bunzip32dlib = $(BLocalOptsAtW32_CcbUNZIPbDLL32bunzip32dlib)
+
+#
+# Dependency List
+#
+Dep_windll32 = \
+   C:\UNZIP\DLL32\unzip32.lib
+
+windll32 : BccW32.cfg $(Dep_windll32)
+  echo MakeNode
+
+C:\UNZIP\DLL32\unzip32.lib : C:\UNZIP\DLL32\unzip32.dll
+  $(IMPLIB) $@ C:\UNZIP\DLL32\unzip32.dll
+
+
+Dep_CcbUNZIPbDLL32bunzip32ddll = \
+   C:\UNZIP\DLLOBJ32\nt.obj\
+   C:\UNZIP\DLLOBJ32\api.obj\
+   ..\unzip\windll\windll32.def\
+   C:\UNZIP\DLLOBJ32\windll.res\
+   C:\UNZIP\DLLOBJ32\windll.obj\
+   C:\UNZIP\DLLOBJ32\dllsetup.obj\
+   C:\UNZIP\DLLOBJ32\win32.obj\
+   C:\UNZIP\DLLOBJ32\crc32.obj\
+   C:\UNZIP\DLLOBJ32\unshrink.obj\
+   C:\UNZIP\DLLOBJ32\unreduce.obj\
+   C:\UNZIP\DLLOBJ32\ttyio.obj\
+   C:\UNZIP\DLLOBJ32\process.obj\
+   C:\UNZIP\DLLOBJ32\match.obj\
+   C:\UNZIP\DLLOBJ32\list.obj\
+   C:\UNZIP\DLLOBJ32\inflate.obj\
+   C:\UNZIP\DLLOBJ32\globals.obj\
+   C:\UNZIP\DLLOBJ32\fileio.obj\
+   C:\UNZIP\DLLOBJ32\extract.obj\
+   C:\UNZIP\DLLOBJ32\explode.obj\
+   C:\UNZIP\DLLOBJ32\crypt.obj\
+   C:\UNZIP\DLLOBJ32\crctab.obj\
+   C:\UNZIP\DLLOBJ32\zipinfo.obj
+
+C:\UNZIP\DLL32\unzip32.dll : $(Dep_CcbUNZIPbDLL32bunzip32ddll)
+  $(TLINK32) @&&|
+ /v $(IDE_LinkFLAGS32) $(LinkerOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(LinkerInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) +
+C:\BC5\LIB\c0d32.obj+
+C:\UNZIP\DLLOBJ32\nt.obj+
+C:\UNZIP\DLLOBJ32\api.obj+
+C:\UNZIP\DLLOBJ32\windll.obj+
+C:\UNZIP\DLLOBJ32\dllsetup.obj+
+C:\UNZIP\DLLOBJ32\win32.obj+
+C:\UNZIP\DLLOBJ32\crc32.obj+
+C:\UNZIP\DLLOBJ32\unshrink.obj+
+C:\UNZIP\DLLOBJ32\unreduce.obj+
+C:\UNZIP\DLLOBJ32\ttyio.obj+
+C:\UNZIP\DLLOBJ32\process.obj+
+C:\UNZIP\DLLOBJ32\match.obj+
+C:\UNZIP\DLLOBJ32\list.obj+
+C:\UNZIP\DLLOBJ32\inflate.obj+
+C:\UNZIP\DLLOBJ32\globals.obj+
+C:\UNZIP\DLLOBJ32\fileio.obj+
+C:\UNZIP\DLLOBJ32\extract.obj+
+C:\UNZIP\DLLOBJ32\explode.obj+
+C:\UNZIP\DLLOBJ32\crypt.obj+
+C:\UNZIP\DLLOBJ32\crctab.obj+
+C:\UNZIP\DLLOBJ32\zipinfo.obj
+$<,$*
+C:\BC5\LIB\import32.lib+
+C:\BC5\LIB\cw32.lib
+..\unzip\windll\windll32.def
+C:\UNZIP\DLLOBJ32\windll.res
+
+|
+C:\UNZIP\DLLOBJ32\nt.obj :  ..\unzip\win32\nt.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\win32\nt.c
+|
+
+C:\UNZIP\DLLOBJ32\api.obj :  ..\unzip\api.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\api.c
+|
+
+C:\UNZIP\DLLOBJ32\windll.res :  ..\unzip\windll\windll.rc
+  $(BRC32) -R @&&|
+ $(IDE_ResFLAGS32) $(ROptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib)  -FO$@ ..\unzip\windll\windll.rc
+|
+C:\UNZIP\DLLOBJ32\windll.obj :  ..\unzip\windll\windll.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\windll\windll.c
+|
+
+C:\UNZIP\DLLOBJ32\dllsetup.obj :  ..\unzip\windll\dllsetup.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\windll\dllsetup.c
+|
+
+C:\UNZIP\DLLOBJ32\win32.obj :  ..\unzip\win32\win32.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\win32\win32.c
+|
+
+C:\UNZIP\DLLOBJ32\crc32.obj :  ..\unzip\crc32.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\crc32.c
+|
+
+C:\UNZIP\DLLOBJ32\unshrink.obj :  ..\unzip\unshrink.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\unshrink.c
+|
+
+C:\UNZIP\DLLOBJ32\unreduce.obj :  ..\unzip\unreduce.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\unreduce.c
+|
+
+C:\UNZIP\DLLOBJ32\ttyio.obj :  ..\unzip\ttyio.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\ttyio.c
+|
+
+C:\UNZIP\DLLOBJ32\process.obj :  ..\unzip\process.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\process.c
+|
+
+C:\UNZIP\DLLOBJ32\match.obj :  ..\unzip\match.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\match.c
+|
+
+C:\UNZIP\DLLOBJ32\list.obj :  ..\unzip\list.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\list.c
+|
+
+C:\UNZIP\DLLOBJ32\inflate.obj :  ..\unzip\inflate.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\inflate.c
+|
+
+C:\UNZIP\DLLOBJ32\globals.obj :  ..\unzip\globals.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\globals.c
+|
+
+C:\UNZIP\DLLOBJ32\fileio.obj :  ..\unzip\fileio.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\fileio.c
+|
+
+C:\UNZIP\DLLOBJ32\extract.obj :  ..\unzip\extract.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\extract.c
+|
+
+C:\UNZIP\DLLOBJ32\explode.obj :  ..\unzip\explode.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\explode.c
+|
+
+C:\UNZIP\DLLOBJ32\crypt.obj :  ..\unzip\crypt.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\crypt.c
+|
+
+C:\UNZIP\DLLOBJ32\crctab.obj :  ..\unzip\crctab.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\crctab.c
+|
+
+C:\UNZIP\DLLOBJ32\zipinfo.obj :  ..\unzip\zipinfo.c
+  $(BCC32) -P- -c @&&|
+ $(CompOptsAt_CcbUNZIPbDLL32bunzip32dlib) $(CompInheritOptsAt_CcbUNZIPbDLL32bunzip32dlib) -o$@ ..\unzip\zipinfo.c
+|
+
+# Compiler configuration file
+BccW32.cfg : 
+   Copy &&|
+-w
+-R
+-v
+-vi
+-H
+-H=wiz32all.csm
+-f-
+-ff-
+-d
+-wucp
+-w-obs
+-H-
+-WD
+-wcln
+-w-sig
+-wdef
+-wnod
+-wuse
+-wstv
+-wobs
+-H-
+| $@
+
+

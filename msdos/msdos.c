@@ -2,7 +2,7 @@
 
   msdos.c
 
-  MSDOS-specific routines for use with Info-ZIP's UnZip 5.2 and later.
+  MSDOS-specific routines for use with Info-ZIP's UnZip 5.3 and later.
 
   Contains:  Opendir()                      (from zip)
              Readdir()                      (from zip)
@@ -26,6 +26,8 @@
              volumelabel()                  (djgpp, emx)
              __crt0_glob_function()         (djgpp 2.x)
              __crt_load_environment_file()  (djgpp 2.x)
+             int86x_realmode()              (Watcom 32-bit)
+             stat_bandaid()                 (Watcom)
 
   ---------------------------------------------------------------------------*/
 
@@ -34,8 +36,8 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-#ifndef USE_VFAT
-static void map2fat OF((char *pathcomp, char *last_dot));
+#ifdef MAYBE_PLAIN_FAT
+   static void map2fat OF((char *pathcomp, char *last_dot));
 #endif
 static int isfloppy OF((int nDrive));
 static int volumelabel OF((char *newlabel));
@@ -43,6 +45,8 @@ static int volumelabel OF((char *newlabel));
 static int created_dir;        /* used by mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
 static unsigned nLabelDrive;   /* ditto, plus volumelabel() */
+
+
 
 /*****************************/
 /*  Strings used in msdos.c  */
@@ -74,11 +78,22 @@ static char Far PathTooLongTrunc[] =
      "\nwarning:  file attributes may not be correct\n";
 #endif
 
+
+
+/****************************/
+/*  Macros used in msdos.c  */
+/****************************/
+
 #ifdef WATCOMC_386
 #  define WREGS(v,r) (v##.w.##r)
 #  define int86x int386x
+   static int int86x_realmode(int inter_no, union REGS *in,
+                              union REGS *out, struct SREGS *seg);
+#  define F_intdosx(ir,or,sr) int86x_realmode(0x21, ir, or, sr)
+#  define XXX__MK_FP_IS_BROKEN
 #else
 #  define WREGS(v,r) (v##.x.##r)
+#  define F_intdosx(ir,or,sr) intdosx(ir, or, sr)
 #endif
 
 #if (defined(__GO32__) || defined(__EMX__))
@@ -327,22 +342,23 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* trunc), 2 if warning (skip file because dir */
-    int renamed;             /* doesn't exist), 3 if error (skip file), 10 */
-{                            /* if no memory (skip file) */
-    char pathcomp[FILNAMSIZ];    /* path-component buffer */
-    char *pp, *cp=(char *)NULL;  /* character pointers */
-    char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
-#ifndef USE_VFAT
-    char *last_dot=(char *)NULL; /* last dot not converted to underscore */
-#endif
-#ifndef USE_VFAT
-    int dotname = FALSE;         /* flag:  path component begins with dot */
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
+    char pathcomp[FILNAMSIZ];      /* path-component buffer */
+    char *pp, *cp=(char *)NULL;    /* character pointers */
+    char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
+#ifdef MAYBE_PLAIN_FAT
+    char *last_dot=(char *)NULL;   /* last dot not converted to underscore */
+    int dotname = FALSE;           /* path component begins with dot? */
+# ifdef USE_LFN
+    int use_lfn = USE_LFN;         /* file system supports long filenames? */
+# endif
 #endif
     int error = 0;
-    register unsigned workch;    /* hold the character being tested */
+    register unsigned workch;      /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
@@ -379,7 +395,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
     }
 
     /* pathcomp is ignored unless renamed_fullpath is TRUE: */
-    if ((error = checkdir(__G__ pathcomp, INIT)) != 0)    /* initialize path buffer */
+    if ((error = checkdir(__G__ pathcomp, INIT)) != 0) /* initialize path buf */
         return error;           /* ...unless no mem or vol label on hard disk */
 
     *pathcomp = '\0';           /* initialize translation buffer */
@@ -400,89 +416,115 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
     while ((workch = (uch)*cp++) != 0) {
 
         switch (workch) {
-        case '/':             /* can assume -j flag not given */
-            *pp = '\0';
-#ifndef USE_VFAT
-            map2fat(pathcomp, last_dot);   /* 8.3 truncation (in place) */
-            last_dot = (char *)NULL;
+            case '/':             /* can assume -j flag not given */
+                *pp = '\0';
+#ifdef MAYBE_PLAIN_FAT
+# ifdef USE_LFN
+                if (!use_lfn)
+# endif
+                {
+                    map2fat(pathcomp, last_dot);   /* 8.3 trunc. (in place) */
+                    last_dot = (char *)NULL;
+                }
 #endif
-            if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
-                return error;
-            pp = pathcomp;    /* reset conversion buffer for next piece */
-            lastsemi = (char *)NULL; /* leave directory semi-colons alone */
-            break;
+                if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
+                    return error;
+                pp = pathcomp;    /* reset conversion buffer for next piece */
+                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
+                break;
 
-        /* drive names are not stored in zipfile, so no colons allowed;
-         *  no brackets or most other punctuation either (all of which
-         *  can appear in Unix-created archives; backslash is particularly
-         *  bad unless all necessary directories exist) */
-        case ':':
-        case '\\':
-        case '"':
-#ifndef USE_VFAT
-        case '[':
-        case ']':
-        case '+':
-        case ',':
-        case '=':
+            /* drive names are not stored in zipfile, so no colons allowed;
+             *  no brackets or most other punctuation either (all of which
+             *  can appear in Unix-created archives; backslash is particularly
+             *  bad unless all necessary directories exist) */
+#ifdef MAYBE_PLAIN_FAT
+            case '[':          /* these punctuation characters forbidden */
+            case ']':          /*  only on plain FAT file systems */
+            case '+':
+            case ',':
+            case '=':
+# ifdef USE_LFN
+                if (use_lfn)
+                    *pp++ = (char)workch;
+                else
+                    *pp++ = '_';
+                break;
+# endif
 #endif
-        case '<':
-        case '>':
-        case '|':
-        case '*':
-        case '?':
-            *pp++ = '_';
-            break;
-
-#ifndef USE_VFAT
-        case '.':
-            if (pp == pathcomp) {     /* nothing appended yet... */
-                if (*cp == '/') {     /* don't bother appending a "./" */
-                    ++cp;             /*  component to the path:  skip */
-                    break;            /*  to next char after the '/' */
-                } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
-                    *pp++ = '.';      /* add first dot, unchanged... */
-                    ++cp;             /* skip second dot, since it will */
-                } else {              /*  be "added" at end of if-block */
-                    *pp++ = '_';      /* FAT doesn't allow null filename */
-                    dotname = TRUE;   /*  bodies, so map .exrc -> _.exrc */
-                }                     /*  (extra '_' now, "dot" below) */
-            } else if (dotname) {     /* found a second dot, but still */
-                dotname = FALSE;      /*  have extra leading underscore: */
-                *pp = '\0';           /*  remove it by shifting chars */
-                pp = pathcomp + 1;    /*  left one space (e.g., .p1.p2: */
-                while (pp[1]) {       /*  __p1 -> _p1_p2 -> _p1.p2 when */
-                    *pp = pp[1];      /*  finished) [opt.:  since first */
-                    ++pp;             /*  two chars are same, can start */
-                }                     /*  shifting at second position] */
-            }
-            last_dot = pp;    /* point at last dot so far... */
-            *pp++ = '_';      /* convert dot to underscore for now */
-            break;
-#endif
-
-        case ';':             /* start of VMS version? */
-#ifdef USE_VFAT
-            lastsemi = pp;
-            *pp++ = ';';      /* keep for now; remove VMS ";##" */
-#else
-            lastsemi = pp;    /* omit for now; remove VMS vers. later */
-#endif
-            break;
-
-#ifndef USE_VFAT
-        case ' ':             /* change spaces to underscore only */
-            if (G.sflag)      /*  if specifically requested */
+            case ':':           /* special shell characters of command.com */
+            case '\\':          /*  (device and directory limiters, wildcard */
+            case '"':           /*  characters, stdin/stdout redirection and */
+            case '<':           /*  pipe indicators and the quote sign) are */
+            case '>':           /*  never allowed in filenames on (V)FAT */
+            case '|':
+            case '*':
+            case '?':
                 *pp++ = '_';
-            else
-                *pp++ = (char)workch;
-            break;
-#endif
+                break;
 
-        default:
-            /* allow ASCII 255 and European characters in filenames: */
-            if (isprint(workch) || workch >= 127)
-                *pp++ = (char)workch;
+#ifdef MAYBE_PLAIN_FAT
+            case '.':
+# ifdef USE_LFN
+                if (use_lfn) {
+                    *pp++ = (char)workch;
+                    break;
+                }
+# endif
+                if (pp == pathcomp) {     /* nothing appended yet... */
+                    if (*cp == '/') {     /* don't bother appending a "./" */
+                        ++cp;             /*  component to the path:  skip */
+                        break;            /*  to next char after the '/' */
+                    } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
+                        *pp++ = '.';      /* add first dot, unchanged... */
+                        ++cp;             /* skip second dot, since it will */
+                    } else {              /*  be "added" at end of if-block */
+                        *pp++ = '_';      /* FAT doesn't allow null filename */
+                        dotname = TRUE;   /*  bodies, so map .exrc -> _.exrc */
+                    }                     /*  (extra '_' now, "dot" below) */
+                } else if (dotname) {     /* found a second dot, but still */
+                    dotname = FALSE;      /*  have extra leading underscore: */
+                    *pp = '\0';           /*  remove it by shifting chars */
+                    pp = pathcomp + 1;    /*  left one space (e.g., .p1.p2: */
+                    while (pp[1]) {       /*  __p1 -> _p1_p2 -> _p1.p2 when */
+                        *pp = pp[1];      /*  finished) [opt.:  since first */
+                        ++pp;             /*  two chars are same, can start */
+                    }                     /*  shifting at second position] */
+                }
+                last_dot = pp;    /* point at last dot so far... */
+                *pp++ = '_';      /* convert dot to underscore for now */
+                break;
+#endif /* MAYBE_PLAIN_FAT */
+
+            case ';':             /* start of VMS version? */
+                lastsemi = pp;
+#ifdef MAYBE_PLAIN_FAT
+# ifdef USE_LFN
+                if (use_lfn)
+                    *pp++ = ';';  /* keep for now; remove VMS ";##" later */
+# endif
+#else
+                *pp++ = ';';      /* keep for now; remove VMS ";##" later */
+#endif
+                break;
+
+#ifdef MAYBE_PLAIN_FAT
+            case ' ':                      /* change spaces to underscores */
+# ifdef USE_LFN
+                if (!use_lfn && G.sflag)   /*  only if requested and NO lfn! */
+# else
+                if (G.sflag)               /*  only if requested */
+# endif
+                    *pp++ = '_';
+                else
+                    *pp++ = (char)workch;
+                break;
+#endif /* MAYBE_PLAIN_FAT */
+
+            default:
+                /* allow ASCII 255 and European characters in filenames: */
+                if (isprint(workch) || workch >= 127)
+                    *pp++ = (char)workch;
+
         } /* end switch */
     } /* end while loop */
 
@@ -490,10 +532,17 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
     if (!G.V_flag && lastsemi) {
-#ifdef USE_VFAT
+#ifndef MAYBE_PLAIN_FAT
         pp = lastsemi + 1;
 #else
+# ifdef USE_LFN
+        if (use_lfn)
+            pp = lastsemi + 1;
+        else
+            pp = lastsemi;        /* semi-colon was omitted:  expect all #'s */
+# else
         pp = lastsemi;            /* semi-colon was omitted:  expect all #'s */
+# endif
 #endif
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -501,8 +550,18 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
             *lastsemi = '\0';
     }
 
-#ifndef USE_VFAT
+    if (G.pInfo->vollabel) {
+        if (strlen(pathcomp) > 11)
+            pathcomp[11] = '\0';
+    }
+
+#ifdef MAYBE_PLAIN_FAT
+# ifdef USE_LFN
+    if (!use_lfn)
+        map2fat(pathcomp, last_dot);  /* 8.3 truncation (in place) */
+# else
     map2fat(pathcomp, last_dot);  /* 8.3 truncation (in place) */
+# endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -513,9 +572,11 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, LoadFarString(Creating),
-              G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, LoadFarString(Creating),
+                  FnFilter1(G.filename)));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -523,17 +584,18 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (*pathcomp == '\0') {
         Info(slide, 1, ((char *)slide, LoadFarString(ConversionFailed),
-          G.filename));
+          FnFilter1(G.filename)));
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     if (G.pInfo->vollabel) {    /* set the volume label now */
         if (QCOND2)
             Info(slide, 0, ((char *)slide, LoadFarString(Labelling),
-              (nLabelDrive + 'a' - 1), G.filename));
+              (nLabelDrive + 'a' - 1),
+              FnFilter1(G.filename)));
         if (volumelabel(G.filename)) {
             Info(slide, 1, ((char *)slide, LoadFarString(ErrSetVolLabel)));
             return 3;
@@ -549,7 +611,8 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
 
 
-#ifndef USE_VFAT
+#ifdef MAYBE_PLAIN_FAT
+
 /**********************/
 /* Function map2fat() */
 /**********************/
@@ -604,7 +667,8 @@ static void map2fat(pathcomp, last_dot)
         /* else filename is fine as is:  no change */
     }
 } /* end function map2fat() */
-#endif
+
+#endif /* MAYBE_PLAIN_FAT */
 
 
 
@@ -663,7 +727,7 @@ int checkdir(__G__ pathcomp, flag)
 #ifdef MSC /* MSC 6.00 bug:  stat(non-existent-dir) == 0 [exists!] */
         if (_dos_getfileattr(buildpath, &attrs) || stat(buildpath, &G.statbuf))
 #else
-        if (stat(buildpath, &G.statbuf))    /* path doesn't exist */
+        if (SSTAT(buildpath, &G.statbuf))    /* path doesn't exist */
 #endif
         {
             if (!G.create_dirs) { /* told not to create (freshening) */
@@ -672,32 +736,32 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (too_long) {
                 Info(slide, 1, ((char *)slide, LoadFarString(PathTooLong),
-                  buildpath));
+                  FnFilter1(buildpath)));
                 free(buildpath);
                 return 4;         /* no room for filenames:  fatal */
             }
             if (MKDIR(buildpath, 0777) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide, LoadFarString(CantCreateDir),
-                  buildpath, G.filename));
+                  FnFilter2(buildpath), FnFilter1(G.filename)));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
             }
             created_dir = TRUE;
         } else if (!S_ISDIR(G.statbuf.st_mode)) {
             Info(slide, 1, ((char *)slide, LoadFarString(DirIsntDirectory),
-              buildpath, G.filename));
+              FnFilter2(buildpath), FnFilter1(G.filename)));
             free(buildpath);
             return 3;          /* path existed but wasn't dir */
         }
         if (too_long) {
             Info(slide, 1, ((char *)slide, LoadFarString(PathTooLong),
-              buildpath));
+              FnFilter1(buildpath)));
             free(buildpath);
             return 4;         /* no room for filenames:  fatal */
         }
         *end++ = '/';
         *end = '\0';
-        Trace((stderr, "buildpath now = [%s]\n", buildpath));
+        Trace((stderr, "buildpath now = [%s]\n", FnFilter1(buildpath)));
         return 0;
 
     } /* end if (FUNCTION == APPEND_DIR) */
@@ -709,7 +773,8 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == GETPATH) {
         strcpy(pathcomp, buildpath);
-        Trace((stderr, "getting and freeing path [%s]\n", pathcomp));
+        Trace((stderr, "getting and freeing path [%s]\n",
+          FnFilter1(pathcomp)));
         free(buildpath);
         buildpath = end = (char *)NULL;
         return 0;
@@ -722,24 +787,24 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == APPEND_NAME) {
 #ifdef NOVELL_BUG_WORKAROUND
-        if (end == buildpath) {
+        if (end == buildpath && !G.pInfo->vollabel) {
             /* work-around for Novell's "overwriting executables" bug:
                prepend "./" to name when no path component is specified */
             *end++ = '.';
             *end++ = '/';
         }
 #endif /* NOVELL_BUG_WORKAROUND */
-        Trace((stderr, "appending filename [%s]\n", pathcomp));
+        Trace((stderr, "appending filename [%s]\n", FnFilter1(pathcomp)));
         while ((*end = *pathcomp++) != '\0') {
             ++end;
             if ((end-buildpath) >= FILNAMSIZ) {
                 *--end = '\0';
                 Info(slide, 1, ((char *)slide, LoadFarString(PathTooLongTrunc),
-                  G.filename, buildpath));
+                  FnFilter1(G.filename), FnFilter2(buildpath)));
                 return 1;   /* filename truncated */
             }
         }
-        Trace((stderr, "buildpath now = [%s]\n", buildpath));
+        Trace((stderr, "buildpath now = [%s]\n", FnFilter1(buildpath)));
         return 0;  /* could check for existence here, prompt for new name... */
     }
 
@@ -758,9 +823,9 @@ int checkdir(__G__ pathcomp, flag)
         if (G.pInfo->vollabel) {
 /* GRR:  for network drives, do strchr() and return IZ_VOL_LABEL if not [1] */
             if (renamed_fullpath && pathcomp[1] == ':')
-                *buildpath = ToLower(*pathcomp);
+                *buildpath = (char)ToLower(*pathcomp);
             else if (!renamed_fullpath && rootlen > 1 && rootpath[1] == ':')
-                *buildpath = ToLower(*rootpath);
+                *buildpath = (char)ToLower(*rootpath);
             else {
                 GETDRIVE(nLabelDrive);   /* assumed that a == 1, b == 2, etc. */
                 *buildpath = (char)(nLabelDrive - 1 + 'a');
@@ -785,7 +850,7 @@ int checkdir(__G__ pathcomp, flag)
             *buildpath = '\0';
             end = buildpath;
         }
-        Trace((stderr, "[%s]\n", buildpath));
+        Trace((stderr, "[%s]\n", FnFilter1(buildpath)));
         return 0;
     }
 
@@ -802,7 +867,8 @@ int checkdir(__G__ pathcomp, flag)
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
-        Trace((stderr, "initializing root path to [%s]\n", pathcomp));
+        Trace((stderr, "initializing root path to [%s]\n",
+          FnFilter1(pathcomp)));
         if (pathcomp == (char *)NULL) {
             rootlen = 0;
             return 0;
@@ -812,7 +878,7 @@ int checkdir(__G__ pathcomp, flag)
 
             if (isalpha(pathcomp[0]) && pathcomp[1] == ':')
                 has_drive = TRUE;   /* drive designator */
-            if (pathcomp[rootlen-1] == '/') {
+            if (pathcomp[rootlen-1] == '/' || pathcomp[rootlen-1] == '\\') {
                 pathcomp[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
@@ -839,7 +905,8 @@ int checkdir(__G__ pathcomp, flag)
                      * and create more than one level, but really necessary?) */
                     if (MKDIR(pathcomp, 0777) == -1) {
                         Info(slide, 1, ((char *)slide,
-                          LoadFarString(CantCreateExtractDir), pathcomp));
+                          LoadFarString(CantCreateExtractDir),
+                          FnFilter1(pathcomp)));
                         rootlen = 0;   /* path didn't exist, tried to create, */
                         return 3;  /* failed:  file exists, or need 2+ levels */
                     }
@@ -854,7 +921,7 @@ int checkdir(__G__ pathcomp, flag)
                 rootpath[rootlen++] = '.';
             rootpath[rootlen++] = '/';
             rootpath[rootlen] = '\0';
-            Trace((stderr, "rootpath now = [%s]\n", rootpath));
+            Trace((stderr, "rootpath now = [%s]\n", FnFilter1(rootpath)));
         }
         return 0;
     }
@@ -935,6 +1002,7 @@ static int volumelabel(newlabel)
     char *p;
 #endif
     int len = strlen(newlabel);
+    int fcbseg, dtaseg, fcboff, dtaoff, retv;
     dos_fcb  fcb, dta, far *pfcb=&fcb, far *pdta=&dta;
     struct SREGS sregs;
     union REGS regs;
@@ -948,8 +1016,48 @@ static int volumelabel(newlabel)
     or may not need to zero out FCBs before using; do so just in case.
   ---------------------------------------------------------------------------*/
 
+#ifdef WATCOMC_386
+    int truseg;
+
+    memset(&sregs, 0, sizeof(sregs));
+    memset(&regs, 0, sizeof(regs));
+    /* PMODE/W does not support extended versions of any dos FCB functions, */
+    /* so we have to use brute force, allocating real mode memory for them. */
+    regs.w.ax = 0x0100;
+    regs.w.bx = (2 * sizeof(dos_fcb) + 15) >> 4;   /* size in paragraphs */
+    int386(0x31, &regs, &regs);            /* DPMI allocate DOS memory */
+    if (regs.w.cflag)
+        return DF_MDY;                     /* no memory, return default */
+    truseg = regs.w.dx;                    /* protected mode selector */
+    dtaseg = regs.w.ax;                    /* real mode paragraph */
+    fcboff = 0;
+    dtaoff = sizeof(dos_fcb);
+#ifdef XXX__MK_FP_IS_BROKEN
+    /* XXX  This code may not be trustworthy in general, though it is   */
+    /* valid with DOS/4GW and PMODE/w, which is all we support for now. */
+    regs.w.ax = 6;
+    regs.w.bx = truseg;
+    int386(0x31, &regs, &regs);            /* convert seg to linear address */
+    pfcb = (dos_fcb far *) (((ulg) regs.w.cx << 16) | regs.w.dx);
+    /* pfcb = (dos_fcb far *) ((ulg) dtaseg << 4); */
+    pdta = pfcb + 1;
+#else
+    pfcb = MK_FP(truseg, fcboff);
+    pdta = MK_FP(truseg, dtaoff);
+#endif
+    _fmemset((char far *)pfcb, 0, 2 * sizeof(dos_fcb));
+    /* we pass the REAL MODE paragraph to the dos interrupts: */
+    fcbseg = dtaseg;
+
+#else /* !WATCOMC_386 */
+
     memset((char *)&dta, 0, sizeof(dos_fcb));
     memset((char *)&fcb, 0, sizeof(dos_fcb));
+    fcbseg = FP_SEG(pfcb);
+    fcboff = FP_OFF(pfcb);
+    dtaseg = FP_SEG(pdta);
+    dtaoff = FP_OFF(pdta);
+#endif /* ?WATCOMC_386 */
 
 #ifdef DEBUG
     for (p = (char *)&dta; (p - (char *)&dta) < sizeof(dos_fcb); ++p)
@@ -973,16 +1081,16 @@ static int volumelabel(newlabel)
 #endif /* 0 */
 
     /* set the disk transfer address for subsequent FCB calls */
-    sregs.ds = FP_SEG(pdta);
-    WREGS(regs,dx) = FP_OFF(pdta);
-    Trace((stderr, "segment:offset of pdta = %x:%x\n", sregs.ds, WREGS(regs,dx)));
+    sregs.ds = dtaseg;
+    WREGS(regs,dx) = dtaoff;
+    Trace((stderr, "segment:offset of pdta = %x:%x\n", dtaseg, dtaoff));
     Trace((stderr, "&dta = %lx, pdta = %lx\n", (ulg)&dta, (ulg)pdta));
     regs.h.ah = 0x1a;
-    intdosx(&regs, &regs, &sregs);
+    F_intdosx(&regs, &regs, &sregs);
 
     /* fill in the FCB */
-    sregs.ds = FP_SEG(pfcb);
-    WREGS(regs,dx) = FP_OFF(pfcb);
+    sregs.ds = fcbseg;
+    WREGS(regs,dx) = fcboff;
     pfcb->flag = 0xff;          /* extended FCB */
     pfcb->vattr = 0x08;         /* attribute:  disk volume label */
     pfcb->drive = (uch)nLabelDrive;
@@ -1005,56 +1113,73 @@ static int volumelabel(newlabel)
     /* check for existing label */
     Trace((stderr, "searching for existing label via FCBs\n"));
     regs.h.ah = 0x11;      /* FCB find first */
-#if 0  /* THIS STRNCPY FAILS (MSC bug?): */
+#ifdef WATCOMC_386
+    _fstrncpy((char far *)&pfcb->vn, "???????????", 11);
+#else
+# if 0  /* THIS STRNCPY FAILS (MSC bug?): */
     strncpy(pfcb->vn, "???????????", 11);   /* i.e., "*.*" */
     Trace((stderr, "pfcb->vn = %lx\n", (ulg)pfcb->vn));
     Trace((stderr, "flag = %x, drive = %d, vattr = %x, vn = %s = %s.\n",
       fcb.flag, fcb.drive, fcb.vattr, fcb.vn, pfcb->vn));
-#endif
+# endif
     strncpy((char *)fcb.vn, "???????????", 11);   /* i.e., "*.*" */
+#endif /* ?WATCOMC_386 */
     Trace((stderr, "fcb.vn = %lx\n", (ulg)fcb.vn));
     Trace((stderr, "regs.h.ah = %x, regs.x.dx = %04x, sregs.ds = %04x\n",
       regs.h.ah, WREGS(regs,dx), sregs.ds));
     Trace((stderr, "flag = %x, drive = %d, vattr = %x, vn = %s = %s.\n",
       fcb.flag, fcb.drive, fcb.vattr, fcb.vn, pfcb->vn));
-    intdosx(&regs, &regs, &sregs);
+    F_intdosx(&regs, &regs, &sregs);
 
 /*---------------------------------------------------------------------------
     If not previously labelled, write a new label.  Otherwise just rename,
-    since MS-DOS 2.x has a bug which damages the FAT when the old label is
+    since MS-DOS 2.x has a bug that damages the FAT when the old label is
     deleted.
   ---------------------------------------------------------------------------*/
 
     if (regs.h.al) {
         Trace((stderr, "no label found\n\n"));
         regs.h.ah = 0x16;                 /* FCB create file */
+#ifdef WATCOMC_386
+        _fstrncpy((char far *)pfcb->vn, newlabel, len);
+        if (len < 11)
+            _fstrncpy((char far *)(pfcb->vn+len), "           ", 11-len);
+#else
         strncpy((char *)fcb.vn, newlabel, len);
         if (len < 11)   /* fill with spaces */
             strncpy((char *)(fcb.vn+len), "           ", 11-len);
+#endif
         Trace((stderr, "fcb.vn = %lx  pfcb->vn = %lx\n", (ulg)fcb.vn,
           (ulg)pfcb->vn));
         Trace((stderr, "flag = %x, drive = %d, vattr = %x\n", fcb.flag,
           fcb.drive, fcb.vattr));
         Trace((stderr, "vn = %s = %s.\n", fcb.vn, pfcb->vn));
-        intdosx(&regs, &regs, &sregs);
+        F_intdosx(&regs, &regs, &sregs);
         regs.h.ah = 0x10;                 /* FCB close file */
         if (regs.h.al) {
             Trace((stderr, "unable to write volume name (AL = %x)\n",
               regs.h.al));
-            intdosx(&regs, &regs, &sregs);
-            return 1;
+            F_intdosx(&regs, &regs, &sregs);
+            retv = 1;
         } else {
-            intdosx(&regs, &regs, &sregs);
+            F_intdosx(&regs, &regs, &sregs);
             Trace((stderr, "new volume label [%s] written\n", newlabel));
-            return 0;
+            retv = 0;
         }
     } else {
         Trace((stderr, "found old label [%s]\n\n", dta.vn));  /* not term. */
         regs.h.ah = 0x17;                 /* FCB rename */
+#ifdef WATCOMC_386
+        _fstrncpy((char far *)pfcb->vn, (char far *)pdta->vn, 11);
+        _fstrncpy((char far *)pfcb->nn, newlabel, len);
+        if (len < 11)
+            _fstrncpy((char far *)(pfcb->nn+len), "           ", 11-len);
+#else
         strncpy((char *)fcb.vn, (char *)dta.vn, 11);
         strncpy((char *)fcb.nn, newlabel, len);
         if (len < 11)                     /* fill with spaces */
             strncpy((char *)(fcb.nn+len), "           ", 11-len);
+#endif
         Trace((stderr, "fcb.vn = %lx  pfcb->vn = %lx\n", (ulg)fcb.vn,
           (ulg)pfcb->vn));
         Trace((stderr, "fcb.nn = %lx  pfcb->nn = %lx\n", (ulg)fcb.nn,
@@ -1063,16 +1188,23 @@ static int volumelabel(newlabel)
           fcb.drive, fcb.vattr));
         Trace((stderr, "vn = %s = %s.\n", fcb.vn, pfcb->vn));
         Trace((stderr, "nn = %s = %s.\n", fcb.nn, pfcb->nn));
-        intdosx(&regs, &regs, &sregs);
+        F_intdosx(&regs, &regs, &sregs);
         if (regs.h.al) {
             Trace((stderr, "Unable to change volume name (AL = %x)\n",
               regs.h.al));
-            return 1;
+            retv = 1;
         } else {
             Trace((stderr, "volume label changed to [%s]\n", newlabel));
-            return 0;
+            retv = 0;
         }
     }
+#ifdef WATCOMC_386
+    regs.w.ax = 0x0101;                    /* free dos memory */
+    regs.w.dx = truseg;
+    int386(0x31, &regs, &regs);
+#endif
+    return retv;
+
 } /* end function volumelabel() */
 
 #endif /* !__GO32__ && !__EMX__ */
@@ -1096,11 +1228,11 @@ void close_outfile(__G)
   * the file, this routine is optional (but most compilers support it).
   */
 {
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 
-    /* The following DOS date/time structure is machine dependent as it
-     * assumes "little endian" byte order. For MSDOS specific code, which
+    /* The following DOS date/time structure is machine-dependent as it
+     * assumes "little endian" byte order.  For MSDOS specific code, which
      * is run on x86 CPUs (or emulators), this assumption is valid; but
      * care should be taken when using this code as template for other ports.
      */
@@ -1128,7 +1260,7 @@ void close_outfile(__G)
             } _d;
         } zt;
     } dos_dt;
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
 # ifdef __TURBOC__
     union {
         struct ftime ft;        /* system file time record */
@@ -1138,7 +1270,7 @@ void close_outfile(__G)
         } zt;
     } dos_dt;
 # endif
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
 
 /*---------------------------------------------------------------------------
@@ -1154,17 +1286,18 @@ void close_outfile(__G)
     just before setftime() call.  Weird, huh?
   ---------------------------------------------------------------------------*/
 
-#ifdef USE_EF_UX_TIME
-    if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                         &z_utime, NULL) > 0) {
+#ifdef USE_EF_UT_TIME
+    if (G.extra_field && (ef_scan_for_izux(G.extra_field,
+        G.lrec.extra_field_length, 0, &z_utime, NULL) & EB_UT_FL_MTIME))
+    {
         struct tm *t;
 
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          z_utime.modtime));
+          z_utime.mtime));
         /* round up to even seconds */
-        z_utime.modtime = (z_utime.modtime + 1) & (~1);
-        t = localtime(&(z_utime.modtime));
+        z_utime.mtime = (z_utime.mtime + 1) & (~1);
+        TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
+        t = localtime(&(z_utime.mtime));
         if (t->tm_year < 80) {
             dos_dt.zt._t._tf.zt_se = 0;
             dos_dt.zt._t._tf.zt_mi = 0;
@@ -1189,7 +1322,7 @@ void close_outfile(__G)
 # else
     _dos_setftime(fileno(G.outfile), dos_dt.zt._d.zdate, dos_dt.zt._t.ztime);
 # endif
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
 # ifdef __TURBOC__
     dos_dt.zt.ztime = G.lrec.last_mod_file_time;
     dos_dt.zt.zdate = G.lrec.last_mod_file_date;
@@ -1198,7 +1331,7 @@ void close_outfile(__G)
     _dos_setftime(fileno(G.outfile), G.lrec.last_mod_file_date,
                                      G.lrec.last_mod_file_time);
 # endif
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
 /*---------------------------------------------------------------------------
     And finally we can close the file...at least everybody agrees on how to
@@ -1236,31 +1369,65 @@ int dateformat()
 {
 
 /*---------------------------------------------------------------------------
-    For those operating systems which support it, this function returns a
-    value which tells how national convention says that numeric dates are
+    For those operating systems that support it, this function returns a
+    value that tells how national convention says that numeric dates are
     displayed.  Return values are DF_YMD, DF_DMY and DF_MDY (the meanings
     should be fairly obvious).
   ---------------------------------------------------------------------------*/
 
-#ifndef MSWIN
-    unsigned short CountryInfo[18];
+#ifndef WINDLL
+    ush CountryInfo[18];
 #if (!defined(__GO32__) && !defined(__EMX__))
-    unsigned short far *_CountryInfo = CountryInfo;
+    ush far *_CountryInfo = CountryInfo;
     struct SREGS sregs;
     union REGS regs;
+#ifdef WATCOMC_386
+    ush seg, para;
 
-#ifdef __WATCOMC__
-    segread(&sregs);
+    memset(&sregs, 0, sizeof(sregs));
+    memset(&regs, 0, sizeof(regs));
+    /* PMODE/W does not support an extended version of dos function 38,   */
+    /* so we have to use brute force, allocating real mode memory for it. */
+    regs.w.ax = 0x0100;
+    regs.w.bx = 3;                         /* 36 bytes rounds up to 48 */
+    int386(0x31, &regs, &regs);            /* DPMI allocate DOS memory */
+    if (regs.w.cflag)
+        return DF_MDY;                     /* no memory, return default */
+    seg = regs.w.dx;
+    para = regs.w.ax;
+
+#ifdef XXX__MK_FP_IS_BROKEN
+    /* XXX  This code may not be trustworthy in general, though it is
+     * valid with DOS/4GW and PMODE/w, which is all we support for now. */
+ /* _CountryInfo = (ush far *) (para << 4); */ /* works for some extenders */
+    regs.w.ax = 6;
+    regs.w.bx = seg;
+    int386(0x31, &regs, &regs);            /* convert seg to linear address */
+    _CountryInfo = (ush far *) (((ulg) regs.w.cx << 16) | regs.w.dx);
+#else
+    _CountryInfo = (ush far *) MK_FP(seg, 0);
 #endif
+
+    sregs.ds = para;                       /* real mode paragraph */
+    regs.w.dx = 0;                         /* no offset from segment */
+    regs.w.ax = 0x3800;
+    int86x_realmode(0x21, &regs, &regs, &sregs);
+    CountryInfo[0] = regs.w.cflag ? 0 : _CountryInfo[0];
+    regs.w.ax = 0x0101;
+    regs.w.dx = seg;
+    int386(0x31, &regs, &regs);              /* DPMI free DOS memory */
+
+#else /* !WATCOMC_386 */
+
     sregs.ds  = FP_SEG(_CountryInfo);
-    WREGS(regs,dx) = FP_OFF(_CountryInfo);
-    WREGS(regs,ax) = 0x3800;
-    int86x(0x21, &regs, &regs, &sregs);
+    regs.x.dx = FP_OFF(_CountryInfo);
+    regs.x.ax = 0x3800;
+    intdosx(&regs, &regs, &sregs);
+#endif /* ?WATCOMC_386 */
 
 #else /* __GO32__ || __EMX__ */
-
     _dos_getcountryinfo(CountryInfo);
-#endif
+#endif /* ?(__GO32__ || __EMX__) */
 
     switch(CountryInfo[0]) {
         case 0:
@@ -1270,7 +1437,7 @@ int dateformat()
         case 2:
             return DF_YMD;
     }
-#endif /* !MSWIN */
+#endif /* !WINDLL && !WATCOMC_386 */
 
     return DF_MDY;   /* default for systems without locale info */
 
@@ -1279,6 +1446,7 @@ int dateformat()
 
 
 
+#ifndef WINDLL
 
 /************************/
 /*  Function version()  */
@@ -1297,7 +1465,7 @@ void version(__G)
 
 #ifdef __GNUC__
 #  ifdef __DJGPP__
-      (sprintf(buf, "djgpp v%d / gcc ", __DJGPP__), buf),
+      (sprintf(buf, "djgpp v%d.%02d / gcc ", __DJGPP__, __DJGPP_MINOR__), buf),
 #  elif __GO32__                  /* __GO32__ is defined as "1" only (sigh) */
       "djgpp v1.x / gcc ",
 #  elif defined(__EMX__)          /* ...so is __EMX__ (double sigh) */
@@ -1374,28 +1542,18 @@ void version(__G)
 #else
 #  if defined(M_I86HM) || defined(__HUGE__)
       " (16-bit, huge)",
-#  else
-#  if defined(M_I86LM) || defined(__LARGE__)
+#  elif defined(M_I86LM) || defined(__LARGE__)
       " (16-bit, large)",
-#  else
-#  if defined(M_I86MM) || defined(__MEDIUM__)
+#  elif defined(M_I86MM) || defined(__MEDIUM__)
       " (16-bit, medium)",
-#  else
-#  if defined(M_I86CM) || defined(__COMPACT__)
+#  elif defined(M_I86CM) || defined(__COMPACT__)
       " (16-bit, compact)",
-#  else
-#  if defined(M_I86SM) || defined(__SMALL__)
+#  elif defined(M_I86SM) || defined(__SMALL__)
       " (16-bit, small)",
-#  else
-#  if defined(M_I86TM) || defined(__TINY__)
+#  elif defined(M_I86TM) || defined(__TINY__)
       " (16-bit, tiny)",
 #  else
       " (16-bit)",
-#  endif
-#  endif
-#  endif
-#  endif
-#  endif
 #  endif
 #endif
 
@@ -1435,6 +1593,7 @@ void version(__G)
 
 } /* end function version() */
 
+#endif /* !WINDLL */
 #endif /* !SFX */
 
 
@@ -1556,3 +1715,91 @@ void __crt_load_environment_file(void)
 
 #endif /* __DJGPP__ > 1 */
 #endif /* __GO32__ || __EMX__ */
+
+
+
+
+
+#ifdef WATCOMC_386
+
+static struct RMINFO {
+    ulg edi, esi, ebp;
+    ulg reserved;
+    ulg ebx, edx, ecx, eax;
+    ush flags;
+    ush es,ds,fs,gs;
+    ush ip_ignored,cs_ignored;
+    ush sp,ss;
+};
+
+/* This function is used to call dos interrupts that may not be supported
+ * by some particular 32-bit DOS extender.  It uses DPMI function 300h to
+ * simulate a real mode call of the interrupt.  The caller is responsible
+ * for providing real mode addresses of any buffer areas used.  The docs
+ * for PMODE/W imply that this should not be necessary for calling the DOS
+ * interrupts that it doesn't extend, but it crashes when this isn't used. */
+
+static int int86x_realmode(int inter_no, union REGS *in,
+                            union REGS *out, struct SREGS *seg)
+{
+    union REGS local;
+    struct SREGS localseg;
+    struct RMINFO rmi;
+    int r;
+
+    rmi.eax = in->x.eax;
+    rmi.ebx = in->x.ebx;
+    rmi.ecx = in->x.ecx;
+    rmi.edx = in->x.edx;
+    rmi.edi = in->x.edi;
+    rmi.esi = in->x.esi;
+    rmi.ebp = rmi.reserved = 0L;
+    rmi.es = seg->es;
+    rmi.ds = seg->ds;
+    rmi.fs = seg->fs;
+    rmi.gs = seg->gs;
+    rmi.sp = rmi.ss = rmi.ip_ignored = rmi.cs_ignored = rmi.flags = 0;
+    memset(&local, 0, sizeof(local));
+    memset(&localseg, 0, sizeof(localseg));
+    local.w.ax = 0x0300;
+    local.h.bl = inter_no;
+    local.h.bh = 0;
+    local.w.cx = 0;
+    localseg.es = FP_SEG(&rmi);
+    local.x.edi = FP_OFF(&rmi);
+    r = int386x(0x31, &local, &local, &localseg);
+    out->x.eax = rmi.eax;
+    out->x.ebx = rmi.ebx;
+    out->x.ecx = rmi.ecx;
+    out->x.edx = rmi.edx;
+    out->x.edi = rmi.edi;
+    out->x.esi = rmi.esi;
+    out->x.cflag = rmi.flags & INTR_CF;
+    return r;
+}
+
+#endif /* WATCOMC_386 */
+
+
+
+
+#ifdef __WATCOMC__
+
+/* This papers over a bug in Watcom 10.6's standard library...sigh.
+ * Apparently it applies to both the DOS and Win32 stat()s. */
+
+int stat_bandaid(const char *path, struct stat *buf)
+{
+    char newname[4];
+
+    if (!stat(path, buf))
+        return 0;
+    else if (!strcmp(path, ".") || (path[0] && !strcmp(path + 1, ":."))) {
+        strcpy(newname, path);
+        newname[strlen(path) - 1] = '\\';   /* stat(".") fails for root! */
+        return stat(newname, buf);
+    } else
+        return -1;
+}
+
+#endif /* __WATCOMC__ */

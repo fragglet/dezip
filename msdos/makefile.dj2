@@ -1,7 +1,6 @@
 # Makefile for Info-ZIP's UnZip, UnZipSFX and fUnZip using djgpp v2.0, by
-# Frank Donahoe.  Tested with UnZip 5.20p beta by Christian Spieler.
-# Last updated:  25 Apr 96
-#
+# Frank Donahoe.                                 Last updated:  10 Nov 96
+
 # This Makefile is specifically tailored for GNU make and GNU C and
 # may not work with a generic Unix-compatible make utility.
 # Features used:
@@ -16,9 +15,16 @@
 #
 # cwsdpmi is a "free" dpmi server written by Charles W. Sandmann
 # (sandman@clio.rice.edu).  It may be found, among other sites, on SimTel
-# and its mirrors in the .../vendors/djgpp/v2misc directory.
+# Net at the URL:
+#
+#   ftp://ftp.simtel.net/pub/simtelnet/gnu/djgpp/v2misc/csdpmi?[b,s].zip
+#
+# and on its mirrors worldwide.  The latest version as of this writing is 3.
+# Archives with the b postscript contain the binaries.  An alternate server
+# is found, l.c., in the archive pmode??[b,s].zip.  The latest (960908) is
+# v1.1.
 
-# Separators colon and <sp> are used in U**X, semi-colon and <sp> in DOS.
+# Separators colon and <sp> are used in Unix, semi-colon and <sp> in DOS.
 VPATH=. msdos
 
 ifdef NOASM
@@ -38,15 +44,24 @@ endif
 # BUTT may also be defined to specify the target system.  At present, -m386
 # and -m486 are the only supported options.  Either will produce code which
 # will run on the other microprocessor, though possibly not so fast.
+# In any case, omitting BUTT will result in a slightly smaller executable.
 
-LOC=-DDOS $(ASMFLG) $(LOCAL_UNZIP)
+LOC=-DDOS -DUSE_VFAT $(ASMFLG) $(LOCAL_UNZIP)
 CC=gcc
 LD=$(CC)
 CPPFLAGS=-I. $(LOC)
 ASFLAGS=$(CPPFLAGS)
 CFLAGS=-Wall -O2 $(BUTT) $(CPPFLAGS)
+
+# See INSTALL for discussion of SFX_EXDIR.
+# EXDIR=-DSFX_EXDIR
+
 FUN_FLAGS=$(CFLAGS) -DFUNZIP
-SFX_FLAGS=$(CFLAGS) -DSFX
+
+# Include OFP for a modest decrease in size of unzipsfx.exe.
+OFP=-fomit-frame-pointer
+
+SFX_FLAGS=-Wall -O2 $(CPPFLAGS) -DSFX $(EXDIR) $(OFP)
 LDFLAGS=-s
 
 # general-purpose stuff
@@ -57,6 +72,14 @@ INSTALL=install
 # The default value of RM is "rm -f"  .  If rm.exe is not found, uncomment
 # the following:
 # RM=del
+# If "djp.exe," which is Laszlo Molnar's executable file packer, is in the
+# path, uncomment the three lines found far below containing $(DJP).  The
+# executable files will be converted to self-extracting compressed files.
+# Look for "djp.exe" in the directory v2misc in the archive mlp???b.zip.
+# Do not add the option -s to DJP without making the required changes to
+# the targets zipinfo$E and unzipsfx$E.
+
+DJP = djp -bq
 E = .exe
 O = .o
 M=msdos
@@ -76,8 +99,8 @@ OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
 OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 
-OBJX = unzipsfx$O $(CRC32)$O crctab$O crypt$O extract_$O fileio$O globals$O \
-	inflate$O match$O process_$O ttyio$O $M_$O
+OBJX = unzipsfx$O $(CRC32)$O crctab_$O crypt_$O extract_$O fileio_$O \
+	globals_$O inflate_$O match_$O process_$O ttyio_$O $M_$O
 
 OBJF = funzip$O $(CRC32)$O crypt-$O globals-$O inflate-$O ttyio-$O
 
@@ -108,6 +131,7 @@ unzips:	unzip$E zipinfo$E funzip$E unzipsfx$E
 
 unzip$E: $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
+#	$(DJP) $@
 
 zipinfo$E: unzip$E
 	stubify -g $@
@@ -115,9 +139,11 @@ zipinfo$E: unzip$E
 
 funzip$E: $(OBJF)
 	$(LD) $(LDFLAGS) $(OBJF) -o $@
+#	$(DJP) $@
 
 unzipsfx$E: $(OBJX)
 	$(LD) $(LDFLAGS) $(OBJX) -o $@
+#	$(DJP) -s $@
 
 # explicit compilation instructions:
 
@@ -144,9 +170,10 @@ uninstall:
 clean:
 ifeq ($(firstword $(RM)), del)
 	$(RM) *$O
+	$(RM) *.~
 	$(RM) *.exe
 else
-	$(RM) $(OBJECTS_ALL) *.exe
+	$(RM) $(OBJECTS_ALL) *.~ *.exe
 endif
 
 # Source dependencies:

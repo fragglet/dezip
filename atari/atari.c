@@ -184,12 +184,11 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* truncated), 2 if warning (skip file because  */
-    int renamed;             /* dir doesn't exist), 3 if error (skip file),  */
-                             /* 10 if no memory (skip file)                  */
-{
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
     char pathcomp[FILNAMSIZ];    /* path-component buffer */
     char *pp, *cp=(char *)NULL;  /* character pointers */
     char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
@@ -286,8 +285,11 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -299,7 +301,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
@@ -323,7 +325,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         (d:/tmp/unzip/jj/temp/)            (disk:[tmp.unzip.jj.temp.)
     finally add filename itself and check for existence? (could use with rename)
         (d:/tmp/unzip/jj/temp/msg.outdir)  (disk:[tmp.unzip.jj.temp]msg.outdir)
-    checkdir(name, COPYFREE)     -->  copy path to name and free space
+    checkdir(name, GETPATH)     -->  copy path to name and free space
 
 #endif /* 0 */
 
@@ -566,6 +568,10 @@ int checkdir(__G__ pathcomp, flag)
 void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
+#ifdef USE_EF_UT_TIME
+    unsigned eb_izux_flags;
+    iztimes zt;
+#endif
     ztimbuf tp;
 
 /*---------------------------------------------------------------------------
@@ -616,28 +622,34 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     light savings time differences.
   ---------------------------------------------------------------------------*/
 
-#ifdef USE_EF_UX_TIME
-    if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                         &tp, NULL) > 0) {
-        TTrace((stderr, "\nclose_outfile:  Unix e.f. access time = %ld\n",
-          tp.actime));
-        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+#ifdef USE_EF_UT_TIME
+    eb_izux_flg = G.extra_field ?
+                 ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                                  &zt, NULL) : 0;
+    if (eb_izux_flg & EB_UT_FL_MTIME) {
+        tp.modtime = zt.mtime;
+        TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
           tp.modtime));
     } else {
-        tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                                  G.lrec.last_mod_file_time);
-
+        tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
+                                      G.lrec.last_mod_file_time);
+    }
+    if (eb_izux_flg & EB_UT_FL_ATIME) {
+        tp.actime = zt.atime;
+        TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
+          tp.actime));
+    } else {
+        tp.actime = tp.modtime;
         TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
           tp.modtime));
     }
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
     tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
                                               G.lrec.last_mod_file_time);
 
     TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
       tp.modtime));
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
     /* set the file's access and modification times */
     if (utime(G.filename, &tp))

@@ -1,8 +1,9 @@
-# Makefile for UnZip 5.20 using Manx Aztec C 5.2, last revised 21 Feb 96
+# Makefile for UnZip 5.30 using Manx Aztec C 5.2, last revised 18 Apr 97.
+# Define EXTRA=xxx on the Make command line for e.g. -dUSE_UNSHRINK.
 
 CC = cc
 VERNUMS = -d __VERSION__=5 -d __REVISION__=2
-CFLAGS = -ps -sabfmnpu -wcpr0u -d AMIGA
+CFLAGS = -ps -sabfmnpu -wcpr0u -d AMIGA $(EXTRA)
 # -ps means short ints, -sabfmnpu is optimizations, -wcpr0u is type checking
 # option flags MORE and ASM_* are now set in the Aztec section of amiga/amiga.h;
 # it's cleaner, and that way any changes forces a recompile.
@@ -34,11 +35,11 @@ FOBJS = funzip.o crypt.fo ttyio.fo inflate.fo globals.fo \
 .c.fo:
 	$(CC) -o $@ -d FUNZIP $(CFLAGS) $*.c
 
-all : UnZip UnZipSFX FUnZip MakeSFX
+all : UnZip UnZipSFX fUnZip MakeSFX
 
 u : UnZip
 
-f : FUnZip
+f : fUnZip
 
 x : UnZipSFX
 
@@ -50,7 +51,7 @@ UnZip :     $(OBJS)
 UnZipSFX :  $(XOBJS) MakeSFX
 	$(LD) $(LDFLAGS) -o $@ $(XOBJS) $(LDLIBS)
 
-FUnZip :    $(FOBJS)
+fUnZip :    $(FOBJS)
 	$(LD) $(LDFLAGS) -o $@ $(FOBJS) $(LDLIBS)
 
 MakeSFX :   amiga/makesfx.c
@@ -59,10 +60,13 @@ MakeSFX :   amiga/makesfx.c
 	-@delete t:makesfx.o
 
 clean :
-	delete \#?.(o|xo|fo) amiga/\#?.(o|fo|xo) quiet
+	-delete $(OBJS)
+	-delete $(XOBJS)
+	-delete $(FOBJS)
+	-delete amiga/G_offs.a amiga/G_offs.fa amiga/mkGoff amiga/FmkGoff
 
 cleaner : clean
-	delete UnZip FUnZip UnZipSFX MakeSFX
+	-delete UnZip fUnZip UnZipSFX MakeSFX
 
 
 $(OBJS) $(XOBJS) $(FOBJS) : unzip.h unzpriv.h globals.h \

@@ -2,7 +2,7 @@
 ;
 ; Return an updated 32 bit CRC value, given the old value and a block of data.
 ; The CRC table used to compute the value is gotten by calling get_crc_table().
-; This replaces the older updcrc() function used in Zip and FUnZip.  The
+; This replaces the older updcrc() function used in Zip and fUnZip.  The
 ; prototype of the function is:
 ;
 ;    ulg crc32(ulg crcval, uch *text, extent textlen);

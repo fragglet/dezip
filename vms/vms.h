@@ -67,7 +67,7 @@ struct EB_header    /* Common header of extra block */
 #  define EB_HEADSIZE 4
 #endif
 
-/*------ Old style INFO-ZIP extra field definitions -----*/
+/*------ Old style Info-ZIP extra field definitions -----*/
 
 #if (!defined(VAXC) && !defined(_RMS_H) && !defined(__RMS_LOADED))
 
@@ -188,8 +188,8 @@ struct PK_info
     ush tag_rp; ush len_rp;     byte rp[ATR$S_RPRO];
 };
 #else /* !VMS_ORIGINAL_PK_LAYOUT */
-/*  The Info-Zip support for the PK VMS extra field uses a reordered
- *  field layout to archive ``natural alignment'' of the PK_info structure
+/*  The Info-ZIP support for the PK VMS extra field uses a reordered
+ *  field layout to achieve ``natural alignment'' of the PK_info structure
  *  members whenever possible.  This rearrangement does not violate the
  *  PK's VMS extra field specification and should not break any ``well
  *  behaving'' (PK)Unzip utility. (`Well behaving' means that (PK)Unzip

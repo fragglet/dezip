@@ -1,7 +1,7 @@
 .\" Info-ZIP grants permission to any individual or institution to use, copy,
 .\" or redistribute this software, so long as:  (1) all of the original files
 .\" are included; (2) it is not sold for profit; and (3) this notice is re-
-.\" tained.
+.\" tained.  See the UnZip COPYING file for details.
 .\"
 .\" unzipsfx.1 by Greg Roelofs
 .\"
@@ -17,7 +17,7 @@
 .fi
 ..
 .\" =========================================================================
-.TH UNZIPSFX 1L "30 Apr 96 (v5.2)"
+.TH UNZIPSFX 1L "22 April 1997 (v5.3)" "Info-ZIP"
 .SH NAME
 unzipsfx \- self-extracting stub for prepending to ZIP archives
 .PD
@@ -27,15 +27,15 @@ unzipsfx \- self-extracting stub for prepending to ZIP archives
 .PD
 .\" =========================================================================
 .SH DESCRIPTION
-\fIunzipsfx\fP is a modified version of \fIunzip\fP(1L) designed to be prepended
-to existing ZIP archives in order to form self-extracting archives.  Instead
-of taking its first non-flag argument to be the zipfile(s) to be extracted, 
-\fIunzipsfx\fP seeks itself under the name by which it was invoked 
+\fIunzipsfx\fP is a modified version of \fIunzip\fP(1L) designed to be
+prepended to existing ZIP archives in order to form self-extracting archives.
+Instead of taking its first non-flag argument to be the zipfile(s) to be
+extracted, \fIunzipsfx\fP seeks itself under the name by which it was invoked 
 and tests or extracts the contents of the appended archive.  Because the
 executable stub adds bulk to the archive (the whole purpose of which is to
-be as small as possible), a number of the regular version's less-vital 
-capabilities have been removed.  Among these are the usage (or help) screen,
-the listing and diagnostic functions (\fB\-l\fP and \fB\-v\fP), the ability 
+be as small as possible), a number of the less-vital capabilities in regular
+\fIunzip\fP have been removed.  Among these are the usage (or help) screen,
+the listing and diagnostic functions (\fB\-l\fP and \fB\-v\fP), the ability
 to decompress older compression formats (the ``reduce,'' ``shrink'' and 
 ``implode'' methods), and the ability to extract to a directory other than 
 the current one.  Decryption is supported as a compile-time option but 
@@ -265,10 +265,15 @@ All current bugs in \fIunzip\fP(1L) exist in \fIunzipsfx\fP as well.
 \fIfunzip\fP(1L), \fIunzip\fP(1L), \fIzip\fP(1L), \fIzipcloak\fP(1L),
 \fIzipgrep\fP(1L), \fIzipinfo\fP(1L), \fIzipnote\fP(1L), \fIzipsplit\fP(1L)
 .PD
+.PD
+.\" =========================================================================
+.SH URL
+The Info-ZIP home page is currently at \fChttp://www.cdrom.com/pub/infozip/\fR .
+.PD
 .\" =========================================================================
 .SH AUTHORS
 Greg Roelofs was responsible for the basic modifications to UnZip necessary
-to create UnZipSFX.  See \fIunzip\fP(1L) for the current list of zip-bugs
+to create UnZipSFX.  See \fIunzip\fP(1L) for the current list of Zip-Bugs
 authors, or the file CONTRIBS in the UnZip source distribution for the
 full list of Info-ZIP contributors.
 .PD

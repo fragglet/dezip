@@ -63,7 +63,7 @@ static void registerGlobalPointer(__G)
         char *tooMany = LoadFarString(TooManyThreads);
         Info(slide, 0x421, ((char *)slide, tooMany, THREADID_ENTRIES));
         free(pG);
-        EXIT(1);
+        EXIT(PK_MEM);   /* essentially memory error before we've started */
     }
 
     threadIdTable [scan] = tid;
@@ -97,7 +97,7 @@ void deregisterGlobalPointer(__G)
         else
             noEntry = LoadFarString(GlobalPointerMismatch);
         Info(slide, 0x421, ((char *)slide, noEntry));
-        EXIT(1);
+        EXIT(PK_WARN);   /* programming error, but after we're all done */
     }
 
     threadIdTable [scan] = 0;
@@ -126,7 +126,7 @@ struct Globals *getGlobalPointer()
         char *noEntry;
         noEntry = LoadFarString(EntryNotFound);
         fprintf(stderr, noEntry);  /* can't use Info w/o a global pointer */
-        EXIT(1);
+        EXIT(PK_ERR);   /* programming error while still working */
     }
 
     return threadPtrTable[scan];
@@ -141,7 +141,10 @@ struct Globals *globalsCtor()
 {
 #ifdef REENTRANT
     struct Globals *pG = (struct Globals *)malloc(sizeof(struct Globals));
-#endif
+
+    if (!pG)
+        return (struct Globals *)NULL;
+#endif /* REENTRANT */
 
     /* for REENTRANT version, G is defined as (*pG) */
 
@@ -159,16 +162,15 @@ struct Globals *globalsCtor()
     G.pInfo = G.info;
     G.sol = TRUE;          /* at start of line */
 
-    G.local_hdr_sig[1] = G.central_hdr_sig[1] = G.end_central_sig[1] = '\0';
-
 #ifndef FUNZIP
     G.message = UzpMessagePrnt;
     G.input = UzpInput;           /* not used by anyone at the moment... */
-#if defined(MSWIN) || defined(MACOS)
+#if defined(WINDLL) || defined(MACOS)
     G.mpause = NULL;              /* has scrollbars:  no need for pausing */
 #else
     G.mpause = UzpMorePause;
 #endif
+    G.decr_passwd = UzpPassword;
 #endif /* !FUNZIP */
 
 #if (!defined(DOS_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))

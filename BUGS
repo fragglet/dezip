@@ -18,14 +18,20 @@ Bogus bugs (not our fault!):
  date of compilation--only for version 5.11 and later, though!  (Also,
  under Unix C shell and some Bourne shells, "which unzip" will print 
  the path of the unzip you're actually using.  Under OS/2 and MS-DOS,
- whch21gr.zip [on SimTel mirror sites] will do the same thing; in addi-
- tion, "which -a unzip" will show *all* copies of unzip in your path.)
+ whch21gr.zip [on Simtel mirror sites] will do the same thing; in addi-
+ tion, "which -a unzip" will show *all* copies of "unzip" in your path.)
 
 
 Bugs (real and/or imagined):
 ---------------------------
 
- - MSC 7.0 timezone bug:  USE_EF_UX_TIME results in all 1-1-1980 timestamps
+ - MSC 7.0 timezone bug:  USE_EF_UT_TIME results in all 1-1-1980 timestamps
+    [should be fixed in 5.30]
+
+ - UnZip has problems with archives bigger than 2GB; it may print "note: didn't
+    find end-of-central-dir signature at end of central dir" (harmless) or
+    may not be able to seek to member files [James Lemley 970107, Iris Spaniol
+    970206, ...]
 
  - fix overwrite behavior:  hidden/system problems?; etc.
  - 32-bit DOS UnZip still unable to set volume labels?
@@ -38,10 +44,9 @@ Bugs (real and/or imagined):
     [Kevin Fritz 931102]
  - still NT/W95 bug with "unzip -v d:*.zip" not matching properly? [Steve S
     940527]
- - Win32:  weird crash in WizUnZip when compiled with Borland 5.0 compiler
-    (not seen with command-line version or with MSC compiler) [Mike White]
+ - VMS: UnZip fails to extract some indexed files that were stored with
+    IM-style VMS extra field (zip "-V" for Zip 2.0 through 2.1)
 
- - ACLs are mentioned in DOS usage; presumably DOS will never support them
  - when ^Z received in no-echo mode, echo is not restored (works OK if
     resume, however)
  - signal() handler disabled after first use with one of BSD/SysV?
@@ -53,18 +58,15 @@ Bugs (real and/or imagined):
     all components (waste of disk space):  how to check??
  - VMS:  for extracting to other directories, only the VMS-style "-d [.foo]"
     format is accepted; "-d foo" should also be allowed.  Long filenames are
-    not automatically truncated to 39.39.  Even with -o specified, the user
-    is queried before overwriting; without -o, there are two levels of query.
+    not automatically truncated to 39.39.
  - Novell Netware:  Netware drives may clear the archive bit on extracted
     files under OS/2 and/or MS-DOS.  UnZip always *tries* to set the archive
     bit, however.  [pynq@uchicago, 940527]
  - DEC Ultrix:  on long zipfiles, unzip will sometimes fail (bad CRC, not always
     reproducible); this is apparently due either to a hardware bug (cache mem)
     or OS bug (page faults?) [Igor, Jean-loup, bottom of BUGS.long]
- - Pyramid:  USE_FWRITE causes CRC errors (???) [Kevin]
  - funzip/more/decryption/no-echo bug:  race condition(?) causes terminal to
     be "reset" to no-echo state
- - directory dates/times (special Unix perms?) not restored
  - Macintosh (100200), Atari (020000) external file attributes not interpreted
     correctly (both unzip and zipinfo)
  - pkbug error:  zipfile with incorrect csize and/or ucsize--check for end of

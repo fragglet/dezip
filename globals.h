@@ -41,11 +41,11 @@
 
   If you make the inclusion of any variables conditional, be sure to only
   check macros that are GUARANTEED to be included in every module.  For
-  instance newzip is only needed if CRYPT is defined, but this is defined
-  after unzip.h has been read.  If you are not careful, some modules will
-  expect your variable to be part of this struct while others won't.  This
-  will cause BIG problems. (Inexplicable crashes at strange times, car fires,
-  etc.)  When in doubt, always include it!
+  instance, newzip, P_flag and pwdarg are needed only if CRYPT is TRUE,
+  but this is defined after unzip.h has been read.  If you are not careful,
+  some modules will expect your variable to be part of this struct while
+  others won't.  This will cause BIG problems. (Inexplicable crashes at
+  strange times, car fires, etc.)  When in doubt, always include it!
 
   Note also that UnZipSFX needs a few variables that UnZip doesn't.  However,
   it also includes some object files from UnZip.  If we were to conditionally
@@ -139,9 +139,12 @@
 struct Globals {
     int zipinfo_mode;   /* behave like ZipInfo or like normal UnZip? */
     int aflag;          /* -a: do ASCII-EBCDIC and/or end-of-line translation */
-#if defined(VMS)
+#ifdef VMS
     int bflag;          /* -b: force fixed record format for binary files */
-#endif /* VMS */
+#endif
+#ifdef UNIXBACKUP
+    int B_flag;         /* -B: back up existing files by renaming to *~ first */
+#endif
     int cflag;          /* -c: output to stdout */
     int C_flag;         /* -C: match filenames case-insensitively */
     int dflag;          /* -d: all args are files/dirs to be extracted */
@@ -156,9 +159,10 @@ struct Globals {
 #ifdef MORE
     int M_flag;         /* -M: built-in "more" function */
     int height;         /* check for SIGWINCH, etc., eventually... */
-#endif               /* (take line-wrapping into account?) */
+#endif                  /* (take line-wrapping into account?) */
     int overwrite_none; /* -n: never overwrite files (no prompting) */
     int overwrite_all;  /* -o: OK to overwrite files without prompting */
+    int P_flag;         /* -P: give password on command line (ARGH!) */
     int qflag;          /* -q: produce a lot less output */
 #ifdef DOS_OS2_W32
     int sflag;          /* -s: convert spaces in filenames to underscores */
@@ -169,7 +173,7 @@ struct Globals {
     int uflag;          /* -u: "update" (extract only newer/brand-new files) */
     int vflag;          /* -v: (verbosely) list directory */
     int V_flag;         /* -V: don't strip VMS version numbers */
-#if defined(VMS) || defined(UNIX) || defined(OS2)
+#if defined(VMS) || defined(UNIX) || defined(OS2_W32) || defined(__BEOS__)
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
 #endif
     int zflag;          /* -z: display the zipfile comment (only, for unzip) */
@@ -177,23 +181,24 @@ struct Globals {
     int HFSFlag;
 #endif
 
+    int noargs;           /* did true command line have *any* arguments? */
     int filespecs;        /* number of real file specifications to be matched */
     int xfilespecs;       /* number of excluded filespecs to be matched */
     int process_all_files;
     int create_dirs;      /* used by main(), mapname(), checkdir() */
     int extract_flag;
-    int newzip;           /* used in extract.c, crypt.c, zipinfo.c */
+    int newzip;           /* reset in extract.c; used in crypt.c */
     LONGINT   real_ecrec_offset;
     LONGINT   expect_ecrec_offset;
-    long csize;           /* used by list_files(), NEXTBYTE: must be signed */
-    long ucsize;          /* used by list_files(), unReduce(), explode() */
+    long csize;           /* used by decompr. (NEXTBYTE): must be signed */
+    long ucsize;          /* used by unReduce(), explode() */
     long used_csize;      /* used by extract_or_test_member(), explode() */
 
 #ifdef DLL
      int filenotfound;
      int redirect_data;   /* redirect data to memory buffer */
      int redirect_text;   /* redirect text output to buffer */
-# ifdef OS2API
+# ifdef OS2DLL
      cbList(processExternally);    /* call-back list */
 # endif
      unsigned _wsize;
@@ -225,12 +230,12 @@ struct Globals {
     int       zipeof;
     char      *argv0;               /* used for NT and EXE_EXTENSION */
     char      *wildzipfn;
-    char      *zipfn;    /* GRR:  MSWIN:  must nuke any malloc'd zipfn... */
+    char      *zipfn;    /* GRR:  WINDLL:  must nuke any malloc'd zipfn... */
 #ifdef USE_STRM_INPUT
     FILE      *zipfd;               /* zipfile file descriptor */
-#else /* !USE_STRM_INPUT */
+#else
     int       zipfd;                /* zipfile file handle */
-#endif /* ?USE_STRM_INPUT */
+#endif
     LONGINT   ziplen;
     LONGINT   cur_zipfile_bufstart; /* extract_or_test, readbuf, ReadByte */
     LONGINT   extra_bytes;          /* used in unzip.c, misc.c */
@@ -272,14 +277,14 @@ struct Globals {
     uch      *realbuf;
 
 #ifndef VMS                        /* if SMALL_MEM, outbuf2 is initialized in */
-    uch      *outbuf2;             /*  main() (never changes); else malloc'd */
-#endif                             /*  ONLY if unshrink and -a */
+    uch      *outbuf2;             /*  process_zipfiles() (never changes); */
+#endif                             /*  else malloc'd ONLY if unshrink and -a */
     uch      *outptr;
     ulg      outcnt;               /* number of chars stored in outbuf */
-#ifdef MSWIN
-    char     *filename;
-#else
     char     filename[FILNAMSIZ];  /* also used by NT for temporary SFX path */
+
+#ifdef CMS_MVS
+    char     *tempfn;              /* temp file used; erase on close */
 #endif
 
 #ifdef MACOS
@@ -293,7 +298,8 @@ struct Globals {
     CursHandle rghCursor[4];       /* status cursors */
 #endif
 
-    unsigned calls;    /* crypt static: ensure diff. random header each time */
+    char *pwdarg;      /* pointer to command-line password (-P option) */
+
     int nopwd;         /* crypt static */
     ulg keys[3];       /* crypt static: keys defining pseudo-random sequence */
     char *key;         /* crypt static: decryption password or NULL */
@@ -327,9 +333,20 @@ struct Globals {
     MsgFn *message;
     InputFn *input;
     PauseFn *mpause;
+    PasswdFn *decr_passwd;
+#ifdef WINDLL
+    ReplaceFn *replace;
+    SoundFn *sound;
+#endif
 
     int incnt_leftover;       /* so improved NEXTBYTE does not waste input */
     uch *inptr_leftover;
+
+#ifdef VMS_TEXT_CONV
+    int VMS_line_state;       /* so native VMS variable-length text files are */
+    int VMS_line_length;      /*  readable on other platforms */
+    int VMS_line_pad;
+#endif
 
 #ifdef SYSTEM_SPECIFIC_GLOBALS
     SYSTEM_SPECIFIC_GLOBALS
@@ -357,9 +374,6 @@ struct Globals *globalsCtor   OF((void));
 
 
 #ifdef REENTRANT
-#  ifdef RECHEAT
-     extern struct Globals    *pG;
-#  endif
 #  define G                   (*pG)
 #  define __G                 pG
 #  define __G__               pG,
@@ -371,11 +385,11 @@ struct Globals *globalsCtor   OF((void));
      void deregisterGlobalPointer     OF((__GPRO));
      struct Globals *getGlobalPointer OF((void));
 #    define GETGLOBALS()      struct Globals *pG = getGlobalPointer();
-#    define DESTROYGLOBALS()  {inflate_free(pG); deregisterGlobalPointer(pG);}
+#    define DESTROYGLOBALS()  {free_G_buffers(pG); deregisterGlobalPointer(pG);}
 #  else
      extern struct Globals    *GG;
 #    define GETGLOBALS()      struct Globals *pG = GG;
-#    define DESTROYGLOBALS()  {inflate_free(pG); free(pG);}
+#    define DESTROYGLOBALS()  {free_G_buffers(pG); free(pG);}
 #  endif /* ?USETHREADID */
 #  define CONSTRUCTGLOBALS()  struct Globals *pG = globalsCtor()
 #else /* !REENTRANT */

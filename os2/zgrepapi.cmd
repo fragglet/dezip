@@ -54,7 +54,7 @@ END
 string = Strip(string,'b','"')
 IF nocase THEN string = Translate(string)
 
-CALL RxFuncAdd 'UZLoadFuncs', 'UNZIPAPI', 'UZLoadFuncs'
+CALL RxFuncAdd 'UZLoadFuncs', 'UNZIP32', 'UZLoadFuncs'
 CALL UZLoadFuncs
 
 CALL UZUnZipToStem zipfile, 'file.', members

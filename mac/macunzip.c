@@ -603,9 +603,6 @@ int main(argc, argv) int argc; char *argv[];
     } else if (modifiers & shortFlag) {
         CheckItem(formatHandle, filenameItem, false);
         modifiers &= (allFlags ^ filenameFlag);
-    } else if (! (modifiers & filenameFlag)) {
-        CheckItem(formatHandle, shortItem, false);
-        modifiers |= shortFlag;
     }
 
     command = ' ';
@@ -722,6 +719,8 @@ int main(argc, argv) int argc; char *argv[];
                 memcpy(&G, &saveGlobals, sizeof(struct Globals));
 
                 printf("\nDone\n");
+
+                screenControl("r", 0);
             }
 
             fileList[0] = '\0';

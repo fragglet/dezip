@@ -88,6 +88,9 @@ void screenControl(options, setting) char *options; int setting; {
         case 'p':
             n |= pauseOption;
             break;
+        case 'r':
+        	currentPosition = maxPosition;
+        	break;
         case 's':
             n |= scrollOption;
             break;

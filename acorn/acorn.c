@@ -191,11 +191,11 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* truncated), 2 if warning (skip file because  */
-    int renamed;             /* dir doesn't exist), 3 if error (skip file),  */
-{                            /* 10 if no memory (skip file) */
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
     char pathcomp[FILNAMSIZ];    /* path-component buffer */
     char *pp, *cp=(char *)NULL;  /* character pointers */
     char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
@@ -309,8 +309,11 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -336,33 +339,12 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
       pathcomp[strlen(pathcomp)-4]=0;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
 
 } /* end function mapname() */
-
-
-
-
-#if 0  /*========== NOTES ==========*/
-
-  extract-to dir:      a:path/
-  buildpath:           path1/path2/ ...   (NULL-terminated)
-  pathcomp:                filename
-
-  mapname():
-    loop over chars in zipfile member name
-      checkdir(path component, COMPONENT | CREATEDIR) --> map as required?
-        (d:/tmp/unzip/)                    (disk:[tmp.unzip.)
-        (d:/tmp/unzip/jj/)                 (disk:[tmp.unzip.jj.)
-        (d:/tmp/unzip/jj/temp/)            (disk:[tmp.unzip.jj.temp.)
-    finally add filename itself and check for existence? (could use with rename)
-        (d:/tmp/unzip/jj/temp/msg.outdir)  (disk:[tmp.unzip.jj.temp]msg.outdir)
-    checkdir(name, COPYFREE)     -->  copy path to name and free space
-
-#endif /* 0 */
 
 
 
@@ -606,21 +588,14 @@ int mkdir(path, mode)
  *           -1 - failed (errno not set, however)
  */
 {
-    char command[FILNAMSIZ+10]; /* buffer for system() call */
-
-    sprintf(command, "cdir %s", path);
-
-    if (system(command)==0)
-      return 0;
-    else
-      return -1;
+    return (SWI_OS_File_8(path) == NULL)? 0 : -1;
 }
 
 
 
 
 /*********************************/
-/* extra_field related functions */
+/* extra_field-related functions */
 /*********************************/
 
 int isRISCOSexfield(void *extra_field)
@@ -647,11 +622,12 @@ void printRISCOSexfield(int isdir, void *extra_field)
  printf("\n  This file has RISC OS file informations in the local extra field.\n");
 
  if (isdir) {
-/*   I prefere not to print this string... should change later... */
+/*   I prefer not to print this string... should change later... */
 /*   printf("  The file is a directory.\n");*/
  }
  else if (block->loadaddr & 0xFFF00000 != 0xFFF00000) {
    printf("  Load address: %.8X\n",block->loadaddr);
+   /* GRR:  should this be block->execaddr? */
    printf("  Exec address: %.8X\n",block->loadaddr);
  }
  else {
@@ -701,24 +677,23 @@ void close_outfile(__G)
    int mode=G.pInfo->file_attr&0xffff;   /* chmod equivalent mode */
 
    time_t m_time;
-#ifdef USE_EF_UX_TIME
-   ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+   iztimes z_utime;
 #endif
 
-#ifdef USE_EF_UX_TIME
+#ifdef USE_EF_UT_TIME
    if (G.extra_field &&
-       ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                        &z_utime, NULL) > 0) {
+       (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                         &z_utime, NULL) & EB_UT_FL_MTIME)) {
        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-         z_utime.modtime));
-       m_time = z_utime.modtime;
-       /* SPC:  how to handle actime ??? */
+         z_utime.mtime));
+       m_time = z_utime.mtime;
    } else
-#endif /* USE_EF_UX_TIME */
+#endif /* USE_EF_UT_TIME */
        m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
                                  G.lrec.last_mod_file_time);
 
-   /* set the file's access and modification times */
+   /* set the file's modification time */
    SWI_OS_File_5(G.filename,NULL,&loadaddr,NULL,NULL,&attr);
 
    loadaddr=0xfff00000U | ((((m_time>>8) * 100)>>24) + 0x33);
@@ -726,8 +701,8 @@ void close_outfile(__G)
 
    loadaddr|=((G.pInfo->file_attr&0xFFF00000) >> 12);
 
-   attr=(attr&0xffffff00) | ((mode&0400) >> 8) | ((mode&0200) >> 6) | ((mode&0004) << 2) |
-        ((mode&0002) << 4);
+   attr=(attr&0xffffff00) | ((mode&0400) >> 8) | ((mode&0200) >> 6) |
+                            ((mode&0004) << 2) | ((mode&0002) << 4);
 
    SWI_OS_File_1(G.filename,loadaddr,execaddr,attr);
  }
@@ -753,7 +728,7 @@ void version(__G)
 #  ifdef __CC_NORCROFT
       "Norcroft ", "cc",
 #  else
-      "cc",""
+      "cc", "",
 #  endif
 #endif
 

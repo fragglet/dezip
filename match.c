@@ -49,7 +49,7 @@
   allowed (i.e., 8-bit characters) if your system will support them.
 
   To suppress the special syntactic significance of any of ``[]*?!^-\'', in-
-  side or outside a [..] construct and match the character exactly, precede
+  side or outside a [..] construct, and match the character exactly, precede
   it with a ``\'' (backslash).
 
   Note that "*.*" and "*." are treated specially under MS-DOS if DOSWILD is
@@ -223,7 +223,11 @@ static int recmatch(p, s, ic)
         return 0;
 
     /* just a character--compare it */
+#ifdef QDOS
+    return QMatch(Case((uch)c), Case(*s)) ? recmatch(p, ++s, ic) : 0;
+#else
     return Case((uch)c) == Case(*s) ? recmatch(p, ++s, ic) : 0;
+#endif
 
 } /* end function recmatch() */
 
@@ -246,7 +250,11 @@ int iswild(p)        /* originally only used for stat()-bug workaround in */
         else if (*p == '?' || *p == '*' || *p == '[')
 #endif /* ?AMIGA */
 #endif /* ?VMS */
+#ifdef QDOS
+            return (int)p;
+#else
             return TRUE;
+#endif
 
     return FALSE;
 

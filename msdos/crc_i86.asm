@@ -4,12 +4,12 @@
 	NAME    crc_i86
 ;
 ; Optimized 8086 assembler version of the CRC32 calculation loop, intended
-; for real mode Info-Zip programs (Zip 2.1, UnZip 5.2, and later versions).
+; for real mode Info-ZIP programs (Zip 2.1, UnZip 5.2, and later versions).
 ; Supported compilers are Microsoft C (DOS real mode) and Borland C(++)
 ; (Turbo C). Watcom C (16bit) should also work.
 ; This module was inspired by a similar module for the Amiga (Paul Kienitz).
 ;
-; It replaces the `ulg crc32(ulg c, char *s, extent n)' function
+; It replaces the `ulg crc32(ulg crc, ZCONST uch *buf, extent len)' function
 ; in crc32.c.
 ;
 ; The code in this module should work with all kinds of C memory models
@@ -264,7 +264,7 @@ endif
 
 ;
 ;ulg crc32(ulg crc,
-;    uch *buf,
+;    ZCONST uch *buf,
 ;    extend len)
 ;
 	PUBLIC	_crc32
@@ -292,10 +292,10 @@ else
 endif
 ;
 if @DataSize
-	mov	ax,WORD PTR [bp+8+LCOD_OFS]	;buf
-	or	ax,WORD PTR [bp+10+LCOD_OFS]
+	mov	ax,WORD PTR [bp+8+LCOD_OFS]	; buf
+	or	ax,WORD PTR [bp+10+LCOD_OFS]    ;     == NULL ?
 else
-	cmp	WORD PTR [bp+8+LCOD_OFS],0	;buf
+	cmp	WORD PTR [bp+8+LCOD_OFS],0	; buf == NULL ?
 endif
 	jne	crc_update
 	sub	ax,ax				; crc = 0
@@ -331,11 +331,11 @@ endif
 	not	ax
 	not	dx
 if @DataSize
-	les	di,DWORD PTR [bp+8+LCOD_OFS]	;s
-	mov	cx,WORD PTR [bp+12+LCOD_OFS]	;n
+	les	di,DWORD PTR [bp+8+LCOD_OFS]	;buf
+	mov	cx,WORD PTR [bp+12+LCOD_OFS]	;len
 else
-	mov	di,WORD PTR [bp+8+LCOD_OFS]	;s
-	mov	cx,WORD PTR [bp+10+LCOD_OFS]	;n
+	mov	di,WORD PTR [bp+8+LCOD_OFS]	;buf
+	mov	cx,WORD PTR [bp+10+LCOD_OFS]	;len
 endif
 ;
 ifndef NO_UNROLLED_LOOPS
@@ -354,9 +354,9 @@ Next_Four:
 ;
 No_Fours:
 if @DataSize
-	mov	cx,WORD PTR [bp+12+LCOD_OFS]	;n
+	mov	cx,WORD PTR [bp+12+LCOD_OFS]	;len
 else
-	mov	cx,WORD PTR [bp+10+LCOD_OFS]	;n
+	mov	cx,WORD PTR [bp+10+LCOD_OFS]	;len
 endif
 	and	cx,00003H
 endif ; NO_UNROLLED_LOOPS

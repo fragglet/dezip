@@ -10,7 +10,9 @@
 #include <io.h>               /* read(), open(), etc. */
 #include <time.h>
 #include <memory.h>
-#include <direct.h>           /* mkdir() */
+#ifndef __EMX__
+#  include <direct.h>         /* mkdir() */
+#endif
 #include <fcntl.h>
 #if (defined(MSC) || defined(__WATCOMC__))
 #  include <sys/utime.h>
@@ -20,13 +22,87 @@
 #if defined(FILEIO_C)
 #  include <conio.h>
 #  include <windows.h>
+#  ifdef __RSXNT__
+#    include "win32/rsxntwin.h"
+#  endif
+#endif
+#if (defined(ENVARGS_C) || defined(EXTRACT_C) || defined(UNZIP_C) || \
+     defined(ZCRYPT_INTERNAL))
+#  include <windows.h>
+#  ifdef __RSXNT__
+#    include "win32/rsxntwin.h"
+#  endif
 #endif
 
+#if defined(MSC)
+#  define DIR_END     '\\'   /* ZipInfo with VC++ 4.0 requires this */
+#endif
 #define DATE_FORMAT   DF_MDY
 #define lenEOL        2
 #define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 
-#define USE_EF_UX_TIME
+#ifndef NT_TZBUG_WORKAROUND
+#  define NT_TZBUG_WORKAROUND
+#endif
+#define USE_EF_UT_TIME
+#ifdef __RSXNT__
+#  ifndef NO_NTSD_WITH_RSXNT
+#    define NO_NTSD_WITH_RSXNT  /* RSXNT windows.h does not yet support NTSD */
+#  endif
+#else /* !__RSXNT__ */
+#  if (!defined(NO_NTSD_EAS) && !defined(NTSD_EAS))
+#    define NTSD_EAS    /* enable NTSD support unless explicitly suppressed */
+#  endif
+#endif /* ?__RSXNT__ */
+
+/* handlers for OEM <--> ANSI string conversions */
+#ifdef __RSXNT__
+   /* RSXNT uses OEM coded strings in functions supplied by C RTL */
+#  ifdef CRTL_CP_IS_ISO
+#    undef CRTL_CP_IS_ISO
+#  endif
+#  ifndef CRTL_CP_IS_OEM
+#    define CRTL_CP_IS_OEM
+#  endif
+#else
+   /* "real" native WIN32 compilers use ANSI coded strings in C RTL calls */
+#  ifndef CRTL_CP_IS_ISO
+#    define CRTL_CP_IS_ISO
+#  endif
+#  ifdef CRTL_CP_IS_OEM
+#    undef CRTL_CP_IS_OEM
+#  endif
+#endif
+
+#ifdef CRTL_CP_IS_ISO
+   /* C RTL's file system support assumes ANSI coded strings */
+#  define ISO_TO_INTERN(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#  define OEM_TO_INTERN(src, dst)  OemToAnsi(src, dst)
+#  define INTERN_TO_ISO(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#  define INTERN_TO_OEM(src, dst)  AnsiToOem(src, dst)
+#endif /* CRTL_CP_IS_ISO */
+#ifdef CRTL_CP_IS_OEM
+   /* C RTL's file system support assumes OEM coded strings */
+#  define ISO_TO_INTERN(src, dst)  AnsiToOem(src, dst)
+#  define OEM_TO_INTERN(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#  define INTERN_TO_ISO(src, dst)  OemToAnsi(src, dst)
+#  define INTERN_TO_OEM(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#endif /* CRTL_CP_IS_OEM */
+#define _OEM_INTERN(str1) OEM_TO_INTERN(str1, str1)
+#define _ISO_INTERN(str1) ISO_TO_INTERN(str1, str1)
+#ifndef WINDLL
+   /* Despite best intentions, for the command-line version UzpPassword()
+    * could return either character set, depending on whether running under
+    * Win95 (DOS-session) or WinNT (native WinNT command interpreter)! */
+#  define STR_TO_CP2(dst, src)  (AnsiToOem(src, dst), dst)
+#  define STR_TO_CP3(dst, src)  (OemToAnsi(src, dst), dst)
+#else
+   /* The WINDLL front end is known to supply ISO/ANSI-coded passwords! */
+#  define STR_TO_CP2(dst, src)  (AnsiToOem(src, dst), dst)
+#endif
+/* dummy defines to disable these functions, they are not needed */
+#define STR_TO_OEM
+#define STR_TO_ISO
 
 /* Static variables that we have to add to struct Globals: */
 #define SYSTEM_SPECIFIC_GLOBALS \
@@ -49,6 +125,10 @@
 #endif
 
 #ifdef __WATCOMC__
+#  undef SSTAT
+#  define SSTAT stat_bandaid
+   int stat_bandaid(const char *path, struct stat *buf);
+
 #  ifdef __386__
 #    ifndef WATCOMC_386
 #      define WATCOMC_386

@@ -1,5 +1,5 @@
 #define module_name VMS_UNZIP_CMDLINE
-#define module_ident "02-004"
+#define module_ident "02-007"
 /*
 **
 **  Facility:   UNZIP
@@ -16,6 +16,13 @@
 **
 **  Modified by:
 **
+**      02-007          Christian Spieler       04-MAR-1997 22:25
+**              Made /CASE_INSENSITIVE common to UnZip and ZipInfo mode;
+**              added support for /PASSWORD="decryption_key" argument.
+**      02-006          Christian Spieler       11-MAY-1996 22:40
+**              Added SFX version of VMSCLI_usage().
+**      02-005          Patrick Ellis           09-MAY-1996 22:25
+**              Show UNIX style usage screen when UNIX style options are used.
 **      02-004          Christian Spieler       06-FEB-1996 02:20
 **              Added /HELP qualifier.
 **      02-003          Christian Spieler       23-DEC-1995 17:20
@@ -41,7 +48,7 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#include "version.h"    /* for usage() */
+#include "version.h"    /* for VMSCLI_usage() */
 
 #include <ssdef.h>
 #include <descrip.h>
@@ -93,6 +100,7 @@ $DESCRIPTOR(cli_super_quiet,    "QUIET.SUPER"); /* -qq */
 $DESCRIPTOR(cli_test,           "TEST");        /* -t */
 $DESCRIPTOR(cli_type,           "TYPE");        /* -c */
 $DESCRIPTOR(cli_pipe,           "PIPE");        /* -p */
+$DESCRIPTOR(cli_password,       "PASSWORD");    /* -P */
 $DESCRIPTOR(cli_uppercase,      "UPPERCASE");   /* -U */
 $DESCRIPTOR(cli_update,         "UPDATE");      /* -u */
 $DESCRIPTOR(cli_version,        "VERSION");     /* -V */
@@ -118,6 +126,8 @@ $DESCRIPTOR(cli_zipfile,        "ZIPFILE");
 $DESCRIPTOR(cli_infile,         "INFILE");
 $DESCRIPTOR(unzip_command,      "unzip ");
 $DESCRIPTOR(blank,              " ");
+
+static int show_VMSCLI_usage;
 
 #ifdef __DECC
 extern void *vms_unzip_cld;
@@ -189,16 +199,19 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
     struct dsc$descriptor_d work_str;
     struct dsc$descriptor_d foreign_cmdline;
     struct dsc$descriptor_d output_directory;
+    struct dsc$descriptor_d password_arg;
 
     init_dyndesc (work_str);
     init_dyndesc (foreign_cmdline);
     init_dyndesc (output_directory);
+    init_dyndesc (password_arg);
 
     /*
     **  See if the program was invoked by the CLI (SET COMMAND) or by
     **  a foreign command definition.  Check for /YYZ_UNZIP, which is a
     **  valid default qualifier solely for this test.
     */
+    show_VMSCLI_usage = TRUE;
     status = check_cli (&cli_yyz);
     if (!(status & 1)) {
         lib$get_foreign (&foreign_cmdline);
@@ -206,9 +219,15 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
         **  If nothing was returned or the first character is a "-", then
         **  assume it's a UNIX-style command and return.
         */
-        if ((foreign_cmdline.dsc$w_length == 0) ||
-            (*(foreign_cmdline.dsc$a_pointer) == '-'))
+        if (foreign_cmdline.dsc$w_length == 0)
             return(SS$_NORMAL);
+        if ((*(foreign_cmdline.dsc$a_pointer) == '-') ||
+            ((foreign_cmdline.dsc$w_length > 1) &&
+             (*(foreign_cmdline.dsc$a_pointer) == '"') &&
+             (*(foreign_cmdline.dsc$a_pointer + 1) == '-'))) {
+            show_VMSCLI_usage = FALSE;
+            return(SS$_NORMAL);
+        }
 
         str$concat (&work_str, &unzip_command, &foreign_cmdline);
         status = cli$dcl_parse(&work_str, &vms_unzip_cld, lib$get_input,
@@ -232,7 +251,7 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
     ptr = &options[1];          /* Point to temporary buffer */
 
     /*
-    **  Is it Zipinfo??
+    **  Is it ZipInfo??
     */
     zipinfo = 0;
     status = cli$present (&cli_information);
@@ -276,7 +295,7 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
 #endif
 
     /*
-    **  Write binary files in VMS binary (fixed lenght 512 byte records,
+    **  Write binary files in VMS binary (fixed-length, 512-byte records,
     **  record attributes: none) format
     **  (auto-convert, or force to convert all files)
     */
@@ -373,6 +392,14 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
         *ptr++ = 'o';
 
     /*
+    **  Decryption password from command line?
+    */
+    status = cli$present (&cli_password);
+    if (status == CLI$_PRESENT) {
+        status = cli$get_value (&cli_password, &password_arg);
+    }
+
+    /*
     **  Pipe files to SYS$OUTPUT with no informationals?
     */
     status = cli$present (&cli_pipe);
@@ -397,15 +424,6 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
         *ptr++ = '-';
     if (status != CLI$_ABSENT)
         *ptr++ = 't';
-
-    /*
-    **  Match filenames case-insensitively (-C)
-    */
-    status = cli$present (&cli_case_insensitive);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'C';
 
     /*
     **  Make (some) names lowercase
@@ -461,9 +479,18 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
     if (status != CLI$_ABSENT)
         *ptr++ = 'z';
 
-    }   /* Zipinfo check way up there.... */
+    }   /* ZipInfo check way up there.... */
 
-    /* The following options are common to both Unzip and Zipinfo mode. */
+    /* The following options are common to both UnZip and ZipInfo mode. */
+
+    /*
+    **  Match filenames case-insensitively (-C)
+    */
+    status = cli$present (&cli_case_insensitive);
+    if (status == CLI$_NEGATED)
+        *ptr++ = '-';
+    if (status != CLI$_ABSENT)
+        *ptr++ = 'C';
 
     /*
     **  Use builtin pager for all screen output
@@ -485,6 +512,7 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
     **  Un*x interface.
     if ( (ptr == &options[1]) &&
          (output_directory.dsc$w_length == 0) &&
+         (password_arg.dsc$w_length == 0) &&
          (!exclude_list)  )
       return(SS$_NORMAL);
     */
@@ -500,6 +528,20 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
             return(SS$_INSFMEM);
         strcat (the_cmd_line, " ");
         strcat (the_cmd_line, options);
+    }
+
+    /*
+    **  If specified, add the decryption password argument.
+    **/
+    if (password_arg.dsc$w_length != 0) {
+        len = strlen(the_cmd_line) + password_arg.dsc$w_length + 5;
+        if ((the_cmd_line = (char *) realloc (the_cmd_line, len)) == NULL)
+            return(SS$_INSFMEM);
+        strcat (the_cmd_line, " -P ");
+        x = strlen(the_cmd_line);
+        strncpy(&the_cmd_line[x], password_arg.dsc$a_pointer,
+                password_arg.dsc$w_length);
+        the_cmd_line[len] = '\0';
     }
 
     /*
@@ -710,17 +752,72 @@ check_cli (struct dsc$descriptor_s *qual)
 }
 
 
-#ifndef SFX
+#ifdef SFX
 
-int usage(__GPRO__ int error)  /* VMSCLI version; returns PK-type error code */
+#ifdef SFX_EXDIR
+#  define SFXOPT_EXDIR "\n                   and /DIRECTORY=exdir-spec"
+#else
+#  define SFXOPT_EXDIR ""
+#endif
+
+#ifdef MORE
+#  define SFXOPT1 "/PAGE, "
+#else
+#  define SFXOPT1 ""
+#endif
+
+int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
+{
+    extern char UnzipSFXBanner[];
+#ifdef BETA
+    extern char BetaVersion[];
+#endif
+    int flag;
+
+    if (!show_VMSCLI_usage)
+       return usage(__G__ error);
+
+    flag = (error? 1 : 0);
+
+    Info(slide, flag, ((char *)slide, UnzipSFXBanner,
+      UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL, VERSION_DATE));
+    Info(slide, flag, ((char *)slide, "\
+Valid main options are /TEST, /FRESHEN, /UPDATE, /PIPE, /SCREEN, /COMMENT%s.\n"
+      SFXOPT_EXDIR));
+    Info(slide, flag, ((char *)slide, "\
+Modifying options are /TEXT, /BINARY, /JUNK, /[NO]OVERWRITE, /QUIET,\n\
+                      /CASE_INSENSITIVE, /LOWERCASE, %s/VERSION, /RESTORE.\n",
+      SFXOPT1));
+#ifdef BETA
+    Info(slide, flag, ((char *)slide, BetaVersion, "\n", "SFX"));
+#endif
+
+    if (error)
+        return PK_PARAM;
+    else
+        return PK_COOL;     /* just wanted usage screen: no error */
+
+} /* end function usage() */
+
+
+#else /* !SFX */
+
+int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
 {
     extern char UnzipUsageLine1[];
+#ifdef BETA
+    extern char BetaVersion[];
+#endif
+    int flag;
+
+    if (!show_VMSCLI_usage)
+       return usage(__G__ error);
 
 /*---------------------------------------------------------------------------
     If user requested usage, send it to stdout; else send to stderr.
   ---------------------------------------------------------------------------*/
 
-    int flag = (error? 1 : 0);
+    flag = (error? 1 : 0);
 
 
 /*---------------------------------------------------------------------------
@@ -745,16 +842,18 @@ in list (excluding those in xlist) contained in the specified .zip archive(s).\
  listing-format options:              /SHORT   short \"ls -l\" format (def.)\n\
   /ONE_LINE  just filenames, one/line     /MEDIUM  medium Unix \"ls -l\" format\n\
   /VERBOSE   verbose, multi-page format   /LONG    long Unix \"ls -l\" format\n\
-        "));
+"));
 
         Info(slide, flag, ((char *)slide, "\
 miscellaneous options:\n  \
 /HEADER   print header line       /TOTALS  totals for listed files or for all\n\
   /COMMENT  print zipfile comment   /TIMES   times in sortable decimal format\n\
+  /[NO]CASE_INSENSITIVE  match filenames case-insensitively\n\
   /[NO]PAGE page output through built-in \"more\"\n\
   /EXCLUDE=(file-spec1,etc.)  exclude file-specs from listing\n"));
 
         Info(slide, flag, ((char *)slide, "\n\
+Type unzip \"-Z\" for Unix style flags\n\
 Remember that non-lowercase filespecs must be\
  quoted in VMS (e.g., \"Makefile\").\n"));
 
@@ -766,9 +865,7 @@ Remember that non-lowercase filespecs must be\
           UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL, VERSION_DATE));
 
 #ifdef BETA
-        Info(slide, flag, ((char *)slide, "\
-      THIS IS STILL A BETA VERSION OF UNZIP%s -- DO NOT DISTRIBUTE.\n\n",
-          "", ""));
+        Info(slide, flag, ((char *)slide, BetaVersion, "", ""));
 #endif
 
         Info(slide, flag, ((char *)slide, "\
@@ -783,7 +880,7 @@ Usage: unzip file[.zip] [list] [/EXCL=(xlist)] [/DIR=exdir] /options /modifiers\
           ));
 
         Info(slide, flag, ((char *)slide, "\
-Major options include:\n\
+Major options include (type unzip -h for Unix style flags):\n\
    /[NO]TEST, /LIST, /[NO]SCREEN, /PIPE, /[NO]FRESHEN, /[NO]UPDATE,\n\
    /[NO]COMMENT, /DIRECTORY=directory-spec, /EXCLUDE=(file-spec1,etc.)\n\n\
 Modifiers include:\n\
@@ -808,6 +905,6 @@ unzip zip201 \"Makefile.VMS\" vms/*.[ch]         => extract VMS Makefile and\n\
     else
         return PK_COOL;     /* just wanted usage screen: no error */
 
-} /* end function usage() */
+} /* end function VMSCLI_usage() */
 
-#endif /* !SFX */
+#endif /* ?SFX */

@@ -10,28 +10,57 @@
 /* we want to produce a fully reentrant UnZip, we will have to use a    */
 /* suitable startup module, such as purify.a for Aztec by Paul Kienitz. */
 
-#include <exec/types.h>
-#include <exec/memory.h>
-#include <libraries/dos.h>
-#include <libraries/dosextens.h>
+#ifndef __amiga_stat_c
+#define __amiga_stat_c
+
 #ifdef AZTEC_C
+#  include <exec/types.h>
+#  include <exec/memory.h>
+#  include <libraries/dos.h>
+#  include <libraries/dosextens.h>
 #  include <clib/exec_protos.h>
 #  include <clib/dos_protos.h>
 #  include <pragmas/exec_lib.h>
 #  include <pragmas/dos_lib.h>
 #  include "amiga/z-stat.h"             /* fake version of stat.h */
-#else
-#  include <sys/types.h>
+#  include <string.h>
+#else /* __SASC */
+/* Uncomment define of USE_REPLACEMENTS to use the directory functions below */
+/* #define USE_REPLACEMENTS */
 #  include <sys/stat.h>
-#  include <proto/exec.h>
-#  include <proto/dos.h>
+#  ifndef USE_REPLACEMENTS
+#     include <sys/dir.h>               /* SAS/C dir function prototypes */
+#     include <dos.h>
+#  else
+#     include <exec/types.h>
+#     include <exec/memory.h>
+#     include <sys/types.h>
+#     include <proto/exec.h>
+#     include <proto/dos.h>
+#     include <string.h>
+#  endif
 #endif
-#include <string.h>
 
 #ifndef SUCCESS
 #  define SUCCESS (-1)
 #  define FAILURE (0)
 #endif
+
+
+void close_leftover_open_dirs(void);    /* prototype */
+
+static DIR *dir_cleanup_list = NULL;    /* for resource tracking */
+
+/* CALL THIS WHEN HANDLING CTRL-C OR OTHER UNEXPECTED EXIT! */
+void close_leftover_open_dirs(void)
+{
+    while (dir_cleanup_list)
+        closedir(dir_cleanup_list);
+}
+
+#if defined(AZTEC_C) || defined(USE_REPLACEMENTS)
+
+unsigned short disk_not_mounted;
 
 extern int stat(char *file,struct stat *buf);
 
@@ -69,7 +98,6 @@ struct stat *buf;
         buf->st_uid         =
         buf->st_gid         =
         buf->st_rdev        = 0;
-        
         buf->st_ino         = inf->fib_DiskKey;
         buf->st_blocks      = inf->fib_NumBlocks;
         buf->st_size        = inf->fib_Size;
@@ -105,12 +133,7 @@ struct stat *buf;
 
 }
 
-
 /* opendir(), readdir(), closedir() and rmdir() by Paul Kienitz. */
-
-unsigned short disk_not_mounted;
-static DIR *dir_cleanup_list = NULL;    /* for resource tracking */
-
 
 DIR *opendir(char *path)
 {
@@ -147,17 +170,11 @@ void closedir(DIR *dd)
     }
 }
 
-/* CALL THIS WHEN HANDLING CTRL-C OR OTHER UNEXPECTED EXIT! */
-void close_leftover_open_dirs(void)
-{
-    while (dir_cleanup_list)
-        closedir(dir_cleanup_list);
-}
-
 struct dirent *readdir(DIR *dd)
 {
     return (ExNext(dd->d_parentlock, &dd->d_fib) ? (struct dirent *)dd : NULL);
 }
+
 
 int rmdir(char *path)
 {
@@ -171,6 +188,7 @@ int chmod(char *filename, int bits)     /* bits are as for st_mode */
     return !SetProtection(filename, protmask);
 }
 
+#endif /* AZTEC_C || USE_REPLACEMENTS */
 
 #ifdef AZTEC_C
 
@@ -189,8 +207,8 @@ __signal_return_type signal()  { return SIG_ERR; }
 
 
 /* The following replaces Aztec's argv-parsing function for compatibility with
-the standard AmigaDOS handling of *E, *N, and *".  It also fixes the problem
-the standard _cli_parse() has of accepting only lower-ascii characters. */
+Unix-like syntax used on other platforms.  It also fixes the problem the
+standard _cli_parse() has of accepting only lower-ascii characters. */
 
 int _argc, _arg_len;
 char **_argv, *_arg_lin;
@@ -225,21 +243,16 @@ void _cli_parse(struct Process *pp, long alen, register UBYTE *aptr)
         if (*cp == '"') {
             cp++;
             while (c = *cp++) {
-                if (starred) {
-                    if (c | 0x20 == 'n')
-                        *aptr++ = '\n';
-                    else if (c | 0x20 == 'e')
-                        *aptr++ = 27;
-                    else
-                        *aptr++ = c;
-                    starred = 0;
-                } else if (c == '"') {  
+                if (c == '"' && !starred) {
                     *aptr++ = 0;
+                    starred = 0;
                     break;
-                } else if (c == '*')
+                } else if (c == '\\' && !starred)
                     starred = 1;
-                else
+                else {
                     *aptr++ = c;
+                    starred = 0;
+                }
             }
         } else {
             while ((c = *cp++) && c != ' ' && c != '\t')
@@ -265,3 +278,8 @@ void _cli_parse(struct Process *pp, long alen, register UBYTE *aptr)
 }
 
 #endif /* AZTEC_C */
+/* remove local define */
+#ifdef USE_REPLACEMENTS
+#   undef USE_REPLACEMENTS
+#endif
+#endif /* __amiga_stat_c */

@@ -8,7 +8,7 @@
 ; Where __GPRO__ expands to "struct Globals *G," if REENTRANT is defined,
 ; otherwise to nothing.  In the latter case G is a global variable.
 ;
-; Define the symbol FUNZIP if this is for FUnZip.
+; Define the symbol FUNZIP if this is for fUnZip.  It overrides REENTRANT.
 ;
 ; Define AZTEC to use the Aztec C macro version of getc() instead of the
 ; library getc() with FUNZIP.  AZTEC is ignored if FUNZIP is not defined.
@@ -30,6 +30,12 @@ MOVINT           MACRO
         move.l          \1,\2
                  ENDM
 INTSIZE equ     4
+                ENDC
+
+                IFD     REENTRANT
+                 IFND   FUNZIP
+REENT_G equ     1
+                 ENDC
                 ENDC
 
 ; struct huft is defined as follows:
@@ -56,16 +62,16 @@ SIZEOF_HUFT     equ     6
 ;       ulg bb
 ;       unsigned int bk, wp
 ;       (either array of or pointer to unsigned char) slide
-; For FUnZip:
+; For fUnZip:
 ;       FILE *in
-; For regular UnZip but not FUnZip:
+; For regular UnZip but not fUnZip:
 ;       int incnt, mem_mode
 ;       long csize
 ;       uch *inptr
 ; It also defines a value SIZEOF_slide, which tells us whether the appropriate
 ; slide field in G (either area.Slide or redirect_pointer) is a pointer or an
 ; array instance.  It is 4 in the former case and a large value in the latter.
-; Lastly, this include will define CRYPT if appropriate.
+; Lastly, this include will define CRYPT as 1 if appropriate.
 
                 IFD     FUNZIP
         INCLUDE "amiga/G_offs.fa"
@@ -78,7 +84,7 @@ SIZEOF_HUFT     equ     6
 ; which we cache in k.  The macros NEEDBITS(n) and DUMPBITS(n) have side effects
 ; on b and k.
 
-                IFD     REENTRANT
+                IFD     REENT_G
 G_SIZE  equ     4
 G_PUSH           MACRO          ; this macro passes "__G__" to functions
         move.l          G,-(sp)
@@ -89,11 +95,11 @@ G_SIZE  equ     0
 G_PUSH           MACRO
         ds.b            0       ; does nothing; the assembler dislikes MACRO ENDM
                  ENDM
-                ENDC    ; REENTRANT
+                ENDC    ; REENT_G
 
         xref    _mask_bits      ; const ush near mask_bits[17];
                 IFD     FUNZIP
-                 IFD    CRYPT
+                 IF     CRYPT
         xref    _encrypted      ; int -- boolean flag
         xref    _update_keys    ; int update_keys(__GPRO__ int)
         xref    _decrypt_byte   ; int decrypt_byte(__GPRO)
@@ -158,18 +164,18 @@ GETC              MACRO
                 ENDC    ; FUNZIP
 
 ; Input depends on the NEXTBYTE macro.  This exists in three different forms.
-; The first two are for FUnZip, with and without decryption.  The last is for
+; The first two are for fUnZip, with and without decryption.  The last is for
 ; regular UnZip with or without decryption.  The resulting byte is returned
 ; in d0 as a longword, and d1, a0, and a1 are clobbered.
 
-; FLUSH also has different forms for UnZip and FUnZip.  Arg must be a longword.
+; FLUSH also has different forms for UnZip and fUnZip.  Arg must be a longword.
 ; The same scratch registers are trashed.
 
                 IFD     FUNZIP
 
 NEXTBYTE         MACRO
         GETC
-                  IFD   CRYPT
+                  IF    CRYPT
         tst.w           _encrypted+INTSIZE-2    ; test low word if long
         beq.s           nbe\@
         MOVINT          d0,-(sp)                ; save thru next call
@@ -279,9 +285,9 @@ DUMPBITS        MACRO
 _inflate_codes:
         link            a5,#-4
         movem.l         savregs,-(sp)
-; 8(a5) = tl, 12(a5) = td, 16(a5) = bl, 18|20(a5) = bd... add 4 for REENTRANT
+; 8(a5) = tl, 12(a5) = td, 16(a5) = bl, 18|20(a5) = bd... add 4 for REENT_G
 ; -2(a5) = ml, -4(a5) = md.  Here we cache some globals and args:
-                IFD     REENTRANT
+                IFD     REENT_G
         move.l          8(a5),G
                 ELSE
 ;;      move.l          _G,G            ; old global pointer version

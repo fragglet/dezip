@@ -1,0 +1,19 @@
+;module-definition file for Windows Unzip DLL -- used by link.exe
+LIBRARY UNZIP16 ; Library module name
+
+DESCRIPTION 'Windows Info-ZIP UnZip DLL 1.01 by Info-ZIP, Mike White 1996'
+
+CODE  PRELOAD FIXED
+
+DATA  PRELOAD MOVEABLE
+
+EXPORTS
+     windll_unzip          ; actual entry point
+     UzpVersion
+     Unz_CreateGlobals
+     Unz_Init
+     Unz_SetOpts
+     Unz_Unzip
+     Unz_ReleaseGlobals
+     unzipVB
+

@@ -18,8 +18,8 @@
 
 #define ACL_BUFFERSIZE 4096
 
-int acl_get(char *server, char *resource, char *buffer);
-int acl_set(char *server, char *resource, char *buffer);
+int acl_get(char *server, const char *resource, char *buffer);
+int acl_set(char *server, const char *resource, char *buffer);
 
 #endif /* _OS2ACL_H */
 

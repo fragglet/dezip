@@ -12,25 +12,20 @@
              Echoff()       (Unix only)
              screenlines()  (Unix only)
              zgetch()       (Unix and non-Unix versions)
-             getp()         ("PC," Win, Unix/Atari and VMS/VMCMS/MVS versions)
+             getp()         ("PC," Unix/Atari/Be, VMS/VMCMS/MVS)
 
   ---------------------------------------------------------------------------*/
 
 #include "zip.h"
 #include "crypt.h"
 
-#if (defined(CRYPT) || (defined(UNZIP) && !defined(FUNZIP)))
+#if (CRYPT || (defined(UNZIP) && !defined(FUNZIP)))
 /* Non-echo console/keyboard input is needed for (en/de)cryption's password
  * entry, and for UnZip(SFX)'s MORE and Pause features.
  * (The corresponding #endif is found at the end of this module.)
  */
 
-#ifdef MSWIN
-#  include "wingui\wizunzip.h"
-#  include "wingui\password.h"
-#endif
 #include "ttyio.h"
-
 
 #ifndef PUTC
 #  define PUTC putc
@@ -41,9 +36,13 @@
 #    undef GLOBAL
 #  endif
 #  define GLOBAL(g) g
-#else /* !ZIP */
+#else
 #  define GLOBAL(g) G.g
-#endif /* ?ZIP */
+#endif
+
+#ifdef __BEOS__                /* why yes, we do */
+#  define HAVE_TERMIOS_H
+#endif
 
 #ifdef _POSIX_VERSION
 #  ifndef USE_POSIX_TERMIOS
@@ -96,6 +95,12 @@
 #  endif
 #endif
 
+#if (defined(UNZIP) && !defined(FUNZIP) && defined(UNIX) && defined(MORE))
+#  include <sys/ioctl.h>
+#  define GOT_IOCTL_H
+   /* int ioctl OF((int, int, zvoid *));   GRR: may need for some systems */
+#endif
+
 #ifndef HAVE_WORKING_GETCH
    /* include system support for switching of console echo */
 #  ifdef VMS
@@ -111,47 +116,42 @@
 #      define sg_flags c_lflag
 #      define GTTY(f, s) tcgetattr(f, (zvoid *) s)
 #      define STTY(f, s) tcsetattr(f, TCSAFLUSH, (zvoid *) s)
-#    else /* !HAVE_TERMIOS */
-#       ifdef USE_SYSV_TERMIO           /* Amdahl, Cray, all SysV? */
-#         ifdef HAVE_TERMIO_H
-#           include <termio.h>
-#         endif
-#         ifdef HAVE_SYS_TERMIO_H
-#           include <sys/termio.h>
-#         endif
-#         define sgttyb termio
-#         define sg_flags c_lflag
-#         ifdef UNZIP
-           /*
-            * XXX : We should check if this declaration can get removed
-            *       (already in unistd.h)
-#          ifndef SYSV
-            int ioctl OF((int, int, zvoid *));
+#    else /* !HAVE_TERMIOS_H */
+#      ifdef USE_SYSV_TERMIO           /* Amdahl, Cray, all SysV? */
+#        ifdef HAVE_TERMIO_H
+#          include <termio.h>
+#        endif
+#        ifdef HAVE_SYS_TERMIO_H
+#          include <sys/termio.h>
+#        endif
+#        ifdef NEED_PTEM
+#          include <sys/stream.h>
+#          include <sys/ptem.h>
+#        endif
+#        define sgttyb termio
+#        define sg_flags c_lflag
+#        define GTTY(f,s) ioctl(f,TCGETA,(zvoid *)s)
+#        define STTY(f,s) ioctl(f,TCSETAW,(zvoid *)s)
+#      else /* !USE_SYSV_TERMIO */
+#        ifndef CMS_MVS
+#          if (!defined(MINIX) && !defined(GOT_IOCTL_H))
+#            include <sys/ioctl.h>
 #          endif
-            */
-#         endif
-#         define GTTY(f,s) ioctl(f,TCGETA,(zvoid *)s)
-#         define STTY(f,s) ioctl(f,TCSETAW,(zvoid *)s)
-#       else /* !USE_SYSV_TERMIO */
-#         ifndef CMS_MVS
-#           ifndef MINIX
-#             include <sys/ioctl.h>
-#           endif /* !MINIX */
-#           include <sgtty.h>
-#           define GTTY gtty
-#           define STTY stty
-#           ifdef UNZIP
-              /*
-               * XXX : Are these declarations needed at all ????
-               */
-              /*
-               * GRR: let's find out...
-              int gtty OF((int, struct sgttyb *));
-              int stty OF((int, struct sgttyb *));
-               */
-#           endif
-#         endif /* !CMS_MVS */
-#       endif /* ?USE_SYSV_TERMIO */
+#          include <sgtty.h>
+#          define GTTY gtty
+#          define STTY stty
+#          ifdef UNZIP
+             /*
+              * XXX : Are these declarations needed at all ????
+              */
+             /*
+              * GRR: let's find out...   Hmmm, appears not...
+             int gtty OF((int, struct sgttyb *));
+             int stty OF((int, struct sgttyb *));
+              */
+#          endif
+#        endif /* !CMS_MVS */
+#      endif /* ?USE_SYSV_TERMIO */
 #    endif /* ?HAVE_TERMIOS_H */
 #    ifndef NO_FCNTL_H
 #      ifndef UNZIP
@@ -168,7 +168,7 @@
 #ifndef HAVE_WORKING_GETCH
 #ifdef VMS
 
-/***********************************************************************
+/*
  * Turn keyboard echoing on or off (VMS).  Loosely based on VMSmunch.c
  * and hence on Joe Meadows' file.c code.
  */
@@ -242,14 +242,16 @@ int echo(opt)
 
 
 #else /* !VMS:  basically Unix */
+
+
 /* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
 #ifndef CMS_MVS
 
-#ifndef UNZIP                   /* moved to globals.h for UnZip */
+#ifdef ZIP                      /* moved to globals.h for UnZip */
    static int echofd=(-1);      /* file descriptor whose echo is off */
 #endif
 
-/***********************************************************************
+/*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.
  */
 void Echoff(__G__ f)
@@ -264,7 +266,7 @@ void Echoff(__G__ f)
     STTY(f, &sg);
 }
 
-/***********************************************************************
+/*
  * Turn echo back on for file descriptor echofd.
  */
 void Echon(__G)
@@ -286,15 +288,18 @@ void Echon(__G)
 
 #if (defined(UNZIP) && !defined(FUNZIP))
 
-#ifdef UNIX
+#if (defined(UNIX) || defined(__BEOS__))
 #ifdef MORE
 
-/***********************************************************************
- * Get the number of lines on the output terminal.
- * GRR:  will need to know width of terminal someday, too:  line wrap
+/*
+ * Get the number of lines on the output terminal.  SCO Unix apparently
+ * defines TIOCGWINSZ but doesn't support it (!M_UNIX).
+ *
+ * GRR:  will need to know width of terminal someday, too, to account for
+ *       line-wrapping.
  */
 
-#ifdef TIOCGWINSZ
+#if (defined(TIOCGWINSZ) && !defined(M_UNIX))
 
 int screenlines()
 {
@@ -344,11 +349,11 @@ int screenlines()
         return n;
 }
 
-#endif /* ?TIOCGWINSZ */
+#endif /* ?(TIOCGWINSZ && !M_UNIX) */
 #endif /* MORE */
 
 
-/***********************************************************************
+/*
  * Get a character from the given file descriptor without echo or newline.
  */
 int zgetch(__G__ f)
@@ -391,7 +396,9 @@ int zgetch(__G__ f)
     return (int)c;
 }
 
-#else /* !UNIX */
+
+#else /* !UNIX && !__BEOS__ */
+
 
 int zgetch(__G__ f)
     __GDEF
@@ -415,15 +422,23 @@ int zgetch(__G__ f)
     return (int)c;
 }
 
-#endif /* ?UNIX */
+#endif /* ?(UNIX || __BEOS__) */
 
 #endif /* UNZIP && !FUNZIP */
 #endif /* !HAVE_WORKING_GETCH */
 
 
-#ifdef CRYPT                    /* getp() is only used with full encryption */
+#if CRYPT                       /* getp() is only used with full encryption */
 
-/***********************************************************************
+/*
+ * Simple compile-time check for source compatibility between
+ * zcrypt and ttyio:
+ */
+#if (!defined(CR_MAJORVER) || (CR_MAJORVER < 2) || (CR_MINORVER < 7))
+   error:  This Info-ZIP tool requires zcrypt 2.7 or later.
+#endif
+
+/*
  * Get a password of length n-1 or less into *p using the prompt *m.
  * The entered password is not echoed.
  */
@@ -444,13 +459,15 @@ int zgetch(__G__ f)
  * is defined as an alias for a similar system specific RTL function.
  */
 
-#ifndef MSWIN
+#ifndef WINDLL   /* WINDLL does not support a console interface */
+#ifndef QDOS     /* QDOS supplies a variant of this function */
+
 /* This is the getp() function for all systems (with TTY type user interface)
  * that supply a working `non-echo' getch() function for "raw" console input.
  */
 char *getp(__G__ m, p, n)
     __GDEF
-    char *m;                    /* prompt for password */
+    ZCONST char *m;             /* prompt for password */
     char *p;                    /* return value: line input */
     int n;                      /* bytes available in p[] */
 {
@@ -479,45 +496,18 @@ char *getp(__G__ m, p, n)
     } while (p[i-1] != '\n');
     p[i-1] = 0;                 /* terminate at newline */
 
-    return p;  /* return pointer to password */
+    return p;                   /* return pointer to password */
 
 } /* end function getp() */
 
-#else /* MSWIN */
-
-char *getp(__G__ m, p, n)
-    __GDEF
-    char *m;                    /* prompt for password */
-    char *p;                    /* return value: line input */
-    int n;                      /* bytes available in p[] */
-{
-    FARPROC lpProcPassword;
-    lpumb->lpPassword = lpumb->szPassword;
-
-    lpProcPassword = MakeProcInstance(PasswordProc, hInst);
-    if (m[0] == ' ')
-        lstrcpy(lpumb->szBuffer, "      ");
-    else
-        wsprintf(lpumb->szBuffer, "%s", "mike");
-
-    DialogBoxParam(hInst, "Password", hWndMain, lpProcPassword,
-      (DWORD)(LPSTR)G.filename);
-#ifndef WIN32
-    FreeProcInstance(lpProcPassword);
-#endif
-    G.key = lpumb->lpPassword;
-    p = lpumb->szPassword;
-    return p;
-
-} /* end function getp() */
-
-#endif /* ?MSWIN */
+#endif /* !QDOS */
+#endif /* !WINDLL */
 
 
 #else /* !HAVE_WORKING_GETCH */
 
 
-#if (defined(UNIX) || defined(__MINT__))
+#if (defined(UNIX) || defined(__MINT__) || defined(__BEOS__))
 
 #ifndef _PATH_TTY
 #  ifdef __MINT__
@@ -529,14 +519,14 @@ char *getp(__G__ m, p, n)
 
 char *getp(__G__ m, p, n)
     __GDEF
-    char *m;                  /* prompt for password */
-    char *p;                  /* return value: line input */
-    int n;                    /* bytes available in p[] */
+    ZCONST char *m;             /* prompt for password */
+    char *p;                    /* return value: line input */
+    int n;                      /* bytes available in p[] */
 {
-    char c;                   /* one-byte buffer for read() to use */
-    int i;                    /* number of characters input */
-    char *w;                  /* warning on retry */
-    int f;                    /* file descriptor for tty device */
+    char c;                     /* one-byte buffer for read() to use */
+    int i;                      /* number of characters input */
+    char *w;                    /* warning on retry */
+    int f;                      /* file descriptor for tty device */
 
 #ifdef PASSWD_FROM_STDIN
     /* Read from stdin. This is unsafe if the password is stored on disk. */
@@ -550,12 +540,12 @@ char *getp(__G__ m, p, n)
     /* get password */
     w = "";
     do {
-        fputs(w, stderr);     /* warning if back again */
-        fputs(m, stderr);     /* prompt */
+        fputs(w, stderr);       /* warning if back again */
+        fputs(m, stderr);       /* prompt */
         fflush(stderr);
         i = 0;
         echoff(f);
-        do {                  /* read line, keeping n */
+        do {                    /* read line, keeping n */
             read(f, &c, 1);
             if (i < n)
                 p[i++] = c;
@@ -564,17 +554,17 @@ char *getp(__G__ m, p, n)
         PUTC('\n', stderr);  fflush(stderr);
         w = "(line too long--try again)\n";
     } while (p[i-1] != '\n');
-    p[i-1] = 0;               /* terminate at newline */
+    p[i-1] = 0;                 /* terminate at newline */
 
 #ifndef PASSWD_FROM_STDIN
     close(f);
 #endif
 
-    return p;  /* return pointer to password */
+    return p;                   /* return pointer to password */
 
 } /* end function getp() */
 
-#endif /* UNIX || __MINT__ */
+#endif /* UNIX || __MINT__ || __BEOS__ */
 
 
 
@@ -582,14 +572,14 @@ char *getp(__G__ m, p, n)
 
 char *getp(__G__ m, p, n)
     __GDEF
-    char *m;                  /* prompt for password */
-    char *p;                  /* return value: line input */
-    int n;                    /* bytes available in p[] */
+    ZCONST char *m;             /* prompt for password */
+    char *p;                    /* return value: line input */
+    int n;                      /* bytes available in p[] */
 {
-    char c;                   /* one-byte buffer for read() to use */
-    int i;                    /* number of characters input */
-    char *w;                  /* warning on retry */
-    FILE *f;                  /* file structure for SYS$COMMAND device */
+    char c;                     /* one-byte buffer for read() to use */
+    int i;                      /* number of characters input */
+    char *w;                    /* warning on retry */
+    FILE *f;                    /* file structure for SYS$COMMAND device */
 
 #ifdef PASSWD_FROM_STDIN
     f = stdin;
@@ -602,13 +592,13 @@ char *getp(__G__ m, p, n)
     fflush(stdout);
     w = "";
     do {
-        if (*w)               /* bug: VMS adds \n to NULL fputs (apparently) */
-            fputs(w, stderr); /* warning if back again */
-        fputs(m, stderr);     /* prompt */
+        if (*w)                 /* bug: VMS apparently adds \n to NULL fputs */
+            fputs(w, stderr);   /* warning if back again */
+        fputs(m, stderr);       /* prompt */
         fflush(stderr);
         i = 0;
         echoff(f);
-        do {                  /* read line, keeping n */
+        do {                    /* read line, keeping n */
             if ((c = (char)getc(f)) == '\r')
                 c = '\n';
             if (i < n)
@@ -618,18 +608,16 @@ char *getp(__G__ m, p, n)
         PUTC('\n', stderr);  fflush(stderr);
         w = "(line too long--try again)\n";
     } while (p[i-1] != '\n');
-    p[i-1] = 0;               /* terminate at newline */
+    p[i-1] = 0;                 /* terminate at newline */
 #ifndef PASSWD_FROM_STDIN
     fclose(f);
 #endif
 
-    return p;  /* return pointer to password */
+    return p;                   /* return pointer to password */
 
 } /* end function getp() */
 
 #endif /* VMS || CMS_MVS */
-
 #endif /* ?HAVE_WORKING_GETCH */
 #endif /* CRYPT */
-
 #endif /* CRYPT || (UNZIP && !FUNZIP) */

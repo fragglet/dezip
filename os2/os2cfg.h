@@ -113,4 +113,15 @@
 #define tolower(x)   ToLowerNLS((unsigned char)(x))
 #define USETHREADID
 
+/* handlers for OEM <--> ANSI string conversions */
+#ifndef _OS2_ISO_ANSI
+   /* use home_brewed conversion functions; internal charset is OEM */
+#  ifdef CRTL_CP_IS_ISO
+#    undef CRTL_CP_IS_ISO
+#  endif
+#  ifndef CRTL_CP_IS_OEM
+#    define CRTL_CP_IS_OEM
+#  endif
+#endif
+
 #endif /* !__os2cfg_h */

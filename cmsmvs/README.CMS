@@ -6,10 +6,37 @@ Thank you for trying this first port of UNZIP for VM/CMS and MVS!
 
 This is the first beta so there might be some bugs in it.
 
+-----------------------------------------------------------------------
+Additional notes from Greg Hartwig (7/96):
+
+The UNZIP MODULE has been packed to preserve CMS line ends
+and is shipped as UNZIP.MOD.
+To restore it to an executable module on CMS, do the following:
+1. Upload it to CMS as a Fixed file with LRECL 1024.
+   Example, from a DOS or OS/2 window, type this:
+      SEND unzip.mod A:unzip module a (RECFM F LRECL 1024
+
+2. Use COPYFILE to unpack the file.
+   Example, in CMS type this:
+      COPYFILE UNZIP MODULE A (UNPACK REPLACE OLDDATE
+
+'+' and '-' are valid characters in CMS file names, so the code
+to remove them for CMS is only done for MVS now.
+
+I don't have access to an MVS system, so my changes to the
+code have only been tested on CMS.  C/370 version 2.2 was used
+to compile the code.
+
+Greg Hartwig
+e-mail: ghartwig@ix.netcom.com
+        ghartwig@vnet.ibm.com
+-----------------------------------------------------------------------
+
+
                         Using under VM/CMS:
                     ---------------------------
 
-1. To use the Info-Zip's UNZIP under VM/CMS you need:
+1. To use the Info-ZIP's UNZIP under VM/CMS you need:
 
    - C/370 ver 2.1 compiler or another compatible compiler supporting
      long names for function/variable names.
@@ -96,8 +123,8 @@ This is the first beta so there might be some bugs in it.
 
       3.9. All '+' or '-' signs are skipped from the filenames
 
-Please rapport all bugs and problems to :
-     Info-ZIP@WKUVX1.WKU.EDU
+Please report all bugs and problems to :
+     Zip-Bugs@lists.wku.edu
 
 That's all for now.
 

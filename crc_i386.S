@@ -1,6 +1,9 @@
 /*
  * crc_i386.S, optimized CRC calculation function for Zip and UnZip, not
- * copyrighted by Paul Kienitz and Christian Spieler.  Last revised 19 Jan 96.
+ * copyrighted by Paul Kienitz and Christian Spieler.  Last revised 10 Nov 96.
+ *
+ * GRR 961110:  incorporated Scott Field optimizations from win32/crc_i386.asm
+ *              => overall 6% speedup in "unzip -tq" on 9MB zipfile (486-66)
  *
  * FLAT memory model assumed.  Calling interface:
  *   - args are pushed onto the stack from right to left,
@@ -10,7 +13,7 @@
  *     them nevertheless does only cost 4 single byte instructions.)
  *
  * This source generates the function
- * ulg crc32(ulg oldcrc, const uch *text, ulg textlen).
+ * ulg crc32(ulg oldcrc, ZCONST uch *text, ulg textlen).
  *
  * The loop unroolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
  * This results in shorter code at the expense of reduced performance.
@@ -26,12 +29,12 @@
 #  define _crc32            crc32
 #  define _get_crc_table    get_crc_table
 #endif
-/* Use 16-bytes alignment if your assembler supports it. Warning: gas
- * uses a log(x) parameter (.align 4 means 16-bytes alignment). On SVR4
+/* Use 16-byte alignment if your assembler supports it. Warning: gas
+ * uses a log(x) parameter (.align 4 means 16-byte alignment). On SVR4
  * the parameter is a number of bytes.
  */
 #ifndef ALIGNMENT
-#  define ALIGNMENT 4
+#  define ALIGNMENT .align 4,0x90
 #endif
 
 #if defined(i386) || defined(_i386) || defined(_I386) || defined(__i386)
@@ -43,17 +46,6 @@
  */
 
                 .file   "crc_i386.S"
-
-                .extern  _get_crc_table
-                /* extern ulg near * __cdecl get_crc_table(void); */
-
-#ifndef ALIGN_SMALL
-#  if ALIGNMENT < 2
-#    define ALIGN_SMALL  ALIGNMENT
-#  else
-#    define ALIGN_SMALL  2
-#  endif
-#endif
 
 #if defined(NO_STD_STACKFRAME) && defined(USE_STD_STACKFRAME)
 #  undef USE_STACKFRAME
@@ -91,7 +83,8 @@
  *   eax  : requires upper three bytes of eax = 0, uses al
  */
 #define Do_CRC \
-                lodsb                       ;/* al <-- *text++              */\
+                movb    (%esi),%al          ;/* al <-- *text                */\
+                incl    %esi                ;/* text++                      */\
                 xorb    %bl,%al             ;/* (c ^ *text++) & 0xFF        */\
                 shrl    $8,%ebx             ;/* c = (c >> 8)                */\
                 xorl    (%edi,%eax,4),%ebx  ;/*  ^table[(c^(*text++))&0xFF] */
@@ -110,27 +103,23 @@ _crc32:                         /* ulg crc32(ulg crc, uch *text, extent len) */
                 pushl   %ecx
 
                 movl    arg2,%esi            /* 2nd arg: uch *text           */
-                testl   %esi,%esi
-                jne     Crunch_it            /* > if (!text)                 */
-                subl    %eax,%eax            /* >   return 0;                */
-                jmp     fine                 /* >                            */
-                .align  ALIGN_SMALL,0x90
-Crunch_it:                                   /* > else {                     */
+                subl    %eax,%eax            /* > if (!text)                 */
+                testl   %esi,%esi            /* >   return 0;                */
+                jz      fine                 /* > else {                     */
                 call    _get_crc_table
                 movl    %eax,%edi
                 movl    arg1,%ebx            /* 1st arg: ulg crc             */
                 subl    %eax,%eax            /* eax=0; al usable as dword */
                 movl    arg3,%ecx            /* 3rd arg: extent textlen      */
                 notl    %ebx                 /* >   c = ~crc;                */
-                cld                          /* incr. idx regs on string ops */
 
 #ifndef  NO_UNROLLED_LOOPS
                 movl    %ecx,%edx            /* save textlen in edx          */
-                shrl    $3,%ecx              /* ecx = textlen / 8            */
                 andl    $7,%edx              /* edx = textlen % 8            */
-                jecxz   No_Eights
+                shrl    $3,%ecx              /* ecx = textlen / 8            */
+                jz      No_Eights
 /*  align loop head at start of 486 internal cache line !! */
-                .align   ALIGNMENT,0x90
+                ALIGNMENT
 Next_Eight:
                  Do_CRC
                  Do_CRC
@@ -140,16 +129,20 @@ Next_Eight:
                  Do_CRC
                  Do_CRC
                  Do_CRC
-                loop    Next_Eight
+                decl    %ecx
+                jnz     Next_Eight
+
 No_Eights:
                 movl    %edx,%ecx
 #endif /* NO_UNROLLED_LOOPS */
+
                 jecxz   bail                 /* > if (textlen)               */
 /* align loop head at start of 486 internal cache line !! */
-                .align   ALIGNMENT,0x90
+                ALIGNMENT
 loupe:                                       /* >   do {                     */
                  Do_CRC                      /*       c = CRC32(c, *text++); */
-                loop    loupe                /* >   } while (--textlen);     */
+                decl    %ecx                 /* >   } while (--textlen);     */
+                jnz     loupe
 
 bail:                                        /* > }                          */
                 movl    %ebx,%eax

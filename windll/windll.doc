@@ -1,0 +1,212 @@
+The code set out below is not intended to be compiled, but is only intended
+as a very simplistic pointer to how to load and call the dll. You will have
+to look in the files referenced below for actual, working code.
+
+There are now seven entry points to the dll.
+
+There is a single "unzipping" entry point of:
+
+windll_unzip(int argc, char **argv, DCL far*lpDCL,
+     USERFUNCTIONS far *lpUserFunc)
+
+where the arguments are:
+
+argc       = number of file names being passed. If all files are to be
+             extracted, then this can be zero.
+argv       = file names to be unarchived. If all files are to be extracted,
+             then this can be null.
+lpDCL      = pointer to a structure with the flags for setting the
+             various options, as well as the zip file name.
+lpUserFunc = pointer to a structure that contains pointers to functions
+             in the calling application, as well as handles to windows,
+             and the calling application's stdout.
+
+The DCL structure is shown below:
+
+typedef struct {
+int ExtractOnlyNewer;   = true if you are to extract only newer
+int Overwrite;          = true if always overwrite files
+int SpaceToUnderscore;  = true if convert space to underscore
+int PromptToOverwrite;  = true if prompt to overwrite is wanted
+int ncflag              = write to stdout if true
+int ntflag              = test zip file
+int nvflag              = verbose listing
+int nUflag              = "update" (extract only newer/new files
+int nzflag              = display zip file comment
+int ndflag              = all args are files/dir to be extracted
+int noflag              = true if you are to over-write files, false if not
+int naflag              = do ASCII-EBCDIC and/or end of line translation
+int fPrivilege          = 1 => restore Acl's, 2 => Use privileges
+LPSTR lpszZipFN         = zip file name
+} DCL, _far *LPDCL;
+
+The typedef's for the function pointers in the structure USERFUNCTIONS
+are shown immediately below.
+
+typedef unsigned short ush;
+typedef int (WINAPI DLLPRNT) (char * far, unsigned long);
+typedef int (WINAPI DLLPASSWORD) (char *, int, const char *, const char *);
+typedef void (WINAPI DLLSND) (void);
+typedef int (WINAPI DLLREPLACE)(char *);
+typedef void (WINAPI DLLMESSAGE)(unsigned long, unsigned long,
+   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long);
+
+Structure USERFUNCTIONS
+
+typedef struct {
+DLLPRNT *print;         = a pointer to the application's print routine.
+DLLSND *sound;          = a pointer to the application's sound routine. This
+                          can be NULL if your application doesn't use
+                          sound.
+DLLREPLACE *replace     = a pointer to the application's replace routine.
+DLLPASSWORD *password   = a pointer to the application's password routine.
+DLLMESSAGE *SendApplicationMessage = a pointer to the application's routine
+                          for displaying information about specific files
+                          in the archive. Used for listing the contents of
+                          an archive.
+WORD cchComment;        = flag to be set if archive has a comment
+unsigned long TotalSizeComp = value to be filled in by the dll for the
+                          compressed total size of the archive. Note this
+                          value does not include the size of the archive
+                          header and central directory list.
+unsigned long TotalSize = value to be filled in by the dll for the total
+                          size of all files in the archive.
+int CompFactor          = value to be filled in by the dll for the overall
+                          compression factor. This could actually be computed
+                          from the other values, but it is available.
+unsigned int NumMembers = total number of files in the archive.
+} USERFUNCTIONS, far * LPUSERFUNCTIONS;
+
+For examples of how the actual calls to the dll are set up in WiZ, look in
+the files action.c and wizmain.c in the WiZ source directory. For a trival
+example of how to load and call the dll, look in example.c and example.h.
+
+For examples of how the actual loading and unloading of the dll's themselves
+was done, look in wizmain.c in the WiZ source directory. Note that WiZ looks
+specifically for a particular version number of the dll, and also expects to
+find the company name to be Info-ZIP. This is to protect from getting
+different versions of the dll loaded, with resulting unknown behavior.
+
+There is also a second "single" entry point that was designed for use with
+Visual Basic (and can possibly be used with Delphi also.) NOTE THAT THIS
+ENTRY POINT HAS NOT BEEN ACTUALLY TESTED WITH VISUAL BASIC. It has been
+tested with 'C', and works, but I do not have access to Visual Basic, and
+am not a Visual Basic programmer. If you are trying to use this entry point
+with Visual Basic, you are on your own. I have no idea how to call this
+from Visual Basic.
+
+int WINAPI unzipVB(int argc, char **argv, DCL far *lpDCL,
+   VBUSERFUNCTIONS far *lpUF)
+
+where the arguments are:
+
+argc       = number of file names being passed
+argv       = file names to be unarchived
+lpDCL      = pointer to a structure with the flags for setting the
+             various options, as well as the zip file name.
+lpUF       = pointer to a structure that contains pointers to functions
+             in the calling application, as well as handles to windows,
+             and the calling application's stdout.
+
+The DCL structure is shown above.
+
+The VBUSERFUNCTION structure is as shown below:
+
+typedef struct {
+HINSTANCE hInstance;    = The instance of the calling application.
+char print[80];         = A string containing the name of the calling
+                          application's print routine.
+char sound[80];         = A string containing the name of the calling
+                          application's sound routine.
+char replace[80];       = A string containing the name of the calling
+                          application's rename/replace routine.
+char password[80];      = A string containing the name of the calling
+                          application's password routine.
+char SendApplicationMessage[80]; = A string containing the name of the calling
+                          application's routine for displaying information
+                          about specific files in the archive. Used for
+                          listing the contents of an archive.
+WORD cchComment;        = flag to be set if archive has a comment
+unsigned long TotalSizeComp = value to be filled in by the dll for the
+                          compressed total size of the archive. Note this
+                          value does not include the size of the archive
+                          header and central directory list.
+unsigned long TotalSize = value to be filled in by the dll for the total
+                          size of all files in the archive.
+int CompFactor          = value to be filled in by the dll for the overall
+                          compression factor. This could actually be computed
+                          from the other values, but it is available.
+unsigned int NumMembers = total number of files in the archive.
+} VBUSERFUNCTIONS, far * LPVBUSERFUNCTIONS;
+
+NOTE: The calling application must export (make available to the dll) the
+      routines for print, sound, replace and SendApplicationMessage.
+
+There are six additional entry points:
+
+    UzpVersion:
+
+    UzpVer * UzpVersion(void);
+
+where UzpVer is defined as:
+
+typedef struct _UzpVer {
+    ulg structlen;          /* length of the struct being passed */
+    ulg flag;               /* bit 0: is_beta   bit 1: uses_zlib */
+    char *betalevel;        /* e.g., "g BETA" or "" */
+    char *date;             /* e.g., "4 Sep 95" (beta) or "4 September 1995" */
+    char *zlib_version;     /* e.g., "1.0.5" or NULL */
+    _version_type unzip;
+    _version_type zipinfo;
+    _version_type os2dll;
+    _version_type windll;
+} UzpVer;
+
+See api.c for exactly what UzpVersion does, but the short version of
+what it does is return the unzip and dll versions in the UzpVer structure.
+
+The remaining five functions are linked together. Their use would be as
+follows (explanations of each function is shown further below):
+
+    #include "windll.h"
+    MyApiCallingRoutine()
+    {
+        zvoid *UzpGlobals = Unz_CreateGlobals();
+        .
+        .
+        .
+        Unz_Init(UzpGlobals, lpUserFunctions); /* Set up user functions */
+        .
+        .
+        .
+        Unz_SetOpts(UzpGlobals, lpDCL); /* Set up unzipping options */
+        .
+        .
+        .
+        Unz_Unzip(UzpGlobals, argc, argv); /* Unzip files */
+        .
+        .
+        .
+        Unz_ReleaseGlobals(UzpGlobals);
+    }
+
+Each entry point is as defined below:
+
+    zvoid * WINAPI Unz_CreateGlobals(void);
+
+    BOOL WINAPI Unz_Init(zvoid *, USERFUNCTIONS far *);
+
+    BOOL WINAPI Unz_SetOpts(zvoid *, LPDCL);
+
+    int WINAPI Unz_Unzip(zvoid *, int, char **);
+
+    void WINAPI Unz_ReleaseGlobals(zvoid *);
+
+Note that you should use either windll_unzip OR the series of calls
+described above. Using both, depending on how you do it, could cause
+problems.
+
+Last revised March 31, 1997.
+
+Mike White
+

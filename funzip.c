@@ -1,6 +1,6 @@
 /* funzip.c -- put in the public domain by Mark Adler */
 
-#define VERSION "3.9 of 30 April 1996"
+#define VERSION "3.92 of 22 April 1997"
 
 
 /* You can do whatever you like with this source file, though I would
@@ -69,12 +69,15 @@
    3.89   22 Nov 95  PK/CS           ifdef'd out updcrc() for ASM_CRC
    3.9    17 Dec 95  G. Roelofs      modified for USE_ZLIB (new fillinbuf())
     -     30 Apr 96  -               public release with UnZip 5.2
+   3.91   17 Aug 96  G. Roelofs      main() -> return int (Peter Seebach)
+   3.92   13 Apr 97  G. Roelofs      minor cosmetic fixes to messages
+    -     22 Apr 97  -               public release with UnZip 5.3
  */
 
 
 /*
 
-   All funzip does is take a zip file from stdin and decompress the
+   All funzip does is take a zipfile from stdin and decompress the
    first entry to stdout.  The entry has to be either deflated or
    stored.  If the entry is encrypted, then the decryption password
    must be supplied on the command line as the first argument.
@@ -137,7 +140,7 @@
 
 /* Function prototypes */
 void err OF((int, char *));
-void main OF((int, char **));
+int main OF((int, char **));
 
 /* Globals */
 FILE *out;                      /* output file (*in moved to G struct) */
@@ -145,7 +148,7 @@ ulg outsiz;                     /* total bytes written to out */
 int encrypted;                  /* flag to turn on decryption */
 
 /* Masks for inflate.c */
-ush near mask_bits[] = {
+ZCONST ush near mask_bits[] = {
     0x0000,
     0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
@@ -164,7 +167,7 @@ __GDEF
     return 0;
   G.inptr = G.inbuf;
 
-#ifdef CRYPT
+#if CRYPT
   if (encrypted) {
     uch *p;
     int n;
@@ -203,7 +206,7 @@ char *m;
 {
   Info(slide, 1, ((char *)slide, "funzip error: %s\n", m));
   DESTROYGLOBALS()
-  exit(n);
+  EXIT(n);
 }
 
 
@@ -218,15 +221,15 @@ ulg w;          /* number of bytes to flush */
 }
 
 
-void main(argc, argv)
+int main(argc, argv)
 int argc;
 char **argv;
-/* Given a zip file on stdin, decompress the first entry to stdout. */
+/* Given a zipfile on stdin, decompress the first entry to stdout. */
 {
   ush n;
   uch h[LOCHDR];                /* first local header (GZPHDR < LOCHDR) */
   int g = 0;                    /* true if gzip format */
-#ifdef CRYPT
+#if CRYPT
   char *s = " [-password]";
   char *p;                      /* password */
 #else /* !CRYPT */
@@ -238,7 +241,7 @@ char **argv;
   argc--;
   argv++;
 
-#ifdef CRYPT
+#if CRYPT
   /* get the command line password, if any */
   p = (char *)NULL;
   if (argc && **argv == '-')
@@ -264,7 +267,7 @@ char **argv;
     Info(slide, 1, ((char *)slide, "Extracts to stdout the gzip file or first\
  zip entry of stdin or the given file.\n"));
     DESTROYGLOBALS()
-    exit(3);
+    EXIT(3);
   }
 
   /* prepare to be a binary filter */
@@ -311,7 +314,7 @@ char **argv;
   if (n == ZIPMAG)
   {
     if (fread((char *)h, 1, LOCHDR, G.in) != LOCHDR || SH(h) != LOCREM)
-      err(3, "invalid zip file");
+      err(3, "invalid zipfile");
     if (SH(h + LOCHOW) != STORED && SH(h + LOCHOW) != DEFLATED)
       err(3, "first entry not deflated or stored--can't funzip");
     for (n = SH(h + LOCFIL); n--; ) g = getc(G.in);
@@ -344,7 +347,7 @@ char **argv;
 
   /* if entry encrypted, decrypt and validate encryption header */
   if (encrypted)
-#ifdef CRYPT
+#if CRYPT
     {
       ush i, e;
 
@@ -395,13 +398,17 @@ char **argv;
     register ulg n;
 
     n = LG(h + LOCLEN);
+#if CRYPT
     if (n != LG(h + LOCSIZ) - (encrypted ? RAND_HEAD_LEN : 0)) {
+#else
+    if (n != LG(h + LOCSIZ)) {
+#endif
       Info(slide, 1, ((char *)slide, "len %ld, siz %ld\n", n, LG(h + LOCSIZ)));
       err(4, "invalid compressed data--length mismatch");
     }
     while (n--) {
       ush c = getc(G.in);
-#ifdef CRYPT
+#if CRYPT
       if (encrypted)
         zdecode(c);
 #endif
@@ -437,7 +444,7 @@ char **argv;
   else
     if ((h[LOCFLG] & EXTFLG) &&
         fread((char *)h + LOCCRC - 4, 1, EXTHDR, G.in) != EXTHDR)
-      err(3, "zip file ended prematurely");
+      err(3, "zipfile ended prematurely");
 
   /* validate decompression */
   if (LG(h + LOCCRC) != G.crc32val)
@@ -448,8 +455,8 @@ char **argv;
   /* check if there are more entries */
   if (!g && fread((char *)h, 1, 4, G.in) == 4 && LG(h) == LOCSIG)
     Info(slide, 1, ((char *)slide,
-      "funzip warning: zip file has more than one entry--rest ignored\n"));
+      "funzip warning: zipfile has more than one entry--rest ignored\n"));
 
   DESTROYGLOBALS()
-  exit(0);
+  RETURN (0);
 }

@@ -1,5 +1,5 @@
 /* inflate.c -- put in the public domain by Mark Adler
-   version c14v, 8 November 1995 */
+   version c15c, 28 March 1997 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -87,6 +87,11 @@
    c14u   1 Oct 95  G. Roelofs      moved G into definition of MESSAGE macro
    c14v   8 Nov 95  P. Kienitz      changed ASM_INFLATECODES to use a regular
                                     call with __G__ instead of a macro
+    c15   3 Aug 96  M. Adler        fixed bomb-bug on random input data (Adobe)
+   c15b  24 Aug 96  M. Adler        more fixes for random input data
+   c15c  28 Mar 97  G. Roelofs      changed USE_ZLIB fatal exit code from
+                                    PK_MEM2 to PK_MEM3
+    c16  20 Apr 97  J. Altman       added memzero(v[]) in huft_build()
  */
 
 
@@ -370,7 +375,7 @@ int UZinflate(__G)   /* decompress an inflated entry using the zlib routines */
         } else if (err != Z_OK && err != Z_STREAM_END) {
             Trace((stderr, "oops!  (inflate(final loop) err = %d)\n", err));
             DESTROYGLOBALS()
-            EXIT(5);
+            EXIT(PK_MEM3);
         }
         FLUSH(wsize - G.dstrm.avail_out);   /* final flush of slide[] */
         Trace((stderr, "final loop:  flushing %ld bytes (ptr diff = %ld)\n",
@@ -449,7 +454,7 @@ static ush cpdext[] = {         /* Extra bits for distance codes */
 /* moved to consts.h (included in unzip.c), resp. funzip.c */
 #if 0
 /* And'ing with mask_bits[n] masks the lower n bits */
-const ush near mask_bits[] = {
+ZCONST ush near mask_bits[] = {
     0x0000,
     0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
@@ -826,7 +831,10 @@ static int inflate_dynamic(__G)
 
   /* build decoding table for trees--single level, 7 bit lookup */
   bl = 7;
-  if ((i = huft_build(__G__ ll, 19, 19, NULL, NULL, &tl, &bl)) != 0)
+  i = huft_build(__G__ ll, 19, 19, NULL, NULL, &tl, &bl);
+  if (bl == 0)                        /* no bit lengths */
+    i = 1;
+  if (i)
   {
     if (i == 1)
       huft_free(tl);
@@ -892,29 +900,40 @@ static int inflate_dynamic(__G)
 
   /* build the decoding tables for literal/length and distance codes */
   bl = lbits;
-  if ((i = huft_build(__G__ ll, nl, 257, cplens, cplext, &tl, &bl)) != 0)
+  i = huft_build(__G__ ll, nl, 257, cplens, cplext, &tl, &bl);
+  if (bl == 0)                        /* no literals or lengths */
+    i = 1;
+  if (i)
   {
-    if (i == 1 && !G.qflag) {
-      MESSAGE((uch *)"(incomplete l-tree)  ", 21L, 1);
+    if (i == 1) {
+      if (!G.qflag)
+        MESSAGE((uch *)"(incomplete l-tree)  ", 21L, 1);
       huft_free(tl);
     }
     return i;                   /* incomplete code set */
   }
   bd = dbits;
-  if ((i = huft_build(__G__ ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0)
+  i = huft_build(__G__ ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
+  if (bd == 0 && nl > 257)    /* lengths but no distances */
   {
-    if (i == 1 && !G.qflag) {
+    if (!G.qflag)
       MESSAGE((uch *)"(incomplete d-tree)  ", 21L, 1);
-#ifdef PKZIP_BUG_WORKAROUND
-      i = 0;
-#else
-      huft_free(td);
-#endif
-    }
-#ifndef PKZIP_BUG_WORKAROUND
     huft_free(tl);
-    return i;                   /* incomplete code set */
+    return 1;
+  }
+  if (i == 1) {
+#ifdef PKZIP_BUG_WORKAROUND
+    i = 0;
+#else
+    if (!G.qflag)
+      MESSAGE((uch *)"(incomplete d-tree)  ", 21L, 1);
+    huft_free(td);
 #endif
+  }
+  if (i)
+  {
+    huft_free(tl);
+    return i;
   }
 
 
@@ -1137,11 +1156,13 @@ int *m;                 /* maximum lookup bits, returns actual */
 
 
   /* Make a table of values in order of bit lengths */
+  memzero((char *)v, sizeof(v));
   p = b;  i = 0;
   do {
     if ((j = *p++) != 0)
       v[x[j]++] = i;
   } while (++i < n);
+  n = x[g];                     /* set n to length of v */
 
 
   /* Generate the Huffman codes and for each, make the table entries */

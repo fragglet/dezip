@@ -23,16 +23,16 @@ fp		RN	11
 ip		RN	12
 
 
-XOS_Bit			EQU &020000
+XOS_Bit				EQU &020000
 
-OS_GBPB			EQU &00000C
-OS_File			EQU &000008
-OS_FSControl		EQU &000029
-OS_CLI			EQU &000005
-OS_ReadC		EQU &000004
-OS_ReadVarVal		EQU &000023
-DDEUtils_Prefix		EQU &042580
-
+OS_GBPB				EQU &00000C
+OS_File				EQU &000008
+OS_FSControl			EQU &000029
+OS_CLI				EQU &000005
+OS_ReadC			EQU &000004
+OS_ReadVarVal			EQU &000023
+DDEUtils_Prefix			EQU &042580
+Territory_ReadCurrentTimeZone	EQU &043048
 
 	MACRO
 	STARTCODE $name
@@ -173,6 +173,19 @@ $name
 	LDMFD	sp!, {r4-r5,pc}^
 
 
+; os_error *SWI_OS_File_8(char *dirname);
+
+	STARTCODE SWI_OS_File_8
+
+	STMFD	sp!, {r4,lr}
+	MOV	r1, r0
+	MOV	r4, #0
+	MOV	r0, #8
+	SWI	OS_File + XOS_Bit
+	MOVVC	r0, #0
+	LDMFD	sp!, {r4,pc}^
+
+
 ; os_error *SWI_OS_CLI(char *cmd);
 
 	STARTCODE SWI_OS_CLI
@@ -252,6 +265,16 @@ $name
 	MOV	ip, lr
 	SWI	DDEUtils_Prefix + XOS_Bit
 	MOVVC	r0, #0
+	MOVS	pc, ip
+
+; int SWI_Read_Timezone(void);
+
+	STARTCODE SWI_Read_Timezone
+
+	MOV	ip, lr
+	SWI	Territory_ReadCurrentTimeZone + XOS_Bit
+	MOVVC	r0, r1
+	MOVVS	r0, #0
 	MOVS	pc, ip
 
 

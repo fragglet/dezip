@@ -26,6 +26,9 @@ os_error *SWI_OS_File_6(char *filename);
 os_error *SWI_OS_File_7(char *filename, int loadaddr, int execaddr, int size);
 /* create an empty file */
 
+os_error *SWI_OS_File_8(char *dirname);
+/* create a directory */
+
 os_error *SWI_OS_CLI(char *cmd);
 /* execute a command */
 
@@ -43,5 +46,8 @@ os_error *SWI_OS_FSControl_37(char *pathname, char *buffer, int *size);
 
 os_error *SWI_DDEUtils_Prefix(char *dir);
 /* sets the 'prefix' directory */
+
+int SWI_Read_Timezone(void);
+/* returns the timezone offset (centiseconds) */
 
 #endif

@@ -4,7 +4,16 @@ For UnZip 6.0/6.1/who knows:
 
    o add multi-part zipfile handling
 
-	top of the list!
+	top of the list for 6.0!
+
+   o add new low-level, binary API; rewrite "normal" (command-line) UnZip
+     to use it
+
+	very soon (maybe 6.1)
+
+   o use (simple!) configure script in combination with Unix Makefile
+
+	very soon
 
    o rewrite to use fread/fseek/etc.  [eventually: test
      write(bytes) vs. fwrite(words), especially on Crays/Alphas]
@@ -18,10 +27,6 @@ For UnZip 6.0/6.1/who knows:
    o check NEXTBYTE for EOF in crypt.c, funzip.c and explode.c, too
 
 	soon
-
-   o use (simple!) configure script in combination with Unix Makefile
-
-	someday
 
    o add option to force completely non-interactive operation (no queries
      for overwrite/rename, password, etc.); also allow some sort of non-

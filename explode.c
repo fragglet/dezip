@@ -1,5 +1,5 @@
 /* explode.c -- put in the public domain by Mark Adler
-   version c14, 22 November 1995 */
+   version c15, 6 July 1996 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -35,6 +35,7 @@
                                     to avoid bug in Encore compiler.
     c13  25 Aug 94  M. Adler        fixed distance-length comment (orig c9 fix)
     c14  22 Nov 95  S. Maxwell      removed unnecessary "static" on auto array
+    c15   6 Jul 96  W. Haidinger    added ulg typecasts to flush() calls
  */
 
 
@@ -89,9 +90,9 @@
 #endif                  /* at least 8K for zip's implode method */
 
 #ifdef DLL
-# define wsize G._wsize
+#  define wsize G._wsize
 #else
-# define wsize WSIZE
+#  define wsize WSIZE
 #endif
 
 /* routines here */
@@ -246,7 +247,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       redirSlide[w++] = (uch)t->v.n;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, w, 0);
+        flush(__G__ redirSlide, (ulg)w, 0);
         w = u = 0;
       }
     }
@@ -289,11 +290,11 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       s -= n;
       do {
 #ifdef DLL
-	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
-	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-	else
+        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+        else
 #endif
-	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
+        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
           memzero(redirSlide + w, e);
@@ -315,7 +316,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, w, 0);
+          flush(__G__ redirSlide, (ulg)w, 0);
           w = u = 0;
         }
       } while (n);
@@ -323,7 +324,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, w, 0);
+  flush(__G__ redirSlide, (ulg)w, 0);
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
@@ -379,7 +380,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       redirSlide[w++] = (uch)t->v.n;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, w, 0);
+        flush(__G__ redirSlide, (ulg)w, 0);
         w = u = 0;
       }
     }
@@ -422,11 +423,11 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       s -= n;
       do {
 #ifdef DLL
-	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
-	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-	else
+        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+        else
 #endif
-	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
+        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
           memzero(redirSlide + w, e);
@@ -448,7 +449,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, w, 0);
+          flush(__G__ redirSlide, (ulg)w, 0);
           w = u = 0;
         }
       } while (n);
@@ -456,7 +457,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, w, 0);
+  flush(__G__ redirSlide, (ulg)w, 0);
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
@@ -502,7 +503,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       redirSlide[w++] = (uch)b;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, w, 0);
+        flush(__G__ redirSlide, (ulg)w, 0);
         w = u = 0;
       }
       DUMPBITS(8)
@@ -546,11 +547,11 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       s -= n;
       do {
 #ifdef DLL
-	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
-	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-	else
+        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+        else
 #endif
-	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
+        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
           memzero(redirSlide + w, e);
@@ -572,7 +573,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, w, 0);
+          flush(__G__ redirSlide, (ulg)w, 0);
           w = u = 0;
         }
       } while (n);
@@ -580,7 +581,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, w, 0);
+  flush(__G__ redirSlide, (ulg)w, 0);
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
@@ -626,7 +627,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       redirSlide[w++] = (uch)b;
       if (w == wsize)
       {
-        flush(__G__ redirSlide, w, 0);
+        flush(__G__ redirSlide, (ulg)w, 0);
         w = u = 0;
       }
       DUMPBITS(8)
@@ -670,11 +671,11 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       s -= n;
       do {
 #ifdef DLL
-	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
-	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
-	else
+        if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+          n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+        else
 #endif
-	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
+        n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
           memzero(redirSlide + w, e);
@@ -696,7 +697,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
             } while (--e);
         if (w == wsize)
         {
-          flush(__G__ redirSlide, w, 0);
+          flush(__G__ redirSlide, (ulg)w, 0);
           w = u = 0;
         }
       } while (n);
@@ -704,7 +705,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   }
 
   /* flush out redirSlide */
-  flush(__G__ redirSlide, w, 0);
+  flush(__G__ redirSlide, (ulg)w, 0);
   if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
   {                        /* sometimes read one too many:  k>>3 compensates */
     G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);

@@ -2,6 +2,18 @@
 
   unshrink.c                     version 1.21                     23 Nov 95
 
+
+       NOTE:  This code may or may not infringe on the so-called "Welch
+       patent" owned by Unisys.  (From reading the patent, it appears
+       that a pure LZW decompressor is *not* covered, but this claim has
+       not been tested in court, and Unisys is reported to believe other-
+       wise.)  It is therefore the responsibility of the user to acquire
+       whatever license(s) may be required for legal use of this code.
+
+       THE INFO-ZIP GROUP DISCLAIMS ALL LIABILITY FOR USE OF THIS CODE
+       IN VIOLATION OF APPLICABLE PATENT LAW.
+
+
   Shrinking is basically a dynamic LZW algorithm with allowed code sizes of
   up to 13 bits; in addition, there is provision for partial clearing of
   leaf nodes.  PKWARE uses the special code 256 (decimal) to indicate a
@@ -9,9 +21,9 @@
   former and 256,2 for the latter.  [Note that partial clearing can "orphan"
   nodes:  the parent-to-be can be cleared before its new child is added,
   but the child is added anyway (as an orphan, as though the parent still
-  exists).  When the tree fills up to the point where the parent node is
+  existed).  When the tree fills up to the point where the parent node is
   reused, the orphan is effectively "adopted."  Versions prior to 1.05 were
-  more affected due to their use of more pointers (to children and siblings
+  affected more due to greater use of pointers (to children and siblings
   as well as parents).]
 
   This replacement version of unshrink.c was written from scratch.  It is
@@ -46,7 +58,10 @@
 
 
 #define UNZIP_INTERNAL
-#include "unzip.h"
+#include "unzip.h"       /* defines LZW_CLEAN by default */
+
+
+#ifndef LZW_CLEAN
 
 static void  partial_clear  OF((__GPRO));
 
@@ -79,7 +94,8 @@ int unshrink(__G)
 #if 0
     static uch *stacktop = NULL;
 #else
-    uch *stacktop = stack + (HSIZE - 1);
+    int offset = (HSIZE - 1);
+    uch *stacktop = stack + offset;
 #endif
     register uch *newstr;
     int codesize=9, len, KwKwK, error;
@@ -282,3 +298,5 @@ static void partial_clear(__G)
 
     return;
 }
+
+#endif /* !LZW_CLEAN */

@@ -83,15 +83,15 @@ void close_outfile(__G)
     int yr, mo, dy, hh, mm, ss;
     char temp[100];
     unsigned tad;
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 
 
     if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.crec.extra_field_length,
-                         &z_utime, NULL) > 0)
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          &z_utime, NULL) & EB_UT_FL_MTIME))
     {
-        struct tm *t = localtime(&(z_utime.modtime));
+        struct tm *t = localtime(&(z_utime.mtime));
 
         yr = t->tm_year + 1900;
         mo = t->tm_mon;
@@ -112,7 +112,7 @@ void close_outfile(__G)
         mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
         ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
     }
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
 
     /* dissect the date */
     yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
@@ -123,7 +123,7 @@ void close_outfile(__G)
     hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
     mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
     ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
     sprintf(temp, "%02d/%02d/%02d %02d:%02d:%02d", mo, dy, yr, hh, mm, ss);
 

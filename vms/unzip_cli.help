@@ -13,8 +13,7 @@
 .!
 .!	To build:
 .!	    $ EDIT /TPU/NOSECTION/NODISPLAY/COMMAND=CVTHELP.TPU UNZIP_CLI.HELP
-.!	    $ REN UNZIP_CLI.RNH UNZIP.RNH
-.!	    $ RUNOFF UNZIP.RNH
+.!	    $ RUNOFF /OUT=UNZIP.HLP UNZIP_CLI.RNH
 .!	    $ LIBR /HELP/INSERT libr UNZIP
 .!
 .!  Modification history:
@@ -29,6 +28,11 @@
 .!		Changed to conform to revised .CLD definition.
 .!	02-005		Christian Spieler	06-FEB-1996 02:20
 .!		Added description of /HELP qualifier.
+.!	02-006		Christian Spieler	12-MAY-1996 00:50
+.!		Some clarifications/cleanups.
+.!	02-007		Christian Spieler	04-MAR-1997 22:25
+.!		Added /[NO]CASE_INSENSITIVE to ZipInfo mode;
+.!		documented the new /PASSWORD="decryption_key" option.
 .!
 <INIT>
 <MAIN>
@@ -39,12 +43,15 @@ for information on ZIP).
 
 For a brief help on Zip and Unzip, run each without specifying any
 parameters on the command line (or apply the /HELP qualifier).
+To get a brief help sceen about the alternate UNIX style command interface,
+run each with the -h option applied.
 
 UNZIP will list, test, or extract from a ZIP archive.  ZIP archives are commonly
 found on MS-DOS systems; a VMS version of ZIP can also be found here.
 
-Archive member extraction is implied by the absence of the -c, -p, -t, -l, -v or
--z options.  All archive members are processed unless a filespec is provided to
+Archive member extraction is implied by the absence of the /SCREEN (-c),
+/PIPE (-p), /TEST (-t), /LIST (-l, -v) or /COMMENT (-z) qualifiers (options).
+All archive members are processed unless a filespec is provided to
 specify a subset of the archive members.
 <FORMAT>
 UNZIP zipfile [file[,...]] [/qualifiers]
@@ -99,15 +106,16 @@ This function used to be provided by a separate ZipInfo program.
 The following qualifiers may be specified with /ZIPINFO:
 
 <LITERAL>
-|  /SHORT     Short UNIX "ls -l" format (default)
-|  /MEDIUM    Medium UNIX "ls -l" format
-|  /LONG      Long UNIX "ls -l" format
-|  /ONE_LINE  Filenames only, one per line
-|  /VERBOSE   Verbose, multi-page format
-|  /HEADER    Print header lines
-|  /TOTALS    Print totals for files
-|  /TIMES     Print file times in sortable decimal format
-|  /[NO]PAGE  Page screen output through built-in "more"
+|  /SHORT                 Short UNIX "ls -l" format (default)
+|  /MEDIUM                Medium UNIX "ls -l" format
+|  /LONG                  Long UNIX "ls -l" format
+|  /VERBOSE               Verbose, multi-page format
+|  /ONE_LINE              Filenames only, one per line
+|  /HEADER                Print header lines
+|  /TOTALS                Print totals for files
+|  /TIMES                 Print file times in sortable decimal format
+|  /[NO]CASE_INSENSITIVE  Match filenames case-insensitively
+|  /[NO]PAGE              Page screen output through built-in "more"
 <LARETIL>
 <QUALIFIER>
 /BINARY
@@ -232,6 +240,15 @@ unless version numbers are stored in the archive and /VERSION is specified.
 
 Feed all screen output through the built-in "more" pager.
 <QUALIFIER>
+/PASSWORD
+
+/PASSWORD=decryption-password
+
+Specifies a decryption password and prevents UnZip from prompting for
+a password in case the specified decryption key was wrong. The supplied
+string must be enclosed in double-quotes whenever it contains lowercase
+or special characters.
+<QUALIFIER>
 /PIPE
 
 /PIPE
@@ -312,42 +329,46 @@ The default action of UnZip is to extract all zipfile entries.  The following
 options and modifiers can be provided:
 
 <LITERAL>
-|   -Z   ZipInfo mode
-|   -c   extract files to SYS$OUTPUT (terminal)
-|   -f   freshen existing files (replace if newer); create none
-|   -h   show brief help screen and exit quietly
-|   -l   list archive files (short format)
-|   -p   extract files to SYS$OUTPUT; no informational messages
-|   -t   test archive files
-|   -u   update existing files; create new ones if needed
-|   -v   list archive files (verbose format)
-|   -z   display only the archive comment
+|  -Z   ZipInfo mode
+|  -c   extract files to SYS$OUTPUT (terminal)
+|  -f   freshen existing files (replace if newer); create none
+|  -h   show brief help screen and exit quietly
+|  -l   list archive files (short format)
+|  -p   extract files to SYS$OUTPUT; no informational messages
+|  -t   test archive files
+|  -u   update existing files; create new ones if needed
+|  -v   list archive files (verbose format)
+|  -z   display only the archive comment
 |
-| MODIFIERS
-|   -a   auto-extract only text files in standard VMS text file format
-|   -aa  extract all files as text
-|   -b   auto-extract only binary files in VMS fixed 512 record file format
-|   -bb  extract all files as binary in VMS fixed 512 byte record format
-|   -j   junk paths (don't recreate archive's directory structure)
-|   -n   never overwrite existing files; don't prompt
-|   -o   OK to overwrite files without prompting
-|   -q   perform operations quietly (-qq => even quieter)
-|   -C   match filenames case-insensitively
-|   -L   convert filenames to lowercase if created under MS-DOS, VMS, etc.
-|   -M   page output through built-in "more" function
-|   -V   retain (VMS) file version numbers
-|   -X   restore owner/protection info (may require privileges)
+|MODIFIERS
+|  -a   auto-extract only text files in standard VMS text file format
+|  -aa  extract all files as text
+|  -b   auto-extract only binary files in VMS fixed 512 bytes records
+|  -bb  extract all files as binary VMS fixed 512 byte record files
+|  -j   junk paths (don't recreate archive's directory structure)
+|  -n   never overwrite existing files; don't prompt
+|  -o   OK to overwrite files without prompting
+|  -q   perform operations quietly (-qq => even quieter)
+|  -C   match filenames case-insensitively
+|  -L   convert filenames to lowercase if created on MSDOS, VMS, etc.
+|  -Ppassword  supply decryption password on the command line (insecure!)
+|  -M   page output through built-in "more" function
+|  -V   retain (VMS) file version numbers
+|  -X   restore owner/protection info (may require privileges)
 <LARETIL>
 
-Note that uppercase options such as -C, -L, -M, -V, -X and -Z must be specified
-in quotes.  For example:
+Note that uppercase options such as -C, -L, -M, -P, -V, -X and -Z must
+be specified in quotes.  For example:
 
 <LITERAL>
 |  $ unzip "-VX" -a zipfile
 <LARETIL>
 
-.![this should probably be a separate section]:
-In addition, default options may be specified via the UNZIP_OPTS logical.
+<TOPIC>
+UNZIP_OPTS_Default
+
+UnZip allows to modify its default behaviour by specifying (UNIX style)
+option defaults via the UNZIP_OPTS logical name.
 For example, the following will cause UnZip to match filenames without regard
 to case, restore owner/protection information and perform all operations at
 quiet-level 1 by default:

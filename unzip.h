@@ -18,6 +18,14 @@
 /*  Predefined, Machine-specific Macros  */
 /*****************************************/
 
+#ifdef POCKET_UNZIP             /* WinCE port */
+#  include "wince/punzip.h"     /* must appear before windows.h */
+#endif
+
+#ifdef WINDLL
+#  include <windows.h>
+#endif
+
 #ifdef __GO32__                 /* MS-DOS extender:  NOT Unix */
 #  ifdef unix
 #    undef unix
@@ -73,7 +81,7 @@
 #  endif
 #endif /* __COMPILER_KCC__ */
 
-/* Borland C does not define __TURBOC__ if compiling for a 32 bit platform */
+/* Borland C does not define __TURBOC__ if compiling for a 32-bit platform */
 #ifdef __BORLANDC__
 #  ifndef __TURBOC__
 #    define __TURBOC__
@@ -97,7 +105,7 @@
 #  define LINUX
 #endif
 
-#ifdef __arm
+#ifdef __riscos
 #  define RISCOS
 #endif
 
@@ -105,7 +113,7 @@
  * Silicon Graphics, or Convex?, or IBM C Set/2, or GNU gcc/emx, or Watcom C,
  * or Macintosh, or Windows NT, or Sequent, or Atari or IBM RS/6000.
  */
-#if (defined(__STDC__) || defined(MSDOS) || defined(sgi) || defined(RISCOS))
+#if (defined(__STDC__) || defined(MSDOS) || defined(WIN32) || defined(__EMX__))
 #  ifndef PROTO
 #    define PROTO
 #  endif
@@ -113,7 +121,7 @@
 #    define MODERN
 #  endif
 #endif
-#if (defined(__IBMC__) || defined(__EMX__) || defined(__WATCOMC__))
+#if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
 #  ifndef PROTO
 #    define PROTO
 #  endif
@@ -121,17 +129,7 @@
 #    define MODERN
 #  endif
 #endif
-#if (defined(THINK_C) || defined(MPW) || defined(WIN32) || defined(_SEQUENT_))
-#  ifndef PTX   /* Sequent running Dynix/ptx:  non-modern compiler */
-#    ifndef PROTO
-#      define PROTO
-#    endif
-#    ifndef MODERN
-#      define MODERN
-#    endif
-#  endif
-#endif
-#if (defined(ATARI_ST) || defined(__BORLANDC__))  /* || defined(CONVEX) */
+#if (defined(THINK_C) || defined(MPW) || defined(ATARI_ST) || defined(RISCOS))
 #  ifndef PROTO
 #    define PROTO
 #  endif
@@ -139,7 +137,16 @@
 #    define MODERN
 #  endif
 #endif
-#if (defined(_AIX) || defined(CMS_MVS))
+/* Sequent running Dynix/ptx:  non-modern compiler */
+#if (defined(_AIX) || defined(sgi) || (defined(_SEQUENT_) && !defined(PTX)))
+#  ifndef PROTO
+#    define PROTO
+#  endif
+#  ifndef MODERN
+#    define MODERN
+#  endif
+#endif
+#if (defined(CMS_MVS) || defined(__BEOS__))  /* || defined(CONVEX) */
 #  ifndef PROTO
 #    define PROTO
 #  endif
@@ -160,17 +167,15 @@
 #  define OF(a) ()
 #endif
 
-/* Be cautious and disable the "const" keyword if in doubt. */
-#if (!defined(MODERN) && !defined(NO_CONST))
-#  define NO_CONST
-#endif /* !MODERN && !NO_CONST */
-
-/* Avoid using const if compiler does not support it */
-#ifdef NO_CONST
-#  ifdef const
-#    undef const
+/* enable the "const" keyword only if MODERN and if not otherwise instructed */
+#ifdef MODERN
+#  if (!defined(ZCONST) && (defined(USE_CONST) || !defined(NO_CONST)))
+#    define ZCONST const
 #  endif
-#  define const
+#endif
+
+#ifndef ZCONST
+#  define ZCONST
 #endif
 
 /* bad or (occasionally?) missing stddef.h: */
@@ -179,8 +184,10 @@
 #endif
 
 #if (defined(M_XENIX) && !defined(M_UNIX))   /* SCO Xenix only, not SCO Unix */
+#  define SCO_XENIX
 #  define NO_LIMITS_H        /* no limits.h, but MODERN defined */
 #  define NO_UID_GID         /* no uid_t/gid_t */
+#  define size_t int
 #endif
 
 #ifdef realix   /* Modcomp Real/IX, real-time SysV.3 variant */
@@ -245,13 +252,14 @@
 #  define DECLARE_ERRNO
 #endif /* pyr */
 
-/* stat() bug for Borland, Watcom, VAX C (also GNU?), and Atari ST MiNT on
- * TOS filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
- * filesystem or `U:' drive under Atari MiNT) */
-#if (defined(__TURBOC__) || defined(__WATCOMC__) || defined(VMS))
-#  define WILD_STAT_BUG
-#endif
-#if (defined(__MINT__))
+/* stat() bug for Borland, VAX C (also GNU?), and Atari ST MiNT on TOS
+ * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
+ * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
+ * included on this list; it would be good to know what version the problem
+ * was fixed at, if it did exist.  Watcom 10.6 has a separate stat() problem:
+ * it fails on "." when the current directory is a root.  This is covered by
+ * giving it a separate definition of SSTAT in OS-specific header files. */
+#if (defined(__TURBOC__) || defined(VMS) || defined(__MINT__))
 #  define WILD_STAT_BUG
 #endif
 
@@ -314,11 +322,22 @@ typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
 #ifdef PROTO
    typedef int   (MsgFn)    (zvoid *pG, uch *buf, ulg size, int flag);
    typedef int   (InputFn)  (zvoid *pG, uch *buf, int *size, int flag);
-   typedef void  (PauseFn)  (zvoid *pG, const char *prompt, int flag);
+   typedef void  (PauseFn)  (zvoid *pG, ZCONST char *prompt, int flag);
+   typedef int   (PasswdFn) (zvoid *pG, int *rcnt, char *pwbuf, int size,
+                             ZCONST char *zfn, ZCONST char *efn);
+#ifdef WINDLL
+   typedef int   (WINAPI ReplaceFn)       (char *);
+   typedef void  (WINAPI SoundFn)         (void);
+#endif
 #else
    typedef int   (MsgFn)    ();
    typedef int   (InputFn)  ();
    typedef void  (PauseFn)  ();
+   typedef int   (PasswdFn) ();
+#ifdef WINDLL
+   typedef int   (WINAPI ReplaceFn)       ();
+   typedef void  (WINAPI SoundFn)         ();
+#endif
 #endif
 
 typedef struct _UzpBuffer {   /* rxstr */
@@ -390,22 +409,109 @@ typedef struct central_directory_file_header { /* CENTRAL */
 
 
 /*---------------------------------------------------------------------------
+    Grab system-dependent definition of EXPENTRY for prototypes below.
+  ---------------------------------------------------------------------------*/
+
+#if 0
+#if (defined(OS2) && !defined(FUNZIP))
+#  ifdef UNZIP_INTERNAL
+#    define INCL_NOPM
+#    define INCL_DOSNLS
+#    define INCL_DOSPROCESS
+#    define INCL_DOSDEVICES
+#    define INCL_DOSDEVIOCTL
+#    define INCL_DOSERRORS
+#    define INCL_DOSMISC
+#    ifdef OS2DLL
+#      define INCL_REXXSAA
+#      include <rexxsaa.h>
+#    endif
+#  endif /* UNZIP_INTERNAL */
+#  include <os2.h>
+#  define UZ_EXP EXPENTRY
+#endif /* OS2 && !FUNZIP */
+#endif /* 0 */
+
+#if (defined(OS2) && !defined(FUNZIP))
+#  if defined(__IBMC__) || defined(__WATCOMC__)
+#    define UZ_EXP  _System    /* compiler keyword */
+#  else
+#    define UZ_EXP
+#  endif
+#endif /* OS2 && !FUNZIP */
+
+#ifdef WINDLL
+#  ifndef EXPENTRY
+#    define UZ_EXP WINAPI
+#  else
+#    define UZ_EXP EXPENTRY
+#  endif
+#endif
+
+#ifndef UZ_EXP
+#  define UZ_EXP
+#endif
+
+
+/*---------------------------------------------------------------------------
+    Return (and exit) values of the public UnZip API functions.
+  ---------------------------------------------------------------------------*/
+
+/* external return codes */
+#define PK_OK              0   /* no error */
+#define PK_COOL            0   /* no error */
+#define PK_GNARLY          0   /* no error */
+#define PK_WARN            1   /* warning error */
+#define PK_ERR             2   /* error in zipfile */
+#define PK_BADERR          3   /* severe error in zipfile */
+#define PK_MEM             4   /* insufficient memory (during initialization) */
+#define PK_MEM2            5   /* insufficient memory (password failure) */
+#define PK_MEM3            6   /* insufficient memory (file decompression) */
+#define PK_MEM4            7   /* insufficient memory (memory decompression) */
+#define PK_MEM5            8   /* insufficient memory (not yet used) */
+#define PK_NOZIP           9   /* zipfile not found */
+#define PK_PARAM          10   /* bad or illegal parameters specified */
+#define PK_FIND           11   /* no files found */
+#define PK_DISK           50   /* disk full */
+#define PK_EOF            51   /* unexpected EOF */
+
+#define IZ_CTRLC          80   /* user hit ^C to terminate */
+#define IZ_UNSUP          81   /* no files found: all unsup. compr/encrypt. */
+#define IZ_BADPWD         82   /* no files found: all had bad password */
+
+/* internal and DLL-only return codes */
+#define IZ_DIR            76   /* potential zipfile is a directory */
+#define IZ_CREATED_DIR    77   /* directory created: set time and permissions */
+#define IZ_VOL_LABEL      78   /* volume label, but can't set on hard disk */
+#define IZ_EF_TRUNC       79   /* local extra field truncated (PKZIP'd) */
+
+/* return codes of password fetches (negative = user abort; positive = error) */
+#define IZ_PW_ENTERED      0   /* got some password string; use/try it */
+#define IZ_PW_CANCEL      -1   /* no password available (for this entry) */
+#define IZ_PW_CANCELALL   -2   /* no password, skip any further pwd. request */
+#define IZ_PW_ERROR        5   /* = PK_MEM2 : failure (no mem, no tty, ...) */
+
+
+/*---------------------------------------------------------------------------
     Prototypes for public UnZip API (DLL) functions.
   ---------------------------------------------------------------------------*/
 
-int      UzpMain            OF((int argc, char **argv));
-int      UzpAltMain         OF((int argc, char **argv, UzpInit *init));
-UzpVer  *UzpVersion         OF((void));
-int      UzpUnzipToMemory   OF((char *zip, char *file, UzpBuffer *retstr));
-int      UzpFileTree        OF((char *name, cbList(callBack),
-                                char *cpInclude[], char *cpExclude[]));
+int      UZ_EXP UzpMain            OF((int argc, char **argv));
+int      UZ_EXP UzpAltMain         OF((int argc, char **argv, UzpInit *init));
+UzpVer * UZ_EXP UzpVersion         OF((void));
+int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file,
+                                       UzpBuffer *retstr));
+int      UZ_EXP UzpFileTree        OF((char *name, cbList(callBack),
+                                       char *cpInclude[], char *cpExclude[]));
 
 /* default I/O functions (can be swapped out via UzpAltMain() entry point): */
 
 int      UzpMessagePrnt     OF((zvoid *pG, uch *buf, ulg size, int flag));
 int      UzpMessageNull     OF((zvoid *pG, uch *buf, ulg size, int flag));
 int      UzpInput           OF((zvoid *pG, uch *buf, int *size, int flag));
-void     UzpMorePause       OF((zvoid *pG, const char *prompt, int flag));
+void     UzpMorePause       OF((zvoid *pG, ZCONST char *prompt, int flag));
+int      UzpPassword        OF((zvoid *pG, int *rcnt, char *pwbuf, int size,
+                                ZCONST char *zfn, ZCONST char *efn));
 
 
 /*---------------------------------------------------------------------------

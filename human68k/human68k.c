@@ -142,10 +142,10 @@ int mapattr(__G)
     ulg  tmp = G.crec.external_file_attributes;
 
     if (G.pInfo->hostnum == UNIX_ || G.pInfo->hostnum == VMS_)
-	G.pInfo->file_attr = _mode2dos(tmp >> 16);
+        G.pInfo->file_attr = _mode2dos(tmp >> 16);
     else
-	/* set archive bit (file is not backed up): */
-	G.pInfo->file_attr = (unsigned)(G.crec.external_file_attributes|32) &
+        /* set archive bit (file is not backed up): */
+        G.pInfo->file_attr = (unsigned)(G.crec.external_file_attributes|32) &
           0xff;
     return 0;
 
@@ -158,11 +158,11 @@ int mapattr(__G)
 /**********************/
 /* Function mapname() */
 /**********************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* trunc), 2 if warning (skip file because dir */
-    int renamed;             /* doesn't exist), 3 if error (skip file), 10 */
-{                            /* if no memory (skip file) */
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
     char pathcomp[FILNAMSIZ];    /* path-component buffer */
     char *pp, *cp=(char *)NULL;  /* character pointers */
     char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
@@ -203,10 +203,10 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
   ---------------------------------------------------------------------------*/
 
     while ((workch = (uch)*cp++) != 0) {
-	if (iskanji(workch)) {
-	    *pp++ = (char)workch;
-	    quote = TRUE;
-	} else if (quote) {                 /* if character quoted, */
+        if (iskanji(workch)) {
+            *pp++ = (char)workch;
+            quote = TRUE;
+        } else if (quote) {                 /* if character quoted, */
             *pp++ = (char)workch;    /*  include it literally */
             quote = FALSE;
         } else
@@ -259,9 +259,11 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n",
-              G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -273,7 +275,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated:  care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
@@ -324,7 +326,7 @@ int checkdir(__G__ pathcomp, flag)
         Trace((stderr, "appending dir segment [%s]\n", pathcomp));
         while ((*end = *pathcomp++) != '\0')
             ++end;
-	normalize_name(old_end);
+        normalize_name(old_end);
 
         /* GRR:  could do better check, see if overrunning buffer as we go:
          * check end-buildpath after each append, set warning variable if
@@ -516,8 +518,8 @@ int checkdir(__G__ pathcomp, flag)
 void close_outfile(__G)
     __GDEF
 {
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 
     /* The following DOS date/time structure is machine dependent as it
      * assumes "little endian" byte order. For MSDOS specific code, which
@@ -545,24 +547,24 @@ void close_outfile(__G)
             } _d;
         } zt;
     } dos_dt;
-#endif /* USE_EF_UX_TIME */
+#endif /* USE_EF_UT_TIME */
 
     if (G.cflag) {
-	fclose(G.outfile);
+        fclose(G.outfile);
         return;
     }
 
-#ifdef USE_EF_UX_TIME
+#ifdef USE_EF_UT_TIME
     if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                         &z_utime, NULL) > 0) {
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
         struct tm *t;
 
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          z_utime.modtime));
+          z_utime.mtime));
         /* round up to even seconds */
-        z_utime.modtime = (z_utime.modtime + 1) & (~1);
-        t = localtime(&(z_utime.modtime));
+        z_utime.mtime = (z_utime.mtime + 1) & (~1);
+        t = localtime(&(z_utime.mtime));
         if (t->tm_year < 80) {
             dos_dt.zt._t._tf.zt_se = 0;
             dos_dt.zt._t._tf.zt_mi = 0;
@@ -583,10 +585,10 @@ void close_outfile(__G)
         dos_dt.zt._d.zdate = G.lrec.last_mod_file_date;
     }
     _dos_filedate(fileno(G.outfile), dos_dt.z_dostime);
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
     _dos_filedate(fileno(G.outfile),
       (ulg)G.lrec.last_mod_file_date << 16 | G.lrec.last_mod_file_time);
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
     fclose(G.outfile);
 
@@ -658,14 +660,14 @@ InitTwentyOne(void)
 
     stat = TwentyOneOptions();
     if (stat == 0 || stat == (unsigned long) -1) {
-	special_char = 0;
-	multi_period = 0;
-	return;
+        special_char = 0;
+        multi_period = 0;
+        return;
     }
     if (stat & (1UL << 29))
-	special_char = 1;
+        special_char = 1;
     if (stat & (1UL << 28))
-	multi_period = 1;
+        multi_period = 1;
 }
 
 static void
@@ -674,39 +676,39 @@ normalize_name(char *name)
     char *dot;
     char *p;
 
-    if (strlen(name) > 18) {	/* too long */
-	char base[18 + 1];
-	char ext[4 + 1];
+    if (strlen(name) > 18) {    /* too long */
+        char base[18 + 1];
+        char ext[4 + 1];
 
-	if ((dot = jstrrchr(name, '.')) != NULL)
-	    *dot = '\0';
-	strncpy(base, name, 18);
-	base[18] = '\0';
-	if (dot) {
-	    *dot = '.';
-	    strncpy(ext, dot, 4);
-	    ext[4] = '\0';
-	} else
-	    *ext = '\0';
-	strcpy(name, base);
-	strcat(name, ext);
+        if ((dot = jstrrchr(name, '.')) != NULL)
+            *dot = '\0';
+        strncpy(base, name, 18);
+        base[18] = '\0';
+        if (dot) {
+            *dot = '.';
+            strncpy(ext, dot, 4);
+            ext[4] = '\0';
+        } else
+            *ext = '\0';
+        strcpy(name, base);
+        strcat(name, ext);
     }
     dot = NULL;
     for (p = name; *p; p++) {
-	if (iskanji((unsigned char)*p) && p[1] != '\0')
-	    p++;
-	else if (*p == '.') {
-	    if (!multi_period) {
-		dot = p;
-		*p = '_';
-	    }
-	} else if (!special_char && !isalnum (*p)
-		   && strchr(VALID_CHAR, *p) == NULL)
-	    *p = '_';
+        if (iskanji((unsigned char)*p) && p[1] != '\0')
+            p++;
+        else if (*p == '.') {
+            if (!multi_period) {
+                dot = p;
+                *p = '_';
+            }
+        } else if (!special_char && !isalnum (*p)
+                   && strchr(VALID_CHAR, *p) == NULL)
+            *p = '_';
     }
     if (dot != NULL) {
-	*dot = '.';
-	if (strlen(dot) > 4)
-	    dot[4] = '\0';
+        *dot = '.';
+        if (strlen(dot) > 4)
+            dot[4] = '\0';
     }
 }

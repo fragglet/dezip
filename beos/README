@@ -1,0 +1,48 @@
+UnZip 5.30 for BeOS
+
+unzip 5.30n: Compiled on BeOS 1.1DR8.2 using CodeWarrior and GNU C
+             (March 15, 1997).
+
+unzip 5.30m: Compiled on BeOS 1.1DR8.2 using GNU C/C++ (March 4, 1997),
+             CodeWarrior (March 4, 1997).
+
+unzip 5.30f: Compiled on BeOS 1.1dr8 using Metrowerks CodeWarrior (Oct 16/96).
+
+NOTE
+
+THIS IS A BETA!  Do not distribute it, do not put it on any other FTP/WWW
+servers.  I've made these binaries available for testing purposes only.
+Soon we'll relesae UnZip 5.30, with a complete Be version.
+
+UPDATES
+
+- compiled UnZip 5.30n
+- compiles clean (w/full warnings and strict ANSI compliance) with both
+  compilers
+- unified the Makefiles into one spiffy Makefile that handles both
+  compilers
+
+- compiled UnZip 5.30m
+- added support for GNU C/C++ (thanks to Fred Fish giving us a port; see
+  ftp.ninemoons.com)
+- started expanding the Be extra-field info in anticipation of DR9's new
+  filesystem
+
+- compiled UnZip 5.30f
+- started using libmoto for some extra speed (of course, I haven't actually
+  done any tests, but libmoto is usually a win for memory-whacking apps)
+- tested UnZip 5.30f beta; cleaned up Makefile
+- fixed problem with unzipping "Be" extra field info (type/creator)
+
+FEATURES
+
+- unzip, funzip, zipinfo, and unzipsfx all appear to work fine
+
+KNOWN BUGS
+
+- none, but hasn't been systematically tested
+
+If you try this, and notice anything not working, please let me know!
+
+- Chris Herborth (chrish@qnx.com)
+  March 16/1997

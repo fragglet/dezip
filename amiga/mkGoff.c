@@ -29,8 +29,6 @@ void main(void)
 #endif
     printf("slide           EQU     %lu\n", &pG_redirSlide);
     printf("SIZEOF_slide    EQU     %lu\n", sizeof(pG_redirSlide));
-#ifdef CRYPT
-    printf("CRYPT           EQU     1\n");
-#endif
+    printf("CRYPT           EQU     %d\n", CRYPT);
     exit(0);
 }

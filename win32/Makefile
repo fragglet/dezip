@@ -3,7 +3,7 @@
 #   H. Gessau 9/93 <henryg@kullmar.kullmar.se>
 #   J. Lee 8/95 (johnnyl@microsoft.com)
 #
-# Last revised:  11 Feb 96
+# Last revised:  9 Mar 97
 #
 # Tested with VC++ 2.0 for NT for MIPS and Alpha, Visual C++ 2.2 for Intel CPUs
 #
@@ -35,11 +35,13 @@ CPU = i386
 # object files
 OBJS1 = unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj explode.obj
 OBJS2 = extract.obj fileio.obj globals.obj inflate.obj list.obj match.obj
-OBJS3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj win32.obj
-OBJS  = $(OBJS1) $(OBJS2) $(OBJS3)
+OBJS3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj
+OBJS4 = win32.obj nt.obj
+OBJS  = $(OBJS1) $(OBJS2) $(OBJS3) $(OBJS4)
 OBJX1 = unzipsfx.obj crc32.obj crctab.obj crypt.obj extract_.obj fileio.obj
-OBJX2 = globalsx.obj inflate.obj match.obj process_.obj ttyio.obj win32_.obj
-OBJX  = $(OBJX1) $(OBJX2)
+OBJX2 = globalsx.obj inflate.obj match.obj process_.obj ttyio.obj
+OBJX3 = win32_.obj nt.obj
+OBJX  = $(OBJX1) $(OBJX2) $(OBJX3)
 OBJF  = funzip.obj crc32.obj cryptf.obj globalsf.obj inflatef.obj ttyiof.obj
 
 UNZIP_H = unzip.h unzpriv.h globals.h win32/w32cfg.h
@@ -47,6 +49,10 @@ UNZIP_H = unzip.h unzpriv.h globals.h win32/w32cfg.h
 # cvars = $(cvars) -nologo -DMSDOS -DNO_ASM -J
 #cvars = $(cvars) -nologo -DNO_ASM -J -DREENTRANT
 cvars = $(cvars) -nologo -DNO_ASM -J
+#cvars = $(cvars) -nologo -DASM_CRC -J
+
+# USER32.LIB is needed for OemToChar and related routines
+conlibs=$(conlibs) user32.lib
 
 # Some optimization (if not debugging)
 # [GRR 950816:  Steve suggests changing optimization flags to -O2, except for
@@ -65,18 +71,18 @@ cdebug = -Ogitb2
 
 # How to link
 .obj.exe:
-	$(link) $(ldebug) $(conflags) $(conlibs) $** -out:$@
+   $(link) $(ldebug) $(conflags) $(conlibs) $** -out:$@
 
 
 # Default target is all the executables
 unzips : unzip.exe funzip.exe unzipsfx.exe
 
 
-unzip.exe:	$(OBJS)
+unzip.exe:  $(OBJS)
 unzipsfx.exe:	$(OBJX)
 funzip.exe:	$(OBJF)
 
-crc32.obj:	crc32.c $(UNZIP_H) zip.h
+crc32.obj:  crc32.c $(UNZIP_H) zip.h
 crctab.obj:	crctab.c $(UNZIP_H) zip.h
 crypt.obj:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 envargs.obj:	envargs.c $(UNZIP_H)
@@ -94,10 +100,13 @@ unshrink.obj:	unshrink.c $(UNZIP_H)
 unzip.obj:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
 zipinfo.obj:	zipinfo.c $(UNZIP_H)
 
-win32.obj:	win32\win32.c $(UNZIP_H)
+win32.obj:  win32\win32.c $(UNZIP_H) win32\nt.h
 	$(cc) $(cdebug) $(cflags) $(cvars) -I. win32\win32.c
 
-win32_.obj:	win32\win32.c $(UNZIP_H)			# unzipsfx only
+nt.obj:  win32\nt.c win32\nt.h
+    $(cc) $(cdebug) $(cflags) $(cvars) -I. win32\nt.c
+
+win32_.obj: win32\win32.c $(UNZIP_H) win32\nt.h			# unzipsfx only
 	$(cc) $(cdebug) $(cflags) $(cvars) -I. -DSFX win32\win32.c -Fo$@
 
 cryptf.obj:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only

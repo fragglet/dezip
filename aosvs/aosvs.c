@@ -225,7 +225,7 @@ int open_outfile(__G)         /* return 1 if fail */
     properly.  (The creation time is the best functional approximation of
     the Unix mtime.  Really!)
 
-    If we stored this with an AOS/VS Zip which set the extra field to contain
+    If we stored this with an AOS/VS Zip that set the extra field to contain
     the ?FSTAT packet and the ACL, we should use info from the ?FSTAT call
     now.  Otherwise (or if that fails), we should create anyway as best we
     can from the normal Zip info.
@@ -380,11 +380,11 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* truncated), 2 if warning (skip file because  */
-    int renamed;             /* dir doesn't exist), 3 if error (skip file),  */
-{                            /* 10 if no memory (skip file) */
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
     char pathcomp[FILNAMSIZ];    /* path-component buffer */
     char *pp, *cp=(char *)NULL;  /* character pointers */
     char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
@@ -481,8 +481,11 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -494,7 +497,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
@@ -518,7 +521,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         (d:/tmp/unzip/jj/temp/)            (disk:[tmp.unzip.jj.temp.)
     finally add filename itself and check for existence? (could use with rename)
         (d:/tmp/unzip/jj/temp/msg.outdir)  (disk:[tmp.unzip.jj.temp]msg.outdir)
-    checkdir(name, COPYFREE)     -->  copy path to name and free space
+    checkdir(name, GETPATH)     -->  copy path to name and free space
 
 #endif /* 0 */
 
@@ -1084,9 +1087,9 @@ void version(__G)
  *
  * Returns 0 if no error, or the error code returned by ?CREATE.
  *
- *	HISTORY:
- *		15-dec-93 dbl
- *		31-may-94 dbl: added call to convert pathname to AOS/VS
+ *    HISTORY:
+ *        15-dec-93 dbl
+ *        31-may-94 dbl: added call to convert pathname to AOS/VS
  *
  *
  */
@@ -1094,24 +1097,24 @@ void version(__G)
 int zvs_create(char *fname, long cretim, long modtim, long acctim, char *pacl,
                int ftyp, int eltsize, int maxindlev)
 {
-	P_CREATE	pcr_stru;
-	P_CTIM		pct_stru;
+    P_CREATE    pcr_stru;
+    P_CTIM      pct_stru;
 
-	pcr_stru.cftyp_format = 0;           /* unspecified record format */
-	if (ftyp == -1)                      /* default file type to UNX */
-		pcr_stru.cftyp_entry = $FUNX;
-	else
-		pcr_stru.cftyp_entry = ftyp;
-	pcr_stru.ctim = &pct_stru;
-	pcr_stru.cacp = pacl;
-	pcr_stru.cdel = eltsize;
-	pcr_stru.cmil = maxindlev;
+    pcr_stru.cftyp_format = 0;           /* unspecified record format */
+    if (ftyp == -1)                      /* default file type to UNX */
+        pcr_stru.cftyp_entry = $FUNX;
+    else
+        pcr_stru.cftyp_entry = ftyp;
+    pcr_stru.ctim = &pct_stru;
+    pcr_stru.cacp = pacl;
+    pcr_stru.cdel = eltsize;
+    pcr_stru.cmil = maxindlev;
 
-	pct_stru.tcth.long_time = cretim;
-	pct_stru.tath.long_time = acctim;
-	pct_stru.tmth.long_time = modtim;
+    pct_stru.tcth.long_time = cretim;
+    pct_stru.tath.long_time = acctim;
+    pct_stru.tmth.long_time = modtim;
 
-	return (sys_create(ux_to_vs_name(Vs_path, fname), &pcr_stru));
+    return (sys_create(ux_to_vs_name(Vs_path, fname), &pcr_stru));
 
 } /* end zvs_create() */
 
@@ -1135,35 +1138,35 @@ int zvs_create(char *fname, long cretim, long modtim, long acctim, char *pacl,
  *
  * Returns 0 if no error, or the error code returned by ?CREATE.
  *
- *	HISTORY:
- *		 1-jun-94 dbl
+ *    HISTORY:
+ *        1-jun-94 dbl
  *
  *
  */
 
 int zvs_credir(char *dname, long cretim, long modtim, long acctim, char *pacl, int ftyp, long maxblocks, int hashfsize, int maxindlev)
 {
-	P_CREATE_DIR	pcr_stru;
-	P_CTIM		pct_stru;
+    P_CREATE_DIR    pcr_stru;
+    P_CTIM          pct_stru;
 
-	if (ftyp != $FCPD)                      /* default file type to UNX */
-		pcr_stru.cftyp_entry = $FDIR;
-	else
-	{
-		pcr_stru.cftyp_entry = ftyp;
-		pcr_stru.cmsh = maxblocks;
-	}
+    if (ftyp != $FCPD)                      /* default file type to UNX */
+        pcr_stru.cftyp_entry = $FDIR;
+    else
+    {
+        pcr_stru.cftyp_entry = ftyp;
+        pcr_stru.cmsh = maxblocks;
+    }
 
-	pcr_stru.ctim = &pct_stru;
-	pcr_stru.cacp = pacl;
-	pcr_stru.chfs = hashfsize;
-	pcr_stru.cmil = maxindlev;
+    pcr_stru.ctim = &pct_stru;
+    pcr_stru.cacp = pacl;
+    pcr_stru.chfs = hashfsize;
+    pcr_stru.cmil = maxindlev;
 
-	pct_stru.tcth.long_time = cretim;
-	pct_stru.tath.long_time = acctim;
-	pct_stru.tmth.long_time = modtim;
+    pct_stru.tcth.long_time = cretim;
+    pct_stru.tath.long_time = acctim;
+    pct_stru.tmth.long_time = modtim;
 
-	return (sys_create(ux_to_vs_name(Vs_path, dname), &pcr_stru));
+    return (sys_create(ux_to_vs_name(Vs_path, dname), &pcr_stru));
 
 } /* end zvs_credir() */
 
@@ -1171,22 +1174,22 @@ int zvs_credir(char *dname, long cretim, long modtim, long acctim, char *pacl, i
 
 /* ===================================================================
  * UX_TO_VS_NAME() - makes a somewhat dumb pass at converting a Unix
- *			filename to an AOS/VS filename.  This should
- *			be just about adequate to handle the results
- *			of similarly-simple AOS/VS-to-Unix conversions
- *			in the ZIP program.  It does not guarantee a
- *			legal AOS/VS filename for every Unix filename;
- *			conspicuous examples would be names with
- *			embedded ./ and ../ (which will receive no
- *			special treatment).
+ *           filename to an AOS/VS filename.  This should
+ *           be just about adequate to handle the results
+ *           of similarly-simple AOS/VS-to-Unix conversions
+ *           in the ZIP program.  It does not guarantee a
+ *           legal AOS/VS filename for every Unix filename;
+ *           conspicuous examples would be names with
+ *           embedded ./ and ../ (which will receive no
+ *           special treatment).
  *
- *		RETURNS: pointer to the result (which is an input parameter)
+ *       RETURNS: pointer to the result (which is an input parameter)
  *
- *		NOTE: calling code is responsible for making sure
- *			the output buffer is big enough!
+ *       NOTE: calling code is responsible for making sure
+ *           the output buffer is big enough!
  *
- *		HISTORY:
- *			31-may-94 dbl
+ *       HISTORY:
+ *           31-may-94 dbl
  *
  */
 char *ux_to_vs_name(char *outname, char *inname)

@@ -1,5 +1,5 @@
 /* Test REXX UnZip API */
-call RxFuncAdd 'UZLoadFuncs', 'UNZIPAPI', 'UZLoadFuncs'
+call RxFuncAdd 'UZLoadFuncs', 'UNZIP32', 'UZLoadFuncs'
 call UZLoadFuncs
 
 parse arg all

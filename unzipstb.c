@@ -29,15 +29,19 @@ int main(int argc, char *argv[])
     printf("   ZipInfo versions:  expecting %d.%d%d, using %d.%d%d\n",
       ZI_MAJORVER, ZI_MINORVER, PATCHLEVEL, pVersion->zipinfo.major,
       pVersion->zipinfo.minor, pVersion->zipinfo.patchlevel);
+
+/*
+    D2_M*VER and os2dll.* are obsolete, though retained for compatibility:
+
     printf("   OS2 DLL versions:  expecting %d.%d%d, using %d.%d%d\n",
       D2_MAJORVER, D2_MINORVER, PATCHLEVEL, pVersion->os2dll.major,
       pVersion->os2dll.minor, pVersion->os2dll.patchlevel);
-    printf("   Win DLL versions:  expecting %d.%d%d, using %d.%d%d\n",
-      DW_MAJORVER, DW_MINORVER, PATCHLEVEL, pVersion->windll.major,
-      pVersion->windll.minor, pVersion->windll.patchlevel);
+ */
+
     if (pVersion->flag & 2)
         printf("   using zlib version %s\n", pVersion->zlib_version);
     printf("\n");
 
+    /* call the actual UnZip routine (string-arguments version) */
     return UzpMain(argc, argv);
 }

@@ -28,13 +28,6 @@
      or redistribute this software so long as all of the original files
      are included unmodified and that this copyright notice is retained.
 
-  Revision history:
-
-     1.x   [moved to History.510 for brevity]
-     2.x   [moved to History.513 for brevity]
-     3.0   Cave Newt           4 Sep 94
-            relocated version history; renamed secinf to X_flag
-
   ---------------------------------------------------------------------------*/
 
 #ifdef VMS                      /* VMS only! */
@@ -91,8 +84,7 @@ static int  _flush_blocks(__GPRO__ uch *rawbuf, unsigned size, int final_flag),
             _close_rms(__GPRO),
             _close_qio(__GPRO),
             WriteBuffer(__GPRO__ uch *buf, int len),
-            WriteRecord(__GPRO__ uch *rec, int len),
-            find_eol(uch *p, int n, int *l);
+            WriteRecord(__GPRO__ uch *rec, int len);
 
 static int  (*_flush_routine)(__GPRO__ uch *rawbuf, unsigned size,
                               int final_flag),
@@ -100,7 +92,11 @@ static int  (*_flush_routine)(__GPRO__ uch *rawbuf, unsigned size,
 
 static void init_buf_ring(void);
 static void set_default_datetime_XABs(__GPRO);
+static int  create_default_output(__GPRO),
+            create_rms_output(__GPRO),
+            create_qio_output(__GPRO);
 static int  replace(__GPRO);
+static int  find_vms_attrs(__GPRO);
 static void free_up(void);
 #ifdef CHECK_VERSIONS
 static int  get_vms_version(char *verbuf, int len);
@@ -108,6 +104,7 @@ static int  get_vms_version(char *verbuf, int len);
 static uch  *extract_block(__GPRO__ struct IZ_block *p, int *retlen,
                            uch *init, int needlen);
 static void decompress_bits(uch *outptr, int needlen, uch *bitptr);
+static int  find_eol(uch *p, int n, int *l);
 static void vms_msg(__GPRO__ char *string, int status);
 
 struct bufdsc
@@ -162,14 +159,10 @@ int check_format(__G)
 
 /* VMS extra field types */
 #define VAT_NONE    0
-#define VAT_IZ      1   /* old INFO-ZIP format */
+#define VAT_IZ      1   /* old Info-ZIP format */
 #define VAT_PK      2   /* PKWARE format */
 
 static int  vet;
-
-static int  create_default_output(__GPRO),
-            create_rms_output(__GPRO),
-            create_qio_output(__GPRO);
 
 /*
  *  open_outfile() assignments:
@@ -230,7 +223,7 @@ static void init_buf_ring()
 /* Static data storage for time conversion: */
 
 /*   string constants for month names */
-static const char *month[] =
+static ZCONST char *month[] =
             {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
              "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
 
@@ -238,21 +231,21 @@ static const char *month[] =
 static char timbuf[24];         /* length = first entry in "stupid" + 1 */
 
 /*   fixed-length string descriptor for timbuf: */
-static const struct dsc$descriptor stupid =
+static ZCONST struct dsc$descriptor stupid =
             {sizeof(timbuf)-1, DSC$K_DTYPE_T, DSC$K_CLASS_S, timbuf};
 
 
 static void set_default_datetime_XABs(__GPRO)
 {
     unsigned yr, mo, dy, hh, mm, ss;
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 
     if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.crec.extra_field_length,
-                         &z_utime, NULL) > 0)
+        (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 0,
+                          &z_utime, NULL) & EB_UT_FL_MTIME))
     {
-        struct tm *t = localtime(&(z_utime.modtime));
+        struct tm *t = localtime(&(z_utime.mtime));
 
         yr = t->tm_year + 1900;
         mo = t->tm_mon;
@@ -270,7 +263,7 @@ static void set_default_datetime_XABs(__GPRO)
         mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
         ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
     }
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
 
     yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
     mo = ((G.lrec.last_mod_file_date >> 5) & 0x0f) - 1;
@@ -278,7 +271,7 @@ static void set_default_datetime_XABs(__GPRO)
     hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
     mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
     ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
     dattim = cc$rms_xabdat;     /* fill XABs with default values */
     rdt = cc$rms_xabrdt;
@@ -403,8 +396,7 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
         rab.rab$l_fab = outfab;
         if (!text_output)
         {
-            rab.rab$l_rop |= RAB$M_BIO;
-            rab.rab$l_rop |= RAB$M_ASY;
+            rab.rab$l_rop |= (RAB$M_BIO | RAB$M_ASY);
         }
         rab.rab$b_rac = RAB$C_SEQ;
 
@@ -538,8 +530,7 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
         rab.rab$l_fab = outfab;
         if (!text_output)
         {
-            rab.rab$l_rop |= RAB$M_BIO;
-            rab.rab$l_rop |= RAB$M_ASY;
+            rab.rab$l_rop |= (RAB$M_BIO | RAB$M_ASY);
         }
         rab.rab$b_rac = RAB$C_SEQ;
 
@@ -836,7 +827,7 @@ int find_vms_attrs(__G)
         if (EQL_W(&hdr->tag, IZ_SIGNATURE))
         {
             /*
-             *  INFO-ZIP style extra block decoding
+             *  Info-ZIP style extra block decoding
              */
             struct IZ_block *blk;
             uch *block_id;
@@ -917,7 +908,7 @@ int find_vms_attrs(__G)
         else if (hdr->tag == PK_SIGNATURE)
         {
             /*
-             *  PKWARE style extra block decoding
+             *  PKWARE-style extra block decoding
              */
             struct  PK_header   *blk;
             register byte   *scn;
@@ -933,8 +924,7 @@ int find_vms_attrs(__G)
             if (blk->crc32 != crc32(CRCVAL_INITIAL, scn, (extent)len))
             {
                 Info(slide, 1, ((char *)slide,
-                     "[ Warning: CRC error, discarting PKware extra field]\n"
-                     ));
+                  "[Warning: CRC error, discarding PKWARE extra field]\n"));
                 len = 0;
                 type = VAT_NONE;
             }
@@ -1010,9 +1000,9 @@ int find_vms_attrs(__G)
 
 static void free_up()
 {
-                                /*
-                                 *      Free up all allocated xabs
-                                 */
+    /*
+     * Free up all allocated xabs
+     */
     if (xabdat != NULL) free(xabdat);
     if (xabpro != NULL) free(xabpro);
     if (xabrdt != NULL) free(xabrdt);
@@ -1095,7 +1085,7 @@ static uch *extract_block(__G__ p, retlen, init, needlen)
         *retlen = usiz;
 
 #ifndef MAX
-# define MAX(a,b)       ( (a) > (b) ? (a) : (b) )
+# define MAX(a,b)   ((a) > (b)? (a) : (b))
 #endif
 
     if ((block = (uch *) malloc(MAX(needlen, usiz))) == NULL)
@@ -1683,7 +1673,7 @@ static int WriteBuffer(__G__ buf, len)
     status = sys$wait(outrab);
     if (ERR(status))
     {
-        vms_msg(__G__ "[ WriteBuffer failed ]\n", status);
+        vms_msg(__G__ "[ WriteBuffer: sys$wait failed ]\n", status);
         vms_msg(__G__ "", outrab->rab$l_stv);
     }
     outrab->rab$w_rsz = len;
@@ -1691,7 +1681,7 @@ static int WriteBuffer(__G__ buf, len)
 
     if (ERR(status = sys$write(outrab)))
     {
-        vms_msg(__G__ "[ WriteBuffer failed ]\n", status);
+        vms_msg(__G__ "[ WriteBuffer: sys$write failed ]\n", status);
         vms_msg(__G__ "", outrab->rab$l_stv);
         return PK_DISK;
     }
@@ -1716,7 +1706,7 @@ static int WriteRecord(__G__ rec, len)
     {
         if (ERR(status = sys$wait(outrab)))
         {
-            vms_msg(__G__ "[ WriteRecord failed ]\n", status);
+            vms_msg(__G__ "[ WriteRecord: sys$wait failed ]\n", status);
             vms_msg(__G__ "", outrab->rab$l_stv);
         }
         outrab->rab$w_rsz = len;
@@ -1724,7 +1714,7 @@ static int WriteRecord(__G__ rec, len)
 
         if (ERR(status = sys$put(outrab)))
         {
-            vms_msg(__G__ "[ WriteRecord failed ]\n", status);
+            vms_msg(__G__ "[ WriteRecord: sys$put failed ]\n", status);
             vms_msg(__G__ "", outrab->rab$l_stv);
             return PK_DISK;
         }
@@ -1754,7 +1744,7 @@ static int _close_rms(__GPRO)
     int status;
     struct XABPRO pro;
 
-    /* Link XABRDT,XABDAT and optionaly XABPRO */
+    /* Link XABRDT, XABDAT and optionally XABPRO */
     if (xabrdt != NULL)
     {
         xabrdt->xab$l_nxt = NULL;
@@ -1945,7 +1935,7 @@ char *do_wild( __G__ wld )
     static struct FAB fab;
     static struct NAM nam;
     static int first_call=1;
-    static const char deflt[] = "[]*.zip";
+    static ZCONST char deflt[] = "[]*.zip";
 
     if ( first_call || strcmp(wld, last_wild) )
     {   /* (Re)Initialize everything */
@@ -2267,8 +2257,11 @@ int mapname(__G__ renamed)
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ "", APPEND_NAME);   /* create directory, if not found */
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -2280,7 +2273,7 @@ int mapname(__G__ renamed)
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME); /* returns 1 if truncated:  care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
@@ -2598,8 +2591,8 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
     __GDEF                           /*  equal; 0 if older; -1 if doesn't */
     char *filenam;                   /*  exist yet */
 {
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 #endif
     unsigned short timbuf[7];
     unsigned dy, mo, yr, hh, mm, ss, dy2, mo2, yr2, hh2, mm2, ss2;
@@ -2626,11 +2619,11 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
     sys$dassgn(fab.fab$l_stv);
     sys$close(&fab);   /* be sure file is closed and RMS knows about it */
 
-#ifdef USE_EF_UX_TIME
+#ifdef USE_EF_UT_TIME
     if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                         &z_utime, NULL) > 0) {
-        struct tm *t = localtime(&(z_utime.modtime));
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
+        struct tm *t = localtime(&(z_utime.mtime));
 
         yr2 = (unsigned)(t->tm_year) + 1900;
         mo2 = (unsigned)(t->tm_mon) + 1;
@@ -2655,7 +2648,7 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
            but doesn't matter for compare */
         ss = (unsigned)((float)timbuf[5] + (float)timbuf[6]*.01 + 1.) & (~1);
     }
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
     yr2 = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
     mo2 = ((G.lrec.last_mod_file_date >> 5) & 0x0f);
     dy2 = (G.lrec.last_mod_file_date & 0x1f);
@@ -2665,7 +2658,7 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
 
     /* round to nearest 2 secs--may become 60, but doesn't matter for compare */
     ss = (unsigned)((float)timbuf[5] + (float)timbuf[6]*.01 + 1.) & (~1);
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
     yr = timbuf[0];
     mo = timbuf[1];
     dy = timbuf[2];
@@ -2706,14 +2699,14 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
 
 
 #ifdef RETURN_CODES
-void return_VMS(__G__ ziperr)
+void return_VMS(__G__ err)
     __GDEF
 #else
-void return_VMS(ziperr)
+void return_VMS(err)
 #endif
-    int ziperr;
+    int err;
 {
-    int severity = (ziperr == 2 || (ziperr >= 9 && ziperr <= 11))? 2 : 4;
+    int severity;
 
 #ifdef RETURN_CODES
 /*---------------------------------------------------------------------------
@@ -2722,19 +2715,19 @@ void return_VMS(ziperr)
     violation," for example).
   ---------------------------------------------------------------------------*/
 
-    switch (ziperr) {
+    switch (err) {
         case PK_COOL:
             break;   /* life is fine... */
         case PK_WARN:
             Info(slide, 1, ((char *)slide, "\n\
 [return-code %d:  warning error \
-(e.g., failed CRC or unknown compression method)]\n", ziperr));
+(e.g., failed CRC or unknown compression method)]\n", err));
             break;
         case PK_ERR:
         case PK_BADERR:
             Info(slide, 1, ((char *)slide, "\n\
 [return-code %d:  error in zipfile \
-(e.g., can't find local file header sig)]\n", ziperr));
+(e.g., can't find local file header sig)]\n", err));
             break;
         case PK_MEM:
         case PK_MEM2:
@@ -2742,33 +2735,47 @@ void return_VMS(ziperr)
         case PK_MEM4:
         case PK_MEM5:
             Info(slide, 1, ((char *)slide,
-              "\n[return-code %d:  insufficient memory]\n", ziperr));
+              "\n[return-code %d:  insufficient memory]\n", err));
             break;
         case PK_NOZIP:
             Info(slide, 1, ((char *)slide,
-              "\n[return-code %d:  zipfile not found]\n", ziperr));
+              "\n[return-code %d:  zipfile not found]\n", err));
             break;
         case PK_PARAM:   /* exit(PK_PARAM); gives "access violation" */
             Info(slide, 1, ((char *)slide, "\n\
 [return-code %d:  bad or illegal parameters specified on command line]\n",
-              ziperr));
+              err));
             break;
         case PK_FIND:
             Info(slide, 1, ((char *)slide,
               "\n[return-code %d:  no files found to extract/view/etc.]\n",
-              ziperr));
+              err));
             break;
         case PK_DISK:
             Info(slide, 1, ((char *)slide,
-              "\n[return-code %d:  disk full or other I/O error]\n", ziperr));
+              "\n[return-code %d:  disk full or other I/O error]\n", err));
             break;
         case PK_EOF:
             Info(slide, 1, ((char *)slide, "\n\
-[return-code %d:  unexpected EOF in zipfile (i.e., truncated)]\n", ziperr));
+[return-code %d:  unexpected EOF in zipfile (i.e., truncated)]\n", err));
+            break;
+        case IZ_CTRLC:
+            Info(slide, 1, ((char *)slide,
+              "\n[return-code %d:  you hit ctrl-C to terminate]\n", err));
+            break;
+        case IZ_UNSUP:
+            Info(slide, 1, ((char *)slide, "\n\
+[return-code %d:  unsupported compression or encryption for all files]\n",
+              err));
+            break;
+        case IZ_BADPWD:
+            Info(slide, 1, ((char *)slide,
+              "\n[return-code %d:  bad decryption password for all files]\n",
+              err));
             break;
         default:
             Info(slide, 1, ((char *)slide,
-              "\n[return-code %d:  unknown return-code (screw-up)]\n", ziperr));
+              "\n[return-code %d:  unknown return-code (screw-up)]\n", err));
             break;
     }
 #endif /* RETURN_CODES */
@@ -2792,10 +2799,12 @@ void return_VMS(ziperr)
     exit is both silent and has a $SEVERITY of "success").
   ---------------------------------------------------------------------------*/
 
-    exit(                                          /* $SEVERITY:        */
-         (ziperr == PK_COOL) ? 1 :                 /*   success         */
-         (ziperr == PK_WARN) ? 0x7FFF0000 :        /*   warning         */
-         (0x7FFF0000 | (ziperr << 4) | severity)   /*   error or fatal  */
+    severity = (err == 2 || (err >= 9 && err <= 11) || (err >= 80 && err <= 82))
+               ? 2 : 4;
+    exit(                                       /* $SEVERITY:        */
+         (err == PK_COOL) ? 1 :                 /*   success         */
+         (err == PK_WARN) ? 0x7FFF0000 :        /*   warning         */
+         (0x7FFF0000 | (err << 4) | severity)   /*   error or fatal  */
         );
 
 } /* end function return_VMS() */
@@ -2821,7 +2830,7 @@ int screenlines(void)
 
     static int scrnlines = -1;
 
-    static const struct dsc$descriptor_s OutDevDesc =
+    static ZCONST struct dsc$descriptor_s OutDevDesc =
         {(sizeof(OUTDEVICE_NAME) - 1), DSC$K_DTYPE_T, DSC$K_CLASS_S,
          OUTDEVICE_NAME};
      /* {dsc$w_length, dsc$b_dtype, dsc$b_class, dsc$a_pointer}; */

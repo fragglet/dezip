@@ -2,7 +2,7 @@
 
   unix.c
 
-  Unix-specific routines for use with Info-ZIP's UnZip 5.13 and later.
+  Unix-specific routines for use with Info-ZIP's UnZip 5.3 and later.
 
   Contains:  readdir()
              do_wild()           <-- generic enough to put in fileio.c?
@@ -11,7 +11,6 @@
              checkdir()
              mkdir()
              close_outfile()
-             screenlines()    GRR 960204: moved to ttyio.c (permanently?)
              version()
 
   ---------------------------------------------------------------------------*/
@@ -20,9 +19,12 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-/* SCO Unix, AIX, DNIX, TI SysV, Coherent 4.x, ... */
-#if defined(__convexc__) || defined(SYSV) || defined(CRAY) || defined(BSD4_4)
-#  define DIRENT
+#ifdef SCO_XENIX
+#  define SYSNDIR
+#else  /* SCO Unix, AIX, DNIX, TI SysV, Coherent 4.x, ... */
+#  if defined(__convexc__) || defined(SYSV) || defined(CRAY) || defined(BSD4_4)
+#    define DIRENT
+#  endif
 #endif
 #if defined(_AIX)
 #  define DIRENT
@@ -221,7 +223,8 @@ int mapattr(__G)
         case ATARI_:             /* (used to set = 0666) */
         case TOPS20_:
         default:
-            tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
+            /* read-only bit --> write perms; subdir bit --> dir exec bit */
+            tmp = !(tmp & 1) << 1  |  (tmp & 0x10) >> 4;
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
     } /* end switch (host-OS-created-by) */
@@ -241,17 +244,17 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* truncated), 2 if warning (skip file because  */
-    int renamed;             /* dir doesn't exist), 3 if error (skip file),  */
-{                            /* 10 if no memory (skip file) */
-    char pathcomp[FILNAMSIZ];    /* path-component buffer */
-    char *pp, *cp=(char *)NULL;  /* character pointers */
-    char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;           /* flags */
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_VOL_LABEL, IZ_CREATED_DIR] */
+    char pathcomp[FILNAMSIZ];      /* path-component buffer */
+    char *pp, *cp=(char *)NULL;    /* character pointers */
+    char *lastsemi=(char *)NULL;   /* pointer to last semi-colon in pathcomp */
+    int quote = FALSE;             /* flags */
     int error = 0;
-    register unsigned workch;    /* hold the character being tested */
+    register unsigned workch;      /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
@@ -342,8 +345,16 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
+#ifndef NO_CHMOD
+            /* set approx. dir perms (make sure can still read/write in dir) */
+            if (chmod(G.filename, (0xffff & G.pInfo->file_attr) | 0700))
+                perror("chmod (directory attributes) error");
+#endif
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -355,7 +366,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
@@ -379,7 +390,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         (d:/tmp/unzip/jj/temp/)            (disk:[tmp.unzip.jj.temp.)
     finally add filename itself and check for existence? (could use with rename)
         (d:/tmp/unzip/jj/temp/msg.outdir)  (disk:[tmp.unzip.jj.temp]msg.outdir)
-    checkdir(name, COPYFREE)     -->  copy path to name and free space
+    checkdir(name, GETPATH)     -->  copy path to name and free space
 
 #endif /* 0 */
 
@@ -680,9 +691,9 @@ int screenlines()
 void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
-    ztimbuf tp;
+    iztimes zt;
     ush z_uidgid[2];
-    unsigned eb_izux_len;
+    unsigned eb_izux_flg;
 
 /*---------------------------------------------------------------------------
     If symbolic links are supported, allocate a storage area, put the uncom-
@@ -720,15 +731,12 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 #endif /* SYMLINKS */
 
     fclose(G.outfile);
+#ifdef QLZIP
+    if (G.extra_field) {
+        static void qlfix OF((__GPRO__ uch *ef_ptr, unsigned ef_len));
 
-/*---------------------------------------------------------------------------
-    Change the file permissions from default ones to those stored in the
-    zipfile.
-  ---------------------------------------------------------------------------*/
-
-#ifndef NO_CHMOD
-    if (chmod(G.filename, 0xffff & G.pInfo->file_attr))
-        perror("chmod (file attributes) error");
+        qlfix(__G__ G.extra_field, G.lrec.extra_field_length);
+    }
 #endif
 
 /*---------------------------------------------------------------------------
@@ -740,43 +748,67 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     then have to check for restoration of UID/GID.
   ---------------------------------------------------------------------------*/
 
-    if (G.extra_field &&
-        (eb_izux_len = ef_scan_for_izux(G.extra_field,
-                                        G.lrec.extra_field_length,
-                                        &tp, z_uidgid)) > 0)
-    {
-        TTrace((stderr, "\nclose_outfile:  Unix e.f. access time = %ld\n",
-          tp.actime));
-        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          tp.modtime));
+    eb_izux_flg = (G.extra_field ?
+                   ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
+                                    0, &zt, z_uidgid) : 0);
+    if (eb_izux_flg & EB_UT_FL_MTIME) {
+        TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
+          zt.mtime));
+    } else {
+        zt.mtime = dos_to_unix_time(G.lrec.last_mod_file_date,
+                                    G.lrec.last_mod_file_time);
+    }
+    if (eb_izux_flg & EB_UT_FL_ATIME) {
+        TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
+          zt.atime));
+    } else {
+        zt.atime = zt.mtime;
+        TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
+          zt.mtime));
+    }
 
-        /* if -X option was specified and we have UID/GID info, restore it */
-        if (G.X_flag && eb_izux_len >= EB_UX_FULLSIZE) {
-            TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
-            if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
-            {
+    /* if -X option was specified and we have UID/GID info, restore it */
+    if (G.X_flag && eb_izux_flg & EB_UX2_VALID) {
+        TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
+        if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
+        {
+            if (G.qflag)
                 Info(slide, 0x201, ((char *)slide,
                   "warning:  can't set UID %d and/or GID %d for %s\n",
                   z_uidgid[0], z_uidgid[1], G.filename));
+            else
+                Info(slide, 0x201, ((char *)slide,
+                  " (warning) can't set UID %d and/or GID %d",
+                  z_uidgid[0], z_uidgid[1]));
 /* GRR: change return type to int and set up to return warning after utime() */
-            }
         }
-    } else {
-        tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
-                                                  G.lrec.last_mod_file_time);
-
-        TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
-          tp.modtime));
     }
 
     /* set the file's access and modification times */
-    if (utime(G.filename, &tp))
+    if (utime(G.filename, (ztimbuf *)&zt))
 #ifdef AOS_VS
-        Info(slide, 0x201, ((char *)slide, "... can't set time for %s",
-          G.filename));
+        if (G.qflag)
+            Info(slide, 0x201, ((char *)slide, "... can't set time for %s\n",
+              G.filename));
+        else
+            Info(slide, 0x201, ((char *)slide, "... can't set time"));
 #else
-        Info(slide, 0x201, ((char *)slide,
-          "warning:  can't set the time for %s\n", G.filename));
+        if (G.qflag)
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  can't set times for %s\n", G.filename));
+        else
+            Info(slide, 0x201, ((char *)slide,
+              " (warning) can't set times"));
+#endif /* ?AOS_VS */
+
+/*---------------------------------------------------------------------------
+    Change the file permissions from default ones to those stored in the
+    zipfile.
+  ---------------------------------------------------------------------------*/
+
+#ifndef NO_CHMOD
+    if (chmod(G.filename, 0xffff & G.pInfo->file_attr))
+        perror("chmod (file attributes) error");
 #endif
 
 } /* end function close_outfile() */
@@ -948,7 +980,15 @@ void version(__G)
 #ifdef __convexc__
       " (Convex)",
 #else
+#ifdef __QNX__
+      " (QNX 4)",
+#else
+#ifdef __QNXNTO__
+      " (QNX Neutrino)",
+#else      
       "",
+#endif /* QNX Neutrino */
+#endif /* QNX 4 */
 #endif /* Convex */
 #endif /* MTS */
 #endif /* Gould */
@@ -986,3 +1026,162 @@ void version(__G)
 } /* end function version() */
 
 #endif /* !SFX */
+
+
+
+
+#ifdef QLZIP
+
+struct qdirect  {
+    long            d_length __attribute__ ((packed));  /* file length */
+    unsigned char   d_access __attribute__ ((packed));  /* file access type */
+    unsigned char   d_type __attribute__ ((packed));    /* file type */
+    long            d_datalen __attribute__ ((packed)); /* data length */
+    long            d_reserved __attribute__ ((packed));/* Unused */
+    short           d_szname __attribute__ ((packed));  /* size of name */
+    char            d_name[36] __attribute__ ((packed));/* name area */
+    long            d_update __attribute__ ((packed));  /* last update */
+    long            d_refdate __attribute__ ((packed));
+    long            d_backup __attribute__ ((packed));   /* EOD */
+};
+
+#define LONGID  "QDOS02"
+#define EXTRALEN (sizeof(struct qdirect) + 8)
+#define JBLONGID    "QZHD"
+#define JBEXTRALEN  (sizeof(jbextra)  - 4 * sizeof(char))
+
+typedef struct {
+    char        eb_header[4] __attribute__ ((packed));  /* place_holder */
+    char        longid[8] __attribute__ ((packed));
+    struct      qdirect     header __attribute__ ((packed));
+} qdosextra;
+
+typedef struct {
+    char        eb_header[4];                           /* place_holder */
+    char        longid[4];
+    struct      qdirect     header;
+} jbextra;
+
+
+
+/*  The following two functions SH() and LG() convert big-endian short
+ *  and long numbers into native byte order.  They are some kind of
+ *  counterpart to the generic UnZip's makeword() and makelong() functions.
+ */
+static ush SH(ush val)
+{
+    uch swapbuf[2];
+
+    swapbuf[1] = (uch)(val & 0xff);
+    swapbuf[0] = (uch)(val >> 8);
+    return (*(ush *)swapbuf);
+}
+
+
+
+static ulg LG(ulg val)
+{
+    /*  convert the big-endian unsigned long number `val' to the machine
+     *  dependant representation
+     */
+    ush swapbuf[2];
+
+    swapbuf[1] = SH((ush)(val & 0xffff));
+    swapbuf[0] = SH((ush)(val >> 16));
+    return (*(ulg *)swapbuf);
+}
+
+
+
+static void qlfix(__G__ ef_ptr, ef_len)
+    __GDEF
+    uch *ef_ptr;
+    unsigned ef_len;
+{
+    while (ef_len >= EB_HEADSIZE)
+    {
+        unsigned    eb_id  = makeword(EB_ID + ef_ptr);
+        unsigned    eb_len = makeword(EB_LEN + ef_ptr);
+
+        if (eb_len > (ef_len - EB_HEADSIZE)) {
+            /* discovered some extra field inconsistency! */
+            Trace((stderr,
+              "qlfix: block length %u > rest ef_size %u\n", eb_len,
+              ef_len - EB_HEADSIZE));
+            break;
+        }
+
+        switch (eb_id) {
+          case EF_QDOS:
+          {
+            struct _ntc_
+            {
+                long id;
+                long dlen;
+            } ntc;
+            long dlen = 0;
+
+            qdosextra   *extra = (qdosextra *)ef_ptr;
+            jbextra     *jbp   = (jbextra   *)ef_ptr;
+
+            if (!strncmp(extra->longid, LONGID, strlen(LONGID)))
+            {
+                if (eb_len != EXTRALEN)
+                    if (G.qflag)
+                        Info(slide, 0x201, ((char *)slide,
+                          "warning:  invalid length in Qdos field for %s\n",
+                          G.filename));
+                    else
+                        Info(slide, 0x201, ((char *)slide,
+                          "warning:  invalid length in Qdos field"));
+
+                if (extra->header.d_type)
+                {
+                    dlen = extra->header.d_datalen;
+                }
+            }
+
+            if (!strncmp(jbp->longid, JBLONGID, strlen(JBLONGID)))
+            {
+                if (eb_len != JBEXTRALEN)
+                    if (G.qflag)
+                        Info(slide, 0x201, ((char *)slide,
+                          "warning:  invalid length in QZ field for %s\n",
+                          G.filename));
+                    else
+                        Info(slide, 0x201, ((char *)slide,
+                          "warning:  invalid length in QZ field"));
+                if(jbp->header.d_type)
+                {
+                    dlen = jbp->header.d_datalen;
+                }
+            }
+
+            if ((long)LG(dlen) > 0)
+            {
+                G.outfile = fopen(G.filename,"r+");
+                fseek(G.outfile, -8, SEEK_END);
+                fread(&ntc, 8, 1, G.outfile);
+                if(ntc.id != *(long *)"XTcc")
+                {
+                    ntc.id = *(long *)"XTcc";
+                    ntc.dlen = dlen;
+                    fwrite (&ntc, 8, 1, G.outfile);
+                }
+                Info(slide, 0x201, ((char *)slide, "QData = %d", LG(dlen)));
+                fclose(G.outfile);
+            }
+            return;     /* finished, cancel further extra field scanning */
+          }
+
+          default:
+            Trace((stderr,"qlfix: unknown extra field block, ID=%d\n",
+               eb_id));
+        }
+
+        /* Skip this extra field block */
+        ef_ptr += (eb_len + EB_HEADSIZE);
+        ef_len -= (eb_len + EB_HEADSIZE);
+    }
+}
+#endif /* QLZIP */

@@ -1,4 +1,4 @@
-/* os2acl.c - access to OS/2 (LAN Server) ACL's
+/* os2acl.c - access to OS/2 (LAN Server) ACLs
  *
  * Author:  Kai Uwe Rommel <rommel@ars.de>
  * Created: Mon Aug 08 1994
@@ -6,7 +6,7 @@
  * This code is in the public domain.
  */
 
-/* 
+/*
  * supported 32-bit compilers:
  * - emx+gcc
  * - IBM C Set++ 2.1 or newer
@@ -38,7 +38,7 @@
  *
  * Revision 1.1  1996/03/30 09:35:00  rommel
  * Initial revision
- * 
+ *
  */
 
 #include <stdio.h>
@@ -52,7 +52,7 @@
 #define INCL_DOSERRORS
 #include <os2.h>
 
-#include "os2acl.h"
+#include "os2/os2acl.h"
 
 #define UNLEN 20
 
@@ -75,7 +75,7 @@ typedef USHORT U_INT;
 #define PTR16(x) (x)
 #endif
 
-typedef struct access_list 
+typedef struct access_list
 {
   char acl_ugname[UNLEN+1];
   char acl_pad;
@@ -98,15 +98,15 @@ static char *path, *data;
 
 #ifdef __EMX__
 
-static USHORT (APIENTRY *_NetAccessGetInfo)(PSZ pszServer, PSZ pszResource, 
+static USHORT (APIENTRY *_NetAccessGetInfo)(PSZ pszServer, PSZ pszResource,
   USHORT sLevel, PVOID pbBuffer, USHORT cbBuffer, PUSHORT pcbTotalAvail);
-static USHORT (APIENTRY *_NetAccessSetInfo)(PSZ pszServer, PSZ pszResource, 
+static USHORT (APIENTRY *_NetAccessSetInfo)(PSZ pszServer, PSZ pszResource,
   USHORT sLevel, PVOID pbBuffer, USHORT cbBuffer, USHORT sParmNum);
-static USHORT (APIENTRY *_NetAccessAdd)(PSZ pszServer, 
+static USHORT (APIENTRY *_NetAccessAdd)(PSZ pszServer,
   USHORT sLevel, PVOID pbBuffer, USHORT cbBuffer);
 
-USHORT NetAccessGetInfo(PSZ pszServer, PSZ pszResource, USHORT sLevel, 
-			PVOID pbBuffer, USHORT cbBuffer, PUSHORT pcbTotalAvail)
+USHORT NetAccessGetInfo(PSZ pszServer, PSZ pszResource, USHORT sLevel,
+                        PVOID pbBuffer, USHORT cbBuffer, PUSHORT pcbTotalAvail)
 {
   return (USHORT)
           (_THUNK_PROLOG (4+4+2+4+2+4);
@@ -119,8 +119,8 @@ USHORT NetAccessGetInfo(PSZ pszServer, PSZ pszResource, USHORT sLevel,
            _THUNK_CALLI (_emx_32to16(_NetAccessGetInfo)));
 }
 
-USHORT NetAccessSetInfo(PSZ pszServer, PSZ pszResource, USHORT sLevel, 
-			PVOID pbBuffer, USHORT cbBuffer, USHORT sParmNum)
+USHORT NetAccessSetInfo(PSZ pszServer, PSZ pszResource, USHORT sLevel,
+                        PVOID pbBuffer, USHORT cbBuffer, USHORT sParmNum)
 {
   return (USHORT)
           (_THUNK_PROLOG (4+4+2+4+2+2);
@@ -133,8 +133,8 @@ USHORT NetAccessSetInfo(PSZ pszServer, PSZ pszResource, USHORT sLevel,
            _THUNK_CALLI (_emx_32to16(_NetAccessSetInfo)));
 }
 
-USHORT NetAccessAdd(PSZ pszServer, USHORT sLevel, 
-		    PVOID pbBuffer, USHORT cbBuffer)
+USHORT NetAccessAdd(PSZ pszServer, USHORT sLevel,
+                    PVOID pbBuffer, USHORT cbBuffer)
 {
   return (USHORT)
           (_THUNK_PROLOG (4+2+4+2);
@@ -147,11 +147,11 @@ USHORT NetAccessAdd(PSZ pszServer, USHORT sLevel,
 
 #else /* other 32-bit */
 
-APIRET16 (* APIENTRY16 NetAccessGetInfo)(PCHAR16 pszServer, PCHAR16 pszResource, 
+APIRET16 (* APIENTRY16 NetAccessGetInfo)(PCHAR16 pszServer, PCHAR16 pszResource,
   USHORT sLevel, PVOID16 pbBuffer, USHORT cbBuffer, PVOID16 pcbTotalAvail);
-APIRET16 (* APIENTRY16 NetAccessSetInfo)(PCHAR16 pszServer, PCHAR16 pszResource, 
+APIRET16 (* APIENTRY16 NetAccessSetInfo)(PCHAR16 pszServer, PCHAR16 pszResource,
   USHORT sLevel, PVOID16 pbBuffer, USHORT cbBuffer, USHORT sParmNum);
-APIRET16 (* APIENTRY16 NetAccessAdd)(PCHAR16 pszServer, 
+APIRET16 (* APIENTRY16 NetAccessAdd)(PCHAR16 pszServer,
   USHORT sLevel, PVOID16 pbBuffer, USHORT cbBuffer);
 
 #define _NetAccessGetInfo NetAccessGetInfo
@@ -166,11 +166,11 @@ APIRET16 (* APIENTRY16 NetAccessAdd)(PCHAR16 pszServer,
 #endif
 #else /* 16-bit */
 
-USHORT (APIENTRY *NetAccessGetInfo)(PSZ pszServer, PSZ pszResource, 
+USHORT (APIENTRY *NetAccessGetInfo)(PSZ pszServer, PSZ pszResource,
   USHORT sLevel, PVOID pbBuffer, USHORT cbBuffer, PUSHORT pcbTotalAvail);
-USHORT (APIENTRY *NetAccessSetInfo)(PSZ pszServer, PSZ pszResource, 
+USHORT (APIENTRY *NetAccessSetInfo)(PSZ pszServer, PSZ pszResource,
   USHORT sLevel, PVOID pbBuffer, USHORT cbBuffer, USHORT sParmNum);
-USHORT (APIENTRY *NetAccessAdd)(PSZ pszServer, 
+USHORT (APIENTRY *NetAccessAdd)(PSZ pszServer,
   USHORT sLevel, PVOID pbBuffer, USHORT cbBuffer);
 
 #define _NetAccessGetInfo NetAccessGetInfo
@@ -199,7 +199,7 @@ static BOOL acl_init(void)
 
   initialized = TRUE;
 
-  if (DosLoadModule(buf, sizeof(buf), "NETAPI", &netapi)) 
+  if (DosLoadModule(buf, sizeof(buf), "NETAPI", &netapi))
     return FALSE;
 
   if (DosQueryProcAddr(netapi, 0, "NETACCESSGETINFO", (PFN *) &_NetAccessGetInfo) ||
@@ -225,7 +225,7 @@ static BOOL acl_init(void)
   return netapi_avail;
 }
 
-static void acl_mkpath(char *buffer, char *source)
+static void acl_mkpath(char *buffer, const char *source)
 {
   char *ptr;
   static char cwd[CCHMAXPATH];
@@ -240,7 +240,9 @@ static void acl_mkpath(char *buffer, char *source)
     if (cwd[0] == 0)
     {
       DosQueryCurrentDisk(&cdrive, &drivemap);
-      cwd[0] = cdrive + '@'; cwd[1] = ':'; cwd[2] = '\\';
+      cwd[0] = (char)(cdrive + '@');
+      cwd[1] = ':';
+      cwd[2] = '\\';
       cwdlen = sizeof(cwd) - 3;
       DosQueryCurrentDir(0, cwd + 3, &cwdlen);
       cwdlen = strlen(cwd);
@@ -249,18 +251,18 @@ static void acl_mkpath(char *buffer, char *source)
     if (source[0] == '/' || source[0] == '\\')
     {
       if (source[1] == '/' || source[1] == '\\')
-	buffer[0] = 0; /* UNC names */
+        buffer[0] = 0; /* UNC names */
       else
       {
-	strncpy(buffer, cwd, 2);
-	buffer[2] = 0;
+        strncpy(buffer, cwd, 2);
+        buffer[2] = 0;
       }
     }
     else
     {
       strcpy(buffer, cwd);
       if (cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
-	strcat(buffer, "/");
+        strcat(buffer, "/");
     }
   }
 
@@ -280,22 +282,22 @@ static int acl_bin2text(char *data, char *text)
 {
   ACCINFO *ai;
   ACCLIST *al;
-  int cnt, offs;
+  U_INT cnt, offs;
 
   ai = (ACCINFO *) data;
   al = (ACCLIST *) (data + sizeof(ACCINFO));
 
-  offs = sprintf(text, "ACL1:%X,%d\n", 
-		 ai -> acc_attr, ai -> acc_count);
+  offs = sprintf(text, "ACL1:%X,%d\n",
+                 ai -> acc_attr, ai -> acc_count);
 
   for (cnt = 0; cnt < ai -> acc_count; cnt++)
-    offs += sprintf(text + offs, "%s,%X\n", 
-		    al[cnt].acl_ugname, al[cnt].acl_access);
+    offs += sprintf(text + offs, "%s,%X\n",
+                    al[cnt].acl_ugname, al[cnt].acl_access);
 
   return strlen(text);
 }
 
-int acl_get(char *server, char *resource, char *buffer)
+int acl_get(char *server, const char *resource, char *buffer)
 {
   USHORT datalen;
   PSZ srv = NULL;
@@ -323,13 +325,13 @@ static int acl_text2bin(char *data, char *text, char *path)
   ACCINFO *ai;
   ACCLIST *al;
   char *ptr, *ptr2;
-  int cnt;
+  U_INT cnt;
 
   ai = (ACCINFO *) data;
   ai -> acc_resource_name = PTR16(path);
 
-  if (sscanf(text, "ACL1:%hX,%hd", 
-	     &ai -> acc_attr, &ai -> acc_count) != 2)
+  if (sscanf(text, "ACL1:%hX,%hd",
+             &ai -> acc_attr, &ai -> acc_count) != 2)
     return ERROR_INVALID_PARAMETER;
 
   al = (ACCLIST *) (data + sizeof(ACCINFO));
@@ -347,7 +349,7 @@ static int acl_text2bin(char *data, char *text, char *path)
   return sizeof(ACCINFO) + ai -> acc_count * sizeof(ACCLIST);
 }
 
-int acl_set(char *server, char *resource, char *buffer)
+int acl_set(char *server, const char *resource, char *buffer)
 {
   USHORT datalen;
   PSZ srv = NULL;

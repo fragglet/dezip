@@ -1,6 +1,6 @@
 /* rexxhelp.c */
 
-#if defined(API_DOC) && defined(OS2API)
+#if defined(API_DOC) && defined(OS2DLL)
 
 #define UNZIP_INTERNAL
 #include "../unzip.h"
@@ -8,20 +8,20 @@
 
 APIDocStruct REXXDetails[] = {
   { "UZDROPFUNCS"  , "UZDropFuncs"  ,
-	       "call UZDropFuncs",
+               "call UZDropFuncs",
                "Use this function to drop all the loaded UnZip functions.\n"
 "\t\tOnce this function is processed by a REXX program, the\n"
 "\t\tUnZip functions are not accessible in any OS/2 sessions.\n" },
-  
+
   { "UZLOADFUNCS"  , "UZLoadFuncs"  ,
-	       "call UZLoadFuncs",
-	       "Use this function to make all of the UnZip functions\n"
+               "call UZLoadFuncs",
+               "Use this function to make all of the UnZip functions\n"
 "		in this package available to all OS/2 sessions.\n\n"
 "  Example:	call RxFuncAdd 'UZLoadFuncs', 'UNZIPAPI', 'UZLoadFuncs'\n"
 "		call UZLoadFuncs\n" },
-  
+
   { "UZFILETREE"   , "UZFileTree"   ,
-	       "rc = UZFileTree(zipfile, stem, [include], [exclude], [options])\n\n"
+               "rc = UZFileTree(zipfile, stem, [include], [exclude], [options])\n\n"
 "	zipfile	- Name of ZIP file to search\n"
 "	stem	- Name of the stem variable for results\n"
 "		  Note: stem.0 contains the number of files found.\n"
@@ -36,7 +36,7 @@ APIDocStruct REXXDetails[] = {
 "			Length Date Time Name\n"
 "		  'Z' - Also give ZIP statistics in the form:\n"
 "			Length Method Size Ratio Date Time CRC-32 Name",
-	       "Finds all files in the specified ZIP with the specified\n"
+               "Finds all files in the specified ZIP with the specified\n"
 "		filespec and places their descriptions in a stem variable.\n\n"
 "	rc:	Return codes\n"
 "		0	Successful\n"
@@ -47,16 +47,16 @@ APIDocStruct REXXDetails[] = {
 "		/* Return a list of all files except *.NDX and *.DAT */\n"
 "		exc.0 = 2; exc.1 = '*.ndx'; exc.2 = '*.dat'\n"
 "		rc = UZFileTree('pcboard.qwk', 'stem.',,'exc.')\n" },
-  
-  { "UZUNZIP"	   , "UZUnZip"	    ,
-	       "rc = UZUnZip('parameters', [stem])\n\n"
+
+  { "UZUNZIP"      , "UZUnZip"      ,
+               "rc = UZUnZip('parameters', [stem])\n\n"
 "	parameters	- The entire list of parameters you would use from\n"
 "			  the command-line\n"
 "	stem		- The name of an optional stem variable where any\n"
 "			  output should be redirected.\n"
 "			  NOTE: If a stem is not specified, all output will\n"
 "				go to the console.",
-	       "Provide a direct entry point to the command line interface.\n\n"
+               "Provide a direct entry point to the command line interface.\n\n"
 "	rc:	UnZip return code\n\n"
 "  Examples:	/* Test the archive 'unzip51s.zip' and return output in stem.*/\n"
 "		rc = UZUnZip('-t unzip51s.zip','stem.')\n"
@@ -64,9 +64,9 @@ APIDocStruct REXXDetails[] = {
 "		call UZUnZip 'doom.zip'\n"
 "		/* Extract all .NDX files from the archive */\n"
 "		call UZUnZip 'pcboard.qwk *.ndx','stem.'\n" },
-  
+
   { "UZUNZIPTOVAR" , "UZUnZipToVar" ,
-	       "rc = UZUnZipToVar('zipfile', 'filename', [stem])\n\n"
+               "rc = UZUnZipToVar('zipfile', 'filename', [stem])\n\n"
 "	zipfile	 - Name of ZIP file to search\n"
 "	filename - Name of file to extract from zipfile\n"
 "	stem	 - Optional stem variable to extract the file to.\n"
@@ -75,13 +75,13 @@ APIDocStruct REXXDetails[] = {
 "		   line count.  In this case, 0 will be returned in rc.\n"
 "		   If NO stem variable is specified, the entire file will be\n"
 "		   extracted to rc.",
-	       "Unzip one file to a variable.\n\n"
+               "Unzip one file to a variable.\n\n"
 "	rc:	If no stem variable is specified, rc contains the contents of\n"
 "		the extracted file if successful or an error-code if not.\n"
 "		If a stem variable IS specified, rc contains 0 if successful.\n"},
-  
+
   { "UZUNZIPTOSTEM", "UZUnZipToStem",
-	       "rc = UZUnZipToStem(zipfile, stem, [include], [exclude], [mode])\n"
+               "rc = UZUnZipToStem(zipfile, stem, [include], [exclude], [mode])\n"
 "	zipfile	- Name of ZIP file to search\n"
 "	stem	- Stem variable used to store the extracted files\n"
 "	include - Optional stem variable specifying a list of files (including\n"
@@ -99,7 +99,7 @@ APIDocStruct REXXDetails[] = {
 "		   stem.OS2.DLL.unzipapi.c and an index stored for each\n"
 "		   directory, i.e. stem.OS2.DLL.<index> = \"unzipapi.c\",\n"
 "		   stem.OS2.<index> = \"DLL/\", stem.<index> = \"OS2/\"",
-	       "Unzip files to a stem variable.\n\n"
+               "Unzip files to a stem variable.\n\n"
 "	Example:	Assuming a file unzip.zip containing:\n"
 "			  unzip.c, unshrink.c, extract.c,\n"
 "			  os2/makefile.os2, os2/os2.c\n"
@@ -145,18 +145,18 @@ APIDocStruct REXXDetails[] = {
 "				stem.OS2.os2.c\n"
 "				stem.OS2.DLL.dll.def\n"
 "				stem.OS2.DLL.unzipapi.c\n" },
-  
-  { "UZVER"        , "UZVer"	    ,
-	       "rc = UZVer([option])\n\n"
+
+  { "UZVER"        , "UZVer"        ,
+               "rc = UZVer([option])\n\n"
 "	rc	String containing UnZip version info in the form 'x.xx'\n"
 "		If option is 'L' then info is in the form 'x.xx of <date>",
-	       "Returns the version number of UnZip\n" },
-  
-  { "UZAPIVER"     , "UZAPIVer"	    ,
-	       "rc = UZAPIVer([option])\n\n"
+               "Returns the version number of UnZip\n" },
+
+  { "UZAPIVER"     , "UZAPIVer"     ,
+               "rc = UZAPIVer([option])\n\n"
 "	rc	String containing API version info in the form 'x.xx'\n"
 "		If option is 'L' then info is in the form 'x.xx of <date>",
-	       "Returns the version number of the API\n" },
+               "Returns the version number of the API\n" },
   { 0 }
 };
 
@@ -172,4 +172,4 @@ REXX functions:\n\
   UZAPIVer        -- Returns the API version number\n";
 
 
-#endif
+#endif /* API_DOC && OS2DLL */

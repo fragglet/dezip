@@ -33,7 +33,20 @@ Notes about MS-DOS executables and compilers:
 For these reasons, Info-ZIP's distributed versions of the 16-bit MS-DOS 
 executables are compiled with MSC 6 or 7.
 
- - The default wildcard ("globbing") behavior of djgpp/go32 is disabled
+ - djgpp 2.x (currently 2.01) is no longer distributed with the go32 extender.
+   Instead, a 2K stub bound into the executable searches for a DPMI server;
+   if none is found, it loads the default DPMI server while executing UnZip.
+   Both djgpp 1.x and 2.x are capable of substituting a list of files in an
+   ASCII file (say, `foo') on the command line; for example, "unzip archive
+   @foo" will extract from `archive' all of the files listed in `foo'.  Note,
+   however, that djgpp 2.x is considerably slower than 1.x at file extraction
+   (roughly twice as slow, in fact); see proginfo/perform.dos in the UnZip 5.3
+   source distribution for details.
+
+ - djgpp 2.0's long-filename support is somewhat flaky; users should upgrade
+   to version 2.01 instead.
+
+ - The default wildcard ("globbing") behavior of djgpp 1.x/go32 is disabled
    by default in UnZip, but this can be overridden if the GO32 environment
    variable is set to "glob".  This will cause UnZip to fail with various
    odd errors about "filename not matched" and the like; to avoid this, set
@@ -41,17 +54,20 @@ executables are compiled with MSC 6 or 7.
    method of avoiding this by quoting wildcards with single quotes was 
    buggy in djgpp 1.11 but is reported fixed in 1.12; not tested.)
 
- - djgpp's handling of timezones, necessary for the correct conversion of
-   MS-DOS filetimes to those used in the Unix-like C library, is completely
+ - djgpp 1.x's handling of timezones, necessary for the correct conversion of
+   MS-DOS file times to those used in the Unix-like C library, is completely
    broken in djgpp 1.12 and probably earlier versions as well.  It is fixed
    (or very close to it) in the 1.12m4 patch release and reportedly in the
    2.x series, so be sure to use one of those when compiling.  Otherwise
    UnZip's -f and -u (freshen/update) functions will not work correctly.
+   It is reportedly necessary to set the TZDIR environment variable correctly
+   with 1.12m4; for example, add `set TZDIR=c:/djgpp/zoneinfo' or similar to
+   autoexec.bat.
 
- - djgpp/go32 executables, when run in a DOS box under OS/2 *and* extracting
-   to an HPFS disk *and* overwriting existing files (intentionally, that is),
-   do not set the files' timestamps correctly.  Instead, the timestamps re-
-   main set to whatever the original files' stamps were.  This is a pretty
+ - djgpp 1.x/go32 executables, when run in a DOS box under OS/2 *and* extrac-
+   ting to an HPFS disk *and* overwriting existing files (intentionally, that
+   is), do not set the files' timestamps correctly.  Instead, the timestamps
+   remain set to whatever the original files' stamps were.  This is a pretty
    obscure bug, but it does *not* occur in the 16-bit version so it seems
    to be go32's fault somehow.
 
@@ -66,16 +82,36 @@ executables are compiled with MSC 6 or 7.
    is finished; this can take 30 seconds or more and really hurts perfor-
    mance.  It doesn't affect UnZip, apparently.]
 
+ - [Also apparently for Zip only, djgpp/go32 is reported to have problems
+   when EMM386 is set to NOEMS; it sometimes gives the error message, "CPU
+   must be in REAL mode (not V86 mode) to run this program without VCPI.
+   (If you are using an EMS emulator, make sure that EMS isn't disabled)"
+   Sometimes Zip works correctly, however, possibly due to other software
+   having been run previously.]
+
  - emx+gcc's DOS extender does not understand DPMI, and while there is an
    alternative extender called RSX available (found in dpmigcc4.zip as of
    August 1994), its setup is somewhat kludgy when the local memory manager
    supports both DPMI and VCPI (or something else).  It's also not yet as
    widely known or available as djgpp.
 
+ - The free PMODE/W extender, used in conjunction with executables compiled
+   with Watcom C 10.x and run in an OS/2 DOS box, appears to use up some
+   critical DPMI resource and will fail to run after a few dozen executions
+   ("PMODE/W: DPMI error" and/or SYS 3176).  Some newer versions of PMODE/W,
+   in combination with "unzip -v" on certain zipfiles (e.g., APMTST.ZIP from
+   IBM/EWS), fail immediately (SYS 3176).  And on some OS/2 systems, *any*
+   use of the PMODE/W executables causes the machine to lock up.
+
+ - PMODE/W is also reported to lock up pure DOS systems if QEMM is running.
+
+ - At least older versions of PMODE/W, used in conjunction with Microsoft's
+   EMM386, cause UnZip to start up extremely slowly.  (This problem does not
+   occur with QEMM.)
+
 For these reasons Info-ZIP's distributed 32-bit MS-DOS executables will 
-probably be compiled with Watcom C 10.x and use the PMODE/W extender.  If
-a problem occurs with unzip386.exe, check first if it also occurs with
-unzip.exe before reporting it.
+probably be compiled with djgpp 2.01, mainly because of its nice long-filename
+support when running in a Win32 DOS box.  The cwsdpmi DPMI server will be
+bundled if necessary.
 
-
-GRR 960427
+GRR 970330

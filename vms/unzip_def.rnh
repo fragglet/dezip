@@ -36,6 +36,8 @@
 .!		Modified for UnZip 5.2.
 .!	02-002		Christian Spieler	06-FEB-1996 02:25
 .!		Added -h "help" option.
+.!	02-003		Christian Spieler	04-MAR-1997 20:25
+.!		Added -P "command line password" option.
 .!
 .noflags
 .lm4 .rm72
@@ -122,8 +124,8 @@ options and modifiers can be provided:
  MODIFIERS
    -a   extract text files in standard VMS text file format
    -aa  extract all files as text
-   -b   auto-extract only binary files in VMS fixed 512 record file format 
-   -bb  extract all files as binary in VMS fixed 512 byte record format
+   -b   auto-extract only binary files in VMS fixed 512-byte record format
+   -bb  extract all files as binary in VMS fixed 512-byte record format
    -j   junk paths (don't recreate archive's directory structure)
    -n   never overwrite existing files; don't prompt
    -o   OK to overwrite files without prompting
@@ -131,11 +133,12 @@ options and modifiers can be provided:
    -C   match filenames case-insensitively
    -L   convert filenames to lowercase if created under DOS, VMS, etc.
    -M   feed screen output through built-in "more" pager
+   -P<password> supply decryption password on the command line (insecure!)
    -V   retain (VMS) file version numbers
    -X   restore owner/protection info (may require privileges)
 .end literal;.sk
-Note that uppercase options (-C, -L, -M, -V and -X) must be specified in
-quotes. For example:
+Note that uppercase options (-C, -L, -M, -P, -V and -X) must be specified
+in quotes. For example:
 .sk;.literal
     unzip "-VX" -a zipfile
 .end literal;.sk
@@ -147,8 +150,16 @@ And, in combination, "text" recognition takes precedence; this means
 that -bb has the same effect as -b, and -aa overrides binary conversion
 for ALL files.
 .sk
-.![this should probably be a separate section]:
-In addition, default options may be specified via the UNZIP_OPTS logical.
+Please note that using the "-P<password>" option is higly insecure, the
+plaintext password may be seen by others. For this reason (and because of
+lack of space), the "-P<password>" option is not advertised on UnZip's
+online help screen.
+.!------------------------------------------------------------------------------
+.indent -4
+2 Logical_Names
+.br
+UnZip allows to modify its default behaviour by specifying option defaults
+via the UNZIP_OPTS logical name.
 For example, the following will cause UnZip to restore owner/protection
 information and perform all operations at quiet-level 1 by default:
 .sk;.literal
@@ -156,7 +167,7 @@ information and perform all operations at quiet-level 1 by default:
 .end literal;.sk
 Note that the quotation marks here are required to preserve lowercase options
 (opposite of the command-line behavior).
-To negate a default option on the command line, add one or more minus 
+To negate a default option on the command line, add one or more minus
 signs before the option letter, in addition to the leading switch character
 `-':
 .sk;.literal
@@ -169,14 +180,14 @@ or
 At present it is not possible to decrement an option below zero--that is,
 more than a few minuses have no effect.
 .sk
-UNZIP_OPTS may be defined as a symbol rather than a logical, but if both
-are defined, the logical is used.
+UNZIP_OPTS may be defined as a symbol rather than a logical name, but if
+both are defined, the logical name takes precedence.
 .!-----------------------------------------------------------------------------
 .indent -4
 2 Authors
 .br
 Info-ZIP; currently maintained by Greg Roelofs.  VMS support maintained
-by Igor Mandrichenko and Hunter Goatley.  Originally based on a program
+by Christian Spieler and Hunter Goatley.  Originally based on a program
 by Samuel H. Smith.
 .sk
 VMS on-line help ported from UNZIP.DOC by Hunter Goatley.

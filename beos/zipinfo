@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Fake zipinfo for BeOS (really, for any system that supports shells
+# "properly", but doesn't support links of any kind).
+#
+# This is really so simple that I feel silly throwing the Info-ZIP copyright
+# statement in, but then again, you never know.
+#
+# Chris Herborth (chrish@qnx.com)
+#
+# Copyright (c) 1996 Chris Herborth
+# Permission is granted to any individual/institution/corporate
+# entity to use, copy, redistribute or modify this software for
+# any purpose whatsoever, subject to the conditions noted in the
+# Frequently Asked Questions of the COPYING file, plus one additional
+# condition:  namely, that my name not be removed from the source
+# code.  (Other names may, of course, be added as modifications
+# are made.)  Corporate legal staff (like at IBM :-) ) who have
+# problems understanding this can contact me through zip-bugs...
+unzip -Z $@

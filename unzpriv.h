@@ -43,7 +43,7 @@
 #  define REENTRANT
 #endif
 
-#ifndef DYNAMIC_CRC_TABLE
+#if (!defined(DYNAMIC_CRC_TABLE) && !defined(FUNZIP))
 #  define DYNAMIC_CRC_TABLE
 #endif
 
@@ -76,8 +76,8 @@
   ---------------------------------------------------------------------------*/
 
 #ifdef DLL
-#  define MAIN  UzpMain   /* was UzpUnzip */
-#  ifdef OS2API
+#  define MAIN   UZ_EXP UzpMain   /* was UzpUnzip */
+#  ifdef OS2DLL
 #    undef Info
 #    define REDIRECTC(c)             varputchar(__G__ c)
 #    define REDIRECTPRINT(buf,size)  varmessage(__G__ buf, size)
@@ -126,13 +126,39 @@
 #  include <limits.h>
 #  define SYMLINKS
 #  define EXE_EXTENSION  ".tos"
-#  define DATE_FORMAT    DF_MDY
+#  define DATE_FORMAT    DF_DMY
 #  define DIR_END        '/'
 #  define INT_SPRINTF
 #  define timezone      _timezone
 #  define lenEOL        2
 #  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 #  undef SHORT_NAMES
+#endif
+
+/*---------------------------------------------------------------------------
+    BeOS section:
+  ---------------------------------------------------------------------------*/
+
+#ifdef __BEOS__
+#  include <sys/types.h>          /* [cjh]:  This is pretty much a generic  */
+#  include <sys/stat.h>           /* POSIX 1003.1 system; see beos/ for     */
+#  include <fcntl.h>              /* extra code to deal with our extra file */
+#  include <sys/param.h>          /* attributes. */
+#  ifdef __GNUC__
+#    include <be/kernel/unistd.h> /* our headers can be strange... */
+#  else
+#    include <unistd.h>
+#  endif
+#  include <utime.h>
+#  define DIRENT
+#  include <time.h>
+#  define DATE_FORMAT   DF_MDY    /* GRR:  customize with locale.h somehow? */
+#  define lenEOL        1
+#  define PutNativeEOL  *q++ = native(LF);
+#  define SCREENLINES   screenlines()
+#  define USE_EF_UT_TIME
+#  define NO_GMTIME               /* maybe DR9 will have timezones... */
+#  define INT_SPRINTF
 #endif
 
 /*---------------------------------------------------------------------------
@@ -198,7 +224,8 @@
 #  define read          macread
 #  define write         macwrite
 #  define lseek         maclseek
-#  define creat(x,y)    maccreat((x), G.gnVRefNum, G.glDirID, G.gostCreator, G.gostType)
+#  define creat(x,y) \
+               maccreat((x), G.gnVRefNum, G.glDirID, G.gostCreator, G.gostType)
 #  define stat(x,y)     macstat((x), (y), G.gnVRefNum, G.glDirID)
 #  define dup
 #  ifndef MCH_MACINTOSH
@@ -210,6 +237,18 @@
 #  define PutNativeEOL  *q++ = native(CR);
 #  define MALLOC_WORK
 #  define INT_SPRINTF
+#  define USE_EF_UT_TIME
+#  define NO_GMTIME
+#  undef DYNAMIC_CRC_TABLE
+  /*
+   * ARGH.  Mac times are based on 1904 Jan 1 00:00, not 1970 Jan 1 00:00.
+   *  So we have to diddle time_t's appropriately:  add or subtract 66 years'
+   *  worth of seconds == number of days times 86400 == (66*365 regular days +
+   *  17 leap days) * 86400 == (24090 + 17) * 86400 == 2082844800 seconds.  We
+   *  hope time_t is an unsigned long (ulg) on the Macintosh...
+   */
+#  define TIMET_TO_NATIVE(x)  (x) += (ulg)2082844800L;
+#  define NATIVE_TO_TIMET(x)  (x) -= (ulg)2082844800L;
 
 #  ifdef THINK_C
 #    define fgets       wfgets
@@ -236,42 +275,43 @@
 #    undef  CR
 #  endif
 
-typedef struct _ZipExtraHdr {
-    ush header;               /*    2 bytes */
-    ush data;                 /*    2 bytes */
-} ZIP_EXTRA_HEADER;
+   typedef struct _ZipExtraHdr {
+       ush header;               /*    2 bytes */
+       ush data;                 /*    2 bytes */
+   } ZIP_EXTRA_HEADER;
 
-typedef struct _MacInfoMin {
-    ush header;               /*    2 bytes */
-    ush data;                 /*    2 bytes */
-    ulg signature;            /*    4 bytes */
-    FInfo finfo;              /*   16 bytes */
-    ulg lCrDat;               /*    4 bytes */
-    ulg lMdDat;               /*    4 bytes */
-    ulg flags ;               /*    4 bytes */
-    ulg lDirID;               /*    4 bytes */
-                              /*------------*/
-} MACINFOMIN;                 /* = 40 bytes for size of data */
+   typedef struct _MacInfoMin {
+       ush header;               /*    2 bytes */
+       ush data;                 /*    2 bytes */
+       ulg signature;            /*    4 bytes */
+       FInfo finfo;              /*   16 bytes */
+       ulg lCrDat;               /*    4 bytes */
+       ulg lMdDat;               /*    4 bytes */
+       ulg flags ;               /*    4 bytes */
+       ulg lDirID;               /*    4 bytes */
+                                 /*------------*/
+   } MACINFOMIN;                 /* = 40 bytes for size of data */
 
-typedef struct _MacInfo {
-    ush header;               /*    2 bytes */
-    ush data;                 /*    2 bytes */
-    ulg signature;            /*    4 bytes */
-    FInfo finfo;              /*   16 bytes */
-    ulg lCrDat;               /*    4 bytes */
-    ulg lMdDat;               /*    4 bytes */
-    ulg flags ;               /*    4 bytes */
-    ulg lDirID;               /*    4 bytes */
-    char rguchVolName[28];    /*   28 bytes */
-                              /*------------*/
-} MACINFO;                    /* = 68 bytes for size of data */
+   typedef struct _MacInfo {
+       ush header;               /*    2 bytes */
+       ush data;                 /*    2 bytes */
+       ulg signature;            /*    4 bytes */
+       FInfo finfo;              /*   16 bytes */
+       ulg lCrDat;               /*    4 bytes */
+       ulg lMdDat;               /*    4 bytes */
+       ulg flags ;               /*    4 bytes */
+       ulg lDirID;               /*    4 bytes */
+       char rguchVolName[28];    /*   28 bytes */
+                                 /*------------*/
+   } MACINFO;                    /* = 68 bytes for size of data */
+
 #endif /* MACOS */
 
 /*---------------------------------------------------------------------------
     MS-DOS and OS/2 section:
   ---------------------------------------------------------------------------*/
 
-#ifdef WIZUNZIP
+#ifdef WINDLL
 #  define MSWIN
 #  ifdef MORE
 #    undef MORE
@@ -282,10 +322,6 @@ typedef struct _MacInfo {
 #  ifndef MSC
 #    define MSC               /* This should work for older MSC, too!  */
 #  endif
-#endif
-
-#ifdef MSWIN
-#  include "wingui\wizunzip.h"
 #endif
 
 #if (defined(MSDOS) || defined(OS2))
@@ -301,17 +337,32 @@ typedef struct _MacInfo {
 #    include "msdos/doscfg.h"
 #  endif
 
+#  if (defined(_MSC_VER) && (_MSC_VER == 700) && !defined(GRR))
+    /*
+     * ARGH.  MSC 7.0 libraries think times are based on 1899 Dec 31 00:00, not
+     *  1970 Jan 1 00:00.  So we have to diddle time_t's appropriately:  add or
+     *  subtract 70 years' worth of seconds; i.e., number of days times 86400;
+     *  i.e., (70*365 regular days + 17 leap days + 1 1899 day) * 86400 ==
+     *  (25550 + 17 + 1) * 86400 == 2209075200 seconds.  We know time_t is an
+     *  unsigned long (ulg) on the only system with this bug.
+     */
+#    define TIMET_TO_NATIVE(x)  (x) += (ulg)2209075200L;
+#    define NATIVE_TO_TIMET(x)  (x) -= (ulg)2209075200L;
+#  endif
+#  if (defined(__BORLANDC__) && (__BORLANDC__ >= 0x0450))
+#    define timezone      _timezone
+#  endif
 #  ifdef __GO32__
-#    define DIR_END '/'
+#    define DIR_END       '/'
 #  else
-#    define DIR_END '\\'
+#    define DIR_END       '\\'
 #  endif
 #  ifndef WIN32
 #    define DATE_FORMAT   dateformat()
 #  endif
 #  define lenEOL          2
 #  define PutNativeEOL    {*q++ = native(CR); *q++ = native(LF);}
-#  define USE_EF_UX_TIME
+#  define USE_EF_UT_TIME
 #endif /* MSDOS || OS2 */
 
 /*---------------------------------------------------------------------------
@@ -337,12 +388,24 @@ typedef struct _MacInfo {
 #  define PutNativeEOL  *q++ = native(LF);
 #endif /* MTS */
 
-/*---------------------------------------------------------------------------
-    Win32 section:
+ /*---------------------------------------------------------------------------
+    QDOS section
   ---------------------------------------------------------------------------*/
 
-#ifdef WIN32  /* NT and Win95 */
-#  include "win32/w32cfg.h"
+#ifdef QDOS
+#  define DIRENT
+#  include <fcntl.h>
+#  include <unistd.h>
+#  include <sys/stat.h>
+#  include <sys/time.h>
+#  include "qdos/izqdos.h"
+#  define DATE_FORMAT   DF_MDY
+#  define lenEOL        1
+#  define PutNativeEOL  *q++ = native(LF);
+#  define DIR_END       '_'
+#  define RETURN        QReturn
+#  undef PATH_MAX
+#  define PATH_MAX      36
 #endif
 
 /*---------------------------------------------------------------------------
@@ -431,8 +494,9 @@ typedef struct _MacInfo {
 
 #  if (defined(BSD4_4) || (defined(SYSV) && defined(MODERN)))
 #    include <unistd.h>        /* this includes utime.h on SGIs */
-#    ifdef BSD4_4
+#    if (defined(BSD4_4) || defined(linux))
 #      include <utime.h>
+#      define GOT_UTIMBUF
 #    endif
 #  endif
 
@@ -453,7 +517,7 @@ typedef struct _MacInfo {
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
-#  define USE_EF_UX_TIME
+#  define USE_EF_UT_TIME
 #endif /* UNIX */
 
 /*---------------------------------------------------------------------------
@@ -462,6 +526,7 @@ typedef struct _MacInfo {
 
 #ifdef CMS_MVS
 #  include "vmmvs.h"
+#  define CLOSE_INFILE()  close_infile(__G)
 #endif
 
 /*---------------------------------------------------------------------------
@@ -483,6 +548,9 @@ typedef struct _MacInfo {
 #    define RETURN      return_VMS                /* quiet version */
 #    define EXIT        return_VMS
 #  endif
+#  ifdef VMSCLI
+#    define USAGE(ret)  VMSCLI_usage(__G__ (ret));
+#  endif
 #  define DIR_BEG       '['
 #  define DIR_END       ']'
 #  define DIR_EXT       ".dir"
@@ -493,11 +561,19 @@ typedef struct _MacInfo {
 #  if ((!defined(__VMS_VER)) || (__VMS_VER < 70000000))
 #    define NO_GMTIME           /* gmtime() of earlier VMS C RTLs is broken */
 #  else
-#    if (!defined(NO_EF_UX_TIME) && !defined(USE_EF_UX_TIME))
-#      define USE_EF_UX_TIME
+#    if (!defined(NO_EF_UT_TIME) && !defined(USE_EF_UT_TIME))
+#      define USE_EF_UT_TIME
 #    endif
 #  endif
 #endif /* VMS */
+
+/*---------------------------------------------------------------------------
+    Win32 (Windows 95/NT) section:
+  ---------------------------------------------------------------------------*/
+
+#if (defined(WIN32) && !defined(POCKET_UNZIP))
+#  include "win32/w32cfg.h"
+#endif
 
 
 
@@ -512,6 +588,10 @@ typedef struct _MacInfo {
 
 #if (defined(MSDOS) || defined(OS2))
 #  define DOS_OS2
+#endif
+
+#if (defined(OS2) || defined(WIN32))
+#  define OS2_W32
 #endif
 
 #if (defined(DOS_OS2) || defined(WIN32))
@@ -533,16 +613,37 @@ typedef struct _MacInfo {
 
 /* clean up with a few defaults */
 #ifndef DIR_END
-#  define DIR_END '/'       /* last char before program name (or filename) */
+#  define DIR_END       '/'     /* last char before program name or filename */
 #endif
 #ifndef DATE_FORMAT
 #  define DATE_FORMAT   DF_MDY  /* defaults to US convention */
 #endif
+#ifndef CLOSE_INFILE
+#  define CLOSE_INFILE()  close(G.zipfd)
+#endif
 #ifndef RETURN
-#  define RETURN  return        /* only used in main() */
+#  define RETURN        return  /* only used in main() */
 #endif
 #ifndef EXIT
-#  define EXIT    exit
+#  define EXIT          exit
+#endif
+#ifndef USAGE
+#  define USAGE(ret)    usage(__G__ (ret));   /* used in unzip.c, zipinfo.c */
+#endif
+#ifndef TIMET_TO_NATIVE         /* everybody but MSC 7.0 and Macintosh */
+#  define TIMET_TO_NATIVE(x)
+#  define NATIVE_TO_TIMET(x)
+#endif
+
+#if (defined(DOS_OS2_W32) || defined(UNIX) || defined(RISCOS))
+#  ifndef HAVE_UNLINK
+#    define HAVE_UNLINK
+#  endif
+#endif
+#if (defined(AOS_VS) || defined(ATARI) || defined(__BEOS__)) /* GRR: others? */
+#  ifndef HAVE_UNLINK
+#    define HAVE_UNLINK
+#  endif
 #endif
 
 /* OS-specific exceptions to the "ANSI <--> INT_SPRINTF" rule */
@@ -629,6 +730,14 @@ typedef struct _MacInfo {
 #  endif
 #endif
 
+#if (defined(DYNALLOC_CRCTAB) && !defined(DYNAMIC_CRC_TABLE))
+#  undef DYNALLOC_CRCTAB
+#endif
+
+#if (defined(DYNALLOC_CRCTAB) && defined(REENTRANT))
+#  undef DYNALLOC_CRCTAB   /* not safe with reentrant code */
+#endif
+
 #if (defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB))
 #  ifdef DYNALLOC_CRCTAB
 #    undef DYNALLOC_CRCTAB
@@ -665,10 +774,16 @@ typedef struct _MacInfo {
 #  define TRANSBUFSIZ (OUTBUFSIZ-RAWBUFSIZ)
    typedef short  shrint;            /* short/int or "shrink int" (unshrink) */
 #else
-#  define zfstrcpy(dest, src)    strcpy((dest), (src))
-#  define LoadFarString(x)       x
-#  define LoadFarStringSmall(x)  x
-#  define LoadFarStringSmall2(x) x
+#  define zfstrcpy(dest, src)       strcpy((dest), (src))
+#  ifdef QDOS
+#    define LoadFarString(x)        Qstrfix(x)   /* fix up _ for '.' */
+#    define LoadFarStringSmall(x)   Qstrfix(x)
+#    define LoadFarStringSmall2(x)  Qstrfix(x)
+#  else
+#    define LoadFarString(x)        x
+#    define LoadFarStringSmall(x)   x
+#    define LoadFarStringSmall2(x)  x
+#  endif
 #  ifdef MED_MEM
 #    define OUTBUFSIZ 0xFF80         /* can't malloc arrays of 0xFFE8 or more */
 #    define TRANSBUFSIZ 0xFF80
@@ -697,6 +812,10 @@ typedef struct _MacInfo {
 #  define COPYRIGHT_CLEAN
 #endif
 
+#if (!defined(LZW_CLEAN) && !defined(USE_UNSHRINK))
+#  define LZW_CLEAN
+#endif
+
 #ifndef O_BINARY
 #  define O_BINARY  0
 #endif
@@ -713,7 +832,8 @@ typedef struct _MacInfo {
 #endif /* VMS */
 
 #ifdef CMS_MVS
-#  define FOPW "wb,recfm=f"
+/* Binary files must be RECFM=F,LRECL=1 for ftell() to get correct pos */
+#  define FOPW "wb,recfm=f,lrecl=1"
 #  ifdef MVS
 #    define FOPWT "w,lrecl=133"
 #  else
@@ -808,10 +928,16 @@ typedef struct _MacInfo {
 #  define maxcodemax                XXmax
 #endif
 
-#ifdef RISCOS
-#  define ZSUFX           "/zip"
+#ifdef QDOS
+#  define ZSUFX         "_zip"
+#  define ALT_ZSUFX     ".zip"
 #else
-#  define ZSUFX           ".zip"
+#  ifdef RISCOS
+#    define ZSUFX       "/zip"
+#  else
+#    define ZSUFX       ".zip"
+#  endif
+#  define ALT_ZSUFX     ".ZIP"   /* Unix-only so far (only case-sensitive fs) */
 #endif
 
 #define CENTRAL_HDR_SIG   "\001\002"   /* the infamous "PK" signature bytes, */
@@ -819,10 +945,12 @@ typedef struct _MacInfo {
 #define END_CENTRAL_SIG   "\005\006"   /*  mistaken for zipfile itself) */
 #define EXTD_LOCAL_SIG    "\007\010"   /* [ASCII "\113" == EBCDIC "\080" ??] */
 
-#define SKIP              0    /* choice of activities for do_string() */
-#define DISPLAY           1
-#define DS_FN             2
-#define EXTRA_FIELD       3
+/* choice of activities for do_string() */
+#define SKIP              0             /* skip header block */
+#define DISPLAY           1             /* display archive comment (ASCII) */
+#define DISPL_8           5             /* display file comment (ext. ASCII) */
+#define DS_FN             2             /* read filename (ext. ASCII) */
+#define EXTRA_FIELD       3             /* copy extra field into buffer */
 #define DS_EF             3
 #ifdef AMIGA
 #  define FILENOTE        4
@@ -847,18 +975,19 @@ typedef struct _MacInfo {
 #define UNIX_             3
 #define VM_CMS_           4
 #define ATARI_            5    /* what if it's a minix filesystem? [cjh] */
-#define FS_HPFS_          6    /* filesystem used by OS/2, NT */
+#define FS_HPFS_          6    /* filesystem used by OS/2 (and NT 3.x) */
 #define MAC_              7
 #define Z_SYSTEM_         8
 #define CPM_              9
 #define TOPS20_           10
 #define FS_NTFS_          11   /* filesystem used by Windows NT */
-#define QDOS_MAYBE_       12   /* a bit premature, but somebody once started */
+#define QDOS_             12
 #define ACORN_            13   /* Archimedes Acorn RISC OS */
-#define FS_VFAT_          14   /* filesystem used by Windows 95 */
+#define FS_VFAT_          14   /* filesystem used by Windows 95, NT */
 #define MVS_              15
-#define BEBOX_            16
-#define NUM_HOSTS         17   /* index of last system + 1 */
+#define BEOS_             16   /* hybrid POSIX/database filesystem */
+#define TANDEM_           17   /* Tandem/NSK */
+#define NUM_HOSTS         18   /* index of last system + 1 */
 
 #define STORED            0    /* compression methods */
 #define SHRUNK            1
@@ -869,47 +998,39 @@ typedef struct _MacInfo {
 #define IMPLODED          6
 #define TOKENIZED         7
 #define DEFLATED          8
-#define NUM_METHODS       9    /* index of last method + 1 */
-/* don't forget to update list_files() appropriately if NUM_METHODS changes */
+#define ENHDEFLATED       9
+#define DCLIMPLODED      10
+#define NUM_METHODS      11    /* index of last method + 1 */
+/* don't forget to update list_files(), extract.c and zipinfo.c appropriately
+ * if NUM_METHODS changes */
 
-#define PK_OK             0    /* no error */
-#define PK_COOL           0    /* no error */
-#define PK_GNARLY         0    /* no error */
-#define PK_WARN           1    /* warning error */
-#define PK_ERR            2    /* error in zipfile */
-#define PK_BADERR         3    /* severe error in zipfile */
-#define PK_MEM            4    /* insufficient memory */
-#define PK_MEM2           5    /* insufficient memory */
-#define PK_MEM3           6    /* insufficient memory */
-#define PK_MEM4           7    /* insufficient memory */
-#define PK_MEM5           8    /* insufficient memory */
-#define PK_NOZIP          9    /* zipfile not found */
-#define PK_PARAM          10   /* bad or illegal parameters specified */
-#define PK_FIND           11   /* no files found */
-#define PK_DISK           50   /* disk full */
-#define PK_EOF            51   /* unexpected EOF */
-
-#define IZ_DIR            76   /* potential zipfile is a directory */
-#define IZ_CREATED_DIR    77   /* directory created: set time and permissions */
-#define IZ_VOL_LABEL      78   /* volume label, but can't set on hard disk */
-#define IZ_EF_TRUNC       79   /* local extra field truncated (PKZIP'd) */
+/* (the PK-class error codes are public and have been moved into unzip.h) */
 
 #define DF_MDY            0    /* date format 10/26/91 (USA only) */
 #define DF_DMY            1    /* date format 26/10/91 (most of the world) */
 #define DF_YMD            2    /* date format 91/10/26 (a few countries) */
 
-/* extra-field ID values, little-endian: */
-#define EF_AV        0x0007    /* PKWARE's authenticity verification ID */
-#define EF_OS2       0x0009    /* OS/2 extended attributes ID */
-#define EF_PKVMS     0x000c    /* PKWARE's VMS ID */
-#define EF_ASIUNIX   0x756e    /* ASi/PKWARE's Unix ID ("nu") */
-#define EF_IZVMS     0x4d49    /* Info-ZIP's VMS ID ("IM") */
-#define EF_IZUNIX    0x5855    /* Info-ZIP's Unix ID ("UX") */
-#define EF_VMCMS     0x4704    /* VM/CMS Extra Field ID ("\004G") */
-#define EF_MVS       0x470f    /* MVS Extra Field ID ("\017G") */
-#define EF_SPARK     0x4341    /* David Pilling's Acorn/SparkFS ID ("AC") */
-#define EF_MD5       0x4b46    /* Fred Kantor's MD5 ID ("FK") */
-#define EF_ACL       0x4C41    /* OS/2 ACL ID */
+/* extra-field ID values, all little-endian: */
+#define EF_AV        0x0007    /* PKWARE's authenticity verification */
+#define EF_OS2       0x0009    /* OS/2 extended attributes */
+#define EF_PKVMS     0x000c    /* PKWARE's VMS */
+#define EF_PKUNIX    0x000d    /* PKWARE's Unix */
+#define EF_IZVMS     0x4d49    /* Info-ZIP's VMS ("IM") */
+#define EF_IZUNIX    0x5855    /* Info-ZIP's old Unix[1] ("UX") */
+#define EF_IZUNIX2   0x7855    /* Info-ZIP's new Unix[2] ("Ux") */
+#define EF_TIME      0x5455    /* universal timestamp ("UT") */
+#define EF_JLMAC     0x07c8    /* Johnny Lee's old Macintosh (= 1992) */
+#define EF_ZIPIT     0x2605    /* Thomas Brown's Macintosh (ZipIt) */
+#define EF_VMCMS     0x4704    /* Info-ZIP's VM/CMS ("\004G") */
+#define EF_MVS       0x470f    /* Info-ZIP's MVS ("\017G") */
+#define EF_ACL       0x4c41    /* (OS/2) access control list ("AL") */
+#define EF_NTSD      0x4453    /* NT security descriptor ("SD") */
+#define EF_BEOS      0x6542    /* BeOS ("Be") */
+#define EF_QDOS      0xfb4a    /* SMS/QDOS ("J\373") */
+#define EF_AOSVS     0x5356    /* AOS/VS ("VS") */
+#define EF_SPARK     0x4341    /* David Pilling's Acorn/SparkFS ("AC") */
+#define EF_MD5       0x4b46    /* Fred Kantor's MD5 ("FK") */
+#define EF_ASIUNIX   0x756e    /* ASi's Unix ("nu") */
 
 #define EB_HEADSIZE       4    /* length of extra field block header */
 #define EB_ID             0    /* offset of block ID in header */
@@ -921,6 +1042,17 @@ typedef struct _MacInfo {
 #define EB_UX_MTIME       4    /* offset of mtime in "UX" extra field data */
 #define EB_UX_UID         8    /* byte offset of UID in "UX" field data */
 #define EB_UX_GID         10   /* byte offset of GID in "UX" field data */
+
+#define EB_UT_MINLEN      1    /* minimal UT field contains Flags byte */
+#define EB_UT_FLAGS       0    /* byte offset of Flags field */
+#define EB_UT_TIME1       1    /* byte offset of 1st time value */
+#define EB_UT_FL_MTIME    (1 << 0)      /* mtime present */
+#define EB_UT_FL_ATIME    (1 << 1)      /* atime present */
+#define EB_UT_FL_CTIME    (1 << 2)      /* ctime present */
+#define EB_UX2_MINLEN     4    /* minimal Ux field contains UID/GID */
+#define EB_UX2_UID        0    /* byte offset of UID in "Ux" field data */
+#define EB_UX2_GID        2    /* byte offset of GID in "Ux" field data */
+#define EB_UX2_VALID      (1 << 8)      /* UID/GID present */
 
 /*---------------------------------------------------------------------------
     True sizes of the various headers, as defined by PKWARE--so it is not
@@ -939,8 +1071,9 @@ typedef struct _MacInfo {
 #define CTRLZ  26        /* DOS & OS/2 EOF marker (used in fileio.c, vms.c) */
 
 #ifdef EBCDIC
-#  define native(c) ebcdic[(c)]
-#  define NATIVE    "EBCDIC"
+#  define foreign(c)    ascii[(uch)(c)]
+#  define native(c)     ebcdic[(uch)(c)]
+#  define NATIVE        "EBCDIC"
 #endif
 
 #if (defined(CRAY) && defined(ZMEM))
@@ -958,15 +1091,16 @@ typedef struct _MacInfo {
 #ifdef VMS
 #  define ENV_UNZIP       "UNZIP_OPTS"     /* names of environment variables */
 #  define ENV_ZIPINFO     "ZIPINFO_OPTS"
-#else /* !VMS */
-#  ifdef RISCOS
-#    define ENV_UNZIP     "Unzip$Options"
-#    define ENV_ZIPINFO   "Zipinfo$Options"
-#  else /* !RISCOS */
-#    define ENV_UNZIP     "UNZIP"          /* the standard names */
-#    define ENV_ZIPINFO   "ZIPINFO"
-#  endif /* ?RISCOS */
-#endif /* ?VMS */
+#endif /* VMS */
+#ifdef RISCOS
+#  define ENV_UNZIP       "Unzip$Options"
+#  define ENV_ZIPINFO     "Zipinfo$Options"
+#  define ENV_UNZIPEXTS   "Unzip$Exts"
+#endif /* RISCOS */
+#ifndef ENV_UNZIP
+#  define ENV_UNZIP       "UNZIP"          /* the standard names */
+#  define ENV_ZIPINFO     "ZIPINFO"
+#endif
 #define ENV_UNZIP2        "UNZIPOPT"     /* alternate names, for zip compat. */
 #define ENV_ZIPINFO2      "ZIPINFOOPT"
 
@@ -1036,7 +1170,7 @@ typedef struct _MacInfo {
 #  endif
 #endif
 
-#if (defined(WIN32) || defined(sgi) || defined(BSD4_4) || defined(ATARI))
+#if (defined(WIN32) || defined(sgi) || defined(GOT_UTIMBUF) || defined(ATARI))
    typedef struct utimbuf ztimbuf;
 #else
    typedef struct ztimbuf {
@@ -1044,6 +1178,25 @@ typedef struct _MacInfo {
        time_t modtime;       /* new modification time */
    } ztimbuf;
 #endif
+
+typedef struct iztimes {
+   time_t atime;             /* new access time */
+   time_t mtime;             /* new modification time */
+   time_t ctime;             /* used for creation time; NOT same as st_ctime */
+} iztimes;
+
+#ifdef UNIX
+   typedef struct dirtime {  /* temporary struct for holding directory info */
+       char *fn;             /*  until can be sorted and set at end */
+       union {
+           iztimes t3;       /* mtime, atime, ctime */
+           ztimbuf t2;       /* modtime, actime */
+       } u;
+       unsigned perms;       /* same as min_info.file_attr */
+       int have_uidgid;      /* flag */
+       ush uidgid[2];
+   } dirtime;
+#endif /* UNIX */
 
 typedef struct min_info {
     long offset;
@@ -1223,16 +1376,8 @@ typedef struct _APIDocStruct {
 /*************/
 
 #if (defined(OS2) && !defined(FUNZIP))
-#  include "os2/os2.h"
+#  include "os2/os2data.h"
 #endif
-
-/*
-    no longer supported (though code is available separately)
-
-    #if (defined(WINDLL) && !defined(FUNZIP))
-    #  include "win16dll/windll.h"
-    #endif
- */
 
 #include "globals.h"
 
@@ -1246,43 +1391,51 @@ typedef struct _APIDocStruct {
     Functions in unzip.c (initialization routines):
   ---------------------------------------------------------------------------*/
 
+#ifndef WINDLL
 /* int main                      OF((int argc, char **argv));  */
-int    unzip                     OF((__GPRO__ int argc, char **argv));
-int    uz_opts                   OF((__GPRO__ int *pargc, char ***pargv));
-int    usage                     OF((__GPRO__ int error));
+   int    unzip                  OF((__GPRO__ int argc, char **argv));
+   int    uz_opts                OF((__GPRO__ int *pargc, char ***pargv));
+   int    usage                  OF((__GPRO__ int error));
+#endif /* !WINDLL */
 
 /*---------------------------------------------------------------------------
     Functions in process.c (main driver routines):
   ---------------------------------------------------------------------------*/
 
 int      process_zipfiles        OF((__GPRO));
+void     free_G_buffers          OF((__GPRO));
 /* static int    do_seekable     OF((__GPRO__ int lastchance)); */
 /* static int    find_ecrec      OF((__GPRO__ long searchlen)); */
 int      uz_end_central          OF((__GPRO));
 int      process_cdir_file_hdr   OF((__GPRO));
 int      get_cdir_ent            OF((__GPRO));
 int      process_local_file_hdr  OF((__GPRO));
-unsigned ef_scan_for_izux        OF((uch *ef_buf, unsigned ef_len,
-                                     ztimbuf *z_utim, ush *z_uidgid));
+unsigned ef_scan_for_izux        OF((uch *ef_buf, unsigned ef_len, int ef_is_c,
+                                     iztimes *z_utim, ush *z_uidgid));
 
 /*---------------------------------------------------------------------------
     Functions in zipinfo.c (`zipinfo-style' listing routines):
   ---------------------------------------------------------------------------*/
 
-int      zi_opts                 OF((__GPRO__ int *pargc, char ***pargv));
+#ifndef WINDLL
+   int   zi_opts                 OF((__GPRO__ int *pargc, char ***pargv));
+#endif
 int      zi_end_central          OF((__GPRO));
 int      zipinfo                 OF((__GPRO));
-/* static int      zi_long       OF((__GPRO__ ulg endprev)); */
+/* static int      zi_long       OF((__GPRO__ ulg *pEndprev)); */
 /* static int      zi_short      OF((__GPRO)); */
 /* static char    *zi_time       OF((__GPRO__
-                                     const ush *datez, const ush *timez,
-                                     const time_t *modtimez, char *d_t_str)); */
+                                     ZCONST ush *datez, ZCONST ush *timez,
+                                     ZCONST time_t *modtimez, char *d_t_str));*/
 
 /*---------------------------------------------------------------------------
     Functions in list.c (generic zipfile-listing routines):
   ---------------------------------------------------------------------------*/
 
 int      list_files              OF((__GPRO));
+#ifdef TIMESTAMP
+   int   time_stamp              OF((__GPRO));
+#endif
 int      ratio                   OF((ulg uc, ulg c));
 void     fnprint                 OF((__GPRO));
 
@@ -1309,15 +1462,21 @@ int      check_for_newer      OF((__GPRO__ char *filename)); /* os2,vmcms,vms */
 int      do_string            OF((__GPRO__ unsigned int len, int option));
 ush      makeword             OF((uch *b));
 ulg      makelong             OF((uch *sig));
-int      zstrnicmp            OF((register const char *s1,
-                                  register const char *s2,
+#if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
+   char *str2iso              OF((char *dst, ZCONST char *src));
+#endif
+#if (!defined(STR_TO_OEM) || defined(NEED_STR2OEM))
+   char *str2oem              OF((char *dst, ZCONST char *src));
+#endif
+int      zstrnicmp            OF((register ZCONST char *s1,
+                                  register ZCONST char *s2,
                                   register unsigned n));
 #ifdef REGULUS
    int zstat                  OF((char *p, struct stat *s));
 #endif
 #ifdef ZMEM   /* MUST be ifdef'd because of conflicts with the standard def. */
    zvoid *memset OF((register zvoid *, register int, register unsigned int));
-   zvoid *memcpy OF((register zvoid *, register const zvoid *,
+   zvoid *memcpy OF((register zvoid *, register ZCONST zvoid *,
                      register unsigned int));
 #endif
 #ifdef SMALL_MEM
@@ -1378,36 +1537,37 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
                                       UzpBuffer *retstr));          /* api.c */
    int      redirect_outfile      OF((__GPRO));                     /* api.c */
    int      writeToMemory         OF((__GPRO__ uch *rawbuf, ulg size));
-                                                                    /* api.c */
    /* this obsolescent entry point kept for compatibility: */
    int      UzpUnzip              OF((int argc, char **argv));/* use UzpMain */
-#ifdef OS2API
+#ifdef OS2DLL
    int      varmessage            OF((__GPRO__ uch *buf, ulg size));
-                                                                /* rexxapi.c */
    int      varputchar            OF((__GPRO__ int c));         /* rexxapi.c */
    int      finish_REXX_redirect  OF((__GPRO));                 /* rexxapi.c */
 #endif
 #ifdef API_DOC
    void     APIhelp               OF((__GPRO__ int argc, char **argv));
 #endif                                                          /* apihelp.c */
-/*
-    no longer supported (though code is available separately)
-
-    #ifdef WINDLL
-       int      WINDLLMAIN            OF((struct ScFileList *pGZipFileList,
-                                          int argc, char **argv));
-    #endif
- */
 #endif /* DLL */
 
 /*---------------------------------------------------------------------------
-    Acorn RISCOS-only functions:
+    Acorn RISC OS-only functions:
   ---------------------------------------------------------------------------*/
 
 #ifdef RISCOS
    int   isRISCOSexfield     OF((void *extra_field));             /* acorn.c */
    void  setRISCOSexfield    OF((char *path, void *extra_field)); /* acorn.c */
    void  printRISCOSexfield  OF((int isdir, void *extra_field));  /* acorn.c */
+#endif
+
+/*---------------------------------------------------------------------------
+    BeOS-only functions:
+  ---------------------------------------------------------------------------*/
+
+#ifdef __BEOS__
+   uch  *scanBeOSexfield     OF((uch *extra_field, unsigned ef_len));
+   int   isBeOSexfield       OF((uch *extra_field));               /* beos.c */
+   void  setBeOSexfield      OF((char *path, uch *extra_field));   /* beos.c */
+   void  printBeOSexfield    OF((int isdir, uch *extra_field));    /* beos.c */
 #endif
 
 /*---------------------------------------------------------------------------
@@ -1456,22 +1616,35 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
     OS/2-only functions:
   ---------------------------------------------------------------------------*/
 
-#ifdef OS2  /* GetFileTime conflicts with something in Win32 header files */
-#  if (defined(REENTRANT) && defined(USETHREADID))
-   ulg   GetThreadId      OF((void));
-#  endif
-   int   GetCountryInfo   OF((void));                               /* os2.c */
-   long  GetFileTime      OF((char *name));                         /* os2.c */
-/* static void  SetPathInfo  OF((char *path, ush moddate, ush modtime,
-                                 int flags));                          os2.c */
-/* static int   SetEAs       OF((__GPRO__ char *path, void *eablock)); os2.c */
-/* static int   IsFileNameValid OF((char *name));                      os2.c */
-/* static void  map2fat         OF((char *pathcomp, char **pEndFAT));  os2.c */
-/* static int   SetLongNameEA   OF((char *name, char *longname));      os2.c */
-/* static void  InitNLS         OF((void));                            os2.c */
-   int   IsUpperNLS       OF((int nChr));                           /* os2.c */
-   int   ToLowerNLS       OF((int nChr));                           /* os2.c */
-   void  DebugMalloc      OF((void));                               /* os2.c */
+#ifdef OS2   /* GetFileTime conflicts with something in Win32 header files */
+#if (defined(REENTRANT) && defined(USETHREADID))
+   ulg   GetThreadId          OF((void));
+#endif
+   int   GetCountryInfo       OF((void));                           /* os2.c */
+   long  GetFileTime          OF((ZCONST char *name));              /* os2.c */
+/* static void  SetPathAttrTimes OF((__GPRO__ int flags, int dir));    os2.c */
+/* static int   SetEAs        OF((__GPRO__ const char *path,
+                                  void *eablock));                     os2.c */
+/* static int   SetACL        OF((__GPRO__ const char *path,
+                                  void *eablock));                     os2.c */
+/* static int   IsFileNameValid OF((const char *name));                os2.c */
+/* static void  map2fat       OF((char *pathcomp, char **pEndFAT));    os2.c */
+/* static int   SetLongNameEA OF((char *name, char *longname));        os2.c */
+/* static void  InitNLS       OF((void));                              os2.c */
+   int   IsUpperNLS           OF((int nChr));                       /* os2.c */
+   int   ToLowerNLS           OF((int nChr));                       /* os2.c */
+   void  DebugMalloc          OF((void));                           /* os2.c */
+#endif
+
+/*---------------------------------------------------------------------------
+    QDOS-only functions:
+  ---------------------------------------------------------------------------*/
+
+#ifdef QDOS
+   int    QMatch              (uch, uch);
+   void   QFilename           (__GPRO__ char *);
+   char  *Qstrfix             (char *);
+   int    QReturn             (int zip_error);
 #endif
 
 /*---------------------------------------------------------------------------
@@ -1479,10 +1652,10 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
   ---------------------------------------------------------------------------*/
 
 #ifdef TOPS20
-   int upper               OF((char *s));                        /* tops20.c */
-   int enquote             OF((char *s));                        /* tops20.c */
-   int dequote             OF((char *s));                        /* tops20.c */
-   int fnlegal             OF(());  /* error if prototyped(?) */ /* tops20.c */
+   int    upper               OF((char *s));                     /* tops20.c */
+   int    enquote             OF((char *s));                     /* tops20.c */
+   int    dequote             OF((char *s));                     /* tops20.c */
+   int    fnlegal             OF(()); /* error if prototyped? */ /* tops20.c */
 #endif
 
 /*---------------------------------------------------------------------------
@@ -1490,8 +1663,9 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
   ---------------------------------------------------------------------------*/
 
 #ifdef CMS_MVS
-   FILE  *vmmvs_open_infile  OF((__GPRO));                        /* vmmvs.c */
-   extent getVMMVSexfield    OF((char *type, uch *ef_block, unsigned datalen));
+   extent getVMMVSexfield     OF((char *type, uch *ef_block, unsigned datalen));
+   FILE  *vmmvs_open_infile   OF((__GPRO));                       /* vmmvs.c */
+   void   close_infile        OF((__GPRO__));                     /* vmmvs.c */
 #endif
 
 /*---------------------------------------------------------------------------
@@ -1500,7 +1674,6 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 
 #ifdef VMS
    int    check_format        OF((__GPRO));                         /* vms.c */
-   int    find_vms_attrs      OF((__GPRO));                         /* vms.c */
 /* int    open_outfile        OF((__GPRO));           * (see fileio.c) vms.c */
 /* int    flush               OF((__GPRO__ uch *rawbuf, unsigned size,
                                   int final_flag));   * (see fileio.c) vms.c */
@@ -1511,6 +1684,19 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 #endif
 #ifdef VMSCLI
    ulg    vms_unzip_cmdline   OF((int *, char ***));            /* cmdline.c */
+   int    VMSCLI_usage        OF((__GPRO__ int error));         /* cmdline.c */
+#endif
+#endif
+
+/*---------------------------------------------------------------------------
+    WIN32-only functions:
+  ---------------------------------------------------------------------------*/
+
+#ifdef WIN32
+   int   IsWinNT        OF((void));                               /* win32.c */
+   int   test_NT        OF((__GPRO__ uch *eb, unsigned eb_size)); /* win32.c */
+#ifdef NTSD_EAS
+   void  process_defer_NT     OF((__GPRO));                       /* win32.c */
 #endif
 #endif
 
@@ -1518,7 +1704,7 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
 
-struct Globals *globalsCtor  OF((void));                        /* globals.c */
+struct Globals *globalsCtor   OF((void));                       /* globals.c */
 
 void     envargs         OF((__GPRO__ int *Pargc, char ***Pargv,
                              char *envstr, char *envstr2));     /* envargs.c */
@@ -1527,20 +1713,24 @@ void     mksargs         OF((int *argcp, char ***argvp));       /* envargs.c */
 int      match           OF((char *s, char *p, int ic));          /* match.c */
 int      iswild          OF((char *p));                           /* match.c */
 
+#ifdef DYNALLOC_CRCTAB
+   void     free_crc_table  OF((void));                          /* crctab.c */
+#endif
 #ifndef USE_ZLIB
    ulg near *get_crc_table  OF((void));                /* funzip.c, crctab.c */
-   ulg      crc32           OF((ulg crc, const uch *buf,
-                                extent len));       /* AS source, or crc32.c */
-#endif /* !USE_ZLIB */
+   ulg      crc32           OF((ulg crc, ZCONST uch *buf, extent len));
+#endif /* !USE_ZLIB */                        /* assembler source or crc32.c */
 
 int      dateformat      OF((void));              /* currently, only msdos.c */
-void     version         OF((__GPRO));                              /* local */
+#ifndef WINDLL
+   void  version         OF((__GPRO));                              /* local */
+#endif
 int      mapattr         OF((__GPRO));                              /* local */
 int      mapname         OF((__GPRO__ int renamed));                /* local */
 int      checkdir        OF((__GPRO__ char *pathcomp, int flag));   /* local */
 char    *do_wild         OF((__GPRO__ char *wildzipfn));            /* local */
 char    *GetLoadPath     OF((__GPRO));                              /* local */
-#if (defined(MORE) && (defined(UNIX) || defined(VMS)))
+#if (defined(MORE) && (defined(UNIX) || defined(VMS) || defined(__BEOS__)))
    int screenlines       OF((void));                                /* local */
 #endif
 #ifndef MTS /* macro in MTS */
@@ -1620,6 +1810,15 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #    endif
 #  endif
 #endif /* !Info */
+
+/*  The following macros wrappers around the fnfilter function are used many
+ *  times to prepare archive entry names or name components for displaying
+ *  listings and (warning/error) messages. They use sections in the upper half
+ *  of 'slide' as buffer, since their output is normally fed through the
+ *  Info() macro with 'slide' (the start of this area) as message buffer.
+ */
+#define FnFilter1(fname)  fnfilter((fname), slide + (WSIZE>>1))
+#define FnFilter2(fname)  fnfilter((fname), slide + ((WSIZE>>1) + (WSIZE>>2)))
 
 #ifndef FUNZIP   /* used only in inflate.c */
 #  define MESSAGE(str,len,flag)  (*G.message)((zvoid *)&G,(str),(len),(flag))
@@ -1803,6 +2002,9 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  *    macro.
  */
 
+#ifndef foreign
+#  define foreign(c)  (c)
+#endif
 
 #ifndef native
 #  define native(c)   (c)
@@ -1812,7 +2014,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #    define NATIVE     "native chars"
 #  endif
 #  define A_TO_N(str1) {register uch *p;\
-     for (p=str1; *p; p++) *p=native(*p);}
+     for (p=(uch *)(str1); *p; p++) *p=native(*p);}
 #endif
 /*
  *  Translate the zero-terminated string in str1 from ASCII to the native
@@ -1829,17 +2031,143 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  */
 
 
+/* default setup for internal codepage: assume ISO 8859-1 compatibility!! */
+#if (!defined(NATIVE) && !defined(CRTL_CP_IS_ISO) && !defined(CRTL_CP_IS_OEM))
+#  define CRTL_CP_IS_ISO
+#endif
+
+
+/*  Translate "extended ASCII" chars (OEM coding for DOS and OS/2; else
+ *  ISO-8859-1 [ISO Latin 1, Win Ansi,...]) into the internal "native"
+ *  code page.  As with A_TO_N(), conversion is done in place.
+ */
+#ifndef _ISO_INTERN
+#  ifdef CRTL_CP_IS_OEM
+#    ifndef IZ_ISO2OEM_ARRAY
+#      define IZ_ISO2OEM_ARRAY
+#    endif
+#    define _ISO_INTERN(str1) {register uch *p;\
+       for (p=(uch *)(str1); *p; p++)\
+         *p = native((*p & 0x80) ? iso2oem[*p & 0x7f] : *p);}
+#  else
+#    define _ISO_INTERN(str1)   A_TO_N(str1)
+#  endif
+#endif
+
+#ifndef _OEM_INTERN
+#  ifdef CRTL_CP_IS_OEM
+#    define _OEM_INTERN(str1)   A_TO_N(str1)
+#  else
+#    ifndef IZ_OEM2ISO_ARRAY
+#      define IZ_OEM2ISO_ARRAY
+#    endif
+#    define _OEM_INTERN(str1) {register uch *p;\
+       for (p=(uch *)(str1); *p; p++)\
+         *p = native((*p & 0x80) ? oem2iso[*p & 0x7f] : *p);}
+#  endif
+#endif
+
+#ifndef STR_TO_ISO
+#  ifdef CRTL_CP_IS_ISO
+#    define STR_TO_ISO          strcpy
+#  else
+#    define STR_TO_ISO          str2iso
+#    define NEED_STR2ISO
+#  endif
+#endif
+
+#ifndef STR_TO_OEM
+#  ifdef CRTL_CP_IS_OEM
+#    define STR_TO_OEM          strcpy
+#  else
+#    define STR_TO_OEM          str2oem
+#    define NEED_STR2OEM
+#  endif
+#endif
+
+#if (!defined(INTERN_TO_ISO) && !defined(ASCII2ISO))
+#  ifdef CRTL_CP_IS_OEM
+     /* know: "ASCII" is "OEM" */
+#    define ASCII2ISO(c) (((c) & 0x80) ? oem2iso[(c) & 0x7f] : (c))
+#    if (defined(NEED_STR2ISO) && !defined(CRYP_USES_OEM2ISO))
+#      define CRYP_USES_OEM2ISO
+#    endif
+#  else
+     /* assume: "ASCII" is "ISO-ANSI" */
+#    define ASCII2ISO(c) (c)
+#  endif
+#endif
+
+#if (!defined(INTERN_TO_OEM) && !defined(ASCII2OEM))
+#  ifdef CRTL_CP_IS_OEM
+     /* know: "ASCII" is "OEM" */
+#    define ASCII2OEM(c) (c)
+#  else
+     /* assume: "ASCII" is "ISO-ANSI" */
+#    define ASCII2OEM(c) (((c) & 0x80) ? iso2oem[(c) & 0x7f] : (c))
+#    if (defined(NEED_STR2OEM) && !defined(CRYP_USES_ISO2OEM))
+#      define CRYP_USES_ISO2OEM
+#    endif
+#  endif
+#endif
+
+/* codepage conversion setup for testp() in crypt.c */
+#ifdef CRTL_CP_IS_ISO
+#  ifndef STR_TO_CP2
+#    define STR_TO_CP2  STR_TO_OEM
+#  endif
+#else
+#  ifdef CRTL_CP_IS_OEM
+#    ifndef STR_TO_CP2
+#      define STR_TO_CP2  STR_TO_ISO
+#    endif
+#  else /* native internal CP is neither ISO nor OEM */
+#    ifndef STR_TO_CP1
+#      define STR_TO_CP1  STR_TO_ISO
+#    endif
+#    ifndef STR_TO_CP2
+#      define STR_TO_CP2  STR_TO_OEM
+#    endif
+#  endif
+#endif
+
+
+/* Convert filename (and file comment string) into "internal" charset.
+ * This macro assumes that Zip entry filenames are coded in OEM (IBM DOS)
+ * codepage when made on
+ *  -> DOS (this includes 16-bit Windows 3.1)  (FS_FAT_)
+ *  -> OS/2                                    (FS_HPFS_)
+ *  -> Win95/WinNT with Nico Mak's WinZip      (FS_NTFS_ && hostver == "5.0")
+ *
+ * All other ports are assumed to code zip entry filenames in ISO 8859-1.
+ */
+#ifndef Ext_ASCII_TO_Native
+#  define Ext_ASCII_TO_Native(string, hostnum, hostver) \
+    if ((hostnum) == FS_FAT_ || (hostnum) == FS_HPFS_ || \
+        ((hostnum) == FS_NTFS_ && (hostver) == 50)) { \
+        _OEM_INTERN((string)); \
+    } else { \
+        _ISO_INTERN((string)); \
+    }
+#endif
+
 
 
 /**********************/
 /*  Global constants  */
 /**********************/
 
-   extern ush near  mask_bits[];
+   extern ZCONST ush near  mask_bits[];
    extern char     *fnames[2];
 
 #ifdef EBCDIC
-   extern const uch ebcdic[];
+   extern ZCONST uch ebcdic[];
+#endif
+#ifdef IZ_ISO2OEM_ARRAY
+   extern ZCONST uch Far iso2oem[];
+#endif
+#ifdef IZ_OEM2ISO_ARRAY
+   extern ZCONST uch Far oem2iso[];
 #endif
 
    extern char Far  CentSigMsg[];

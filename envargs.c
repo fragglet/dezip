@@ -6,9 +6,8 @@
  |----------------------------------------------------------------
  | Minor program notes:
  |  1. Yes, the indirection is a tad complex
- |  2. Parenthesis were added where not needed in some cases
+ |  2. Parentheses were added where not needed in some cases
  |     to make the action of the code less obscure.
- |  3. Set tabsize to four to make this pretty
  |----------------------------------------------------------------
  | UnZip notes: 24 May 92 ("v1.4"):
  |  1. #include "unzip.h" for prototypes (24 May 92)
@@ -17,21 +16,24 @@
  |  4. included Rich Wales' mksargs() routine (for MS-DOS, maybe
  |     OS/2? NT?) (4 Dec 93)
  |  5. added alternate-variable string envstr2 (21 Apr 94)
+ |  6. added support for quoted arguments (6 Jul 96)
  *----------------------------------------------------------------*/
 
 
+#define ENVARGS_C
 #define UNZIP_INTERNAL
 #include "unzip.h"
+
+#ifdef __EMX__          /* emx isspace() returns TRUE on extended ASCII !! */
+#  define ISspace(c) ((c) & 0x80 ? 0 : isspace(c))
+#else
+#  define ISspace(c) isspace(c)
+#endif /* ?__EMX__ */
 
 static int count_args OF((char *));
 static void mem_err OF((__GPRO));
 
-#if (defined(SCCS) && !defined(lint))  /* causes warnings:  annoying */
-   static char *SCCSid = "@(#)envargs.c    1.3 23 Oct 1991";
-#endif
-
 static char Far NoMemArguments[] = "envargs:  can't get memory for arguments";
-
 
 
 void envargs(__G__ Pargc, Pargv, envstr, envstr2)
@@ -45,26 +47,49 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
     char *envptr;       /* value returned by getenv */
     char *bufptr;       /* copy of env info */
     int argc = 0;       /* internal arg count */
-    char ch;            /* spare temp value */
+    register int ch;    /* spare temp value */
     char **argv;        /* internal arg vector */
     char **argvect;     /* copy of vector address */
 
-    /* see if anything in either of valid environment variables */
-    if ((envptr = getenv(envstr)) == (char *)NULL || *envptr == 0)
-        if ((envptr = getenv(envstr2)) == (char *)NULL || *envptr == 0)
-            return;
+    /* see if anything in the environment */
+    if ((envptr = getenv(envstr)) != (char *)NULL)        /* usual var */
+        while (ISspace(*envptr))        /* must discard leading spaces */
+            envptr++;
+    if (envptr == (char *)NULL || *envptr == '\0')
+        if ((envptr = getenv(envstr2)) != (char *)NULL)   /* alternate var */
+            while (ISspace(*envptr))
+                envptr++;
+    if (envptr == (char *)NULL || *envptr == '\0')
+        return;
 
-    /* count the args so we can allocate room for them */
-    argc = count_args(envptr);
-    bufptr = (char *)malloc(1+strlen(envptr));
+    bufptr = malloc(1 + strlen(envptr));
     if (bufptr == (char *)NULL)
         mem_err(__G);
+#if (defined(WIN32) || defined(WINDLL))
+# ifdef WIN32
+    if (IsWinNT()) {
+        /* SPC: don't know codepage of 'real' WinNT console */
+        strcpy(bufptr, envptr);
+    } else {
+        /* Win95 environment is DOS and uses OEM character coding */
+        OEM_TO_INTERN(envptr, bufptr);
+    }
+# else /* !WIN32 */
+    /* DOS environment uses OEM codepage */
+    OEM_TO_INTERN(envptr, bufptr);
+# endif
+#else /* !(WIN32 || WINDLL) */
     strcpy(bufptr, envptr);
+#endif /* ?(WIN32 || WINDLL) */
 
+    /* count the args so we can allocate room for them */
+    argc = count_args(bufptr);
     /* allocate a vector large enough for all args */
-    argv = (char **)malloc((argc+*Pargc+1)*sizeof(char *));
-    if (argv == (char **)NULL)
+    argv = (char **)malloc((argc + *Pargc + 1) * sizeof(char *));
+    if (argv == (char **)NULL) {
+        free(bufptr);
         mem_err(__G);
+    }
     argvect = argv;
 
     /* copy the program name first, that's always true */
@@ -72,13 +97,57 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
 
     /* copy the environment args next, may be changed */
     do {
+#if defined(AMIGA) || defined(UNIX)
+        if (*bufptr == '"') {
+            char *argstart = ++bufptr;
+
+            *(argv++) = argstart;
+            for (ch = *bufptr; ch != '\0' && ch != '\"'; ch = *(++bufptr))
+                if (ch == '\\' && bufptr[1] != '\0')
+                    ++bufptr;           /* skip char after backslash */
+            if (ch != '\0')
+                *(bufptr++) = '\0';     /* overwrite trailing " */
+
+            /* remove escape characters */
+            while ((argstart = strchr(argstart, '\\')) != (char *)NULL) {
+                strcpy(argstart, argstart + 1);
+                if (*argstart)
+                    ++argstart;
+            }
+        } else {
+            *(argv++) = bufptr;
+            while ((ch = *bufptr) != '\0' && !ISspace(ch))
+                ++bufptr;
+            if (ch != '\0')
+                *(bufptr++) = '\0';
+        }
+#else
+#ifdef DOS_OS2_W32
+        /* we do not support backslash-quoting of quotes in quoted
+         * strings under DOS_OS2_W32, because backslashes are directory
+         * separators and double quotes are illegal in filenames */
+        if (*bufptr == '"') {
+            *(argv++) = ++bufptr;
+            while ((ch = *bufptr) != '\0' && ch != '\"')
+                ++bufptr;
+            if (ch != '\0')
+                *(bufptr++) = '\0';
+        } else {
+            *(argv++) = bufptr;
+            while ((ch = *bufptr) != '\0' && !ISspace(ch))
+                ++bufptr;
+            if (ch != '\0')
+                *(bufptr++) = '\0';
+        }
+#else
         *(argv++) = bufptr;
-        /* skip the arg and any trailing blanks */
-        while (((ch = *bufptr) != '\0') && ch != ' ')
+        while ((ch = *bufptr) != '\0' && !ISspace(ch))
             ++bufptr;
-        if (ch == ' ')
+        if (ch != '\0')
             *(bufptr++) = '\0';
-        while (((ch = *bufptr) != '\0') && ch == ' ')
+#endif /* ?DOS_OS2_W32 */
+#endif /* ?(AMIGA || UNIX) */
+        while ((ch = *bufptr) != '\0' && ISspace(ch))
             ++bufptr;
     } while (ch);
 
@@ -87,7 +156,7 @@ void envargs(__G__ Pargc, Pargv, envstr, envstr2)
     while (--(*Pargc))
         *(argv++) = *((*Pargv)++);
 
-    /* finally, add a NULL after the last arg, like UNIX */
+    /* finally, add a NULL after the last arg, like Unix */
     *argv = (char *)NULL;
 
     /* save the values and return */
@@ -106,9 +175,28 @@ static int count_args(s)
     do {
         /* count and skip args */
         ++count;
-        while (((ch = *s) != '\0') && ch != ' ')
+#if defined(AMIGA) || defined(UNIX)
+        if (*s == '\"') {
+            for (ch = *(++s);  ch != '\0' && ch != '\"';  ch = *(++s))
+                if (ch == '\\' && s[1] != '\0')
+                    ++s;
+            if (*s)
+                ++s;        /* trailing quote */
+        } else
+#else
+#ifdef DOS_OS2_W32
+        if (*s == '\"') {
+            ++s;                /* leading quote */
+            while ((ch = *s) != '\0' && ch != '\"')
+                ++s;
+            if (*s)
+                ++s;        /* trailing quote */
+        } else
+#endif /* DOS_OS2_W32 */
+#endif /* ?(AMIGA || UNIX) */
+        while ((ch = *s) != '\0' && !ISspace(ch))  /* note else-clauses above */
             ++s;
-        while (((ch = *s) != '\0') && ch == ' ')
+        while ((ch = *s) != '\0' && ISspace(ch))
             ++s;
     } while (ch);
 
@@ -122,7 +210,7 @@ static void mem_err(__G)
 {
     perror(LoadFarString(NoMemArguments));
     DESTROYGLOBALS()
-    EXIT(2);
+    EXIT(PK_MEM);
 }
 
 

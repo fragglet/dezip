@@ -34,6 +34,10 @@
 
 #if (!defined(USE_ZLIB) || defined(USE_OWN_CRCTAB))
 
+#ifndef ZCONST
+#  define ZCONST const
+#endif
+
 #ifdef DYNAMIC_CRC_TABLE
 
 /* =========================================================================
@@ -55,11 +59,13 @@ local void make_crc_table OF((void));
    local int crc_table_empty = 1;
 #  define CRC_TABLE_IS_EMPTY    (crc_table_empty != 0)
 #  define MARK_CRCTAB_FILLED    crc_table_empty = 0
+#  define MARK_CRCTAB_EMPTY     crc_table_empty = 1
 # else
    /* Use this section on systems where the size of pointers and ints is
       equal (e.g.: all 32bit systems). */
 #  define CRC_TABLE_IS_EMPTY    (crc_table == NULL)
 #  define MARK_CRCTAB_FILLED    crc_table = crctab_p
+#  define MARK_CRCTAB_EMPTY     crc_table = NULL
 # endif
 #else /* !DYNALLOC_CRCTAB */
    local ulg near crc_table[256];
@@ -116,10 +122,14 @@ local void make_crc_table()
 
 #else /* !DYNAMIC_CRC_TABLE */
 
+#ifdef DYNALLOC_CRCTAB
+   error: Inconsistent flags, DYNALLOC_CRCTAB without DYNAMIC_CRC_TABLE.
+#endif
+
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by make_crc_table)
  */
-local const ulg near crc_table[] = {
+local ZCONST ulg near crc_table[] = {
   0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
   0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
   0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
@@ -182,7 +192,8 @@ ulg near *get_crc_table()
 #endif
 {
 #ifdef DYNAMIC_CRC_TABLE
-  if (CRC_TABLE_IS_EMPTY) make_crc_table();
+  if (CRC_TABLE_IS_EMPTY)
+    make_crc_table();
 #endif
 #ifdef USE_ZLIB
   return (uLongf *)crc_table;
@@ -190,5 +201,16 @@ ulg near *get_crc_table()
   return (ulg near *)crc_table;
 #endif
 }
+
+#ifdef DYNALLOC_CRCTAB
+void free_crc_table()
+{
+  if (!CRC_TABLE_IS_EMPTY)
+  {
+    nearfree((ulg near *)crc_table);
+    MARK_CRCTAB_EMPTY;
+  }
+}
+#endif
 
 #endif /* !USE_ZLIB || USE_OWN_CRCTAB */

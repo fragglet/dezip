@@ -9,7 +9,7 @@ This is the first beta so there might be some bugs in it.
                         Using under MVS:
                     -------------------------
 
-1. To use the Info-Zip's UNZIP under MVS you need:
+1. To use the Info-ZIP's UNZIP under MVS you need:
 
    - C/370 ver 2.1 compiler or another compatible compiler supporting
      long names for function/variable names.
@@ -112,8 +112,8 @@ This is the first beta so there might be some bugs in it.
       3.9. All '+','_' or '-' signs are skipped from the filenames
 
 
-Please rapport all bugs and problems to :
-     Info-ZIP@WKUVX1.WKU.EDU
+Please repport all bugs and problems to :
+     Zip-Bugs@lists.wku.edu
 
 That's all for now.
 

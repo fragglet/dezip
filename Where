@@ -1,37 +1,42 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file ``Where,'' last updated on 30 April 1996.
+   This is the Info-ZIP file ``Where,'' last updated on 20 April 1997.
 __________________________________________________________________________
 
+   The latest version of this file can be found online at:
+
+              http://www.cdrom.com/pub/infozip/doc/Where
+
    Note that some ftp sites may not yet have the latest versions of Zip
-   and UnZip when you read this.  The latest versions, including the crypt
-   sources, always appear in ftp://ftp.uu.net/pub/archiving/zip (and sub-
-   directories thereof) first.
+   and UnZip when you read this.  The latest versions always appear in
+   ftp://ftp.cdrom.com/pub/infozip/ (and subdirectories thereof) first,
+   except for encryption sources and binaries, which always appear in
+   ftp://ftp.icce.rug.nl/infozip/ (and subdirs) first.
 
    IF YOU FIND AN ERROR:  please let us know!  We don't have time to
    check each and every site personally (or even collectively), so any
    number of the sites listed below may have moved or disappeared en-
-   tirely.  E-mail to zip-bugs@wkuvx1.wku.edu and we'll update this file.
+   tirely.  E-mail to Zip-Bugs@lists.wku.edu and we'll update this file.
 __________________________________________________________________________
 
 
 Info-ZIP's home WWW site is listed on Yahoo and is at:
 
-   http://quest.jpl.nasa.gov/Info-ZIP/
+   http://www.cdrom.com/pub/infozip/
 
-The Zip and UnZip pages have links to most known mirror sites carrying
-our source and/or binary distributions:
+The Zip and UnZip pages have links to most known mirror sites carrying our
+source and/or binary distributions, and they generally are more up-to-date
+and have better information than what you are reading:
 
-   http://quest.jpl.nasa.gov/Info-ZIP/Zip.html
-   http://quest.jpl.nasa.gov/Info-ZIP/UnZip.html
+   http://www.cdrom.com/pub/infozip/Zip.html
+   http://www.cdrom.com/pub/infozip/UnZip.html
 
-The related zlib package by Jean-loup and Mark is at:
+The related zlib package by Info-ZIP's Jean-loup Gailly and Mark Adler is at:
 
-   http://quest.jpl.nasa.gov/zlib/
+   http://www.cdrom.com/pub/infozip/zlib/
 
 Source-code archives for Info-ZIP's portable Zip, UnZip, and related
-utilities (on some ftp sites, the .zip files for UnZip may have a .zoo
-equivalent in Zoo 2.10 format):
+utilities:
 
    zip21.zip         Zip 2.1 (deflation; includes zipnote, zipsplit, zipcloak)
    zip21.tar.Z       ditto, compress'd tar format
@@ -39,22 +44,26 @@ equivalent in Zoo 2.10 format):
    zip11.zip         Zip 1.1 (shrinking, implosion; compatible w. PKUNZIP 1.1)
    zip11.tar.Z       ditto, compress'd tar format
 
-   unzip52.zip       UnZip 5.2 (all methods supported; unzip, funzip, unzipsfx)
-   unzip52.tar.Z     ditto, compress'd tar format
+   unzip53.zip       UnZip 5.3 (all methods supported; unzip, funzip, unzipsfx)
+   unzip53.tar.Z     ditto, compress'd tar format
 
-   zcrypt26.zip      encryption/decryption support for Zip 2.1 and UnZip 5.2
-   zcrypt10.zip      encryption/decryption support for Zip 1.1
+   zcrypt27.zip      encryption/decryption support for Zip 2.2 and UnZip 5.3
+   zcrypt26.zip      encryption support for Zip 2.1
+   zcrypt10.zip      encryption support for Zip 1.1
 
 Executables archives (and related files) for Info-ZIP's software; not all
 of these will be immediately available due to lack of access to appropriate
 systems on the part of Info-ZIP members.  See the BBS section below for
 special CompuServe (6.3) filenames:
 
-   zip21x.zip        MSDOS executables and docs for zip, zipnote, zipsplit
-   zcryp21x.zip      MSDOS encryption executables and docs for zip, zipcloak
+   zip21x.zip        MSDOS executables and docs (with 386 vers., no encryption)
+   zcr21x.zip        MSDOS executables and docs (with encryption, no 386 vers.)
    zip21x1.zip       OS/2 1.x (16-bit) executables and docs (no encryption)
-   zip21x2.zip       OS/2 2.x (32-bit) executables and docs (no encryption)
-   zip21c2.zip       OS/2 2.x (32-bit) executables and docs (with encryption)
+   zcr21x1.zip       OS/2 1.x (16-bit) executables and docs (with encryption)
+   zip21x2.zip       OS/2 2/3/4.x (32-bit) executables and docs (no encryption)
+   zcr21x2.zip       OS/2 2/3/4.x (32-bit) executables and docs (w/encryption)
+   zip21xA.zip       Amiga executables and docs (no encryption)
+   zcr21xA.zip       Amiga executables and docs (with encryption)
    zip21xN.zip       WinNT/Win95 (Intel) executables and docs (no encryption)
    zcr21xN.zip       WinNT/Win95 (Intel) executables and docs (with encryption)
    zip21xN-axp.zip   WinNT (Alpha AXP) executables and docs (no encryption)
@@ -63,8 +72,10 @@ special CompuServe (6.3) filenames:
    zcr21xN-mips.zip  WinNT (MIPS) executables and docs (with encryption)
    zip21xN-ppc.zip   WinNT (PowerPC) executables and docs (no encryption)
    zcr21xN-ppc.zip   WinNT (PowerPC) executables and docs (with encryption)
-   zip21xA.zip       Acorn RISC OS executables and docs (no encryption)
-   zcr21xA.zip       Acorn RISC OS executables and docs (with encryption)
+   zip21xR.zip       Acorn RISC OS executables and docs (no encryption)
+   zcr21xR.zip       Acorn RISC OS executables and docs (with encryption)
+   zip21xT.zip       Atari TOS executables and docs (no encryption)
+   zcr21xT.zip       Atari TOS executables and docs (with encryption)
    zip21-vms-axp-obj.zip
                      VMS (Alpha AXP) object libs, link procedure and docs
    zip21-vms-axp-exe.zip
@@ -75,46 +86,52 @@ special CompuServe (6.3) filenames:
                      VMS (VAX) executables (DEC C) for VMS 6.1 or later; docs
    zip21-vms-vax-vaxc-obj.zip
                      VMS (VAX) object libs (old VAX C), link procedure and docs
-   zip21x.lha        Amiga executables and docs
 
-   unz520x.exe       MSDOS self-extracting executable (16-bit unzip, ..., docs)
-   unz520x3.exe      MSDOS self-extracting executable (16-, 32-bit unzip, docs)
-   unz520x1.exe      OS/2 1.x (16-bit) self-extracting executables and docs
-   unz520x2.exe      OS/2 2.x (32-bit) self-extracting executables and docs
-   unz520xN.exe      NT / Win95 self-extracting Intel executables and docs
-   unz520xN-axp.exe  NT self-extracting AlphaAXP executables and docs
-   unz520xN-mips.exe NT self-extracting MIPS executables and docs
-   unz520xN-ppc.exe  NT self-extracting PowerPC executables and docs
-   unz520xA.exe      Acorn RISC OS self-extracting executables and docs
-   unz520xA.spk      Acorn RISC OS Spark'd executables and docs for unzip
-   unz520x-vms-axp-obj.exe    VMS (Alpha AXP) SFX archive (statically linked),
+   unz530x.exe       MSDOS self-extracting executable (16-bit unzip, ..., docs)
+   unz530x3.exe      MSDOS self-extracting executable (16-, 32-bit unzip, docs)
+   unz530x1.exe      OS/2 1.x (16-bit) self-extracting executables and docs
+   unz530x2.exe      OS/2 2/3/4.x (32-bit) self-extracting executables and docs
+   unz530d2.zip      OS/2 2/3/4.x (32-bit) DLL, header file, demo exe and docs
+   unz530xA.ami      Amiga self-extracting executables and docs
+   unz530xA.lha      Amiga executables and docs, LHa archive
+   unz530xN.exe      WinNT/Win95 self-extracting Intel executables and docs
+   unz530xN-axp.exe  WinNT (Alpha AXP) self-extracting executables and docs
+   unz530xN-mips.exe WinNT (MIPS) self-extracting executables and docs
+   unz530xN-ppc.exe  WinNT (PowerPC) self-extracting executables and docs
+   unz530xR.exe      Acorn RISC OS self-extracting executables and docs
+   unz530xR.spk      Acorn RISC OS Spark'd executables and docs
+   unz530xT.tos      Atari TOS self-extracting executables and docs
+   unz530x-vms-axp-obj.bck    VMS backup saveset,
                      contains UnZip (Alpha) obj libs, link procedure, docs
-   unz520x-vms-axp-exe.exe    VMS (Alpha AXP) SFX archive (dynamically linked),
+   unz530x-vms-axp-obj.exe    VMS (Alpha AXP) SFX archive (statically linked),
+                     contains UnZip (Alpha) obj libs, link procedure, docs
+   unz530x-vms-axp-exe.exe    VMS (Alpha AXP) SFX archive (dynamically linked),
                      contains UnZip (Alpha AXP, DEC C) executables and docs,
                      smaller than object archive, but requires VMS 6.1
-   unz520x-vms-vax-decc-obj.exe   VMS (VAX) SFX archive (statically linked),
+   unz530x-vms-vax-decc-obj.bck   VMS backup saveset,
                      contains UnZip (new DEC C) obj libs, link procedure, docs
-   unz520x-vms-vax-decc-exe.exe   VMS (VAX) SFX archive (dynamically linked),
+   unz530x-vms-vax-decc-obj.exe   VMS (VAX) SFX archive (statically linked),
+                     contains UnZip (new DEC C) obj libs, link procedure, docs
+   unz530x-vms-vax-decc-exe.exe   VMS (VAX) SFX archive (dynamically linked),
                      contains UnZip (new DEC C) executables and docs,
                      smaller than object archive, but requires VMS 6.1
-   unz520x-vms-vax-vaxc-obj.exe   VMS (VAX) SFX archive (statically linked),
+   unz530x-vms-vax-vaxc-obj.bck   VMS backup saveset,
                      contains UnZip (old VAX C) obj libs, link procedure, docs
-   unz520x.ami       Amiga self-extracting executables and docs for unzip
-   unz520x.tos       Atari self-extracting executables and docs for unzip
-   unz520x.hqx       Macintosh BinHex'd executables and docs for unzip
-  (unz520x.tar.{Z,gz}  Unix exes/docs for Solaris 2.x, SCO Unix, Linux, etc.,
+   unz530x-vms-vax-vaxc-obj.exe   VMS (VAX) SFX archive (statically linked),
+                     contains UnZip (old VAX C) obj libs, link procedure, docs
+   unz530x.hqx       Macintosh BinHex'd executables and docs for unzip
+  (unz530x.tar.{Z,gz}  Unix exes/docs for Solaris 2.x, SCO Unix, Linux, etc.,
                      depending on directory/location; generally only provided
                      in cases where the OS does *not* ship with a bundled C
                      compiler)
 
+   wiz31x.exe        WizUnZip 3.1 16-bit (Win3) app+docs (self-extracting)
+   wiz31xN.exe       WizUnZip 3.1 32-bit (Win95/NT) app+docs (self-extracting)
+   wiz31d.zip        WizUnZip 16-bit UnZip 5.2 DLL+docs (no WizUnZip app)
+   wiz31dN.zip       WizUnZip 32-bit UnZip 5.2 DLL+docs (no WizUnZip app)
+
    UnzpHist.zip      complete changes-history of UnZip and its precursors
    ZipHist.zip       complete changes-history of Zip
-
-   wiz30x1.exe       WizUnZip 3.0 16-bit app+docs (self-extracting archive)
-   wiz30x2.exe       WizUnZip 3.0 32-bit app+docs (self-extracting archive)
-   wiz30d1.exe       WizUnZip 16-bit UnZip 5.2 DLL+docs (no WizUnZip app)
-   wiz30d2.exe       WizUnZip 32-bit UnZip 5.2 DLL+docs (no WizUnZip app)
-     (these archives aren't yet finalized; names and contents may change)
 
 The latest from PKWARE (the guys who started it all):
 
@@ -122,6 +139,8 @@ The latest from PKWARE (the guys who started it all):
    pkz110eu.exe      MS-DOS PKZIP/PKUNZIP 1.1 (self-extracting)
    pkz206-2.exe      OS/2 PKZIP/PKUNZIP 2.06 (IBM internal only; same as 2.04g)
    pkz102-2.exe      OS/2 PKZIP/PKUNZIP 1.02 (self-extracting)
+   pk250w16.exe      Windows 16-bit PKZIP/PKUNZIP 2.50 (self-extracting)
+   pk250w32.exe      Windows 32-bit PKZIP/PKUNZIP 2.50 (self-extracting)
 
 Third-party software that incorporates Info-ZIP code:
 
@@ -129,7 +148,7 @@ Third-party software that incorporates Info-ZIP code:
      ZipFly(?)
    NT:  WinZip
    Windows:  Nico Mak WinZip, InnerMedia DynaZIP DLL, NewVision Zip[Shell] Pro,
-     Flashpoint ZIP Navigator, Z (port of ZipInfo; z101.zip)
+     FlashPoint ZIP Navigator and Unzip95, Z (port of ZipInfo; z101.zip)
    MS-DOS:  FileJet
    Macintosh:  ZipIt
    generic Unix:  lzpip103.zip
@@ -143,55 +162,49 @@ Third-party software that uses (or can use) Info-ZIP software:
    MS-DOS:  SHEZ archiver shell
    NeXTStep 3.x:  Opener
 
-ftp sites for the US-exportable sources and executables:
+ftp/web sites for the US-exportable sources and executables:
 
    NOTE:  Look for the Info-ZIP file names given above (not PKWARE or third-
    party stuff) in the following locations.  Some sites like to use slightly
-   different names, such as zip-2.1.tar.gz instead of zip21.tar.Z.  In
-   the case of some comp.sources.misc archive sites, directories may be used
-   (zip21/part01.Z, ..., zip21/part11.Z, zip21/patch01.Z, etc.).
+   different names, such as zip-2.1.tar.gz instead of zip21.tar.Z.
 
+   ftp://ftp.cdrom.com/pub/infozip/                    [THE INFO-ZIP HOME SITE]
    ftp://ftp.uu.net/pub/archiving/zip/         [MIRRORS THE INFO-ZIP HOME SITE]
+   ftp://ftp.simtel.net/pub/simtelnet/infozip/ [MIRRORS THE INFO-ZIP HOME SITE]
    ftp://sunsite.doc.ic.ac.uk/packages/zip/    [MIRRORS THE INFO-ZIP HOME SITE]
    ftp://unix.hensa.ac.uk/mirrors/uunet/pub/archiving/zip/
 
    ftp://ftp.cmdl.noaa.gov/aerosol/doc/archiver/{all,dos,os2,mac,vax_alpha}/
-   ftp://oak.oakland.edu/SimTel/msdos/{zip,windows3}/  [+ OTHER SIMTEL MIRRORS]
-   ftp://oak.oakland.edu/pub/misc/unix/
-   ftp://oak.oakland.edu/pub/misc/vaxvms/
    ftp://garbo.uwasa.fi/pc/arcers/                    [AND OTHER GARBO MIRRORS]
    ftp://garbo.uwasa.fi/unix/arcers/                  [AND OTHER GARBO MIRRORS]
+   ftp://ftp.elf.stuba.sk/pub/pc/pack/                [AND OTHER STUBA MIRRORS]
    ftp://ftp-os2.cdrom.com/pub/os2/archiver/
-   ftp://ftp-os2.nmsu.edu/archiver/
+   ftp://ftp-os2.nmsu.edu/os2/archiver/
    ftp://ftp.informatik.tu-muenchen.de/pub/comp/os/os2/archiver/
-   ftp://sumex-aim.stanford.edu/info-mac/util/
+   ftp://sumex-aim.stanford.edu/info-mac/cmp/
    ftp://ftp.wustl.edu/pub/aminet/util/arc/          [AND OTHER AMINET MIRRORS]
-   ftp://atari.archive.umich.edu/pub/Archivers/ (?)   [AND OTHER UMICH MIRRORS]
-   ftp://lpuds.oea.ihep.su/ ... ?
+   ftp://atari.archive.umich.edu/pub/Archivers/       [AND OTHER UMICH MIRRORS]
+   http://www.umich.edu/~archive/atari/Archivers/
    ftp://jake.educom.com.au/pub/infozip/acorn/                  [Acorn RISC OS]
+   ftp://lpuds.oea.ihep.su/ ... ?
 
-ftp sites for the encryption and decryption sources and/or executables:
+ftp/web sites for the encryption and decryption sources and/or executables:
 
-   NOTE 1:  Non-US users, please do NOT ftp from the US sites (US
-   regulations and all that).  Likewise, US users, please do not
-   ftp from the European sites (it's not illegal, but it sure is
-   a waste of expensive bandwidth).
-
-   NOTE 2:  Some sites may carry both encryption and non-encryption
-   executables with slightly different names; for example, zip21c2.zip
-   instead of zip21x2.zip ("c" == crypt version).  Other sites may
-   include *only* the encryption-related executables (zip and zipcloak)
-   in a second archive (e.g., zcryp21x.zip).
+   NOTE:  Non-US users, please do NOT ftp from the US sites (US regulations
+   and all that).  Likewise, US users, please do not ftp from the European
+   sites if it can be avoided (it's not illegal, but it is a waste of
+   expensive trans-Atlantic bandwidth).
 
    From the US:
-      ftp://wuarchive.wustl.edu/mirrors/garbo.uwasa.fi/arcers/
-      ftp://ftp.uu.net/pub/archiving/zip/
+      ftp://ftp.wustl.edu/mirrors/garbo.uwasa.fi/arcers/
 
    Outside the US:
+      ftp://ftp.icce.rug.nl/infozip/        [THE INFO-ZIP ENCRYPTION HOME SITE]
+      ftp://ftp.elf.stuba.sk/pub/pc/pack/
       ftp://garbo.uwasa.fi/pc/arcers/
       ftp://ftp.inria.fr/system/arch-compr/
-      ftp://ftp.informatik.tu-muenchen.de/pub/comp/os/os2/archiver/
-         (mail server at ftp-mailer@informatik.tu-muenchen.de)
+      ftp://ftp.leo.org/pub/comp/os/os2/leo/archiver/
+        (mail server at ftp-mailer@informatik.tu-muenchen.de) (?)
 
       ftp://ftp.win.tue.nl/pub/compression/zip/
       ftp://ftp.uni-erlangen.de/pub/pc/msdos/arc-utils/zip/
@@ -205,14 +218,17 @@ executables, no encryption/decryption--see also "Mail servers" section below):
    [.MACRO32.SAVESETS]UNZIP.BCK  or  UNZIP.ZIP  (if already have older version)
    [.MACRO32.SAVESETS]ZIP.ZIP
 
-To find other ftp sites:
+To find other ftp/web sites:
 
-   The "archie" ftp database utility can be used to find an ftp site
-   near you (although the command-line versions always seem to find old
-   versions...the `Archie 95' server at http://www.pvv.unit.no/archie
-   is quite up-to-date, however).  If you don't know how to use it, DON'T
-   ASK US--check the Usenet groups news.announce.newusers or news.answers
-   or some such, or ask your system administrator (or just RTFM :-) ).
+   The "archie" ftp database utility can be used to find an ftp site near
+   you (although the command-line versions always seem to find old ver-
+   sions...the `FTPsearch' server at http://ftpsearch.ntnu.no/ftpsearch
+   --formerly `Archie 95'--is quite up-to-date, however).  Or check a stan-
+   dard WWW search engine like AltaVista (http://www.altavista.digital.com/)
+   or Yahoo (http://www.yahoo.com/).  If you don't know how to use these,
+   DON'T ASK US--read the web sites' help pages or check the Usenet groups
+   news.announce.newusers or news.answers or some such, or ask your system
+   administrator.
 
 UUCP sites:
 
@@ -221,11 +237,11 @@ UUCP sites:
 Bulletin boards (commercial and otherwise):
 
    Sources, MS-DOS executables:
-      CompuServe IBMPRO forum, Library 10, Data Compression (unz52.zip,
-         sources; unz52.exe, self-extracting executables and docs)
+      CompuServe IBMPRO forum, Library 10, Data Compression (unz53.zip,
+         sources; unz53.exe, self-extracting executables and docs)
       CompuServe (ZiffNet) PBSUTIL forum and Public Brand Software BBS
          [US, membership required; V.32 line, (317) 856-1490]
-         (unz52.zip, sources; unz52.exe, self-extracting exes and docs)
+         (unz53.zip, sources; unz53.exe, self-extracting exes and docs)
       America Online OS/2 Forum, Free Uploading area; also Top Picks lib-
          rary, File/Disk Utilities library, and OS/2 1.x library (do key-
          word search via ctrl-K:  FILE SEARCH on "INFOZIP")
@@ -246,8 +262,8 @@ Bulletin boards (commercial and otherwise):
       CompuServe CRAFTS forum (wiz30b.zip, WizUnZip 32-bit version)
 
    OS/2 executables:
-      CompuServe OS2USER forum (zip21.zip and unz52.exe, OS/2 16-
-         and 32-bit exes and docs)
+      CompuServe OS2USER forum (zip21.zip and unz53.exe, OS/2 16- and
+         32-bit exes and docs)
 
    Amiga executables:
       BIX in AMIGA files section (perform keyword search on "info-zip")
@@ -257,33 +273,19 @@ Bulletin boards (commercial and otherwise):
 
 Mail servers:
 
-   If you don't have anonymous FTP capability, you can mail one
-   of the following commands (in the body of an e-mail message) to
-   listserv@vm.ecs.rpi.edu or listserv@vm1.nodak.edu in order to
-   get a copy of the source code via e-mail:
-
-      /pdget mail /pub/misc/unix/unzip52.tar.Z uuencode
-      /pdget mail /pub/msdos/zip/unzip52.zip uuencode
-      /pdget mail /pub/msdos/zip/zip21.zip uuencode
-
-   The older, pseudo-TOPS-20 style also works:
-
-      /pdget mail pd:<misc.unix>unzip52.tar.Z uuencode
-      /pdget mail pd:<misc.unix>zip21.zip uuencode
-
-   To get the encryption source by e-mail, send the following commands
+   To get the encryption sources by e-mail, send the following commands
    to ftp-mailer@informatik.tu-muenchen.de:
 
       get /pub/comp/os/os2/archiver/zcrypt26.zip
       quit
 
    To get the VMS Zip/UnZip package by e-mail, send the following
-   commands in the body of a mail message to mxserver@wkuvx1.wku.edu
-   (the "HELP" command is also accepted):
+   commands in the body of a mail message to fileserv@wku.edu (the
+   "HELP" command is also accepted):
 
+      SEND FILESERV_TOOLS
       SEND UNZIP
       SEND ZIP
-      SEND FILESERV_TOOLS
 
    To get Atari executables by e-mail, send a message to
    atari@atari.archive.umich.edu for information about the mail server.

@@ -176,11 +176,11 @@ int mapattr(__G)
 /************************/
 /*  Function mapname()  */
 /************************/
-
-int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
-    __GDEF                   /* truncated), 2 if warning (skip file because  */
-    int renamed;             /* dir doesn't exist), 3 if error (skip file),  */
-{                            /* 10 if no memory (skip file) */
+                             /* return 0 if no error, 1 if caution (filename */
+int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
+    __GDEF                   /*  dir doesn't exist), 3 if error (skip file), */
+    int renamed;             /*  or 10 if out of memory (skip file) */
+{                            /*  [also IZ_CREATED_DIR] */
     char pathcomp[FILNAMSIZ];    /* path-component buffer */
     char *pp, *cp=(char *)NULL;  /* character pointers */
     char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
@@ -271,8 +271,11 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -284,7 +287,7 @@ int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
         return 3;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ pathcomp, APPEND_NAME);  /* returns 1 if truncated: care? */
     checkdir(__G__ G.filename, GETPATH);
 
     return error;
@@ -526,8 +529,8 @@ int checkdir(__G__ pathcomp, flag)
 void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     __GDEF
 {
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 #endif
     long m_time;
     DateTimeRec dtr;
@@ -552,15 +555,15 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
      *                                     J. Lee
      */
 
-#ifdef USE_EF_UX_TIME
-    if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                         &z_utime, NULL) > 0) {
+#ifdef USE_EF_UT_TIME
+    if (G.extra_field && (ef_scan_for_izux(G.extra_field,
+        G.lrec.extra_field_length, 0, &z_utime, NULL) & EB_UT_FL_MTIME))
+    {
         struct tm *t;
 
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          z_utime.modtime));
-        t = localtime(&(z_utime.modtime));
+          z_utime.mtime));
+        t = localtime(&(z_utime.mtime));
 
         dtr.year = t->tm_year;
         dtr.month = t->tm_mon + 1;
@@ -578,7 +581,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         dtr.minute = ((G.lrec.last_mod_file_time >> 5) & 0x3f);
         dtr.second = ((G.lrec.last_mod_file_time & 0x1f) * 2);
     }
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
     dtr.year = (((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980);
     dtr.month = ((G.lrec.last_mod_file_date >> 5) & 0x0f);
     dtr.day = (G.lrec.last_mod_file_date & 0x1f);
@@ -586,7 +589,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     dtr.hour = ((G.lrec.last_mod_file_time >> 11) & 0x1f);
     dtr.minute = ((G.lrec.last_mod_file_time >> 5) & 0x3f);
     dtr.second = ((G.lrec.last_mod_file_time & 0x1f) * 2);
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
     Date2Secs(&dtr, (unsigned long *)&m_time);
     c2pstr(G.filename);
@@ -913,66 +916,69 @@ short macopen(char *sz, short nFlags, short nVRefNum, long lDirID)
 /***********************/
 
 FILE *macfopen(char *filename, char *mode, short nVRefNum, long lDirID)
+{
+    short outfd, fDataFork=TRUE;
+    MACINFO mi;
+    OSErr err;
+
+    G.fMacZipped = FALSE;
+    c2pstr(G.filename);
+    if (G.extra_field &&
+        (G.lrec.extra_field_length > sizeof(MACINFOMIN)) &&
+        (G.lrec.extra_field_length <= sizeof(MACINFO)))
     {
-        short outfd, fDataFork=TRUE;
-        MACINFO mi;
-        OSErr err;
-
-        G.fMacZipped = FALSE;
-        c2pstr(G.filename);
-        if (G.extra_field &&
-            (G.lrec.extra_field_length > sizeof(MACINFOMIN)) &&
-            (G.lrec.extra_field_length <= sizeof(MACINFO))) {
-            BlockMove(G.extra_field, &mi, G.lrec.extra_field_length);
-            if ((makeword((uch *)&mi.header) == 1992) &&
-                (makeword((uch *)&mi.data) ==
-                    G.lrec.extra_field_length-sizeof(ZIP_EXTRA_HEADER)) &&
-                (mi.signature == 'JLEE')) {
-                G.gostCreator = mi.finfo.fdCreator;
-                G.gostType = mi.finfo.fdType;
-                fDataFork = (mi.flags & 1) ? TRUE : FALSE;
-                G.fMacZipped = true;
-                /* If it was Zipped w/Mac version, the filename has either */
-                /* a 'd' or 'r' appended.  Remove the d/r when unzipping */
-                G.filename[0]-=1;
-            }
+        BlockMove(G.extra_field, &mi, G.lrec.extra_field_length);
+        if ((makeword((uch *)&mi.header) == 1992) &&
+            (makeword((uch *)&mi.data) ==
+                G.lrec.extra_field_length - sizeof(ZIP_EXTRA_HEADER)) &&
+            (mi.signature == 'JLEE'))
+        {
+            G.gostCreator = mi.finfo.fdCreator;
+            G.gostType = mi.finfo.fdType;
+            fDataFork = (mi.flags & 1) ? TRUE : FALSE;
+            G.fMacZipped = true;
+            /* If it was Zipped w/Mac version, the filename has either */
+            /* a 'd' or 'r' appended.  Remove the d/r when unzipping */
+            G.filename[0]-=1;
         }
-        if (!G.fMacZipped) {
-            if (!G.aflag)
-                G.gostType = G.gostCreator = '\?\?\?\?';
-            else {
-                G.gostCreator = CREATOR;
-                G.gostType = 'TEXT';
-            }
-        }
-        p2cstr(G.filename);
-
-        if ((outfd = creat(G.filename, 0)) != -1) {
-            if (G.fMacZipped) {
-                c2pstr(G.filename);
-                if (G.HFSFlag) {
-                    HParamBlockRec   hpbr;
-
-                    hpbr.fileParam.ioNamePtr = (StringPtr)G.filename;
-                    hpbr.fileParam.ioVRefNum = G.gnVRefNum;
-                    hpbr.fileParam.ioDirID = G.glDirID;
-                    hpbr.fileParam.ioFlFndrInfo = mi.finfo;
-                    hpbr.fileParam.ioFlCrDat = mi.lCrDat;
-                    hpbr.fileParam.ioFlMdDat = mi.lMdDat;
-                    err = PBHSetFInfo(&hpbr, 0);
-                } else {
-                    err = SetFInfo((StringPtr)G.filename , 0, &mi.finfo);
-                }
-                p2cstr(G.filename);
-            }
-            outfd = open(G.filename, (fDataFork) ? 1 : 2);
-        }
-
-        if (outfd == -1)
-            return NULL;
-        else
-            return (FILE *)outfd;
     }
+    if (!G.fMacZipped) {
+        if (!G.aflag)
+            G.gostType = G.gostCreator = '\?\?\?\?';
+        else {
+            G.gostCreator = CREATOR;
+            G.gostType = 'TEXT';
+        }
+    }
+    p2cstr(G.filename);
+
+    if ((outfd = creat(G.filename, 0)) != -1) {
+        if (G.fMacZipped) {
+            c2pstr(G.filename);
+            if (G.HFSFlag) {
+                HParamBlockRec   hpbr;
+
+                hpbr.fileParam.ioNamePtr = (StringPtr)G.filename;
+                hpbr.fileParam.ioVRefNum = G.gnVRefNum;
+                /* GRR:  what about mi.lDirID? never used? */
+                hpbr.fileParam.ioDirID = G.glDirID;
+                hpbr.fileParam.ioFlFndrInfo = mi.finfo;
+                hpbr.fileParam.ioFlCrDat = mi.lCrDat;
+                hpbr.fileParam.ioFlMdDat = mi.lMdDat;
+                err = PBHSetFInfo(&hpbr, 0);
+            } else {
+                err = SetFInfo((StringPtr)G.filename , 0, &mi.finfo);
+            }
+            p2cstr(G.filename);
+        }
+        outfd = open(G.filename, (fDataFork) ? 1 : 2);
+    }
+
+    if (outfd == -1)
+        return NULL;
+    else
+        return (FILE *)outfd;
+}
 
 
 

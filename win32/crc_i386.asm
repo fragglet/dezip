@@ -1,5 +1,22 @@
 ; crc_i386.asm, optimized CRC calculation function for Zip and UnZip, not
-; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 19 Jan 96.
+; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 10 Nov 96.
+;
+; Revised 06-Oct-96, Scott Field (sfield@microsoft.com)
+;   fixed to assemble with masm by not using .model directive which makes
+;   assumptions about segment alignment.  Also,
+;   avoid using loop, and j[e]cxz where possible.  Use mov + inc, rather
+;   than lodsb, and other misc. changes resulting in the following performance
+;   increases:
+;
+;      unrolled loops                NO_UNROLLED_LOOPS
+;      *8    >8      <8              *8      >8      <8
+;
+;      +54%  +42%    +35%            +82%    +52%    +25%
+;
+;   first item in each table is input buffer length, even multiple of 8
+;   second item in each table is input buffer length, > 8
+;   third item in each table is input buffer length, < 8
+;
 ;
 ; FLAT memory model assumed.
 ;
@@ -14,7 +31,7 @@
 ;
         .386p
         name    crc_i386
-        .MODEL  FLAT
+; don't make assumptions about segment align        .model flat
 
 extrn   _get_crc_table:near    ; ulg near *get_crc_table(void);
 
@@ -53,22 +70,23 @@ STD_LEAVE       MACRO
 ; This is the loop body of the CRC32 cruncher.
 ; registers modified:
 ;   ebx  : crc value "c"
-;   esi  : pointer to next data byte "text++"
+;   esi  : pointer to next data byte "buf++"
 ; registers read:
 ;   edi  : pointer to base of crc_table array
 ; scratch registers:
 ;   eax  : requires upper three bytes of eax = 0, uses al
 Do_CRC  MACRO
-                lodsb                        ; al <-- *text++
-                xor     al,bl                ; (c ^ *text++) & 0xFF
+                mov     al, byte ptr [esi]   ; al <-- *buf
+                inc     esi                  ; buf++
+                xor     al,bl                ; (c ^ *buf++) & 0xFF
                 shr     ebx,8                ; c = (c >> 8)
-                xor     ebx,[edi+eax*4]      ;  ^ table[(c ^ *text++) & 0xFF]
+                xor     ebx,[edi+eax*4]      ;  ^ table[(c ^ *buf++) & 0xFF]
         ENDM
 
 _TEXT   segment para
 
         public  _crc32
-_crc32          proc    near       ; ulg crc32(ulg crc, uch *text, extent len)
+_crc32          proc    near  ; ulg crc32(ulg crc, ZCONST uch *buf, extent len)
                 STD_ENTRY
                 push    edi
                 push    esi
@@ -76,31 +94,23 @@ _crc32          proc    near       ; ulg crc32(ulg crc, uch *text, extent len)
                 push    edx
                 push    ecx
 
-                mov     esi,Arg2             ; 2nd arg: uch *text
-                test    esi,esi
-                jne     short Crunch_it      ;> if (!text)
-                sub     eax,eax              ;>   return 0;
-    IFNDEF NO_STD_STACKFRAME
-                jmp     short fine           ;>
-    ELSE
-                jmp     fine                 ;>
-    ENDIF
-; align destination of commonly taken jump at longword boundary
-                align   4
-Crunch_it:                                   ;> else {
+                mov     esi,Arg2             ; 2nd arg: uch *buf
+                sub     eax,eax              ;> if (!buf)
+                test    esi,esi              ;>   return 0;
+                jz      fine                 ;> else {
+
                 call    _get_crc_table
                 mov     edi,eax
                 mov     ebx,Arg1             ; 1st arg: ulg crc
                 sub     eax,eax              ; eax=0; make al usable as a dword
-                mov     ecx,Arg3             ; 3rd arg: extent textlen
+                mov     ecx,Arg3             ; 3rd arg: extent len
                 not     ebx                  ;>   c = ~crc;
-                cld                          ; incr. idx regs on string ops
 
     IFNDEF  NO_UNROLLED_LOOPS
-                mov     edx,ecx              ; save textlen in edx
-                shr     ecx,3                ; ecx = textlen / 8
-                and     edx,000000007H       ; edx = textlen % 8
-                jecxz   No_Eights
+                mov     edx,ecx              ; save len in edx
+                and     edx,000000007H       ; edx = len % 8
+                shr     ecx,3                ; ecx = len / 8
+                jz      No_Eights
 ; align loop head at start of 486 internal cache line !!
                 align   16
 Next_Eight:
@@ -112,16 +122,19 @@ Next_Eight:
                 Do_CRC
                 Do_CRC
                 Do_CRC
-                loop    Next_Eight
+                dec     ecx
+                jnz     Next_Eight
 No_Eights:
                 mov     ecx,edx
+
     ENDIF ; NO_UNROLLED_LOOPS
-                jecxz   bail                 ;>   if (textlen)
+                jecxz   bail                 ;>   if (len)
 ; align loop head at start of 486 internal cache line !!
                 align   16
 loupe:                                       ;>     do {
-                Do_CRC                       ;        c = CRC32(c, *text++);
-                loop    loupe                ;>     } while (--textlen);
+                Do_CRC                       ;        c = CRC32(c, *buf++);
+                dec     ecx                  ;>     } while (--len);
+                jnz     loupe
 
 bail:                                        ;> }
                 mov     eax,ebx

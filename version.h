@@ -8,34 +8,33 @@
 #ifndef __version_h   /* don't include more than once */
 #define __version_h
 
-/* #define BETA */
-
 #ifdef BETA
-#  define BETALEVEL         "x BETA"
-#  define VERSION_DATE      "27 Apr 96"         /* internal beta version */
-#  define WIN_VERSION_DATE  "27 Apr 96"
+#  define BETALEVEL         "t BETA"
+#  define VERSION_DATE      "22 Apr 97"         /* internal beta version */
 #else
 #  define BETALEVEL         ""
-#  define VERSION_DATE      "30 April 1996"     /* official release version */
-#  define WIN_VERSION_DATE  VERSION_DATE
+#  define VERSION_DATE      "22 April 1997"     /* official release version */
 #  define RELEASE
 #endif
 
-#define UZ_MAJORVER  5   /* UnZip */
-#define UZ_MINORVER  2
+#define UZ_MAJORVER    5   /* UnZip */
+#define UZ_MINORVER    3
 
-#define ZI_MAJORVER  2   /* ZipInfo */
-#define ZI_MINORVER  1
+#define ZI_MAJORVER    2   /* ZipInfo */
+#define ZI_MINORVER    2
 
-#define D2_MAJORVER  1   /* DLL for OS/2 */  /* prob. should link to UZ ver */
-#define D2_MINORVER  0
+#define PATCHLEVEL     0
 
-#define DW_MAJORVER  0   /* old DLL For Win16 */
-#define DW_MINORVER  1
 
-#define WIZUZ_MAJORVER 3 /* WizUnZip */
-#define WIZUZ_MINORVER 0
+/* these are obsolete but remain for backward compatibility: */
+#define D2_MAJORVER    UZ_MAJORVER   /* DLL for OS/2 */
+#define D2_MINORVER    UZ_MINORVER
+#define D2_PATCHLEVEL  PATCHLEVEL
 
-#define PATCHLEVEL   0
+#define DW_MAJORVER    UZ_MAJORVER   /* DLL for MS Windows */
+#define DW_MINORVER    UZ_MINORVER
+#define DW_PATCHLEVEL  PATCHLEVEL
+
+#define WIN_VERSION_DATE  VERSION_DATE
 
 #endif /* !__version_h */

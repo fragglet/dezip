@@ -14,7 +14,7 @@
 #  endif                   /*  ters. (dpk)  [mem.h included for memcpy]  */
 #endif
 
-#ifdef MSWIN
+#ifdef WINDLL
 #  if (defined(MSC) || defined(__WATCOMC__))
 #    include <sys/utime.h>
 #  else /* !(MSC || __WATCOMC__) ==> may be BORLANDC, or GNU environment */
@@ -23,6 +23,10 @@
 #endif
 
 #ifdef __WATCOMC__
+#  undef SSTAT
+#  define SSTAT stat_bandaid
+   int stat_bandaid(const char *path, struct stat *buf);
+
 #  ifdef __386__
 #    ifndef WATCOMC_386
 #      define WATCOMC_386
@@ -68,12 +72,16 @@
 #  ifndef __GO32__
 #    define __GO32__
 #  endif
-#  include <sys/timeb.h>      /* for structure ftime */
+#  include <sys/timeb.h>           /* for structure ftime */
 #  if (defined(__DJGPP__) && (__DJGPP__ > 1))
-#    include <unistd.h>       /* for prototypes for read/write etc. */
-#    include <dir.h>          /* for FA_LABEL */
+#    include <unistd.h>            /* for prototypes for read/write etc. */
+#    include <dir.h>               /* for FA_LABEL */
+#    if ((__DJGPP__ == 2) && (__DJGPP_MINOR__ == 0))
+#      include <libc/dosio.h>      /* for _USE_LFN, djgpp 2.0 only */
+#    endif
+#    define USE_LFN _USE_LFN       /* runtime test:  support long filenames? */
 #  else
-     int setmode(int, int);   /* not in older djgpp's include files */
+     int setmode(int, int);        /* not in older djgpp's include files */
 #  endif
 #endif
 
@@ -81,7 +89,7 @@
 #  define __16BIT__
 #endif
 
-#if (defined(M_I86CM) || defined(M_I86LM)) || defined(MSWIN)
+#if (defined(M_I86CM) || defined(M_I86LM)) || defined(WINDLL)
 #  define MED_MEM
 #endif
 #if (defined(__COMPACT__) || defined(__LARGE__) || defined(__HUGE__))
@@ -96,32 +104,138 @@
 #define EXE_EXTENSION ".exe"  /* OS/2 has GetLoadPath() function instead */
 
 #ifdef __16BIT__
-# if defined(MSC) || defined(__WATCOMC__)
-#   include <malloc.h>
-#   define nearmalloc _nmalloc
-#   define nearfree _nfree
-# endif
-# if defined(__TURBOC__) && defined(DYNALLOC_CRCTAB)
-#   if defined(__COMPACT__) || defined(__LARGE__) || defined(__HUGE__)
-#     undef DYNALLOC_CRCTAB
-#   endif
-# endif
-# ifndef nearmalloc
-#   define nearmalloc malloc
-#   define nearfree free
-# endif
-# if defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB)
-#   define USE_OWN_CRCTAB
-# endif
+#  if defined(MSC) || defined(__WATCOMC__)
+#    include <malloc.h>
+#    define nearmalloc _nmalloc
+#    define nearfree _nfree
+#  endif
+#  if defined(__TURBOC__) && defined(DYNALLOC_CRCTAB)
+#    if defined(__COMPACT__) || defined(__LARGE__) || defined(__HUGE__)
+#      undef DYNALLOC_CRCTAB
+#    endif
+#  endif
+#  ifndef nearmalloc
+#    define nearmalloc malloc
+#    define nearfree free
+#  endif
+#  if defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB)
+#    define USE_OWN_CRCTAB
+#  endif
 #endif
 
-#define NOVELL_BUG_WORKAROUND   /* another stat()/fopen() bug with some 16-bit
-                                 *  compilers on Novell drives; very dangerous
-                                 *  (silently overwrites executables in other
-                                 *  directories)  */
-#define NOVELL_BUG_FAILSAFE     /* enables additional test & message code
-                                 *  that directs UnZip to fail safely in case
-                                 *  the "workaround" enabled above does not
-                                 *  work as intended.  */
+
+/* another stat()/fopen() bug with some 16-bit compilers on Novell drives;
+ * very dangerous (silently overwrites executables in other directories)
+ */
+#define NOVELL_BUG_WORKAROUND
+
+/* enables additional test and message code that directs UnZip to fail safely
+ * in case the "workaround" enabled above does not work as intended
+ */
+#define NOVELL_BUG_FAILSAFE
+
+
+/* The optional "long filename" support available with some MSDOS compiler
+ * environment running under VFAT systems (Win95) is controlled with the
+ * help of the two preprocessor symbols USE_VFAT and USE_LFN:
+ *  - USE_VFAT is a compile time switch that selects the long filename
+ *             semantics in mapname()
+ *  - USE_LFN  is a macro equating to a boolean expression indicating
+ *             whether long filenames are supported. If available, this
+ *             macro should make use of a runtime function checking the
+ *             LFN support.
+ *
+ * The code in msdos.c distinguishes three cases:
+ * 1.) USE_VFAT is not defined:
+ *     No support of LFN is included; filenames are mapped to 8+3 plain FAT
+ *     syntax unconditionally.
+ *     This is achieved by ``#define MAYBE_PLAIN_FAT'' to include the plain
+ *     FAT name mapping code and by ``#undef USE_LFN'' to disable bypassing
+ *     of the FAT mapping at runtime.
+ * 2.) USE_VFAT is defined:
+ *     Support for LFN is enabled.
+ *  a) USE_LFN is undefined:
+ *     There is no (runtime) check available to distinguish between OS
+ *     environments that support VFAT extensions and those that do not.
+ *     In this case, filenames are mapped to the more liberal VFAT LFN
+ *     syntax unconditionally. The internal switch MAYBE_PLAIN_FAT remains
+ *     undefined to exclude to "map to plain FAT" code parts.
+ *  b) USE_LFN is defined (hopefully to a boolean runtime LFN check function):
+ *     "#define MAYBE_PLAIN_FAT" is applied to include the plain FAT mapping
+ *     code; the programs checks at runtime whether the OS supports LFN and
+ *     uses the appropiate mapping syntax.
+ */
+/* Some environments, like DJGPP v2, can support long filenames on VFAT
+ * systems and DOS 8.3 filenames on FAT systems in the same executable.  If
+ * such support is available, USE_LFN should be defined to an expression
+ * that will return non-zero when long filenames API should be used, zero
+ * otherwise.
+ */
+#ifndef USE_VFAT
+#  ifdef USE_LFN
+#    undef USE_LFN
+#  endif
+#  ifndef MAYBE_PLAIN_FAT
+#    define MAYBE_PLAIN_FAT
+#  endif
+#endif
+#ifdef USE_LFN
+#  define MAYBE_PLAIN_FAT
+#endif
+
+/* handlers for OEM <--> ANSI string conversions */
+#ifdef WINDLL
+#  if 1
+     /* C RTL's file system support assumes OEM-coded strings */
+#    ifdef CRTL_CP_IS_ISO
+#      undef CRTL_CP_IS_ISO
+#    endif
+#    ifndef CRTL_CP_IS_OEM
+#      define CRTL_CP_IS_OEM
+#    endif
+#  else
+     /* C RTL's file system support assumes ISO-coded strings */
+#    ifndef CRTL_CP_IS_ISO
+#      define CRTL_CP_IS_ISO
+#    endif
+#    ifdef CRTL_CP_IS_OEM
+#      undef CRTL_CP_IS_OEM
+#    endif
+#  endif /* ?(code page of 16bit Windows compilers) */
+   /* include Win API declarations only in sources where conversion is
+    * actually used (skip EXTRACT_C, extract.c includes windll.h instead)
+    */
+#  if defined(ENVARGS_C) || defined(UNZIP_C) || defined(ZCRYPT_INTERNAL)
+#    include <windows.h>
+#  endif
+   /* use conversion functions of Windows API */
+#  ifdef CRTL_CP_IS_ISO
+#   define ISO_TO_INTERN(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#   define OEM_TO_INTERN(src, dst)  OemToAnsi(src, dst)
+#   define INTERN_TO_ISO(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#   define INTERN_TO_OEM(src, dst)  AnsiToOem(src, dst)
+#  endif
+#  ifdef CRTL_CP_IS_OEM
+#   define ISO_TO_INTERN(src, dst)  AnsiToOem(src, dst)
+#   define OEM_TO_INTERN(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#   define INTERN_TO_ISO(src, dst)  OemToAnsi(src, dst)
+#   define INTERN_TO_OEM(src, dst)  {if ((src) != (dst)) strcpy((dst), (src));}
+#  endif
+#  define _OEM_INTERN(str1) OEM_TO_INTERN(str1, str1)
+#  define _ISO_INTERN(str1) ISO_TO_INTERN(str1, str1)
+   /* UzpPassword supplies ANSI-coded string regardless of C RTL's native CP */
+#  define STR_TO_CP2(dst, src)  (AnsiToOem(src, dst), dst)
+   /* dummy defines to disable these functions, they are not needed */
+#  define STR_TO_ISO
+#  define STR_TO_OEM
+#else
+   /* use home-brewed conversion functions; internal charset is OEM */
+#  ifdef CRTL_CP_IS_ISO
+#    undef CRTL_CP_IS_ISO
+#  endif
+#  ifndef CRTL_CP_IS_OEM
+#    define CRTL_CP_IS_OEM
+#  endif
+#endif
 
 #endif /* !__doscfg_h */

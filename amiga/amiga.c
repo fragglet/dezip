@@ -48,10 +48,10 @@
 #ifndef SFX
 /* Make sure the number here matches version.h in the *EXACT* form */
 /* UZ_MAJORVER "." UZ_MINORVER PATCHLEVEL vvvv     No non-digits!  */
-static char version_id[] = "\0$VER: UnZip 5.20 ("
-#  include "env:VersionDate"
-")\r\n";
-#endif
+const char version_id[]  = "\0$VER: UnZip 5.30 ("
+#include "env:VersionDate"
+   ")\r\n";
+#endif /* SFX */
 
 
 /**********************/
@@ -111,7 +111,7 @@ int mapattr(__G)      /* Amiga version */
 int mapname(__G__ renamed)  /* return 0 if no error, 1 if caution (truncate), */
     __GDEF                  /* 2 if warning (skip because dir doesn't exist), */
     int renamed;            /* 3 if error (skip file), 10 if no memory (skip) */
-{
+{                           /*  [also IZ_CREATED_DIR] */
     char pathcomp[FILNAMSIZ];   /* path-component buffer */
     char *pp, *cp=NULL;         /* character pointers */
     char *lastsemi = NULL;      /* pointer to last semi-colon in pathcomp */
@@ -128,7 +128,7 @@ int mapname(__G__ renamed)  /* return 0 if no error, 1 if caution (truncate), */
 
     G.created_dir = FALSE;      /* not yet */
 
-    /* user gave full pathname:  don't prepend rootpath */
+    /* user gave full pathname:  don't prepend G.rootpath */
     G.renamed_fullpath = (renamed && strchr(G.filename, ':'));
 
     if (checkdir(__G__ (char *)NULL, INIT) == 10)
@@ -189,8 +189,11 @@ int mapname(__G__ renamed)  /* return 0 if no error, 1 if caution (truncate), */
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(__G__ G.filename, GETPATH);
-        if (G.created_dir && QCOND2) {
-            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
+        if (G.created_dir) {
+            if (QCOND2) {
+                Info(slide, 0, ((char *)slide, "   creating: %s\n",
+                  G.filename));
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
@@ -350,10 +353,11 @@ int checkdir(__G__ pathcomp, flag)
  *          10 - can't allocate memory for filename buffers
  */
 {
-    static int rootlen = 0;   /* length of rootpath */
-    static char *rootpath;    /* user's "extract-to" directory */
-    static char *buildpath;   /* full path (so far) to extracted file */
-    static char *end;         /* pointer to end of buildpath ('\0') */
+/* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in amiga.h: */
+/*  static int rootlen = 0; */   /* length of rootpath */
+/*  static char *rootpath;  */   /* user's "extract-to" directory */
+/*  static char *buildpath; */   /* full path (so far) to extracted file */
+/*  static char *end;       */   /* pointer to end of buildpath ('\0') */
 
 #   define FN_MASK   7
 #   define FUNCTION  (flag & FN_MASK)
@@ -372,60 +376,60 @@ int checkdir(__G__ pathcomp, flag)
         int too_long = FALSE;
 
         Trace((stderr, "appending dir segment [%s]\n", pathcomp));
-        while ((*end = *pathcomp++))
-            ++end;
+        while ((*G.build_end = *pathcomp++))
+            ++G.build_end;
         /* Truncate components over 30 chars? Nah, the filesystem handles it. */
-        if ((end-buildpath) > FILNAMSIZ-3)  /* need '/', one-char name, '\0' */
+        if ((G.build_end-G.buildpath) > FILNAMSIZ-3)       /* room for "/a\0" */
             too_long = TRUE;                /* check if extracting directory? */
-        if (stat(buildpath, &G.statbuf)) {  /* path doesn't exist */
+        if (stat(G.buildpath, &G.statbuf)) {  /* path doesn't exist */
             if (!G.create_dirs) { /* told not to create (freshening) */
-                free(buildpath);
+                free(G.buildpath);
                 return 2;         /* path doesn't exist:  nothing to do */
             }
             if (too_long) {
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  path too long: %s\n", buildpath));
-                free(buildpath);
+                  "checkdir error:  path too long: %s\n", G.buildpath));
+                free(G.buildpath);
                 return 4;         /* no room for filenames:  fatal */
             }
-            if (MKDIR(buildpath, 0777) == -1) {   /* create the directory */
+            if (MKDIR(G.buildpath, 0777) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
                  "checkdir error:  can't create %s\n\
-                 unable to process %s.\n", buildpath, G.filename));
-                free(buildpath);
+                 unable to process %s.\n", G.buildpath, G.filename));
+                free(G.buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
             }
             G.created_dir = TRUE;
         } else if (!S_ISDIR(G.statbuf.st_mode)) {
             Info(slide, 1, ((char *)slide,
                  "checkdir error:  %s exists but is not a directory\n\
-                 unable to process %s.\n", buildpath, G.filename));
-            free(buildpath);
+                 unable to process %s.\n", G.buildpath, G.filename));
+            free(G.buildpath);
             return 3;          /* path existed but wasn't dir */
         }
         if (too_long) {
             Info(slide, 1, ((char *)slide,
-                 "checkdir error:  path too long: %s\n", buildpath));
-            free(buildpath);
+                 "checkdir error:  path too long: %s\n", G.buildpath));
+            free(G.buildpath);
             return 4;         /* no room for filenames:  fatal */
         }
-        *end++ = '/';
-        *end = '\0';
-        Trace((stderr, "buildpath now = [%s]\n", buildpath));
+        *G.build_end++ = '/';
+        *G.build_end = '\0';
+        Trace((stderr, "buildpath now = [%s]\n", G.buildpath));
         return 0;
 
     } /* end if (FUNCTION == APPEND_DIR) */
 
 /*---------------------------------------------------------------------------
     GETPATH:  copy full path to the string pointed at by pathcomp, and free
-    buildpath.  Not our responsibility to worry whether pathcomp has room.
+    G.buildpath.  Not our responsibility to worry whether pathcomp has room.
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == GETPATH) {
-        strcpy(pathcomp, buildpath);
+        strcpy(pathcomp, G.buildpath);
         Trace((stderr, "getting and freeing path [%s]\n", pathcomp));
-        free(buildpath);
-        buildpath = end = NULL;
+        free(G.buildpath);
+        G.buildpath = G.build_end = NULL;
         return 0;
     }
 
@@ -436,17 +440,17 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == APPEND_NAME) {
         Trace((stderr, "appending filename [%s]\n", pathcomp));
-        while ((*end = *pathcomp++)) {
-            ++end;
-            if ((end-buildpath) >= FILNAMSIZ) {
-                *--end = '\0';
+        while ((*G.build_end = *pathcomp++)) {
+            ++G.build_end;
+            if ((G.build_end-G.buildpath) >= FILNAMSIZ) {
+                *--G.build_end = '\0';
                 Info(slide, 1, ((char *)slide,
                    "checkdir warning:  path too long; truncating\n\
-                   %s\n                -> %s\n", G.filename, buildpath));
+                   %s\n                -> %s\n", G.filename, G.buildpath));
                 return 1;   /* filename truncated */
             }
         }
-        Trace((stderr, "buildpath now = [%s]\n", buildpath));
+        Trace((stderr, "buildpath static now = [%s]\n", G.buildpath));
         return 0;  /* could check for existence here, prompt for new name... */
     }
 
@@ -457,39 +461,40 @@ int checkdir(__G__ pathcomp, flag)
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == INIT) {
-        Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1)) == NULL)
+        Trace((stderr, "initializing buildpath static to "));
+        if ((G.buildpath = (char *)malloc(strlen(G.filename)+G.rootlen+1))
+              == NULL)
             return 10;
-        if ((rootlen > 0) && !G.renamed_fullpath) {
-            strcpy(buildpath, rootpath);
-            end = buildpath + rootlen;
+        if ((G.rootlen > 0) && !G.renamed_fullpath) {
+            strcpy(G.buildpath, G.rootpath);
+            G.build_end = G.buildpath + G.rootlen;
         } else {
-            *buildpath = '\0';
-            end = buildpath;
+            *G.buildpath = '\0';
+            G.build_end = G.buildpath;
         }
-        Trace((stderr, "[%s]\n", buildpath));
+        Trace((stderr, "[%s]\n", G.buildpath));
         return 0;
     }
 
 /*---------------------------------------------------------------------------
-    ROOT:  if appropriate, store the path in rootpath and create it if neces-
-    sary; else assume it's a zipfile member and return.  This path segment
-    gets used in extracting all members from every zipfile specified on the
-    command line.
+    ROOT:  if appropriate, store the path in G.rootpath and create it if
+    necessary; else assume it's a zipfile member and return.  This path
+    segment gets used in extracting all members from every zipfile specified
+    on the command line.
   ---------------------------------------------------------------------------*/
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
         if (pathcomp == NULL) {
-            rootlen = 0;
+            G.rootlen = 0;
             return 0;
         }
-        if ((rootlen = strlen(pathcomp)) > 0) {
+        if ((G.rootlen = strlen(pathcomp)) > 0) {
             if (stat(pathcomp, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode)) {
                 /* path does not exist */
                 if (!G.create_dirs) {
-                    rootlen = 0;
+                    G.rootlen = 0;
                     return 2;   /* treat as stored file */
                 }
                 /* create the directory (could add loop here to scan pathcomp
@@ -498,32 +503,32 @@ int checkdir(__G__ pathcomp, flag)
                     Info(slide, 1, ((char *)slide,
                          "checkdir:  can't create extraction directory: %s\n",
                          pathcomp));
-                    rootlen = 0;   /* path didn't exist, tried to create, and */
+                    G.rootlen = 0; /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
                 }
             }
-            if ((rootpath = (char *)malloc(rootlen+2)) == NULL) {
-                rootlen = 0;
+            if ((G.rootpath = (char *)malloc(G.rootlen+2)) == NULL) {
+                G.rootlen = 0;
                 return 10;
             }
-            strcpy(rootpath, pathcomp);
-            if (rootpath[rootlen - 1] != ':' && rootpath[rootlen - 1] != '/')
-                rootpath[rootlen++] = '/';
-            rootpath[rootlen] = '\0';
-            Trace((stderr, "rootpath now = [%s]\n", rootpath));
+            strcpy(G.rootpath, pathcomp);
+            if (G.rootpath[G.rootlen-1] != ':' && G.rootpath[G.rootlen-1] != '/')
+                G.rootpath[G.rootlen++] = '/';
+            G.rootpath[G.rootlen] = '\0';
+            Trace((stderr, "rootpath now = [%s]\n", G.rootpath));
         }
         return 0;
     }
 #endif /* !SFX || SFX_EXDIR */
 
 /*---------------------------------------------------------------------------
-    END:  free rootpath, immediately prior to program exit.
+    END:  free G.rootpath, immediately prior to program exit.
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
-            free(rootpath);
+        if (G.rootlen > 0)
+            free(G.rootpath);
         return 0;
     }
 
@@ -542,8 +547,8 @@ void close_outfile(__G)
     __GDEF
 {
     time_t m_time;
-#ifdef USE_EF_UX_TIME
-    ztimbuf z_utime;
+#ifdef USE_EF_UT_TIME
+    iztimes z_utime;
 #endif
     LONG FileDate();
 
@@ -554,26 +559,27 @@ void close_outfile(__G)
 
     fclose(G.outfile);
 
-#ifdef USE_EF_UX_TIME
+#ifdef USE_EF_UT_TIME
     if (G.extra_field &&
-        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                         &z_utime, NULL) > 0) {
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-                         z_utime.modtime));
-        m_time = z_utime.modtime;
+                         z_utime.mtime));
+        m_time = z_utime.mtime;
     } else {
         /* Convert DOS time to time_t format */
         m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
                                   G.lrec.last_mod_file_time);
     }
-#else /* !USE_EF_UX_TIME */
+#else /* !USE_EF_UT_TIME */
     /* Convert DOS time to time_t format */
     m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
                               G.lrec.last_mod_file_time);
-#endif /* ?USE_EF_UX_TIME */
+#endif /* ?USE_EF_UT_TIME */
 
 #ifdef DEBUG
-    Info(slide, 1, (slide, "\nclose_outfile(): m_time=%s\n", ctime(&m_time));
+    Info(slide, 1, ((char *)slide, "\nclose_outfile(): m_time=%s\n",
+                         ctime(&m_time)));
 #endif
 
     if (!FileDate(G.filename, &m_time))
@@ -602,11 +608,10 @@ void close_outfile(__G)
 /*                                                                  */
 /********************************************************************/
 
-/**************** for Aztec, do linewise with stat.c ****************/
+/********************* do linewise with stat.c **********************/
 
-#ifdef AZTEC_C
 #  include "amiga/stat.c"
-/* this is the exact same stat.c used for Aztec by Zip */
+/* this is the exact same stat.c used by Zip */
 
 #  include <stdio.h>
 
@@ -618,7 +623,6 @@ void _abort(void)               /* called when ^C is pressed */
     fputs("\n^C\n", stderr);
     exit(1);
 }
-#endif /* AZTEC_C */
 
 
 /**************************************************************/
@@ -647,7 +651,7 @@ int windowheight(BPTR fh)
         if (conunit)
             return conunit->cu_YMax + 1;
     }
-    return MAXINT;
+    return INT_MAX;
 }
 
 

@@ -11,17 +11,17 @@
 *       UZFileTree          -- Searches for files matching a given    *
 *                              filespec, including files in           *
 *                              subdirectories.                        *
-*	UZUnZip		    -- Unzip command-line entry point.	      *
-*			       This is functionally equivalent to     *
-*			       using Unzip as an external program.    *
-*	UZUnZipToVar	    -- Unzip one file to a variable	      *
-*	UZUnZipToStem	    -- Unzip files to a variable array	      *
+*       UZUnZip             -- Unzip command-line entry point.        *
+*                              This is functionally equivalent to     *
+*                              using Unzip as an external program.    *
+*       UZUnZipToVar            -- Unzip one file to a variable       *
+*       UZUnZipToStem       -- Unzip files to a variable array        *
 *       UZVer               -- Returns the Unzip version number       *
 *                                                                     *
 **********************************************************************/
 /* Include files */
 
-#ifdef OS2API
+#ifdef OS2DLL
 
 #define  INCL_DOS
 #define  INCL_DOSMEMMGR
@@ -158,7 +158,7 @@ int GetVariableIndex(__GPRO__ int index)
 {
   sprintf(G.os2.getvar_buf+G.os2.getvar_len,"%d",index);
   return GetVariable(__G__ G.os2.getvar_buf);
-}  
+}
 
 
 /* Transfer REXX array to standard C string array */
@@ -236,19 +236,19 @@ ULONG UZDropFuncs(CHAR *name, ULONG numargs, RXSTRING args[],
 /*************************************************************************
 * Function:  UZFileTree                                                  *
 *                                                                        *
-* Syntax:    call UZFileTree zipfile, stem[, include-filespec]		 *
-*				 [, exclude-filespec][, options]         *
+* Syntax:    call UZFileTree zipfile, stem[, include-filespec]           *
+*                                [, exclude-filespec][, options]         *
 *                                                                        *
-* Params:    zipfile  - Name of zip file to search.			 *
+* Params:    zipfile  - Name of zip file to search.                      *
 *            stem     - Name of stem var to store results in.            *
-*	     include  - Filespec to search for (may include * and ?).    *
-*	     exclude  - Filespec to exclude (may include * and ?).       *
+*            include  - Filespec to search for (may include * and ?).    *
+*            exclude  - Filespec to exclude (may include * and ?).       *
 *            options  - Either of the following:                         *
 *                       'F' - Give file statistics.                      *
-*			   Length Date Time Name			 *
-*			'Z' - Give zip statistics, too.		         *
-*			   Length Method Size Ratio Date Time CRC-32 Name*
-*			Default is to return only filenames		 *
+*                          Length Date Time Name                         *
+*                       'Z' - Give zip statistics, too.                  *
+*                          Length Method Size Ratio Date Time CRC-32 Name*
+*                       Default is to return only filenames              *
 *                                                                        *
 * Return:    NO_UTIL_ERROR   - Successful.                               *
 *            ERROR_NOMEM     - Out of memory.                            *
@@ -261,7 +261,7 @@ ULONG UZFileTree(CHAR *name, ULONG numargs, RXSTRING args[],
   char *incname[2];
   char *excname[2];
   CONSTRUCTGLOBALS();
-  
+
   if (numargs < 2 || numargs > 5 ||
       !RXVALIDSTRING(args[0]) ||
       !RXVALIDSTRING(args[1]) ||
@@ -321,22 +321,22 @@ ULONG UZFileTree(CHAR *name, ULONG numargs, RXSTRING args[],
     KillStringArray(G.pfnames);
   if (G.xfilespecs > 0 && G.pxnames != excname)
     KillStringArray(G.pxnames);
-  return RexxReturn(__G__ 0,retstr);	    /* no error on call           */
+  return RexxReturn(__G__ 0,retstr);        /* no error on call           */
 }
 
 
 /*************************************************************************
-* Function:  UZUnZipToVar						 *
+* Function:  UZUnZipToVar                                                *
 *                                                                        *
-* Syntax:    call UZUnZipToVar zipfile, filespec [, stem]		 *
+* Syntax:    call UZUnZipToVar zipfile, filespec [, stem]                *
 *                                                                        *
-* Params:    zipfile  - Name of zip file to search.			 *
-*	     filespec - File to extract					 *
-*	     stem     - If you specify a stem variable, the file will be *
-*			extracted to the variable, one line per index    *
-*			In this case, 0 will be returned		 *
-*									 *
-* Return:    Extracted file						 *
+* Params:    zipfile  - Name of zip file to search.                      *
+*            filespec - File to extract                                  *
+*            stem     - If you specify a stem variable, the file will be *
+*                       extracted to the variable, one line per index    *
+*                       In this case, 0 will be returned                 *
+*                                                                        *
+* Return:    Extracted file                                              *
 *            ERROR_NOMEM     - Out of memory.                            *
 *************************************************************************/
 
@@ -358,8 +358,8 @@ ULONG UZUnZipToVar(CHAR *name, ULONG numargs, RXSTRING args[],
   G.redirect_data=1;
   if (numargs == 3) {
     if (!RXVALIDSTRING(args[2]) ||
-	RXNULLSTRING(args[1]) ||
-	args[2].strlength == 0) {
+        RXNULLSTRING(args[1]) ||
+        args[2].strlength == 0) {
       DESTROYGLOBALS();
       return INVALID_ROUTINE;            /* Invalid call to routine    */
     }
@@ -374,84 +374,84 @@ ULONG UZUnZipToVar(CHAR *name, ULONG numargs, RXSTRING args[],
 
 
 /*************************************************************************
-* Function:  UZUnZipToStem						 *
+* Function:  UZUnZipToStem                                               *
 *                                                                        *
-* Syntax:    call UZUnZipToStem zipfile, stem[, include-filespec]	 *
-*				 [, exclude-filespec][, mode]		 *
+* Syntax:    call UZUnZipToStem zipfile, stem[, include-filespec]        *
+*                                [, exclude-filespec][, mode]            *
 *                                                                        *
-* Params:    zipfile  - Name of zip file to search.			 *
-*            stem     - Name of stem var to store files in.		 *
-*	     include  - Filespec to search for (may include * and ?).    *
-*	     exclude  - Filespec to exclude (may include * and ?).       *
-*	     mode     - Specifies 'F'lat or 'T'ree mode.  Umm, this is   *
-*			hard to explain so I'll give an example, too.    *
-*			Assuming a file unzip.zip containing:		 *
-*				unzip.c					 *
-*				unshrink.c				 *
-*				extract.c				 *
-*				os2/makefile.os2			 *
-*				os2/os2.c				 *
-*				os2/dll/dll.def				 *
-*				os2/dll/unzipapi.c			 *
-*									 *
-*			-- In flat mode, each file is stored in		 *
-*			   stem.fullname i.e. stem."os2/dll/unzipapi.c"  *
-*			   A list of files is created in stem.<index>	 *
-*									 *
-*			Flat mode returns:				 *
-*				stem.0 = 7				 *
-*				stem.1 = unzip.c			 *
-*				stem.2 = unshrink.c			 *
-*				stem.3 = extract.c			 *
-*				stem.4 = os2/makefile.os2		 *
-*				stem.5 = os2/os2.c			 *
-*				stem.6 = os2/dll/dll.def		 *
-*				stem.7 = os2/dll/unzipapi.c		 *
-*									 *
-*			And the following contain the contents of the	 *
-*			various programs:				 *
-*				stem.unzip.c				 *
-*				stem.unshrink.c				 *
-*				stem.extract.c				 *
-*				stem.os2/makefile.os2			 *
-*				stem.os2/os2.c				 *
-*				stem.os2/dll/dll.def			 *
-*				stem.os2/dll/unzipapi.c			 *
-*									 *
-*			-- In tree mode, slashes are converted to periods*
-*			   in the pathname thus the above file would have*
-*			   been stored in stem.os2.dll.unzipapi.c	 *
-*			   The index would then be stored in stem.OS2.	 *
-*			   DLL.<index>.					 *
-*									 *
-*			NOTE: All path names are converted to uppercase  *
-*									 *
-*			Tree mode returns:				 *
-*				stem.0 = 4				 *
-*				stem.1 = unzip.c			 *
-*				stem.2 = unshrink.c			 *
-*				stem.3 = extract.c			 *
-*				stem.4 = OS2/				 *
-*									 *
-*				stem.OS2.0 = 3				 *
-*				stem.OS2.1 = makefile.os2		 *
-*				stem.OS2.2 = os2.c			 *
-*				stem.OS2.3 = DLL/			 *
-*									 *
-*				stem.OS2.DLL.0 = 2			 *
-*				stem.OS2.DLL.1 = def			 *
-*				stem.OS2.DLL.2 = unzipapi.c		 *
-*									 *
-*			And the following contain the contents of the	 *
-*			various programs:				 *
-*				stem.unzip.c				 *
-*				stem.unshrink.c				 *
-*				stem.extract.c				 *
-*				stem.OS2.makefile.os2			 *
-*				stem.OS2.os2.c				 *
-*				stem.OS2.DLL.dll.def			 *
-*				stem.OS2.DLL.unzipapi.c			 *
-*									 *
+* Params:    zipfile  - Name of zip file to search.                      *
+*            stem     - Name of stem var to store files in.              *
+*            include  - Filespec to search for (may include * and ?).    *
+*            exclude  - Filespec to exclude (may include * and ?).       *
+*            mode     - Specifies 'F'lat or 'T'ree mode.  Umm, this is   *
+*                        hard to explain so I'll give an example, too.   *
+*                       Assuming a file unzip.zip containing:            *
+*                               unzip.c                                  *
+*                               unshrink.c                               *
+*                               extract.c                                *
+*                               os2/makefile.os2                         *
+*                               os2/os2.c                                *
+*                               os2/dll/dll.def                          *
+*                               os2/dll/unzipapi.c                       *
+*                                                                        *
+*                       -- In flat mode, each file is stored in          *
+*                          stem.fullname i.e. stem."os2/dll/unzipapi.c"  *
+*                          A list of files is created in stem.<index>    *
+*                                                                        *
+*                       Flat mode returns:                               *
+*                               stem.0 = 7                               *
+*                               stem.1 = unzip.c                         *
+*                               stem.2 = unshrink.c                      *
+*                               stem.3 = extract.c                       *
+*                               stem.4 = os2/makefile.os2                *
+*                               stem.5 = os2/os2.c                       *
+*                               stem.6 = os2/dll/dll.def                 *
+*                               stem.7 = os2/dll/unzipapi.c              *
+*                                                                        *
+*                       And the following contain the contents of the    *
+*                       various programs:                                *
+*                               stem.unzip.c                             *
+*                               stem.unshrink.c                          *
+*                               stem.extract.c                           *
+*                               stem.os2/makefile.os2                    *
+*                               stem.os2/os2.c                           *
+*                               stem.os2/dll/dll.def                     *
+*                               stem.os2/dll/unzipapi.c                  *
+*                                                                        *
+*                       -- In tree mode, slashes are converted to periods*
+*                          in the pathname thus the above file would have*
+*                          been stored in stem.os2.dll.unzipapi.c        *
+*                          The index would then be stored in stem.OS2.   *
+*                          DLL.<index>.                                  *
+*                                                                        *
+*                       NOTE: All path names are converted to uppercase  *
+*                                                                        *
+*                       Tree mode returns:                               *
+*                               stem.0 = 4                               *
+*                               stem.1 = unzip.c                         *
+*                               stem.2 = unshrink.c                      *
+*                               stem.3 = extract.c                       *
+*                               stem.4 = OS2/                            *
+*                                                                        *
+*                               stem.OS2.0 = 3                           *
+*                               stem.OS2.1 = makefile.os2                *
+*                               stem.OS2.2 = os2.c                       *
+*                               stem.OS2.3 = DLL/                        *
+*                                                                        *
+*                               stem.OS2.DLL.0 = 2                       *
+*                               stem.OS2.DLL.1 = def                     *
+*                               stem.OS2.DLL.2 = unzipapi.c              *
+*                                                                        *
+*                       And the following contain the contents of the    *
+*                       various programs:                                *
+*                               stem.unzip.c                             *
+*                               stem.unshrink.c                          *
+*                               stem.extract.c                           *
+*                               stem.OS2.makefile.os2                    *
+*                               stem.OS2.os2.c                           *
+*                               stem.OS2.DLL.dll.def                     *
+*                               stem.OS2.DLL.unzipapi.c                  *
+*                                                                        *
 *                                                                        *
 * Return:    NO_UTIL_ERROR   - Successful.                               *
 *            ERROR_NOMEM     - Out of memory.                            *
@@ -606,7 +606,7 @@ ULONG UZUnZip(CHAR *name, ULONG numargs, RXSTRING args[],
   int argc=0;
   int idx;
   CONSTRUCTGLOBALS();
-  
+
   if (numargs < 1 || numargs > 2 ||
       args[0].strlength > 255) {
     DESTROYGLOBALS();
@@ -684,7 +684,7 @@ int SetOutputVarStem(__GPRO__ const char *name)
   G.os2.stem_len = len;
   return G.os2.stem_len;
 }
-    
+
 int SetOutputVar(__GPRO__ const char *name)
 {
   int len=strlen(name);
@@ -801,7 +801,7 @@ int TextSetNext(__GPRO__ char *buffer, int len, int all)
       memcpy(buffer,scan,remaining);
       return remaining;
     }
-      
+
   return 0;
 }
 
@@ -842,31 +842,31 @@ int finish_REXX_redirect(__GPRO)
     strcpy(G.os2.getvar_buf, G.os2.output_var);
     do {
       if ((scan = strrchr(G.filename,'/')) == NULL)
-	offset = 0;
+        offset = 0;
       else
-	offset = scan-G.filename+1;
+        offset = scan-G.filename+1;
       if (first || !GetVariable(__G__ G.os2.output_var)) {
-	ptr = G.os2.getvar_buf+offset+G.os2.stem_len;
-	*ptr = '0';
-	*(ptr+1) = 0;
-	if (!GetVariable(__G__ G.os2.getvar_buf))
-	  idx = 1;
-	else
-	  idx = atoi(G.os2.buffer)+1;
-	PrintToVariable(__G__ G.os2.getvar_buf,"%d",idx);
-	sprintf(ptr,"%d",idx);
-	if (!first) {
-	  PrintToVariable(__G__ G.os2.output_var,"%d",idx);
-	  idx = strlen(G.filename);
-	  *(G.filename+idx)   = '/';
-	  *(G.filename+idx+1) = 0;
-	}
-	WriteToVariable(__G__ G.os2.getvar_buf,G.filename+offset,strlen(G.filename+offset));
-	first=0;
+        ptr = G.os2.getvar_buf+offset+G.os2.stem_len;
+        *ptr = '0';
+        *(ptr+1) = 0;
+        if (!GetVariable(__G__ G.os2.getvar_buf))
+          idx = 1;
+        else
+          idx = atoi(G.os2.buffer)+1;
+        PrintToVariable(__G__ G.os2.getvar_buf,"%d",idx);
+        sprintf(ptr,"%d",idx);
+        if (!first) {
+          PrintToVariable(__G__ G.os2.output_var,"%d",idx);
+          idx = strlen(G.filename);
+          *(G.filename+idx)   = '/';
+          *(G.filename+idx+1) = 0;
+        }
+        WriteToVariable(__G__ G.os2.getvar_buf,G.filename+offset,strlen(G.filename+offset));
+        first=0;
       }
       if (offset) {
-	*(G.os2.output_var+G.os2.stem_len+offset-1)   = 0;
-	*scan = 0;
+        *(G.os2.output_var+G.os2.stem_len+offset-1)   = 0;
+        *scan = 0;
       }
     } while (offset);
     break;
@@ -874,4 +874,4 @@ int finish_REXX_redirect(__GPRO)
   return 0;
 }
 
-#endif /* OS2API */
+#endif /* OS2DLL */
