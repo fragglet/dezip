@@ -1,5 +1,7 @@
-# Makefile for UnZip 5.30 using Manx Aztec C 5.2, last revised 18 Apr 97.
+# Makefile for UnZip 5.30 using Manx Aztec C 5.2, last revised 15 May 97.
 # Define EXTRA=xxx on the Make command line for e.g. -dUSE_UNSHRINK.
+
+EXTRA =
 
 CC = cc
 VERNUMS = -d __VERSION__=5 -d __REVISION__=2
@@ -81,6 +83,7 @@ funzip.o : tables.h
 
 crypt.o crypt.fo ttyio.o ttyio.fo unzip.o unzip.xo funzip.o : crypt.h
 fileio.o extract.o extract.xo inflate.o inflate.fo amiga/filedate.fo : crypt.h
+amiga/mkGoff amiga/FmkGoff : crypt.h
 
 crypt.o crypt.fo ttyio.o ttyio.fo funzip.o fileio.o : ttyio.h
 

@@ -13,7 +13,7 @@
              SetSD()              set security descriptor on file
              EvalExtraFields()    evaluate and process and extra field NOW
              IsWinNT()            indicate type of WIN32 platform
-             Test_NT()            test integrity of NT security data
+             test_NT()            test integrity of NT security data
              utime2FileTime()
              NTQueryTargetFS()
              UTCtime2Localtime()
@@ -452,9 +452,11 @@ int IsWinNT(void)       /* returns TRUE if real NT, FALSE if Win95 or Win32s */
 
 
 
-/************************/
-/*  Function test_NT()  */
-/************************/
+#ifndef SFX
+
+/************************/   /* can return PK_OK, PK_ERR, PK_MEM3, PK_MEM4, */
+/*  Function test_NT()  */   /*  IZ_EF_TRUNC, or (if testing) PK_ERR or'd */
+/************************/   /*  with compression method in high byte */
 
 int test_NT(__G__ eb, eb_size)
     __GDEF
@@ -483,6 +485,9 @@ int test_NT(__G__ eb, eb_size)
     return r;
 
 } /* end function test_NT() */
+
+#endif /* !SFX */
+
 
 
 
@@ -599,12 +604,14 @@ static int NTQueryTargetFS(char *path)
      if (fs_uses_loctime) NTtzbugWorkaround(ut, pft);
 
    /* nonzero if `y' is a leap year, else zero */
-#  define leap(y) (((y) % 4 == 0 && (y) % 100 != 0) || (y) % 400 == 0)
+#  define leap(y) (((y)%4 == 0 && (y)%100 != 0) || (y)%400 == 0)
    /* number of leap years from 1970 to `y' (not including `y' itself) */
-#  define nleap(y) (((y) - 1969) / 4 - ((y) - 1901) / 100 + ((y) - 1601) / 400)
+#  define nleap(y) (((y)-1969)/4 - ((y)-1901)/100 + ((y)-1601)/400)
+
+extern ZCONST ush ydays[];
 
 /********************************/
-/* Function UTCtime2Localtime() */
+/* Function UTCtime2Localtime() */   /* borrowed from Zip's mkgmtime() */
 /********************************/
 
 static time_t UTCtime2Localtime(time_t utctime)
@@ -612,9 +619,6 @@ static time_t UTCtime2Localtime(time_t utctime)
     time_t utc = utctime;
     struct tm *tm;
     unsigned years, months, days, hours, minutes, seconds;
-    static ZCONST uch monlens[] = {   /* days in each month of the year */
-        31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31   /* GRR:  ack, ptui */
-    };
 
 
 #ifdef __BORLANDC__   /* Borland C++ 5.x crashes when trying to reference tm */
@@ -623,20 +627,15 @@ static time_t UTCtime2Localtime(time_t utctime)
 #endif
     tm = localtime(&utc);
 
-    /* the following code is borrowed from Zip's mktime.c (mkgmtime()) */
-
-    years = tm->tm_year + 1900; /* year - 1900 -> year */
-    months = tm->tm_mon;        /* 0..11 */
-    days = tm->tm_mday - 1;     /* 1..31 -> 0..30 */
-    hours = tm->tm_hour;        /* 0..23 */
-    minutes = tm->tm_min;       /* 0..59 */
-    seconds = tm->tm_sec;       /* 0..61 in ANSI C. */
+    years = tm->tm_year + 1900;  /* year - 1900 -> year */
+    months = tm->tm_mon;         /* 0..11 */
+    days = tm->tm_mday - 1;      /* 1..31 -> 0..30 */
+    hours = tm->tm_hour;         /* 0..23 */
+    minutes = tm->tm_min;        /* 0..59 */
+    seconds = tm->tm_sec;        /* 0..61 in ANSI C */
 
     /* set `days' to the number of days into the year */
-    if (months > 1 && leap(years))
-        ++days;
-    while (months-- > 0)        /* GRR:  this is a stupid way to do it... */
-        days += monlens[months];
+    days += ydays[months] + (months > 1 && leap(years));
 
     /* now set `days' to the number of days since 1 Jan 1970 */
     days += 365 * (years - 1970) + nleap(years);

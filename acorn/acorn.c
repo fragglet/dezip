@@ -167,7 +167,7 @@ int mapattr(__G)
 
     G.pInfo->file_attr&=0xFFFF;
 
-    G.pInfo->file_attr|=(0xFFD<<20);
+    G.pInfo->file_attr|=(0xFFDu<<20);
 
     if (G.filename[strlen(G.filename)-4]==',') {
       int ftype=strtol(G.filename+strlen(G.filename)-3,NULL,16)&0xFFF;
@@ -177,7 +177,7 @@ int mapattr(__G)
     }
     else if (G.crec.internal_file_attributes & 1) {
       G.pInfo->file_attr&=0x000FFFFF;
-      G.pInfo->file_attr|=(0xFFF<<20);
+      G.pInfo->file_attr|=(0xFFFu<<20);
     }
 
     return 0;
@@ -625,10 +625,9 @@ void printRISCOSexfield(int isdir, void *extra_field)
 /*   I prefer not to print this string... should change later... */
 /*   printf("  The file is a directory.\n");*/
  }
- else if (block->loadaddr & 0xFFF00000 != 0xFFF00000) {
+ else if ((block->loadaddr & 0xFFF00000) != 0xFFF00000) {
    printf("  Load address: %.8X\n",block->loadaddr);
-   /* GRR:  should this be block->execaddr? */
-   printf("  Exec address: %.8X\n",block->loadaddr);
+   printf("  Exec address: %.8X\n",block->execaddr);
  }
  else {
    /************* should change this to use OS_FSControl 18 to get filetype string ************/

@@ -42,6 +42,10 @@ For UnZip 6.0/6.1/who knows:
 
 	way, way later...
 
+   o add Unix hard-link support?
+
+	way, way later...
+
    o add option to search zipfile contents for a string and print the
      results? ("zipgrep" option--e.g., unzip -g or unzip -S) (easy for
      fixed strings, hard for wildcards/true regex's)

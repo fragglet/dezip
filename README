@@ -1,10 +1,10 @@
-This is the README file for the 22 April 1997 public release of the
-Info-ZIP group's portable UnZip zipfile-extraction program (and related
+This is the README file for the 31 May 1997 (5.31, get it?) public release
+of the Info-ZIP group's portable UnZip zipfile-extraction program (and related
 utilities).
 
-unzip53.zip      portable UnZip, version 5.3, source code distribution
-unzip53.tar.Z    same as above, but compress'd tar format
-unzip53.tar.gz   same as above, but gzip'd tar format
+unzip531.zip      portable UnZip, version 5.31, source code distribution
+unzip531.tar.Z    same as above, but compress'd tar format
+unzip531.tar.gz   same as above, but gzip'd tar format
 
 __________________________________________________________________________
 
@@ -53,7 +53,10 @@ vms/descrip.mms.
 
 CHANGES AND NEW FEATURES
 ------------------------
-The 5.3 release adds still more ports and more cross-platform portability
+The 5.31 release includes nothing but small bug-fixes and typo corrections,
+with the exception of some minor performance tweaks.
+
+The 5.3 release added still more ports and more cross-platform portability
 features:
 
    - new BeOS port
@@ -76,9 +79,8 @@ You betcha. :-)
 
 Although the DLLs are still basically a mess, the Windows DLLs (16- and 32-
 bit) now have some documentation and a small example application.  Note that
-they're really *only* for C programmers; they do not currently work with
-Visual Basic and need help to work with Borland Delphi.  Anything else is
-Right Out.  
+they're really *only* for C programmers; they have not been tested with Visual
+Basic and need help to work with Borland Delphi.  Anything else is Right Out.  
 
 
 INTERNET RESOURCES
@@ -140,9 +142,7 @@ If you are considering a port, not only should you read the ZipPorts file,
 but also please check in with Zip-Bugs BEFORE getting started, since the
 code is constantly being updated behind the scenes.  For example, VMOS,
 VxWorks and Netware ports are claimed to be under construction, although
-we have yet to see any up-to-date patches.  (Actually, the QDOS port is
-apparently finished and available at a site in France; with luck, it will
-be fully integrated for the next release.)  We will arrange to send you the
+we have yet to see any up-to-date patches.  We will arrange to send you the
 latest sources.  The alternative is the possibility that your hard work will
 be tucked away in a sub-archive and mostly ignored, or completely ignored
 if someone else has already done the port (and you'd be surprised how often

@@ -18,7 +18,7 @@ All integer fields in the descriptions below are in little-endian (Intel)
 format unless otherwise specified.  Note that "Short" means two bytes and
 "Long" means four bytes, regardless of their native sizes.
 
-Greg Roelofs, 970311
+Greg Roelofs, 970531
 
 			-------------------------
 
@@ -540,7 +540,7 @@ The following are detailed descriptions of the known extra-field block types:
 	  ================
 
 	  The following is the layout of the file-attributes extra block for
-	  BeOS.  (Last Revision 970309)
+	  BeOS.  (Last Revision 970531)
 
 	  Local-header version:
 
@@ -548,26 +548,11 @@ The following are detailed descriptions of the known extra-field block types:
 	  -----		----		-----------
   (BeOS)  0x6542	Short		tag for this extra block type
 	  TSize		Short		total data size for this block
-	  Type		Long		file type
-	  Creator	Long		file creator
-
-	  Type and Creator are "longtext" in native BeOS code (that is, un-
-	  signed longs that are typically readable as 4-byte text strings).
-	  This will change during the filesystem rewrite for BeOS DR9 (expected
-	  in spring 1997), probably as follows:
-
-	  Value		Size		Description
-	  -----		----		-----------
-  (BeOS)  0x6542	Short		tag for this extra block type
-	  TSize		Short		total data size for this block
 	  BSize		Long		uncompressed file attribute data size
-	  CType		Short		compression type
-	  CRC		Long		CRC value for uncompressed file attribs
-	  Attribs	variable	compressed file attribute data
-
-	  The local extra block is similar to OS/2's since OS/2 EAs are similar
-	  to the file attributes planned for BeOS 1.1DR9, but the implementation
-	  will be different.
+	  Flags		Byte		info bits
+	  (CType)	Short		compression type
+	  (CRC)		Long		CRC value for uncompressed file attribs
+	  Attribs	variable	file attribute data
 
 	  Central-header version:
 
@@ -575,7 +560,32 @@ The following are detailed descriptions of the known extra-field block types:
 	  -----		----		-----------
   (BeOS)  0x6542	Short		tag for this extra block type
 	  TSize		Short		total data size for this block
-	  BSize		Long		size of local EF block data
+	  BSize		Long		size of uncompressed local EF block data
+	  Flags		Byte		info bits
+
+	  The least significant bit of Flags in both headers indicates whether
+	  the LOCAL extra field is uncompressed (and therefore whether CType
+	  and CRC are omitted):
+
+		bit 0		if set, Attribs is uncompressed (no CType, CRC)
+		bits 1-7	reserved; if set, assume error or unknown data
+
+	  Currently the only supported compression types are deflated (type 8)
+	  and stored (type 0); the latter is not used by Info-ZIP's Zip but is
+	  supported by UnZip.
+
+	  Attribs is a BeOS-specific block of data in big-endian format with
+	  the following structure (if compressed, uncompress it first):
+
+	      Value	Size		Description
+	      -----	----		-----------
+	      Name	variable	attribute name (null-terminated string)
+	      Type	Long		attribute type (32-bit unsigned integer)
+	      Size	Long Long	data size for this sub-block (64 bits)
+	      Data	variable	attribute data
+
+	  The attribute structure is repeated for every attribute.  The Data
+	  field may contain anything--text, flags, bitmaps, etc.
 
 
 	 -SMS/QDOS Extra Field:

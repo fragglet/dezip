@@ -1,20 +1,16 @@
-# Microsoft Developer Studio Generated NMAKE File, Format Version 4.20
-# ** DO NOT EDIT **
-
-# TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
-
+# Microsoft Developer Studio Generated NMAKE File, Based on unzip32.dsp
 !IF "$(CFG)" == ""
-CFG=unzip32 - Win32 Release
-!MESSAGE No configuration specified.  Defaulting to unzip32 - Win32 Release.
+CFG=unzip32 - Win32 Debug
+!MESSAGE No configuration specified. Defaulting to unzip32 - Win32 Debug.
 !ENDIF 
 
 !IF "$(CFG)" != "unzip32 - Win32 Release" && "$(CFG)" !=\
  "unzip32 - Win32 Debug"
 !MESSAGE Invalid configuration "$(CFG)" specified.
-!MESSAGE You can specify a configuration when running NMAKE on this makefile
-!MESSAGE by defining the macro CFG on the command line.  For example:
+!MESSAGE You can specify a configuration when running NMAKE
+!MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "unzip.mak" CFG="unzip32 - Win32 Release"
+!MESSAGE NMAKE /f "unzip32.mak" CFG="unzip32 - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
@@ -30,30 +26,26 @@ NULL=
 !ELSE 
 NULL=nul
 !ENDIF 
-################################################################################
-# Begin Project
-RSC=rc.exe
-MTL=mktyplib.exe
-CPP=cl.exe
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
-# PROP BASE Use_MFC 0
-# PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "unzip32\Release"
-# PROP BASE Intermediate_Dir "unzip32\Release"
-# PROP BASE Target_Dir "unzip32"
-# PROP Use_MFC 0
-# PROP Use_Debug_Libraries 0
-# PROP Output_Dir "c:\msdev\projects\wiz\release\exe"
-# PROP Intermediate_Dir "c:\msdev\projects\wiz\release\unzip"
-# PROP Target_Dir "unzip32"
-OUTDIR=c:\msdev\projects\wiz\release\exe
-INTDIR=c:\msdev\projects\wiz\release\unzip
+OUTDIR=.\..\Release\app
+INTDIR=.\Release
+# Begin Custom Macros
+OutDir=.\..\Release\app
+# End Custom Macros
+
+!IF "$(RECURSE)" == "0" 
 
 ALL : "$(OUTDIR)\unzip32.dll"
 
-CLEAN : 
+!ELSE 
+
+ALL : "$(OUTDIR)\unzip32.dll"
+
+!ENDIF 
+
+CLEAN :
 	-@erase "$(INTDIR)\api.obj"
 	-@erase "$(INTDIR)\crc32.obj"
 	-@erase "$(INTDIR)\crctab.obj"
@@ -71,6 +63,7 @@ CLEAN :
 	-@erase "$(INTDIR)\ttyio.obj"
 	-@erase "$(INTDIR)\unreduce.obj"
 	-@erase "$(INTDIR)\unshrink.obj"
+	-@erase "$(INTDIR)\vc50.idb"
 	-@erase "$(INTDIR)\win32.obj"
 	-@erase "$(INTDIR)\windll.obj"
 	-@erase "$(INTDIR)\windll.res"
@@ -85,35 +78,61 @@ CLEAN :
 "$(INTDIR)" :
     if not exist "$(INTDIR)/$(NULL)" mkdir "$(INTDIR)"
 
-# ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "c:\unzip" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D "DLL" /YX /c
-CPP_PROJ=/nologo /MT /W3 /GX /O2 /I "c:\unzip" /D "NDEBUG" /D "WIN32" /D\
- "_WINDOWS" /D "WINDLL" /D "DLL" /Fp"$(INTDIR)/unzip32.pch" /YX /Fo"$(INTDIR)/"\
- /c 
-CPP_OBJS=c:\msdev\projects\wiz\release\unzip/
-CPP_SBRS=.\.
-# ADD BASE MTL /nologo /D "NDEBUG" /win32
-# ADD MTL /nologo /D "NDEBUG" /win32
-MTL_PROJ=/nologo /D "NDEBUG" /win32 
-# ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /d "NDEBUG"
-RSC_PROJ=/l 0x409 /fo"$(INTDIR)/windll.res" /d "NDEBUG" 
+CPP=cl.exe
+CPP_PROJ=/nologo /MT /W3 /GX /O2 /I "d:\wiz\unzip" /I "d:\wiz\unzip\windll" /I\
+ "d:\wiz\unzip\win32" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D\
+ "USE_EF_UX_TIME" /D "DLL" /Fp"$(INTDIR)\unzip32.pch" /YX /Fo"$(INTDIR)\\"\
+ /Fd"$(INTDIR)\\" /FD /c 
+CPP_OBJS=.\Release/
+CPP_SBRS=.
+
+.c{$(CPP_OBJS)}.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cpp{$(CPP_OBJS)}.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cxx{$(CPP_OBJS)}.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.c{$(CPP_SBRS)}.sbr::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cpp{$(CPP_SBRS)}.sbr::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cxx{$(CPP_SBRS)}.sbr::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+MTL=midl.exe
+MTL_PROJ=/nologo /D "NDEBUG" /mktyplib203 /o NUL /win32 
+RSC=rc.exe
+RSC_PROJ=/l 0x409 /fo"$(INTDIR)\windll.res" /d "NDEBUG" /d "WIN32" 
 BSC32=bscmake.exe
-# ADD BASE BSC32 /nologo
-# ADD BSC32 /nologo
-BSC32_FLAGS=/nologo /o"$(OUTDIR)/unzip32.bsc" 
+BSC32_FLAGS=/nologo /o"$(OUTDIR)\unzip32.bsc" 
 BSC32_SBRS= \
 	
 LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib version.lib /nologo /subsystem:windows /dll /machine:I386
 LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib\
- advapi32.lib shell32.lib uuid.lib version.lib /nologo /subsystem:windows /dll\
- /incremental:no /pdb:"$(OUTDIR)/unzip32.pdb" /machine:I386\
- /def:"\unzip\windll\windll32.def" /out:"$(OUTDIR)/unzip32.dll"\
- /implib:"$(OUTDIR)/unzip32.lib" 
+ advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib\
+ odbccp32.lib /nologo /subsystem:windows /dll /incremental:no\
+ /pdb:"$(OUTDIR)\unzip32.pdb" /machine:I386\
+ /def:"D:\wiz\unzip\windll\windll32.def" /out:"$(OUTDIR)\unzip32.dll"\
+ /implib:"$(OUTDIR)\unzip32.lib" 
 DEF_FILE= \
-	"..\..\..\unzip\windll\windll32.def"
+	"D:\wiz\unzip\windll\windll32.def"
 LINK32_OBJS= \
 	"$(INTDIR)\api.obj" \
 	"$(INTDIR)\crc32.obj" \
@@ -144,22 +163,23 @@ LINK32_OBJS= \
 
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
-# PROP BASE Use_MFC 0
-# PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "unzip32\Debug"
-# PROP BASE Intermediate_Dir "unzip32\Debug"
-# PROP BASE Target_Dir "unzip32"
-# PROP Use_MFC 0
-# PROP Use_Debug_Libraries 1
-# PROP Output_Dir "c:\msdev\projects\wiz\debug\exe"
-# PROP Intermediate_Dir "c:\msdev\projects\wiz\debug\unzip"
-# PROP Target_Dir "unzip32"
-OUTDIR=c:\msdev\projects\wiz\debug\exe
-INTDIR=c:\msdev\projects\wiz\debug\unzip
+OUTDIR=.\..\Debug\app
+INTDIR=.\Debug
+# Begin Custom Macros
+OutDir=.\..\Debug\app
+# End Custom Macros
+
+!IF "$(RECURSE)" == "0" 
 
 ALL : "$(OUTDIR)\unzip32.dll"
 
-CLEAN : 
+!ELSE 
+
+ALL : "$(OUTDIR)\unzip32.dll"
+
+!ENDIF 
+
+CLEAN :
 	-@erase "$(INTDIR)\api.obj"
 	-@erase "$(INTDIR)\crc32.obj"
 	-@erase "$(INTDIR)\crctab.obj"
@@ -177,8 +197,8 @@ CLEAN :
 	-@erase "$(INTDIR)\ttyio.obj"
 	-@erase "$(INTDIR)\unreduce.obj"
 	-@erase "$(INTDIR)\unshrink.obj"
-	-@erase "$(INTDIR)\vc40.idb"
-	-@erase "$(INTDIR)\vc40.pdb"
+	-@erase "$(INTDIR)\vc50.idb"
+	-@erase "$(INTDIR)\vc50.pdb"
 	-@erase "$(INTDIR)\win32.obj"
 	-@erase "$(INTDIR)\windll.obj"
 	-@erase "$(INTDIR)\windll.res"
@@ -195,35 +215,61 @@ CLEAN :
 "$(INTDIR)" :
     if not exist "$(INTDIR)/$(NULL)" mkdir "$(INTDIR)"
 
-# ADD BASE CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /I "c:\unzip" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D "DLL" /YX /c
-CPP_PROJ=/nologo /MTd /W3 /Gm /GX /Zi /Od /I "c:\unzip" /D "_DEBUG" /D "WIN32"\
- /D "_WINDOWS" /D "WINDLL" /D "DLL" /Fp"$(INTDIR)/unzip32.pch" /YX\
- /Fo"$(INTDIR)/" /Fd"$(INTDIR)/" /c 
-CPP_OBJS=c:\msdev\projects\wiz\debug\unzip/
-CPP_SBRS=.\.
-# ADD BASE MTL /nologo /D "_DEBUG" /win32
-# ADD MTL /nologo /D "_DEBUG" /win32
-MTL_PROJ=/nologo /D "_DEBUG" /win32 
-# ADD BASE RSC /l 0x409 /d "_DEBUG"
-# ADD RSC /l 0x409 /d "_DEBUG"
-RSC_PROJ=/l 0x409 /fo"$(INTDIR)/windll.res" /d "_DEBUG" 
+CPP=cl.exe
+CPP_PROJ=/nologo /MTd /W3 /Gm /GX /Zi /Od /I "d:\wiz\unzip" /I\
+ "d:\wiz\unzip\windll" /I "d:\wiz\unzip\win32" /D "_DEBUG" /D "WIN32" /D\
+ "_WINDOWS" /D "WINDLL" /D "USE_EF_UX_TIME" /D "DLL" /Fp"$(INTDIR)\unzip32.pch"\
+ /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
+CPP_OBJS=.\Debug/
+CPP_SBRS=.
+
+.c{$(CPP_OBJS)}.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cpp{$(CPP_OBJS)}.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cxx{$(CPP_OBJS)}.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.c{$(CPP_SBRS)}.sbr::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cpp{$(CPP_SBRS)}.sbr::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cxx{$(CPP_SBRS)}.sbr::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+MTL=midl.exe
+MTL_PROJ=/nologo /D "_DEBUG" /mktyplib203 /o NUL /win32 
+RSC=rc.exe
+RSC_PROJ=/l 0x409 /fo"$(INTDIR)\windll.res" /d "_DEBUG" /d "WIN32" 
 BSC32=bscmake.exe
-# ADD BASE BSC32 /nologo
-# ADD BSC32 /nologo
-BSC32_FLAGS=/nologo /o"$(OUTDIR)/unzip32.bsc" 
+BSC32_FLAGS=/nologo /o"$(OUTDIR)\unzip32.bsc" 
 BSC32_SBRS= \
 	
 LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib version.lib /nologo /subsystem:windows /dll /debug /machine:I386
 LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib\
- advapi32.lib shell32.lib uuid.lib version.lib /nologo /subsystem:windows /dll\
- /incremental:yes /pdb:"$(OUTDIR)/unzip32.pdb" /debug /machine:I386\
- /def:"\unzip\windll\windll32.def" /out:"$(OUTDIR)/unzip32.dll"\
- /implib:"$(OUTDIR)/unzip32.lib" 
+ advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib\
+ odbccp32.lib /nologo /subsystem:windows /dll /incremental:yes\
+ /pdb:"$(OUTDIR)\unzip32.pdb" /debug /machine:I386\
+ /def:"D:\wiz\unzip\windll\windll32.def" /out:"$(OUTDIR)\unzip32.dll"\
+ /implib:"$(OUTDIR)\unzip32.lib" /pdbtype:sept 
 DEF_FILE= \
-	"..\..\..\unzip\windll\windll32.def"
+	"D:\wiz\unzip\windll\windll32.def"
 LINK32_OBJS= \
 	"$(INTDIR)\api.obj" \
 	"$(INTDIR)\crc32.obj" \
@@ -254,806 +300,689 @@ LINK32_OBJS= \
 
 !ENDIF 
 
-.c{$(CPP_OBJS)}.obj:
-   $(CPP) $(CPP_PROJ) $<  
 
-.cpp{$(CPP_OBJS)}.obj:
-   $(CPP) $(CPP_PROJ) $<  
-
-.cxx{$(CPP_OBJS)}.obj:
-   $(CPP) $(CPP_PROJ) $<  
-
-.c{$(CPP_SBRS)}.sbr:
-   $(CPP) $(CPP_PROJ) $<  
-
-.cpp{$(CPP_SBRS)}.sbr:
-   $(CPP) $(CPP_PROJ) $<  
-
-.cxx{$(CPP_SBRS)}.sbr:
-   $(CPP) $(CPP_PROJ) $<  
-
-################################################################################
-# Begin Target
-
-# Name "unzip32 - Win32 Release"
-# Name "unzip32 - Win32 Debug"
+!IF "$(CFG)" == "unzip32 - Win32 Release" || "$(CFG)" ==\
+ "unzip32 - Win32 Debug"
+SOURCE=D:\wiz\unzip\api.c
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-!ENDIF 
-
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\zipinfo.c
-DEP_CPP_ZIPIN=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_ZIPIN=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\zipinfo.obj" : $(SOURCE) $(DEP_CPP_ZIPIN) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\crc32.c
-DEP_CPP_CRC32=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\zip.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_CRC32=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\crc32.obj" : $(SOURCE) $(DEP_CPP_CRC32) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\crctab.c
-DEP_CPP_CRCTA=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\zip.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\crctab.obj" : $(SOURCE) $(DEP_CPP_CRCTA) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\crypt.c
-DEP_CPP_CRYPT=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\ttyio.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\crypt.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\zip.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_CRYPT=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\crypt.obj" : $(SOURCE) $(DEP_CPP_CRYPT) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\explode.c
-DEP_CPP_EXPLO=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_EXPLO=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\explode.obj" : $(SOURCE) $(DEP_CPP_EXPLO) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\extract.c
-DEP_CPP_EXTRA=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"..\..\..\unzip\windll\windll.h"\
-	"\unzip\crypt.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\windll\structs.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_EXTRA=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\intrface.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\extract.obj" : $(SOURCE) $(DEP_CPP_EXTRA) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\fileio.c
-DEP_CPP_FILEI=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\ebcdic.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\ttyio.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\crypt.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_FILEI=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\fileio.obj" : $(SOURCE) $(DEP_CPP_FILEI) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\globals.c
-DEP_CPP_GLOBA=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_GLOBA=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\globals.obj" : $(SOURCE) $(DEP_CPP_GLOBA) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\inflate.c
-DEP_CPP_INFLA=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\inflate.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\crypt.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_INFLA=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\inflate.obj" : $(SOURCE) $(DEP_CPP_INFLA) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\list.c
-DEP_CPP_LIST_=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"..\..\..\unzip\windll\windll.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\windll\structs.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_LIST_=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\intrface.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\list.obj" : $(SOURCE) $(DEP_CPP_LIST_) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\match.c
-DEP_CPP_MATCH=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_MATCH=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\match.obj" : $(SOURCE) $(DEP_CPP_MATCH) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\process.c
-DEP_CPP_PROCE=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"..\..\..\unzip\windll\windll.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\windll\structs.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_PROCE=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\intrface.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\process.obj" : $(SOURCE) $(DEP_CPP_PROCE) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\ttyio.c
-DEP_CPP_TTYIO=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\ttyio.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\crypt.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\zip.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_TTYIO=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\ttyio.obj" : $(SOURCE) $(DEP_CPP_TTYIO) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\unreduce.c
-DEP_CPP_UNRED=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_UNRED=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\unreduce.obj" : $(SOURCE) $(DEP_CPP_UNRED) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\unshrink.c
-DEP_CPP_UNSHR=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_UNSHR=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
-
-"$(INTDIR)\unshrink.obj" : $(SOURCE) $(DEP_CPP_UNSHR) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\api.c
 DEP_CPP_API_C=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\version.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_API_C=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\version.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\api.obj" : $(SOURCE) $(DEP_CPP_API_C) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
+	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-# End Source File
-################################################################################
-# Begin Source File
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
-SOURCE=\unzip\Win32\win32.c
-DEP_CPP_WIN32=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\nt.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_WIN32=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
+DEP_CPP_API_C=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\version.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
 	
 
-"$(INTDIR)\win32.obj" : $(SOURCE) $(DEP_CPP_WIN32) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
+"$(INTDIR)\api.obj" : $(SOURCE) $(DEP_CPP_API_C) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-# End Source File
-################################################################################
-# Begin Source File
+!ENDIF 
 
-SOURCE=\unzip\windll\windll.c
-DEP_CPP_WINDL=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"..\..\..\unzip\windll\windll.h"\
-	"\unzip\crypt.h"\
-	"\unzip\unzip.h"\
-	"\unzip\version.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\windll\structs.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_WINDL=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
+SOURCE=D:\wiz\unzip\crc32.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_CRC32=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
 	
 
-"$(INTDIR)\windll.obj" : $(SOURCE) $(DEP_CPP_WINDL) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
+"$(INTDIR)\crc32.obj" : $(SOURCE) $(DEP_CPP_CRC32) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-# End Source File
-################################################################################
-# Begin Source File
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
-SOURCE=\unzip\windll\dllsetup.c
+DEP_CPP_CRC32=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
+	
+
+"$(INTDIR)\crc32.obj" : $(SOURCE) $(DEP_CPP_CRC32) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\crctab.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_CRCTA=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
+	
+
+"$(INTDIR)\crctab.obj" : $(SOURCE) $(DEP_CPP_CRCTA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_CRCTA=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
+	
+
+"$(INTDIR)\crctab.obj" : $(SOURCE) $(DEP_CPP_CRCTA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\crypt.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_CRYPT=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\ttyio.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
+	
+
+"$(INTDIR)\crypt.obj" : $(SOURCE) $(DEP_CPP_CRYPT) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_CRYPT=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\ttyio.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
+	
+
+"$(INTDIR)\crypt.obj" : $(SOURCE) $(DEP_CPP_CRYPT) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\windll\dllsetup.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
 DEP_CPP_DLLSE=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"..\..\..\unzip\windll\windll.h"\
-	"\unzip\consts.h"\
-	"\unzip\unzip.h"\
-	"\unzip\version.h"\
-	"\unzip\win32\rsxntwin.h"\
-	"c:\wiz\..\unzip\windll\structs.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_DLLSE=\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
+	"d:\wiz\unzip\consts.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\version.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\dllsetup.obj" : $(SOURCE) $(DEP_CPP_DLLSE) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
+	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-# End Source File
-################################################################################
-# Begin Source File
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
-SOURCE=\unzip\windll\windll.rc
+DEP_CPP_DLLSE=\
+	"d:\wiz\unzip\consts.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\version.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\dllsetup.obj" : $(SOURCE) $(DEP_CPP_DLLSE) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\explode.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_EXPLO=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\explode.obj" : $(SOURCE) $(DEP_CPP_EXPLO) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_EXPLO=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\explode.obj" : $(SOURCE) $(DEP_CPP_EXPLO) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\extract.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_EXTRA=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\extract.obj" : $(SOURCE) $(DEP_CPP_EXTRA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_EXTRA=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\extract.obj" : $(SOURCE) $(DEP_CPP_EXTRA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\fileio.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_FILEI=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\ebcdic.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\ttyio.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\fileio.obj" : $(SOURCE) $(DEP_CPP_FILEI) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_FILEI=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\ebcdic.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\ttyio.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\fileio.obj" : $(SOURCE) $(DEP_CPP_FILEI) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\globals.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_GLOBA=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\globals.obj" : $(SOURCE) $(DEP_CPP_GLOBA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_GLOBA=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\globals.obj" : $(SOURCE) $(DEP_CPP_GLOBA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\inflate.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_INFLA=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\inflate.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\inflate.obj" : $(SOURCE) $(DEP_CPP_INFLA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_INFLA=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\inflate.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\inflate.obj" : $(SOURCE) $(DEP_CPP_INFLA) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\list.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_LIST_=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\list.obj" : $(SOURCE) $(DEP_CPP_LIST_) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_LIST_=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\list.obj" : $(SOURCE) $(DEP_CPP_LIST_) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\match.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_MATCH=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\match.obj" : $(SOURCE) $(DEP_CPP_MATCH) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_MATCH=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\match.obj" : $(SOURCE) $(DEP_CPP_MATCH) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\Win32\nt.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_NT_C18=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\nt.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\nt.obj" : $(SOURCE) $(DEP_CPP_NT_C18) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_NT_C18=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\nt.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\nt.obj" : $(SOURCE) $(DEP_CPP_NT_C18) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\process.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_PROCE=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\process.obj" : $(SOURCE) $(DEP_CPP_PROCE) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_PROCE=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\process.obj" : $(SOURCE) $(DEP_CPP_PROCE) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\ttyio.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_TTYIO=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\ttyio.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
+	
+
+"$(INTDIR)\ttyio.obj" : $(SOURCE) $(DEP_CPP_TTYIO) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_TTYIO=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\ttyio.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\zip.h"\
+	
+
+"$(INTDIR)\ttyio.obj" : $(SOURCE) $(DEP_CPP_TTYIO) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\unreduce.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_UNRED=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\unreduce.obj" : $(SOURCE) $(DEP_CPP_UNRED) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_UNRED=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\unreduce.obj" : $(SOURCE) $(DEP_CPP_UNRED) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\unshrink.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_UNSHR=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\unshrink.obj" : $(SOURCE) $(DEP_CPP_UNSHR) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_UNSHR=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\unshrink.obj" : $(SOURCE) $(DEP_CPP_UNSHR) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\Win32\win32.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_WIN32=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\nt.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\win32.obj" : $(SOURCE) $(DEP_CPP_WIN32) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_WIN32=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\nt.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\win32.obj" : $(SOURCE) $(DEP_CPP_WIN32) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\windll\windll.c
+
+!IF  "$(CFG)" == "unzip32 - Win32 Release"
+
+DEP_CPP_WINDL=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\version.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\windll.obj" : $(SOURCE) $(DEP_CPP_WINDL) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_WINDL=\
+	"d:\wiz\unzip\crypt.h"\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\version.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	"d:\wiz\unzip\windll\structs.h"\
+	"d:\wiz\unzip\windll\windll.h"\
+	
+
+"$(INTDIR)\windll.obj" : $(SOURCE) $(DEP_CPP_WINDL) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
+!ENDIF 
+
+SOURCE=D:\wiz\unzip\windll\windll.rc
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 
 "$(INTDIR)\windll.res" : $(SOURCE) "$(INTDIR)"
-   $(RSC) /l 0x409 /fo"$(INTDIR)/windll.res" /i "\unzip\windll" /d "NDEBUG"\
- $(SOURCE)
+	$(RSC) /l 0x409 /fo"$(INTDIR)\windll.res" /i "D:\wiz\unzip\windll" /d "NDEBUG"\
+ /d "WIN32" $(SOURCE)
 
 
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 
 "$(INTDIR)\windll.res" : $(SOURCE) "$(INTDIR)"
-   $(RSC) /l 0x409 /fo"$(INTDIR)/windll.res" /i "\unzip\windll" /d "_DEBUG"\
- $(SOURCE)
+	$(RSC) /l 0x409 /fo"$(INTDIR)\windll.res" /i "D:\wiz\unzip\windll" /d "_DEBUG"\
+ /d "WIN32" $(SOURCE)
 
 
 !ENDIF 
 
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=\unzip\windll\windll32.def
+SOURCE=D:\wiz\unzip\zipinfo.c
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
+DEP_CPP_ZIPIN=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\zipinfo.obj" : $(SOURCE) $(DEP_CPP_ZIPIN) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
+
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
+
+DEP_CPP_ZIPIN=\
+	"d:\wiz\unzip\globals.h"\
+	"d:\wiz\unzip\unzip.h"\
+	"d:\wiz\unzip\unzpriv.h"\
+	"d:\wiz\unzip\win32\w32cfg.h"\
+	
+
+"$(INTDIR)\zipinfo.obj" : $(SOURCE) $(DEP_CPP_ZIPIN) "$(INTDIR)"
+	$(CPP) $(CPP_PROJ) $(SOURCE)
+
 
 !ENDIF 
 
-# End Source File
-################################################################################
-# Begin Source File
 
-SOURCE=\unzip\Win32\nt.c
-DEP_CPP_NT_C26=\
-	"..\..\..\unzip\globals.h"\
-	"..\..\..\unzip\msdos\doscfg.h"\
-	"..\..\..\unzip\unzpriv.h"\
-	"..\..\..\unzip\win32\w32cfg.h"\
-	"\unzip\unzip.h"\
-	"\unzip\win32\nt.h"\
-	"\unzip\win32\rsxntwin.h"\
-	{$(INCLUDE)}"\sys\Stat.h"\
-	{$(INCLUDE)}"\sys\Timeb.h"\
-	{$(INCLUDE)}"\sys\Types.h"\
-	{$(INCLUDE)}"\sys\Utime.h"\
-	
-NODEP_CPP_NT_C26=\
-	"..\..\..\unzip\acorn\riscos.h"\
-	"..\..\..\unzip\amiga\amiga.h"\
-	"..\..\..\unzip\aosvs\aosvs.h"\
-	"..\..\..\unzip\macdir.h"\
-	"..\..\..\unzip\macstat.h"\
-	"..\..\..\unzip\os2\os2cfg.h"\
-	"..\..\..\unzip\os2\os2data.h"\
-	"..\..\..\unzip\qdos\izqdos.h"\
-	"..\..\..\unzip\vmmvs.h"\
-	"..\..\..\unzip\wince\punzip.h"\
-	"..\..\..\unzip\zlib.h"\
-	
+!ENDIF 
 
-"$(INTDIR)\nt.obj" : $(SOURCE) $(DEP_CPP_NT_C26) "$(INTDIR)"
-   $(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-# End Source File
-# End Target
-# End Project
-################################################################################

@@ -71,6 +71,9 @@
 #define AMI_IEXECUTE   00002       /* executable image, a loadable runfile */
 #define AMI_IDELETE    00001       /* can be deleted */
 
+#define BE_UNCOMPRESSED 0x01       /* file attributes are not compressed */
+#define BE_BADBITS      0xfe       /* undefined bits */
+
 #define LFLAG  3   /* short "ls -l" type listing */
 
 static int   zi_long   OF((__GPRO__ ulg *pEndprev));
@@ -82,6 +85,8 @@ static char *zi_time   OF((__GPRO__ ZCONST ush *datez, ZCONST ush *timez,
 /**********************************************/
 /*  Strings used in zipinfo.c (ZipInfo half)  */
 /**********************************************/
+
+static char Far nullStr[] = "";
 
 static char Far LongHeader[] = "Archive:  %s   %ld bytes   %d file%s\n";
 static char Far ShortHeader[] = "Archive:  %s   %ld   %d\n";
@@ -276,7 +281,8 @@ static char Far ZipItData[] = ".\n\
     The Mac long filename is %s; its type code is `%c%c%c%c';\n\
     and its creator code is `%c%c%c%c'";
 static char Far BeOSdata[] = ".\n\
-    The associated file has type code `%c%c%c%c' and creator code `%c%c%c%c'";
+    The local extra field has %lu bytes of %scompressed BeOS file attributes";
+ /* The associated file has type code `%c%c%c%c' and creator code `%c%c%c%c'" */
 static char Far QDOSdata[] = ".\n\
     The QDOS extra field subtype is `%c%c%c%c'";
 static char Far AOSVSdata[] = ".\n\
@@ -441,7 +447,7 @@ int zi_opts(__G__ pargc, pargv)
     if ((argc-- == 0) || error) {
         *pargc = argc;
         *pargv = argv;
-#if (!defined(CMS_MVS))
+#ifndef CMS_MVS
         return USAGE(error);
 #else
         return error;
@@ -513,7 +519,8 @@ int zi_end_central(__G)   /* return PK-type error code */
         Info(slide, 0, ((char *)slide, ((int)strlen(G.zipfn) < 39)?
           LoadFarString(LongHeader) : LoadFarString(ShortHeader), G.zipfn,
           (long)G.ziplen, G.ecrec.total_entries_central_dir,
-          (G.ecrec.total_entries_central_dir==1)? "" : "s"));
+          (G.ecrec.total_entries_central_dir==1)?
+          LoadFarStringSmall(nullStr) : "s"));
 
     /* verbose format */
     if (G.lflag > 9) {
@@ -776,8 +783,8 @@ int zipinfo(__G)   /* return PK-type error code */
             cfactor = -cfactor;
         }
         Info(slide, 0, ((char *)slide, LoadFarString(ZipfileStats),
-          members, (members==1)? "":"s", tot_ucsize, tot_csize, sgn, cfactor/10,
-          cfactor%10));
+          members, (members==1)? LoadFarStringSmall(nullStr):"s", tot_ucsize,
+          tot_csize, sgn, cfactor/10, cfactor%10));
     }
 
 /*---------------------------------------------------------------------------
@@ -938,7 +945,8 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     }
 
     Info(slide, 0, ((char *)slide, LoadFarString(FileSecurity),
-      (G.crec.general_purpose_bit_flag & 1)? "" : "not "));
+      (G.crec.general_purpose_bit_flag & 1)?
+      LoadFarStringSmall(nullStr) : "not "));
     Info(slide, 0, ((char *)slide, LoadFarString(ExtendedLocalHdr),
       (G.crec.general_purpose_bit_flag & 8)? "yes" : "no"));
     /* print upper 3 bits for amusement? */
@@ -1112,8 +1120,12 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
           xattr));
     else
         Info(slide, 0, ((char *)slide, LoadFarString(MSDOSFileAttributesAlpha),
-          xattr, (xattr&1)?"rdo ":"", (xattr&2)?"hid ":"", (xattr&4)?"sys ":"",
-          (xattr&8)?"lab ":"", (xattr&16)?"dir ":"", (xattr&32)?"arc":""));
+          xattr, (xattr&1)? "rdo " : LoadFarStringSmall(nullStr),
+          (xattr&2)? "hid " : LoadFarStringSmall(nullStr),
+          (xattr&4)? "sys " : LoadFarStringSmall(nullStr),
+          (xattr&8)? "lab " : LoadFarStringSmall(nullStr),
+          (xattr&16)? "dir " : LoadFarStringSmall(nullStr),
+          (xattr&32)? "arc" : LoadFarStringSmall(nullStr)));
 
 /*---------------------------------------------------------------------------
     Analyze the extra field, if any, and print the file comment, if any (the
@@ -1299,8 +1311,9 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                             ++num;
                         }
                         if (num > 0)
-                            Info(slide, 0, ((char *)slide, LoadFarString(UTdata)
-                              , types, num == 1? "" : "s"));
+                            Info(slide, 0, ((char *)slide,
+                              LoadFarString(UTdata), types,
+                              num == 1? LoadFarStringSmall(nullStr) : "s"));
                     }
                     break;
                 case EF_ZIPIT:
@@ -1338,10 +1351,10 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
 #endif /* CMS_MVS */
                 case EF_BEOS:
-                    if (eb_datalen >= 8) {
+                    if (eb_datalen >= 5) {
                         Info(slide, 0, ((char *)slide, LoadFarString(BeOSdata),
-                          ef_ptr[0], ef_ptr[1], ef_ptr[2], ef_ptr[3],
-                          ef_ptr[4], ef_ptr[5], ef_ptr[6], ef_ptr[7]));
+                          makelong(ef_ptr), (ef_ptr[4] & BE_UNCOMPRESSED)?
+                          "un" : LoadFarStringSmall(nullStr)));
                     }
                     break;
                 case EF_QDOS:

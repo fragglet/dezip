@@ -71,8 +71,10 @@
 
 static int store_info OF((__GPRO));
 static int extract_or_test_member OF((__GPRO));
-static int TestExtraField OF((__GPRO__ uch *ef, unsigned ef_len));
-static int test_OS2 OF((__GPRO__ uch *eb, unsigned eb_size));
+#ifndef SFX
+   static int TestExtraField OF((__GPRO__ uch *ef, unsigned ef_len));
+   static int test_OS2 OF((__GPRO__ uch *eb, unsigned eb_size));
+#endif
 #ifdef UNIX
    static int dircomp OF((ZCONST zvoid *a, ZCONST zvoid *b));
 #endif
@@ -121,8 +123,10 @@ static char Far BadFileCommLength[] = "%s:  bad file comment length\n";
 static char Far LocalHdrSig[] = "local header sig";
 static char Far BadLocalHdr[] = "file #%d:  bad local header\n";
 static char Far AttemptRecompensate[] = "  (attempting to re-compensate)\n";
-static char Far BackslashPathSep[] =
-  "warning:  %s appears to use backslashes as path separators\n";
+#ifndef SFX
+   static char Far BackslashPathSep[] =
+     "warning:  %s appears to use backslashes as path separators\n";
+#endif
 static char Far SkipVolumeLabel[] = "   skipping: %-22s  %svolume label\n";
 
 #ifdef UNIX  /* messages of code for setting directory attributes */
@@ -199,17 +203,20 @@ static char Far Inflate[] = "inflate";
 static char Far FileUnknownCompMethod[] = "%s:  unknown compression method\n";
 static char Far BadCRC[] = " bad CRC %08lx  (should be %08lx)\n";
 
-static char Far InconsistEFlength[] =
-  "bad EF entry: block length %u > rest EF_size %u\n";
       /* TruncEAs[] also used in OS/2 mapname(), close_outfile() */
 char Far TruncEAs[] = " compressed EA data missing (%d bytes)%s";
 char Far TruncNTSD[] = " compressed WinNT security data missing (%d bytes)%s";
-static char Far InvalidComprDataEAs[] = " invalid compressed data for EAs\n";
-static char Far BadCRC_EAs[] = " bad CRC for extended attributes\n";
-static char Far UnknComprMethodEAs[] =
-  " unknown compression method for EAs (%u)\n";
-static char Far NotEnoughMemEAs[] = " out of memory while inflating EAs\n";
-static char Far UnknErrorEAs[] = " unknown error on extended attributes\n";
+
+#ifndef SFX
+   static char Far InconsistEFlength[] =
+     "bad EF entry: block length %u > rest EF_size %u\n";
+   static char Far InvalidComprDataEAs[] = " invalid compressed data for EAs\n";
+   static char Far BadCRC_EAs[] = " bad CRC for extended attributes\n";
+   static char Far UnknComprMethodEAs[] =
+     " unknown compression method for EAs (%u)\n";
+   static char Far NotEnoughMemEAs[] = " out of memory while inflating EAs\n";
+   static char Far UnknErrorEAs[] = " unknown error on extended attributes\n";
+#endif /* !SFX */
 
 static char Far UnsupportedExtraField[] =
   "\nerror:  unsupported extra field compression type (%u)--skipping\n";
@@ -277,7 +284,9 @@ int extract_or_test_files(__G)    /* return PK-type error code */
 #if CRYPT
     G.newzip = TRUE;
 #endif
+#ifndef SFX
     G.reported_backslash = FALSE;
+#endif
 
     /* malloc space for check on unmatched filespecs (OK if one or both NULL) */
     if (G.filespecs > 0  &&
@@ -596,6 +605,7 @@ startover:
                  *  of slash as directory separator (bug in some zipper(s); so
                  *  far, not a problem in HPFS, NTFS or VFAT systems)
                  */
+#ifndef SFX
                 if (G.pInfo->hostnum == FS_FAT_ && !strchr(G.filename, '/')) {
                     char *p=G.filename-1;
 
@@ -612,6 +622,7 @@ startover:
                         }
                     }
                 }
+#endif /* !SFX */
 
                 /* mapname can create dirs if not freshening or if renamed */
                 if ((error = mapname(__G__ renamed)) > PK_WARN) {
@@ -988,6 +999,7 @@ reprompt:
     ground and redirecting to a file can just do a "tail" on the output file.
   ---------------------------------------------------------------------------*/
 
+#ifndef SFX
     if (readbuf(__G__ G.sig, 4) == 0)
         error_in_archive = PK_EOF;
     if (strncmp(G.sig, G.end_central_sig, 4)) {         /* just to make sure */
@@ -996,6 +1008,7 @@ reprompt:
         if (!error_in_archive)       /* don't overwrite stronger error */
             error_in_archive = PK_WARN;
     }
+#endif /* !SFX */
     ++filnum;  /* initialized to -1, so now zero if no files found */
     if (G.tflag) {
         int num=filnum - num_bad_pwd;
@@ -1197,7 +1210,8 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
     /* if file came from Unix and is a symbolic link and we are extracting
      * to disk, prepare to restore the link */
     if (S_ISLNK(G.pInfo->file_attr) &&
-        (G.pInfo->hostnum == UNIX_ || G.pInfo->hostnum == ATARI_) &&
+        (G.pInfo->hostnum == UNIX_ || G.pInfo->hostnum == ATARI_ ||
+         G.pInfo->hostnum == BEOS_) &&
         !G.tflag && !G.cflag && (G.lrec.ucsize > 0))
         G.symlnk = TRUE;
     else
@@ -1460,11 +1474,14 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
 #endif
         error = PK_ERR;
     } else if (G.tflag) {
+#ifndef SFX
         if (G.extra_field) {
             if ((r = TestExtraField(__G__ G.extra_field,
                                     G.lrec.extra_field_length)) > error)
                 error = r;
-        } else if (!G.qflag)
+        } else
+#endif /* !SFX */
+        if (!G.qflag)
             Info(slide, 0, ((char *)slide, " OK\n"));
     } else {
         if (QCOND2 && !error)   /* GRR:  is stdout reset to text mode yet? */
@@ -1479,6 +1496,8 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
 
 
 
+
+#ifndef SFX
 
 /*******************************/
 /*  Function TestExtraField()  */
@@ -1642,6 +1661,8 @@ static int test_OS2(__G__ eb, eb_size)
     return r;
 
 } /* end function test_OS2() */
+
+#endif /* !SFX */
 
 
 

@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.30                                                  20 April 1997
+# Version:  5.31                                                    17 May 1997
 #==============================================================================
 
 
@@ -81,7 +81,7 @@ OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
 OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
-OBJSDLL = $(OBJS) api$O
+OBJSDLL = $(OBJS:.o=.pic.o) api.pic.o
 OBJX = unzipsfx$O $(CRC32)$O crctab$O crypt$O extract_$O fileio$O globals$O \
 	inflate$O match$O process_$O ttyio$O $M_$O
 LOBJX = $(OBJX)
@@ -107,7 +107,7 @@ INSTALLEDMAN = $(MANDIR)/funzip.$(manext) $(MANDIR)/unzip.$(manext) \
 
 # Solaris 2.x stuff:
 PKGDIR = IZunzip
-VERSION = Version 5.3
+VERSION = Version 5.31
 
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, OK, it's a lot ugly:
@@ -207,7 +207,7 @@ generic_msg:
 ###############################################
 
 # this is for GNU make; comment out and notify zip-bugs if it causes errors
-.SUFFIXES:	.c .o .obj
+.SUFFIXES:	.c .o .obj .pic.o
 
 # yes, we should be able to use the $O macro to combine these two, but it
 # fails on some brain-damaged makes (e.g., AIX's)...no big deal
@@ -216,6 +216,9 @@ generic_msg:
 
 .c.obj:
 	$(CC) -c $(CF) $*.c
+
+.c.pic.o:
+	$(CC) -c $(CF) -o $@ $*.c
 
 # this doesn't work...directories are always a pain with implicit rules
 #.1.doc:		unix/$<
@@ -306,27 +309,27 @@ unzip$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
 zipinfo$O:	zipinfo.c $(UNZIP_H)
 
 crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
-	$(CP) crypt.c crypt_.c
+	-$(CP) crypt.c crypt_.c
 	$(CC) -c $(CF) -DFUNZIP crypt_.c
 	$(RM) crypt_.c
 
 extract_$O:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
-	$(CP) extract.c extract_.c
+	-$(CP) extract.c extract_.c
 	$(CC) -c $(CF) -DSFX extract_.c
 	$(RM) extract_.c
 
 globals_$O:	globals.c $(UNZIP_H)				# funzip only
-	$(CP) globals.c globals_.c
+	-$(CP) globals.c globals_.c
 	$(CC) -c $(CF) -DFUNZIP globals_.c
 	$(RM) globals_.c
 
 inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
-	$(CP) inflate.c inflate_.c
+	-$(CP) inflate.c inflate_.c
 	$(CC) -c $(CF) -DFUNZIP inflate_.c
 	$(RM) inflate_.c
 
 ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
-	$(CP) ttyio.c ttyio_.c
+	-$(CP) ttyio.c ttyio_.c
 	$(CC) -c $(CF) -DFUNZIP ttyio_.c
 	$(RM) ttyio_.c
 
@@ -337,7 +340,7 @@ crc_i86$O:	msdos/crc_i86.asm				# 16bit only
 crc_gcc$O:	crc_i386.S					# 32bit, GNU AS
 	$(AS) $(AF) -x assembler-with-cpp -c -o $@ crc_i386.S
 
-crc_sysv$O:	crc_i386.S					# 32bit, SystemV AS
+crc_sysv$O:	crc_i386.S					# 32bit, SysV AS
 	$(CC) -E $(AF) crc_i386.S >crc_i386.s
 	$(AS) -o $@ crc_i386.s
 	$(RM) crc_i386.s
@@ -345,9 +348,8 @@ crc_sysv$O:	crc_i386.S					# 32bit, SystemV AS
 msdos$O:	msdos/msdos.c $(UNZIP_H) version.h		# DOS only
 	$(CC) -c $(CF) msdos/msdos.c
 
-# version() not used by unzipsfx, so no version.h dependency
 msdos_$O:	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
-	$(CP) msdos\msdos.c msdos_.c > nul
+	-$(CP) msdos/msdos.c msdos_.c > nul
 	$(CC) -c $(CF) -DSFX msdos_.c
 	$(RM) msdos_.c
 
@@ -356,21 +358,23 @@ msdos_$O:	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
 
 
 process_$O:	process.c $(UNZIP_H)				# unzipsfx only
-	$(CP) process.c process_.c
+	-$(CP) process.c process_.c
 	$(CC) -c $(CF) -DSFX process_.c
 	$(RM) process_.c
 
 unix$O:		unix/unix.c $(UNZIP_H) version.h		# Unix only
 	$(CC) -c $(CF) unix/unix.c
 
-# version() not used by unzipsfx, so no version.h dependency
 unix_$O:	unix/unix.c $(UNZIP_H)				# Unix unzipsfx
-	$(CP) unix/unix.c unix_.c
+	-$(CP) unix/unix.c unix_.c
 	$(CC) -c $(CF) -DSFX unix_.c
 	$(RM) unix_.c
 
+unix.pic.o:	unix/unix.c $(UNZIP_H) version.h		# Unix shlib
+	$(CC) -c $(CF) -o $@ unix/unix.c
+
 unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
-	$(CP) unzip.c unzipsfx.c
+	-$(CP) unzip.c unzipsfx.c
 	$(CC) -c $(CF) -DSFX unzipsfx.c
 	$(RM) unzipsfx.c
 
@@ -386,7 +390,8 @@ clean:
 	@echo '         This is a Unix-specific target.  (Just so you know.)'
 	@echo ""
 	rm -f $(UNZIPS) $(OBJS) $(OBJF) $(OBJX) api$O apihelp$O crc_gcc$O \
-	  crc_sysv$O unzipstb$O
+	  crc_sysv$O unzipstb$O crypt_.c extract_.c globals_.c inflate_.c \
+	  ttyio_.c crc_i386.s msdos_.c process_.c unix_.c unzipsfx.c
 	rm -rf ./$(PKGDIR)
 
 # Package generation interface (by J.Bush).  Originally tested under Sun
@@ -721,7 +726,6 @@ linux_lcc:	unix_make
 	$(MAKE) unzips CC=lcc LD=lcc CF="-O3 -Wall -I. -D__inline__= $(LOC)"
 
 # Linux host with go32 (djgpp) cross-compiler (go32crs.tgz) for 32-bit DOS.
-# Change msdos_$O target (near line 303 above) from msdos\msdos to msdos/msdos.
 linux_dos:	unix_make
 	$(MAKE) unzips CC=go32gcc LD=go32gcc M=msdos CF="-O2 -Wall -I. $(LOC)"
 #	go32-strip unzip
@@ -731,24 +735,25 @@ linux_dos:	unix_make
 
 # Linux ELF shared library (ooo, it's so easy).  This is a test target for
 # now, and it only makes the UnZip/ZipInfo stuff (not fUnZip or UnZipSFX).
-# Do "make clean" before using this target the first time, eh?  The version
-# number may change to match the UnZip version.  Or not.  Whatever.  Also
-# do "setenv LD_LIBRARY_PATH `pwd`" or similar to test the DLL in place
-# (with unzip, which is now the version linked with the shared library).
+# The version number may eventually change to match the UnZip version.  Or
+# not.  Whatever.  Also do "setenv LD_LIBRARY_PATH `pwd`" or similar to test
+# the DLL in place (with unzip_shlib, which is UnZip linked with the shared
+# library).
 #
 linux_shlib:	unix_make
 	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -DDLL -fPIC $(LOC)"
-	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.2 $(OBJSDLL)
-	ln -sf libunzip.so.0.2 libunzip.so.0
+	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.3 $(OBJSDLL)
+	ln -sf libunzip.so.0.3 libunzip.so.0
+	ln -sf libunzip.so.0 libunzip.so
 	gcc -c -O unzipstb.c
-	gcc -o unzip unzipstb.o -L. -lunzip
+	gcc -o unzip_shlib unzipstb.o -L. -lunzip
 
 # Linux ELF shared library, as above, but using inflate() from zlib (libz.so)
 # instead of the original UnZip version.  (libz was libgz prior to 0.94)
 linux_shlibz:	unix_make
 	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -DDLL -DUSE_ZLIB -fPIC $(LOC)"
-	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.2 $(OBJSDLL)
-	ln -sf libunzip.so.0.2 libunzip.so.0
+	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.3 $(OBJSDLL)
+	ln -sf libunzip.so.0.3 libunzip.so.0
 	gcc -c -O unzipstb.c
 	gcc -o unzip unzipstb.o -L. -lunzip -lz
 
@@ -814,8 +819,8 @@ rs6000:		unix_make
 # recognize the -M0 flag which forces 8086 code.)  (GRR:  may need to reduce
 # stack to 0c00h if using 286/small-model code...?)
 sco_dos:	unix_make
-	$(MAKE) unzips CF="-O -I. $(LOC) -dos -M0" M=msdos\
-	 LF="-dos -F 2000" LF2="-o unzip.exe"\
+	$(MAKE) unzips CF="-O -I. $(LOC) -dos -M0" M=msdos \
+	 LF="-dos -F 2000" LF2="-o unzip.exe" \
 	 FL="-dos" FL2="-o funzip.exe" SL="-dos" SL2="-o unzipsfx.exe"
 
 # SCO UNIX with shared libraries and no international support.  If you are

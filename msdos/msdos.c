@@ -1568,7 +1568,7 @@ void version(__G)
                                 /* MSC can't handle huge macro expansion */
 
     /* temporary debugging code for Borland compilers only */
-#ifdef __TURBOC__
+#if (defined(__TURBOC__) && defined(DEBUG))
     Info(slide, 0, ((char *)slide, "\tdebug(__TURBOC__ = 0x%04x = %d)\n",
       __TURBOC__, __TURBOC__));
 #ifdef __BORLANDC__
@@ -1589,7 +1589,7 @@ void version(__G)
 #else
     Info(slide, 0, ((char *)slide, "\tdebug(__BCPLUSPLUS__ not defined)\n\n"));
 #endif
-#endif
+#endif /* __TURBOC__ && DEBUG */
 
 } /* end function version() */
 

@@ -123,7 +123,7 @@ void unreduce(__G)   /* expand probabilistically reduced data */
                 s--;
                 slide[w++] = (uch)nchar;
                 if (w == 0x4000) {
-                    flush(__G__ slide, w, 0);
+                    flush(__G__ slide, (ulg)w, 0);
                     w = u = 0;
                 }
             }
@@ -144,7 +144,7 @@ void unreduce(__G)   /* expand probabilistically reduced data */
                 slide[w++] = DLE;
                 if (w == 0x4000)
                 {
-                  flush(__G__ slide, w, 0);
+                  flush(__G__ slide, (ulg)w, 0);
                   w = u = 0;
                 }
                 ExState = 0;
@@ -186,7 +186,7 @@ void unreduce(__G)   /* expand probabilistically reduced data */
                     }
                   if (w == 0x4000)
                   {
-                    flush(__G__ slide, w, 0);
+                    flush(__G__ slide, (ulg)w, 0);
                     w = u = 0;
                   }
                 } while (n);
@@ -201,7 +201,7 @@ void unreduce(__G)   /* expand probabilistically reduced data */
     }
 
     /* flush out slide */
-    flush(__G__ slide, w, 0);
+    flush(__G__ slide, (ulg)w, 0);
 }
 
 

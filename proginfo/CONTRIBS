@@ -9,7 +9,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Glenn Andrews          MS-DOS makefiles; prototyping bugfix; bogus main() fix
   Andrei Arkhipov        Solaris 2.x package files
   Joel Aycock            descrip.mms bugfix
-  Eric Baatz             Borland version() info
+  Eric Baatz             Borland version() info; Solaris zipgrep packaging fix
   Bob Babcock            DOS volume-label code (FCBs)
   Charles Bailey         VMS_SEVERITY fix; VMSWILD () extension
   Audrey Beck            "Where" file info for AOL OS/2 forum
@@ -27,7 +27,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Valter Cavecchia       Unix makefile entry
   Peter Chang            optional UNIXBACKUP option (-B)
   Andrey Chernov         BSD 4.4 utime fix
-  Brad Clarke            Win32 XX_flag bugfix
+  Brad Clarke            Win32 XX_flag bugfix; Borland debug code removal
   John Cowan             mods to original match.c; other stuff?
   Frank da Cruz          xxu.c, on which original mapname.c was based
   Bill Davidsen          -q(q); mapname stuff; envargs; Xenix stuff; opts; etc.
@@ -97,6 +97,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Alvin Koh              Borland C++ bugfixes
   Karel Kubat            Linux strncasecmp bugfix
   Bo Kullmar             -z code; umask, do_string, BSD time, echo fixes; etc.
+  Russell Lang           OS/2 DLL calling-convention bugfix
   Michael Lawler         Borland version() info; process.c string fix; DOS fixes
   Johnny Lee             Macintosh port; Win3.1 port; far strings; fixes; etc.
   Alexander Lehmann      makefile.tc bugfix; MS-DOS mapname() bugfix
@@ -129,6 +130,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Joe Meadows            file.c, on which VMSmunch.c (timestamps) was based
   Jason Merrill          Sequent patches
   Tom Metro              corrupted-zipfile handler bugfix
+  Ian Miller             VMS makefile portability bugfix (non-standard "edit")
   Steve Miller           Windows CE GUI port; memory leak bugfix; etc.
   Ricky Mobley           Unix makefile entry
   Navin Modi             Unix makefile entry
@@ -191,7 +193,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Wayne Stewart          "Where" file MS-DOS correction
   Mike Strock            Win32 MSVC 5.0 "build file"; typo fixes
   E-Yen Tan              djgpp1/GNUmake 3.71 bug work-around; DOS makefile.emx
-  Brian Tillman          "Where" file VMS correction
+  Brian Tillman          "Where" file VMS fix; make_unz.com portability bugfix
   Onno van der Linden    many fixes, esp. Intel Unix and 386 DOS
   Jim Van Zandt          one of original man pages
   Geraldo Veiga          Pyramid strrchr/rindex

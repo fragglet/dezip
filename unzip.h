@@ -14,9 +14,9 @@
 #define __unzip_h
 
 
-/*****************************************/
-/*  Predefined, Machine-specific Macros  */
-/*****************************************/
+/*---------------------------------------------------------------------------
+    Predefined, machine-specific macros.
+  ---------------------------------------------------------------------------*/
 
 #ifdef POCKET_UNZIP             /* WinCE port */
 #  include "wince/punzip.h"     /* must appear before windows.h */
@@ -276,10 +276,9 @@
 #define STRNICMP zstrnicmp
 
 
-
-/***************************/
-/*  OS-Dependent Includes  */
-/***************************/
+/*---------------------------------------------------------------------------
+    OS-dependent includes
+  ---------------------------------------------------------------------------*/
 
 #ifdef EFT
 #  define LONGINT off_t  /* Amdahl UTS nonsense ("extended file types") */
@@ -313,6 +312,54 @@
 #endif /* ?MODERN */
 
 
+/*---------------------------------------------------------------------------
+    Grab system-dependent definition of EXPENTRY for prototypes below.
+  ---------------------------------------------------------------------------*/
+
+#if 0
+#if (defined(OS2) && !defined(FUNZIP))
+#  ifdef UNZIP_INTERNAL
+#    define INCL_NOPM
+#    define INCL_DOSNLS
+#    define INCL_DOSPROCESS
+#    define INCL_DOSDEVICES
+#    define INCL_DOSDEVIOCTL
+#    define INCL_DOSERRORS
+#    define INCL_DOSMISC
+#    ifdef OS2DLL
+#      define INCL_REXXSAA
+#      include <rexxsaa.h>
+#    endif
+#  endif /* UNZIP_INTERNAL */
+#  include <os2.h>
+#  define UZ_EXP EXPENTRY
+#endif /* OS2 && !FUNZIP */
+#endif /* 0 */
+
+#if (defined(OS2) && !defined(FUNZIP))
+#  if defined(__IBMC__) || defined(__WATCOMC__)
+#    define UZ_EXP  _System    /* compiler keyword */
+#  else
+#    define UZ_EXP
+#  endif
+#endif /* OS2 && !FUNZIP */
+
+#ifdef WINDLL
+#  ifndef EXPENTRY
+#    define UZ_EXP WINAPI
+#  else
+#    define UZ_EXP EXPENTRY
+#  endif
+#endif
+
+#ifndef UZ_EXP
+#  define UZ_EXP
+#endif
+
+
+/*---------------------------------------------------------------------------
+    Public typedefs.
+  ---------------------------------------------------------------------------*/
 
 typedef unsigned char   uch;    /* code assumes unsigned bytes; these type-  */
 typedef unsigned short  ush;    /*  defs replace byte/UWORD/ULONG (which are */
@@ -320,33 +367,34 @@ typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
 
 /* InputFn is not yet used and is likely to change: */
 #ifdef PROTO
-   typedef int   (MsgFn)    (zvoid *pG, uch *buf, ulg size, int flag);
-   typedef int   (InputFn)  (zvoid *pG, uch *buf, int *size, int flag);
-   typedef void  (PauseFn)  (zvoid *pG, ZCONST char *prompt, int flag);
-   typedef int   (PasswdFn) (zvoid *pG, int *rcnt, char *pwbuf, int size,
-                             ZCONST char *zfn, ZCONST char *efn);
+   typedef int   (UZ_EXP MsgFn)     (zvoid *pG, uch *buf, ulg size, int flag);
+   typedef int   (UZ_EXP InputFn)   (zvoid *pG, uch *buf, int *size, int flag);
+   typedef void  (UZ_EXP PauseFn)   (zvoid *pG, ZCONST char *prompt, int flag);
+   typedef int   (UZ_EXP PasswdFn)  (zvoid *pG, int *rcnt, char *pwbuf,
+                                     int size, ZCONST char *zfn,
+                                     ZCONST char *efn);
 #ifdef WINDLL
-   typedef int   (WINAPI ReplaceFn)       (char *);
-   typedef void  (WINAPI SoundFn)         (void);
+   typedef int   (WINAPI ReplaceFn) (char *);
+   typedef void  (WINAPI SoundFn)   (void);
 #endif
-#else
-   typedef int   (MsgFn)    ();
-   typedef int   (InputFn)  ();
-   typedef void  (PauseFn)  ();
-   typedef int   (PasswdFn) ();
+#else /* !PROTO */
+   typedef int   (UZ_EXP MsgFn)     ();
+   typedef int   (UZ_EXP InputFn)   ();
+   typedef void  (UZ_EXP PauseFn)   ();
+   typedef int   (UZ_EXP PasswdFn)  ();
 #ifdef WINDLL
-   typedef int   (WINAPI ReplaceFn)       ();
-   typedef void  (WINAPI SoundFn)         ();
+   typedef int   (WINAPI ReplaceFn) ();
+   typedef void  (WINAPI SoundFn)   ();
 #endif
-#endif
+#endif /* ?PROTO */
 
-typedef struct _UzpBuffer {   /* rxstr */
-    ulg   strlength;          /* length of string  */
-    char  *strptr;            /* pointer to string */
+typedef struct _UzpBuffer {    /* rxstr */
+    ulg   strlength;           /* length of string */
+    char  *strptr;             /* pointer to string */
 } UzpBuffer;
 
 typedef struct _UzpInit {
-    ulg structlen;            /* length of the struct being passed */
+    ulg structlen;             /* length of the struct being passed */
 
     /* GRR: can we assume that each of these is a 32-bit pointer?  if not,
      * does it matter? add "far" keyword to make sure? */
@@ -354,8 +402,8 @@ typedef struct _UzpInit {
     InputFn *inputfn;
     PauseFn *pausefn;
 
-    void (*userfn)();   /* user init function to be called after globals */
-                        /*  constructed and initialized */
+    void (* UZ_EXP userfn)();  /* user init function to be called after */
+                               /*  globals constructed and initialized */
 
     /* pointer to program's environment area or something? */
     /* hooks for performance testing? */
@@ -405,52 +453,7 @@ typedef struct central_directory_file_header { /* CENTRAL */
 
 #define UZPINIT_LEN   sizeof(UzpInit)
 #define UZPVER_LEN    sizeof(UzpVer)
-#define cbList(func)  int (*func)(char *filename, cdir_file_hdr *crec)
-
-
-/*---------------------------------------------------------------------------
-    Grab system-dependent definition of EXPENTRY for prototypes below.
-  ---------------------------------------------------------------------------*/
-
-#if 0
-#if (defined(OS2) && !defined(FUNZIP))
-#  ifdef UNZIP_INTERNAL
-#    define INCL_NOPM
-#    define INCL_DOSNLS
-#    define INCL_DOSPROCESS
-#    define INCL_DOSDEVICES
-#    define INCL_DOSDEVIOCTL
-#    define INCL_DOSERRORS
-#    define INCL_DOSMISC
-#    ifdef OS2DLL
-#      define INCL_REXXSAA
-#      include <rexxsaa.h>
-#    endif
-#  endif /* UNZIP_INTERNAL */
-#  include <os2.h>
-#  define UZ_EXP EXPENTRY
-#endif /* OS2 && !FUNZIP */
-#endif /* 0 */
-
-#if (defined(OS2) && !defined(FUNZIP))
-#  if defined(__IBMC__) || defined(__WATCOMC__)
-#    define UZ_EXP  _System    /* compiler keyword */
-#  else
-#    define UZ_EXP
-#  endif
-#endif /* OS2 && !FUNZIP */
-
-#ifdef WINDLL
-#  ifndef EXPENTRY
-#    define UZ_EXP WINAPI
-#  else
-#    define UZ_EXP EXPENTRY
-#  endif
-#endif
-
-#ifndef UZ_EXP
-#  define UZ_EXP
-#endif
+#define cbList(func)  int (* UZ_EXP func)(char *filename, cdir_file_hdr *crec)
 
 
 /*---------------------------------------------------------------------------
@@ -506,12 +509,13 @@ int      UZ_EXP UzpFileTree        OF((char *name, cbList(callBack),
 
 /* default I/O functions (can be swapped out via UzpAltMain() entry point): */
 
-int      UzpMessagePrnt     OF((zvoid *pG, uch *buf, ulg size, int flag));
-int      UzpMessageNull     OF((zvoid *pG, uch *buf, ulg size, int flag));
-int      UzpInput           OF((zvoid *pG, uch *buf, int *size, int flag));
-void     UzpMorePause       OF((zvoid *pG, ZCONST char *prompt, int flag));
-int      UzpPassword        OF((zvoid *pG, int *rcnt, char *pwbuf, int size,
-                                ZCONST char *zfn, ZCONST char *efn));
+int      UZ_EXP UzpMessagePrnt   OF((zvoid *pG, uch *buf, ulg size, int flag));
+int      UZ_EXP UzpMessageNull   OF((zvoid *pG, uch *buf, ulg size, int flag));
+int      UZ_EXP UzpInput         OF((zvoid *pG, uch *buf, int *size, int flag));
+void     UZ_EXP UzpMorePause     OF((zvoid *pG, ZCONST char *prompt, int flag));
+int      UZ_EXP UzpPassword      OF((zvoid *pG, int *rcnt, char *pwbuf,
+                                     int size, ZCONST char *zfn,
+                                     ZCONST char *efn));
 
 
 /*---------------------------------------------------------------------------

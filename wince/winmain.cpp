@@ -1651,8 +1651,10 @@ LPCTSTR GetZipErrorString(int error) {
 
       case PK_ERR:    // error in zipfile
       case PK_BADERR: // severe error in zipfile
-         return TEXT("The ZIP file contains errors that prevented the ")
-                TEXT("operation from completing successfully.");
+         return TEXT("The operation could not be successfully completed.  ")
+                TEXT("Possible causes are that the ZIP file contains errors, ")
+                TEXT("or that an error occurred while trying to create a ")
+                TEXT("directory or file.");
 
       case PK_MEM:  // insufficient memory
       case PK_MEM2: // insufficient memory
@@ -1678,14 +1680,14 @@ LPCTSTR GetZipErrorString(int error) {
 
       case PK_DISK: // disk full or file locked
          return TEXT("An error occurred while attempting to save a file.  ")
-                TEXT("Possible causes are that your file storage is full, or ")
-                TEXT("a file with the same name already exists and is locked ")
-                TEXT("by another application.");
+                TEXT("Possible causes are that your file storage is full or ")
+                TEXT("read only, or that a file with the same name already ")
+                TEXT("exists and is locked by another application.");
 
       case PK_EOF: // unexpected end of file
          return TEXT("The ZIP file contains errors that prevented the ")
                 TEXT("operation from completing successfully.  A possible ")
-                TEXT("casue is that your ZIP file is incomplete and might be ")
+                TEXT("cause is that your ZIP file is incomplete and might be ")
                 TEXT("truncated.");
 
       case IZ_UNSUP:  // no files found: all unsup. compr/encrypt.
@@ -1697,7 +1699,7 @@ LPCTSTR GetZipErrorString(int error) {
          return TEXT("None of the files could be processed because all the ")
                 TEXT("password(s) specified were incorrect.");
 
-      case PK_EXCEPTION: // exception occured
+      case PK_EXCEPTION: // exception occurred
          return TEXT("An internal error occurred.  Possible causes are that ")
                 TEXT("you are out of memory, you are out of file storage ")
                 TEXT("space, the ZIP file contains unexpected errors, or there ")

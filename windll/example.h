@@ -43,6 +43,6 @@ int WINAPI DisplayBuf(char far *, unsigned long int);
 
 /* Procedure Calls */
 void WINAPI ReceiveDllMessage(unsigned long,unsigned long,
-   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long);
+   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long, char);
 #endif /* _EXAMPLE_H */
 

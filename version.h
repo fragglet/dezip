@@ -9,11 +9,11 @@
 #define __version_h
 
 #ifdef BETA
-#  define BETALEVEL         "t BETA"
-#  define VERSION_DATE      "22 Apr 97"         /* internal beta version */
+#  define BETALEVEL         "d BETA"
+#  define VERSION_DATE      "31 May 97"         /* internal beta version */
 #else
 #  define BETALEVEL         ""
-#  define VERSION_DATE      "22 April 1997"     /* official release version */
+#  define VERSION_DATE      "31 May 1997"     /* official release version */
 #  define RELEASE
 #endif
 
@@ -23,7 +23,7 @@
 #define ZI_MAJORVER    2   /* ZipInfo */
 #define ZI_MINORVER    2
 
-#define PATCHLEVEL     0
+#define PATCHLEVEL     1
 
 
 /* these are obsolete but remain for backward compatibility: */

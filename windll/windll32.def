@@ -10,10 +10,8 @@ DATA  PRELOAD MOVEABLE
 EXPORTS
      windll_unzip          ; actual entry point
      UzpVersion
-     Unz_CreateGlobals
      Unz_Init
      Unz_SetOpts
      Unz_Unzip
-     Unz_ReleaseGlobals
      unzipVB
 

@@ -44,6 +44,10 @@
 //              localtime
 //              isupper
 //              stat
+//              localtime
+//              SafeGetTimeZoneInformation
+//              GetTransitionTimeT
+//              IsDST
 //
 //
 // Date      Name          History
@@ -95,6 +99,14 @@ void DebugOut(LPCTSTR szFormat, ...) {
 //******************************************************************************
 
 #if defined(_WIN32_WCE)
+
+//******************************************************************************
+//***** Local Function Prototyopes
+//******************************************************************************
+
+void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi);
+time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST);
+BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime);
 
 //******************************************************************************
 //***** IO.H functions
@@ -344,47 +356,6 @@ char* __cdecl strrchr(const char *string, int c) {
    return NULL;
 }
 
-
-//******************************************************************************
-//***** TIME.H functions
-//******************************************************************************
-
-//-- Called from list.c
-struct tm * __cdecl localtime(const time_t *timer) {
-
-   // Return value for localtime().  Source currently never references
-   // more than one "tm" at a time, so the single return structure is ok.
-   static struct tm g_tm; 
-
-   // time_t   is a 32-bit value for the seconds since January 1, 1970
-   // FILETIME is a 64-bit value for the number of 100-nanosecond intervals since January 1, 1601
-
-   // Compute the FILETIME for the given time_t.
-   DWORDLONG dwl = ((DWORDLONG)116444736000000000 + ((DWORDLONG)*timer * (DWORDLONG)10000000));
-   FILETIME ft = *(FILETIME*)&dwl;
-
-   // Compute the FILETIME to a local FILETIME.
-   FILETIME ftLocal;
-   ZeroMemory(&ftLocal, sizeof(ftLocal));
-   FileTimeToLocalFileTime(&ft, &ftLocal);
-
-   // Convert the FILETIME to a SYSTEMTIME.
-   SYSTEMTIME st;
-   ZeroMemory(&st, sizeof(st));
-   FileTimeToSystemTime(&ftLocal, &st);
-
-   // Convert the SYSTEMTIME to a "tm".
-   ZeroMemory(&g_tm, sizeof(g_tm));
-   g_tm.tm_sec  = (int)st.wSecond;
-   g_tm.tm_min  = (int)st.wMinute;
-   g_tm.tm_hour = (int)st.wHour;
-   g_tm.tm_mday = (int)st.wDay;
-   g_tm.tm_mon  = (int)st.wMonth - 1;
-   g_tm.tm_year = (int)st.wYear - 1900;
-
-   return &g_tm;
-}
-
 //******************************************************************************
 //***** CTYPE.H functions
 //******************************************************************************
@@ -440,6 +411,227 @@ int __cdecl stat(const char *path, struct stat *buffer) {
    buffer->st_mtime = (time_t)((dwl - (DWORDLONG)116444736000000000) / (DWORDLONG)10000000);
 
    return 0;
+}
+
+//******************************************************************************
+//***** TIME.H functions
+//******************************************************************************
+
+// Evaluates to TRUE if 'y' is a leap year, otherwise FALSE
+// #define IS_LEAP_YEAR(y) ((((y) % 4 == 0) && ((y) % 100 != 0)) || ((y) % 400 == 0))
+
+// The macro below is a reduced version of the above macro.  It is valid for
+// years between 1901 and 2099 which easily includes all years representable
+// by the current implementation of time_t.
+#define IS_LEAP_YEAR(y) (((y) & 3) == 0) 
+
+#define BASE_DOW          4                  // 1/1/1970 was a Thursday.
+#define SECONDS_IN_A_DAY  (24L * 60L * 60L)  // Number of seconds in one day.
+
+// Month to Year Day conversion array.
+int M2YD[] = {
+   0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
+};
+
+// Month to Leap Year Day conversion array.
+int M2LYD[] = {
+   0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366
+};
+
+//******************************************************************************
+//-- Called from list.c
+struct tm * __cdecl localtime(const time_t *timer) {
+
+   // Return value for localtime().  Source currently never references
+   // more than one "tm" at a time, so the single return structure is ok.
+   static struct tm g_tm; 
+   ZeroMemory(&g_tm, sizeof(g_tm));
+
+   // Get our time zone information.
+   TIME_ZONE_INFORMATION tzi;
+   SafeGetTimeZoneInformation(&tzi);
+
+   // Create a time_t that has been corrected for our time zone.
+   time_t localTime = *timer - (tzi.Bias * 60L);
+
+   // Decide if value is in Daylight Savings Time.
+   if (g_tm.tm_isdst = (int)IsDST(&tzi, localTime)) {
+      localTime -= tzi.DaylightBias * 60L; // usually 60 minutes
+   } else {
+      localTime -= tzi.StandardBias * 60L; // usually  0 minutes
+   }
+
+   // time_t   is a 32-bit value for the seconds since January 1, 1970
+   // FILETIME is a 64-bit value for the number of 100-nanosecond intervals
+   //          since January 1, 1601
+
+   // Compute the FILETIME for the given local time.
+   DWORDLONG dwl = ((DWORDLONG)116444736000000000 + 
+                   ((DWORDLONG)localTime * (DWORDLONG)10000000));
+   FILETIME ft = *(FILETIME*)&dwl;
+
+   // Convert the FILETIME to a SYSTEMTIME.
+   SYSTEMTIME st;
+   ZeroMemory(&st, sizeof(st));
+   FileTimeToSystemTime(&ft, &st);
+
+   // Finish filling in our "tm" structure.
+   g_tm.tm_sec  = (int)st.wSecond;
+   g_tm.tm_min  = (int)st.wMinute;
+   g_tm.tm_hour = (int)st.wHour;
+   g_tm.tm_mday = (int)st.wDay;
+   g_tm.tm_mon  = (int)st.wMonth - 1;
+   g_tm.tm_year = (int)st.wYear - 1900;
+
+   return &g_tm;
+}
+
+//******************************************************************************
+void SafeGetTimeZoneInformation(TIME_ZONE_INFORMATION *ptzi) {
+
+   ZeroMemory(ptzi, sizeof(TIME_ZONE_INFORMATION));
+
+   // Ask the OS for the standard/daylight rules for the current time zone.
+   if ((GetTimeZoneInformation(ptzi) == 0xFFFFFFFF) ||
+       (ptzi->StandardDate.wMonth > 12) || (ptzi->DaylightDate.wMonth > 12))
+   {
+      // If the OS fails us, we default to the United States' rules.
+      ZeroMemory(ptzi, sizeof(TIME_ZONE_INFORMATION));
+      ptzi->StandardDate.wMonth =  10;  // October
+      ptzi->StandardDate.wDay   =   5;  // Last Sunday (DOW == 0)
+      ptzi->StandardDate.wHour  =   2;  // At 2:00 AM
+      ptzi->DaylightBias        = -60;  // One hour difference
+      ptzi->DaylightDate.wMonth =   4;  // April
+      ptzi->DaylightDate.wDay   =   1;  // First Sunday (DOW == 0)
+      ptzi->DaylightDate.wHour  =   2;  // At 2:00 AM
+   }
+}
+
+//******************************************************************************
+time_t GetTransitionTimeT(TIME_ZONE_INFORMATION *ptzi, int year, BOOL fStartDST) {
+
+   // We only handle years within the range that time_t supports.  We need to 
+   // handle the very end of 1969 since the local time could be up to 13 hours
+   // into the previous year.  In this case, our code will actually return a
+   // negative value, but it will be compared to another negative value and is
+   // handled correctly.  The same goes for the 13 hours past a the max time_t
+   // value of 0x7FFFFFFF (in the year 2038).  Again, these values are handled
+   // correctly as well.
+
+   if ((year < 1969) || (year > 2038)) {
+      return (time_t)0;
+   }
+
+   SYSTEMTIME *pst = fStartDST ? &ptzi->DaylightDate : &ptzi->StandardDate;
+
+   // WORD wYear          Year (0000 == 0)
+   // WORD wMonth         Month (January == 1)
+   // WORD wDayOfWeek     Day of week (Sunday == 0)
+   // WORD wDay           Month day (1 - 31)
+   // WORD wHour          Hour (0 - 23)
+   // WORD wMinute        Minute (0 - 59)
+   // WORD wSecond        Second (0 - 59)
+   // WORD wMilliseconds  Milliseconds (0 - 999)
+
+   // Compute the number of days since 1/1/1970 to the beginning of this year.
+   long daysToYear = ((year - 1970) * 365) // Tally up previous years.
+                   + ((year - 1969) >> 2); // Add few extra for the leap years.
+
+   // Compute the number of days since the beginning of this year to the
+   // beginning of the month.  We will add to this value to get the actual
+   // year day.
+   long yearDay = IS_LEAP_YEAR(year) ? M2LYD[pst->wMonth - 1] : 
+                                       M2YD [pst->wMonth - 1];
+
+   // Check for day-in-month format.
+   if (pst->wYear == 0) {
+
+      // Compute the week day for the first day of the month (Sunday == 0).
+      long monthDOW = (daysToYear + yearDay + BASE_DOW) % 7;
+
+      // Add the day offset of the transition day to the year day.
+      if (monthDOW < pst->wDayOfWeek) {
+         yearDay += (pst->wDayOfWeek - monthDOW) + (pst->wDay - 1) * 7;
+      } else {
+         yearDay += (pst->wDayOfWeek - monthDOW) + pst->wDay * 7;
+      }
+
+      // It is possible that we overshot the month, especially if pst->wDay
+      // is 5 (which means the last instance of the day in the month). Check
+      // if the year-day has exceeded the month and adjust accordingly.
+      if ((pst->wDay == 5) &&
+          (yearDay >= (IS_LEAP_YEAR(year) ? M2LYD[pst->wMonth] : 
+                                            M2YD [pst->wMonth])))
+      {
+         yearDay -= 7;
+      }
+
+   // If not day-in-month format, then we assume an absolute date.
+   } else {
+
+      // Simply add the month day to the current year day.
+      yearDay += pst->wDay - 1;
+   }
+
+   // Tally up all our days, hours, minutes, and seconds since 1970.
+   long seconds = ((SECONDS_IN_A_DAY * (daysToYear + yearDay)) + 
+                   (3600L * (long)pst->wHour) + 
+                   (60L * (long)pst->wMinute) +
+                   (long)pst->wSecond);
+   
+   // If we are checking for the end of DST, then we need to add the DST bias
+   // since we are in DST when we chack this time stamp.
+   if (!fStartDST) {
+      seconds += ptzi->DaylightBias * 60L;
+   }
+
+   return (time_t)seconds;
+}
+
+//******************************************************************************
+BOOL IsDST(TIME_ZONE_INFORMATION *ptzi, time_t localTime) {
+
+   // If either of the months is 0, then this usually means that the time zone
+   // does not use DST.  Unfortunately, Windows CE since it has a bug where it
+   // never really fills in these fields with the correct values, so it appears
+   // like we are never in DST.  This is supposed to be fixed in future releases,
+   // so hopefully this code will get some use then.
+   if ((ptzi->StandardDate.wMonth == 0) || (ptzi->DaylightDate.wMonth == 0)) {
+      return FALSE;
+   }
+
+   // time_t   is a 32-bit value for the seconds since January 1, 1970
+   // FILETIME is a 64-bit value for the number of 100-nanosecond intervals
+   //          since January 1, 1601
+
+   // Compute the FILETIME for the given local time.
+   DWORDLONG dwl = ((DWORDLONG)116444736000000000 + 
+                   ((DWORDLONG)localTime * (DWORDLONG)10000000));
+   FILETIME ft = *(FILETIME*)&dwl;
+
+   // Convert the FILETIME to a SYSTEMTIME.
+   SYSTEMTIME st;
+   ZeroMemory(&st, sizeof(st));
+   FileTimeToSystemTime(&ft, &st);
+
+   // Get our start and end daylisght savings times. 
+   time_t timeStart = GetTransitionTimeT(ptzi, (int)st.wYear, TRUE);
+   time_t timeEnd   = GetTransitionTimeT(ptzi, (int)st.wYear, FALSE);
+
+   // Check what hemisphere we are in.
+   if (timeStart < timeEnd) {
+
+      // Northern hemisphere ordering.
+      return ((localTime >= timeStart) && (localTime < timeEnd));
+
+   } else if (timeStart > timeEnd) {
+
+      // Southern hemisphere ordering.
+      return ((localTime < timeEnd) || (localTime >= timeStart));
+   }
+
+   // If timeStart equals timeEnd then this time zone does not support DST.
+   return FALSE;
 }
 
 #endif // _WIN32_WCE

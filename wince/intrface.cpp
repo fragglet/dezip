@@ -64,8 +64,6 @@
 //              match
 //              iswild
 //              IsOldFileSystem
-//              UTCtime2Localtime
-//              NT_tzbug_workaround
 //
 //
 // Date      Name          History
@@ -327,10 +325,8 @@ int mapname(struct Globals *pG, int renamed);
 int test_NT(struct Globals *pG, uch *eb, unsigned eb_size);
 int checkdir(struct Globals *pG, char *pathcomp, int flag);
 
-// NT file time functions.
+// Check for FAT, VFAT, HPFS, etc.
 BOOL IsOldFileSystem(char *szPath);
-time_t UTCtime2Localtime(time_t utctime);
-void NT_tzbug_workaround(time_t ut, FILETIME *pft);
 
 } // extern "C"
 
@@ -380,7 +376,7 @@ int DoListFiles(LPCSTR szZipFile) {
    g_pFileLast = NULL;
 
    // It is possible that the ZIP engine change the file name a bit (like adding
-   // a ".zip" if needed.  If so, we will pick up the new name.
+   // a ".zip" if needed).  If so, we will pick up the new name.
    if ((result != PK_EXCEPTION) && pG->zipfn && *pG->zipfn) {
       strcpy(g_szZipFile, pG->zipfn);
    }
@@ -505,12 +501,26 @@ BOOL SetExtractToDirectory(LPTSTR szDirectory) {
       fNeedToAddWack = TRUE;
    }
 
-   // If length is 0 or path has the format "X:\", we skip search.
-#ifdef _WIN32_WCE
-   if (length > 0) {
-#else
-   if ((length > 0) && !((length == 2) && (szDirectory[1] == TEXT(':')))) {
+#ifndef _WIN32_WCE
+   
+   // Check to see if a root directory was specified.
+   if ((length == 2) && isalpha(szDirectory[0]) && (szDirectory[1] == ':')) {
+
+      // If just a root is specified, we need to only verify the drive letter.
+      if (!(GetLogicalDrives() & (1 << (tolower(szDirectory[0]) - (int)'a')))) {
+
+         // This drive does not exist.  Bail out with a failure.
+         return FALSE;
+      }
+
+   } else
+
 #endif
+
+   // We only verify path if length is >0 since we know "\" is valid.
+   if (length > 0) {
+
+      // Verify the the path exists and that it is a directory.
       if (IsFileOrDirectory(szDirectory) != 2) {
          return FALSE;
       }
@@ -1135,22 +1145,6 @@ int mapattr(struct Globals *pG) {
 }
 
 //******************************************************************************
-
-// NT_TZBUG_PRECOMPENSATE is a macro that works around a bug when the NT version
-// of Pocket UnZip is extracting files to a FAT partition during daylight 
-// savings time.  The OS incorrecly adds the DST bias to files that are not 
-// from a date within DST.  If we find such a file, then we need to subtract off
-// the DST bias from timestamps to correct the problem before updates the file's
-// timestamps.
-
-#ifdef _WIN32_WCE
-#   define NT_TZBUG_PRECOMPENSATE(ut, pft, fOldFileSystem)
-#else
-#   define NT_TZBUG_PRECOMPENSATE(ut, pft, fOldFileSystem) \
-       if (fOldFileSystem) NT_tzbug_workaround(ut, pft)
-#endif
-
-//******************************************************************************
 void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem) {
 
    // time_t    is a 32-bit value for the seconds since January 1, 1970
@@ -1162,8 +1156,9 @@ void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem) {
    // time_t has minimum of 1/1/1970.  Many file systems, such as FAT, have a
    // minimum date of 1/1/1980.  If extracting to one of those file systems and
    // out time_t is less than 1980, then we make it 1/1/1980.
-   if (fOldFileSystem && (ut < 0x12CEA600)) {
-      ut = 0x12CEA600;
+   // (365 days/yr * 10 yrs + 3 leap yr days) * (60 secs * 60 mins * 24 hrs).
+   if (fOldFileSystem && (ut < 0x12CFF780)) {
+      ut = 0x12CFF780;
    }
 
    // Compute the FILETIME for the given time_t.
@@ -1172,21 +1167,58 @@ void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem) {
 
    // Store the return value.
    *pft = *(FILETIME*)&dwl;
+
+   // Now for the next fix for old file systems.  If we are in Daylight Savings
+   // Time (DST) and the file is not in DST, then we need subtract off the DST
+   // bias from the filetime.  This is due to a bug in Windows (NT, CE, and 95)
+   // that causes the DST bias to be added to all file times when the system
+   // is in DST, even if the file is not in DST.  This only effects old file
+   // systems since they store local times instead of UTC times.  Newer file
+   // systems like NTFS and CEFS store UTC times.
+
+   if (fOldFileSystem) {
+
+      // We use the CRT's localtime() and Win32's FileTimeToLocalTime()
+      // functions to compute the DST bias.  This works because localtime()
+      // correctly adds the DST bias only if the file time is in DST.
+      // FileTimeToLocalTime() always adds the DST bias to the time.
+      // Therefore, if the functions return different results, we know we
+      // are dealing with a non-DST file during a system DST.
+
+      FILETIME ftCRT, ftWin32;
+
+      // Get the CRT result - result is a "tm" struct.
+      struct tm *ptmCRT = localtime(&ut);
+
+      // Convert the "tm" struct to a FILETIME.
+      SYSTEMTIME stCRT;
+      ZeroMemory(&stCRT, sizeof(stCRT));
+      stCRT.wYear   = ptmCRT->tm_year + 1900;
+      stCRT.wMonth  = ptmCRT->tm_mon + 1;
+      stCRT.wDay    = ptmCRT->tm_mday;
+      stCRT.wHour   = ptmCRT->tm_hour;
+      stCRT.wMinute = ptmCRT->tm_min;
+      stCRT.wSecond = ptmCRT->tm_sec;
+      SystemTimeToFileTime(&stCRT, &ftCRT);
+
+      // Get the Win32 result - result is a FILETIME.
+      if (FileTimeToLocalFileTime(pft, &ftWin32)) {
+
+         // Subtract the difference from our current filetime.
+         *(DWORDLONG*)pft -= *(DWORDLONG*)&ftWin32 - *(DWORDLONG*)&ftCRT;
+      }
+   }
 }
 
 //******************************************************************************
 int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed,
                  FILETIME *pftModified)
 {
-   // On NT, we need to check to see if this file system does not support
-   // dates < 1980, like FAT.  On Windows CE, we don't need to worry about
-   // this since we support all dates just fine.
-#ifdef _WIN32_WCE
-   BOOL fOldFileSystem = FALSE;
-#else
+   // We need to check to see if this file system is limited.  This includes
+   // FAT, VFAT, and HPFS.  It does not include NTFS and CEFS.  The limited
+   // file systems can not support dates < 1980 and they store file local times
+   // for files as opposed to UTC times.
    BOOL fOldFileSystem = IsOldFileSystem(pG->filename);
-#endif
-
 
 #ifdef USE_EF_UT_TIME  // Always true for WinCE build
 
@@ -1205,18 +1237,15 @@ int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed
 
          // We know we have a modified time, so get it first.
          utimeToFileTime(z_utime.mtime, pftModified, fOldFileSystem);
-         NT_TZBUG_PRECOMPENSATE(z_utime.mtime, pftModified, fOldFileSystem);
 
          // Get the accessed time if we have one.
          if (eb_izux_flg & EB_UT_FL_ATIME) {
             utimeToFileTime(z_utime.atime, pftAccessed, fOldFileSystem);
-            NT_TZBUG_PRECOMPENSATE(z_utime.atime, pftAccessed, fOldFileSystem);
          }
 
          // Get the created time if we have one.
          if (eb_izux_flg & EB_UT_FL_CTIME) {
             utimeToFileTime(z_utime.ctime, pftCreated, fOldFileSystem);
-            NT_TZBUG_PRECOMPENSATE(z_utime.ctime, pftCreated, fOldFileSystem);
          }
 
          // Return our flags.
@@ -1230,7 +1259,6 @@ int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed
    time_t ux_modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
                                         G.lrec.last_mod_file_time);
    utimeToFileTime(ux_modtime, pftModified, fOldFileSystem);
-   NT_TZBUG_PRECOMPENSATE(ux_modtime, pftModified, fOldFileSystem);
 
    *pftAccessed = *pftModified;
 
@@ -1475,16 +1503,31 @@ int iswild(char *pattern) {
    return FALSE;
 }
 
-
 //******************************************************************************
-//***** Functions to correct time stamp bugs on NT when extrcting to non-NTFS.
+//***** Functions to correct time stamp bugs on old file systems.
 //******************************************************************************
-
-#ifndef _WIN32_WCE
 
 //******************************************************************************
 // Borrowed/Modified from win32.c
 BOOL IsOldFileSystem(char *szPath) {
+
+#ifdef _WIN32_WCE
+   
+   char szRoot[10];
+
+   // Get the first nine characters of the path.
+   strncpy(szRoot, szPath, 9);
+   szRoot[9] = '\0';
+
+   // Convert to uppercase to help with compare.
+   _strupr(szRoot);
+
+   // PC Cards are mounted off the root in a directory called "\PC Cards".
+   // PC Cards are FAT, no CEOS.  We need to check if the file is being
+   // extracted to the PC card.
+   return !strcmp(szRoot, "\\PC CARD\\");
+
+#else
 
    char szRoot[_MAX_PATH] = "\0\0\0", szFS[64];
 
@@ -1520,63 +1563,6 @@ BOOL IsOldFileSystem(char *szPath) {
    return !strncmp(szFS, "FAT",  3) ||
           !strncmp(szFS, "VFAT", 4) ||
           !strncmp(szFS, "HPFS", 4);
+
+#endif // _WIN32_WCE
 }
-
-//******************************************************************************
-// Borrowed from win32.c
-time_t UTCtime2Localtime(time_t utctime) {
-    time_t utc = utctime;
-    struct tm *tm = localtime(&utc);
-
-    /* the following code is borrowed from Zip's mktime.c (mkgmtime()) */
-
-    /* Nonzero if `y' is a leap year, else zero. */
-#   define leap(y) (((y) % 4 == 0 && (y) % 100 != 0) || (y) % 400 == 0)
-
-    /* Number of leap years from 1970 to `y' (not including `y' itself). */
-#   define nleap(y) (((y) - 1969) / 4 - ((y) - 1901) / 100 + ((y) - 1601) / 400)
-
-    /* Number of days in each month of the year. */
-    static ZCONST uch monlens[] =
-    {
-      31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-    };
-
-    unsigned years, months, days, hours, minutes, seconds;
-
-    years = tm->tm_year + 1900; /* year - 1900 -> year */
-    months = tm->tm_mon;        /* 0..11 */
-    days = tm->tm_mday - 1;     /* 1..31 -> 0..30 */
-    hours = tm->tm_hour;        /* 0..23 */
-    minutes = tm->tm_min;       /* 0..59 */
-    seconds = tm->tm_sec;       /* 0..61 in ANSI C. */
-
-    /* Set `days' to the number of days into the year. */
-    if (months > 1 && leap (years))
-      ++days;
-    while (months-- > 0)
-      days += monlens[months];
-
-    /* Now set `days' to the number of days since Jan 1, 1970. */
-    days += 365 * (years - 1970) + nleap (years);
-
-    return (time_t)(86400L * (ulg)days + 3600L * (ulg)hours +
-                    (ulg)(60 * minutes + seconds));
-}
-
-//******************************************************************************
-// Borrowed/Modified from win32.c
-void NT_tzbug_workaround(time_t ut, FILETIME *pft) {
-
-   FILETIME ftLocalReal, ftLocalOS;
-
-   utimeToFileTime(UTCtime2Localtime(ut), &ftLocalReal, TRUE);
-
-   if (FileTimeToLocalFileTime(pft, &ftLocalOS)) {
-
-      // Add the difference to our current filetime.
-      *(DWORDLONG*)pft -= *(DWORDLONG*)&ftLocalOS - *(DWORDLONG*)&ftLocalReal;
-   }
-}
-
-#endif // !_WIN32_WCE

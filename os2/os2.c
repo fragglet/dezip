@@ -1983,7 +1983,7 @@ void version(__G)
 
     /* temporary debugging code for Borland compilers only */
     /* __TCPLUSPLUS__, __BCPLUSPLUS__ not defined for v1.5 */
-#ifdef __TURBOC__
+#if (defined(__TURBOC__) && defined(DEBUG))
     Info(slide, 0, ((char *)slide, "\t(__TURBOC__ = 0x%04x = %d)\n", __TURBOC__,
       __TURBOC__));
 #ifdef __BORLANDC__
@@ -1991,7 +1991,7 @@ void version(__G)
 #else
     Info(slide, 0, ((char *)slide, "\tdebug(__BORLANDC__ not defined)\n"));
 #endif
-#endif /* __TURBOC__ */
+#endif /* __TURBOC__ && DEBUG */
 
 } /* end function version() */
 

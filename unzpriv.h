@@ -24,7 +24,10 @@
 #  define MORE
 #endif
 
-/* GRR 960218:  testing a new feature...definitely *not* ready for primetime */
+/* GRR 970513:  still needs to be ported to OS/2, DOS, etc.; fine for Unix */
+#if (!defined(TIMESTAMP) && !defined(NOTIMESTAMP))
+#  define TIMESTAMP
+#endif
 #if (defined(TIMESTAMP) && !defined(UNIX))
 #  undef TIMESTAMP
 #endif
@@ -157,8 +160,9 @@
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
 #  define USE_EF_UT_TIME
-#  define NO_GMTIME               /* maybe DR9 will have timezones... */
+#  define NO_GMTIME               /* maybe DR10 will have timezones... */
 #  define INT_SPRINTF
+#  define SYMLINKS
 #endif
 
 /*---------------------------------------------------------------------------
@@ -791,8 +795,12 @@
 #  else
 #    define OUTBUFSIZ (lenEOL*WSIZE) /* more efficient text conversion */
 #    define TRANSBUFSIZ (lenEOL*OUTBUFSIZ)
-     typedef int  shrint;            /* for efficiency/speed, we hope... */
-#  endif
+#    ifdef AMIGA
+       typedef short shrint;
+#    else
+       typedef int  shrint;          /* for efficiency/speed, we hope... */
+#    endif
+#  endif /* ?MED_MEM */
 #  define RAWBUFSIZ OUTBUFSIZ
 #endif /* ?SMALL_MEM */
 

@@ -10,7 +10,7 @@
 #
 #  supported cross-compilers:
 #  - Microsoft C, version 6.0 or 7.0, for use under DOS (16-bit)
-#  - Watcom C/C++, version 9.0+, for use under DOS (16/32-bit)
+#  - Watcom C/C++, version 9.0+, for use under DOS/Win95/NT (16/32-bit)
 #  - GNU gcc (emx), version 0.9c or higher, for use under DOS/Win95/NT (32-bit)
 #
 #  supported assemblers:
@@ -62,7 +62,7 @@ default:
 	@echo "   msc mscdos ibm ibmdyn ibmdebug ibmprof ibmdll ibmdlldyn"
 	@echo "   ibmdlldebug ibmdllprof ibmdlldynvalidate ibmdlldebugvalidate"
 	@echo "   metaware borland gcc gccdyn gccdebug gccdos gccwin32 watcom"
-	@echo "   watcom16 watcomdos watcom16dos pmodew"
+	@echo "   watcom16 watcomdos watcom16dos pmodew watcomwin32"
 
 # MS C 6.00 for OS/2, 16-bit (should figure out way to split unzip/funzip
 # compiles so former is always large model and latter always small model...)
@@ -337,6 +337,28 @@ watcom16dos:
 	OBJU2="msdos.obj" \
 	OBJX2="msdos_.obj" \
 	OSDEP_H="msdos/doscfg.h" \
+	DIRSEP="\\" \
+	AS_DIRSEP="\\"
+
+# Watcom C/386 9.0 or higher, crosscompilation for Win95/NT
+watcomwin32:
+	$(MAKE) -f os2/makefile.os2 all \
+	CC="wcl386 -bt=NT -zq -Ox -s -I." \
+	CFLAGS="-Zp1 -DWIN32 -DASM_CRC $(LOCAL_UNZIP)" \
+	NFLAGS="" \
+	DLLFLAG="" \
+	AS="wasm -bt=NT -zq -3 -mf" \
+	ASFLAGS="" \
+	LDFLAGS="-k0x50000 -x -l=NT -Fe=" \
+	LDFLAGS2="" \
+	OUT="-Fo" \
+	OBJ=".obj" \
+	OBJU2="win32.obj nt.obj" \
+	OBJX2="win32_.obj nt_.obj" \
+	CRC32="crc_i386" \
+	CRC32F="crc_i386" \
+	CRC32X="crc_i386" \
+	DEF="" \
 	DIRSEP="\\" \
 	AS_DIRSEP="\\"
 

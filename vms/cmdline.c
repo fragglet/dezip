@@ -8,7 +8,7 @@
 **
 **  Author:     Hunter Goatley <goathunter@wkuvx1.wku.edu>
 **
-**  Date:       12 Jul 94 (orig. Zip version, 30 Jul 93)
+**  Date:       25 Apr 97 (orig. Zip version, 30 Jul 93)
 **
 **  Abstract:   Routines to handle a VMS CLI interface for UnZip.  The CLI
 **              command line is parsed and a new argc/argv are built and
@@ -782,7 +782,7 @@ int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
     Info(slide, flag, ((char *)slide, UnzipSFXBanner,
       UZ_MAJORVER, UZ_MINORVER, PATCHLEVEL, BETALEVEL, VERSION_DATE));
     Info(slide, flag, ((char *)slide, "\
-Valid main options are /TEST, /FRESHEN, /UPDATE, /PIPE, /SCREEN, /COMMENT%s.\n"
+Valid main options are /TEST, /FRESHEN, /UPDATE, /PIPE, /SCREEN, /COMMENT%s.\n",
       SFXOPT_EXDIR));
     Info(slide, flag, ((char *)slide, "\
 Modifying options are /TEXT, /BINARY, /JUNK, /[NO]OVERWRITE, /QUIET,\n\

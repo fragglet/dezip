@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-   This is the Info-ZIP file ``Where,'' last updated on 20 April 1997.
+   This is the Info-ZIP file ``Where,'' last updated on 17 May 1997.
 __________________________________________________________________________
 
    The latest version of this file can be found online at:
@@ -44,10 +44,10 @@ utilities:
    zip11.zip         Zip 1.1 (shrinking, implosion; compatible w. PKUNZIP 1.1)
    zip11.tar.Z       ditto, compress'd tar format
 
-   unzip53.zip       UnZip 5.3 (all methods supported; unzip, funzip, unzipsfx)
-   unzip53.tar.Z     ditto, compress'd tar format
+   unzip531.zip      UnZip 5.31 (all methods supported; unzip, funzip, unzipsfx)
+   unzip531.tar.Z    ditto, compress'd tar format
 
-   zcrypt27.zip      encryption/decryption support for Zip 2.2 and UnZip 5.3
+   zcrypt27.zip      encryption/decryption support for Zip 2.2 and UnZip 5.3x
    zcrypt26.zip      encryption support for Zip 2.1
    zcrypt10.zip      encryption support for Zip 1.1
 
@@ -87,40 +87,40 @@ special CompuServe (6.3) filenames:
    zip21-vms-vax-vaxc-obj.zip
                      VMS (VAX) object libs (old VAX C), link procedure and docs
 
-   unz530x.exe       MSDOS self-extracting executable (16-bit unzip, ..., docs)
-   unz530x3.exe      MSDOS self-extracting executable (16-, 32-bit unzip, docs)
-   unz530x1.exe      OS/2 1.x (16-bit) self-extracting executables and docs
-   unz530x2.exe      OS/2 2/3/4.x (32-bit) self-extracting executables and docs
-   unz530d2.zip      OS/2 2/3/4.x (32-bit) DLL, header file, demo exe and docs
-   unz530xA.ami      Amiga self-extracting executables and docs
-   unz530xA.lha      Amiga executables and docs, LHa archive
-   unz530xN.exe      WinNT/Win95 self-extracting Intel executables and docs
-   unz530xN-axp.exe  WinNT (Alpha AXP) self-extracting executables and docs
-   unz530xN-mips.exe WinNT (MIPS) self-extracting executables and docs
-   unz530xN-ppc.exe  WinNT (PowerPC) self-extracting executables and docs
-   unz530xR.exe      Acorn RISC OS self-extracting executables and docs
-   unz530xR.spk      Acorn RISC OS Spark'd executables and docs
-   unz530xT.tos      Atari TOS self-extracting executables and docs
-   unz530x-vms-axp-obj.bck    VMS backup saveset,
+   unz531x.exe       MSDOS self-extracting executable (16-bit unzip, ..., docs)
+   unz531x3.exe      MSDOS self-extracting executable (16-, 32-bit unzip, docs)
+   unz531x1.exe      OS/2 1.x (16-bit) self-extracting executables and docs
+   unz531x2.exe      OS/2 2/3/4.x (32-bit) self-extracting executables and docs
+   unz531d2.zip      OS/2 2/3/4.x (32-bit) DLL, header file, demo exe and docs
+   unz531xA.ami      Amiga self-extracting executables and docs
+   unz531xA.lha      Amiga executables and docs, LHa archive
+   unz531xN.exe      WinNT/Win95 self-extracting Intel executables and docs
+   unz531xN-axp.exe  WinNT (Alpha AXP) self-extracting executables and docs
+   unz531xN-mips.exe WinNT (MIPS) self-extracting executables and docs
+   unz531xN-ppc.exe  WinNT (PowerPC) self-extracting executables and docs
+   unz531xR.exe      Acorn RISC OS self-extracting executables and docs
+   unz531xR.spk      Acorn RISC OS Spark'd executables and docs
+   unz531xT.tos      Atari TOS self-extracting executables and docs
+   unz531x-vms-axp-obj.bck    VMS backup saveset,
                      contains UnZip (Alpha) obj libs, link procedure, docs
-   unz530x-vms-axp-obj.exe    VMS (Alpha AXP) SFX archive (statically linked),
+   unz531x-vms-axp-obj.exe    VMS (Alpha AXP) SFX archive (statically linked),
                      contains UnZip (Alpha) obj libs, link procedure, docs
-   unz530x-vms-axp-exe.exe    VMS (Alpha AXP) SFX archive (dynamically linked),
+   unz531x-vms-axp-exe.exe    VMS (Alpha AXP) SFX archive (dynamically linked),
                      contains UnZip (Alpha AXP, DEC C) executables and docs,
                      smaller than object archive, but requires VMS 6.1
-   unz530x-vms-vax-decc-obj.bck   VMS backup saveset,
+   unz531x-vms-vax-decc-obj.bck   VMS backup saveset,
                      contains UnZip (new DEC C) obj libs, link procedure, docs
-   unz530x-vms-vax-decc-obj.exe   VMS (VAX) SFX archive (statically linked),
+   unz531x-vms-vax-decc-obj.exe   VMS (VAX) SFX archive (statically linked),
                      contains UnZip (new DEC C) obj libs, link procedure, docs
-   unz530x-vms-vax-decc-exe.exe   VMS (VAX) SFX archive (dynamically linked),
+   unz531x-vms-vax-decc-exe.exe   VMS (VAX) SFX archive (dynamically linked),
                      contains UnZip (new DEC C) executables and docs,
                      smaller than object archive, but requires VMS 6.1
-   unz530x-vms-vax-vaxc-obj.bck   VMS backup saveset,
+   unz531x-vms-vax-vaxc-obj.bck   VMS backup saveset,
                      contains UnZip (old VAX C) obj libs, link procedure, docs
-   unz530x-vms-vax-vaxc-obj.exe   VMS (VAX) SFX archive (statically linked),
+   unz531x-vms-vax-vaxc-obj.exe   VMS (VAX) SFX archive (statically linked),
                      contains UnZip (old VAX C) obj libs, link procedure, docs
-   unz530x.hqx       Macintosh BinHex'd executables and docs for unzip
-  (unz530x.tar.{Z,gz}  Unix exes/docs for Solaris 2.x, SCO Unix, Linux, etc.,
+   unz531x.hqx       Macintosh BinHex'd executables and docs for unzip
+  (unz531x.tar.{Z,gz}  Unix exes/docs for Solaris 2.x, SCO Unix, Linux, etc.,
                      depending on directory/location; generally only provided
                      in cases where the OS does *not* ship with a bundled C
                      compiler)

@@ -15,6 +15,7 @@
              version()
              scanBeOSexfield()
              isBeOSexfield()
+             set_file_attrs()
              setBeOSexfield()
              printBeOSexfield()
 
@@ -24,8 +25,21 @@
 #include "unzip.h"
 
 #include "beos.h"
+#include <errno.h>             /* Just make sure we've got a few things... */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <dirent.h>
+
+/* For the new post-DR8 file attributes */
+#include <fs_attr.h>
+int set_file_attrs( const char *, const unsigned char *, const off_t );
+
+/* I haven't gotten gcc for DR9 yet... */
+#ifdef __GNUC__
+#warn GNU C is not supported right now, you have been warned!
+#endif
 
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
@@ -698,18 +712,19 @@ void version(__G)
 uch *scanBeOSexfield( uch *extra_field, unsigned ef_len )
 {
     uch *ptr = extra_field;
-    extra_header *head;
-    unsigned short size;
 
     while( ptr < extra_field + ef_len ) {
-       head = (extra_header *)ptr;
-       size = read_16_swap( (short *)&(head->size) );
+        if( isBeOSexfield( ptr ) ) {
+            return ptr;
+        } else {
+            ush  size;
 
-       if( isBeOSexfield( ptr ) ) {
-           return ptr;
-       } else {
-           ptr = &(ptr[size+4]);
-       }
+            ptr += 2;                   /* skip over the ID         */
+            size = makeword( ptr );     /* find the size of this EF */
+            ptr += 2;
+
+            ptr += size;                /* skip this EF */
+        }
     }
 
     return NULL;
@@ -717,16 +732,17 @@ uch *scanBeOSexfield( uch *extra_field, unsigned ef_len )
 
 int isBeOSexfield( uch *extra_field )
 {
-    extra_header *head;
-    short size = 0;
-
     if( extra_field != NULL ) {
-        head = (extra_header *)extra_field;
+        uch *ptr  = extra_field;
+        ush  id   = 0;
+        ush  size = 0;
 
-        /* head->size is in little-endian mode, so we have to swap it. */
-        size = read_16_swap( (short *)&(head->size) );
+        id   = makeword( ptr );
+        ptr += 2;
+        size = makeword( ptr );
+        ptr += 2;
 
-        if( head->ID == EF_BE_ID && size >= EF_BE_SIZE ) {
+        if( id == EF_BE_ID && size >= EF_BE_SIZE ) {
             return TRUE;
         }
     }
@@ -734,48 +750,198 @@ int isBeOSexfield( uch *extra_field )
     return FALSE;
 }
 
+/* Used by setBeOSexfield():
+
+Set a file/directory's attributes to the attributes passed in.
+
+If set_file_attrs() fails, an error will be returned:
+
+     EOK - no errors occurred
+
+(other values will be whatever the failed function returned; no docs
+yet, or I'd list a few)
+*/
+int set_file_attrs( const char *name, 
+                    const unsigned char *attr_buff, 
+                    const off_t attr_size )
+{
+    int                  retval = EOK;
+    unsigned char       *ptr;
+    const unsigned char *guard;
+    int                  fd;
+
+    ptr   = (unsigned char *)attr_buff;
+    guard = ptr + attr_size;
+
+    fd = open( name, O_RDWR );
+    if( fd < 0 ) {
+        return errno; /* should it be -fd ? */
+    }
+
+    while( ptr < guard ) {
+        ssize_t              wrote_bytes;
+        struct attr_info     fa_info;
+        const char          *attr_name;
+        const unsigned char *attr_data;
+
+        attr_name  = (char *)&(ptr[0]);
+        ptr       += strlen( attr_name ) + 1;
+
+        memcpy( &fa_info, ptr, sizeof( struct attr_info ) );
+        ptr     += sizeof( struct attr_info );
+
+        attr_data  = ptr;
+        ptr       += fa_info.size;
+ 
+        if( ptr > guard ) {
+            /* We've got a truncated attribute. */
+            Info(slide, 0x201, ((char *)slide,
+                 "warning: truncated attribute\n"));
+            break;
+        }
+ 
+        wrote_bytes = fs_write_attr( fd, attr_name, fa_info.type, 0, 
+                                     attr_data, fa_info.size );
+        if( wrote_bytes != fa_info.size ) {
+            Info(slide, 0x201, ((char *)slide,
+                 "warning: wrote %ld attribute bytes of %ld\n",(unsigned long)wrote_bytes,(unsigned long)fa_info.size));
+        }
+    }
+ 
+    close( fd );
+ 
+    return retval;
+}
+
 void setBeOSexfield( char *path, uch *extra_field )
 {
-    extra_block *block;
-    short size = 0;
+    uch *ptr       = extra_field;
+    ush  id        = 0;
+    ush  size      = 0;
+    ulg  full_size = 0;
+    uch  flags     = 0;
+    uch *attrbuff  = NULL;
+    int retval;
 
-    block = (extra_block *)extra_field;
-
-    /* block->size is in little-endian mode, so we have to swap it. */
-    size = read_16_swap( (short *)&(block->size) );
-
-    if( size > EF_BE_SIZE ) {
-        /* Real soon now, type/creator codes will go away and we'll have */
-        /* a lot more extra-field information; older versions won't have */
-        /* a clue what to do with the new info...                        */
-        fprintf( stderr, "Warning: %d bytes ignored in extra field info.\n",
-                 size );
-
+    if( extra_field == NULL ) {
         return;
     }
-    set_file_type_creator( path, block->type.l, block->creator.l );
+
+    /* Collect the data from the extra field buffer. */
+    id        = makeword( ptr );    ptr += 2;   /* we don't use this... */
+    size      = makeword( ptr );    ptr += 2;
+    full_size = makelong( ptr );    ptr += 4;
+    flags     = *ptr;               ptr++;
+
+    /* Do a little sanity checking. */
+    if( flags & EF_BE_FL_BADBITS ) {
+        /* corrupted or unsupported */
+        Info(slide, 0x201, ((char *)slide,
+             "Unsupported flags set for this BeOS extra field, skipping.\n"));
+        return;
+    }
+    if( size <= EF_BE_SIZE ) {
+        /* corrupted, unsupported, or truncated */
+        Info(slide, 0x201, ((char *)slide,
+             "BeOS extra field is %d bytes, should be at least %d.\n",size,EF_BE_SIZE));
+        return;
+    }
+
+    /* Find the BeOS file attribute data. */
+    if( flags & EF_BE_FL_NATURAL ) {
+        /* Uncompressed data */
+        attrbuff = ptr;
+    } else {
+        /* Compressed data */
+        attrbuff = (uch *)malloc( full_size );
+        if( attrbuff == NULL ) {
+            /* No memory to uncompress attributes */
+            Info(slide, 0x201, ((char *)slide,
+                 "Can't allocate memory to uncompress file attributes.\n"));
+            return;
+        }
+
+        retval = memextract( __G__ attrbuff, full_size, 
+                             ptr, size - EF_BE_SIZE );
+        if( retval != PK_OK ) {
+            /* error uncompressing attributes */
+            Info(slide, 0x201, ((char *)slide,
+                 "Error uncompressing file attributes.\n"));
+
+            /* Some errors here might not be so bad; we should expect */
+            /* some truncated data, for example.  If the data was     */
+            /* corrupt, we should _not_ attempt to restore the attrs  */
+            /* for this file... there's no way to detect what attrs   */
+            /* are good and which are bad.                            */
+            free( attrbuff );
+            return;
+        }
+    }
+
+    /* Now attempt to set the file attributes on the extracted file. */
+    retval = set_file_attrs( path, attrbuff, (off_t)full_size );
+    if( retval != EOK ) {
+        Info(slide, 0x201, ((char *)slide,
+             "Error writing file attributes.\n"));
+    }
+
+    /* Clean up, if necessary */
+    if( attrbuff != ptr ) {
+        free( attrbuff );
+    }
+
+    return;
 }
 
 void printBeOSexfield( int isdir, uch *extra_field )
 {
-    char buff[5];
-    extra_block *block;
+    uch *ptr       = extra_field;
+    ush  id        = 0;
+    ush  size      = 0;
+    ulg  full_size = 0;
+    uch  flags     = 0;
 
-    if( !isdir ) {
-        block = (extra_block *)extra_field;
+    /* Tell picky compilers to be quiet. */
+    isdir = isdir;
 
-        memset( buff, 0x00, 5 );
-
-        memcpy( buff, block->type.text, 4 );
-        printf( "  Type   : %s\n", buff );
-
-        memcpy( buff, block->creator.text, 4 );
-        printf( "  Creator: %s\n", buff );
+    if( extra_field == NULL ) {
+        return;
     }
 
-    /* TODO: add support for extra database info; for now, if it's in */
-    /*       the extra_block, we're going to ignore it silently.      */
+    /* Collect the data from the buffer. */
+    id        = makeword( ptr );    ptr += 2;
+    size      = makeword( ptr );    ptr += 2;
+    full_size = makelong( ptr );    ptr += 4;
+    flags     = *ptr;               ptr++;
 
-    /* TODO: add support for extra database info; for now, if it's in */
-    /*       the extra_block, we're going to ignore it silently.      */
+    if( id != EF_BE_ID ) {
+        /* not a 'Be' field */
+        printf( "\t*** Unknown field type (0x%04x, '%c%c')\n", id,
+                (char)(id >> 8), (char)id );
+    }
+
+    if( flags & EF_BE_FL_BADBITS ) {
+        /* corrupted or unsupported */
+        printf( "\t*** Corrupted BeOS extra field:\n" );
+        printf( "\t*** unknown bits set in the flags\n" );
+        printf( "\t*** (Possibly created by an old version of zip for BeOS.\n" );
+    }
+
+    if( size <= EF_BE_SIZE ) {
+        /* corrupted, unsupported, or truncated */
+        printf( "\t*** Corrupted BeOS extra field:\n" );
+        printf( "\t*** size is %d, should be larger than %d\n", size, 
+                EF_BE_SIZE );
+    }
+
+    if( flags & EF_BE_FL_NATURAL ) {
+        /* Uncompressed data */
+        printf( "\tBeOS extra field data (uncompressed):\n" );
+        printf( "\t\t%d data bytes\n", full_size );
+    } else {
+        /* Compressed data */
+        printf( "\tBeOS extra field data (compressed):\n" );
+        printf( "\t\t%d compressed bytes\n", size - EF_BE_SIZE );
+        printf( "\t\t%d uncompressed bytes\n", full_size );
+    }
 }

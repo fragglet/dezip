@@ -2,7 +2,7 @@ The code set out below is not intended to be compiled, but is only intended
 as a very simplistic pointer to how to load and call the dll. You will have
 to look in the files referenced below for actual, working code.
 
-There are now seven entry points to the dll.
+There are now five entry points to the dll.
 
 There is a single "unzipping" entry point of:
 
@@ -18,8 +18,9 @@ argv       = file names to be unarchived. If all files are to be extracted,
 lpDCL      = pointer to a structure with the flags for setting the
              various options, as well as the zip file name.
 lpUserFunc = pointer to a structure that contains pointers to functions
-             in the calling application, as well as handles to windows,
-             and the calling application's stdout.
+             in the calling application, as well as sizes passed back to
+             the calling application etc. See below for a detailed description
+             of all the parameters
 
 The DCL structure is shown below:
 
@@ -49,7 +50,7 @@ typedef int (WINAPI DLLPASSWORD) (char *, int, const char *, const char *);
 typedef void (WINAPI DLLSND) (void);
 typedef int (WINAPI DLLREPLACE)(char *);
 typedef void (WINAPI DLLMESSAGE)(unsigned long, unsigned long,
-   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long);
+   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long, char);
 
 Structure USERFUNCTIONS
 
@@ -105,8 +106,7 @@ argv       = file names to be unarchived
 lpDCL      = pointer to a structure with the flags for setting the
              various options, as well as the zip file name.
 lpUF       = pointer to a structure that contains pointers to functions
-             in the calling application, as well as handles to windows,
-             and the calling application's stdout.
+             in the calling application.
 
 The DCL structure is shown above.
 
@@ -142,7 +142,7 @@ unsigned int NumMembers = total number of files in the archive.
 NOTE: The calling application must export (make available to the dll) the
       routines for print, sound, replace and SendApplicationMessage.
 
-There are six additional entry points:
+There are four additional entry points:
 
     UzpVersion:
 
@@ -171,7 +171,7 @@ follows (explanations of each function is shown further below):
     #include "windll.h"
     MyApiCallingRoutine()
     {
-        zvoid *UzpGlobals = Unz_CreateGlobals();
+        CREATEGLOBALS();
         .
         .
         .
@@ -187,12 +187,10 @@ follows (explanations of each function is shown further below):
         .
         .
         .
-        Unz_ReleaseGlobals(UzpGlobals);
+        DESTROYGLOBALS();
     }
 
 Each entry point is as defined below:
-
-    zvoid * WINAPI Unz_CreateGlobals(void);
 
     BOOL WINAPI Unz_Init(zvoid *, USERFUNCTIONS far *);
 
@@ -200,13 +198,11 @@ Each entry point is as defined below:
 
     int WINAPI Unz_Unzip(zvoid *, int, char **);
 
-    void WINAPI Unz_ReleaseGlobals(zvoid *);
-
 Note that you should use either windll_unzip OR the series of calls
 described above. Using both, depending on how you do it, could cause
 problems.
 
-Last revised March 31, 1997.
+Last revised May 30, 1997.
 
 Mike White
 

@@ -2,12 +2,13 @@
  *
  * Contains:  FileDate()
  *            set_TZ()          [SAS/C only]
- *            locale_TZ()       [used by tzset]
- *            getenv()          [replaces bad C library versions]
+ *            locale_TZ()
+ *            getenv()          [Aztec C only; replaces bad C library versions]
  *            tzset()           [ditto]
  *            gmtime()          [ditto]
  *            localtime()       [ditto]
  *            time()            [ditto]
+ *            mkgmtime()
  *            sendpkt()
  *            Agetch()
  *
@@ -66,6 +67,10 @@
  * 19 Jun 96, Haidinger Walter, re-adapted for current SAS/C compiler.
  *  7 Jul 96, Paul Kienitz, smoothed together compiler-related changes.
  *  4 Feb 97, Haidinger Walter, added set_TZ() for SAS/C.
+ * 23 Apr 97, Paul Kienitz, corrected Unix->Amiga DST error by adding
+ *            mkgmtime() so localtime() could be used.
+ * 28 Apr 97, Christian Spieler, deactivated mkgmtime() definition for ZIP;
+ *            the Zip sources supply this function as part of util.c.
  */
 
 #include <ctype.h>
@@ -182,8 +187,11 @@ void tzset(void);
 char *getenv(const char *var);
 LONG sendpkt(struct MsgPort *pid, LONG action, LONG *args, LONG nargs);
 int Agetch(void);
-struct tm *gmtime(const time_t *when);
-struct tm *localtime(const time_t *when);
+#ifdef AZTEC_C
+   struct tm *gmtime(const time_t *when);
+   struct tm *localtime(const time_t *when);
+#endif
+time_t mkgmtime(struct tm *tm);
 
 #ifdef ZIP
 int is_zone_set(void);             /* used by HAS_VALID_TIMEZONE macro */
@@ -217,8 +225,9 @@ LONG FileDate(filename, u)
     struct DateStamp pDate;
     time_t mtime;
 
-    tzset();
-    mtime = u[0] - timezone;
+    /* tzset(); */
+    /* mtime = u[0] - timezone; */
+    mtime = mkgmtime(localtime(&u[0]));
 
 /* magic number = 2922 = 8 years + 2 leaps between 1970 - 1978 */
     pDate.ds_Days = (mtime / 86400L) - 2922L;
@@ -423,6 +432,62 @@ char *getenv(const char *var)         /* not reentrant! */
 #endif /* AZTEC_C */
 
 
+#if (!defined(ZIP) || !defined(NO_MKTIME))
+/* this mkgmtime() code is a simplified version taken from Zip's mktime.c */
+
+/* Return the equivalent in seconds past 12:00:00 a.m. Jan 1, 1970 GMT
+   of the Greenwich Mean time and date in the exploded time structure `tm',
+   and set `tm->tm_yday' and `tm->tm_wday', but not `tm->tm_isdst'.
+   Return -1 if any of the other fields in `tm' has an invalid value. */
+
+/* Nonzero if `y' is a leap year, else zero. */
+#define leap(y) (((y) % 4 == 0 && (y) % 100 != 0) || (y) % 400 == 0)
+
+/* Number of leap years from 1970 to `y' (not including `y' itself). */
+#define nleap(y) (((y) - 1969) / 4 - ((y) - 1901) / 100 + ((y) - 1601) / 400)
+
+/* Accumulated number of days from 01-Jan up to start of current month. */
+extern const ush ydays[];  /* in fileio.c */
+
+
+time_t mkgmtime(struct tm *tm)
+{
+  int years, months, days, hours, minutes, seconds;
+
+  years = tm->tm_year + 1900;   /* year - 1900 -> year */
+  months = tm->tm_mon;          /* 0..11 */
+  days = tm->tm_mday - 1;       /* 1..31 -> 0..30 */
+  hours = tm->tm_hour;          /* 0..23 */
+  minutes = tm->tm_min;         /* 0..59 */
+  seconds = tm->tm_sec;         /* 0..61 in ANSI C. */
+
+  if (years < 1970
+      || months < 0 || months > 11
+      || days < 0
+      || days >= (months == 11? 365 : ydays[months + 1]) - ydays[months]
+           + (months == 1 && leap(years))
+      || hours < 0 || hours > 23
+      || minutes < 0 || minutes > 59
+      || seconds < 0 || seconds > 61)
+  return -1;
+
+  /* Set `days' to the number of days into the year. */
+  days += ydays[months] + (months > 1 && leap(years));
+  tm->tm_yday = days;
+
+  /* Now set `days' to the number of days since Jan 1, 1970. */
+  days += 365 * (years - 1970) + nleap(years);
+  tm->tm_wday = (days + 4) % 7; /* Jan 1, 1970 was Thursday. */
+/*  tm->tm_isdst = 0; */
+
+  return (time_t)(86400L * (unsigned long)days + 3600L * (unsigned long)hours +
+                  (unsigned long)(60 * minutes + seconds));
+}
+
+#endif /* !ZIP || !NO_MKTIME */
+
+
+#ifdef AZTEC_C    /* SAS/C uses library gmtime() */
 struct tm *gmtime(const time_t *when)
 {
     static struct tm tbuf;   /* this function is intrinsically non-reentrant */
@@ -451,8 +516,10 @@ struct tm *gmtime(const time_t *when)
 #endif
     return &tbuf;
 }
+#endif /* AZTEC_C */
 
 
+#ifdef AZTEC_C    /* SAS/C uses library localtime() */
 struct tm *localtime(const time_t *when)
 {
     struct tm *t;
@@ -486,8 +553,10 @@ struct tm *localtime(const time_t *when)
     }
     return t;
 }
+#endif /* AZTEC_C */
 
 
+#ifdef AZTEC_C    /* SAS/C uses library gmtime() */
 #ifdef ZIP
 time_t time(time_t *tp)
 {
@@ -502,6 +571,7 @@ time_t time(time_t *tp)
     return t;
 }
 #endif /* ZIP */
+#endif /* AZTEC_C */
 
 #endif /* !FUNZIP */
 

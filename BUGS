@@ -28,6 +28,9 @@ Bugs (real and/or imagined):
  - MSC 7.0 timezone bug:  USE_EF_UT_TIME results in all 1-1-1980 timestamps
     [should be fixed in 5.30]
 
+ - [OS/2 DLL] when trying to use the REXX function UzUnZipToStem to extract a
+    file with `&' in its name, the DLL crashes (UzUnZipToVar works) [Daniel H,
+    961215]
  - UnZip has problems with archives bigger than 2GB; it may print "note: didn't
     find end-of-central-dir signature at end of central dir" (harmless) or
     may not be able to seek to member files [James Lemley 970107, Iris Spaniol

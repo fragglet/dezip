@@ -51,11 +51,9 @@ void FreeDllMem(__GPRO);
 int win_fprintf(FILE *file, unsigned int, char far *);
 #endif
 
-zvoid * WINAPI Unz_CreateGlobals(void);
 BOOL    WINAPI Unz_Init(zvoid *, USERFUNCTIONS far *);
 BOOL    WINAPI Unz_SetOpts(zvoid *, LPDCL);
 int     WINAPI Unz_Unzip(zvoid *, int, char **);
-void    WINAPI Unz_ReleaseGlobals(zvoid *pUzpGlobals);
 extern  WINAPI windll_unzip(int, char **, DCL far *, USERFUNCTIONS far *);
 
 #endif /* __windll_h */

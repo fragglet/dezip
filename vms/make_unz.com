@@ -2,7 +2,7 @@ $ ! MAKE_UNZ.COM
 $ !
 $ !	"Makefile" for VMS versions of UnZip/ZipInfo and UnZipSFX
 $ !
-$ !	last revised:  11 Feb 96
+$ !	last revised:  1 May 1997
 $ !
 $ !	To define additional options, define the global symbol
 $ !	LOCAL_UNZIP prior to executing MAKE_UNZ.COM:
@@ -79,14 +79,14 @@ $	ARCH_CC_P = ARCH_PREF
 $	cc = "cc/standard=vaxc/prefix=all/ansi"
 $	defs = "''local_unzip'MODERN"
 $	opts = ""
-$	say "Compiling on AXP using DECC"
+$	say "Compiling on AXP using DEC C"
 $ else
 $	! VAX
 $	ARCH_NAME == "VAX"
 $	ARCH_PREF = "VAX_"
-$       HAVE_DECC_VAX = (F$TRNLNM("DECC$LIBRARY_INCLUDE") .NES. "")
+$	HAVE_DECC_VAX = (f$search("SYS$SYSTEM:DECC$COMPILER.EXE").nes."")
 $	HAVE_VAXC_VAX = (f$search("SYS$SYSTEM:VAXC.EXE").nes."")
-$       MAY_HAVE_GNUC = (f$trnlnm("GNU_CC").nes."")
+$	MAY_HAVE_GNUC = (f$trnlnm("GNU_CC").nes."")
 $	IF HAVE_DECC_VAX .AND. MAY_USE_DECC
 $	THEN
 $!	  We use DECC:
@@ -95,7 +95,7 @@ $	  cc = "cc/decc/standard=vaxc/prefix=all"
 $	  ARCH_CC_P = "''ARCH_PREF'DECC_"
 $	  defs = "''local_unzip'MODERN"
 $	  opts = ""
-$	  say "Compiling on VAX using DECC"
+$	  say "Compiling on VAX using DEC C"
 $       ELSE
 $!	  We use VAXC (or GNU C):
 $	  USE_DECC_VAX = 0
@@ -106,7 +106,7 @@ $	  then
 $		ARCH_CC_P = "''ARCH_PREF'GNUC_"
 $		cc = "gcc"
 $		opts = ",GNU_CC:[000000]GCCLIB.OLB/LIB ''opts'"
-$		say "Compiling on VAX using GNUC"
+$		say "Compiling on VAX using GNU C"
 $	  else
 $		ARCH_CC_P = "''ARCH_PREF'VAXC_"
 $		if HAVE_DECC_VAX
@@ -115,7 +115,7 @@ $	  	    cc = "cc/vaxc"
 $		else
 $		    cc = "cc"
 $		endif
-$		say "Compiling on VAX using VAXC"
+$		say "Compiling on VAX using VAX C"
 $	  endif
 $	ENDIF
 $ endif
@@ -168,6 +168,7 @@ $	set command/obj=unz_cli.'ARCH_CC_P'obj [.vms]unz_cli.cld
 $	cliobjs = ",cmdline.'ARCH_CC_P'obj, unz_cli.'ARCH_CC_P'obj"
 $	cliobjx = ",cmdline_.'ARCH_CC_P'obj, unz_cli.'ARCH_CC_P'obj"
 $	set default [.vms]
+$	edit := edit	! avoids problems with non-standard "edit" definitions
 $	edit/tpu/nosection/nodisplay/command=cvthelp.tpu unzip_cli.help
 $	set default [-]
 $	runoff/out=unzip.hlp [.vms]unzip_cli.rnh
@@ -214,7 +215,7 @@ $ !
 $ ! Next line:  put similar lines (full pathname for unzip.'ARCH_CC_P'exe) in
 $ ! login.com.  Remember to include the leading "$" before disk name.
 $ !
-$! unzip == "$''here'unzip.'ARCH_CC_P'exe"		! command symbol for unzip
+$! unzip == "$''here'unzip.'ARCH_CC_P'exe"	! command symbol for unzip
 $! zipinfo == "$''here'unzip.'ARCH_CC_P'exe ""-Z"""	! command symbol for zipinfo
 $ !
 $error:

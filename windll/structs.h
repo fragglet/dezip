@@ -33,7 +33,7 @@ typedef int (WINAPI DLLPASSWORD) (char *, int, const char *, const char *);
 typedef void (WINAPI DLLSND) (void);
 typedef int (WINAPI DLLREPLACE)(char *);
 typedef void (WINAPI DLLMESSAGE)(unsigned long,unsigned long,
-   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long);
+   ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long, char);
 
 typedef struct {
 DLLPRNT *print;

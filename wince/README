@@ -127,7 +127,7 @@ later of Visual C++ for Windows CE.
 This port's project file, punzip.dsp, contains the information for building all
 the various binaries.  These include Windows NT native, Windows CE native for
 Hitachi SH-3 processors, and Windows CE native for MIPS processors.  All
-projects have Debug and Retail flavors as well.  The following list the
+projects have Debug and Retail flavors as well.  The following table lists the
 Windows CE devices and which binary they run:
 
      Manufacturer             CPU             Binary

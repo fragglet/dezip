@@ -118,15 +118,20 @@ static char Far ZipfileEmpty[] = "warning [%s]:  zipfile is empty\n";
 static char Far CentDirStartNotFound[] =
   "error [%s]:  start of central directory not found;\n\
   zipfile corrupt.\n%s";
-static char Far CentDirTooLong[] =
-  "error [%s]:  reported length of central directory is\n\
+#ifndef SFX
+   static char Far CentDirTooLong[] =
+     "error [%s]:  reported length of central directory is\n\
   %ld bytes too long (Atari STZip zipfile?  J.H.Holm ZIPSPLIT 1.1\n\
   zipfile?).  Compensating...\n";
-static char Far CentDirEndSigNotFound[] = "\
+   static char Far CentDirEndSigNotFound[] = "\
   End-of-central-directory signature not found.  Either this file is not\n\
   a zipfile, or it constitutes one disk of a multi-part archive.  In the\n\
   latter case the central directory and zipfile comment will be found on\n\
   the last disk(s) of this archive.\n";
+#else /* SFX */
+   static char Far CentDirEndSigNotFound[] =
+     "  End-of-central-directory signature not found.\n";
+#endif /* ?SFX */
 static char Far ZipfileCommTrunc1[] = "\ncaution:  zipfile comment truncated\n";
 
 
@@ -653,7 +658,9 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
             G.central_hdr_sig, 4))
 #endif
         {
+#ifndef SFX
             long tmp = G.extra_bytes;
+#endif
 
             G.extra_bytes = 0;
             ZLSEEK( G.ecrec.offset_start_central_directory )
@@ -666,8 +673,10 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
                 CLOSE_INFILE();
                 return PK_BADERR;
             }
+#ifndef SFX
             Info(slide, 0x401, ((char *)slide, LoadFarString(CentDirTooLong),
               G.zipfn, -tmp));
+#endif
             error_in_archive = PK_ERR;
         }
 

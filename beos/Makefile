@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  BeOS
-# Version:  5.30                                                  16 March 1997
+# Version:  5.31                                                    25 May 1997
 #==============================================================================
 
 # INSTRUCTIONS (such as they are):
@@ -52,13 +52,15 @@ LD = $(CC)
 LOC = $(LOCAL_UNZIP) -DPASSWD_FROM_STDIN
 AF = $(LOC)
 
-MW_CF = -w9 -ansi strict -O7 -rostr -I. $(LOC)
+# -ansi strict doesn't work with the AADR9 stdio.h... d'oh!
+#MW_CF = -w9 -ansi strict -O7 -rostr -I. $(LOC)
+MW_CF = -w9 -O7 -rostr -I. $(LOC)
 MW_LF = -o unzip
-MW_LF2 = # -lmoto -warn
+MW_LF2 =
 
-GNU_CF = -Wall -ansi -mpowerpc -mcpu=604 -O3 -I. $(LOC)
+GNU_CF = -Wall -ansi -mcpu=604 -O3 -I. $(LOC)
 GNU_LF = -o unzip
-GNU_LF2 = # -L/boot/develop/libs -lmoto
+GNU_LF2 =
 
 # UnZipSFX flags
 SL = -o unzipsfx
@@ -71,12 +73,13 @@ FL2 = $(LF2)
 # general-purpose stuff
 CP = cp
 RM = rm -f
+LN = ln -sf
 E =
 O = .o
 M = beos
 SHELL = /bin/sh
 
-# defaults for crc32 stuff and system dependent headers
+# defaults for crc32 stuff and system-dependent headers
 CRC32 = crc32
 OSDEP_H = beos/beos.h
 
@@ -139,10 +142,8 @@ unzipsfx$E:	$(OBJX)
 funzip$E:	$(OBJF)
 	$(LD) $(FL) $(OBJF) $(FL2)
 
-# Isn't this an interesting way of compiling zipinfo?  [cjh]
-# We'll have symlinks in DR9, so this will go away.
 zipinfo$E:	unzip$E
-	$(CP) beos/zipinfo zipinfo$E
+	$(LN) unzip$E zipinfo$E
 
 
 crc32$O:	crc32.c $(UNZIP_H) zip.h
@@ -217,7 +218,7 @@ clean:
 install:	$(UNZIPS) $(MANS)
 	$(INSTALL) -m 755 $(UNZIPS) $(BINDIR)
 	$(RM) $(BINDIR)/zipinfo$E
-	$(INSTALL) -m 755 zipinfo$E $(BINDIR)/zipinfo$E
+	$(LN) unzip$E $(BINDIR)/zipinfo$E
 	$(RM) $(BINDIR)/zipgrep$E
 	$(INSTALL) -m 755 unix/zipgrep $(BINDIR)/zipgrep$E
 	$(INSTALL) -m 644 unix/unzip.1 $(MANDIR)/unzip.$(manext)
@@ -278,6 +279,17 @@ check:	unzips
 # Make rules for the supported compilers
 
 gcc:
+	@echo ''
+	@echo 'WARNING: GNU C support is completely untested right now!'
+	@echo '         It is not likely even to compile yet.'
+	@echo ''
+	@echo '         You might want to contact chrish@qnx.com to see'
+	@echo '         if there are any GNU C patches for UnZip 5.31'
+	@echo '         before trying this.'
+	@echo ''
+	@echo 'Sleeping for 15 seconds so you can read this, then we'll try...'
+	@sleep 15s
+	@echo ''
 	@echo 'Making with GNU C...'
 	@echo ''
 	$(MAKE) $(UNZIPS) CC=$(GNU_CC) CF="$(GNU_CF)" LF="$(GNU_LF)" \
@@ -292,4 +304,3 @@ mwcc:
 foo: list
 	@echo 'I was kidding about the "foo" compiler.'
 	@echo ''
-

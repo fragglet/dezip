@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 20 Apr 97.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 17 May 97.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -142,19 +142,22 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         a VMS text file must be extracted as normal text.
 
       USE_VFAT   (MS-DOS only, for using same executable under DOS and Win95/NT)
-        djgpp 2.x can detect when it is running under a Win32 DOS box and
-        will accordingly enable long-filename support.  For now only djgpp 2.x
-        has this feature (and it is defined by default in msdos/makefile.dj2),
+        djgpp 2.x and emx/gcc+RSX 5.1 can detect when they are running under a
+        Win32 DOS box and will accordingly enable long-filename support.  For
+        now only djgpp 2.x and emx/gcc with RSX 5.1 or later have this feature
+        (and it is defined by default in msdos/makefile.dj2 and makefile.emx),
         but if/when other compilers build in similar support, define this
         macro to enable its use.  See also msdos/doscfg.h.  [Note that djgpp
         2.0's LFN support is flaky; users should upgrade to 2.01 or later.]
 
-      TIMESTAMP   (Unix only for now)
+      TIMESTAMP   (default; Unix only for now)
+      NOTIMESTAMP
         This option enables a -T option that basically does exactly what Zip's
         -go options do (i.e., set the timestamp of the zipfile to that of the
-        newest file in the archive), except that, unlike Zip, UnZip supports
-        wildcard specifications for the archive name:  "unzip -T \*.zip" will
-        set the dates of all zipfiles in the current directory.
+        newest file in the archive without rewriting the archive), except that,
+        unlike Zip, UnZip supports wildcard specifications for the archive
+        name:  "unzip -T \*.zip" will set the dates of all zipfiles in the
+        current directory.  (UnZip's option is also much faster.)
 
       UNIXBACKUP   (Unix only)
         This option enables a -B option that instructs UnZip to rename files
@@ -344,7 +347,7 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
       Acorn (RISC OS)
         Extract the files from the archive and place in standard 'Acorn' C
         form (i.e., *.c, *.h and *.s become c.*, h.* and s.*, respectively),
-        either using the UNZIP$EXT environment variable and a pre-built UnZip
+        either using the UNZIP$EXTS environment variable and a pre-built UnZip
         binary, or using Spark[FS] and doing it manually.  Then copy the
         Acorn.Makefile to the main UnZip directory and either type 'amu' or
         use the desktop make utility.

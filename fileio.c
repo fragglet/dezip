@@ -48,6 +48,7 @@
 #endif
 #include "crypt.h"
 #include "ttyio.h"
+
 /* setup of codepage conversion for decryption passwords */
 #if CRYPT
 #  if (defined(CRYP_USES_ISO2OEM) && !defined(IZ_ISO2OEM_ARRAY))
@@ -906,18 +907,18 @@ static int disk_error(__G)
 /* Function UzpMessagePrnt() */
 /*****************************/
 
-int UzpMessagePrnt(pG, buf, size, flag)
-    zvoid *pG;      /* globals struct:  always passed */
-    uch *buf;       /* preformatted string to be printed */
-    ulg size;       /* length of string (may include nulls) */
-    int flag;       /* flag bits */
+int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
+    zvoid *pG;   /* globals struct:  always passed */
+    uch *buf;    /* preformatted string to be printed */
+    ulg size;    /* length of string (may include nulls) */
+    int flag;    /* flag bits */
 {
-    /* Important NOTE:
-     * The name of the first parameter of UzpMessagePrnt(), which passes
-     * the struct Globals address, >>> MUST <<< be identical to the string
-     * expansion of the __G__ macro in the REENTRANT case (see globals.h).
-     * This name identity is mandatory for the LoadFarString() macro
-     * (in the SMALL_MEM case) !!!
+    /* IMPORTANT NOTE:
+     *    The name of the first parameter of UzpMessagePrnt(), which passes
+     *    the struct Globals address, >>> MUST <<< be identical to the string
+     *    expansion of the __G__ macro in the REENTRANT case (see globals.h).
+     *    This name identity is mandatory for the LoadFarString() macro
+     *    (in the SMALL_MEM case) !!!
      */
     int error;
     uch *q=buf, *endbuf=buf+(unsigned)size;
@@ -1071,7 +1072,7 @@ int UzpMessagePrnt(pG, buf, size, flag)
 /* Function UzpMessageNull() */  /* convenience routine for no output at all */
 /*****************************/
 
-int UzpMessageNull(pG, buf, size, flag)
+int UZ_EXP UzpMessageNull(pG, buf, size, flag)
     zvoid *pG;    /* globals struct:  always passed */
     uch *buf;     /* preformatted string to be printed */
     ulg size;     /* length of string (may include nulls) */
@@ -1091,7 +1092,7 @@ int UzpMessageNull(pG, buf, size, flag)
 /* Function UzpInput() */   /* GRR:  this is a placeholder for now */
 /***********************/
 
-int UzpInput(pG, buf, size, flag)
+int UZ_EXP UzpInput(pG, buf, size, flag)
     zvoid *pG;    /* globals struct:  always passed */
     uch *buf;     /* preformatted string to be printed */
     int *size;    /* (address of) size of buf and of returned string */
@@ -1115,7 +1116,7 @@ int UzpInput(pG, buf, size, flag)
 /* Function UzpMorePause() */
 /***************************/
 
-void UzpMorePause(pG, prompt, flag)
+void UZ_EXP UzpMorePause(pG, prompt, flag)
     zvoid *pG;            /* globals struct:  always passed */
     ZCONST char *prompt;  /* "--More--" prompt */
     int flag;             /* 0 = any char OK; 1 = accept only '\n', ' ', q */
@@ -1163,7 +1164,7 @@ void UzpMorePause(pG, prompt, flag)
 /* Function UzpPassword() */
 /**************************/
 
-int UzpPassword (pG, rcnt, pwbuf, size, zfn, efn)
+int UZ_EXP UzpPassword (pG, rcnt, pwbuf, size, zfn, efn)
     zvoid *pG;         /* pointer to UnZip's internal global vars */
     int *rcnt;         /* retry counter */
     char *pwbuf;       /* buffer for password */
@@ -1265,6 +1266,9 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 
 #if (!defined(VMS) && !defined(OS2) && !defined(CMS_MVS))
 
+/* also used in amiga/filedate.c and win32/win32.c */
+ZCONST ush ydays[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+
 /*******************************/
 /* Function dos_to_unix_time() */   /* only used for freshening/updating */
 /*******************************/
@@ -1280,7 +1284,6 @@ time_t dos_to_unix_time(ddate, dtime)
     char temp[20];
 #else /* !TOPS20 */
 #   define YRBASE  1970
-    static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     int leap;
     unsigned days;
 #if (!defined(MACOS) && !defined(RISCOS))
@@ -1324,7 +1327,7 @@ time_t dos_to_unix_time(ddate, dtime)
     leap = ((yr + YRBASE - 1) / 4);   /* leap year base factor */
 
     /* calculate days from BASE to this year and add expired days this year */
-    days = (yr * 365) + (leap - 492) + yday[mo];
+    days = (yr * 365) + (leap - 492) + ydays[mo];
 
     /* if year is a leap year and month is after February, add another day */
     if ((mo > 1) && ((yr+YRBASE)%4 == 0) && ((yr+YRBASE) != 2100))

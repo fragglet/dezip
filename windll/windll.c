@@ -21,14 +21,6 @@
 
   See the general comments in the header part of unzip.c.
 
-  UnZip - a zipfile extraction utility.
-
-  Version:  unzip530.{tar.Z | zip | zoo} for Unix, VMS, OS/2, MS-DOS, Amiga,
-              Atari, Windows 3.x/95/NT, Macintosh, Human68K, Acorn RISC OS,
-              VM/CMS, MVS, AOS/VS and TOPS-20.  Decryption requires sources
-              in zcrypt27.zip.  See the accompanying "Where" file in the main
-              source distribution for ftp, uucp, BBS and mail-server sites.
-
   Copyrights:  see accompanying file "COPYING" in UnZip source distribution.
                (This software is free but NOT IN THE PUBLIC DOMAIN.  There
                are some restrictions on commercial use.)
@@ -46,6 +38,16 @@
 #include "windll.h"
 #include "structs.h"
 
+/* Added type casts to prevent potential "type mismatch" error messages. */
+#ifdef REENTRANT
+#  undef G
+#  undef __G
+#  undef __G__
+#  define G                   (*(struct Globals *)pG)
+#  define __G                 (struct Globals *)pG
+#  define __G__               (struct Globals *)pG,
+#endif
+
 HANDLE hwildZipFN;
 
 HANDLE hInst;               /* current instance */
@@ -55,7 +57,7 @@ HANDLE hDCL;
 LPUSERFUNCTIONS lpUserFunctions;
 
 /* For displaying status messages and error messages */
-int DllMessagePrint(zvoid *pG, uch *buf, ulg size, int flag);
+int UZ_EXP DllMessagePrint(zvoid *pG, uch *buf, ulg size, int flag);
 
 /* For displaying files extracted to the display window */
 int DllDisplayPrint(zvoid *pG, uch *buf, ulg size, int flag);
@@ -67,12 +69,14 @@ void WINAPI DummySound(void);
 /*  DLL Entry Point */
 
 #ifdef __BORLANDC__
-#pragma warn -par
+#pragma argsused
+/* Borland seems to want DllEntryPoint instead of DllMain like MSVC */
+#define DllMain DllEntryPoint
 #endif
-#if defined WIN32
-BOOL WINAPI DllEntryPoint( HINSTANCE hInstance,
-                           DWORD fdwRreason,
-                           LPVOID plvReserved)
+#ifdef WIN32
+BOOL WINAPI DllMain( HINSTANCE hInstance,
+                     DWORD dwReason,
+                     LPVOID plvReserved)
 #else
 int FAR PASCAL LibMain( HINSTANCE hInstance,
                         WORD wDataSegment,
@@ -89,18 +93,35 @@ if ( wHeapSize != 0 )
    {
    UnlockData( 0 );
    }
-#endif
 hInst = hInstance;
 return 1;   /* Indicate that the DLL was initialized successfully. */
+#else
+BOOL rc = TRUE;
+switch( dwReason )
+   {
+   case DLL_PROCESS_ATTACH:
+      // DLL is loaded. Do your initialization here.
+      // If cannot init, set rc to FALSE.
+      hInst = hInstance;
+      break;
+
+   case DLL_PROCESS_DETACH:
+      // DLL is unloaded. Do your cleanup here.
+      break;
+   default:
+      break;
+   }
+return rc;
+#endif
 }
 
+#ifdef __BORLANDC__
+#pragma argsused
+#endif
 int FAR PASCAL WEP ( int bSystemExit )
 {
 return 1;
 }
-#ifdef __BORLANDC__
-#pragma warn .par
-#endif
 
 /* DLL calls */
 
@@ -143,23 +164,6 @@ retcode = Unz_Unzip((zvoid *)&G, argc, FNV);
 
 DESTROYGLOBALS();
 return retcode;
-}
-
-
-/* Added type casts to prevent potential "type mismatch" error messages. */
-#ifdef REENTRANT
-#  undef G
-#  undef __G
-#  undef __G__
-#  define G                   (*(struct Globals *)pG)
-#  define __G                 (struct Globals *)pG
-#  define __G__               (struct Globals *)pG,
-#endif
-
-zvoid * WINAPI Unz_CreateGlobals(void)
-{
-    CONSTRUCTGLOBALS();
-    return (zvoid *)&G;
 }
 
 
@@ -215,13 +219,6 @@ return retcode;
 }
 
 
-void WINAPI Unz_ReleaseGlobals(zvoid *pUzpGlobals)
-{
-    register struct Globals *pG = (struct Globals *)pUzpGlobals;
-    DESTROYGLOBALS()
-}
-
-
 int win_fprintf(FILE *file, unsigned int size, char far *buffer)
 {
 if ((file != stderr) && (file != stdout))
@@ -239,7 +236,7 @@ return lpPrint(buffer, size);
 #ifdef __BORLANDC__
 #pragma argsused
 #endif
-int DllMessagePrint(pG, buf, size, flag)
+int UZ_EXP DllMessagePrint(pG, buf, size, flag)
     zvoid *pG;      /* globals struct:  always passed */
     uch *buf;       /* preformatted string to be printed */
     ulg size;       /* length of string (may include nulls) */
@@ -274,7 +271,7 @@ return lpPrint((char far *)buf, size);
 #ifdef __BORLANDC__
 #pragma argsused
 #endif
-int UzpPassword(pG, rcnt, pwbuf, size, zfn, efn)
+int UZ_EXP UzpPassword(pG, rcnt, pwbuf, size, zfn, efn)
     zvoid *pG;          /* globals struct: always passed */
     int *rcnt;          /* retry counter */
     char *pwbuf;        /* buffer for password */

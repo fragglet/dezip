@@ -1,21 +1,21 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file COPYING (for UnZip), last updated 25 Mar 97.
+  This is the Info-ZIP file COPYING (for UnZip), last updated 22 May 97.
 __________________________________________________________________________
 
-   There are currently four explicit copyrights on portions of UnZip
+   There are currently five explicit copyrights on portions of UnZip
    code (at least, of which Info-ZIP is aware):  the original Sam Smith
    copyright on unzip 2.0, upon which Info-ZIP's UnZip 3.0 was based;
    Igor Mandrichenko's copyright on his routines in vms.c; Greg Roelofs'
-   copyright on zipinfo.c and the new version of unshrink.c; and Steve
-   P. Miller's copyright on the Pocket UnZip GUI (wince/*).  In addition,
-   Mark Adler has placed inflate.h, inflate.c, explode.c and funzip.c
-   into the public domain; i.e., these files may be used without any
-   restrictions beyond those of simple courtesy (credit where it's due).
-   All of these are discussed immediately below; the remaining code is
-   covered by an implicit copyright under US law.  Frequently Asked
-   Questions regarding (re)distribution of Zip and UnZip are near the
-   end of this file.
+   copyright on zipinfo.c and the new version of unshrink.c; Mike White's
+   copyright on the Windows DLL code (windll/*); and Steve P. Miller's
+   copyright on the Pocket UnZip GUI (wince/*).  In addition, Mark Adler
+   has placed inflate.h, inflate.c, explode.c and funzip.c into the public
+   domain; i.e., these files may be used without any restrictions beyond
+   those of simple courtesy (credit where it's due).  All of these are
+   discussed immediately below; the remaining code is covered by an im-
+   plicit copyright under US law.  Frequently Asked Questions regarding
+   (re)distribution of Zip and UnZip are near the end of this file.
 
    There are no known patents on any of the code in UnZip.  Unisys
    claims a patent on LZW encoding and on LZW decoding _in an apparatus
@@ -87,6 +87,16 @@ __________________________________________________________________________
      * code.  (Other names may, of course, be added as modifications
      * are made.)  Corporate legal staff (like at IBM :-) ) who have
      * problems understanding this can contact me through Zip-Bugs...
+
+
+   The following copyright applies to the Windows DLL code (windll/*),
+   distributed with UnZip versions 5.2 and later:
+
+     * Copyright (c) 1996 Mike White.
+     * Permission is granted to any individual or institution to use,
+     * copy, or redistribute this software so long as all of the original
+     * files are included, that it is not sold for profit, and that this
+     * copyright notice is retained.
 
 
    The following copyright applies to the Windows CE GUI port, ``Pocket

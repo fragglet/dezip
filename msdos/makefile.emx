@@ -1,6 +1,7 @@
 # Makefile for UnZip, fUnZip and UnZipSFX
 # for emx 0.9c / gcc under MS-DOS. Derived from makefile.os2
-# By E-Yen Tan. Last updated 30 December 1996 (Christian Spieler).
+# By E-Yen Tan (with mods by Christian Spieler).
+# Last updated 26 April 1997 (E-Yen Tan).
 #
 # This makefile should work fine with GNU make and hopefully some others.
 # Tested with GNU make 3.71 gnuish 16-bit and djgpp 32-bit versions.
@@ -15,7 +16,17 @@ CP=copy
 RM=del
 
 CC=gcc -O -I.
-CFLAGS=-Wall -DMSDOS $(AS_FLAGS) $(LOCAL_UNZIP)
+
+# Version 5.1 of the RSX extender provides long file name support under
+# Windows 95. If you don't have Windows 95 or use a version of RSX prior
+# to 5.1 (or simply don't want LFN support) remove -DUSE_VFAT from CFLAGS.
+# Note that if you have a version of RSX prior to 5.1, you can still compile
+# with USE_VFAT enabled and upgrade RSX.EXE at a later stage.
+#
+# If you enable USE_VFAT then long file names under plain DOS will simply be
+# truncated to 8.3 format without mapping. See doscfg.h for details.
+#
+CFLAGS=-Wall -DMSDOS $(AS_FLAGS) $(LOCAL_UNZIP) -DUSE_VFAT -m486
 NFLAGS=
 DLLFLAG=
 AS=gcc
@@ -150,35 +161,11 @@ zipinfo$(OBJ):	zipinfo.c $(UNZIP_H)
 funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h	# funzip only
 	$(CC) -c $(CFLAGS) $(OUT)$@ funzip.c
 
-unzipstb$(OBJ):	unzipstb.c					# DLL version
-	$(CC) -c $(CFLAGS) unzipstb.c
-
 msdos$(OBJ):	msdos/msdos.c $(UNZIP_H) version.h		# DOS only
 	$(CC) -c $(CFLAGS) msdos$(DIRSEP)msdos.c
 
 msdos_$(OBJ):	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ msdos$(DIRSEP)msdos.c
-
-os2$(OBJ):	os2/os2.c $(UNZIP_H) version.h			# OS/2 only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2.c
-
-os2_$(OBJ):	os2/os2.c $(UNZIP_H)				# OS/2 unzipsfx
-	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ os2$(DIRSEP)os2.c
-
-os2acl$(OBJ):	os2/os2acl.c $(UNZIP_H) version.h		# OS/2 only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2acl.c
-
-rexxhelp$(OBJ):	os2/rexxhelp.c					# OS/2 DLL only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)rexxhelp.c
-
-rexxapi$(OBJ):	os2/rexxapi.c					# OS/2 DLL only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)rexxapi.c
-
-crc_i86$(OBJ):	msdos/crc_i86.asm				# 16bit only
-	$(AS) $(ASFLAGS) msdos$(AS_DIRSEP)crc_i86.asm $(ASEOL)
-
-crc_i386$(OBJ):	win32/crc_i386.asm				# 32bit, MASM
-	$(AS) $(ASFLAGS) win32$(AS_DIRSEP)crc_i386.asm $(ASEOL)
 
 crc_gcc$(OBJ):	crc_i386.S					# 32bit, GNU AS
 	$(AS) $(ASFLAGS) -x assembler-with-cpp -c -o $@ crc_i386.S

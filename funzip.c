@@ -1,6 +1,6 @@
 /* funzip.c -- put in the public domain by Mark Adler */
 
-#define VERSION "3.92 of 22 April 1997"
+#define VERSION "3.92 of 31 May 1997"
 
 
 /* You can do whatever you like with this source file, though I would
@@ -72,6 +72,7 @@
    3.91   17 Aug 96  G. Roelofs      main() -> return int (Peter Seebach)
    3.92   13 Apr 97  G. Roelofs      minor cosmetic fixes to messages
     -     22 Apr 97  -               public release with UnZip 5.3
+    -     31 May 97  -               public release with UnZip 5.31
  */
 
 

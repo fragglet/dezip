@@ -449,7 +449,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
   ---------------------------------------------------------------------------*/
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
-        G.filename[strlen(G.filename) - 1] == '_';
+        G.filename[strlen(G.filename) - 1] = '_';
         checkdir(__G__ G.filename, GETPATH);
         if (created_dir) {
             if (QCOND2) {

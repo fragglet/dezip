@@ -51,7 +51,7 @@ int WINAPI DisplayBuf(char far *, unsigned long);
 int WINAPI GetReplaceDlgRetVal(char *);
 int WINAPI password(char *, int, const char *, const char *);
 void WINAPI ReceiveDllMessage(unsigned long,unsigned long,
-	ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long);
+    ush, ush, ush, ush, ush, ush, char, char *, char *, unsigned long, char);
 _DLL_UNZIP windll_unzip;
 _USER_FUNCTIONS UzInit;
 void FreeUpMemory(void);
@@ -293,7 +293,7 @@ return dwPlatformId;
  */
 void WINAPI ReceiveDllMessage(unsigned long ucsize,unsigned long csiz,
 	ush cfactor, ush mo, ush dy, ush yr, ush hh, ush mm,
-	char c, char *filename, char *methbuf, unsigned long crc)
+    char c, char *filename, char *methbuf, unsigned long crc, char fCrypt)
 {
 char psLBEntry[PATH_MAX];
 char LongHdrStats[] =

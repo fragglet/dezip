@@ -17,7 +17,7 @@
 .fi
 ..
 .\" =========================================================================
-.TH UNZIP 1L "22 April 1997 (v5.3)" "Info-ZIP"
+.TH UNZIP 1L "31 May 1997 (v5.31)" "Info-ZIP"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
@@ -149,7 +149,7 @@ and compares the CRC (cyclic redundancy check, an enhanced checksum) of
 the expanded file with the original file's stored CRC value.
 .TP
 .B \-T
-[Unix only, and only if compiled with TIMESTAMP defined] set the timestamp on
+[Unix only] set the timestamp on
 the archive(s) to that of the newest file in each one.  This corresponds to
 \fIzip\fP's \fB\-go\fP option except that it can be used on wildcard zipfiles
 (e.g., ``\fCunzip \-T \e*.zip\fR'') and is much faster.
@@ -756,5 +756,7 @@ Info-ZIP (Zip-Bugs subgroup, GRR)
 .IP "v5.2\t30 Apr 96"
 Info-ZIP (Zip-Bugs subgroup, GRR)
 .IP "v5.3\t22 Apr 97"
+Info-ZIP (Zip-Bugs subgroup, GRR)
+.IP "v5.31\t31 May 97"
 Info-ZIP (Zip-Bugs subgroup, GRR)
 .PD

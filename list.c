@@ -313,10 +313,12 @@ int list_files(__G)    /* return PK-type error code */
 #endif /* 0 */
 
 #ifdef WINDLL
-            /* Send data to application for formatting and printing */
+            /* send data to application for formatting and printing */
             (*lpUserFunctions->SendApplicationMessage)(G.crec.ucsize, csiz,
-               (ush)cfactor, mo, dy, yr, hh, mm, (G.pInfo->lcflag ? '^' : ' '),
-               fnfilter(G.filename, slide), methbuf, G.crec.crc32);
+              (ush)cfactor, mo, dy, yr, hh, mm,
+              (char)(G.pInfo->lcflag ? '^' : ' '),
+              fnfilter(G.filename, slide), methbuf, G.crec.crc32,
+              (G.crec.general_purpose_bit_flag & 1)? 'E' : ' ');
 #else /* !WINDLL */
             if (longhdr)
                 Info(slide, 0, ((char *)slide, LoadFarString(LongHdrStats),

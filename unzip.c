@@ -98,8 +98,10 @@
      "error:  must give decryption password with -P option\n";
 #endif
 
-static char Far Zfirst[] = "error:\
-  -Z must be first option for ZipInfo mode (check UNZIP variable?)\n";
+#ifndef SFX
+   static char Far Zfirst[] = 
+   "error:  -Z must be first option for ZipInfo mode (check UNZIP variable?)\n";
+#endif
 static char Far InvalidOptionsMsg[] = "error:\
   -fn or any combination of -c, -l, -p, -t, -u and -v options invalid\n";
 static char Far IgnoreOOptionMsg[] =
@@ -1127,7 +1129,7 @@ int uz_opts(__G__ pargc, pargv)
                         /* break out of nested loops without "++argv;--argc" */
                         goto opts_done;
                     }
-#endif
+#endif /* SFX */
                     break;
 #if defined(VMS) || defined(UNIX) || defined(OS2) || defined(WIN32)
                 case ('X'):   /* restore owner/protection info (need privs?) */
@@ -1145,10 +1147,12 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++G.zflag;
                     break;
+#ifndef SFX
                 case ('Z'):    /* should have been first option (ZipInfo) */
                     Info(slide, 0x401, ((char *)slide, LoadFarString(Zfirst)));
                     error = TRUE;
                     break;
+#endif /* !SFX */
 #ifdef DOS_OS2_W32
                 case ('$'):
                     if (negative) {

@@ -17,10 +17,13 @@ ZCONST ush near mask_bits[] = {
 
 char Far VersionDate[] = VERSION_DATE;   /* now defined in version.h */
 
+#ifndef SFX
+   char Far EndSigMsg[] = 
+   "\nnote:  didn't find end-of-central-dir signature at end of central dir.\n";
+#endif
+
 char Far CentSigMsg[] =
   "error:  expected central file header signature not found (file #%u).\n";
-char Far EndSigMsg[] = "\nnote:\
-  didn't find end-of-central-dir signature at end of central dir.\n";
 char Far SeekMsg[] =
   "error [%s]:  attempt to seek before beginning of zipfile\n%s";
 char Far FilenameNotMatched[] = "caution: filename not matched:  %s\n";
