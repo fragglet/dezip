@@ -1,70 +1,587 @@
-/* v3.05 File related functions for unzip.c */
+/*---------------------------------------------------------------------------
 
-/*
- * input file variables
- *
+  file_io.c
+
+  This file contains routines for doing direct input/output, file-related
+  sorts of things.
+
+  ---------------------------------------------------------------------------*/
+
+
+#include "unzip.h"
+
+
+/************************************/
+/*  File_IO Includes, Defines, etc. */
+/************************************/
+
+#ifdef VMS
+#include <rms.h>                /* RMS prototypes, error codes, etc. */
+#include <ssdef.h>              /* system services error codes */
+#include <descrip.h>            /* "descriptor" format stuff */
+#endif
+
+static int WriteBuffer __((int fd, unsigned char *buf, int len));
+static int dos2unix __((unsigned char *buf, int len));
+
+int CR_flag = 0;        /* when last char of buffer == CR (for dos2unix()) */
+
+
+
+
+
+/*******************************/
+/*  Function open_input_file() */
+/*******************************/
+
+int open_input_file()
+{                               /* return non-0 if open failed */
+    /*
+     *  open the zipfile for reading and in BINARY mode to prevent cr/lf
+     *  translation, which would corrupt the bitstreams
+     */
+
+#ifndef UNIX
+    zipfd = open(zipfn, O_RDONLY | O_BINARY);
+#else
+    zipfd = open(zipfn, O_RDONLY);
+#endif
+    if (zipfd < 1) {
+        fprintf(stderr, "error:  can't open zipfile [ %s ]\n", zipfn);
+        return (1);
+    }
+    return 0;
+}
+
+
+
+
+
+/************************/
+/*  Function readbuf()  */
+/************************/
+
+int readbuf(fd, buf, size)
+int fd;
+char *buf;
+register unsigned size;
+{
+    register int count;
+    int n;
+
+    n = size;
+    while (size) {
+        if (incnt == 0) {
+            if ((incnt = read(fd, inbuf, INBUFSIZ)) <= 0)
+                return (incnt);
+            cur_zipfile_bufstart = cur_zipfile_fileptr;
+            cur_zipfile_fileptr += incnt;
+            inptr = inbuf;
+        }
+        count = min(size, incnt);
+        memcpy(buf, inptr, count);
+        buf += count;
+        inptr += count;
+        incnt -= count;
+        size -= count;
+    }
+    return (n);
+}
+
+
+
+
+
+#ifdef VMS
+
+/**********************************/
+/*  Function create_output_file() */
+/**********************************/
+
+int create_output_file()
+{                               /* return non-0 if sys$create failed */
+    /*
+     * VMS VERSION (generic version is below)
+     *
+     * Create the output file and set its date/time using VMS Record Management
+     * Services From Hell.  Then reopen for appending with normal Unix/C-type
+     * I/O functions.  This is the ONLY way to set the file date/time under VMS.
+     */
+    int ierr, yr, mo, dy, hh, mm, ss;
+    char timbuf[24];            /* length = first entry in "stupid" + 1 */
+    struct FAB fileblk;
+    struct XABDAT dattim;
+    static char *month[] =
+    {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+     "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+/*  fixed-length string descriptor (why not just a pointer to timbuf? sigh.) */
+    struct dsc$descriptor stupid =
+    {23, DSC$K_DTYPE_T, DSC$K_CLASS_S, timbuf};
+
+
+
+/*---------------------------------------------------------------------------
+    First initialize the necessary RMS and date/time variables.  "FAB" stands
+    for "file attribute block," "XAB" for "extended attribute block."  Files
+    under VMS are usually in "variable-length records" format with "carriage-
+    return carriage control" (at least for text files).  Unfortunately, some-
+    where along the line extra "carriage returns" (i.e., line feed characters)
+    get stuck in files which are opened in the variable format.  This may be
+    a VMS problem, an RMS problem, or a Unix/C I/O problem, but every 8192
+    characters of text file is followed by a spurious LF, and more often than
+    that for binary files.  So we use the stream-LF format instead (which is
+    what the Unix/C I/O routines do by default).  EDT complains about such
+    files but goes ahead and edits them; TPU (Adam, Eve) and vi don't seem
+    to care at all.
+  ---------------------------------------------------------------------------*/
+
+    yr = ((lrec.last_mod_file_date >> 9) & 0x7f) + 1980; /* dissect date */
+    mo = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
+    dy = (lrec.last_mod_file_date & 0x1f);
+    hh = (lrec.last_mod_file_time >> 11) & 0x1f;        /* dissect time */
+    mm = (lrec.last_mod_file_time >> 5) & 0x3f;
+    ss = (lrec.last_mod_file_time & 0x1f) * 2;
+
+    fileblk = cc$rms_fab;               /* fill FAB with default values */
+    fileblk.fab$l_fna = filename;       /* l_fna, b_fns are the only re-*/
+    fileblk.fab$b_fns = strlen(filename); /*  quired user-supplied fields */
+    fileblk.fab$b_rfm = FAB$C_STMLF;    /* stream-LF record format */
+    fileblk.fab$b_rat = FAB$M_CR;       /* carriage-return carriage ctrl */
+    /*     ^^^^ *NOT* V_CR!!! */
+    fileblk.fab$l_xab = &dattim;        /* chain XAB to FAB */
+    dattim = cc$rms_xabdat;             /* fill XAB with default values */
+
+    CR_flag = 0;                /* Hack to get CR at end of buffer working
+                                   (dos2unix) */
+
+/*---------------------------------------------------------------------------
+    Next convert date into an ASCII string, then use a VMS service to con-
+    vert the string into internal time format.  Obviously this is a bit of a
+    kludge, but I have absolutely NO intention of figuring out how to convert
+    MS-DOS time into tenths of microseconds elapsed since freaking 17 Novem-
+    ber 1858!!  Particularly since DEC doesn't even have a native 64-bit data
+    type.  Bleah.
+  ---------------------------------------------------------------------------*/
+
+    sprintf(timbuf, "%02d-%3s-%04d %02d:%02d:%02d.00", dy, month[mo], yr,
+            hh, mm, ss);
+
+/*  "xab$q_cdt" is the XAB field which holds the file's creation date/time */
+    sys$bintim(&stupid, &dattim.xab$q_cdt);
+
+/*---------------------------------------------------------------------------
+    Next create the file under RMS.  If sys$create chokes with an error of
+    RMS$_SYN (syntax error), it's probably because a Unix-style directory was
+    specified, so try to create the file again using the regular creat() func-
+    tion (date/time won't be set properly in this case, obviously).
+  ---------------------------------------------------------------------------*/
+
+    if ((ierr = sys$create(&fileblk)) != RMS$_NORMAL)
+        if (ierr == RMS$_SYN) { /* try Unix/C create:  0 = default perms */
+            outfd = creat(filename, 0, "rfm=stmlf", "rat=cr");
+            if (outfd < 1) {
+                fprintf(stderr, "Can't create output file:  %s\n", filename);
+                return (1);
+            } else {
+                return (0);
+            }
+        } else {                /* probably access violation */
+            fprintf(stderr, "Can't create output file:  %s\n", filename);
+            return (1);
+        }
+
+/*---------------------------------------------------------------------------
+    Finally, close the file under RMS and reopen with Unix/C open() function.
+  ---------------------------------------------------------------------------*/
+
+    sys$close(&fileblk);
+    outfd = open(filename, O_RDWR);
+
+    return (0);
+}
+
+
+
+
+
+#else                           /* !VMS */
+
+/***********************************/
+/*  Function create_output_file() */
+/***********************************/
+
+int create_output_file()
+{                               /* return non-0 if creat failed */
+    /*
+     * GENERIC VERSION (special VMS version is above)
+     *
+     * Create the output file with default permissions.
+     */
+    static int do_all = 0;
+    char answerbuf[10];
+    UWORD holder;
+
+
+
+    CR_flag = 0;                /* Hack to get CR at end of buffer working. */
+
+    /*
+     * check if the file exists, unless do_all
+     * ask before overwrite code by Bill Davidsen (davidsen@crdos1.crd.ge.com)
+     */
+    if (!do_all) {
+        outfd = open(filename, 0);
+        if (outfd >= 0) {       /* first close it, before you forget! */
+            close(outfd);
+
+            /* ask the user before blowing it away */
+            fprintf(stderr, "replace %s, y-yes, n-no, a-all: ", filename);
+            fgets(answerbuf, 9, stdin);
+
+            switch (answerbuf[0]) {
+            case 'y':
+            case 'Y':
+                break;
+            case 'a':
+            case 'A':
+                do_all = 1;
+                break;
+            case 'n':
+            case 'N':
+            default:
+                while (ReadByte(&holder));
+                return 1;       /* it's done! */
+            }
+        }
+    }
+#ifndef UNIX
+    outfd = creat(filename, S_IWRITE | S_IREAD);
+#else
+    outfd = creat(filename, 0666);      /* let umask strip unwanted perm's */
+#endif
+
+    if (outfd < 1) {
+        fprintf(stderr, "Can't create output: %s\n", filename);
+        return 1;
+    }
+    /*
+     * close the newly created file and reopen it in BINARY mode to
+     * disable all CR/LF translations
+     */
+#ifndef UNIX
+    if (!aflag) {
+        close(outfd);
+        outfd = open(filename, O_RDWR | O_BINARY);
+    }
+#endif
+    return 0;
+}
+
+#endif                          /* !VMS */
+
+
+
+
+
+/******************************/
+/*  Function FillBitBuffer() */
+/******************************/
+
+int FillBitBuffer(bits)
+register int bits;
+{
+    /*
+     * Get the bits that are left and read the next UWORD.  This
+     * function is only used by the READBIT macro (which is used
+     * by all of the uncompression routines).
+     */
+    register int result = bitbuf;
+    UWORD temp;
+    int sbits = bits_left;
+
+
+    bits -= bits_left;
+
+    /* read next UWORD of input */
+    bits_left = ReadByte(&bitbuf);
+    bits_left += ReadByte(&temp);
+
+    bitbuf |= (temp << 8);
+    if (bits_left == 0)
+        zipeof = 1;
+
+    /* get the remaining bits */
+    result = result | (int) ((bitbuf & mask_bits[bits]) << sbits);
+    bitbuf >>= bits;
+    bits_left -= bits;
+    return result;
+}
+
+
+
+
+
+/*************************/
+/*  Function ReadByte() */
+/*************************/
+
+int ReadByte(x)
+UWORD *x;
+{
+    /*
+     * read a byte; return 8 if byte available, 0 if not
+     */
+
+
+    if (csize-- <= 0)
+        return 0;
+
+    if (incnt == 0) {
+        if ((incnt = read(zipfd, inbuf, INBUFSIZ)) <= 0)
+            return 0;
+        cur_zipfile_bufstart = cur_zipfile_fileptr;
+        cur_zipfile_fileptr += incnt;
+        inptr = inbuf;
+    }
+    *x = *inptr++;
+    --incnt;
+    return 8;
+}
+
+
+
+#ifdef FLUSH_AND_WRITE
+/****************************/
+/*  Function FlushOutput() */
+/****************************/
+
+int FlushOutput()
+{                               /* return PK-type error code */
+    /* flush contents of output buffer */
+    /*
+     * This combined version doesn't work, and I sure can't see why not...
+     * probably something stupid, but how much can you screw up in 6 lines???
+     * [optimization problem??]
+     */
+    int len;
+
+
+    if (outcnt) {
+        UpdateCRC(outbuf, outcnt);
+
+        if (!tflag) {
+            if (aflag)
+                len = dos2unix(outbuf, outcnt);
+            if (write(outfd, outout, len) != len) {
+                fprintf(stderr, "Fatal write error.\n");
+                return (50);    /* 50:  disk full */
+            }
+        }
+        outpos += outcnt;
+        outcnt = 0;
+        outptr = outbuf;
+    }
+    return (0);                 /* 0:  no error */
+}
+
+#else                           /* separate flush and write routines */
+/****************************/
+/*  Function FlushOutput() */
+/****************************/
+
+int FlushOutput()
+{                               /* return PK-type error code */
+    /* flush contents of output buffer */
+    if (outcnt) {
+        UpdateCRC(outbuf, outcnt);
+
+        if (!tflag && WriteBuffer(outfd, outbuf, outcnt))
+            return (50);        /* 50:  disk full */
+
+        outpos += outcnt;
+        outcnt = 0;
+        outptr = outbuf;
+    }
+    return (0);                 /* 0:  no error */
+}
+
+/****************************/
+/*  Function WriteBuffer() */
+/****************************/
+
+static int WriteBuffer(fd, buf, len)    /* return 0 if successful, 1 if not */
+int fd;
+unsigned char *buf;
+int len;
+{
+    if (aflag)
+        len = dos2unix(buf, len);
+    if (write(fd, outout, len) != len) {
+#ifdef DOS_OS2
+        if (!cflag) {           /* ^Z treated as EOF, removed with -c */
+#endif
+            fprintf(stderr, "Fatal write error.\n");
+            return (1);         /* FAILED */
+#ifdef DOS_OS2
+        }
+#endif
+    }
+    return (0);
+}
+
+#endif
+
+
+
+
+/*************************/
+/*  Function dos2unix() */
+/*************************/
+
+static int dos2unix(buf, len)
+unsigned char *buf;
+int len;
+{
+    int new_len;
+    int i;
+    unsigned char *walker;
+
+    new_len = len;
+    walker = outout;
+    if (CR_flag && *buf != LF)
+        *walker++ = ascii_to_native(CR);
+    CR_flag = buf[len - 1] == CR;
+    for (i = 0; i < len; i += 1) {
+        *walker++ = ascii_to_native(*buf);
+        if (*buf++ == CR && *buf == LF) {
+            new_len--;
+            walker[-1] = ascii_to_native(*buf++);
+            i++;
+        }
+    }
+    /*
+     * If the last character is a CR, then "ignore it" for now...
  */
-
-#define INBUFSIZ BUFSIZ     /* same as stdio uses */
-byte *inbuf;            /* input file buffer - any size is legal */
-byte *inptr;
-
-int incnt;
-UWORD bitbuf;
-int bits_left;
-boolean zipeof;
-
-int zipfd;
-char zipfn[STRSIZ];
-local_file_header lrec;
-
-/* ----------------------------------------------------------- */
-/*
- * output stream variables
- *
- */
-
-#define OUTBUFSIZ 0x2000        /* unImplode needs power of 2, >= 0x2000 */
-byte *outbuf;                   /* buffer for rle look-back */
-byte *outptr;
-byte *outout;                 /* Scratch pad for ascebc trans v2.0g */
-
-longint outpos;         /* absolute position in outfile */
-int outcnt;             /* current position in outbuf */
-
-int outfd;
-char filename[STRSIZ];
-char extra[STRSIZ];
-char comment[STRSIZ];       /* v2.0b made it global for displays */
+    if (walker[-1] == ascii_to_native(CR))
+        new_len--;
+    return new_len;
+}
 
 
-void set_file_time()
+
+
+
+#ifdef DOS_OS2
+
+/****************************************/
+/*  Function set_file_time_and_close() */
+/****************************************/
+
+void set_file_time_and_close()
  /*
-  * set the output file date/time stamp according to information from the
-  * zipfile directory record for this file
+  * MS-DOS AND OS/2 VERSION (Unix version is below)
+  *
+  * Set the output file date/time stamp according to information from the
+  * zipfile directory record for this member, then close the file.  This
+  * is optional and can be deleted if your compiler does not easily support
+  * setftime().
   */
 {
-#ifndef UNIX
+/*---------------------------------------------------------------------------
+    Allocate local variables needed by OS/2 and Turbo C.  [OK, OK, so it's
+    a bogus comment...but this routine was getting way too cluttered and
+    needed some visual separators.  Bleah.]
+  ---------------------------------------------------------------------------*/
+
+#ifdef OS2              /* (assuming only MSC or MSC-compatible compilers
+                         * for this part) */
+
+    union {
+        FDATE fd;               /* system file date record */
+        UWORD zdate;            /* date word */
+    } ud;
+
+    union {
+        FTIME ft;               /* system file time record */
+        UWORD ztime;            /* time word */
+    } ut;
+
+    FILESTATUS fs;
+
+#else                           /* !OS2 */
+#ifdef __TURBOC__
+
     union {
         struct ftime ft;        /* system file time record */
         struct {
-                UWORD ztime;     /* date and time words */
-                UWORD zdate;     /* .. same format as in .ZIP file */
+            UWORD ztime;        /* date and time words */
+            UWORD zdate;        /* .. same format as in .ZIP file */
         } zt;
     } td;
 
-    /*
-     * set output file date and time - this is optional and can be
-     * deleted if your compiler does not easily support setftime()
-     */
+#endif                          /* __TURBOC__ */
+#endif                          /* !OS2 */
+
+/*---------------------------------------------------------------------------
+    Copy and/or convert time and date variables, if necessary; then set the
+    file time/date.  OS/2 code supplied by Mike O'Carroll (18 May 90) via
+    Alex A. Sergejew (25 Sep 90).
+  ---------------------------------------------------------------------------*/
+
+#ifdef OS2
+
+    DosQFileInfo(outfd, 1, &fs, sizeof(fs));
+    ud.zdate = lrec.last_mod_file_date;
+    fs.fdateLastWrite = ud.fd;
+    ut.ztime = lrec.last_mod_file_time;
+    fs.ftimeLastWrite = ut.ft;
+    DosSetFileInfo(outfd, 1, &fs, sizeof(fs));
+
+#else                           /* !OS2 */
+#ifdef __TURBOC__
 
     td.zt.ztime = lrec.last_mod_file_time;
     td.zt.zdate = lrec.last_mod_file_date;
-
     setftime(outfd, &td.ft);
 
-#else   /* UNIX */
+#else                           /* !__TURBOC__:  MSC MS-DOS */
 
+    _dos_setftime(outfd, lrec.last_mod_file_date, lrec.last_mod_file_time);
+
+#endif                          /* !__TURBOC__ */
+#endif                          /* !OS2 */
+
+/*---------------------------------------------------------------------------
+    And finally we can close the file...at least everybody agrees on how to
+    do *this*.  I think...
+  ---------------------------------------------------------------------------*/
+
+    close(outfd);
+}
+
+
+
+
+
+#else                           /* !DOS_OS2 ... */
+#ifndef VMS                     /* && !VMS (already done) ... */
+#ifndef MTS                     /* && !MTS (can't do):  assume UNIX */
+
+/****************************************/
+/*  Function set_file_time_and_close() */
+/****************************************/
+
+void set_file_time_and_close()
+ /*
+  * UNIX VERSION (MS-DOS & OS/2 version is above)
+  *
+  * First close the output file, then set its date/time stamp according
+  * to information from the zipfile directory record for this file.  [So
+  * technically this should be called "close_file_and_set_time()", but
+  * this way we can use the same prototype for either case, without extra
+  * #ifdefs.  So there.]
+  */
+{
     time_t times[2];
     struct tm *tmbuf;
     long m_time;
@@ -73,6 +590,9 @@ void set_file_time()
     struct timeval tv;
     struct timezone tz;
 #endif
+
+
+    close(outfd);
 
     /*
      * These date conversions look a little wierd, so I'll explain.
@@ -90,24 +610,23 @@ void set_file_time()
      *                                     C. Seaman
      */
 
-    yr = (((lrec.last_mod_file_date >> 9) & 0x7f) + 10);  /* dissect date */
+    yr = (((lrec.last_mod_file_date >> 9) & 0x7f) + 10); /* dissect date */
     mo = ((lrec.last_mod_file_date >> 5) & 0x0f);
     dy = ((lrec.last_mod_file_date & 0x1f) - 1);
 
-    hh = ((lrec.last_mod_file_time >> 11) & 0x1f);        /* dissect time */
+    hh = ((lrec.last_mod_file_time >> 11) & 0x1f);      /* dissect time */
     mm = ((lrec.last_mod_file_time >> 5) & 0x3f);
     ss = ((lrec.last_mod_file_time & 0x1f) * 2);
 
     /* leap = # of leap years from 1970 up to but not including
        the current year */
 
-    leap = ((yr+1969)/4);              /* Leap year base factor */
+    leap = ((yr + 1969) / 4);   /* Leap year base factor */
 
     /* How many days from 1970 to this year? */
     days = (yr * 365) + (leap - 492);
 
-    switch(mo)                 /* calculate expired days this year */
-    {
+    switch (mo) {               /* calculate expired days this year */
     case 12:
         days += 30;
     case 11:
@@ -127,8 +646,8 @@ void set_file_time()
     case 4:
         days += 31;
     case 3:
-        days += 28;                    /* account for leap years */
-        if (((yr+1970) % 4 == 0) && (yr+1970) != 2000)
+        days += 28;             /* account for leap years */
+        if (((yr + 1970) % 4 == 0) && (yr + 1970) != 2000)
             ++days;
     case 2:
         days += 31;
@@ -146,247 +665,22 @@ void set_file_time()
  *  if (tz.tz_dsttime != 0)
  *      m_time -= 3600;
  */
-    m_time += tz.tz_minuteswest * 60;  /* account for timezone differences */
-#else   /* !BSD */
+    m_time += tz.tz_minuteswest * 60;   /* account for timezone differences */
+#else                                   /* !BSD */
     tmbuf = localtime(&m_time);
     hh = tmbuf->tm_hour;
     tmbuf = gmtime(&m_time);
     hh = tmbuf->tm_hour - hh;
     if (hh < 0)
-    hh += 24;
-    m_time += (hh * 3600);             /* account for timezone differences */
+        hh += 24;
+    m_time += (hh * 3600);      /* account for timezone differences */
 #endif
 
-    times[0] = m_time;             /* set the stamp on the file */
+    times[0] = m_time;          /* set the stamp on the file */
     times[1] = m_time;
     utime(filename, times);
-#endif  /* UNIX */
 }
 
-
-int create_output_file()
- /* return non-0 if creat failed */
-{   /* create the output file with READ and WRITE permissions */
-    static int do_all = 0;
-    char answerbuf[10];
-    UWORD holder;
-
-    if (cflag) {        /* output to stdout (a copy of it, really) */
-        outfd = dup(1);
-        return 0;
-        }
-    CR_flag = 0;	/* Hack to get CR at end of buffer working. */
-
-    /* 
-     * check if the file exists, unless do_all 
-     * ask before overwrite code by Bill Davidsen (davidsen@crdos1.crd.ge.com)
-     */
-    if (!do_all) {
-        outfd = open(filename, 0);
-	if (outfd >= 0) {
-	    /* first close it, before you forget! */
-	    close(outfd);
-
-	    /* ask the user before blowing it away */
-	    fprintf(stderr, "replace %s, y-yes, n-no, a-all: ", filename);
-	    fgets(answerbuf, 9, stdin);
-
-	    switch (answerbuf[0]) {
-	      case 'y':
-	      case 'Y':
-	        break;
-	      case 'a':
-	      case 'A':
-	        do_all = 1;
-		break;
-	      case 'n':
-	      case 'N':
-	      default:
-	        while(ReadByte(&holder));
-		return 1; /* it's done! */
-	    }
-	}
-    }
-
-#ifndef UNIX
-    outfd = creat(filename, S_IWRITE | S_IREAD);
-#else
-    outfd = creat(filename, 0666);  /* let umask strip unwanted perm's */
-#endif
-
-    if (outfd < 1) {
-        fprintf(stderr, "Can't create output: %s\n", filename);
-        return 1;
-    }
-
-    /*
-     * close the newly created file and reopen it in BINARY mode to
-     * disable all CR/LF translations
-     */
-#ifndef UNIX
-    close(outfd);
-    outfd = open(filename, O_RDWR | O_BINARY);
-#endif
-    return 0;
-}
-
-
-int open_input_file()
- /* return non-0 if open failed */
-{
-    /*
-     * open the zipfile for reading and in BINARY mode to prevent cr/lf
-     * translation, which would corrupt the bitstreams
-     */
-
-#ifndef UNIX
-    zipfd = open(zipfn, O_RDONLY | O_BINARY);
-#else
-    zipfd = open(zipfn, O_RDONLY);
-#endif
-    if (zipfd < 1) {
-        fprintf(stderr, "Can't open input file: %s\n", zipfn);
-        return (1);
-    }
-    return 0;
-}
-
-/* ============================================================= */
-
-int readbuf(fd, buf, size)
-int fd;
-char *buf;
-register unsigned size;
-{
-    register int count;
-    int n;
-
-    n = size;
-    while (size)  {
-        if (incnt == 0)  {
-            if ((incnt = read(fd, inbuf, INBUFSIZ)) <= 0)
-                return(incnt);
-            inptr = inbuf;
-        }
-        count = min(size, incnt);
-        zmemcpy(buf, inptr, count);
-        buf += count;
-        inptr += count;
-        incnt -= count;
-        size -= count;
-    }
-    return(n);
-}
-
-int ReadByte(x)
-UWORD *x;
- /* read a byte; return 8 if byte available, 0 if not */
-{
-    if (csize-- <= 0)
-        return 0;
-    if (incnt == 0)  {
-        if ((incnt = read(zipfd, inbuf, INBUFSIZ)) <= 0)
-            return 0;
-        inptr = inbuf;
-    }
-    *x = *inptr++;
-    --incnt;
-    return 8;
-}
-
-
-/* ------------------------------------------------------------- */
-static UWORD mask_bits[] =
-        {0,     0x0001, 0x0003, 0x0007, 0x000f,
-                0x001f, 0x003f, 0x007f, 0x00ff,
-                0x01ff, 0x03ff, 0x07ff, 0x0fff,
-                0x1fff, 0x3fff, 0x7fff, 0xffff
-        };
-
-
-int FillBitBuffer(bits)
-register int bits;
-{
-    /* get the bits that are left and read the next UWORD */
-        register int result = bitbuf;
-    UWORD temp;
-    int sbits = bits_left;
-    bits -= bits_left;
-
-    /* read next UWORD of input */
-    bits_left = ReadByte(&bitbuf);
-    bits_left += ReadByte(&temp);
-
-    bitbuf |= (temp << 8);
-    if (bits_left == 0)
-        zipeof = 1;
-
-    /* get the remaining bits */
-        result = result | (int) ((bitbuf & mask_bits[bits]) << sbits);
-        bitbuf >>= bits;
-        bits_left -= bits;
-        return result;
-}
-
-/* ------------------------------------------------------------- */
-
-int dos2unix (buf, len)
-unsigned char *buf;
-int len;
-{
-    int new_len;
-    int i;
-    unsigned char *walker;
-
-    new_len = len;
-    walker = outout;
-    if (CR_flag && *buf != LF)
-        *walker++ = ascii_to_native(CR);
-    CR_flag = buf[len - 1] == CR;
-    for (i = 0; i < len; i += 1) {
-        *walker++ = *buf;
-        if (*buf++ == CR && *buf == LF) {
-            new_len--;
-            walker[-1] = ascii_to_native(*buf++);
-            i++;
-        }
-    }
-    /*
-     * If the last character is a CR, then "ignore it" for now...
-     */
-    if (walker[-1] == CR)
-        new_len--;
-    return new_len;
-}
-
-void WriteBuffer(fd, buf, len)
-int fd;
-unsigned char *buf;
-int len;
-{
-     if (aflag)
-         len = dos2unix (buf, len);
-     if (write (fd, outout, len) != len) {
-         fprintf (stderr, "Fatal write error.\n");
-         exit (1);
-     }
-}
-
-
-/* ------------------------------------------------------------- */
-
-void FlushOutput()
- /* flush contents of output buffer */
-{
-    if (outcnt) {
-        UpdateCRC(outbuf, outcnt);
-
-        if (!tflag)
-            WriteBuffer(outfd, outbuf, outcnt);
-
-        outpos += outcnt;
-        outcnt = 0;
-        outptr = outbuf;
-    }
-}
-
+#endif                          /* !MTS */
+#endif                          /* !VMS */
+#endif                          /* !DOS_OS2 */

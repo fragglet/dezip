@@ -1,34 +1,22 @@
 # Makefile for unzip
-# v3.07+ Added Amdahl (IBM) mainframe
-#	 Removed casual suggestion to define NOTINT16 if in doubt.
-#	 Turns out we can't be all THAT casual about it!	
-# v3.07+ Added IBM RT 6150 under AIX 2.2.1
-# v3.06+ Changed "make sun4_110" back to "make sun4" (to match SYSTEMS list
-#	 and since we don't have any other sun4 arguments yet).
-# v3.06+ Added VAX 8600/Ultrix, DEC 5820/Ultrix test v4.0
-# v3.05 And better yet, thanks to Bill Davidsen's fixes.
-# v3.04 A better way for multiple systems, thanks to Warner Losh and
-#	Bill Davidsen.
-# foo1:	common
-# foo2: common
-# common: $(MAKE) unzip whateverflags...
 #
-#	Nice .. makes sense .. however don't work worth beans on my vaxbsd
-#	system!  ("Don't know how to make make" or some such)
-#	Added Silicon Graphics system, thanks to 
-#	root%itnsg1.cineca.it@CUNYVM.CUNY.EDU (Root (Valter Cavecchia))
+# v4.0  Added many new systems; rearranged, condensed, cleaned up, fixed 
+#	bugs, you name it.  Much better.
 #
-# v3.0	Added HP-UX
-#	Consolidated some system makerules
 # ******** INSTRUCTIONS (such as they are) ********
 #
-# "make vaxbsd" -- makes unzip on a VAX 11-780 BSD 4.3 in current directory
+# "make vax"	-- makes unzip on a VAX 11-780 BSD 4.3 in current directory
+#		   (or a SysV VAX, or an 8600 running Ultrix, or...)
 # "make"	-- uses environment variable SYSTEM to set the type
-#		   system to compile for.
+#		   system to compile for.  This doesn't work for some
+#		   particularly brain-damaged versions of make (VAX BSD,
+#		   Gould, and SCO Unix are in this group).
 # "make wombat" -- Chokes and dies if you haven't added the specifics
 #		   for your Wombat 68000 (or whatever) to the systems list.
 #
 # CFLAGS are flags for the C compiler.  LDFLAGS are flags for the loader.
+# LDFLAGS2 are more flags for the loader, if they need to be at the end
+# of the line instead of at the beginning.
 #
 # My host (a VAX 11-780 running BSD 4.3) is hereafter referred to as
 # "my host."
@@ -36,176 +24,190 @@
 # My host's /usr/include/sys/param.h defines BSD for me.
 # You may have to add "-DBSD" to the list of CFLAGS for your system.
 #
-# You MAY need to define "-DNOTINT16" if the program produces crc errors
-# during a "-t" run or extraction.  (This involves structure alignment.)
+# You MAY need to define "-DNOTINT16" if the program produces CRC errors
+# during a "-t" run or extraction (this involves structure alignment/padding);
+# you MUST define it if your machine is "big-endian" (i.e., it orders bytes
+# in Motorola fashion rather than Intel fashion).  The latter case is charac-
+# terized by errors of the form "some-kind-of-header signature not found.
+# Please report to Info-ZIP." OR a silent do-nothing return with an exit code
+# of 51 (EOF).  It should always be safe to define NOTINT16, but it does add
+# some overhead, so first try compiling without it and see what happens.
+# If death and destruction ensue, it's probably better to go ahead and use
+# NOTINT16.
 #
-# If your host is "big-endian" (as in the 68000 family) and does NOT order
-# its integers and long integers in Intel fashion (low .. high), you should
-# define "-DHIGH_LOW".  This insures key structure values will be "swapped"
-# low end for high end.
-# Some mainframes DO require this.
-#
-# Some systems have a shell-defined "$MAKE" (my host did not).  If not,
-# use "make" instead of the "$MAKE" or "$(MAKE)" in your system's makerule.
-# Or try adding the following line to your .login file:
+# Some versions of make do not define the macro "$(MAKE)" (my host did not).
+# The makefile should now handle such systems correctly, more or less; the
+# possible exception to this is if you've used a make command-line option
+# (for example, the one which displays the commands which WOULD be executed,
+# but doesn't actually execute them).  It probably needs some more tinkering.
+# If things still don't work, use "make" instead of "$(MAKE)" in your system's
+# makerule.  Or try adding the following line to your .login file:
 #   setenv MAKE "make"
 # (It didn't help on my host.)
 #
-# zmemcpy has been added to the list of required files for some systems.
-# memcpy() is a normal C function that works just fine in Turbo C
-# and some Unix systems, but has a problem in others (producing CRC errors).
+# memcpy and memset are provided for those systems that don't have them;
+# they're found in misc.c and will be used if -DZMEM is included in the list
+# of CFLAGS.  These days ALMOST all systems have them (they're mandated by
+# ANSI), but older systems might be lacking.  And at least ONE machine's
+# version results in some serious performance degradation...
 #
-# You can try a compile without zmemcpy.c, and if it works .. fine.
-# (To do this, you may have to remove zmemcpy.o from your system's list
-# of required OBJS files, and the "-DZMEM" from the list of CFLAGS defines.)
-#
-# Else use the included zmemcpy.c.
-# (Again, you may have to add zmemcpy.o to your system's list of required
-# OBJS files, and the "-DZMEM" to the list of CFLAGS defines.)
-
 # To test your nice new unzip, insure your zip file includes some LARGE
-# members.  Many systems ran just fine with zip file members <512 bytes,
-# but failed with larger ones.
-#
+# members.  Many systems ran just fine with zip file members < 512 bytes
+# but failed with larger ones.  Members which are "shrunk" rather than
+# "imploded" have also caused many problems in the past, so try to test a
+# zipfile which contains some of both.  And it's quite possible that this
+# program has NEVER been tested on a "reduced" file, so keep your eyes
+# open.  (They're probably mythical, though.)
+
+#####################
+# MACRO DEFINITIONS #
+#####################
 
 # Defaults most systems use
+CC = cc
 CFLAGS = -O -DUNIX
-
-CC=cc
+LD = cc
+LDFLAGS = -o unzip
+EXE =
+O = .o
+OBJS = unzip$O file_io$O mapname$O match$O misc$O\
+       unimplod$O unreduce$O unshrink$O
 
 SHELL = /bin/sh
 
-.c.o :
-	$(CC) -c $(CFLAGS) $*.c
-
-# Defaults everybody uses
-OBJS = unzip.o crc32.o match.o ascebc.o mapname.o
-SRCS = unzip.c crc32.c match.c ascebc.c mapname.c
-
-# You'll need these also if you include "-DZMEM" in your CFLAGS
-ZMEMS = zmemset.o zmemcpy.o
-
 # list of supported systems in this version
-SYSTEMS	=xenix386 ultrix sun3 sun4 encore stellar convex\
-	vaxbsd next vaxsysV hp_ux pyramid sgi diab\
-	dec5820 vax8600 rtaix amdahl
+SYSTEMS1 = 386i 3Bx amdahl apollo convex cray_cc cray_scc
+SYSTEMS2 = dec5820 diab encore gould hp mips msc_dos next
+SYSTEMS3 = pyramid rtaix sco sco_dos sgi stellar sun tahoe
+SYSTEMS4 = ultrix vax wombat
 
-# The below will try to use your shell variable "SYSTEM"
-# as the type system to use (e.g., if you command:
-# make <no parameters>
-# at the command line).
+####################
+# DEFAULT HANDLING #
+####################
+
+# The below will try to use your shell variable "SYSTEM" as the type system
+# to use (e.g., if you type "make" with no parameters at the command line).
+# The test for $(MAKE) is necessary for VAX BSD make (and Gould, apparently),
+# as is the "goober" (else stupid makes see an "else ;" statement, which they
+# don't like).  "goober" must then be made into a valid target for machines
+# which DO define MAKE properly (and have SYSTEM set).  Quel kludge, non?
+# And to top it all off, it appears that the VAX, at least, can't pick SYSTEM
+# out of the environment either (which, I suppose, should not be surprising).
+# [Btw, if the empty "goober" target causes someone else's make to barf, just
+# add an "@echo > /dev/null" command (or whatever).  Works OK on the Amdahl
+# and Crays, though.]
 
 default:
-	if test -z "$(SYSTEM)";\
-	then make ERROR;\
-	else make $(SYSTEM);\
+	@if test -z "$(MAKE)"; then\
+		if test -z "$(SYSTEM)";\
+		then make ERROR;\
+		else make $(SYSTEM) MAKE="make";\
+		fi;\
+	else\
+		if test -z "$(SYSTEM)";\
+		then $(MAKE) ERROR;\
+		else $(MAKE) $(SYSTEM) goober;\
+		fi;\
 	fi
 
+goober:
+
 ERROR:
-	@echo "Must make one of $(SYSTEMS)"
-	@echo "or set shell variable SYSTEM to a legal value"
+	@echo
+	@echo\
+ 'Must type "make <system>", where <system> is one of the following:'
+	@echo
+	@echo  "	$(SYSTEMS1)"
+	@echo  "	$(SYSTEMS2)"
+	@echo  "	$(SYSTEMS3)"
+	@echo  "	$(SYSTEMS4)"
+	@echo
+	@echo\
+ 'Otherwise set the shell variable SYSTEM to one of these and just type "make".'
 
-unzip: $(OBJS)
-	cc $(LDFLAGS) -o unzip $(OBJS)
 
-unzip.o: unzip.c
+###############################################
+# BASIC COMPILE INSTRUCTIONS AND DEPENDENCIES #
+###############################################
 
-crc32.o: crc32.c
+.c$O :
+	$(CC) -c $(CFLAGS) $*.c
 
-match.o: match.c
+unzip$(EXE):	$(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) $(LDFLAGS2)
 
-ascebc.o: ascebc.c
+file_io$O:      file_io.c unzip.h
+mapname$O:      mapname.c unzip.h
+match$O:        match.c unzip.h
+misc$O:         misc.c unzip.h
+unimplod$O:     unimplod.c unzip.h
+unreduce$O:     unreduce.c unzip.h
+unshrink$O:     unshrink.c unzip.h
+unzip$O:        unzip.c unzip.h
 
-zmemcpy.o: zmemcpy.c
+# Zipinfo section commented out because it's no longer compatible with
+# the current unzip.h (I think).  Will be updated one of these days...
+#
+# zipinfo:	zipinfo.c unzip.h
+#	$(CC) $(CFLAGS) -DNOTINT16 zipinfo.c -o zipinfo
 
-zmemset.o: zmemset.c
 
-mapname.o: mapname.c
-#
+################################
+# INDIVIDUAL MACHINE MAKERULES #
+################################
+
 # these are the makerules for various systems
 # TABS ARE REQUIRED FOR SOME VERSIONS OF make!
-# DO NOT DE-TABIFY THIS FILE!
-# Example:
-# wombat:^I# wombat 68000
-#        ^this is an ASCII 9 tab char, NOT a bunch of spaces!
-#^I$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16 -DZMEM" \
-#^IOBJS="$(OBJS) $(ZMEMS)"
-#^these indentations are an ASCII 9 tab char!
 
-# ********
-xenix386:	_zmem	# Xenix/386 (tested on 2.3.1)
-vaxsysV:	_zmem	# from Forrest Gehrke
-encore:		_zmem	# Multimax
-_zmem:
-	$(MAKE) unzip CFLAGS="$(CFLAGS) -DZMEM" \
-	OBJS="$(OBJS) $(ZMEMS)"
 
-# ********
-convex:		_16zmem	# C200/C400
-stellar:	_16zmem	# gs-2000
-sun4:		_16zmem	# Sun 4/110, SunOS 4.0.3c
-hp_ux:		_16zmem	# HP 9000-835 SE, HP-UX Release A.B3.10 Ver D
-			# Thanks to Randy McCaskile,
-			# rmccask@seas.gwu.edu
-dec5820:	_16zmem	# DEC 5820 (RISC), Test version of Ultrix v4.0
-			# thanks to "Moby" Dick O'Connor 
-rtaix:		_16zmem	# IBM RT 6150 under AIX 2.2.1
-			# thanks to Erik-Jan Vens
+# ---------------------------------------------------------------------------
+#   "Normal" group (no #defines):
+# ---------------------------------------------------------------------------
 
-_16zmem:
-	$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16 -DZMEM" \
-	OBJS="$(OBJS) $(ZMEMS)"
+386i:		unzip	# sun386i, SunOS 4.0.2 ["sun:" works, too, but bigger]
+encore:		unzip	# Multimax
+sco:		unzip	# Xenix/386 (tested on 2.3.1); SCO unix 3.2.0.
+ultrix:		unzip	# DECstation?
+vax:		unzip	# general-purpose VAX target (not counting VMS)
 
-# ********
-diab:		_mc68k  # 680X0, DIAB dnix 5.2/5.3 (a Swedish System V clone)
-sun3:		_mc68k  # 68020, SunOS 4.0.3
-amdahl:		_mc68k	# Amdahl (IBM) mainframe, UTS (SysV) 1.2.4 and 2.0.1
-			# thanks to Kim DeVaughn via Greg Roelofs (Cave Newt)
-			# <roelofs@amelia.nas.nasa.gov>
-_mc68k:
-	$(MAKE) unzip CFLAGS="$(CFLAGS) -DHIGH_LOW -DZMEM" \
-	OBJS="$(OBJS) $(ZMEMS)"
+# ---------------------------------------------------------------------------
+#   NOTINT16 (structure-padding and/or big-endian) group:
+# ---------------------------------------------------------------------------
 
-# Toad Hall:  My Vax doesn't know anything about "$(MAKE)".
-# I tried adding 'setenv MAKE "make" to my .login
-# but it still wouldn't.  Unix wizards, to the rescue!
-# v3.04 and the new flashy common system fix don't work on my vax either!
-# Well .. maybe it will for the Ultrix system and others.
+3Bx:		_16	# AT&T 3B2/1000-80; should work on any WE32XXX machine
+amdahl:		_16	# Amdahl (IBM) mainframe, UTS (SysV) 1.2.4 and 2.0.1
+apollo:		_16	# Apollo Domain/OS machines
+convex:		_16	# C200/C400
+cray_cc:	_16	# Cray-2 and Y-MP, using old-style compiler
+dec5820:	_16	# DEC 5820 (RISC), Test version of Ultrix v4.0
+diab:		_16	# 680X0, DIAB dnix 5.2/5.3 (a Swedish System V clone)
+gould:		_16	# Gould PN9000 running UTX/32 2.1Bu01
+hp:		_16	# HP 9000 series (68020), 4.3BSD or HP-UX A.B3.10 Ver D
+mips:		_16	# MIPS M120-5(?), SysV R3 [error in sys/param.h file?]
+next:		_16	# 68030 BSD 4.3+Mach
+rtaix:		_16	# IBM RT 6150 under AIX 2.2.1
+stellar:	_16	# gs-2000
+sun:		_16	# Sun 4/110, SunOS 4.0.3c; Sun 3 (68020), SunOS 4.0.3
+tahoe:		_16	# tahoe (CCI Power6/32), 4.3BSD
 
-ultrix: _defaults	# per Greg Flint
-vax8600: _defaults	# also for VAX8600 w/Ultrix OS
-			# per Jim Steiner, steiner@pica.army.mil
-vaxbsd:	_defaults	# VAX 11-780, BSD 4.3	David Kirschbaum
-_defaults:
-	make unzip
+_16:
+	$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16"
 
-#From Mark Adler, madler@tybalt.caltech.edu:
-#  I used "make stellar" on the NeXT and the resulting unzip
-#  worked fine on all my zip test files.  Not willing to leave
-#  well enough alone, I tried it without the zmem* routines by
-#  adding the following to the Makefile:
+# ---------------------------------------------------------------------------
+#   "Unique" group (require non-standard options):
+# ---------------------------------------------------------------------------
 
-next:		# 68030 BSD 4.3+Mach
-	$(MAKE) unzip CFLAGS="$(CFLAGS) -DNOTINT16" \
-	OBJS="$(OBJS)"
-
-#  and using "make next".  This also worked fine, and presumably
-#  is faster since the native memcpy and memset routines are
-#  optimized assembler.
-# ***
-#I have finished porting unzip 3.0 to the Pyramid 90X under OSX4.1.
-#The biggest problem was the default structure alignment yielding two
-#extra bytes.  The compiler has the -q option to pack structures, and
-#this was all that was needed.  So, I changed the Makefile, adding "pyramid"
-#to the SYSTEMS list, and inserting the following lines:
-#James Dugal, Internet: jpd@usl.edu
+# I have finished porting unzip 3.0 to the Pyramid 90X under OSX4.1.
+# The biggest problem was the default structure alignment yielding two
+# extra bytes.  The compiler has the -q option to pack structures, and
+# this was all that was needed.  To avoid needing ZMEMS we could compile in
+# the att universe, but it runs slower!
 
 pyramid:	# Pyramid 90X, probably all, under >= OSx4.1, BSD universe
-	make unzip CFLAGS="$(CFLAGS) -q -DBSD -DNOTINT16 -DZMEM" \
-	OBJS="$(OBJS) $(ZMEMS)"
+	make unzip CFLAGS="$(CFLAGS) -q -DBSD -DNOTINT16 -DZMEM"
 
-#I successfully compiled and tested the unzip program (v30) for the
-#Silicon Graphics environment (Personal Iris 4D20/G with IRIX v3.2.2)
+# I successfully compiled and tested the unzip program (v30) for the
+# Silicon Graphics environment (Personal Iris 4D20/G with IRIX v3.2.2)
 #
 #  Valter V. Cavecchia          | Bitnet:       cavecchi@itncisca
 #  Centro di Fisica del C.N.R.  | Internet:     root@itnsg1.cineca.it
@@ -213,6 +215,85 @@ pyramid:	# Pyramid 90X, probably all, under >= OSx4.1, BSD universe
 
 sgi:		# Silicon Graphics (tested on Personal Iris 4D20)
 	$(MAKE) unzip \
-	CFLAGS="$(CFLAGS) -I/usr/include/bsd -DZMEM -DBSD -DNOTINT16" \
-	OBJS="$(OBJS) $(ZMEMS)" \
-	LDFLAGS="-lbsd"
+	CFLAGS="$(CFLAGS) -I/usr/include/bsd -DBSD -DNOTINT16" \
+	LDFLAGS="-lbsd $(LDFLAGS)"
+
+# Cray-2 and Y-MP, running Unicos 5.1.10 or 6.0 (SysV + BSD enhancements)
+# and Standard (ANSI) C compiler 1.5 or 2.0.1.
+
+cray_scc:
+	$(MAKE) unzip CC="scc" LD="scc" CFLAGS="$(CFLAGS) -DNOTINT16"
+
+# SCO cross compile from unix to DOS. Tested with Xenix/386 and
+# OpenDeskTop. Should work with xenix/286 as well. (davidsen)
+# Note that you *must* remove the unix objects and executable
+# before doing this!
+
+sco_dos:
+	$(MAKE) unzip CFLAGS="-O -dos -M0" LDFLAGS="-dos" \
+		LDFLAGS2="-o unzip.exe"
+
+# PCs (IBM-type), running MS-DOS, Microsoft C 6.00 and NMAKE.  Can't use the
+# SYSTEM environment variable; that requires processing the "default:" target,
+# which expands to some 200+ characters--well over DOS's 128-character limit.
+# "nmake msc_dos" works fine, aside from an annoying message, "temporary file
+# e:\ln023193 has been created."  I have no idea how to suppress this, but it
+# appears to be benign (comes from the link phase; the file is always deleted).
+# The environment variable FP should be set to something appropriate if your 
+# library uses other than the default floating-point routines; for example, 
+# SET FP=-FPi87 .  "msc_dos:" does NOT work with Dennis Vadura's dmake (dmake 
+# doesn't seem to understand quotes, and it wants SHELL=$(COMSPEC).  NMAKE 
+# ignores SHELL altogether.)  This target assumes the small-model library and 
+# an 80286 or better.  At present, everything fits within the 128-character 
+# command-line limit.  (Barely.)
+
+msc_dos:
+	$(MAKE) -nologo unzip.exe CFLAGS="-Ox -nologo $(FP) -G2" CC=cl\
+	LD=link EXE=.exe O=.obj LDFLAGS="/noi /nol" LDFLAGS2=",unzip;"
+
+# I didn't do this.  I swear.  No, really.
+
+wombat:		# Wombat 68000 (or whatever)
+	@echo
+	@echo  '	Ha ha!  Just kidding.'
+	@echo
+
+################
+# ATTRIBUTIONS #
+################
+
+# Thanks to the following people for their help in testing and/or porting
+# to various machines:
+#
+#   386i:	Richard Stephen, stephen@corp.telecom.co.nz
+#   3Bx:	Bob Kemp, hrrca!bobc@cbnewse.att.com
+#   amdahl:	Kim DeVaughn
+#   apollo:	Tim Geibelhaus
+#   cray:	Greg Roelofs, roelofs@amelia.nas.nasa.gov
+#   dec5820:	"Moby" Dick O'Connor
+#   diab:	Bo Kullmar, bk@kullmar.se
+#   gould:	Onno van der Linden, linden@fwi.uva.nl
+#   hp:		Randy McCaskile, rmccask@seas.gwu.edu (HP-UX)
+#   		Gershon Elber, gershon@cs.utah.edu (HP BSD 4.3)
+#   mips:	Peter Jones, jones@mips1.uqam.ca
+#   msc_dos:	Greg Roelofs
+#   next:	Mark Adler, madler@piglet.caltech.edu
+#   pyramid:	James Dugal, jpd@usl.edu
+#   rtaix:	Erik-Jan Vens
+#   sco:	Onno van der Linden, linden@fwi.uva.nl (SCO Unix 3.2.0)
+#   		Bill Davidsen, davidsen@crdos1.crd.ge.com (Xenix/386)
+#   sco_dos:	Bill Davidsen, davidsen@crdos1.crd.ge.com
+#   sgi:	Valter V. Cavecchia (see comments for addresses)
+#   sun:	Onno van der Linden, linden@fwi.uva.nl (Sun 4)
+#   tahoe:	Mark Edwards, mce%sdcc10@ucsd.edu
+#   ultrix:	Greg Flint
+#   vax:	Forrest Gehrke, feg@dodger.att.com (SysV)
+#		David Kirschbaum, kirsch@usasoc.soc.mil (BSD 4.3)
+#		Jim Steiner, steiner@pica.army.mil (8600+Ultrix)
+#   wombat:	Joe Isuzu, joe@trustme.isuzu.com
+
+# SCO unix 3.2.0:
+# Don't use -Ox with cc (derived from Microsoft 5.1),there is
+# a bug in the loop optimization,which causes bad CRC's
+#
+# Onno van der Linden

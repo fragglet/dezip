@@ -1,64 +1,84 @@
-/*
- *  arcmatch.c  1.1
- *
- *  Author: Thom Henderson
- *  Original System V port: Mike Stump
- *
- * REVISION HISTORY
- *
- * 03/22/87  C. Seaman      enhancements, bug fixes, cleanup
- * 11/13/89  C. Mascott     adapt for use with unzip
- * 01/25/90  J. Cowan       match case-insensitive
- * 03/17/90  D. Kirschbaum      Prototypes, other tweaks for Turbo C.
- *
- */
+/*--------------------------------------------------------------------------
 
-/*
- * ARC - Archive utility - ARCMATCH
- * 
- * Version 2.17, created on 12/17/85) at 20:32:18
- *
- * (C) COPYRIGHT 1985 by System Enhancement Associates; ALL RIGHTS RESERVED
- *
- *     Description:
- *        This file contains service routines needed to maintain an archive.
- */
+  match.c
 
-#include <sys/types.h>
-#include <sys/dir.h>
-#include <ctype.h>
+  The match() routine recursively compares a string to a "pattern" (regular
+  expression), returning TRUE if a match is found or FALSE if not.  This
+  version is specifically for use with unzip.c:  it leaves the case (upper,
+  lower, or mixed) of the string alone, but converts any uppercase characters
+  in the pattern to lowercase if indicated by the global variable lcflag
+  (which is to say, string is assumed to have been converted to lowercase
+  already, if such was necessary).
 
-#ifdef __TURBOC__               /* v2.0b */
-#include <stdio.h>      /* for printf() */
-#include <stdlib.h>     /* for exit() */
-#endif
+  --------------------------------------------------------------------------
 
-#define ASTERISK '*'        /* The '*' metacharacter */
-#define QUESTION '?'        /* The '?' metacharacter */
-#define BACK_SLASH '\\'         /* The '\' metacharacter */
-#define LEFT_BRACKET '['    /* The '[' metacharacter */
-#define RIGHT_BRACKET ']'   /* The ']' metacharacter */
+  Revision history:
 
-#define IS_OCTAL(ch) (ch >= '0' && ch <= '7')
+     Original Author:  Thom Henderson
+     Original System V port:  Mike Stump
 
-typedef short int INT;      /* v2.0b */
-typedef short int BOOLEAN;  /* v2.0b */
-#define TRUE 1
-#define FALSE 0
-#define EOS '\000'
+     03/22/87  C. Seaman      enhancements, bug fixes, cleanup
+     11/13/89  C. Mascott     adapted for use with unzip
+     01/25/90  J. Cowan       made case-insensitive (only for smart toupper())
+     03/17/90  D. Kirschbaum  prototypes, other tweaks for Turbo C
+     05/18/90  M. O'Carroll   DOS and OS/2 family version
+     09/20/90  G. Roelofs     modified for lcflag, moved stuff to header file
 
-#ifdef __TURBOC__              /* v2.0b */
-/* local prototypes for Turbo */
+  --------------------------------------------------------------------------
 
-int match(char *string, char *pattern);
-static BOOLEAN do_list (register char *string, char *pattern);  /* v2.0b */
-static void list_parse (char **patp, char *lowp, char *highp);
-static char nextch (char **patp);
-#else       /* v2.0b original code */
-static BOOLEAN do_list();
-static char nextch();
-static void list_parse();
-#endif
+  Copyright, originally from arcmatch.c, version 1.1 (?):
+
+     * ARC - Archive utility - ARCMATCH
+     *
+     * Version 2.17, created on 12/17/85) at 20:32:18
+     *
+     * (C) COPYRIGHT 1985 by System Enhancement Associates; ALL RIGHTS RESERVED
+
+  --------------------------------------------------------------------------*/
+
+
+#include "unzip.h"
+
+
+/*******************/
+/*  Match Defines  */
+/*******************/
+
+#define ASTERISK        '*'     /* The '*' metacharacter */
+#define QUESTION        '?'     /* The '?' metacharacter */
+#define BACK_SLASH      '\\'    /* The '\' metacharacter */
+#define LEFT_BRACKET    '['     /* The '[' metacharacter */
+#define RIGHT_BRACKET   ']'     /* The ']' metacharacter */
+#define EOS             '\000'  /* end-of-string */
+
+#define IS_OCTAL(ch)    (ch >= '0' && ch <= '7')
+
+
+
+/********************/
+/*  Match Typedefs  */
+/********************/
+
+typedef short int INT;
+typedef short int BOOLEAN;
+
+
+
+/*************************************/
+/*  Match Local Function Prototypes  */
+/*************************************/
+
+static BOOLEAN do_list __((register char *string, char *pattern));
+static void list_parse __((char **patp, char *lowp, char *highp));
+static char nextch __((char **patp));
+
+
+
+
+
+/**********************/
+/*  Function match()  */
+/**********************/
 
 int match(string, pattern)
 char *string;
@@ -67,19 +87,17 @@ char *pattern;
     register int ismatch;
 
     ismatch = FALSE;
-    switch (*pattern)
-    {
+    switch (*pattern) {
     case ASTERISK:
         pattern++;
-        do
-        {
-            ismatch = match (string, pattern);
+        do {
+            ismatch = match(string, pattern);
         }
         while (!ismatch && *string++ != EOS);
         break;
     case QUESTION:
         if (*string != EOS)
-            ismatch = match (++string, ++pattern);
+            ismatch = match(++string, ++pattern);
         break;
     case EOS:
         if (*string == EOS)
@@ -87,25 +105,31 @@ char *pattern;
         break;
     case LEFT_BRACKET:
         if (*string != EOS)
-            ismatch = do_list (string, pattern);
+            ismatch = do_list(string, pattern);
         break;
     case BACK_SLASH:
         pattern++;
     default:
-    if (toupper(*string) == toupper(*pattern))
-        {
+        if (*string == ((lcflag && isupper(*pattern)) ? tolower(*pattern) : *pattern)) {
             string++;
             pattern++;
-            ismatch = match (string, pattern);
-        }
-        else
+            ismatch = match(string, pattern);
+        } else
             ismatch = FALSE;
         break;
     }
-    return(ismatch);
+    return (ismatch);
 }
 
-static BOOLEAN do_list (string, pattern)
+
+
+
+
+/************************/
+/*  Function do_list()  */
+/************************/
+
+static BOOLEAN do_list(string, pattern)
 register char *string;
 char *pattern;
 {
@@ -116,56 +140,63 @@ char *pattern;
     auto char upper;
 
     pattern++;
-    if (*pattern == '!')
-    {
+    if (*pattern == '!') {
         if_found = FALSE;
         if_not_found = TRUE;
         pattern++;
-    }
-    else
-    {
+    } else {
         if_found = TRUE;
         if_not_found = FALSE;
     }
     ismatch = if_not_found;
-    while (*pattern != ']' && *pattern != EOS)
-    {
+    while (*pattern != ']' && *pattern != EOS) {
         list_parse(&pattern, &lower, &upper);
-        if (*string >= lower && *string <= upper)
-        {
+        if (*string >= lower && *string <= upper) {
             ismatch = if_found;
-            while (*pattern != ']' && *pattern != EOS) pattern++;
+            while (*pattern != ']' && *pattern != EOS)
+                pattern++;
         }
     }
 
-    if (*pattern++ != ']')
-    {
+    if (*pattern++ != ']') {
         printf("Character class error\n");
         exit(1);
-    }
-    else
-        if (ismatch)
-            ismatch = match (++string, pattern);
+    } else if (ismatch)
+        ismatch = match(++string, pattern);
 
-    return(ismatch);
+    return (ismatch);
 }
 
-static void list_parse (patp, lowp, highp)
+
+
+
+
+/***************************/
+/*  Function list_parse()  */
+/***************************/
+
+static void list_parse(patp, lowp, highp)
 char **patp;
 char *lowp;
 char *highp;
 {
-    *lowp = nextch (patp);
-    if (**patp == '-')
-    {
+    *lowp = nextch(patp);
+    if (**patp == '-') {
         (*patp)++;
         *highp = nextch(patp);
-    }
-    else
+    } else
         *highp = *lowp;
 }
 
-static char nextch (patp)
+
+
+
+
+/***********************/
+/*  Function nextch()  */
+/***********************/
+
+static char nextch(patp)
 char **patp;
 {
     register char ch;
@@ -173,14 +204,11 @@ char **patp;
     register INT count;
 
     ch = *(*patp)++;
-    if (ch == '\\')
-    {
+    if (ch == '\\') {
         ch = *(*patp)++;
-        if (IS_OCTAL (ch))
-        {
+        if (IS_OCTAL(ch)) {
             chsum = 0;
-            for (count = 0; count < 3 && IS_OCTAL (ch); count++)
-            {
+            for (count = 0; count < 3 && IS_OCTAL(ch); count++) {
                 chsum *= 8;
                 chsum += ch - '0';
                 ch = *(*patp)++;
@@ -189,6 +217,5 @@ char **patp;
             ch = chsum;
         }
     }
-    return(ch);
+    return (ch);
 }
-

@@ -1,0 +1,85 @@
+v4.01, 4 Dec 90:
+
+1 - From Down Under:
+From: aas@cc.uq.oz.au
+
+The makefile.msc as it stands more or less works for TurboC 2.0,
+so makefile.tc is probably redundant.  However, TurboC throws what
+we colloquially call a `wobbly' over one line in file_io.c: where
+`>> (space) =' is used instead of the ANSI `>>=' construct.  The
+fix is easy (appended).
+
+[Makefile.msc patched to include both Turbo C and MSC compiles,
+ renamed to MAKEFILE.DOS.  Actually, it's for OS/2 also.
+ Works just fine for Turbo C v2.0, can't test the others.
+ Removed MAKEFILE.TC.
+]
+
+And the file_io.c patch was a one-liner at line 312 /318:
+!     bitbuf >> = bits;
+changed to:
+!     bitbuf >>= bits;
+
+-------------
+
+2 - From: Cave Newt <roelofs@amelia.nas.nasa.gov>
+
+But enough of that...on to REALLY amusing topics.  Firstly, there *was*
+a patch to 3.99 which you missed and I forgot about:  the name[STRSIZ]
+one in mapname.c.
+[Extracted to mapname.pch, mapname.c patched.]
+
+Secondly, Mr. Mangler did some weird things to some of the comments in 
+one of the files (misc.c?  mapname.c?)--things like /****/ became /*** */,
+and many of my partially indented comments got indented even further. 
+I'll take care of the latter problem with the new seek patch, since there
+are a number of other changes to do_string() (the function where I noticed 
+it).
+
+[Mr. Mangler is indent11.c C source file unifier.  We went manually
+ into the source to remove all the right-padded comments, etc.
+ Then we ran Mr. Mangler against all the source to "standardize"
+ indentation.
+]
+
+Thirdly, looks like Mr. Mangler likes tabs, which is going to play hell 
+with patches, if not the final beta versions--i.e., those using tab-converting
+editors and who DON'T have indent.c are probably going to post some weird-
+looking patches.  Whatever.  Speaking of which, however, what settings are
+you using?  Just so *I* can be compatible, at least.
+
+[I'm using indent11 with the "-kr" settings.
+ And all source will be archived with NO tabs.
+ Except for the stupid makefiles, however
+]
+
+Fourthly, "makefile.msc" should have been uppercase; I suspect that stems
+from the "Unix" zipfile I once sent you, in which I edited the central-
+directory names for 2 or 3 late updates, but forgot to go fix the local-
+header names.  Not a big deal, obviously.
+
+[It's MAKEFILE.DOS now because of TC/MSC/OS2 integration.]
+
+Fifthly, your man page still says "3.1" at the top and has a weird (old)
+e-mail address for you at the bottom (also attached to the 3.0 or 3.1 version
+number).
+[unzip.1 edited to reflect "4.0".]
+
+Oh yeah, the comments at the top of unzip.c say "unzip40.tar.Z" rather than
+"unzip400".
+[Fixed]
+-----------------
+Final 4.01 Toad Hall Note:
+- Compiling in Turbo C integrated environment (e.g., using the .PRJ
+  file) produced an UNZIP.EXE a couple hundred bytes smaller than the
+  one compiled via tcc and the MAKEFILE.DOS.  Obviously I've forgotten
+  a switch somewhere, or my default tcc settings are slightly off.
+  So if you want the absolute smallest, suggest integrated compile.
+- No more stupid mixing of Unix and DOS text files.  EVERYTHING's gonna
+  have (1) no tabs and (2) Unix LF line endings.  If you're gonna work
+  in DOS, you'd better have FLIP or TOADCRLF or some such to convert
+  these Unix files.
+  We'll still indicate DOS files vs. Unix files via name case (e.g.,
+  DOS files'll be all uppercase).  Of course, the VMS files are ALSO
+  uppercase (meant to ask you about that, Cave Newt), but that's ok.
+  For the DENSA members, anything starting with VMS is NOT DOS, ok?

@@ -1,377 +1,548 @@
-/*
- * unzip.c was getting TOO big, so I split out a bunch of likely
- * defines and constants into a separate file.
- * David Kirschbaum
- * Toad Hall
- */
+/*---------------------------------------------------------------------------
 
-#define VERSION  "UnZip:  Zipfile Extract v3.10 (C) of 08-16-90;  (C) 1989 Samuel H. Smith"
+  unzip.h
 
-/* #define NOSKIP 1 */	/* v3.04 Enable if you do NOT want
-			 * skip_to_signature() enabled */
+  This header file is used by all of the unzip source files.  Its contents
+  are divided into six more-or-less separate sections:  OS-dependent includes,
+  (mostly) OS-independent defines, typedefs, function prototypes (or "proto-
+  types," in the case of non-ANSI compilers), macros, and global-variable
+  declarations.
 
-typedef unsigned char byte; /* code assumes UNSIGNED bytes */
-typedef long longint;
-typedef unsigned short UWORD;
-typedef char boolean;
+  Two potential trouble areas:  the use of "defined()" and the indentation
+  of preprocessor directives.  Both are new since the first edition of K&R,
+  but both also seem to be widely accepted by non-ANSI compilers.  So far
+  they've been tested on quite a few compilers, with no problems reported...
 
-/* v2.0g Allan Bjorklund added this.  Confirm it doesn't make your system
- * choke and die!  (Could be it belongs down in the !__STDC__ section
- * along with *malloc()
- */
-#ifdef MTS		/* v2.0h No one else seems to want it tho... */
-#include <sys/file.h>   /* v2.0g Chitra says MTS needs this for O_BINARY */
-#endif
+  ---------------------------------------------------------------------------*/
 
-#define STRSIZ 256
 
-#include <stdio.h>
- /* this is your standard header for all C compiles */
+
+/***************************/
+/*  OS-Dependent Includes  */
+/***************************/
+
+#include <stdio.h>       /* this is your standard header for all C compiles  */
 #include <ctype.h>
+#include <errno.h>       /* used in mapped_name() */
+#define DECLARE_ERRNO    /* everybody except MSC 6.0 */
+#ifdef VMS               /* sigh...you just KNEW someone had to break this.  */
+#  include <types.h>     /*  (placed up here instead of in VMS section below */
+#  include <stat.h>      /*   because types.h is used in some other headers) */
+#else  /* almost everybody */
+#  include <sys/types.h> /* off_t, time_t, dev_t, ... */
+#  include <sys/stat.h>  /* Everybody seems to need this. */
+#endif                   /*   This include file defines
+                          *     #define S_IREAD 0x0100  (* owner may read *)
+                          *     #define S_IWRITE 0x0080 (* owner may write *)
+                          *   as used in the creat() standard function.  Must
+                          *   be included AFTER sys/types.h for most systems.
+                          */
 
-#ifdef __TURBOC__           /* v2.0b */
-#include <timeb.h>      /* for structure ftime */
-#include <io.h>         /* for setftime(), dup(), creat() */
-#include <mem.h>        /* for memcpy() */
-#include <stat.h>       /* for S_IWRITE, S_IREAD */
-#endif
 
-#ifdef __STDC__
+/*---------------------------------------------------------------------------
+    Next, a word from our Unix (mostly) sponsors:
+  ---------------------------------------------------------------------------*/
 
-#include <stdlib.h>
- /* this include defines various standard library prototypes */
+#ifdef UNIX               /* On some systems sys/param.h partly duplicates   */
+#  include <sys/param.h>  /*  the contents of sys/types.h, so you don't need */
+                          /*  (and can't use) sys/types.h. (or param.h???)   */
+#  ifndef BSIZE
+#    define BSIZE   DEV_BSIZE    /* v2.0c assume common for all Unix systems */
+#  endif
 
-#else
-
-char *malloc();         /* who knows WHERE this is prototyped... */
-
-#endif
-
-#define min(a,b) ((a) < (b) ? (a) : (b))
-
-#ifndef ZMEM                            /* v2.0f use your system's stuff */
-#define zmemcpy memcpy
-#define zmemset memset
-#endif
-
-/* ----------------------------------------------------------- */
-/*
- * Zipfile layout declarations
- *
- */
-
-/* Macros for accessing the longint header fields.  These fields
-   are defined as array of char to prevent a 32-bit compiler from
-   padding the struct so that longints start on a 4-byte boundary.
-   This will not work on a machine that can access longints only
-   if they start on a 4-byte boundary.
-*/
-
-#ifndef NOTINT16    /* v2.0c */
-#define LONGIP(l) ((longint *) &((l)[0]))
-#define LONGI(l) (*(LONGIP(l)))
-#else       /* Have to define, since used for HIGH_LOW */
-#define LONGIP(I) &I
-#define LONGI(I) I
-#endif
-
-typedef longint signature_type;
-
-#define LOCAL_FILE_HEADER_SIGNATURE  0x04034b50L
-
-#ifndef NOTINT16            /* v2.0c */
-typedef struct local_file_header {
-    UWORD version_needed_to_extract;
-    UWORD general_purpose_bit_flag;
-    UWORD compression_method;
-    UWORD last_mod_file_time;
-    UWORD last_mod_file_date;
-    byte crc32[4];
-    byte compressed_size[4];
-    byte uncompressed_size[4];
-    UWORD filename_length;
-    UWORD extra_field_length;
-} local_file_header;
-
-#else   /* NOTINT16 */
-typedef struct local_file_header {
-    UWORD version_needed_to_extract;
-    UWORD general_purpose_bit_flag;
-    UWORD compression_method;
-    UWORD last_mod_file_time;
-    UWORD last_mod_file_date;
-    longint crc32;              /* v2.0e */
-    longint compressed_size;
-    longint uncompressed_size;  /* v2.0e */
-    UWORD filename_length;
-    UWORD extra_field_length;
-} local_file_header;
-
-typedef struct local_byte_header {
-    byte version_needed_to_extract[2];
-    byte general_purpose_bit_flag[2];
-    byte compression_method[2];
-    byte last_mod_file_time[2];
-    byte last_mod_file_date[2];
-    byte crc32[4];
-    byte compressed_size[4];
-    byte uncompressed_size[4];
-    byte filename_length[2];
-    byte extra_field_length[2];
-} local_byte_header;
-#endif
-
-#define CENTRAL_FILE_HEADER_SIGNATURE  0x02014b50L
-
-#ifndef NOTINT16            /* v2.0c */
-typedef struct central_directory_file_header {
-    UWORD version_made_by;
-    UWORD version_needed_to_extract;
-    UWORD general_purpose_bit_flag;
-    UWORD compression_method;
-    UWORD last_mod_file_time;
-    UWORD last_mod_file_date;
-    byte crc32[4];
-    byte compressed_size[4];
-    byte uncompressed_size[4];
-    UWORD filename_length;
-    UWORD extra_field_length;
-    UWORD file_comment_length;
-    UWORD disk_number_start;
-    UWORD internal_file_attributes;
-    byte external_file_attributes[4];
-    byte relative_offset_local_header[4];
-} central_directory_file_header;
-
-#else   /* NOTINT16 */
-typedef struct central_directory_file_header {
-    UWORD version_made_by;
-    UWORD version_needed_to_extract;
-    UWORD general_purpose_bit_flag;
-    UWORD compression_method;
-    UWORD last_mod_file_time;
-    UWORD last_mod_file_date;
-    longint crc32;                  /* v2.0e */
-    longint compressed_size;        /* v2.0e */
-    longint uncompressed_size;      /* v2.0e */
-    UWORD filename_length;
-    UWORD extra_field_length;
-    UWORD file_comment_length;
-    UWORD disk_number_start;
-    UWORD internal_file_attributes;
-    longint external_file_attributes;       /* v2.0e */
-    longint relative_offset_local_header;   /* v2.0e */
-} central_directory_file_header;
-
-typedef struct central_directory_byte_header {
-    byte version_made_by[2];
-    byte version_needed_to_extract[2];
-    byte general_purpose_bit_flag[2];
-    byte compression_method[2];
-    byte last_mod_file_time[2];
-    byte last_mod_file_date[2];
-    byte crc32[4];
-    byte compressed_size[4];
-    byte uncompressed_size[4];
-    byte filename_length[2];
-    byte extra_field_length[2];
-    byte file_comment_length[2];
-    byte disk_number_start[2];
-    byte internal_file_attributes[2];
-    byte external_file_attributes[4];
-    byte relative_offset_local_header[4];
-} central_directory_byte_header;
-#endif
-
-#define END_CENTRAL_DIR_SIGNATURE  0x06054b50L
-
-#ifndef NOTINT16            /* v2.0c */
-typedef struct end_central_dir_record {
-    UWORD number_this_disk;
-    UWORD number_disk_with_start_central_directory;
-    UWORD total_entries_central_dir_on_this_disk;
-    UWORD total_entries_central_dir;
-    byte size_central_directory[4];
-    byte offset_start_central_directory[4];
-    UWORD zipfile_comment_length;
-} end_central_dir_record;
-
-#else   /* NOTINT16 */
-typedef struct end_central_dir_record {
-    UWORD number_this_disk;
-    UWORD number_disk_with_start_central_directory;
-    UWORD total_entries_central_dir_on_this_disk;
-    UWORD total_entries_central_dir;
-    longint size_central_directory;         /* v2.0e */
-    longint offset_start_central_directory; /* v2.0e */
-    UWORD zipfile_comment_length;
-} end_central_dir_record;
-
-typedef struct end_central_byte_record {
-    byte number_this_disk[2];
-    byte number_disk_with_start_central_directory[2];
-    byte total_entries_central_dir_on_this_disk[2];
-    byte total_entries_central_dir[2];
-    byte size_central_directory[4];
-    byte offset_start_central_directory[4];
-    byte zipfile_comment_length[2];
-} end_central_byte_record;
-#endif  /* NOTINT16 */
-
-#define DLE 144
-
-#define max_bits 13
-#define init_bits 9
-#define hsize 8192
-#define first_ent 257
-#define clear 256
-
-/* ============================================================= */
-/*
- * Host operating system details
- *
- */
-
-#ifdef UNIX
-
-/* On some systems the contents of sys/param.h duplicates the
-   contents of sys/types.h, so you don't need (and can't use)
-   sys/types.h. */
-
-#include <sys/types.h>
-#include <sys/param.h>
-
-#define ZSUFX ".zip"
-#ifndef BSIZE
-#define BSIZE DEV_BSIZE     /* v2.0c assume common for all Unix systems */
-#endif
-
-#ifndef BSD                 /* v2.0b */
-#include <time.h>
-struct tm *gmtime(), *localtime();
-#else   /* BSD */
-#include <sys/time.h>
-#endif
+#  ifndef BSD
+#    define NO_MKDIR                                    /* for mapped_name() */
+#    include <time.h>
+     struct tm *gmtime(), *localtime();
+#  else   /* BSD */
+#    include <sys/time.h>
+#  endif
 
 #else   /* !UNIX */
-
-#define BSIZE 512   /* disk block size */
-#define ZSUFX ".ZIP"
-
+#  define BSIZE   512                                     /* disk block size */
 #endif
 
 #if defined(V7) || defined(BSD)
-
-#define strchr index
-#define strrchr rindex
-
+#  define strchr    index
+#  define strrchr   rindex
 #endif
 
-/*  v3.03 Everybody seems to need this.
- * this include file defines
- *             #define S_IREAD 0x0100  (* owner may read *)
- *             #define S_IWRITE 0x0080 (* owner may write *)
- * as used in the creat() standard function
- */
-#ifndef __TURBOC__	/* it's already included */
-#include <sys/stat.h>	/* for S_IWRITE, S_IREAD  v3.03 */
-#endif
-
-#ifdef __STDC__
-
-#include <string.h>
- /* this include defines strcpy, strcmp, etc. */
-
-#else
-
-char *strchr(), *strrchr();
-
-#endif
-
-long lseek();
-
-#define SEEK_SET  0
-#define SEEK_CUR  1
-#define SEEK_END  2
-
-#ifdef V7
-
-#define O_RDONLY  0
-#define O_WRONLY  1
-#define O_RDWR    2
-
-#else   /* !V7 */
-
-#include <fcntl.h>
- /*
-  * this include file defines
-  *             #define O_BINARY 0x8000  (* no cr-lf translation *)
-  * as used in the open() standard function
-  */
-
-#endif  /* V7 */
+/*---------------------------------------------------------------------------
+    And now, our MS-DOS and OS/2 corner:
+  ---------------------------------------------------------------------------*/
 
 #ifdef __TURBOC__
-/* v2.0b Local Prototypes */
-    /* In CRC32.C */
-extern void UpdateCRC(register unsigned char *s, register int len);
-    /* In MATCH.C */
-extern int match(char *string, char *pattern);
-    /* v2.0j in mapname.c */
-extern int mapped_name(void);
+#  define DOS_OS2             /* Turbo C under DOS, MSC under DOS or OS2 */
+#  include <sys/timeb.h>      /* for structure ftime */
+#  include <mem.h>            /* for memcpy() */
+#else                         /* NOT Turbo C... */
+#  ifdef MSDOS                /*   but still MS-DOS, so we'll assume it's    */
+#    ifndef MSC               /*   Microsoft's compiler and fake the ID, if  */
+#      define MSC             /*   necessary (it is in 5.0; apparently not   */
+#    endif                    /*   in 5.1 and 6.0) */
+#    include <dos.h>          /* _dos_setftime() */
+#  endif
+#  ifdef OS2                  /* stuff for DOS and OS/2 family version */
+#    ifndef MSC
+#      define MSC
+#    endif
+#    include <os2.h>          /* DosQFileInfo(), DosSetFileInfo()? */
+#  endif
+#endif
 
-#ifdef NOTINT16         /* v2.0c */
-/* The next two are only prototyped here for debug testing on my PC
- * with Turbo C.
+#ifdef MSC                    /* defined for all versions of MSC now */
+#  define DOS_OS2             /* Turbo C under DOS, MSC under DOS or OS/2 */
+#  ifndef __STDC__            /* MSC 5.0 and 5.1 aren't truly ANSI-standard, */
+#    define __STDC__          /*   but they understand prototypes...so */
+#  endif                      /*   they're close enough for our purposes */
+#  ifdef _MSC_VER             /* new with either 5.1 or 6.0 ... */
+#    if (_MSC_VER >= 600)     /* errno is now a function in a dynamic link */
+#      undef DECLARE_ERRNO    /*   library (or something)--incompatible with */
+#    endif                    /*   the usual "extern int errno" declaration */
+#  endif                      /*   (thanks to Wim Bonner for finding this) */
+#endif
+
+#ifdef DOS_OS2                /* defined for both Turbo C, MSC */
+#  include <io.h>             /* lseek(), open(), setftime(), dup(), creat() */
+#endif
+
+/*---------------------------------------------------------------------------
+    Followed by some VMS (mostly) stuff:
+  ---------------------------------------------------------------------------*/
+
+#ifdef VMS
+#  include <time.h>               /* the usual non-BSD time functions */
+#  include <file.h>               /* same things as fcntl.h has */
+#  define UNIX                    /* can share most of same code from now on */
+#  define RETURN   return_VMS     /* VMS interprets return codes incorrectly */
+#else
+#  define RETURN   return         /* only used in main() */
+#  ifdef V7
+#    define O_RDONLY  0
+#    define O_WRONLY  1
+#    define O_RDWR    2
+#  else
+#    ifdef MTS
+#      include <sys/file.h>       /* MTS uses this instead of fcntl.h */
+#    else
+#      include <fcntl.h>
+#    endif
+#  endif
+#endif
+/*
+ *   fcntl.h (above):   This include file defines
+ *                        #define O_BINARY 0x8000  (* no cr-lf translation *)
+ *                      as used in the open() standard function.
  */
 
-UWORD makeword(byte *b);
-longint makelong(byte *sig);    /* v2.0e */
-#endif  /* NOTINT16 */
+/*---------------------------------------------------------------------------
+    And finally, some random extra stuff:
+  ---------------------------------------------------------------------------*/
 
-int ReadByte(UWORD *x);
-int FillBitBuffer(register int bits);
-void LoadFollowers(void);
-void FlushOutput(void);
-void partial_clear(void);
-int create_output_file(void);
-void unShrink(void);
-void unReduce(void);
-void unImplode(void);
-void set_file_time(void);
-int readbuf(int fd, char *buf, register unsigned size);
-void get_string(int len, char *s);
-void dir_member(void);
-void extract_member(void);
-void skip_member(void);
-void process_local_file_header(char **fnamev);
-void process_central_file_header(void);
-void process_end_central_dir(void);
-int open_input_file(void);
-void process_headers(void);
-void usage(void);
-void process_zipfile(void);
-#endif  /* __TURBOC__ */
-
-/* ------------------------------------------------------------- */
-
-/* v3.05 Deleting  crc32.h and incorporating its two lines right here */
-/* #include "crc32.h" */
-
-unsigned long crc32val;
-#ifndef __TURBOC__	/* it's already been prototyped above */
-void UpdateCRC();
+#ifdef __STDC__
+#  include <stdlib.h>      /* standard library prototypes, malloc(), etc. */
+#  include <string.h>      /* defines strcpy, strcmp, memcpy, etc. */
+#else
+   char *malloc();
+   char *strchr(), *strrchr();
+   long lseek();
 #endif
 
-#define LF 10		/* '\n' on ascii machines.  Must be 10 due to EBCDIC */
-#define CR 13		/* '\r' on ascii machines.  Must be 13 due to EBCDIC */
+
+
+
+
+/*************/
+/*  Defines  */
+/*************/
+
+#define STRSIZ            256
+#define INBUFSIZ          BUFSIZ   /* same as stdio uses */
+#define DIR_BLKSIZ        64       /* number of directory entries per block  */
+                                   /*   (should fit in 4096 bytes, usually)  */
+#ifdef ZIPINFO
+#  define OUTBUFSIZ       BUFSIZ   /* zipinfo needs less than unzip does */
+#else
+#  define OUTBUFSIZ       0x2000   /* unImplode needs power of 2, >= 0x2000  */
+#endif
+
+#define ZSUFX             ".zip"
+#define CENTRAL_HDR_SIG   "\120\113\001\002"            /* the infamous "PK" */
+#define LOCAL_HDR_SIG     "\120\113\003\004"            /*  signature bytes  */
+#define END_CENTRAL_SIG   "\120\113\005\006"
+
+#define START             -1       /* identifies block when doing back-scan  */
+#define MIDDLE            0
+#define END               1
+
+#define SKIP              0        /* choice of activities for do_string() */
+#define DISPLAY           1
+#define FILENAME          2
+
+#define DOS_OS2_FAT_      0        /* version_made_by codes (central dir) */
+#define AMIGA_            1
+#define VMS_              2        /* MAKE SURE THESE ARE NOT DEFINED ON */
+#define UNIX_             3        /* THE RESPECTIVE SYSTEMS!!  (Like, for */
+#define VM_CMS_           4        /* instance, "UNIX":  CFLAGS = -O -DUNIX) */
+#define ATARI_            5
+#define OS2_HPFS_         6
+#define MAC_              7
+#define Z_SYSTEM_         8
+#define CPM_              9
+/* #define TOPS20_   10  (we're going to need this soon, I think...)  */
+#define NUM_HOSTS         10       /* index of last system + 1 */
+
+#define STORED            0        /* compression methods */
+#define SHRUNK            1
+#define REDUCED1          2
+#define REDUCED2          3
+#define REDUCED3          4
+#define REDUCED4          5
+#define IMPLODED          6
+#define NUM_METHODS       7        /* index of last method + 1 */
+/* don't forget to update list_files() appropriately if NUM_METHODS changes  */
+
+#define TRUE              1        /* sort of obvious */
+#define FALSE             0
+
+#define UNZIP_VERSION   11         /* compatible with PKUNZIP 1.1 */
+
+#ifndef UNZIP_OS                   /* not used yet, but will need for Zip    */
+#  ifdef UNIX                      /* (could be defined in Makefile or...)   */
+#    define UNZIP_OS    UNIX_
+#  endif
+#  ifdef DOS_OS2
+#    define UNZIP_OS    DOS_OS2_FAT_
+#  endif
+#  ifdef VMS
+#    define UNZIP_OS    VMS_
+#  endif
+#  ifdef MTS
+#    define UNZIP_OS    UNIX_
+#  endif
+#  ifndef UNZIP_OS                 /* still not defined:  default setting    */
+#    define UNZIP_OS    UNKNOWN
+#  endif
+#endif
+
+/*---------------------------------------------------------------------------
+    Macros for accessing the ULONG header fields.  When NOTINT16 is *not*
+    defined, these fields are allocated as arrays of char within the structs.
+    This prevents 32-bit compilers from padding the structs so that ULONGs
+    start on 4-byte boundaries (this will not work on machines that can ONLY
+    access ULONGs if they start on 4-byte boundaries).  If NOTINT16 *is*
+    defined, however, the original data are individually copied into working
+    structs consisting of UWORDs and ULONGs (which may therefore be padded
+    arbitrarily), so the ULONGs are accessed normally.
+  ---------------------------------------------------------------------------*/
+
+#ifdef NOTINT16
+#  define ULONG_(X)   X
+#else
+#  define ULONG_(X)   (*((ULONG *) (X)))
+#endif
+
+/*---------------------------------------------------------------------------
+    True sizes of the various headers, as defined by Phil Katz--so it is not
+    likely that these will ever change.  But if they do, make sure both these
+    defines AND the typedefs below get updated accordingly.
+  ---------------------------------------------------------------------------*/
+
+#define LREC_SIZE     26           /* lengths of local file headers, central */
+#define CREC_SIZE     42           /*   directory headers, and the end-of-   */
+#define ECREC_SIZE    18           /*   central-dir record, resp. */
+
+
+#define MAX_BITS      13                      /* used in unShrink() */
+#define HSIZE         (1 << MAX_BITS)         /* size of global work area */
+
+#define LF   10         /* '\n' on ASCII machines.  Must be 10 due to EBCDIC */
+#define CR   13         /* '\r' on ASCII machines.  Must be 13 due to EBCDIC */
 
 #ifdef EBCDIC
-extern unsigned char ebcdic [];
-#define ascii_to_native(c) ebcdic[(c)]
-#else
-#define ascii_to_native(c) (c)
+#  define ascii_to_native(c)   ebcdic[(c)]
 #endif
+
+#ifndef SEEK_SET         /* These should all be declared in stdio.h!  But */
+#  define SEEK_SET  0    /*   since they're not (in many cases), do so here. */
+#  define SEEK_CUR  1
+#  define SEEK_END  2
+#endif
+
+/**************/
+/*  Typedefs  */
+/**************/
+
+typedef unsigned char    byte;                /* code assumes UNSIGNED bytes */
+typedef long             longint;
+typedef unsigned short   UWORD;
+typedef unsigned long    ULONG;
+typedef char             boolean;
+
+/*---------------------------------------------------------------------------
+    Zipfile layout declarations
+  ---------------------------------------------------------------------------*/
+
+/*
+ *    If these headers ever change, make sure ??REC_SIZE defines (above)
+ *    change with them!!  [Sizes hard-coded since even byte-type structs
+ *    may be padded at the end, thus screwing up sizeof().  Thanks to Mark
+ *    Edwards for catching this.  1990.9.23]
+ *
+ *    New byte arrays replace the old byte-type structs; this is a much
+ *    cleaner way to do NOTINT16.  [Thanks to Bob Kemp.  1990.9.25]
+ *
+ *    longint fields changed to ULONGs, following Antoine Verheijen's lead.
+ *    None of the fields makes sense as a negative number, and the CRCs MUST
+ *    be defined as unsigned for some machines.  [Thanks to AV.  1990.10.10]
+ *
+ */
+
+#ifdef NOTINT16
+
+   typedef byte   local_byte_header[ LREC_SIZE ];
+#      define L_VERSION_NEEDED_TO_EXTRACT_0     0
+#      define L_VERSION_NEEDED_TO_EXTRACT_1     1
+#      define L_GENERAL_PURPOSE_BIT_FLAG        2
+#      define L_COMPRESSION_METHOD              4
+#      define L_LAST_MOD_FILE_TIME              6
+#      define L_LAST_MOD_FILE_DATE              8
+#      define L_CRC32                           10
+#      define L_COMPRESSED_SIZE                 14
+#      define L_UNCOMPRESSED_SIZE               18
+#      define L_FILENAME_LENGTH                 22
+#      define L_EXTRA_FIELD_LENGTH              24
+
+   typedef byte   central_directory_byte_header[ CREC_SIZE ];
+#      define C_VERSION_MADE_BY_0               0
+#      define C_VERSION_MADE_BY_1               1
+#      define C_VERSION_NEEDED_TO_EXTRACT_0     2
+#      define C_VERSION_NEEDED_TO_EXTRACT_1     3
+#      define C_GENERAL_PURPOSE_BIT_FLAG        4
+#      define C_COMPRESSION_METHOD              6
+#      define C_LAST_MOD_FILE_TIME              8
+#      define C_LAST_MOD_FILE_DATE              10
+#      define C_CRC32                           12
+#      define C_COMPRESSED_SIZE                 16
+#      define C_UNCOMPRESSED_SIZE               20
+#      define C_FILENAME_LENGTH                 24
+#      define C_EXTRA_FIELD_LENGTH              26
+#      define C_FILE_COMMENT_LENGTH             28
+#      define C_DISK_NUMBER_START               30
+#      define C_INTERNAL_FILE_ATTRIBUTES        32
+#      define C_EXTERNAL_FILE_ATTRIBUTES        34
+#      define C_RELATIVE_OFFSET_LOCAL_HEADER    38
+
+   typedef byte   end_central_byte_record[ ECREC_SIZE ];
+#      define NUMBER_THIS_DISK                  0
+#      define NUM_DISK_WITH_START_CENTRAL_DIR   2
+#      define NUM_ENTRIES_CENTRL_DIR_THS_DISK   4
+#      define TOTAL_ENTRIES_CENTRAL_DIR         6
+#      define SIZE_CENTRAL_DIRECTORY            8
+#      define OFFSET_START_CENTRAL_DIRECTORY    12
+#      define ZIPFILE_COMMENT_LENGTH            16
+
+
+   typedef struct local_file_header {                 /* LOCAL */
+       byte version_needed_to_extract[2];
+       UWORD general_purpose_bit_flag;
+       UWORD compression_method;
+       UWORD last_mod_file_time;
+       UWORD last_mod_file_date;
+       ULONG crc32;
+       ULONG compressed_size;
+       ULONG uncompressed_size;
+       UWORD filename_length;
+       UWORD extra_field_length;
+   } local_file_header;
+
+   typedef struct central_directory_file_header {     /* CENTRAL */
+       byte version_made_by[2];
+       byte version_needed_to_extract[2];
+       UWORD general_purpose_bit_flag;
+       UWORD compression_method;
+       UWORD last_mod_file_time;
+       UWORD last_mod_file_date;
+       ULONG crc32;
+       ULONG compressed_size;
+       ULONG uncompressed_size;
+       UWORD filename_length;
+       UWORD extra_field_length;
+       UWORD file_comment_length;
+       UWORD disk_number_start;
+       UWORD internal_file_attributes;
+       ULONG external_file_attributes;
+       ULONG relative_offset_local_header;
+   } central_directory_file_header;
+
+   typedef struct end_central_dir_record {            /* END CENTRAL */
+       UWORD number_this_disk;
+       UWORD num_disk_with_start_central_dir;
+       UWORD num_entries_centrl_dir_ths_disk;
+       UWORD total_entries_central_dir;
+       ULONG size_central_directory;
+       ULONG offset_start_central_directory;
+       UWORD zipfile_comment_length;
+   } end_central_dir_record;
+
+
+#else   /* !NOTINT16:  read data directly into the structure we'll be using  */
+
+
+   typedef struct local_file_header {                 /* LOCAL */
+       byte version_needed_to_extract[2];
+       UWORD general_purpose_bit_flag;
+       UWORD compression_method;
+       UWORD last_mod_file_time;
+       UWORD last_mod_file_date;
+       byte crc32[4];
+       byte compressed_size[4];
+       byte uncompressed_size[4];
+       UWORD filename_length;
+       UWORD extra_field_length;
+   } local_file_header;
+
+   typedef struct central_directory_file_header {     /* CENTRAL */
+       byte version_made_by[2];
+       byte version_needed_to_extract[2];
+       UWORD general_purpose_bit_flag;
+       UWORD compression_method;
+       UWORD last_mod_file_time;
+       UWORD last_mod_file_date;
+       byte crc32[4];
+       byte compressed_size[4];
+       byte uncompressed_size[4];
+       UWORD filename_length;
+       UWORD extra_field_length;
+       UWORD file_comment_length;
+       UWORD disk_number_start;
+       UWORD internal_file_attributes;
+       byte external_file_attributes[4];
+       byte relative_offset_local_header[4];
+   } central_directory_file_header;
+
+   typedef struct end_central_dir_record {            /* END CENTRAL */
+       UWORD number_this_disk;
+       UWORD num_disk_with_start_central_dir;
+       UWORD num_entries_centrl_dir_ths_disk;
+       UWORD total_entries_central_dir;
+       byte size_central_directory[4];
+       byte offset_start_central_directory[4];
+       UWORD zipfile_comment_length;
+   } end_central_dir_record;
+
+#endif  /* !NOTINT16 */
+
+
+
+
+
+/*************************/
+/*  Function Prototypes  */
+/*************************/
+
+#ifndef __              /* This amusing little construct was swiped without  */
+#  ifdef __STDC__       /*  permission from the fine folks at Cray Research, */
+#    define __(X)   X   /*  Inc.  Should probably give them a call and see   */
+#  else                 /*  if they mind, but....  Then again, I can't think */
+#    define __(X)   ()  /*  of any other way to do this, so maybe it's an    */
+#  endif                /*  algorithm?  Whatever, thanks to CRI.  (Note:     */
+#endif                  /*  keep interior stuff parenthesized.)              */
+
+/*---------------------------------------------------------------------------
+    Functions in nunzip.c:
+  ---------------------------------------------------------------------------*/
+
+void   usage                         __( (void) );
+int    process_zipfile               __( (void) );
+int    find_end_central_dir          __( (void) );
+int    scan_back                     __( (void) );
+int    process_end_central_dir       __( (void) );
+int    list_files                    __( (void) );
+int    extract_or_test_files         __( (void) );
+int    extract_or_test_member        __( (void) );
+int    process_central_file_header   __( (void) );
+int    process_local_file_header     __( (void) );
+
+/*---------------------------------------------------------------------------
+    Functions in file_io.c:
+  ---------------------------------------------------------------------------*/
+
+int    open_input_file           __( (void) );
+int    readbuf                   __( (int fd, char *buf, register unsigned size) );
+int    create_output_file        __( (void) );
+int    FillBitBuffer             __( (register int bits) );
+int    ReadByte                  __( (UWORD *x) );
+int    FlushOutput               __( (void) );
+/*
+ * static int   WriteBuffer       __( (int fd, unsigned char *buf, int len) );
+ * static int   dos2unix          __( (unsigned char *buf, int len) );
+ */
+void   set_file_time_and_close   __( (void) );
+
+/*---------------------------------------------------------------------------
+    Uncompression functions (all internal compression routines, enclosed in
+    comments below, are prototyped in their respective files and are invisi-
+    ble to external functions):
+  ---------------------------------------------------------------------------*/
+
+void   unImplode                __( (void) );                 /* unimplod.c  */
+/*
+ * static void   ReadLengths     __( (sf_tree *tree) );
+ * static void   SortLengths     __( (sf_tree *tree) );
+ * static void   GenerateTrees   __( (sf_tree *tree, sf_node *nodes) );
+ * static void   LoadTree        __( (sf_tree *tree, int treesize, sf_node *nodes) );
+ * static void   LoadTrees       __( (void) );
+ * static void   ReadTree        __( (register sf_node *nodes, int *dest) );
+ */
+
+void   unReduce                 __( (void) );                 /* unreduce.c  */
+/*
+ * static void   LoadFollowers   __( (void) );
+ */
+
+void   unShrink                 __( (void) );                 /* unshrink.c  */
+/*
+ * static void   partial_clear   __( (void) );
+ */
+
+/*---------------------------------------------------------------------------
+    Functions in match.c, mapname.c, and misc.c:
+  ---------------------------------------------------------------------------*/
+
+int       match         __( (char *string, char *pattern) );    /* match.c   */
+/*
+ * static BOOLEAN   do_list      __( (register char *string, char *pattern) );
+ * static void      list_parse   __( (char **patp, char *lowp, char *highp) );
+ * static char      nextch       __( (char **patp) );
+ */
+
+int       mapped_name   __( (void) );                           /* mapname.c */
+
+void      UpdateCRC     __( (register unsigned char *s, register int len) );
+int       do_string     __( (unsigned int len, int option) );   /* misc.c */
+UWORD     makeword      __( (byte *b) );                        /* misc.c */
+ULONG     makelong      __( (byte *sig) );                      /* misc.c */
+void      return_VMS    __( (int zip_error) );                  /* misc.c */
+#ifdef ZMEM
+   char   *memset       __( (register char *buf, register char init, register unsigned int len) );
+   char   *memcpy       __( (register char *dst, register char *src, register unsigned int len) );
+#endif    /* These guys MUST be ifdef'd because their definition conflicts   */
+          /*  with the standard one.  Others (makeword/makelong, return_VMS) */
+          /*  don't matter. */
+
+
+
+
+
+/************/
+/*  Macros  */
+/************/
+
+#ifndef min                                  /* MSC defines this in stdlib.h */
+#  define min(a,b)   ((a) < (b) ? (a) : (b))
+#endif
+
 
 #define OUTB(intc) { *outptr++=intc; if (++outcnt==OUTBUFSIZ) FlushOutput(); }
 
@@ -384,6 +555,7 @@ extern unsigned char ebcdic [];
  *  }
  *
  */
+
 
 #define READBIT(nbits,zdest) { if (nbits <= bits_left) { zdest = (int)(bitbuf & mask_bits[nbits]); bitbuf >>= nbits; bits_left -= nbits; } else zdest = FillBitBuffer(nbits);}
 
@@ -399,3 +571,154 @@ extern unsigned char ebcdic [];
  *  }
  *
  */
+
+
+#define NUKE_CRs(buf,len) {int i,j; for (i=j=0; j<len; (buf)[i++]=(buf)[j++]) if ((buf)[j]=='\r') ++j; len=i;}
+
+/*
+ *  Remove all the ASCII carriage returns from buffer buf (length len),
+ *  shortening as necessary (note that len gets modified in the process,
+ *  so it CANNOT be an expression).  This macro is intended to be used
+ *  BEFORE A_TO_N(); hence the check for CR instead of '\r'.  NOTE:  The
+ *  if-test gets performed one time too many, but it doesn't matter.
+ *
+ *  macro NUKE_CRs( buf, len )
+ *    {
+ *      int   i, j;
+ *
+ *      for ( i = j = 0  ;  j < len  ;  (buf)[i++] = (buf)[j++] )
+ *        if ( (buf)[j] == CR )
+ *          ++j;
+ *      len = i;
+ *    }
+ *
+ */
+
+
+
+#define TOLOWER(str1,str2) {char *ps1,*ps2; ps1=(str1)-1; ps2=(str2); while(*++ps1) *ps2++=(isupper(*ps1))?tolower(*ps1):*ps1; *ps2='\0';}
+
+/*
+ *  Copy the zero-terminated string in str1 into str2, converting any
+ *  uppercase letters to lowercase as we go.  str2 gets zero-terminated
+ *  as well, of course.  str1 and str2 may be the same character array.
+ *
+ *  macro TOLOWER( str1, str2 )
+ *    {
+ *      char   *ps1, *ps2;
+ *
+ *      ps1 = (str1) - 1;
+ *      ps2 = (str2);
+ *      while ( *++ps1 )
+ *        *ps2++ = (isupper(*ps1)) ?  tolower(*ps1)  :  *ps1;
+ *      *ps2='\0';
+ *    }
+ *
+ *  NOTES:  This macro makes no assumptions about the characteristics of
+ *    the tolower() function or macro (beyond its existence), nor does it
+ *    make assumptions about the structure of the character set (i.e., it
+ *    should work on EBCDIC machines, too).  The fact that either or both
+ *    of isupper() and tolower() may be macros has been taken into account;
+ *    watch out for "side effects" (in the C sense) when modifying this
+ *    macro.
+ */
+
+
+
+#ifndef ascii_to_native
+
+#  define ascii_to_native(c)   (c)
+#  define A_TO_N(str1)
+
+#else
+
+#  define NATIVE			/* Used in main() for '-a' and '-c'. */
+
+#  define A_TO_N(str1) { register unsigned char *ps1; for (ps1 = str1; *ps1; ps1++) *ps1 = (ascii_to_native(*ps1)); }
+
+/*
+ *   Translate the zero-terminated string in str1 from ASCII to the native
+ *   character set. The translation is performed in-place and uses the
+ *   ascii_to_native macro to translate each character.
+ *
+ *   macro A_TO_N( str1 )
+ *     {
+ *	 register unsigned char *ps1;
+ *
+ *	 for ( ps1 = str1; *ps1; ps1++ )
+ *	   *ps1 = ( ascii_to_native( *ps1 ) );
+ *     }
+ *
+ *   NOTE: Using the ascii_to_native macro means that is it the only part of
+ *     unzip which knows which translation table (if any) is actually in use
+ *     to produce the native character set. This makes adding new character
+ *     set translation tables easy insofar as all that is needed is an
+ *     appropriate ascii_to_native macro definition and the translation
+ *     table itself. Currently, the only non-ASCII native character set
+ *     implemented is EBCDIC but this may not always be so.
+ */
+
+#endif
+
+
+
+
+
+/*************/
+/*  Globals  */
+/*************/
+
+/*--------------------------------------------------------------------------
+    These declarations are needed by everybody *except* unzip.c, or at least
+    that's how it was until Antoine Verheijen added a reference to ebcdic[].
+    But as Larry Jones points out, including these in unzip.c *also* ensures
+    that the definitions match the declarations (else the compiler burps).
+    And once we take that step, there's no longer any reason for the extern
+    declarations to reside within a separate file.  Hence the inclusion here
+    of (most of) the former contents of globals.h.
+  --------------------------------------------------------------------------*/
+
+   extern int       tflag;
+/* extern int       vflag;    (only used in unzip.c)  */
+   extern int       cflag;
+   extern int       aflag;
+   extern int       dflag;
+   extern int       Uflag;
+   extern int       lcflag;
+   extern longint   csize;
+   extern longint   ucsize;
+
+   extern short     prefix_of[];
+   extern byte      suffix_of[];
+   extern byte      stack[];
+   extern ULONG     crc32val;
+   extern UWORD     mask_bits[];
+
+   extern byte      *inbuf;
+   extern byte      *inptr;
+   extern int       incnt;
+   extern UWORD     bitbuf;
+   extern int       bits_left;
+   extern boolean   zipeof;
+   extern int       zipfd;
+   extern char      zipfn[];
+   extern local_file_header   lrec;
+   extern struct stat         statbuf;
+   extern longint   cur_zipfile_fileptr;
+   extern longint   cur_zipfile_bufstart;
+
+   extern byte      *outbuf;
+   extern byte      *outptr;
+   extern byte      *outout;
+   extern longint   outpos;
+   extern int       outcnt;
+   extern int       outfd;
+   extern char      filename[];
+
+#ifdef DECLARE_ERRNO
+   extern int       errno;
+#endif
+
+#ifdef EBCDIC
+   extern byte      ebcdic[];
+#endif

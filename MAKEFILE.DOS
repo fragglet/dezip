@@ -1,0 +1,106 @@
+#  Makefile.DOS    Makefile for UnZip 4.0, using Microsoft C Compiler 5.0
+#                  and Microsoft MAKE 4.02 (or later versions).  Users of
+#                  MSC 6.0 and NMAKE can use the regular makefile by typing
+#                  "nmake msc_dos".]
+#
+#                  Works just fine as it stands for Turbo C v2.0.
+#                  You'll have to uncomment and/or edit for Include
+#                  and Library paths.
+#
+#  Notes:  (1) Uncomment the appropriate compiler/OS options below.
+#          (2) Change the various CFLAGS as appropriate for your environment
+#              and libraries.
+#              For MSC:  -AS specifies small-model library; -FPi87
+#              specifies inline 80x87 support (there is no floating-point
+#              math in unzip, but that's my default library); and -G2 enables
+#              80286 instructions.  QuickC uses the medium memory model, as
+#              I recall (-AM and/or -qc).
+#              The "ALL:" target is used by MSC 6.0 with old MAKE; thanks to 
+#              Bo Kullmar for that fix.
+#          (3) Rename this file to "unzip" on a DOS system; typing "make
+#              unzip" with MSC (or "make -funzip" with TC) then builds
+#              unzip.exe.
+#
+#  Greg Roelofs
+#  roelofs@amelia.nas.nasa.gov
+#
+
+#####################
+# MACRO DEFINITIONS #
+#####################
+
+# Turbo C 2.0 for MS-DOS:
+# ----------------------
+# tcc is usually configured with -I and -L set appropriately...
+CC = tcc
+CFLAGS = -ms -O -Z
+INCL = #-Ic:\turboc\include
+LD = tcc
+LDFLAGS = -ms #-Lc:\turboc\lib
+LDFLAGS2 =
+
+# MSC for MS-DOS:
+# --------------
+# CC = cl
+# CFLAGS = -AS -Ox -G2 -FPi87    # change to -FPi if coprocessor not installed
+# INCL =
+# LD = link
+# LDFLAGS = /NOI
+# LDFLAGS2 = ,$*;
+
+# MSC with SDK for OS/2:
+# ---------------------
+# CC = cl
+# CFLAGS = -AS -Ox -G2 -DOS2
+# INCL = -Ic:\m5\include         # for example
+# LD = link
+# LDFLAGS = /NOI
+# RM = del
+# LIBC = c:\m5\lib\p\slibce
+# LIBD = c:\m5\lib\doscalls.lib
+# LIBA = c:\m5\lib\api.lib
+
+OBJS = unzip.obj file_io.obj mapname.obj match.obj misc.obj\
+       unimplod.obj unreduce.obj unshrink.obj
+
+
+###############################################
+# BASIC COMPILE INSTRUCTIONS AND DEPENDENCIES #
+###############################################
+
+ALL	: unzip.exe
+
+.c.obj:
+        $(CC) -c $(CFLAGS) $(INCL) $*.c
+
+unzip.obj:      unzip.c unzip.h
+
+file_io.obj:    file_io.c unzip.h
+
+mapname.obj:    mapname.c unzip.h
+
+match.obj:      match.c unzip.h
+
+misc.obj:       misc.c unzip.h
+
+unimplod.obj:   unimplod.c unzip.h
+
+unreduce.obj:   unreduce.c unzip.h
+
+unshrink.obj:   unshrink.c unzip.h
+
+# DOS:
+# ---
+unzip.exe:     $(OBJS)
+        $(LD) $(LDFLAGS) $(OBJS) $(LDFLAGS2)
+
+# OS/2:
+# ----
+# unziptmp.exe:  $(OBJS)
+#         $(LD) $(LDFLAGS) $(OBJS), $*.exe,,$(LIBC)+$(LIBD);
+#
+# unzip.exe:     unziptmp.exe
+#         bind unziptmp.exe $(LIBD) $(LIBA) -o unzip.exe
+#         $(RM) unziptmp.exe
+#         $(RM) *.obj
+#         $(RM) *.map
