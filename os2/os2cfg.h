@@ -100,6 +100,11 @@
 # endif
 #endif
 
+/* TIMESTAMP is now supported on OS/2, so enable it by default */
+#if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#  define TIMESTAMP
+#endif
+
 #ifdef isupper
 #  undef isupper
 #endif

@@ -135,8 +135,13 @@
 #define NOVELL_BUG_FAILSAFE
 
 
+/* the TIMESTAMP feature is now supported on MSDOS, enable it per default */
+#if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#  define TIMESTAMP
+#endif
+
 /* The optional "long filename" support available with some MSDOS compiler
- * environment running under VFAT systems (Win95) is controlled with the
+ * environments running under VFAT systems (Win95) is controlled with the
  * help of the two preprocessor symbols USE_VFAT and USE_LFN:
  *  - USE_VFAT is a compile time switch that selects the long filename
  *             semantics in mapname()
@@ -236,6 +241,25 @@
 #  ifndef CRTL_CP_IS_OEM
 #    define CRTL_CP_IS_OEM
 #  endif
+#endif
+
+/* SCREENLINES macros for 16-bit and djgpp compilers */
+#ifdef __16BIT__
+#  define SCREENLINES (int)(*((unsigned char far*)0x00400084L) + 1)
+#  define SCREENWIDTH (int)(*(unsigned short far*)0x0040004AL)
+#endif
+
+#if defined(__GO32__) || defined(__DJGPP__)    /* djgpp v1.x and v2.x */
+#  include <pc.h>
+#  define SCREENLINES ScreenRows()
+#  define SCREENWIDTH ScreenCols()
+#endif
+
+#ifdef __EMX__
+#  define SCREENLINES screenlines()
+#  define SCREENWIDTH screencolumns()
+   int screenlines(void);
+   int screencolumns(void);
 #endif
 
 #endif /* !__doscfg_h */

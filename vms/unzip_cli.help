@@ -33,6 +33,9 @@
 .!	02-007		Christian Spieler	04-MAR-1997 22:25
 .!		Added /[NO]CASE_INSENSITIVE to ZipInfo mode;
 .!		documented the new /PASSWORD="decryption_key" option.
+.!	02-007		Christian Spieler	22-JUL-1997 22:37
+.!		Formatting changes (prevent line wraps); added "Exit_Codes"
+.!		subtopic (no version number change).
 .!
 <INIT>
 <MAIN>
@@ -127,10 +130,10 @@ Selects conversion to VMS "standard" binary file format, which is
 "fixed length 512 byte records, no record attributes".
 The optional keywords recognized are:
 <LITERAL>
-|  AUTO      Automatically extracts files marked as "binary" (rather than
-|            "text") in in standard VMS binary file format. (default)
-|  ALL       Extracts all files in standard VMS binary file format.
-|  NONE      Same as /NOBINARY.
+|  AUTO     Automatically extracts files marked as "binary" (rather
+|           than "text") in standard VMS binary file format. (default)
+|  ALL      Extracts all files in standard VMS binary file format.
+|  NONE     Same as /NOBINARY.
 <LARETIL>
 
 Note that a combination of /BINARY[=AUTO] and /TEXT[=AUTO] is allowed.
@@ -291,10 +294,10 @@ Test archive files.
 Selects conversion to VMS standard text file format.
 The optional keywords recognized are:
 <LITERAL>
-|  AUTO      Automatically extracts files marked as "text" (rather than
-             "binary") in in standard VMS text file format. (default)
-|  ALL       Extracts all files in standard VMS text file format.
-|  NONE      Same as /NOTEXT.
+|  AUTO     Automatically extracts files marked as "text" (rather
+|           than "binary") in standard VMS text file format. (default)
+|  ALL      Extracts all files in standard VMS text file format.
+|  NONE     Same as /NOTEXT.
 <LARETIL>
 
 A similar functionality is available for binary files, see qualifier /BINARY.
@@ -317,10 +320,95 @@ Retain VMS file version numbers.
 Authors
 
 Info-ZIP; currently maintained by Greg Roelofs.  VMS support maintained
-by Igor Mandrichenko and Hunter Goatley.  Originally based on a program
-by Samuel H. Smith.
+by Igor Mandrichenko, Christian Spieler and Hunter Goatley.  Originally
+based on a program by Samuel H. Smith.
 
 VMS on-line help ported from UNZIP.DOC by Hunter Goatley.
+
+<TOPIC>
+Exit_Codes
+
+On VMS, UnZip's UNIX style exit values are mapped into proper
+VMS status codes:
+<LITERAL>
+|   1                               (success)  normal exit,
+|   (0x7fff0000 + 16*UnZip_errnum)  -W- warnings
+|   (0x7fff0002 + 16*UnZip_errnum)  -E- normal errors
+|   (0x7fff0004 + 16*UnZip_errnum)  -F- fatal errors
+<LARETIL>
+
+The UnZip error level (or exit code) approximates the exit
+codes defined by PKWARE and takes on the following values:
+<LITERAL>
+|  VMS       UnZip    Type of error
+|  severity  errcode
+|    -         0      normal; no errors or warnings detected.
+|
+|    W         1      one or more warning errors were encountered,
+|                     but processing completed  successfully  any-
+|                     way.   This  includes  zipfiles where one or
+|                     more files was skipped  due  to  unsupported
+|                     compression  method  or  encryption  with an
+|                     unknown password.
+|
+|    E         2      a generic error in the  zipfile  format  was
+|                     detected.   Processing  may  have  completed
+|                     successfully anyway;  some  broken  zipfiles
+|                     created by other archivers have simple work-
+|                     arounds.
+|
+|    F         3      a severe error in  the  zipfile  format  was
+|                     detected.   Processing probably failed imme-
+|                     diately.
+|
+|    F         4      unzip was unable to allocate memory for  one
+|                     or  more  buffers during program initializa-
+|                     tion.
+|
+|    F         5      unzip  was  unable  to  allocate  memory  or
+|                     unable  to  obtain a tty to read the decryp-
+|                     tion password(s).
+|
+|    F         6      unzip was unable to allocate  memory  during
+|                     decompression to disk.
+|
+|    F         7      unzip  was  unable to allocate memory during
+|                     in-memory decompression.
+|
+|    F         8      [currently not used]
+|
+|    E         9      the specified zipfiles were not found.
+|
+|    E         10     invalid options were specified on  the  com-
+|                     mand line.
+|
+|    E         11     no matching files were found.
+|
+|    F         50     the disk is (or was) full during extraction.
+|
+|    F         51     the end of the ZIP archive  was  encountered
+|                     prematurely.
+|
+|    E         80     the user aborted unzip prematurely with con-
+|                     trol-C (or similar)
+|
+|    E         81     no files were found due to unsupported  com-
+|                     pression  methods or unsupported decryption.
+|                     (If even one additional file is successfully
+|                     processed, however, the exit status is 1.)
+|
+|    E         82     no  files  were  found due to bad decryption
+|                     password(s).  This is also the  exit  status
+|                     if  no files were found due to a combination
+|                     of unsupported  compression  and  bad  pass-
+|                     words.   As in the previous case, however, a
+|                     single successful file  will  result  in  an
+|                     exit status of 1 instead.)
+<LARETIL>
+
+In addition, there is a compilation option to expand upon this behavior:
+An executable compiled with the option RETURN_CODES defined displays
+a human-readable explanation of what the error status means.
 
 <TOPIC>
 UNIX_Options
@@ -351,7 +439,7 @@ options and modifiers can be provided:
 |  -q   perform operations quietly (-qq => even quieter)
 |  -C   match filenames case-insensitively
 |  -L   convert filenames to lowercase if created on MSDOS, VMS, etc.
-|  -Ppassword  supply decryption password on the command line (insecure!)
+|  -P<pwd>  supply decryption password on the command line (insecure!)
 |  -M   page output through built-in "more" function
 |  -V   retain (VMS) file version numbers
 |  -X   restore owner/protection info (may require privileges)

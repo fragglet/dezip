@@ -24,14 +24,6 @@
 #  define MORE
 #endif
 
-/* GRR 970513:  still needs to be ported to OS/2, DOS, etc.; fine for Unix */
-#if (!defined(TIMESTAMP) && !defined(NOTIMESTAMP))
-#  define TIMESTAMP
-#endif
-#if (defined(TIMESTAMP) && !defined(UNIX))
-#  undef TIMESTAMP
-#endif
-
 /* fUnZip should never need to be reentrant */
 #ifdef FUNZIP
 #  ifdef REENTRANT
@@ -88,7 +80,11 @@
 #  else
 #    define REDIRECTC(c)
 #    define REDIRECTPRINT(buf,size)  0
-#    define FINISH_REDIRECT()
+#    ifdef WINDLL
+#      define FINISH_REDIRECT()      FLUSH(G.outcnt)
+#    else
+#      define FINISH_REDIRECT()
+#    endif
 #  endif
 #endif
 
@@ -129,13 +125,18 @@
 #  include <limits.h>
 #  define SYMLINKS
 #  define EXE_EXTENSION  ".tos"
-#  define DATE_FORMAT    DF_DMY
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT  DF_DMY
+#  endif
 #  define DIR_END        '/'
 #  define INT_SPRINTF
 #  define timezone      _timezone
 #  define lenEOL        2
 #  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 #  undef SHORT_NAMES
+#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#    define TIMESTAMP
+#  endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -147,22 +148,30 @@
 #  include <sys/stat.h>           /* POSIX 1003.1 system; see beos/ for     */
 #  include <fcntl.h>              /* extra code to deal with our extra file */
 #  include <sys/param.h>          /* attributes. */
-#  ifdef __GNUC__
-#    include <be/kernel/unistd.h> /* our headers can be strange... */
-#  else
-#    include <unistd.h>
-#  endif
+#  include <unistd.h>
 #  include <utime.h>
 #  define DIRENT
 #  include <time.h>
-#  define DATE_FORMAT   DF_MDY    /* GRR:  customize with locale.h somehow? */
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_MDY  /* GRR:  customize with locale.h somehow? */
+#  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
 #  define USE_EF_UT_TIME
+#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#    define TIMESTAMP
+#  endif
 #  define NO_GMTIME               /* maybe DR10 will have timezones... */
 #  define INT_SPRINTF
 #  define SYMLINKS
+#  ifdef __GNUC__
+     /* Not only does it have screwed up unistd.h and stdlib.h (see unzip.h
+      * for that fix: #define __USE_FIXED_PROTOTYPES__), GeekGadgets' unistd.h
+      * leaves out at least two functions supported by BeOS: */
+     extern int ioctl(int fd, int op, ...);
+     extern int symlink(const char *from, const char *to);
+#  endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -176,7 +185,9 @@
 #  include <conio.h>
 #  include <jctype.h>
 #  include <sys/stat.h>
-#  define DATE_FORMAT   DF_YMD   /* Japanese standard */
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_YMD   /* Japanese standard */
+#  endif
       /* GRR:  these EOL macros are guesses */
 #  define lenEOL        2
 #  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
@@ -187,8 +198,25 @@
     Mac section:
   ---------------------------------------------------------------------------*/
 
+#if defined(__MWERKS__) && defined(macintosh)
+#  include <OSUtils.h>
+
+#  define AddResMenu    AppendResMenu
+#  define Date2Secs     DateToSeconds
+#  define DisposDialog  DisposeDialog
+#  define GetDItem      GetDialogItem
+#  define GetItem       GetMenuItemText
+#  define GetIText      GetDialogItemText
+#  define GetMHandle    GetMenuHandle
+
+   typedef unsigned long mode_t;
+#  define _STAT
+
+#  define CREATOR  'R*ch'
+#  define MAIN     _dummy_main
+#endif
+
 #ifdef THINK_C
-#  define MACOS
 #  ifndef __STDC__            /* if Think C hasn't defined __STDC__ ... */
 #    define __STDC__ 1        /*   make sure it's defined: it needs it */
 #  else
@@ -197,12 +225,12 @@
 #      define __STDC__ 1      /*   files are not properly included. */
 #    endif /* !__STDC__ */
 #  endif
+#  define IOCompletionUPP   ProcPtr
 #  define CREATOR  'KAHL'
 #  define MAIN     _dummy_main
 #endif /* THINK_C */
 
 #ifdef MPW
-#  define MACOS
 #  include <Errors.h>
 #  include <Files.h>
 #  include <Memory.h>
@@ -236,7 +264,9 @@
 #    define NO_STRNICMP
 #  endif
 #  define DIR_END ':'
-#  define DATE_FORMAT   DF_MDY
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_MDY
+#  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(CR);
 #  define MALLOC_WORK
@@ -254,7 +284,7 @@
 #  define TIMET_TO_NATIVE(x)  (x) += (ulg)2082844800L;
 #  define NATIVE_TO_TIMET(x)  (x) -= (ulg)2082844800L;
 
-#  ifdef THINK_C
+#  ifndef MPW
 #    define fgets       wfgets
 #    define fflush(f)
 #    define fprintf     wfprintf
@@ -312,13 +342,16 @@
 #endif /* MACOS */
 
 /*---------------------------------------------------------------------------
-    MS-DOS and OS/2 section:
+    MS-DOS, OS/2, FLEXOS section:
   ---------------------------------------------------------------------------*/
 
 #ifdef WINDLL
 #  define MSWIN
 #  ifdef MORE
 #    undef MORE
+#  endif
+#  ifdef OS2_EAS
+#    undef OS2_EAS
 #  endif
 #endif
 
@@ -328,7 +361,7 @@
 #  endif
 #endif
 
-#if (defined(MSDOS) || defined(OS2))
+#if (defined(MSDOS) || defined(OS2) || defined(FLEXOS))
 #  include <sys/types.h>      /* off_t, time_t, dev_t, ... */
 #  include <sys/stat.h>
 #  include <io.h>             /* lseek(), open(), setftime(), dup(), creat() */
@@ -338,7 +371,11 @@
 #  ifdef OS2                  /* defined for all OS/2 compilers */
 #    include "os2/os2cfg.h"
 #  else
-#    include "msdos/doscfg.h"
+#    ifdef FLEXOS
+#      include "flexos/flxcfg.h"
+#    else
+#      include "msdos/doscfg.h"
+#    endif
 #  endif
 
 #  if (defined(_MSC_VER) && (_MSC_VER == 700) && !defined(GRR))
@@ -356,18 +393,21 @@
 #  if (defined(__BORLANDC__) && (__BORLANDC__ >= 0x0450))
 #    define timezone      _timezone
 #  endif
-#  ifdef __GO32__
+#  if (defined(__GO32__) || defined(FLEXOS))
 #    define DIR_END       '/'
 #  else
 #    define DIR_END       '\\'
 #  endif
 #  ifndef WIN32
+#    ifdef DATE_FORMAT
+#      undef DATE_FORMAT
+#    endif
 #    define DATE_FORMAT   dateformat()
 #  endif
 #  define lenEOL          2
 #  define PutNativeEOL    {*q++ = native(CR); *q++ = native(LF);}
 #  define USE_EF_UT_TIME
-#endif /* MSDOS || OS2 */
+#endif /* MSDOS || OS2 || FLEXOS */
 
 /*---------------------------------------------------------------------------
     MTS section (piggybacks UNIX, I think):
@@ -387,7 +427,9 @@
 #  define close_outfile()  fclose(G.outfile)   /* can't set time on files */
 #  define umask(n)            /* don't have umask() on MTS */
 #  define FOPWT         "w"   /* open file for writing in TEXT mode */
-#  define DATE_FORMAT   DF_MDY
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_MDY
+#  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #endif /* MTS */
@@ -401,15 +443,32 @@
 #  include <fcntl.h>
 #  include <unistd.h>
 #  include <sys/stat.h>
-#  include <sys/time.h>
+#  include <time.h>
 #  include "qdos/izqdos.h"
-#  define DATE_FORMAT   DF_MDY
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_MDY
+#  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define DIR_END       '_'
 #  define RETURN        QReturn
 #  undef PATH_MAX
 #  define PATH_MAX      36
+#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#    define TIMESTAMP
+#  endif
+#endif
+
+/*---------------------------------------------------------------------------
+    Tandem NSK section:
+  ---------------------------------------------------------------------------*/
+
+#ifdef TANDEM
+#  include "tandem.h"
+#  include <fcntl.h>
+   /* use a single LF delimiter so that writes to 101 text files work */
+#  define PutNativeEOL  *q++ = native(LF);
+#  define lenEOL        1
 #endif
 
 /*---------------------------------------------------------------------------
@@ -435,7 +494,9 @@
 #  define DIR_BEG       '<'
 #  define DIR_END       '>'
 #  define DIR_EXT       ".directory"
-#  define DATE_FORMAT   DF_MDY
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_MDY
+#  endif
 #  define EXE_EXTENSION ".exe"  /* just a guess... */
 #endif /* TOPS20 */
 
@@ -517,11 +578,16 @@
 #  ifdef MINIX
 #    include <stdio.h>
 #  endif
-#  define DATE_FORMAT   DF_MDY    /* GRR:  customize with locale.h somehow? */
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_MDY    /* GRR:  customize with locale.h somehow? */
+#  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
 #  define USE_EF_UT_TIME
+#  if (!defined(TIMESTAMP) && !defined(NOTIMESTAMP))   /* GRR 970513 */
+#    define TIMESTAMP
+#  endif
 #endif /* UNIX */
 
 /*---------------------------------------------------------------------------
@@ -558,7 +624,9 @@
 #  define DIR_BEG       '['
 #  define DIR_END       ']'
 #  define DIR_EXT       ".dir"
-#  define DATE_FORMAT   DF_MDY
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_MDY
+#  endif
 #  define lenEOL        1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define SCREENLINES   screenlines()
@@ -568,6 +636,9 @@
 #    if (!defined(NO_EF_UT_TIME) && !defined(USE_EF_UT_TIME))
 #      define USE_EF_UT_TIME
 #    endif
+#  endif
+#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#    define TIMESTAMP
 #  endif
 #endif /* VMS */
 
@@ -607,6 +678,18 @@
 #  define DOS_H68_OS2_W32
 #endif
 
+#if (defined(DOS_OS2) || defined(FLEXOS))
+#  define DOS_FLX_OS2
+#endif
+
+#if (defined(DOS_OS2_W32) || defined(FLEXOS))
+#  define DOS_FLX_OS2_W32
+#endif
+
+#if (defined(DOS_H68_OS2_W32) || defined(FLEXOS))
+#  define DOS_FLX_H68_OS2_W32
+#endif
+
 #if (defined(TOPS20) || defined(VMS))
 #  define T20_VMS
 #endif
@@ -639,7 +722,7 @@
 #  define NATIVE_TO_TIMET(x)
 #endif
 
-#if (defined(DOS_OS2_W32) || defined(UNIX) || defined(RISCOS))
+#if (defined(DOS_FLX_OS2_W32) || defined(UNIX) || defined(RISCOS))
 #  ifndef HAVE_UNLINK
 #    define HAVE_UNLINK
 #  endif
@@ -656,7 +739,7 @@
 #  if (defined(SYSV) || defined(CONVEX) || defined(NeXT) || defined(BSD4_4))
 #    define INT_SPRINTF      /* sprintf() returns int:  SysVish/Posix */
 #  endif
-#  if (defined(DOS_OS2_W32) || defined(VMS) || defined(AMIGA) || defined(_AIX))
+#  if (defined(DOS_FLX_OS2_W32) || defined(VMS) || defined(AMIGA))
 #    define INT_SPRINTF      /* sprintf() returns int:  ANSI */
 #  endif
 #  if (defined(ultrix) || defined(__ultrix)) /* Ultrix 4.3 and newer */
@@ -667,7 +750,7 @@
 #      define PCHAR_SPRINTF  /* undetermined actual return value */
 #    endif
 #  endif
-#  if (defined(__osf__) || defined(CMS_MVS))
+#  if (defined(__osf__) || defined(_AIX) || defined(CMS_MVS))
 #    define INT_SPRINTF      /* sprintf() returns int:  ANSI/Posix */
 #  endif
 #  if defined(sun)
@@ -704,7 +787,7 @@
 #define MSG_NO_WDLL(f) (f & 0x1000)   /* bit 12:  1 = skip if Windows DLL */
 
 #if (defined(MORE) && !defined(SCREENLINES))
-#  ifdef DOS_OS2_W32
+#  ifdef DOS_FLX_OS2_W32
 #    define SCREENLINES 25  /* can be (should be) a function instead */
 #  else
 #    define SCREENLINES 24  /* VT-100s are assumed to be minimal hardware */
@@ -812,8 +895,18 @@
 #  define MAIN  main
 #endif
 
-#if (defined(SFX) && !defined(NO_ZIPINFO))
-#  define NO_ZIPINFO
+#ifdef SFX      /* disable some unused features for SFX executables */
+#  ifndef NO_ZIPINFO
+#    define NO_ZIPINFO
+#  endif
+#  ifdef TIMESTAMP
+#    undef TIMESTAMP
+#  endif
+#endif
+
+/* user may have defined both by accident...  NOTIMESTAMP takes precedence */
+#if (defined(TIMESTAMP) && defined(NOTIMESTAMP))
+#  undef TIMESTAMP
 #endif
 
 #if (!defined(COPYRIGHT_CLEAN) && !defined(USE_SMITH_CODE))
@@ -887,7 +980,7 @@
  * define some or all of the following:  NAME_MAX, PATH_MAX, _POSIX_NAME_MAX,
  * _POSIX_PATH_MAX.
  */
-#ifdef DOS_OS2
+#ifdef DOS_FLX_OS2
 #  include <limits.h>
 #endif
 
@@ -935,6 +1028,21 @@
 #  define inflate_block             XXib
 #  define maxcodemax                XXmax
 #endif
+
+#ifndef S_TIME_T_MAX            /* max value of signed (>= 32-bit) time_t */
+#  define S_TIME_T_MAX  ((time_t)(ulg)0x7fffffffL)
+#endif
+#ifndef U_TIME_T_MAX            /* max value of unsigned (>= 32-bit) time_t */
+#  define U_TIME_T_MAX  ((time_t)(ulg)0xffffffffL)
+#endif
+#ifdef DOSDATE_MINIMUM          /* min DOSDATE value (1980-01-01) */
+#  undef DOSDATE_MINIMUM
+#endif
+#define DOSDATE_MINIMUM ((ush)0x0021)
+#ifdef DOSDATE_2038_01_18       /* approximate DOSDATE equivalent of */
+#  undef DOSDATE_2038_01_18     /*  the signed-32-bit time_t limit */
+#endif
+#define DOSDATE_2038_01_18 ((ush)0x7432)
 
 #ifdef QDOS
 #  define ZSUFX         "_zip"
@@ -1018,6 +1126,9 @@
 #define DF_DMY            1    /* date format 26/10/91 (most of the world) */
 #define DF_YMD            2    /* date format 91/10/26 (a few countries) */
 
+/*---------------------------------------------------------------------------
+    Extra-field block ID values and offset info.
+  ---------------------------------------------------------------------------*/
 /* extra-field ID values, all little-endian: */
 #define EF_AV        0x0007    /* PKWARE's authenticity verification */
 #define EF_OS2       0x0009    /* OS/2 extended attributes */
@@ -1043,6 +1154,8 @@
 #define EB_HEADSIZE       4    /* length of extra field block header */
 #define EB_ID             0    /* offset of block ID in header */
 #define EB_LEN            2    /* offset of data length field in header */
+#define EB_UCSIZE_P       0    /* offset of ucsize field in compr. data */
+#define EB_CMPRHEADLEN    6    /* lenght of compression header */
 
 #define EB_UX_MINLEN      8    /* minimal "UX" field contains atime, mtime */
 #define EB_UX_FULLSIZE    12   /* full "UX" field (atime, mtime, uid, gid) */
@@ -1051,16 +1164,24 @@
 #define EB_UX_UID         8    /* byte offset of UID in "UX" field data */
 #define EB_UX_GID         10   /* byte offset of GID in "UX" field data */
 
+#define EB_UX2_MINLEN     4    /* minimal "Ux" field contains UID/GID */
+#define EB_UX2_UID        0    /* byte offset of UID in "Ux" field data */
+#define EB_UX2_GID        2    /* byte offset of GID in "Ux" field data */
+#define EB_UX2_VALID      (1 << 8)      /* UID/GID present */
+
 #define EB_UT_MINLEN      1    /* minimal UT field contains Flags byte */
 #define EB_UT_FLAGS       0    /* byte offset of Flags field */
 #define EB_UT_TIME1       1    /* byte offset of 1st time value */
 #define EB_UT_FL_MTIME    (1 << 0)      /* mtime present */
 #define EB_UT_FL_ATIME    (1 << 1)      /* atime present */
 #define EB_UT_FL_CTIME    (1 << 2)      /* ctime present */
-#define EB_UX2_MINLEN     4    /* minimal Ux field contains UID/GID */
-#define EB_UX2_UID        0    /* byte offset of UID in "Ux" field data */
-#define EB_UX2_GID        2    /* byte offset of GID in "Ux" field data */
-#define EB_UX2_VALID      (1 << 8)      /* UID/GID present */
+
+#define EB_OS2_CHEAD      4    /* offset of OS2/ACL compressed data header */
+
+#define EB_NTSD_C_LEN     4    /* length of central NT security data */
+#define EB_NTSD_L_LEN     5    /* length of minimal local NT security data */
+#define EB_NTSD_VERSION   4    /* offset of NTSD version byte */
+#define EB_NTSD_MAX_VER   (0)  /* maximum version # we know how to handle */
 
 /*---------------------------------------------------------------------------
     True sizes of the various headers, as defined by PKWARE--so it is not
@@ -1232,7 +1353,7 @@ typedef struct VMStimbuf {
 #ifdef MALLOC_WORK
    union work {
      struct {                 /* unshrink(): */
-       shrint *Parent;          /* (8193 * sizeof(short)) */
+       shrint *Parent;          /* (8193 * sizeof(shrint)) */
        uch *value;
        uch *Stack;
      } shrink;
@@ -1241,7 +1362,7 @@ typedef struct VMStimbuf {
 #else /* !MALLOC_WORK */
    union work {
      struct {                 /* unshrink(): */
-       shrint Parent[HSIZE];    /* (8192 * sizeof(short)) == 16KB minimum */
+       shrint Parent[HSIZE];    /* (8192 * sizeof(shrint)) == 16KB minimum */
        uch value[HSIZE];        /* 8KB */
        uch Stack[HSIZE];        /* 8KB */
      } shrink;                  /* total = 32KB minimum; 80KB on Cray/Alpha */
@@ -1400,7 +1521,7 @@ typedef struct _APIDocStruct {
   ---------------------------------------------------------------------------*/
 
 #ifndef WINDLL
-/* int main                      OF((int argc, char **argv));  */
+   int    MAIN                   OF((int argc, char **argv));
    int    unzip                  OF((__GPRO__ int argc, char **argv));
    int    uz_opts                OF((__GPRO__ int *pargc, char ***pargv));
    int    usage                  OF((__GPRO__ int error));
@@ -1419,12 +1540,16 @@ int      process_cdir_file_hdr   OF((__GPRO));
 int      get_cdir_ent            OF((__GPRO));
 int      process_local_file_hdr  OF((__GPRO));
 unsigned ef_scan_for_izux        OF((uch *ef_buf, unsigned ef_len, int ef_is_c,
+                                     unsigned dos_mdate,
                                      iztimes *z_utim, ush *z_uidgid));
+
+#ifndef SFX
 
 /*---------------------------------------------------------------------------
     Functions in zipinfo.c (`zipinfo-style' listing routines):
   ---------------------------------------------------------------------------*/
 
+#ifndef NO_ZIPINFO
 #ifndef WINDLL
    int   zi_opts                 OF((__GPRO__ int *pargc, char ***pargv));
 #endif
@@ -1435,6 +1560,7 @@ int      zipinfo                 OF((__GPRO));
 /* static char    *zi_time       OF((__GPRO__
                                      ZCONST ush *datez, ZCONST ush *timez,
                                      ZCONST time_t *modtimez, char *d_t_str));*/
+#endif /* !NO_ZIPINFO */
 
 /*---------------------------------------------------------------------------
     Functions in list.c (generic zipfile-listing routines):
@@ -1442,10 +1568,13 @@ int      zipinfo                 OF((__GPRO));
 
 int      list_files              OF((__GPRO));
 #ifdef TIMESTAMP
-   int   time_stamp              OF((__GPRO));
+   int   get_time_stamp          OF((__GPRO__  time_t *last_modtime,
+                                     unsigned *nmember));
 #endif
 int      ratio                   OF((ulg uc, ulg c));
 void     fnprint                 OF((__GPRO));
+
+#endif /* !SFX */
 
 /*---------------------------------------------------------------------------
     Functions in fileio.c:
@@ -1502,12 +1631,11 @@ int      zstrnicmp            OF((register ZCONST char *s1,
   ---------------------------------------------------------------------------*/
 
 int    extract_or_test_files     OF((__GPRO));
-/* static int   store_info               OF((void)); */
+/* static int   store_info          OF((void)); */
 /* static int   extract_or_test_member   OF((__GPRO)); */
-/* static int   TestExtraField           OF((__GPRO__ uch *ef,
-                                             unsigned ef_len)); */
-/* static int   test_OS2                 OF((__GPRO__ uch *eb,
-                                             unsigned eb_size)); */
+/* static int   TestExtraField   OF((__GPRO__ uch *ef, unsigned ef_len)); */
+/* static int   test_OS2         OF((__GPRO__ uch *eb, unsigned eb_size)); */
+/* static int   test_NT          OF((__GPRO__ uch *eb, unsigned eb_size)); */
 int    memextract                OF((__GPRO__ uch *tgt, ulg tgtsize,
                                      uch *src, ulg srcsize));
 int    memflush                  OF((__GPRO__ uch *rawbuf, ulg size));
@@ -1517,7 +1645,9 @@ char  *fnfilter                  OF((char *raw, uch *space));
     Decompression functions:
   ---------------------------------------------------------------------------*/
 
+#if (!defined(SFX) && !defined(FUNZIP))
 int    explode                   OF((__GPRO));                  /* explode.c */
+#endif
 int    huft_free                 OF((struct huft *t));          /* inflate.c */
 int    huft_build                OF((__GPRO__ unsigned *b, unsigned n,
                                      unsigned s, ush *d, ush *e,
@@ -1529,11 +1659,13 @@ int    huft_build                OF((__GPRO__ unsigned *b, unsigned n,
    int    inflate                OF((__GPRO));                  /* inflate.c */
    int    inflate_free           OF((__GPRO));                  /* inflate.c */
 #endif /* ?USE_ZLIB */
+#if (!defined(SFX) && !defined(FUNZIP))
 void   unreduce                  OF((__GPRO));                 /* unreduce.c */
 /* static void  LoadFollowers    OF((__GPRO__ f_array *follower, uch *Slen));
                                                                 * unreduce.c */
 int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 /* static void  partial_clear    OF((__GPRO));                  * unshrink.c */
+#endif /* !SFX && !FUNZIP */
 
 /*---------------------------------------------------------------------------
     Internal API functions (only included in DLL versions):
@@ -1591,7 +1723,15 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
   ---------------------------------------------------------------------------*/
 
 #ifdef MACOS
+   void    screenOpen        OF((char *));                    /* macscreen.c */
+   void    screenControl     OF((char *, int));               /* macscreen.c */
+   void    screenDump        OF((char *, long));              /* macscreen.c */
+   void    screenUpdate      OF((WindowPtr));                 /* macscreen.c */
+   void    screenClose       OF((void));                      /* macscreen.c */
+
+   void    MacFSTest  OF((int));                                    /* mac.c */
    int     macmkdir   OF((char *, short, long));                    /* mac.c */
+   void    ResolveMacVol OF((short, short *, long *, StringPtr));   /* mac.c */
    short   macopen    OF((char *, short, short, long));             /* mac.c */
    FILE   *macfopen   OF((char *, char *, short, long));            /* mac.c */
    short   maccreat   OF((char *, short, long, OSType, OSType));    /* mac.c */
@@ -1599,6 +1739,7 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
    long    macwrite   OF((short, char *, unsigned));                /* mac.c */
    short   macclose   OF((short));                                  /* mac.c */
    long    maclseek   OF((short, long, short));                     /* mac.c */
+   int     macgetch   OF((void));                                   /* mac.c */
    char   *macgetenv  OF((char *));                                 /* mac.c */
    char   *wfgets     OF((char *, int, FILE *));                    /* mac.c */
    void    wfprintf   OF((FILE *, char *, ...));                    /* mac.c */
@@ -1612,7 +1753,7 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 #if (defined(__GO32__) || (defined(MSDOS) && defined(__EMX__)))
    unsigned _dos_getcountryinfo(void *);                          /* msdos.c */
 #if (!defined(__DJGPP__) || (__DJGPP__ < 2))
-   void _dos_setftime(int, unsigned short, unsigned short);       /* msdos.c */
+   unsigned _dos_setftime(int, unsigned short, unsigned short);   /* msdos.c */
    void _dos_setfileattr(char *, int);                            /* msdos.c */
    unsigned _dos_creat(char *, unsigned, int *);                  /* msdos.c */
    void _dos_getdrive(unsigned *);                                /* msdos.c */
@@ -1702,9 +1843,11 @@ int    unshrink                  OF((__GPRO));                 /* unshrink.c */
 
 #ifdef WIN32
    int   IsWinNT        OF((void));                               /* win32.c */
-   int   test_NT        OF((__GPRO__ uch *eb, unsigned eb_size)); /* win32.c */
 #ifdef NTSD_EAS
    void  process_defer_NT     OF((__GPRO));                       /* win32.c */
+   int   test_NTSD      OF((__GPRO__ uch *eb, unsigned eb_size,
+                            uch *eb_ucptr, ulg eb_ucsize));       /* win32.c */
+#  define TEST_NTSD     test_NTSD
 #endif
 #endif
 
@@ -1743,6 +1886,9 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #endif
 #ifndef MTS /* macro in MTS */
    void  close_outfile   OF((__GPRO));                              /* local */
+#endif
+#ifdef TIMESTAMP
+   int   stamp_file      OF((ZCONST char *fname, time_t modtime));  /* local */
 #endif
 #ifdef SYSTEM_SPECIFIC_CTOR
    void  SYSTEM_SPECIFIC_CTOR   OF((__GPRO));                       /* local */
@@ -1838,6 +1984,10 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #  define CRCVAL_INITIAL  0L
 #endif
 
+#ifndef TEST_NTSD               /* "NTSD valid?" checking function */
+#  define TEST_NTSD     NULL    /*   ... is not available */
+#endif
+
 /*
  *  Seek to the block boundary of the block which includes abs_offset,
  *  then read block into input buffer and set pointers appropriately.
@@ -1897,7 +2047,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 \
        if (request < 0) {\
            Info(slide, 1, ((char *)slide, LoadFarStringSmall(SeekMsg),\
-             LoadFarString(ReportMsg)));\
+             G.zipfn, LoadFarString(ReportMsg)));\
            return(PK_BADERR);\
        } else if (bufstart != G.cur_zipfile_bufstart)\
            _ZLS_RELOAD(abs_offset)\

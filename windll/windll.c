@@ -31,12 +31,16 @@
 #ifdef __RSXNT__
 #  include "win32/rsxntwin.h"
 #endif
+#ifdef __BORLANDC__
+#include <dir.h>
+#endif
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #include "crypt.h"
 #include "version.h"
 #include "windll.h"
 #include "structs.h"
+#include "consts.h"
 
 /* Added type casts to prevent potential "type mismatch" error messages. */
 #ifdef REENTRANT
@@ -49,12 +53,12 @@
 #endif
 
 HANDLE hwildZipFN;
-
 HANDLE hInst;               /* current instance */
-
 LPDCL lpDCL;
 HANDLE hDCL;
 LPUSERFUNCTIONS lpUserFunctions;
+int fNoPrinting = 0;
+extern jmp_buf dll_error_return;
 
 /* For displaying status messages and error messages */
 int UZ_EXP DllMessagePrint(zvoid *pG, uch *buf, ulg size, int flag);
@@ -66,6 +70,7 @@ DLLPRNT *lpPrint;
 /* Dummy sound function for those applications that don't use sound */
 void WINAPI DummySound(void);
 
+#ifndef UNZIPLIB
 /*  DLL Entry Point */
 
 #ifdef __BORLANDC__
@@ -122,13 +127,125 @@ int FAR PASCAL WEP ( int bSystemExit )
 {
 return 1;
 }
+#endif /* !UNZIPLIB
 
 /* DLL calls */
 
-jmp_buf dll_error_return;
+/*
+    ExtractOnlyNewer  = true if you are to extract only newer
+    SpaceToUnderscore = true if convert space to underscore
+    PromptToOverwrite = true if prompt to overwrite is wanted
+    fQuiet    = quiet flag. 1 = few messages, 2 = no messages, 0 = all messages
+    ncflag    = write to stdout if true
+    ntflag    = test zip file
+    nvflag    = verbose listing
+    nUflag    = "update" (extract only newer/new files)
+    nzflag    = display zip file comment
+    ndflag    = all args are files/dir to be extracted
+    noflag    = overwrite all files
+    naflag    = do end-of-line translation
+    nZIflag   = get Zip Info if TRUE
+    C_flag    = be case insensitive if TRUE
+    fPrivilege = restore ACL's if 1, use privileges if 2
+    lpszZipFN = zip file name
+    lpszExtractDir = directory to extract to; NULL means: current directory
+*/
 
-int WINAPI windll_unzip(int argc, char **FNV, DCL far*C,
-   USERFUNCTIONS far *lpUserFunc)
+BOOL WINAPI Unz_SetOpts(pG, C)
+zvoid * pG;
+LPDCL C;
+{
+    G.qflag=C->fQuiet;  /* Quiet flag */
+    G.pfnames = &fnames[0];       /* assign default file name vector */
+    G.pxnames = &fnames[1];
+
+    G.jflag = !C->ndflag;
+    G.cflag = C->ncflag;
+    G.overwrite_all = C->noflag;
+    G.tflag = C->ntflag ;
+    G.vflag = C->nvflag;
+    G.zflag = C->nzflag;
+    G.uflag = C->nUflag;
+    G.aflag = C->naflag;
+    G.C_flag = C->C_flag;
+    G.uflag = C->ExtractOnlyNewer;
+#ifdef WIN32
+    G.X_flag = C->fPrivilege;
+#endif
+    G.overwrite_none = !G.overwrite_all;
+    G.sflag = C->SpaceToUnderscore; /* Translate spaces to underscores? */
+    if (C->nZIflag)
+      {
+      G.zipinfo_mode = TRUE;
+      G.hflag = TRUE;
+      G.lflag = 10;
+      G.qflag = 2;
+      }
+    else
+      {
+      G.zipinfo_mode = FALSE;
+      }
+
+    G.extract_flag = (!G.zipinfo_mode &&
+                      !G.cflag && !G.tflag && !G.vflag && !G.zflag
+#ifdef TIMESTAMP
+                      && !G.T_flag
+#endif
+                     );
+
+    if (C->lpszExtractDir != NULL)
+       {
+       G.dflag = TRUE;
+       if (G.extract_flag)
+          {
+#ifndef CRTL_CP_IS_ISO
+          char *pExDirRoot = (char *)malloc(strlen(C->lpszExtractDir)+1);
+
+          if (pExDirRoot == NULL)
+              return FALSE;
+          ISO_TO_INTERN(C->lpszExtractDir, pExDirRoot);
+#else
+#  define pExDirRoot C->lpszExtractDir
+#endif
+          G.create_dirs = !G.fflag;
+          if (checkdir(__G__ pExDirRoot, ROOT) > 2)
+             {
+             return FALSE;
+             }
+          }
+       }
+    else
+       {
+       G.dflag = FALSE;
+       }
+
+/* G.wildzipfn needs to be initialized so that do_wild does not wind
+   up clearing out the zip file name when it returns in process.c
+*/
+    if ((hwildZipFN = GlobalAlloc(GMEM_MOVEABLE, FILNAMSIZ))== (HGLOBAL)NULL)
+        return FALSE;
+
+    G.wildzipfn = GlobalLock(hwildZipFN);
+    lstrcpy(G.wildzipfn, C->lpszZipFN);
+    _ISO_INTERN(G.wildzipfn);
+
+    return TRUE;    /* set up was OK */
+}
+
+void FreeDllMem(__GPRO)
+{
+    if (G.wildzipfn) {
+        GlobalUnlock(hwildZipFN);
+        G.wildzipfn = NULL;
+    }
+    if (hwildZipFN)
+        hwildZipFN = GlobalFree(hwildZipFN);
+
+    G.zipinfo_mode = FALSE;
+}
+
+int WINAPI windll_unzip(int ifnc, char **ifnv, int xfnc, char **xfnv,
+   DCL far*C, USERFUNCTIONS far *lpUserFunc)
 {
 int retcode;
 CONSTRUCTGLOBALS();
@@ -145,14 +262,6 @@ if (C->lpszZipFN == NULL) /* Something has screwed up, we don't have a filename 
    return PK_NOZIP;
    }
 
-retcode = setjmp(dll_error_return);
-if (retcode)
-   {
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-
-
 lpDCL = C;
 
 Unz_SetOpts((zvoid *)&G, C);
@@ -160,7 +269,7 @@ Unz_SetOpts((zvoid *)&G, C);
 /* Here is the actual call to "unzip" the files (or whatever else you
  * are doing.)
  */
-retcode = Unz_Unzip((zvoid *)&G, argc, FNV);
+retcode = Unz_Unzip((zvoid *)&G, ifnc, ifnv, xfnc, xfnv);
 
 DESTROYGLOBALS();
 return retcode;
@@ -187,33 +296,138 @@ if (!lpPrint ||
 return TRUE;
 }
 
-int WINAPI Unz_Unzip(pG, argc, FNV)
+int WINAPI Unz_Unzip(pG, ifnc, ifnv, xfnc, xfnv)
 zvoid *pG;
-int argc;
-char **FNV;
+int ifnc;
+char **ifnv;
+int xfnc;
+char **xfnv;
 {
 int retcode;
-
-G.filespecs = argc;
-
-if (argc > 0) {
-    G.pfnames = FNV;
-    G.process_all_files = FALSE;
 #ifndef CRTL_CP_IS_ISO
-    for (; *FNV != NULL; FNV++)
-        {
-        _ISO_INTERN(*FNV);
-        }
+char **intern_ifv, **intern_xfv;
 #endif
+
+G.process_all_files = (ifnc == 0 && xfnc == 0);         /* for speed */
+G.filespecs = ifnc;
+G.xfilespecs = xfnc;
+
+if (ifnc > 0) {
+#ifdef CRTL_CP_IS_ISO
+    G.pfnames = ifnv;
+#else /* !CRTL_CP_IS_ISO */
+      {
+        int f_cnt;
+        unsigned bufsize = 0;
+
+        intern_ifv = (char **)malloc((ifnc+1)*sizeof(char **));
+        if (intern_ifv == (char **)NULL)
+            {
+            FreeDllMem(__G);
+            return PK_BADERR;
+            }
+
+        for (f_cnt = ifnc; --f_cnt >= 0;)
+            bufsize += strlen(ifnv[f_cnt]) + 1;
+        intern_ifv[0] = (char *)malloc(bufsize);
+        if (intern_ifv[0] == (char *)NULL)
+            {
+            free(intern_ifv);
+            FreeDllMem(__G);
+            return PK_BADERR;
+            }
+
+        for (f_cnt = 0; f_cnt < ifnc; f_cnt++)
+            {
+            ISO_TO_INTERN(ifnv[f_cnt], intern_ifv[f_cnt]);
+            }
+        intern_ifv[ifnc] = (char *)NULL;
+        G.pfnames = intern_ifv;
+      }
+#endif /* ?CRTL_CP_IS_ISO */
     }
-else
-    G.process_all_files = TRUE;       /* for speed */
+
+if (xfnc > 0) {
+#ifdef CRTL_CP_IS_ISO
+    G.pxnames = xfnv;
+#else /* !CRTL_CP_IS_ISO */
+      {
+        int f_cnt;
+        unsigned bufsize = 0;
+
+        intern_xfv = (char **)malloc((xfnc+1)*sizeof(char **));
+        if (intern_xfv == (char **)NULL)
+            {
+            if (ifnc > 0)
+                {
+                free(intern_ifv[0]);
+                free(intern_ifv);
+                }
+            FreeDllMem(__G);
+            return PK_BADERR;
+            }
+
+        for (f_cnt = xfnc; --f_cnt >= 0;)
+            bufsize += strlen(xfnv[f_cnt]) + 1;
+        intern_xfv[0] = (char *)malloc(bufsize);
+        if (intern_xfv[0] == (char *)NULL)
+            {
+            free(intern_xfv);
+            if (ifnc > 0)
+                {
+                free(intern_ifv[0]);
+                free(intern_ifv);
+                }
+            FreeDllMem(__G);
+            return PK_BADERR;
+            }
+
+        for (f_cnt = 0; f_cnt < xfnc; f_cnt++)
+            {
+            ISO_TO_INTERN(xfnv[f_cnt], intern_xfv[f_cnt]);
+            }
+        intern_xfv[xfnc] = (char *)NULL;
+        G.pxnames = intern_xfv;
+      }
+#endif /* ?CRTL_CP_IS_ISO */
+    }
 
 /*---------------------------------------------------------------------------
     Okey dokey, we have everything we need to get started.  Let's roll.
   ---------------------------------------------------------------------------*/
 
+retcode = setjmp(dll_error_return);
+if (retcode)
+   {
+#ifndef CRTL_CP_IS_ISO
+   if (xfnc > 0)
+      {
+      free(intern_xfv[0]);
+      free(intern_xfv);
+      }
+   if (ifnc > 0)
+      {
+      free(intern_ifv[0]);
+      free(intern_ifv);
+      }
+#endif
+   FreeDllMem(__G);
+   return PK_BADERR;
+   }
+
 retcode = process_zipfiles(__G);
+#ifndef CRTL_CP_IS_ISO
+if (xfnc > 0)
+   {
+   free(intern_xfv[0]);
+   free(intern_xfv);
+   }
+if (ifnc > 0)
+   {
+   free(intern_ifv[0]);
+   free(intern_ifv);
+   }
+#endif
 FreeDllMem(__G);
 return retcode;
 }
@@ -225,7 +439,10 @@ if ((file != stderr) && (file != stdout))
    {
    return write(fileno(file),(char far *)(buffer),size);
    }
-return lpPrint(buffer, size);
+if (lpPrint != NULL)
+   return lpPrint((LPSTR)buffer, size);
+else
+   return (int)size;
 }
 
 /**********************************
@@ -242,7 +459,12 @@ int UZ_EXP DllMessagePrint(pG, buf, size, flag)
     ulg size;       /* length of string (may include nulls) */
     int flag;       /* flag bits */
 {
-return lpPrint((char far *)buf, size);
+if (fNoPrinting)
+   return (int)size;
+if (lpPrint != NULL)
+   return lpPrint((LPSTR)buf, size);
+else
+   return (int)size;
 }
 
 /********************************
@@ -259,7 +481,7 @@ int DllDisplayPrint(pG, buf, size, flag)
     ulg size;       /* length of string (may include nulls) */
     int flag;       /* flag bits */
 {
-return lpPrint((char far *)buf, size);
+return lpPrint((LPSTR)buf, size);
 }
 
 
@@ -280,7 +502,7 @@ int UZ_EXP UzpPassword(pG, rcnt, pwbuf, size, zfn, efn)
     ZCONST char *efn;   /* name of archiv entry being processed */
 {
 #if CRYPT
-    char *m;
+    LPSTR m;
 
     if (*rcnt == 0) {
         *rcnt = 2;
@@ -290,140 +512,16 @@ int UZ_EXP UzpPassword(pG, rcnt, pwbuf, size, zfn, efn)
         m = "Password incorrect--reenter: ";
     }
 
-    return (*lpUserFunctions->password)(pwbuf, size, m, efn);
+    return (*lpUserFunctions->password)((LPSTR)pwbuf, size, m, (LPSTR)efn);
 #else /* !CRYPT */
     return IZ_PW_ERROR; /* internal error, function should never get called */
 #endif /* ?CRYPT */
 } /* end function UzpPassword() */
 
-
-int WINAPI unzipVB(int argc, char **FNV, DCL far *C,
-   VBUSERFUNCTIONS far *lpUF)
+/* Turn off all messages to the calling application */
+void WINAPI UzpNoPrinting(int f)
 {
-int retcode;
-HANDLE hUF;
-LPUSERFUNCTIONS lpUserFunc;
-void * lpSound;
-void * lpPassword;
-void * lpMessage;
-void * lpReplace;
-void * lpPrintVB;
-CONSTRUCTGLOBALS();
-
-hUF = GlobalAlloc( GPTR, (DWORD)sizeof(VBUSERFUNCTIONS));
-if (!hUF)
-   {
-   DESTROYGLOBALS();
-   return PK_MEM;
-   }
-lpUserFunc = (LPUSERFUNCTIONS)GlobalLock(hUF);
-if (!lpUserFunc)
-   {
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_MEM;
-   }
-lpPrintVB = GetProcAddress(lpUF->hInstance,
-   lpUF->print);
-lpUserFunc->print = lpPrintVB;
-if (!lpUserFunc->print)
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-lpSound = GetProcAddress(lpUF->hInstance,lpUF->sound);
-lpUserFunc->sound = lpSound;
-if (!lpUserFunc->sound)
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-#ifdef __GNUC__
-(int far WINAPI (*))lpReplace =
-        (int far WINAPI (*))GetProcAddress(lpUF->hInstance,lpUF->replace);
-#else
-(int far *WINAPI)lpReplace =
-        (int far *WINAPI)GetProcAddress(lpUF->hInstance,lpUF->replace);
-#endif
-lpUserFunc->replace = lpReplace;
-if (!lpUserFunc->replace)
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-#ifdef __GNUC__
-(int WINAPI (*)())lpPassword = (int WINAPI (*)())GetProcAddress(lpUF->hInstance,
-   lpUF->password);
-#else
-(int * WINAPI)lpPassword = (int * WINAPI)GetProcAddress(lpUF->hInstance,
-   lpUF->password);
-#endif
-lpUserFunc->password = lpPassword;
-if (!lpUserFunc->password)
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-lpMessage = GetProcAddress(lpUF->hInstance,
-   lpUF->SendApplicationMessage);
-lpUserFunc->SendApplicationMessage = lpMessage;
-if (!lpUserFunc->SendApplicationMessage)
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-lpUserFunc->cchComment = lpUF->cchComment;
-lpUserFunc->TotalSizeComp = lpUF->TotalSizeComp;
-lpUserFunc->TotalSize = lpUF->TotalSize;
-lpUserFunc->CompFactor = lpUF->CompFactor;
-lpUserFunc->NumMembers = lpUF->NumMembers;
-
-if (!Unz_Init((zvoid *)pG, lpUserFunc))
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-
-if (C->lpszZipFN == NULL)
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_NOZIP;
-   }
-
-retcode = setjmp(dll_error_return);
-if (retcode)
-   {
-   GlobalUnlock(hUF);
-   GlobalFree(hUF);
-   DESTROYGLOBALS();
-   return PK_BADERR;
-   }
-
-
-lpDCL = C;
-
-Unz_SetOpts((zvoid *)pG, C);
-
-retcode = Unz_Unzip((zvoid *)pG, argc, FNV);
-
-GlobalUnlock(hUF);
-GlobalFree(hUF);
-DESTROYGLOBALS();
-return retcode;
+fNoPrinting = f;
 }
 
 /* Dummy sound function for those applications that don't use sound */

@@ -23,6 +23,17 @@ static int screenOptions;
 #define pauseOption     0x0001
 #define scrollOption    0x0002
 
+void screenOpen(char *);
+void screenControl(char *, int);
+void screenClose(void);
+void screenUpdate(WindowPtr);
+void screenDisplay(char *);
+void screenDump(char *, long);
+
+char *wfgets(char *, int, FILE *);
+void wfprintf(FILE *, char *, ...);
+void wprintf(char *, ...);
+
 void screenOpen(char *Title) {
     FontInfo fontInfo;
     int n;
@@ -32,7 +43,7 @@ void screenOpen(char *Title) {
     if ((Title != NULL) && (*Title != '\0')) {
         c2pstr(Title);
         SetWTitle(theWindow, (StringPtr)Title);
-        p2cstr(Title);
+        p2cstr((StringPtr)Title);
     }
 
     ShowWindow(theWindow);
@@ -80,7 +91,7 @@ void screenOpen(char *Title) {
     return;
 }
 
-void screenControl(options, setting) char *options; int setting; {
+void screenControl(char *options, int setting) {
     int n = 0;
 
     while (*options) {
@@ -88,9 +99,6 @@ void screenControl(options, setting) char *options; int setting; {
         case 'p':
             n |= pauseOption;
             break;
-        case 'r':
-        	currentPosition = maxPosition;
-        	break;
         case 's':
             n |= scrollOption;
             break;
@@ -112,7 +120,7 @@ void screenControl(options, setting) char *options; int setting; {
 }
 
 void screenClose(void) {
-    DisposPtr((Ptr)screenLine);
+    DisposePtr((Ptr)screenLine);
 
     DisposeWindow(theWindow);
 

@@ -30,7 +30,9 @@
 #define REALLY_SHORT_SYMS
 #define PATH_MAX 128
  
-#define DATE_FORMAT   DF_MDY
+#ifndef DATE_FORMAT
+#  define DATE_FORMAT DF_MDY
+#endif
 #define lenEOL        1
 /* The use of "ebcdic[LF]" is not reliable; VM/CMS C/370 uses the
  * EBCDIC specific "NL" ('NewLine') control character (and not the EBCDIC

@@ -38,6 +38,18 @@
 #  endif
 #endif
 
+#if (defined(DOS_OS2_W32) || defined(FLEXOS))
+#  ifndef DOS_FLX_OS2_W32
+#    define DOS_FLX_OS2_W32
+#  endif
+#endif
+
+#if (defined(DOS_H68_OS2_W32) || defined(FLEXOS))
+#  ifndef DOS_FLX_H68_OS2_W32
+#    define DOS_FLX_H68_OS2_W32
+#  endif
+#endif
+
 #if (defined(VM_CMS) || defined(MVS))
 #  ifndef CMS_MVS
 #    define CMS_MVS
@@ -103,6 +115,13 @@
 #  endif /* ?__EMX__ */
 #  define HAVE_WORKING_GETCH
 #endif /* DOS_H68_OS2_W32 */
+
+#ifdef FLEXOS
+#  define echoff(f)
+#  define echon()
+#  define getch() getchar() /* not correct, but may not be on a console */
+#  define HAVE_WORKING_GETCH
+#endif
 
 /* For VM/CMS and MVS, we do not (yet) have any support to switch terminal
  * input echo on and off. The following "fake" definitions allow inclusion

@@ -1,19 +1,20 @@
-Contents of the UnZip 5.31 source archive.  The OS-specific subdirectories
+Contents of the UnZip 5.32 source archive.  The OS-specific subdirectories
 at the end contain their own Contents listings:
 
   Contents	this file
   README	what UnZip is; general information
   COPYING	copyrights and distribution policy
   INSTALL	how to compile and install UnZip and related utilities
-  Where		where Zip/UnZip and encryption/decryption support can be found
-  History.530	new features and fixes in this release
-  History.531	more new features and fixes in this release
+  WHERE		where Zip/UnZip and encryption/decryption support can be found
+  History.530	new features and fixes in the 5.3 release
+  History.531	new features and fixes in the 5.31 release
+  History.532	new features and fixes in this release
   ToDo		rough priority list of new features to be added in next release
   BUGS		known bugs, problems, and (possible) other features to be added
   unzip.doc	UnZip manual page, human-readable format
   unzipsfx.doc	UnZipSFX manual page, human-readable format
   zipinfo.doc	ZipInfo manual page, human-readable format
-  zipgrep.doc	zipgrep manual page, human-readable format
+  zipgrep.doc	ZipGrep manual page, human-readable format
   funzip.doc	fUnZip manual page, human-readable format
   file_id.diz	BBS-oriented file describing this archive
   testmake.zip	test archive for checking whether newly compiled UnZip works
@@ -56,19 +57,21 @@ at the end contain their own Contents listings:
   atari/	support files for compiling under Atari TOS
   beos/		support files for compiling under BeOS
   cmsmvs/	support files for compiling under VM/CMS and MVS
+  flexos/	support files for compiling under FlexOS
   human68k/	support files for compiling under X68000/Human68K
   mac/		support files for compiling under Macintosh OS
   msdos/	support files for compiling under MS-DOS
   novell/	support files for compiling for Novell Netware NLM (preliminary)
   os2/		support files for compiling under OS/2 (includes DLL stuff)
   qdos/		support files for compiling under SMS/QDOS
+  tandem/	support files for compiling under Tandem NSK
   tops20/	support files for compiling under TOPS-20
   unix/		support files for compiling under Unix
   vms/		support files for compiling under VMS
   win32/	support files for compiling under Windows 95 and Windows NT
   wince/	support files for compiling under Windows CE (GUI version)
   windll/	support files for compiling Windows 3.x/95/NT DLLs
-  proginfo/	programming docs and additional technical info
+  proginfo/	programming docs, additional technical info, contributor list
 
 Files marked "required*" are also needed to compile fUnZip.  The normal
 UnZip makefile targets now make both UnZipSFX and fUnZip, except in a few

@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------
 
-  zipinfo.c                                                    Greg Roelofs
+  zipinfo.c                                              Greg Roelofs et al.
 
   This file contains all of the ZipInfo-specific listing routines for UnZip.
 
@@ -86,7 +86,7 @@ static char *zi_time   OF((__GPRO__ ZCONST ush *datez, ZCONST ush *timez,
 /*  Strings used in zipinfo.c (ZipInfo half)  */
 /**********************************************/
 
-static char Far nullStr[] = "";
+static char nullStr[] = "";
 
 static char Far LongHeader[] = "Archive:  %s   %ld bytes   %d file%s\n";
 static char Far ShortHeader[] = "Archive:  %s   %ld   %d\n";
@@ -144,7 +144,7 @@ static char Far OS_Acorn[] = "Acorn RISC OS";
 static char Far OS_MVS[] = "MVS";
 static char Far OS_VFAT[] = "Win32 VFAT";
 static char Far OS_BeOS[] = "BeOS";
-static char Far OS_Tandem[] = "Tandem";
+static char Far OS_Tandem[] = "Tandem NSK";
 
 static char Far MthdNone[] = "none (stored)";
 static char Far MthdShrunk[] = "shrunk";
@@ -266,8 +266,12 @@ static char Far OS2EAs[] = ".\n\
     (May not match OS/2 \"dir\" amount due to storage method)";
 static char Far izVMSdata[] = ".  The extra\n\
     field is %s and has %lu bytes of VMS %s information%s";
-static char * Far izVMScomp[4] = {"stored", "run-length encoded", "deflated",
-                                  "compressed(?)"};
+static char Far izVMSstored[] = "stored";
+static char Far izVMSrleenc[] = "run-length encoded";
+static char Far izVMSdeflat[] = "deflated";
+static char Far izVMScunknw[] = "compressed(?)";
+static char Far *izVMScomp[4] =
+  {izVMSstored, izVMSrleenc, izVMSdeflat, izVMScunknw};
 static char Far ACLdata[] = ".\n\
     The local extra field has %lu bytes of access control list information";
 static char Far NTSDData[] = ".\n\
@@ -447,11 +451,7 @@ int zi_opts(__G__ pargc, pargv)
     if ((argc-- == 0) || error) {
         *pargc = argc;
         *pargv = argv;
-#ifndef CMS_MVS
         return USAGE(error);
-#else
-        return error;
-#endif
     }
 
 #ifdef MORE
@@ -520,7 +520,7 @@ int zi_end_central(__G)   /* return PK-type error code */
           LoadFarString(LongHeader) : LoadFarString(ShortHeader), G.zipfn,
           (long)G.ziplen, G.ecrec.total_entries_central_dir,
           (G.ecrec.total_entries_central_dir==1)?
-          LoadFarStringSmall(nullStr) : "s"));
+          nullStr : "s"));
 
     /* verbose format */
     if (G.lflag > 9) {
@@ -633,7 +633,7 @@ int zipinfo(__G)   /* return PK-type error code */
 
 #if (!defined(T20_VMS) && !defined(MACOS) && !defined(RISCOS) && !defined(QDOS))
 #if (!defined(BSD) && !defined(MTS) && !defined(__GO32__) && !defined(WIN32))
-#if (!defined(CMS_MVS))
+#if (!defined(CMS_MVS) && !defined(TANDEM))
     tzset();
 #endif
 #endif
@@ -783,7 +783,7 @@ int zipinfo(__G)   /* return PK-type error code */
             cfactor = -cfactor;
         }
         Info(slide, 0, ((char *)slide, LoadFarString(ZipfileStats),
-          members, (members==1)? LoadFarStringSmall(nullStr):"s", tot_ucsize,
+          members, (members==1)? nullStr:"s", tot_ucsize,
           tot_csize, sgn, cfactor/10, cfactor%10));
     }
 
@@ -848,7 +848,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
 
 
 /*---------------------------------------------------------------------------
-    Check whether there's any extra space inside the zipfile.  If endprev is
+    Check whether there's any extra space inside the zipfile.  If *pEndprev is
     zero, it's probably a signal that OS/2 extra fields are involved (with
     unknown compressed size).  We won't worry about prepended junk here...
   ---------------------------------------------------------------------------*/
@@ -856,8 +856,8 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     if (G.crec.relative_offset_local_header != *pEndprev && *pEndprev > 0L) {
         /*  GRR DEBUG
         Info(slide, 0, ((char *)slide,
-          "  [crec.relative_offset_local_header = %ld, endprev = %ld]\n",
-          (long)G.crec.relative_offset_local_header, (long)(*pEndprev)));
+          "  [crec.relative_offset_local_header = %lu, endprev = %lu]\n",
+          G.crec.relative_offset_local_header, *pEndprev));
          */
         Info(slide, 0, ((char *)slide, LoadFarString(ExtraBytesPreceding),
           (long)G.crec.relative_offset_local_header - (long)(*pEndprev)));
@@ -945,10 +945,9 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
     }
 
     Info(slide, 0, ((char *)slide, LoadFarString(FileSecurity),
-      (G.crec.general_purpose_bit_flag & 1)?
-      LoadFarStringSmall(nullStr) : "not "));
+      (G.crec.general_purpose_bit_flag & 1) ? nullStr : "not "));
     Info(slide, 0, ((char *)slide, LoadFarString(ExtendedLocalHdr),
-      (G.crec.general_purpose_bit_flag & 8)? "yes" : "no"));
+      (G.crec.general_purpose_bit_flag & 8) ? "yes" : "no"));
     /* print upper 3 bits for amusement? */
 
     /* For printing of date & time, a "char d_t_buf[21]" is required.
@@ -961,8 +960,10 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
       NULL, d_t_buf);
     Info(slide, 0, ((char *)slide, LoadFarString(FileModDate), d_t_buf));
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field  &&  (ef_scan_for_izux(G.extra_field,
-        G.crec.extra_field_length, 1, &z_utime, NULL) & EB_UT_FL_MTIME))
+    if (G.extra_field  &&
+        (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
+                          G.crec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
     {
         TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
         d_t_buf[0] = (char)0;               /* signal "show local time" */
@@ -1120,12 +1121,12 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
           xattr));
     else
         Info(slide, 0, ((char *)slide, LoadFarString(MSDOSFileAttributesAlpha),
-          xattr, (xattr&1)? "rdo " : LoadFarStringSmall(nullStr),
-          (xattr&2)? "hid " : LoadFarStringSmall(nullStr),
-          (xattr&4)? "sys " : LoadFarStringSmall(nullStr),
-          (xattr&8)? "lab " : LoadFarStringSmall(nullStr),
-          (xattr&16)? "dir " : LoadFarStringSmall(nullStr),
-          (xattr&32)? "arc" : LoadFarStringSmall(nullStr)));
+          xattr, (xattr&1)? "rdo " : nullStr,
+          (xattr&2)? "hid " : nullStr,
+          (xattr&4)? "sys " : nullStr,
+          (xattr&8)? "lab " : nullStr,
+          (xattr&16)? "dir " : nullStr,
+          (xattr&32)? "arc" : nullStr));
 
 /*---------------------------------------------------------------------------
     Analyze the extra field, if any, and print the file comment, if any (the
@@ -1188,6 +1189,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     break;
                 case EF_IZUNIX2:
                     ef_fieldname = efIZUnix2;
+                    *pEndprev += 4L;      /* 4 byte UID/GID in local copy */
                     break;
                 case EF_TIME:
                     ef_fieldname = efTime;
@@ -1244,9 +1246,11 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     }
                     break;
                 case EF_NTSD:
-                    if (eb_datalen >= 4)
+                    if (eb_datalen >= 4) {
                         Info(slide, 0, ((char *)slide, LoadFarString(NTSDData),
-                          makelong(&ef_ptr[EB_HEADSIZE])));
+                          makelong(ef_ptr)));
+                        *pEndprev = 0L;   /* no clue about csize of local */
+                    }
                     break;
                 case EF_IZVMS:
                     if (eb_datalen >= 8) {
@@ -1302,6 +1306,7 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                                 types[len++] = '/';
                             strcpy(types+len, LoadFarString(UTaccess));
                             ++num;
+                            *pEndprev += 4L;
                         }
                         if (*ef_ptr & 4) {
                             len = strlen(types);
@@ -1309,11 +1314,12 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                                 types[len++] = '/';
                             strcpy(types+len, LoadFarString(UTcreation));
                             ++num;
+                            *pEndprev += 4L;
                         }
                         if (num > 0)
                             Info(slide, 0, ((char *)slide,
                               LoadFarString(UTdata), types,
-                              num == 1? LoadFarStringSmall(nullStr) : "s"));
+                              num == 1? nullStr : "s"));
                     }
                     break;
                 case EF_ZIPIT:
@@ -1354,7 +1360,9 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
                     if (eb_datalen >= 5) {
                         Info(slide, 0, ((char *)slide, LoadFarString(BeOSdata),
                           makelong(ef_ptr), (ef_ptr[4] & BE_UNCOMPRESSED)?
-                          "un" : LoadFarStringSmall(nullStr)));
+                          "un" : nullStr));
+                        if (!(ef_ptr[4] & BE_UNCOMPRESSED))
+                            *pEndprev = 0L; /* no clue about csize of local */
                     }
                     break;
                 case EF_QDOS:
@@ -1410,17 +1418,17 @@ static int zi_long(__G__ pEndprev)   /* return PK-type error code */
 
     /* high bit == Unix/OS2/NT GMT times (mtime, atime); next bit == UID/GID */
     if ((xattr = (ush)((G.crec.external_file_attributes & 0xC000) >> 12)) & 8)
-        if (hostnum == UNIX_ && xattr == 12)
+        if (hostnum == UNIX_ || hostnum == FS_HPFS_ || hostnum == FS_NTFS_)
+        {
             Info(slide, 0, ((char *)slide, LoadFarString(lExtraFieldType),
-              "is", EF_IZUNIX, LoadFarStringSmall(efIZUnix), xattr, efIZuid));
-        else if (hostnum == UNIX_ || hostnum == FS_HPFS_ || hostnum == FS_NTFS_)
-            Info(slide, 0, ((char *)slide, LoadFarString(lExtraFieldType),
-              "is", EF_IZUNIX, LoadFarStringSmall(efIZUnix), xattr,
-              (xattr&4)? efIZuid : efIZnouid));
+              "is", EF_IZUNIX, LoadFarStringSmall(efIZUnix),
+              (unsigned)(xattr&12), (xattr&4)? efIZuid : efIZnouid));
+            *pEndprev += (ulg)(xattr&12);
+        }
         else if (hostnum == FS_FAT_ && !(xattr&4))
             Info(slide, 0, ((char *)slide, LoadFarString(lExtraFieldType),
-              "may be", EF_IZUNIX, LoadFarStringSmall(efIZUnix), xattr,
-              (xattr&4)? efIZuid : efIZnouid));
+              "may be", EF_IZUNIX, LoadFarStringSmall(efIZUnix), 8,
+              efIZnouid));
 
     if (!G.crec.file_comment_length)
         Info(slide, 0, ((char *)slide, LoadFarString(NoFileComment)));
@@ -1462,7 +1470,7 @@ static int zi_short(__G)   /* return PK-type error code */
     static char dtype[5]="NXFS";  /* normal, maximum, fast, superfast */
     static char Far os[NUM_HOSTS+1][4] = {
         "fat", "ami", "vms", "unx", "cms", "atr", "hpf", "mac", "zzz",
-        "cpm", "t20", "ntf", "qds", "aco", "vft", "mvs", "be ", "tdm",
+        "cpm", "t20", "ntf", "qds", "aco", "vft", "mvs", "be ", "nsk",
         "???"
     };
     static char Far method[NUM_METHODS+1][5] = {
@@ -1632,8 +1640,11 @@ static int zi_short(__G)   /* return PK-type error code */
       (G.crec.general_purpose_bit_flag & 1)?
       ((G.crec.internal_file_attributes & 1)? 'T' : 'B') :  /* encrypted */
       ((G.crec.internal_file_attributes & 1)? 't' : 'b'))); /* plaintext */
-    Info(slide, 0, ((char *)slide, "%c",
-      (G.crec.extra_field_length || G.crec.external_file_attributes & 0xC000)?
+    k = (G.crec.extra_field_length ||
+         /* a local-only "UX" (old Unix/OS2/NT GMT times "IZUNIX") e.f.? */
+         ((G.crec.external_file_attributes & 0x8000) &&
+          (hostnum == UNIX_ || hostnum == FS_HPFS_ || hostnum == FS_NTFS_)));
+    Info(slide, 0, ((char *)slide, "%c", k?
       ((G.crec.general_purpose_bit_flag & 8)? 'X' : 'x') :  /* extra field */
       ((G.crec.general_purpose_bit_flag & 8)? 'l' : '-'))); /* no extra field */
       /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ extended local header or not */
@@ -1670,8 +1681,10 @@ static int zi_short(__G)   /* return PK-type error code */
      */
 #   define d_t_buf attribs
 #ifdef USE_EF_UT_TIME
-    z_modtim = G.extra_field && (ef_scan_for_izux(G.extra_field,
-               G.crec.extra_field_length, 0, &z_utime, NULL) & EB_UT_FL_MTIME)
+    z_modtim = G.extra_field &&
+               (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
+                                 G.crec.last_mod_file_date, &z_utime, NULL)
+                & EB_UT_FL_MTIME)
               ? &z_utime.mtime : NULL;
     TIMET_TO_NATIVE(z_utime.mtime)     /* NOP unless MSC 7.0 or Macintosh */
     d_t_buf[0] = (char)0;              /* signal "show local time" */

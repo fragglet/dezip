@@ -13,13 +13,14 @@
              SetSD()              set security descriptor on file
              EvalExtraFields()    evaluate and process and extra field NOW
              IsWinNT()            indicate type of WIN32 platform
-             test_NT()            test integrity of NT security data
+             test_NTSD()          test integrity of NT security data
              utime2FileTime()
              NTQueryTargetFS()
              UTCtime2Localtime()
              NTtzbugWorkaround()
              getNTfiletime()
              close_outfile()
+             stamp_file()
              isfloppy()
              IsVolumeOldFAT()
              IsFileNameValid()
@@ -80,10 +81,11 @@
                                unsigned ef_len);
 #endif
 
-#if (defined(USE_EF_UT_TIME) || defined(NT_TZBUG_WORKAROUND))
+#if (defined(USE_EF_UT_TIME) || defined(NT_TZBUG_WORKAROUND) || \
+     defined(TIMESTAMP))
    static void utime2FileTime(time_t ut, FILETIME *pft);
-   static int NTQueryTargetFS(char *path);
-#endif
+   static int NTQueryTargetFS(const char *path);
+#endif /* USE_EF_UT_TIME || NT_TZBUG_WORKAROUND || TIMESTAMP */
 #ifdef NT_TZBUG_WORKAROUND
    static time_t UTCtime2Localtime(time_t utctime);
    static void NTtzbugWorkaround(time_t ut, FILETIME *pft);
@@ -92,8 +94,8 @@
 static int  getNTfiletime   (__GPRO__ FILETIME *pModFT, FILETIME *pAccFT,
                              FILETIME *pCreFT);
 static int  isfloppy        (int nDrive);
-static int  IsVolumeOldFAT  (char *name);
-static int  IsFileNameValid (char *name);
+static int  IsVolumeOldFAT  (const char *name);
+static int  IsFileNameValid (const char *name);
 static void map2fat         (char *pathcomp, char **pEndFAT);
 
 
@@ -268,8 +270,7 @@ static int SetSD(__G__ path, VolumeCaps, eb_ptr, eb_len)
     uch *eb_ptr;
     unsigned eb_len;
 {
-    ulg ntsd_ucSize = makelong(eb_ptr + (EB_HEADSIZE+EB_NTSD_LSIZE));
-    uch ntsd_Version = *(eb_ptr + (EB_HEADSIZE+EB_NTSD_VERSION));
+    ulg ntsd_ucSize;
     uch *security_data;
     int error;
 
@@ -277,15 +278,16 @@ static int SetSD(__G__ path, VolumeCaps, eb_ptr, eb_len)
         return PK_OK;  /* not a valid NTSD extra field:  assume OK */
 
     /* check if we know how to handle this version */
-    if (ntsd_Version > EB_NTSD_MAX_VER_SUPPORT)
+    if (*(eb_ptr + (EB_HEADSIZE+EB_NTSD_VERSION)) > (uch)EB_NTSD_MAX_VER)
         return PK_OK;
 
-    if (ntsd_ucSize > 0L && eb_len <= (EB_NTSD_L_LEN + 6))
+    ntsd_ucSize = makelong(eb_ptr + (EB_HEADSIZE+EB_UCSIZE_P));
+    if (ntsd_ucSize > 0L && eb_len <= (EB_NTSD_L_LEN + EB_CMPRHEADLEN))
         return IZ_EF_TRUNC;               /* no compressed data! */
 
     /* allocate storage for uncompressed data */
     security_data = (uch *)malloc((extent)ntsd_ucSize);
-    if (security_data == NULL)
+    if (security_data == (uch *)NULL)
         return PK_MEM4;
 
     error = memextract(__G__ security_data, ntsd_ucSize,
@@ -426,6 +428,33 @@ static int EvalExtraFields(__G__ path, ef_ptr, ef_len)
     return rc;
 }
 
+
+
+
+#ifndef SFX
+
+/**************************/
+/*  Function test_NTSD()  */   /*  returns PK_WARN when NTSD data is invalid */
+/**************************/
+
+int test_NTSD(__G__ eb, eb_size, eb_ucptr, eb_ucsize)
+    __GDEF
+    uch *eb;
+    unsigned eb_size;
+    uch *eb_ucptr;
+    ulg eb_ucsize;
+{
+    int r = PK_OK;
+
+#ifndef NO_NTSD_WITH_RSXNT
+    if (!ValidateSecurity(eb_ucptr))
+        r = PK_WARN;
+#endif
+    return r;
+
+} /* end function test_NTSD() */
+
+#endif /* !SFX */
 #endif /* NTSD_EAS */
 
 
@@ -452,46 +481,8 @@ int IsWinNT(void)       /* returns TRUE if real NT, FALSE if Win95 or Win32s */
 
 
 
-#ifndef SFX
-
-/************************/   /* can return PK_OK, PK_ERR, PK_MEM3, PK_MEM4, */
-/*  Function test_NT()  */   /*  IZ_EF_TRUNC, or (if testing) PK_ERR or'd */
-/************************/   /*  with compression method in high byte */
-
-int test_NT(__G__ eb, eb_size)
-    __GDEF
-    uch *eb;
-    unsigned eb_size;
-{
-    ulg eb_ucsize = makelong(eb + (EB_HEADSIZE+EB_NTSD_LSIZE));
-    uch *eb_uncompressed;
-    int r;
-
-    if (eb_ucsize > 0L && eb_size <= (EB_NTSD_L_LEN + 6))
-        return IZ_EF_TRUNC;             /* no compressed data! */
-
-    if ((eb_uncompressed = (uch *)malloc((extent)eb_ucsize)) == (uch *)NULL)
-        return PK_MEM4;
-
-    r = memextract(__G__ eb_uncompressed, eb_ucsize, (eb + EB_NTSD_L_LEN),
-                   (ulg)(eb_size - (EB_NTSD_L_LEN - EB_HEADSIZE)));
-
-#ifndef NO_NTSD_WITH_RSXNT
-    if (r == PK_OK  &&  !ValidateSecurity(eb_uncompressed))
-        r = PK_ERR;
-#endif
-
-    free(eb_uncompressed);
-    return r;
-
-} /* end function test_NT() */
-
-#endif /* !SFX */
-
-
-
-
-#if (defined(USE_EF_UT_TIME) || defined(NT_TZBUG_WORKAROUND))
+#if (defined(USE_EF_UT_TIME) || defined(NT_TZBUG_WORKAROUND) || \
+     defined(TIMESTAMP))
 
 /*****************************/
 /* Function utime2FileTime() */     /* convert Unix time_t format into the */
@@ -544,7 +535,7 @@ static void utime2FileTime(time_t ut, FILETIME *pft)
 /* Function NTQueryTargetFS() */
 /******************************/
 
-static int NTQueryTargetFS(char *path)
+static int NTQueryTargetFS(const char *path)
 {
     char     *tmp0;
     char      rootPathName[4];
@@ -558,7 +549,7 @@ static int NTQueryTargetFS(char *path)
 #endif
 
     if (isalpha(path[0]) && (path[1] == ':'))
-        tmp0 = path;
+        tmp0 = (char *)path;
     else
     {
         GetFullPathName(path, MAX_PATH, tmp1, &tmp0);
@@ -580,14 +571,14 @@ static int NTQueryTargetFS(char *path)
 
 } /* end function NTQueryTargetFS() */
 
-#endif /* USE_EF_UT_TIME || NT_TZBUG_WORKAROUND */
+#endif /* USE_EF_UT_TIME || NT_TZBUG_WORKAROUND || TIMESTAMP */
 
 
 
 #ifndef NT_TZBUG_WORKAROUND
 #  define UTIME_BOUNDCHECK_1(utimval) \
      if (fs_uses_loctime) { \
-         utime_dosmin = dos_to_unix_time(0x0021, 0); \
+         utime_dosmin = dos_to_unix_time((unsigned)DOSDATE_MINIMUM, 0); \
          if ((ulg)utimval < (ulg)utime_dosmin) \
              utimval = utime_dosmin; \
      }
@@ -596,7 +587,7 @@ static int NTQueryTargetFS(char *path)
          utimval = utime_dosmin;
 #  define NT_TZBUG_PRECOMPENSATE(ut, pft)
 
-#else
+#else /* !NT_TZBUG_WORKAROUND */
 #  define UTIME_1980_JAN_01_00_00   315532800L
 #  define UTIME_BOUNDCHECK_1(utimval)
 #  define UTIME_BOUNDCHECK_N(utimval)
@@ -627,12 +618,12 @@ static time_t UTCtime2Localtime(time_t utctime)
 #endif
     tm = localtime(&utc);
 
-    years = tm->tm_year + 1900;  /* year - 1900 -> year */
-    months = tm->tm_mon;         /* 0..11 */
-    days = tm->tm_mday - 1;      /* 1..31 -> 0..30 */
-    hours = tm->tm_hour;         /* 0..23 */
-    minutes = tm->tm_min;        /* 0..59 */
-    seconds = tm->tm_sec;        /* 0..61 in ANSI C */
+    years = tm->tm_year + 1900; /* year - 1900 -> year */
+    months = tm->tm_mon;        /* 0..11 */
+    days = tm->tm_mday - 1;     /* 1..31 -> 0..30 */
+    hours = tm->tm_hour;        /* 0..23 */
+    minutes = tm->tm_min;       /* 0..59 */
+    seconds = tm->tm_sec;       /* 0..61 in ANSI C */
 
     /* set `days' to the number of days into the year */
     days += ydays[months] + (months > 1 && leap(years));
@@ -715,8 +706,10 @@ static int getNTfiletime(__G__ pModFT, pAccFT, pCreFT)
     /* Copy and/or convert time and date variables, if necessary;
      * return a flag indicating which time stamps are available. */
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field && ((eb_izux_flg = ef_scan_for_izux(G.extra_field,
-        G.lrec.extra_field_length, 0, &z_utime, NULL)) & EB_UT_FL_MTIME))
+    if (G.extra_field &&
+        ((eb_izux_flg = ef_scan_for_izux(G.extra_field,
+          G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
+          &z_utime, NULL)) & EB_UT_FL_MTIME))
     {
         TTrace((stderr, "getNTfiletime:  Unix e.f. modif. time = %lu\n",
           z_utime.mtime));
@@ -867,6 +860,56 @@ void close_outfile(__G)
 
 
 
+#ifdef TIMESTAMP
+
+/*************************/
+/* Function stamp_file() */
+/*************************/
+
+int stamp_file(ZCONST char *fname, time_t modtime)
+{
+    FILETIME Modft;    /* File time type defined in NT, `last modified' time */
+    HANDLE hFile;      /* File handle defined in NT    */
+    int errstat = 0;   /* return status: 0 == "OK", -1 == "Failure" */
+#ifndef NT_TZBUG_WORKAROUND
+    time_t utime_dosmin;        /* internal variable for UTIME_BOUNDCHECK_1 */
+#endif
+    int fs_uses_loctime = NTQueryTargetFS(fname);
+#ifdef __RSXNT__        /* RSXNT/EMX C rtl uses OEM charset */
+    char *ansi_name = (char *)alloca(strlen(fname) + 1);
+
+    INTERN_TO_ISO(fname, ansi_name);
+#   define Ansi_Fname  ansi_name
+#else
+#   define Ansi_Fname  fname
+#endif
+
+    /* open a handle to the file to prepare setting the mod-time stamp */
+    hFile = CreateFile(Ansi_Fname, GENERIC_WRITE, FILE_SHARE_WRITE, NULL,
+         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if ( hFile == INVALID_HANDLE_VALUE ) {
+        errstat = -1;
+    } else {
+        /* convert time_t modtime into WIN32 native 64bit format */
+        UTIME_BOUNDCHECK_1(modtime)
+        utime2FileTime(modtime, &Modft);
+        NT_TZBUG_PRECOMPENSATE(modtime, &Modft)
+        /* set Access and Modification times of the file to modtime */
+        if (!SetFileTime(hFile, NULL, &Modft, &Modft)) {
+            errstat = -1;
+        }
+        CloseHandle(hFile);
+    }
+
+    return errstat;
+
+#undef Ansi_Fname
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
+
+
+
 
 /***********************/
 /* Function isfloppy() */   /* more precisely, is it removable? */
@@ -901,7 +944,7 @@ static int isfloppy(int nDrive)   /* 1 == A:, 2 == B:, etc. */
  *        filenames are supported...]
  */
 
-static int IsVolumeOldFAT(char *name)
+static int IsVolumeOldFAT(const char *name)
 {
     char     *tmp0;
     char      rootPathName[4];
@@ -915,7 +958,7 @@ static int IsVolumeOldFAT(char *name)
 #endif
 
     if (isalpha(name[0]) && (name[1] == ':'))
-        tmp0 = name;
+        tmp0 = (char *)name;
     else
     {
         GetFullPathName(name, MAX_PATH, tmp1, &tmp0);
@@ -941,7 +984,7 @@ static int IsVolumeOldFAT(char *name)
 /* Function IsFileNameValid() */
 /******************************/
 
-static int IsFileNameValid(char *name)
+static int IsFileNameValid(const char *name)
 {
     HFILE    hf;
     OFSTRUCT of;
@@ -1011,7 +1054,7 @@ char *do_wild(__G__ wildspec)
             G.dirnamelen = G.wildname - wildspec;
             if ((G.dirname = (char *)malloc(G.dirnamelen+1)) == NULL) {
                 Info(slide, 1, ((char *)slide,
-                  "warning:  can't allocate wildcard buffers\n"));
+                  "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(G.matchname, wildspec);
                 return G.matchname; /* but maybe filespec was not a wildcard */
             }
@@ -1394,9 +1437,11 @@ static void map2fat(pathcomp, pEndFAT)
         *last_dot = '.';          /*  "..") is OK:  put it back in */
 
         if ((last_dot - pBegin) > 8) {
-            char *p=last_dot, *q=pBegin+8;
+            char *p, *q;
             int i;
 
+            p = last_dot;
+            q = last_dot = pBegin + 8;
             for (i = 0;  (i < 4) && *p;  ++i)  /* too many chars in basename: */
                 *q++ = *p++;                   /*  shift .ext left and trun- */
             *q = '\0';                         /*  cate/terminate it */
@@ -1406,6 +1451,9 @@ static void map2fat(pathcomp, pEndFAT)
             **pEndFAT = '\0';
         } else
             *pEndFAT = pEnd;   /* filename is fine; point at terminating zero */
+
+        if ((last_dot - pBegin) > 0 && last_dot[-1] == ' ')
+            last_dot[-1] = '_';                /* NO blank in front of '.'! */
     }
 } /* end function map2fat() */
 
@@ -1491,7 +1539,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (MKDIR(G.buildpathFAT, 0777) == -1) { /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n",
                   FnFilter2(G.buildpathFAT), FnFilter1(G.filename)));
                 free(G.buildpathHPFS);
@@ -1518,7 +1566,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (MKDIR(G.buildpathFAT, 0777) == -1) { /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n",
                   FnFilter2(G.buildpathFAT), FnFilter1(G.filename)));
                 free(G.buildpathHPFS);
@@ -1704,7 +1752,7 @@ int checkdir(__G__ pathcomp, flag)
                      * and create more than one level, but really necessary?) */
                     if (MKDIR(pathcomp, 0777) == -1) {
                         Info(slide, 1, ((char *)slide,
-                          "checkdir:  can't create extraction directory: %s\n",
+                          "checkdir:  cannot create extraction directory: %s\n",
                           FnFilter1(pathcomp)));
                         G.rootlen = 0; /* path didn't exist, tried to create, */
                         return 3;  /* failed:  file exists, or need 2+ levels */
@@ -1732,8 +1780,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (G.rootlen > 0)
+        if (G.rootlen > 0) {
             free(G.rootpath);
+            G.rootlen = 0;
+        }
         return 0;
     }
 
@@ -1765,7 +1815,7 @@ void version(__G)
 
     len = sprintf((char *)slide, CompiledWith,
 
-#ifdef _MSC_VER  /* MSC == VC++, but what about SDK compiler? */
+#if defined(_MSC_VER)  /* MSC == VC++, but what about SDK compiler? */
       (sprintf(buf, "Microsoft C %d.%02d ", _MSC_VER/100, _MSC_VER%100), buf),
 #  if (_MSC_VER == 800)
       "(Visual C++ v1.1)",

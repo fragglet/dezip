@@ -1,6 +1,7 @@
 #ifdef THINK_C
 #define MACOS
 #include    <pascal.h>
+#define IOCompletionUPP ProcPtr
 #endif
 #ifdef MPW
 #define MACOS
@@ -9,15 +10,20 @@
 #define FSFCBLen    (*(short *)0x3F6)
 #endif
 
+#ifdef __MWERKS__
+#define MACOS
+#define FSFCBLen    (*(short *)0x3F6)
+#endif
+
 #ifdef MACOS
 #include    <string.h>
 #include    "macstat.h"
-int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID );
+int macstat( char *path, struct stat *buf, short nVRefNum, long lDirID );
 
 #define unixTime(t) ((t) = ((t) < (time_t)0x7c25b080) ? 0 : (t) - (time_t)0x7c25b080)
 
 /* assume that the path will contain a Mac-type pathname, i.e. ':'s, etc. */
-int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
+int macstat( char *path, struct stat *buf, short nVRefNum, long lDirID )
 {
     char    temp[256];
     short   nVRefNumT;
@@ -54,7 +60,7 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
 
             wdpb.ioCompletion = 0;
             wdpb.ioNamePtr = (StringPtr)temp;
-            err = PBHGetVol(&wdpb, 0);
+            err = PBHGetVolSync(&wdpb);
             nVRefNumT = wdpb.ioWDVRefNum;
             lDirIDT = wdpb.ioWDDirID;
         }
@@ -70,7 +76,7 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
             hpbr.volumeParam.ioNamePtr = (StringPtr)temp;
             hpbr.volumeParam.ioVRefNum = nVRefNumT;
             hpbr.volumeParam.ioVolIndex = 0;
-            err = PBHGetVInfo(&hpbr, 0);
+            err = PBHGetVInfoSync(&hpbr);
 
             if (err == noErr && hpbr.volumeParam.ioVFSID == 0
                 && hpbr.volumeParam.ioVSigWord == 0x4244) {
@@ -93,16 +99,16 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
         HParamBlockRec  hPB;
 
         /* get information about file */
-        cPB.hFileInfo.ioCompletion = (ProcPtr)0L;
+        cPB.hFileInfo.ioCompletion = (IOCompletionUPP)0L;
         c2pstr(path);
         strncpy(temp,path, path[0]+1);
-        p2cstr(path);
+        p2cstr((StringPtr)path);
         cPB.hFileInfo.ioNamePtr = (StringPtr)temp;
         cPB.hFileInfo.ioVRefNum = nVRefNumT;
         cPB.hFileInfo.ioDirID = lDirIDT;
         cPB.hFileInfo.ioFDirIndex = 0;
 
-        err = PBGetCatInfo(&cPB, false);
+        err = PBGetCatInfoSync(&cPB);
 
         if (err != noErr) {
             if ((err != fnfErr) && (err != dirNFErr)) {
@@ -126,12 +132,12 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
         buf->st_size = cPB.hFileInfo.ioFlLgLen;
 
         /* size of disk block */
-        hPB.volumeParam.ioCompletion = (ProcPtr)0L;
+        hPB.volumeParam.ioCompletion = (IOCompletionUPP)0L;
         hPB.volumeParam.ioNamePtr = (StringPtr)temp;
         hPB.volumeParam.ioVRefNum = nVRefNumT;
         hPB.volumeParam.ioVolIndex = 0;
 
-        err = PBHGetVInfo(&hPB, false);
+        err = PBHGetVInfoSync(&hPB);
 
         if (err != noErr) {
             SysBeep(1);
@@ -147,14 +153,14 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
 
         c2pstr(path);
         strncpy(temp, path, path[0]+1);
-        p2cstr(path);
-        pPB.fileParam.ioCompletion = (ProcPtr)0;
+        p2cstr((StringPtr)path);
+        pPB.fileParam.ioCompletion = (IOCompletionUPP)0;
         pPB.fileParam.ioNamePtr = (StringPtr)temp;
         pPB.fileParam.ioVRefNum = nVRefNumT;
         pPB.fileParam.ioFVersNum = 0;
         pPB.fileParam.ioFDirIndex = 0;
 
-        err = PBGetFInfo(&pPB, false);
+        err = PBGetFInfoSync(&pPB);
 
         if (err != noErr) {
             SysBeep(1);
@@ -176,12 +182,12 @@ int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
         buf->st_size = pPB.fileParam.ioFlLgLen;
 
         /* size of disk block */
-        hPB.volumeParam.ioCompletion = (ProcPtr)0;
+        hPB.volumeParam.ioCompletion = (IOCompletionUPP)0;
         hPB.volumeParam.ioNamePtr = (StringPtr)temp;
         hPB.volumeParam.ioVRefNum = nVRefNumT;
         hPB.volumeParam.ioVolIndex = 0;
 
-        err = PBGetVInfo(&hPB, false);
+        err = PBGetVInfoSync(&hPB);
 
         if (err != noErr) {
             SysBeep(1);

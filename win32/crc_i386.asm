@@ -1,5 +1,5 @@
 ; crc_i386.asm, optimized CRC calculation function for Zip and UnZip, not
-; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 10 Nov 96.
+; copyrighted by Paul Kienitz and Christian Spieler.  Last revised 12 Oct 97.
 ;
 ; Revised 06-Oct-96, Scott Field (sfield@microsoft.com)
 ;   fixed to assemble with masm by not using .model directive which makes
@@ -17,10 +17,21 @@
 ;   second item in each table is input buffer length, > 8
 ;   third item in each table is input buffer length, < 8
 ;
+; Revised 02-Apr-97, Chr. Spieler, based on Rodney Brown (rdb@cmutual.com.au)
+;   Incorporated Rodney Brown's 32-bit-reads optimization as found in the
+;   UNIX AS source crc_i386.S. This new code can be disabled by defining
+;   the macro symbol NO_32_BIT_LOADS.
+;
+; Revised 12-Oct-97, Chr. Spieler, based on Rodney Brown (rdb@cmutual.com.au)
+;   Incorporated Rodney Brown's additional tweaks for 32-bit-optimized CPUs
+;   (like the Pentium Pro, Pentium II, and probably some Pentium clones).
+;   This optimization is controlled by the macro symbol __686 and is disabled
+;   by default. (This default is based on the assumption that most users
+;   do not yet work on a Pentium Pro or Pentium II machine ...)
 ;
 ; FLAT memory model assumed.
 ;
-; The loop unroolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
+; The loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
 ; This results in shorter code at the expense of reduced performance.
 ;
 ;==============================================================================
@@ -67,23 +78,46 @@ STD_LEAVE       MACRO
 
     ENDIF ; ?NO_STD_STACKFRAME
 
-; This is the loop body of the CRC32 cruncher.
+; These two (three) macros make up the loop body of the CRC32 cruncher.
 ; registers modified:
-;   ebx  : crc value "c"
-;   esi  : pointer to next data byte "buf++"
+;   eax  : crc value "c"
+;   esi  : pointer to next data byte (or dword) "buf++"
 ; registers read:
 ;   edi  : pointer to base of crc_table array
 ; scratch registers:
-;   eax  : requires upper three bytes of eax = 0, uses al
+;   ebx  : index into crc_table array
+;          (requires upper three bytes = 0 when __686 is undefined)
+    IFNDEF  __686 ; optimize for 386, 486, Pentium
 Do_CRC  MACRO
-                mov     al, byte ptr [esi]   ; al <-- *buf
-                inc     esi                  ; buf++
-                xor     al,bl                ; (c ^ *buf++) & 0xFF
-                shr     ebx,8                ; c = (c >> 8)
-                xor     ebx,[edi+eax*4]      ;  ^ table[(c ^ *buf++) & 0xFF]
+                mov     bl,al                ; tmp = c & 0xFF
+                shr     eax,8                ; c = (c >> 8)
+                xor     eax,[edi+ebx*4]      ;  ^ table[tmp]
         ENDM
+    ELSE ; __686 : optimize for Pentium Pro, Pentium II and compatible CPUs
+Do_CRC  MACRO
+                movzx   ebx,al               ; tmp = c & 0xFF
+                shr     eax,8                ; c = (c >> 8)
+                xor     eax,[edi+ebx*4]      ;  ^ table[tmp]
+        ENDM
+    ENDIF ; ?__686
+Do_CRC_byte     MACRO
+                xor     al, byte ptr [esi]   ; c ^= *buf
+                inc     esi                  ; buf++
+                Do_CRC                       ; c = (c >> 8) ^ table[c & 0xFF]
+        ENDM
+    IFNDEF  NO_32_BIT_LOADS
+Do_CRC_dword    MACRO
+                xor     eax, dword ptr [esi] ; c ^= *(ulg *)buf
+                add     esi, 4               ; ((ulg *)buf)++
+                Do_CRC
+                Do_CRC
+                Do_CRC
+                Do_CRC
+        ENDM
+    ENDIF ; !NO_32_BIT_LOADS
 
 _TEXT   segment para
+        assume  CS: _TEXT
 
         public  _crc32
 _crc32          proc    near  ; ulg crc32(ulg crc, ZCONST uch *buf, extent len)
@@ -101,43 +135,65 @@ _crc32          proc    near  ; ulg crc32(ulg crc, ZCONST uch *buf, extent len)
 
                 call    _get_crc_table
                 mov     edi,eax
-                mov     ebx,Arg1             ; 1st arg: ulg crc
-                sub     eax,eax              ; eax=0; make al usable as a dword
+                mov     eax,Arg1             ; 1st arg: ulg crc
+    IFNDEF __686
+                sub     ebx,ebx              ; ebx=0; make bl usable as a dword
+    ENDIF
                 mov     ecx,Arg3             ; 3rd arg: extent len
-                not     ebx                  ;>   c = ~crc;
+                not     eax                  ;>   c = ~crc;
 
     IFNDEF  NO_UNROLLED_LOOPS
+    IFNDEF  NO_32_BIT_LOADS
+                test    ecx,ecx
+                je      bail
+align_loop:
+                test    esi,3                ; align buf pointer on next
+                jz      SHORT aligned_now    ;  dword boundary
+                Do_CRC_byte
+                dec     ecx
+                jnz     align_loop
+aligned_now:
+    ENDIF ; !NO_32_BIT_LOADS
                 mov     edx,ecx              ; save len in edx
                 and     edx,000000007H       ; edx = len % 8
                 shr     ecx,3                ; ecx = len / 8
-                jz      No_Eights
+                jz      SHORT No_Eights
 ; align loop head at start of 486 internal cache line !!
                 align   16
 Next_Eight:
-                Do_CRC
-                Do_CRC
-                Do_CRC
-                Do_CRC
-                Do_CRC
-                Do_CRC
-                Do_CRC
-                Do_CRC
+    IFNDEF  NO_32_BIT_LOADS
+                Do_CRC_dword
+                Do_CRC_dword
+    ELSE ; NO_32_BIT_LOADS
+                Do_CRC_byte
+                Do_CRC_byte
+                Do_CRC_byte
+                Do_CRC_byte
+                Do_CRC_byte
+                Do_CRC_byte
+                Do_CRC_byte
+                Do_CRC_byte
+    ENDIF ; ?NO_32_BIT_LOADS
                 dec     ecx
                 jnz     Next_Eight
 No_Eights:
                 mov     ecx,edx
 
     ENDIF ; NO_UNROLLED_LOOPS
+    IFNDEF  NO_JECXZ_SUPPORT
                 jecxz   bail                 ;>   if (len)
+    ELSE
+                test    ecx,ecx              ;>   if (len)
+                jz      SHORT bail
+    ENDIF
 ; align loop head at start of 486 internal cache line !!
                 align   16
 loupe:                                       ;>     do {
-                Do_CRC                       ;        c = CRC32(c, *buf++);
+                Do_CRC_byte                  ;        c = CRC32(c, *buf++);
                 dec     ecx                  ;>     } while (--len);
                 jnz     loupe
 
 bail:                                        ;> }
-                mov     eax,ebx
                 not     eax                  ;> return ~c;
 fine:
                 pop     ecx
@@ -151,6 +207,6 @@ _crc32          endp
 
 _TEXT   ends
 ;
-    ENDIF ;!USE_ZLIB
+    ENDIF ; !USE_ZLIB
 ;
 end

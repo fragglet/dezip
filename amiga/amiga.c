@@ -10,6 +10,7 @@
               do_wild()
               checkdir()
               close_outfile()
+              stamp_file()
               _abort()                (Aztec C only)
              [dateformat()]           (currently not used)
               windowheight()
@@ -19,6 +20,9 @@
 
 
 #define UNZIP_INTERNAL
+#ifdef AZTEC_C
+#  define NO_FCNTL_H
+#endif
 #include "unzip.h"
 
 /* Globular varibundus -- now declared in SYSTEM_SPECIFIC_GLOBALS in amiga.h */
@@ -77,6 +81,10 @@ int mapattr(__G)      /* Amiga version */
 
         case UNIX_:   /* preserve read, write, execute:  use logical-OR of */
         case VMS_:    /* user, group, and other; if writable, set delete bit */
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
+        case QDOS_:
             tmp >>= 16;
             tmp = (( tmp>>6 | tmp>>3 | tmp) & 07) << 1;
             G.pInfo->file_attr = (unsigned)(tmp&S_IWRITE? tmp|S_IDELETE : tmp);
@@ -88,7 +96,6 @@ int mapattr(__G)      /* Amiga version */
         case FS_HPFS_:  /* can add S_IHIDDEN check to MSDOS/OS2/NT eventually */
         case FS_NTFS_:
         case MAC_:
-        case ATARI_:
         case TOPS20_:
         default:
             G.pInfo->file_attr = (unsigned)(tmp&1? S_IREAD : S_IRWD);
@@ -279,7 +286,7 @@ char *do_wild(__G__ wildspec)
             G.dirnamelen = G.wildname - wildspec;
             if ((G.dirname = (char *)malloc(G.dirnamelen+1)) == NULL) {
                 Info(slide, 1, ((char *)slide,
-                     "warning:  can't allocate wildcard buffers\n"));
+                     "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(G.matchname, wildspec);
                 return G.matchname; /* but maybe filespec was not a wildcard */
             }
@@ -394,7 +401,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (MKDIR(G.buildpath, 0777) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                 "checkdir error:  can't create %s\n\
+                 "checkdir error:  cannot create %s\n\
                  unable to process %s.\n", G.buildpath, G.filename));
                 free(G.buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
@@ -501,7 +508,7 @@ int checkdir(__G__ pathcomp, flag)
                  * and create more than one level, but why really necessary?) */
                 if (MKDIR(pathcomp, 0777) == -1) {
                     Info(slide, 1, ((char *)slide,
-                         "checkdir:  can't create extraction directory: %s\n",
+                         "checkdir:  cannot create extraction directory: %s\n",
                          pathcomp));
                     G.rootlen = 0; /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
@@ -527,8 +534,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (G.rootlen > 0)
+        if (G.rootlen > 0) {
             free(G.rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -562,7 +571,9 @@ void close_outfile(__G)
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
+    {
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
                          z_utime.mtime));
         m_time = z_utime.mtime;
@@ -584,7 +595,7 @@ void close_outfile(__G)
 
     if (!FileDate(G.filename, &m_time))
         Info(slide, 1, ((char *)slide,
-             "warning:  can't set the time for %s\n", G.filename));
+             "warning:  cannot set the time for %s\n", G.filename));
 
   /* set file perms after closing (not done at creation)--see mapattr() */
 
@@ -599,6 +610,27 @@ void close_outfile(__G)
     }
 
 } /* end function close_outfile() */
+
+
+#ifdef TIMESTAMP
+
+/*************************/
+/* Function stamp_file() */
+/*************************/
+
+int stamp_file(fname, modtime)
+    ZCONST char *fname;
+    time_t modtime;
+{
+    time_t m_time;
+    LONG FileDate();
+
+    m_time = modtime;
+    return (FileDate((char *)fname, &m_time));
+
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
 
 
 /********************************************************************/

@@ -14,7 +14,7 @@ APIDocStruct APIDoc[] = {
         "Get version numbers of the API and the underlying UnZip code.\n\n"
         "\t\tThis is used for comparing the version numbers of the run-time\n"
         "\t\tDLL code with those expected from the unzip.h at compile time.\n"
-        "\t\tIf the version numbers don't match, there may be compatibility\n"
+        "\t\tIf the version numbers do not match, there may be compatibility\n"
         "\t\tproblems with further use of the DLL.\n\n"
         "  Example:\t/* Check the major version number of the DLL code. */\n"
         "\t\tUzpVer *pVersion;\n"

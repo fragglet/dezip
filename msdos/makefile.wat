@@ -1,5 +1,5 @@
 # WMAKE makefile for 16 bit MSDOS or 32 bit DOS extender (PMODE/W or DOS/4GW)
-# using Watcom C/C++ v10.5, by Paul Kienitz, last revised 22 Mar 97.  Makes
+# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 29 Sep 97.  Makes
 # UnZip.exe, fUnZip.exe, and UnZipSFX.exe.
 #
 # Invoke from UnZip source dir with "WMAKE -F MSDOS\MAKEFILE.WAT [targets]".
@@ -100,8 +100,8 @@ asm    = wasm
 
 !ifdef PM
 cc     = wcc386
-# Use Pentium timings, flat memory, static strings in code, max strictness:
-cflags = -bt=DOS -mf -5r -zt -zq -wx -we
+# Use Pentium Pro timings, flat memory, static strings in code, max strictness:
+cflags = -bt=DOS -mf -6r -zt -zq -wx
 aflags = -bt=DOS -mf -3 -zq
 cflagx = $(cflags)
 aflagx = $(aflags)
@@ -119,10 +119,10 @@ lflags = format os2 le op osname='PMODE/W' op stub=pmodew.exe $(defaultlibs)
 
 cc     = wcc
 # Use plain 8086 code, medium memory, static strings in code, max strictness:
-cflags = -bt=DOS -mm -0 -zt -zq -wx -we
+cflags = -bt=DOS -mm -0 -zt -zq -wx
 aflags = -bt=DOS -mm -0 -zq
 # for UnZipSFX and fUnZip, use the small memory model:
-cflagx = -bt=DOS -ms -0 -zt -zq -wx -we
+cflagx = -bt=DOS -ms -0 -zt -zq -wx
 aflagx = -bt=DOS -ms -0 -zq
 lflags = sys DOS
 !endif  # !PM
@@ -139,21 +139,21 @@ cdebux = -od -d2
 ldebug = d w all op symf
 !else
 !  ifdef PM
-cdebug = -s -oilrt -oe=100 -z4   # longword data alignment in 32 bit version
-# note: -ol+ does not help.  -oa helps slightly but might be dangerous.
+cdebug = -s -obhikl+rt -oe=100 -zp8
+# -oa helps slightly but might be dangerous.
 !  else
-cdebug = -s -oilrt -oe=100
+cdebug = -s -oehiklrt
 !  endif
-cdebux = -s -oilrs
+cdebux = -s -obhiklrs
 ldebug = op el
 !endif
 
 # How to compile sources:
 .c.obx:
-	$(cc) $(cdebux) $(cflagx) $(cvars) -DSFX $< -fo=$@
+	$(cc) $(cdebux) $(cflagx) $(cvars) -DSFX $[@ -fo=$@
 
 .c.obj:
-	$(cc) $(cdebug) $(cflags) $(cvars) $< -fo=$@
+	$(cc) $(cdebug) $(cflags) $(cvars) $[@ -fo=$@
 
 # Here we go!  By default, make all targets, except no UnZipSFX for PMODE:
 !ifdef PM

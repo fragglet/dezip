@@ -24,6 +24,10 @@
 
         15-Dec-1995     Christian Spieler
                         Removed the last "tabs" from the source.
+
+        24-Jun-1997     Onno van der Linden / Chr. Spieler
+                        Modifications to support the VMS port of GNU C 2.x.
+
   ---------------------------------------------------------------------------*/
 
 #ifndef __vmsdefs_h
@@ -38,13 +42,13 @@
 #pragma __nomember_alignment
 #endif /* __DECC || __DECCXX */
 
-#if !defined(__VAXC) && !defined(VAXC)
+#if !(defined(__VAXC) || defined(VAXC)) || defined(__GNUC__)
 #define __struct struct
 #define __union union
 #else
 #define __struct variant_struct
 #define __union variant_union
-#endif
+#endif /* !(__VAXC || VAXC) || __GNUC__ */
 
 #ifdef __cplusplus
     extern "C" {
@@ -135,7 +139,7 @@ struct fatdef {
   unsigned short int fat$w_versions;
 };
 
-#if !defined(__VAXC) && !defined(VAXC)
+#if !(defined(__VAXC) || defined(VAXC)) || defined(__GNUC__)
 #define fat$b_rtype fat$r_rtype_overlay.fat$b_rtype
 #define fat$v_rtype fat$r_rtype_overlay.fat$r_rtype_bits.fat$v_rtype
 #define fat$v_fileorg fat$r_rtype_overlay.fat$r_rtype_bits.fat$v_fileorg
@@ -151,7 +155,7 @@ struct fatdef {
 #define fat$l_efblk fat$r_efblk_overlay.fat$l_efblk
 #define fat$w_efblkh fat$r_efblk_overlay.fat$r_efblk_fields.fat$w_efblkh
 #define fat$w_efblkl fat$r_efblk_overlay.fat$r_efblk_fields.fat$w_efblkl
-#endif /* !defined(__VAXC) && !defined(VAXC) */
+#endif /* !(__VAXC || VAXC) || __GNUC__ */
 
 #define __FATDEF_LOADED 1       /* prevent inclusion of DECC's fatdef.h */
 
@@ -231,7 +235,7 @@ struct fchdef  {
   } fch$r_fch_union;
 };
 
-#if !defined(__VAXC) && !defined(VAXC)
+#if !(defined(__VAXC) || defined(VAXC)) || defined(__GNUC__)
 #define fch$v_vcc_state fch$r_fch_union.fch$r_fill_1_chunks.fch$v_vcc_state
 #define fch$v_associated fch$r_fch_union.fch$r_fill_1_chunks.fch$v_associated
 #define fch$v_existence fch$r_fch_union.fch$r_fill_1_chunks.fch$v_existence
@@ -254,7 +258,7 @@ struct fchdef  {
 #define fch$v_scratch fch$r_fch_union.fch$r_fill_1_bits.fch$v_scratch
 #define fch$v_nomove fch$r_fch_union.fch$r_fill_1_bits.fch$v_nomove
 #define fch$v_noshelvable fch$r_fch_union.fch$r_fill_1_bits.fch$v_noshelvable
-#endif /* !defined(__VAXC) && !defined(VAXC) */
+#endif /* !(__VAXC || VAXC) || __GNUC__ */
 
 #define __FCHDEF_LOADED 1       /* prevent inclusion of DECC's fchdef.h */
 

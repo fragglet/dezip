@@ -15,11 +15,6 @@
 /* functions included in amiga/stat.c.  If you use amiga/stat.c, this must   */
 /* be included wherever you use either readdir() or stat().                  */
 
-/* This include file should ONLY be loaded if AZTEC_C is defined, and
- * you are using the substitute version of stat() from amiga/stat.c.
- * Bit definitions are based on those in headers for SAS/C v6.0
- */
-
 #include <time.h>
 
 struct stat {
@@ -55,6 +50,7 @@ struct stat {
 #define S_IDELETE    (1<<0)
 
 int stat(char *name, struct stat *buf);
+int fstat(int handle, struct stat *buf);      /* returns dummy values */
 
 
 #include <libraries/dos.h>

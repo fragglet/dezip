@@ -17,6 +17,7 @@
              checkdir()
              qfix()
              close_outfile()
+             stamp_file()
              getp()
              version()
 
@@ -226,7 +227,7 @@ char *do_wild(__G__ wildspec)
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 0x201, ((char *)slide,
-                  "warning:  can't allocate wildcard buffers\n"));
+                  "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -306,6 +307,9 @@ int mapattr(__G)
         case QDOS_:
         case UNIX_:
         case VMS_:
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
             return 0;
         case AMIGA_:
@@ -317,7 +321,6 @@ int mapattr(__G)
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
-        case ATARI_:             /* (used to set = 0666) */
         case TOPS20_:
         default:
             tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
@@ -543,7 +546,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (mkdir(buildpath, 0777) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n", buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
@@ -677,7 +680,7 @@ int checkdir(__G__ pathcomp, flag)
 
                 if (mkdir(pathcomp, 0777) == -1) {
                     Info(slide, 1, ((char *)slide,
-                      "checkdir:  can't create extraction directory: %s\n",
+                      "checkdir:  cannot create extraction directory: %s\n",
                       pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
@@ -705,8 +708,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
+        if (rootlen > 0) {
             free(rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -818,9 +823,9 @@ void close_outfile(__G)
   ---------------------------------------------------------------------------*/
 
 #ifdef USE_EF_UT_TIME
-    eb_izux_flg = (G.extra_field ?
-                   ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                                    0, &zt, z_uidgid) : 0);
+    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
+                   &zt, z_uidgid) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
           zt.mtime));
@@ -845,10 +850,33 @@ void close_outfile(__G)
     /* set the file's access and modification times */
     if (utime(G.filename, (struct utimbuf *)&zt)) {
         Info(slide, 0x201, ((char *)slide,
-          "warning:  can't set the time for %s\n", G.filename));
+          "warning:  cannot set the time for %s\n", G.filename));
     }
 
 } /* end function close_outfile() */
+
+
+
+
+#ifdef TIMESTAMP
+
+/***************************/
+/*  Function stamp_file()  */
+/***************************/
+
+int stamp_file(fname, modtime)
+    ZCONST char *fname;
+    time_t modtime;
+{
+    struct utimbuf tp;
+
+    tp.modtime = tp.actime = modtime;
+    return (utime(fname, &tp));
+
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
+
 
 
 

@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 17 May 97.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 20 Oct 97.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -11,7 +11,7 @@ __________________________________________________________________________
 
 
 To compile UnZip, UnZipSFX and/or fUnZip (quick-start instructions):
-=========================================
+========================================
 
 (1) Unpack everything into a work directory somewhere, and make sure you're
     in the main UnZip directory (the one with this file in it).
@@ -35,7 +35,7 @@ To compile UnZip, UnZipSFX and/or fUnZip (quick-start instructions):
 
 
 To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
-=========================================
+========================================
 
 (1) Unpack *.c and *.h (the actual source files), preserving the directory
     structure (e.g., ./unix/unix.c).  The sole exception is TOPS-20, where
@@ -43,7 +43,7 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
     is no longer fully supported anyway.
 
     If you wish to compile with decryption enabled, you must get the zcrypt
-    package (see the "Where" file).  Unpack crypt.c and crypt.h from the
+    package (see the "WHERE" file).  Unpack crypt.c and crypt.h from the
     zcrypt archive, overwriting the dummy versions supplied with UnZip.  If
     you don't have any sort of unzipper available, you'll have to compile the
     non-crypt version first and use that to unpack the full crypt sources,
@@ -62,12 +62,13 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
     tabs as part of the makefile syntax.  Failure with cryptic error messages
     will result if your editor quietly replaces those tabs with spaces.
 
-    Special point of confusion:  a few MS-DOS targets are in non-MSDOS make-
-    files.  In particular, for DOS emx+gcc use the gccdos target of the OS/2
-    makefile (os2/makefile.os2).  [The old djgpp, djgpp1 and gcc_dos targets
-    in unix/Makefile have been removed in 5.3; use msdos/makefile.dj* instead.]
-    In addition, OS/2 users of MSC can cross-compile to MS-DOS with the mscdos
-    target in os2/makefile.os2.
+    Special point of confusion:  some non-MSDOS makefiles contain MS-DOS
+    targets (useful for cross-compilations). An example is the OS/2 makefile
+    os2/makefile.os2 that contains the gccdos target for DOS emx+gcc and
+    some more DOS related targets for Watcom C and MSC. But since version 5.3,
+    the msdos subdirectory contains makefiles for all supported DOS compilers.
+    [The old djgpp, djgpp1 and gcc_dos targets in unix/Makefile have been
+    removed in 5.3; use msdos/makefile.dj* instead.]
 
     Extra-special point of confusion:  makefile.os2 expects to remain in
     the os2 subdirectory.  Invoke it via "nmake -f os2/makefile.os2 gcc",
@@ -108,11 +109,12 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
 
       VMSCLI   (VMS only)
         Use VMS-style "slash options" (/FOOBAR) instead of the default Unix-
-        style hyphenated options (-f).  This capability was added quite late
-        in the beta cycle and isn't fully tested, so some features may not
-        work as expected.  Also, it doesn't affect options stored in environ-
-        ment variables (UNZIP_OPTS or ZIPINFO_OPTS); those use the Unix style
-        regardless.
+        style hyphenated options (-f).  This capability does not affect options
+        stored in environment variables (UNZIP_OPTS or ZIPINFO_OPTS); those use
+        the Unix style regardless. Beginning with UnZip 5.32, the supplied
+        VMS Makefiles and make procedures generate both VMS-style and default
+        "UNIX style" executables; you should NOT add VMSCLI to the custom
+        options.
 
       CHECK_VERSIONS   (VMS only)
         UnZip "extra fields" are used to store VMS (RMS) filesystem info,
@@ -150,14 +152,19 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         macro to enable its use.  See also msdos/doscfg.h.  [Note that djgpp
         2.0's LFN support is flaky; users should upgrade to 2.01 or later.]
 
-      TIMESTAMP   (default; Unix only for now)
       NOTIMESTAMP
-        This option enables a -T option that basically does exactly what Zip's
-        -go options do (i.e., set the timestamp of the zipfile to that of the
-        newest file in the archive without rewriting the archive), except that,
-        unlike Zip, UnZip supports wildcard specifications for the archive
-        name:  "unzip -T \*.zip" will set the dates of all zipfiles in the
-        current directory.  (UnZip's option is also much faster.)
+        This option disables the -T option, which basically does exactly what
+        Zip's -go options do (i.e., set the timestamp of the zipfile to that of
+        the newest file in the archive without rewriting the archive).  Unlike
+        Zip, however, UnZip supports wildcard specifications for the archive
+        name; for example, "unzip -T *.zip" will set the dates of all zipfiles
+        in the current directory.  (UnZip's option is also much faster.)
+
+      DATE_FORMAT=DF_DMY or DF_MDY or DF_YMD
+        This option controls the order in which date components are printed
+        in listings:  day-month-year or month-day-year or year-month-day.
+        For DOS derivatives the format is automatically obtained from the
+        operating system; most others default to DF_MDY.
 
       UNIXBACKUP   (Unix only)
         This option enables a -B option that instructs UnZip to rename files
@@ -248,7 +255,7 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
     environment variable (assuming it's supported in your makefile).  Under
     MS-DOS, for example, add this to AUTOEXEC.BAT:
 
-        set LOCAL_UNZIP=-DDOSWILD -DOLD_EXDIR
+        set LOCAL_UNZIP=-DDOSWILD -DDATE_FORMAT=DF_DMY
 
     You can also use the variable to hold special compiler options (e.g.,
     -FPi87 for Microsoft C, if the x87 libraries are the only ones on your
@@ -280,15 +287,18 @@ To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
         available, do "@make_unz vaxc" (or "@[.vms]make_unz vaxc").
         To use GNU C (gcc) on either platform, do "@make_unz gnuc".
         (NOTE: Currently, gcc for VMS(AXP) is not yet available!)
+        The command procedure MAKE_UNZ.COM now recognizes custom feature
+        options supplied in the logical name LOCAL_UNZIP; details are
+        explained in the comments at the top of MAKE_UNZ.COM.
 
         For repeated makes or other hacker-like tinkering with the sources,
-        or to create a custom version of UnZip (especially with VMSCLI), use
-        the included "MMS" makefile, DESCRIP.MMS.  Copy it into the current
-        directory, read the comments at the top of it and run MadGoat's free
-        MMS clone "MMK" on it.  Newer versions of DEC's MMS should work, too,
-        but older ones apparently choke on some MMK-specific extensions in
-        DESCRIP.MMS.  (If somebody has an "older" version that works, let us
-        know and we'll remove this caveat.)
+        or to create a custom version of UnZip, you may use the included "MMS"
+        makefile, DESCRIP.MMS.  Copy it into the current directory, read the
+        comments at the top of it and run MadGoat's free MMS clone "MMK" on it.
+        Newer versions of DEC's MMS should work, too, but older ones apparently
+        choke on some MMK-specific extensions in DESCRIP.MMS.  (If somebody
+        has an "older" version that works, let us know and we'll remove this
+        caveat.)
 
       MS-DOS
         See the msdos\Contents file for notes regarding which makefile(s) to

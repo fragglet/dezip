@@ -9,6 +9,7 @@
              mapname()
              checkdir()
              close_outfile()
+             stamp_file()                   (TIMESTAMP only)
              version()
              TwentyOne()
              normalize_name()
@@ -63,7 +64,7 @@ char *do_wild(__G__ wildspec)
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == NULL) {
                 Info(slide, 1, ((char *)slide,
-                  "warning:  can't allocate wildcard buffers\n"));
+                  "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -141,12 +142,21 @@ int mapattr(__G)
 {
     ulg  tmp = G.crec.external_file_attributes;
 
-    if (G.pInfo->hostnum == UNIX_ || G.pInfo->hostnum == VMS_)
-        G.pInfo->file_attr = _mode2dos(tmp >> 16);
-    else
-        /* set archive bit (file is not backed up): */
-        G.pInfo->file_attr = (unsigned)(G.crec.external_file_attributes|32) &
-          0xff;
+    switch( G.pInfo->hostnum ) {
+        case UNIX_:
+        case VMS_:
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
+        case QDOS_:
+            G.pInfo->file_attr = _mode2dos(tmp >> 16);
+            break;
+        default:
+            /* set archive bit (file is not backed up) */
+            G.pInfo->file_attr =
+              (unsigned)(G.crec.external_file_attributes|32) & 0xff;
+            break;
+    }
     return 0;
 
 } /* end function mapattr() */
@@ -350,7 +360,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (MKDIR(buildpath, 0666) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n",
                   buildpath, G.filename));
                 free(buildpath);
@@ -473,7 +483,7 @@ int checkdir(__G__ pathcomp, flag)
                  * and create more than one level, but why really necessary?) */
                 if (MKDIR(pathcomp, 0777) == -1) {
                     Info(slide, 1, ((char *)slide,
-                      "checkdir:  can't create extraction directory: %s\n",
+                      "checkdir:  cannot create extraction directory: %s\n",
                       pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
@@ -498,8 +508,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
+        if (rootlen > 0) {
             free(rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -521,8 +533,8 @@ void close_outfile(__G)
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
 
-    /* The following DOS date/time structure is machine dependent as it
-     * assumes "little endian" byte order. For MSDOS specific code, which
+    /* The following DOS date/time structure is machine-dependent as it
+     * assumes "little-endian" byte order.  For MSDOS-specific code, which
      * is run on ix86 CPUs (or emulators), this assumption is valid; but
      * care should be taken when using this code as template for other ports.
      */
@@ -557,13 +569,17 @@ void close_outfile(__G)
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
+    {
         struct tm *t;
 
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
           z_utime.mtime));
-        /* round up to even seconds */
-        z_utime.mtime = (z_utime.mtime + 1) & (~1);
+        /* round up (down if "up" overflows) to even seconds */
+        if (z_utime.mtime & 1)
+            z_utime.mtime = (z_utime.mtime + 1 > z.utime.mtime) ?
+                             z_utime.mtime + 1 : z_utime.mtime - 1;
         t = localtime(&(z_utime.mtime));
         if (t->tm_year < 80) {
             dos_dt.zt._t._tf.zt_se = 0;
@@ -595,6 +611,74 @@ void close_outfile(__G)
     _dos_chmod(G.filename, G.pInfo->file_attr);
 
 } /* end function close_outfile() */
+
+
+
+
+
+#ifdef TIMESTAMP
+
+/*************************/
+/* Function stamp_file() */
+/*************************/
+
+int stamp_file(fname, modtime)
+    ZCONST char *fname;
+    time_t modtime;
+{
+    union {
+        ulg z_dostime;
+        struct {                /* date and time words */
+            union {             /* DOS file modification time word */
+                ush ztime;
+                struct {
+                    unsigned zt_se : 5;
+                    unsigned zt_mi : 6;
+                    unsigned zt_hr : 5;
+                } _tf;
+            } _t;
+            union {             /* DOS file modification date word */
+                ush zdate;
+                struct {
+                    unsigned zd_dy : 5;
+                    unsigned zd_mo : 4;
+                    unsigned zd_yr : 7;
+                } _df;
+            } _d;
+        } zt;
+    } dos_dt;
+    time_t t_even;
+    struct tm *t;
+    int fd;                             /* file handle */
+
+    /* round up (down if "up" overflows) to even seconds */
+    t_even = ((modtime + 1 > modtime) ? modtime + 1 : modtime) & (~1);
+    TIMET_TO_NATIVE(t_even)             /* NOP unless MSC 7.0 or Macintosh */
+    t = localtime(&t_even);
+    if (t->tm_year < 80) {
+        dos_dt.zt._t._tf.zt_se = 0;
+        dos_dt.zt._t._tf.zt_mi = 0;
+        dos_dt.zt._t._tf.zt_hr = 0;
+        dos_dt.zt._d._df.zd_dy = 1;
+        dos_dt.zt._d._df.zd_mo = 1;
+        dos_dt.zt._d._df.zd_yr = 0;
+    } else {
+        dos_dt.zt._t._tf.zt_se = t->tm_sec >> 1;
+        dos_dt.zt._t._tf.zt_mi = t->tm_min;
+        dos_dt.zt._t._tf.zt_hr = t->tm_hour;
+        dos_dt.zt._d._df.zd_dy = t->tm_mday;
+        dos_dt.zt._d._df.zd_mo = t->tm_mon + 1;
+        dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
+    }
+    if (((fd = open(fname, 0)) == -1) ||
+        (_dos_filedate(fileno(G.outfile), dos_dt.z_dostime)))
+        return -1;
+    close(fd);
+    return 0;
+
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
 
 
 

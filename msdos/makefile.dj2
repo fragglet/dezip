@@ -1,8 +1,11 @@
-# Makefile for Info-ZIP's UnZip, UnZipSFX and fUnZip using djgpp v2.0, by
-# Frank Donahoe.                                 Last updated:  10 Nov 96
+# Makefile for Info-ZIP's UnZip, UnZipSFX and fUnZip using djgpp v2.01, by
+# Frank Donahoe.                                 Last updated:  30 Sept 97
 
 # This Makefile is specifically tailored for GNU make and GNU C and
-# may not work with a generic Unix-compatible make utility.
+# may not work with a generic Unix-compatible make utility.  The latest
+# make version is 3.75.  Thanks to Eli Zaretskii for generously responding
+# to questions with advice on the changes needed to make install work under
+# the new version.
 # Features used:
 # - pattern rules (%.o : %.c, etc.)
 # - GNU-specific conditionals and functions  (ifeq, $(patsubst,,),...)
@@ -33,6 +36,8 @@ else
 USE_ASMCRC=1
 endif
 
+.PHONY : clean install uninstall
+
 # UnZip flags
 # LOCAL_UNZIP may be set in AUTOEXEC.BAT or defined in djgpp.env [make].
 # See, for example, DOSWILD, in the file INSTALL.
@@ -42,7 +47,7 @@ endif
 # BUTT=-m486
 
 # BUTT may also be defined to specify the target system.  At present, -m386
-# and -m486 are the only supported options.  Either will produce code which
+# and -m486 are the only supported options.  Either will produce code that
 # will run on the other microprocessor, though possibly not so fast.
 # In any case, omitting BUTT will result in a slightly smaller executable.
 
@@ -66,9 +71,12 @@ LDFLAGS=-s
 
 # general-purpose stuff
 # If cp.exe is not found change to CP=copy /Y    .
-CP = cp -f
-# If install.exe is not found change to INSTALL=$(CP)   .
-INSTALL=install
+CP = cp -fp
+# If install.exe is not found change to INSTALL=$(CP)   .  To prevent a
+# conflict with any of the many different "install's" that might be found
+# in the path, GNU install will be called as `ginstall'.  This also bypasses
+# a stub bug that cropped up with the install from fil316b.zip.
+INSTALL=ginstall
 # The default value of RM is "rm -f"  .  If rm.exe is not found, uncomment
 # the following:
 # RM=del
@@ -79,7 +87,7 @@ INSTALL=install
 # Do not add the option -s to DJP without making the required changes to
 # the targets zipinfo$E and unzipsfx$E.
 
-DJP = djp -bq
+DJP = djp -q
 E = .exe
 O = .o
 M=msdos
@@ -160,12 +168,12 @@ crc_gcc$O: crc_i386.S		# 32bit, GNU AS
 # Even if so placed, it can be over-ridden here by, say:
 # BIN_PATH=c:\usr\bin
 
-install:  $(UNZIPS)
+install:
 	-@if not exist $(BIN_PATH)\nul mkdir $(BIN_PATH)
-	for %%f in ($(UNZIPS)) do $(INSTALL) %%f $(BIN_PATH)
+	command.com /c for %f in ($(UNZIPS)) do $(INSTALL) %f $(BIN_PATH) > NUL
 
 uninstall:
-	for %%f in ($(UNZIPS)) do $(RM) $(BIN_PATH)\%%f
+	command.com /c for %f in ($(UNZIPS)) do $(RM) $(BIN_PATH)\%f > NUL
 
 clean:
 ifeq ($(firstword $(RM)), del)

@@ -1,4 +1,4 @@
-# Makefile for UnZip 5.30 using Manx Aztec C 5.2, last revised 15 May 97.
+# Makefile for UnZip 5.30 using Manx Aztec C 5.2, last revised 19 Oct 97.
 # Define EXTRA=xxx on the Make command line for e.g. -dUSE_UNSHRINK.
 
 EXTRA =
@@ -18,11 +18,11 @@ LDLIBS = -lc16
 OBJS = unzip.o process.o crypt.o ttyio.o envargs.o explode.o \
          unshrink.o extract.o zipinfo.o inflate.o match.o unreduce.o \
          fileio.o list.o globals.o crctab.o amiga/amiga.o amiga/crc_68.o \
-         amiga/flate.o
+         amiga/flate.o amiga/time_lib.o
 
 XOBJS = unzip.xo process.xo crypt.o ttyio.o extract.xo fileio.o \
          inflate.o match.o globals.o crctab.o amiga/flate.o amiga/amiga.xo \
-         amiga/crc_68.o
+         amiga/crc_68.o amiga/time_lib.o
 
 FOBJS = funzip.o crypt.fo ttyio.fo inflate.fo globals.fo \
          amiga/flate.fo amiga/crc_68.o amiga/filedate.fo

@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  BeOS
-# Version:  5.31                                                    25 May 1997
+# Version:  5.32                                               2 September 1997
 #==============================================================================
 
 # INSTRUCTIONS (such as they are):
@@ -25,7 +25,7 @@
 all:
 	@echo ''
 	@echo 'Make what?  You must say what compiler you want to use -- '
-	@echo 'for example, "make -f beos/Makefile mwcc".'
+	@echo 'for example, "make -f beos/Makefile foo".'
 	@echo ''
 	@echo 'The supported compilers are:'
 	@echo ''
@@ -39,7 +39,7 @@ list: all
 # MACRO DEFINITIONS #
 #####################
 
-MAKE = make -j 2 -f beos/Makefile
+MAKE = make -f beos/Makefile
 
 # Defaults most systems use (use LOCAL_UNZIP in environment to add flags,
 # such as -DDOSWILD).
@@ -53,12 +53,11 @@ LOC = $(LOCAL_UNZIP) -DPASSWD_FROM_STDIN
 AF = $(LOC)
 
 # -ansi strict doesn't work with the AADR9 stdio.h... d'oh!
-#MW_CF = -w9 -ansi strict -O7 -rostr -I. $(LOC)
-MW_CF = -w9 -O7 -rostr -I. $(LOC)
+MW_CF = -w9 -ansi strict -O7 -rostr -I. $(LOC)
 MW_LF = -o unzip
 MW_LF2 =
 
-GNU_CF = -Wall -ansi -mcpu=604 -O3 -I. $(LOC)
+GNU_CF = -Wall -ansi -mcpu=604 -O3 -I. -I/boot/develop/headers/be/support $(LOC)
 GNU_LF = -o unzip
 GNU_LF2 =
 
@@ -100,7 +99,7 @@ UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 INSTALL = install
 # on some systems, manext=l and MANDIR=/usr/man/man$(manext) may be appropriate
 manext = 1
-prefix = /boot/usr/local
+prefix = /boot/home/config
 BINDIR = $(prefix)/bin#			where to install executables
 MANDIR = $(prefix)/man/man$(manext)#	where to install man pages
 INSTALLEDBIN = $(BINDIR)/funzip$E $(BINDIR)/zipinfo$E $(BINDIR)/unzipsfx$E \
@@ -278,18 +277,11 @@ check:	unzips
 ######################################################################
 # Make rules for the supported compilers
 
+gnu: gcc
+
+gnuc: gcc
+
 gcc:
-	@echo ''
-	@echo 'WARNING: GNU C support is completely untested right now!'
-	@echo '         It is not likely even to compile yet.'
-	@echo ''
-	@echo '         You might want to contact chrish@qnx.com to see'
-	@echo '         if there are any GNU C patches for UnZip 5.31'
-	@echo '         before trying this.'
-	@echo ''
-	@echo 'Sleeping for 15 seconds so you can read this, then we'll try...'
-	@sleep 15s
-	@echo ''
 	@echo 'Making with GNU C...'
 	@echo ''
 	$(MAKE) $(UNZIPS) CC=$(GNU_CC) CF="$(GNU_CF)" LF="$(GNU_LF)" \

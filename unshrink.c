@@ -91,12 +91,8 @@ static void  partial_clear  OF((__GPRO));
 int unshrink(__G)
      __GDEF
 {
-#if 0
-    static uch *stacktop = NULL;
-#else
     int offset = (HSIZE - 1);
     uch *stacktop = stack + offset;
-#endif
     register uch *newstr;
     int codesize=9, len, KwKwK, error;
     shrint code, oldcode, freecode, curcode;
@@ -107,15 +103,6 @@ int unshrink(__G)
 /*---------------------------------------------------------------------------
     Initialize various variables.
   ---------------------------------------------------------------------------*/
-
-#if 0
-/* SPC: no longer needed, stacktop is now an automatic variable that
- *      is initialized on every unshrink() entry.
- */
-    /* this is required for MACOS, but performance hit is minuscule */
-    if (stacktop == NULL)
-        stacktop = stack + (HSIZE - 1);
-#endif
 
     lastfreecode = BOGUSCODE;
 

@@ -126,7 +126,7 @@ char *do_wild(__G__ wildspec)
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 1, ((char *)slide,
-                  "warning:  can't allocate wildcard buffers\n"));
+                  "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -346,6 +346,10 @@ int mapattr(__G)
     switch (G.pInfo->hostnum) {
         case UNIX_:
         case VMS_:
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
+        case QDOS_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
             return 0;
         case AMIGA_:
@@ -357,7 +361,6 @@ int mapattr(__G)
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
-        case ATARI_:             /* (used to set = 0666) */
         case TOPS20_:
         default:
             tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
@@ -598,7 +601,7 @@ int checkdir(__G__ pathcomp, flag)
             if (zvs_credir(buildpath,-1L,-1L,-1L,(char *) -1,-1,0L,-1,-1) == -1)
             {
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n", buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
@@ -720,7 +723,7 @@ int checkdir(__G__ pathcomp, flag)
                     == -1)
                 {
                     Info(slide, 1, ((char *)slide,
-                      "checkdir:  can't create extraction directory: %s\n",
+                      "checkdir:  cannot create extraction directory: %s\n",
                       pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
@@ -745,8 +748,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
+        if (rootlen > 0) {
             free(rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -820,7 +825,8 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         fclose(G.outfile);                  /* close "data" file for good... */
         unlink(G.filename);                 /* ...and delete it */
         linktarget[ucsize] = '\0';
-        Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
+        if (QCOND2)
+            Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
         if (symlink(linktarget, G.filename))  /* create the real link */
             perror("symlink error");
         free(linktarget);
@@ -862,7 +868,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
             /* vs_path was set (in this case) when we created the file */
             if (sys_sacl(vs_path, zzextrafld.aclbuf)) {
                 Info(slide, 0x201, ((char *)slide,
-                  "error: can't set ACL for %s\n", G.filename));
+                  "error: cannot set ACL for %s\n", G.filename));
                 perror("sys_sacl()");
             }
         }

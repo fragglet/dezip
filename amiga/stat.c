@@ -71,8 +71,9 @@ struct stat *buf;
 
         struct FileInfoBlock *inf;
         BPTR lock;
-        long ftime;
+        time_t ftime;
         void tzset(void);
+        struct tm local_tm;
 
         if( (lock = Lock(file,SHARED_LOCK))==0 )
                 /* file not found */
@@ -115,7 +116,10 @@ struct stat *buf;
                 (86400 * 2 );  /* two leap years */
 
         tzset();
-        ftime += timezone;
+        /* ftime += timezone; */
+        local_tm = *gmtime(&ftime);
+        local_tm.tm_isdst = -1;
+        ftime = mktime(&local_tm);
 
         buf->st_ctime =
         buf->st_atime =
@@ -132,6 +136,16 @@ struct stat *buf;
         return(0);
 
 }
+
+int fstat(int handle, struct stat *buf)
+{
+    /* fake some reasonable values for stdin */
+    buf->st_mode = (S_IREAD|S_IWRITE|S_IFREG);
+    buf->st_size = -1;
+    buf->st_mtime = time(&buf->st_mtime);
+    return 0;
+}
+
 
 /* opendir(), readdir(), closedir() and rmdir() by Paul Kienitz. */
 

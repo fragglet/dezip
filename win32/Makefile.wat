@@ -1,5 +1,5 @@
 # WMAKE makefile for Windows 95 and Windows NT (Intel only)
-# using Watcom C/C++ v10.5, by Paul Kienitz, last revised 22 Mar 97.
+# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 29 Sep 97.
 # Makes UnZip.exe, fUnZip.exe, and UnZipSFX.exe.
 #
 # Invoke from UnZip source dir with "WMAKE -F WIN32\MAKEFILE.WAT [targets]"
@@ -70,8 +70,8 @@ UNZIP_H = unzip.h unzpriv.h globals.h win32\w32cfg.h
 cc     = wcc386
 link   = wlink
 asm    = wasm
-# Use Pentium timings, register args, static strings in code, high strictness:
-cflags = -bt=NT -5r -zt -zq -wx  # -we
+# Use Pentium Pro timings, register args, static strings in code, high strictness:
+cflags = -bt=NT -6r -zt -zq -wx
 aflags = -bt=NT -mf -3 -zq
 lflags = sys NT
 cvars  = $+$(cvars)$- -DWIN32 $(variation)
@@ -84,18 +84,18 @@ cdebug = -od -d2
 cdebux = -od -d2
 ldebug = d w all op symf
 !else
-cdebug = -s -oilrt -oe=100 -zp4
-cdebux = -s -oilrs
-# note: -ol+ does not help.  -oa helps slightly but might be dangerous.
+cdebug = -s -obhikl+rt -oe=100 -zp8
+cdebux = -s -obhiklrs
+# -oa helps slightly but might be dangerous.
 ldebug = op el
 !endif
 
 # How to compile sources:
 .c.obx:
-	$(cc) $(cdebux) $(cflags) $(cvars) -DSFX $< -fo=$@
+	$(cc) $(cdebux) $(cflags) $(cvars) -DSFX $[@ -fo=$@
 
 .c.obj:
-	$(cc) $(cdebug) $(cflags) $(cvars) $< -fo=$@
+	$(cc) $(cdebug) $(cflags) $(cvars) $[@ -fo=$@
 
 # Here we go!  By default, make all targets:
 all: UnZip.exe fUnZip.exe UnZipSFX.exe

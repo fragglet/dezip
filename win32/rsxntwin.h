@@ -1,7 +1,7 @@
 /* rsxntwin.h
  *
  * fills some gaps in the rsxnt 1.3 win32 header files (<windows.h>) that are
- * required for compiling UnZip for Win NT / Win 95
+ * required for compiling Info-ZIP sources for Win NT / Win 95
  */
 
 #ifdef __RSXNT__
@@ -24,6 +24,8 @@ extern "C" {
 #define FILE_SHARE_DELETE       0x00000004
 
 #define HFILE_ERROR        -1
+
+#define _get_osfhandle(h) h
 
 
 BOOL WINAPI DosDateTimeToFileTime(WORD, WORD, LPFILETIME);

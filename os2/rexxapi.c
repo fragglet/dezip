@@ -556,7 +556,7 @@ ULONG UZLoadFuncs(CHAR *name, ULONG numargs, RXSTRING args[],
 
   for (j = 0; j < entries; j++) {
     RexxRegisterFunctionDll(RxFncTable[j],
-          "UNZIPAPI", RxFncTable[j]);
+          "UNZIP32", RxFncTable[j]);
   }
   return VALID_ROUTINE;
 }

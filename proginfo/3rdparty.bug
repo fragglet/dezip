@@ -1,20 +1,25 @@
 Known, current PKZIP bugs/limitations:
 -------------------------------------
 
+ - PKUNZIP 2.04g is reported to corrupt some files when compressing them with
+   the -ex option; when tested, the files fail the CRC check, and comparison
+   with the original file shows bogus data (6K in one case) embedded in the
+   middle.  PKWARE apparently characterized this as a "known problem."
+
  - PKUNZIP 2.04g considers volume labels valid only if originated on a FAT
    file system, but other OSes and file systems (e.g., Amiga and OS/2 HPFS) 
-   support volume labels, too
+   support volume labels, too.
 
  - PKUNZIP 2.04g can restore volume labels created by Zip 2.x but not by
-   PKZIP 2.04g (OS/2 DOS box only??)
+   PKZIP 2.04g (OS/2 DOS box only??).
 
  - PKUNZIP 2.04g gives an error message for stored directory entries created
    under other OSes (although it creates the directory anyway), and PKZIP -vt
-   does not report the directory attribute bit as being set, even if it is
+   does not report the directory attribute bit as being set, even if it is.
 
  - PKZIP 2.04g mangles unknown extra fields (especially OS/2 extended attri-
    butes) when adding new files to an existing zipfile [example:  Walnut Creek
-   Hobbes March 1995 CD-ROM, FILE_ID.DIZ additions]
+   Hobbes March 1995 CD-ROM, FILE_ID.DIZ additions].
 
  - PKUNZIP 2.04g is unable to detect or deal with prepended junk in a zipfile,
    reporting CRC errors in valid compressed data.

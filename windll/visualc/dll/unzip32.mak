@@ -50,7 +50,6 @@ CLEAN :
 	-@erase "$(INTDIR)\crc32.obj"
 	-@erase "$(INTDIR)\crctab.obj"
 	-@erase "$(INTDIR)\crypt.obj"
-	-@erase "$(INTDIR)\dllsetup.obj"
 	-@erase "$(INTDIR)\explode.obj"
 	-@erase "$(INTDIR)\extract.obj"
 	-@erase "$(INTDIR)\fileio.obj"
@@ -79,10 +78,10 @@ CLEAN :
     if not exist "$(INTDIR)/$(NULL)" mkdir "$(INTDIR)"
 
 CPP=cl.exe
-CPP_PROJ=/nologo /MT /W3 /GX /O2 /I "d:\wiz\unzip" /I "d:\wiz\unzip\windll" /I\
- "d:\wiz\unzip\win32" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D\
- "USE_EF_UX_TIME" /D "DLL" /Fp"$(INTDIR)\unzip32.pch" /YX /Fo"$(INTDIR)\\"\
- /Fd"$(INTDIR)\\" /FD /c 
+CPP_PROJ=/nologo /Zp4 /MT /W3 /GX /O2 /I "d:\wiz\unzip" /I\
+ "d:\wiz\unzip\windll" /I "d:\wiz\unzip\win32" /D "NDEBUG" /D "WIN32" /D\
+ "_WINDOWS" /D "WINDLL" /D "USE_EF_UT_TIME" /D "DLL" /Fp"$(INTDIR)\unzip32.pch"\
+ /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
 CPP_OBJS=.\Release/
 CPP_SBRS=.
 
@@ -129,16 +128,15 @@ LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib\
  advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib\
  odbccp32.lib /nologo /subsystem:windows /dll /incremental:no\
  /pdb:"$(OUTDIR)\unzip32.pdb" /machine:I386\
- /def:"D:\wiz\unzip\windll\windll32.def" /out:"$(OUTDIR)\unzip32.dll"\
+ /def:"..\..\..\..\wiz\unzip\windll\windll32.def" /out:"$(OUTDIR)\unzip32.dll"\
  /implib:"$(OUTDIR)\unzip32.lib" 
 DEF_FILE= \
-	"D:\wiz\unzip\windll\windll32.def"
+	"..\..\..\..\wiz\unzip\windll\windll32.def"
 LINK32_OBJS= \
 	"$(INTDIR)\api.obj" \
 	"$(INTDIR)\crc32.obj" \
 	"$(INTDIR)\crctab.obj" \
 	"$(INTDIR)\crypt.obj" \
-	"$(INTDIR)\dllsetup.obj" \
 	"$(INTDIR)\explode.obj" \
 	"$(INTDIR)\extract.obj" \
 	"$(INTDIR)\fileio.obj" \
@@ -184,7 +182,6 @@ CLEAN :
 	-@erase "$(INTDIR)\crc32.obj"
 	-@erase "$(INTDIR)\crctab.obj"
 	-@erase "$(INTDIR)\crypt.obj"
-	-@erase "$(INTDIR)\dllsetup.obj"
 	-@erase "$(INTDIR)\explode.obj"
 	-@erase "$(INTDIR)\extract.obj"
 	-@erase "$(INTDIR)\fileio.obj"
@@ -216,9 +213,9 @@ CLEAN :
     if not exist "$(INTDIR)/$(NULL)" mkdir "$(INTDIR)"
 
 CPP=cl.exe
-CPP_PROJ=/nologo /MTd /W3 /Gm /GX /Zi /Od /I "d:\wiz\unzip" /I\
+CPP_PROJ=/nologo /Zp4 /MTd /W3 /Gm /GX /Zi /Od /I "d:\wiz\unzip" /I\
  "d:\wiz\unzip\windll" /I "d:\wiz\unzip\win32" /D "_DEBUG" /D "WIN32" /D\
- "_WINDOWS" /D "WINDLL" /D "USE_EF_UX_TIME" /D "DLL" /Fp"$(INTDIR)\unzip32.pch"\
+ "_WINDOWS" /D "WINDLL" /D "USE_EF_UT_TIME" /D "DLL" /Fp"$(INTDIR)\unzip32.pch"\
  /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
 CPP_OBJS=.\Debug/
 CPP_SBRS=.
@@ -266,16 +263,15 @@ LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib\
  advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib\
  odbccp32.lib /nologo /subsystem:windows /dll /incremental:yes\
  /pdb:"$(OUTDIR)\unzip32.pdb" /debug /machine:I386\
- /def:"D:\wiz\unzip\windll\windll32.def" /out:"$(OUTDIR)\unzip32.dll"\
+ /def:"..\..\..\..\wiz\unzip\windll\windll32.def" /out:"$(OUTDIR)\unzip32.dll"\
  /implib:"$(OUTDIR)\unzip32.lib" /pdbtype:sept 
 DEF_FILE= \
-	"D:\wiz\unzip\windll\windll32.def"
+	"..\..\..\..\wiz\unzip\windll\windll32.def"
 LINK32_OBJS= \
 	"$(INTDIR)\api.obj" \
 	"$(INTDIR)\crc32.obj" \
 	"$(INTDIR)\crctab.obj" \
 	"$(INTDIR)\crypt.obj" \
-	"$(INTDIR)\dllsetup.obj" \
 	"$(INTDIR)\explode.obj" \
 	"$(INTDIR)\extract.obj" \
 	"$(INTDIR)\fileio.obj" \
@@ -308,11 +304,13 @@ SOURCE=D:\wiz\unzip\api.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_API_C=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\version.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\version.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\api.obj" : $(SOURCE) $(DEP_CPP_API_C) "$(INTDIR)"
@@ -322,11 +320,13 @@ DEP_CPP_API_C=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_API_C=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\version.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\version.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\api.obj" : $(SOURCE) $(DEP_CPP_API_C) "$(INTDIR)"
@@ -340,11 +340,11 @@ SOURCE=D:\wiz\unzip\crc32.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_CRC32=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\zip.h"\
 	
 
 "$(INTDIR)\crc32.obj" : $(SOURCE) $(DEP_CPP_CRC32) "$(INTDIR)"
@@ -354,11 +354,11 @@ DEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_CRC32=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\zip.h"\
 	
 
 "$(INTDIR)\crc32.obj" : $(SOURCE) $(DEP_CPP_CRC32) "$(INTDIR)"
@@ -372,11 +372,11 @@ SOURCE=D:\wiz\unzip\crctab.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_CRCTA=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\zip.h"\
 	
 
 "$(INTDIR)\crctab.obj" : $(SOURCE) $(DEP_CPP_CRCTA) "$(INTDIR)"
@@ -386,11 +386,11 @@ DEP_CPP_CRCTA=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_CRCTA=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\zip.h"\
 	
 
 "$(INTDIR)\crctab.obj" : $(SOURCE) $(DEP_CPP_CRCTA) "$(INTDIR)"
@@ -401,120 +401,34 @@ DEP_CPP_CRCTA=\
 
 SOURCE=D:\wiz\unzip\crypt.c
 
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
-DEP_CPP_CRYPT=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\ttyio.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
-	
-
-"$(INTDIR)\crypt.obj" : $(SOURCE) $(DEP_CPP_CRYPT) "$(INTDIR)"
+"$(INTDIR)\crypt.obj" : $(SOURCE) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_CRYPT=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\ttyio.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
-	
-
-"$(INTDIR)\crypt.obj" : $(SOURCE) $(DEP_CPP_CRYPT) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
-
-SOURCE=D:\wiz\unzip\windll\dllsetup.c
-
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
-DEP_CPP_DLLSE=\
-	"d:\wiz\unzip\consts.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\version.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
-	
-
-"$(INTDIR)\dllsetup.obj" : $(SOURCE) $(DEP_CPP_DLLSE) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_DLLSE=\
-	"d:\wiz\unzip\consts.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\version.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
-	
-
-"$(INTDIR)\dllsetup.obj" : $(SOURCE) $(DEP_CPP_DLLSE) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
 
 SOURCE=D:\wiz\unzip\explode.c
-
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
 DEP_CPP_EXPLO=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\explode.obj" : $(SOURCE) $(DEP_CPP_EXPLO) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_EXPLO=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	
-
-"$(INTDIR)\explode.obj" : $(SOURCE) $(DEP_CPP_EXPLO) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
 
 SOURCE=D:\wiz\unzip\extract.c
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_EXTRA=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\extract.obj" : $(SOURCE) $(DEP_CPP_EXTRA) "$(INTDIR)"
@@ -524,13 +438,13 @@ DEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_EXTRA=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\extract.obj" : $(SOURCE) $(DEP_CPP_EXTRA) "$(INTDIR)"
@@ -544,13 +458,13 @@ SOURCE=D:\wiz\unzip\fileio.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_FILEI=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\ebcdic.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\ttyio.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\ebcdic.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\ttyio.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\fileio.obj" : $(SOURCE) $(DEP_CPP_FILEI) "$(INTDIR)"
@@ -560,13 +474,13 @@ DEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_FILEI=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\ebcdic.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\ttyio.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\ebcdic.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\ttyio.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\fileio.obj" : $(SOURCE) $(DEP_CPP_FILEI) "$(INTDIR)"
@@ -576,45 +490,27 @@ DEP_CPP_FILEI=\
 !ENDIF 
 
 SOURCE=D:\wiz\unzip\globals.c
-
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
 DEP_CPP_GLOBA=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\globals.obj" : $(SOURCE) $(DEP_CPP_GLOBA) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_GLOBA=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	
-
-"$(INTDIR)\globals.obj" : $(SOURCE) $(DEP_CPP_GLOBA) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
 
 SOURCE=D:\wiz\unzip\inflate.c
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_INFLA=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\inflate.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\inflate.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\inflate.obj" : $(SOURCE) $(DEP_CPP_INFLA) "$(INTDIR)"
@@ -624,11 +520,11 @@ DEP_CPP_INFLA=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_INFLA=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\inflate.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\inflate.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\inflate.obj" : $(SOURCE) $(DEP_CPP_INFLA) "$(INTDIR)"
@@ -642,12 +538,12 @@ SOURCE=D:\wiz\unzip\list.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_LIST_=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\list.obj" : $(SOURCE) $(DEP_CPP_LIST_) "$(INTDIR)"
@@ -657,12 +553,12 @@ DEP_CPP_LIST_=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_LIST_=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\list.obj" : $(SOURCE) $(DEP_CPP_LIST_) "$(INTDIR)"
@@ -672,62 +568,44 @@ DEP_CPP_LIST_=\
 !ENDIF 
 
 SOURCE=D:\wiz\unzip\match.c
-
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
 DEP_CPP_MATCH=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\match.obj" : $(SOURCE) $(DEP_CPP_MATCH) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_MATCH=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	
-
-"$(INTDIR)\match.obj" : $(SOURCE) $(DEP_CPP_MATCH) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
 
 SOURCE=D:\wiz\unzip\Win32\nt.c
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
-DEP_CPP_NT_C18=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\nt.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+DEP_CPP_NT_C14=\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\nt.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
-"$(INTDIR)\nt.obj" : $(SOURCE) $(DEP_CPP_NT_C18) "$(INTDIR)"
+"$(INTDIR)\nt.obj" : $(SOURCE) $(DEP_CPP_NT_C14) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
-DEP_CPP_NT_C18=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\nt.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+DEP_CPP_NT_C14=\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\nt.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
-"$(INTDIR)\nt.obj" : $(SOURCE) $(DEP_CPP_NT_C18) "$(INTDIR)"
+"$(INTDIR)\nt.obj" : $(SOURCE) $(DEP_CPP_NT_C14) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
@@ -738,12 +616,12 @@ SOURCE=D:\wiz\unzip\process.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_PROCE=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\process.obj" : $(SOURCE) $(DEP_CPP_PROCE) "$(INTDIR)"
@@ -753,12 +631,12 @@ DEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_PROCE=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\process.obj" : $(SOURCE) $(DEP_CPP_PROCE) "$(INTDIR)"
@@ -772,13 +650,13 @@ SOURCE=D:\wiz\unzip\ttyio.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_TTYIO=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\ttyio.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\ttyio.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\zip.h"\
 	
 
 "$(INTDIR)\ttyio.obj" : $(SOURCE) $(DEP_CPP_TTYIO) "$(INTDIR)"
@@ -788,13 +666,13 @@ DEP_CPP_TTYIO=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_TTYIO=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\ttyio.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\zip.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\ttyio.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\zip.h"\
 	
 
 "$(INTDIR)\ttyio.obj" : $(SOURCE) $(DEP_CPP_TTYIO) "$(INTDIR)"
@@ -804,75 +682,39 @@ DEP_CPP_TTYIO=\
 !ENDIF 
 
 SOURCE=D:\wiz\unzip\unreduce.c
-
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
 DEP_CPP_UNRED=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\unreduce.obj" : $(SOURCE) $(DEP_CPP_UNRED) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_UNRED=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	
-
-"$(INTDIR)\unreduce.obj" : $(SOURCE) $(DEP_CPP_UNRED) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
 
 SOURCE=D:\wiz\unzip\unshrink.c
-
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
 DEP_CPP_UNSHR=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\unshrink.obj" : $(SOURCE) $(DEP_CPP_UNSHR) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_UNSHR=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	
-
-"$(INTDIR)\unshrink.obj" : $(SOURCE) $(DEP_CPP_UNSHR) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
 
 SOURCE=D:\wiz\unzip\Win32\win32.c
 
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_WIN32=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\nt.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\nt.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\win32.obj" : $(SOURCE) $(DEP_CPP_WIN32) "$(INTDIR)"
@@ -882,11 +724,11 @@ DEP_CPP_WIN32=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_WIN32=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\nt.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\nt.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\win32.obj" : $(SOURCE) $(DEP_CPP_WIN32) "$(INTDIR)"
@@ -900,14 +742,15 @@ SOURCE=D:\wiz\unzip\windll\windll.c
 !IF  "$(CFG)" == "unzip32 - Win32 Release"
 
 DEP_CPP_WINDL=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\version.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\consts.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\version.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\windll.obj" : $(SOURCE) $(DEP_CPP_WINDL) "$(INTDIR)"
@@ -917,14 +760,15 @@ DEP_CPP_WINDL=\
 !ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
 
 DEP_CPP_WINDL=\
-	"d:\wiz\unzip\crypt.h"\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\version.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	"d:\wiz\unzip\windll\structs.h"\
-	"d:\wiz\unzip\windll\windll.h"\
+	"..\..\..\..\wiz\unzip\consts.h"\
+	"..\..\..\..\wiz\unzip\crypt.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\version.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\windll\structs.h"\
+	"..\..\..\..\wiz\unzip\windll\windll.h"\
 	
 
 "$(INTDIR)\windll.obj" : $(SOURCE) $(DEP_CPP_WINDL) "$(INTDIR)"
@@ -939,7 +783,7 @@ SOURCE=D:\wiz\unzip\windll\windll.rc
 
 
 "$(INTDIR)\windll.res" : $(SOURCE) "$(INTDIR)"
-	$(RSC) /l 0x409 /fo"$(INTDIR)\windll.res" /i "D:\wiz\unzip\windll" /d "NDEBUG"\
+	$(RSC) /l 0x409 /fo"$(INTDIR)\windll.res" /i "\wiz\unzip\windll" /d "NDEBUG"\
  /d "WIN32" $(SOURCE)
 
 
@@ -947,41 +791,23 @@ SOURCE=D:\wiz\unzip\windll\windll.rc
 
 
 "$(INTDIR)\windll.res" : $(SOURCE) "$(INTDIR)"
-	$(RSC) /l 0x409 /fo"$(INTDIR)\windll.res" /i "D:\wiz\unzip\windll" /d "_DEBUG"\
+	$(RSC) /l 0x409 /fo"$(INTDIR)\windll.res" /i "\wiz\unzip\windll" /d "_DEBUG"\
  /d "WIN32" $(SOURCE)
 
 
 !ENDIF 
 
 SOURCE=D:\wiz\unzip\zipinfo.c
-
-!IF  "$(CFG)" == "unzip32 - Win32 Release"
-
 DEP_CPP_ZIPIN=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
+	"..\..\..\..\wiz\unzip\globals.h"\
+	"..\..\..\..\wiz\unzip\unzip.h"\
+	"..\..\..\..\wiz\unzip\unzpriv.h"\
+	"..\..\..\..\wiz\unzip\win32\w32cfg.h"\
 	
 
 "$(INTDIR)\zipinfo.obj" : $(SOURCE) $(DEP_CPP_ZIPIN) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
-
-!ELSEIF  "$(CFG)" == "unzip32 - Win32 Debug"
-
-DEP_CPP_ZIPIN=\
-	"d:\wiz\unzip\globals.h"\
-	"d:\wiz\unzip\unzip.h"\
-	"d:\wiz\unzip\unzpriv.h"\
-	"d:\wiz\unzip\win32\w32cfg.h"\
-	
-
-"$(INTDIR)\zipinfo.obj" : $(SOURCE) $(DEP_CPP_ZIPIN) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
-!ENDIF 
 
 
 !ENDIF 

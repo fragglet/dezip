@@ -13,12 +13,12 @@ For UnZip 6.0/6.1/who knows:
 
    o use (simple!) configure script in combination with Unix Makefile
 
-	very soon
+	very soon (6.0 or 6.1)
 
    o rewrite to use fread/fseek/etc.  [eventually: test
      write(bytes) vs. fwrite(words), especially on Crays/Alphas]
 
-	soon (in conjunction with multi-part handling, probably)
+	soon (probably in conjunction with multi-part handling)
 
    o incorporate new backfill version of inflate()
 
@@ -26,7 +26,7 @@ For UnZip 6.0/6.1/who knows:
 
    o check NEXTBYTE for EOF in crypt.c, funzip.c and explode.c, too
 
-	soon
+	whenever
 
    o add option to force completely non-interactive operation (no queries
      for overwrite/rename, password, etc.); also allow some sort of non-
@@ -69,11 +69,6 @@ For UnZip 6.0/6.1/who knows:
    o miscellaneous little stuff:  whenever
      --------------------------
 
- - decide whether to use WinGUI "skipping" diagnostics in extract.c
- - combine "y/n/A/N" query/response stuff into unified section with query
-    function(s) (InputFn?)
- - disable ^V code in remain mapname() routines
-
  - change DOS -f/-u stuff to use DOS API for getting filetimes, not stat()
 
  - add (-N?) option to lose all user input and/or switch to "(*input)()"
@@ -81,6 +76,11 @@ For UnZip 6.0/6.1/who knows:
  - add -@ option to read from stdin (zip) or from file (PKZIP)?  (go32 built-in)
  - add -oo option to overwrite OS/2 and DOS system and hidden files, too
  - add option to compute MD5 checksum on files and/or on entire zipfile?
+
+ - decide whether to use WinGUI "skipping" diagnostics in extract.c
+ - combine "y/n/A/N" query/response stuff into unified section with query
+    function(s) (InputFn?)
+ - disable ^V code in remaining mapname() routines
 
  - change filename-matching logic so case-insensitive if case-sensitive fails?
 
@@ -108,4 +108,3 @@ Features from old BUGS file (mostly duplicates of other entries above):
     unpack anyway; etc.)
  - add -Q[Q[Q]] option (quiet mode on comments, cautions, warnings and errors)?
     forget -oo, or make synonym?  Default level -Q?
- - add OS/2 .INF format helpfiles for UnZip and ZipInfo?

@@ -1,7 +1,7 @@
 # Makefile for UnZip, fUnZip and UnZipSFX
 # for emx 0.9c / gcc under MS-DOS. Derived from makefile.os2
 # By E-Yen Tan (with mods by Christian Spieler).
-# Last updated 26 April 1997 (E-Yen Tan).
+# Last updated 23 September 1997 (Christian Spieler).
 #
 # This makefile should work fine with GNU make and hopefully some others.
 # Tested with GNU make 3.71 gnuish 16-bit and djgpp 32-bit versions.
@@ -15,7 +15,7 @@ AS_FLAGS = -DASM_CRC
 CP=copy
 RM=del
 
-CC=gcc -O -I.
+CC=gcc -O -I. -m486
 
 # Version 5.1 of the RSX extender provides long file name support under
 # Windows 95. If you don't have Windows 95 or use a version of RSX prior
@@ -26,13 +26,13 @@ CC=gcc -O -I.
 # If you enable USE_VFAT then long file names under plain DOS will simply be
 # truncated to 8.3 format without mapping. See doscfg.h for details.
 #
-CFLAGS=-Wall -DMSDOS $(AS_FLAGS) $(LOCAL_UNZIP) -DUSE_VFAT -m486
+CFLAGS=-Wall -DMSDOS $(AS_FLAGS) $(LOCAL_UNZIP) -DUSE_VFAT
 NFLAGS=
 DLLFLAG=
 AS=gcc
 ASFLAGS=-Di386
 LDFLAGS=-o ./
-LDFLAGS2=-s
+LDFLAGS2=-Zsmall-conv -s
 OUT=-o
 OBJ=.o
 
@@ -162,7 +162,7 @@ funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h	# funzip only
 	$(CC) -c $(CFLAGS) $(OUT)$@ funzip.c
 
 msdos$(OBJ):	msdos/msdos.c $(UNZIP_H) version.h		# DOS only
-	$(CC) -c $(CFLAGS) msdos$(DIRSEP)msdos.c
+	$(CC) -c $(CFLAGS) $(OUT)$@ msdos$(DIRSEP)msdos.c
 
 msdos_$(OBJ):	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ msdos$(DIRSEP)msdos.c

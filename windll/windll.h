@@ -11,6 +11,7 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #include "structs.h"
+#include "decs.h"
 
 #ifndef MSWIN
 #  define MSWIN
@@ -24,12 +25,6 @@
 #ifndef PATH_MAX
 #  define PATH_MAX 128            /* max total file or directory name path */
 #endif
-
-/* These two are dependent on the zip directory listing format string.
- * They help find the filename in the listbox entry.
- */
-#define SHORT_FORM_FNAME_INX     27
-#define LONG_FORM_FNAME_INX      58
 
 #define IDM_REPLACE_NO     100
 #define IDM_REPLACE_TEXT   101
@@ -50,10 +45,5 @@ extern LPUSERFUNCTIONS lpUserFunctions;
 void FreeDllMem(__GPRO);
 int win_fprintf(FILE *file, unsigned int, char far *);
 #endif
-
-BOOL    WINAPI Unz_Init(zvoid *, USERFUNCTIONS far *);
-BOOL    WINAPI Unz_SetOpts(zvoid *, LPDCL);
-int     WINAPI Unz_Unzip(zvoid *, int, char **);
-extern  WINAPI windll_unzip(int, char **, DCL far *, USERFUNCTIONS far *);
 
 #endif /* __windll_h */

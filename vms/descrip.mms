@@ -1,5 +1,5 @@
 !==========================================================================
-! MMS description file for UnZip/UnZipSFX 5.20 or later           11 Feb 96
+! MMS description file for UnZip/UnZipSFX 5.32 or later           14 Sep 97
 !==========================================================================
 !
 ! To build UnZip that uses shared libraries, edit the USER CUSTOMIZATION
@@ -13,8 +13,8 @@
 ! which generates both UnZip and UnZipSFX.  Just type "@[.VMS]MAKE_UNZ", or
 ! "@[.VMS]MAKE_UNZ GCC" if you want to use GNU C.)
 
-! Only when you try to build the default target
-!   "all executables (linked against shareable images), and help file"
+! To build the default target
+!   "all executables (linked against shareable images), and help file",
 ! you can simply type "mmk" or "mms".
 ! (You have to copy the description file to your working directory for MMS,
 ! with MMK you can alternatively use the /DESCR=[.VMS] qualifier.
@@ -69,22 +69,25 @@ O = .VAX_GNUC_OBJ
 A = .VAX_GNUC_OLB
 .ENDIF
 .ENDIF
-
 .IFDEF O
 .ELSE
-!If EXE and OBJ extentions aren't defined, define them
+!If EXE and OBJ extensions aren't defined, define them
 E = .EXE
 O = .OBJ
 A = .OLB
 .ENDIF
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!! USER CUSTOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! uncomment the following line if you want the VMS CLI$ interface:
-!VMSCLI = VMSCLI,
+!The following preprocessor macros are set to enable the VMS CLI$ interface:
+CLI_DEFS = VMSCLI,
 
-! add VMSWILD, RETURN_CODES, and/or any other optional
-! macros (except VMSCLI, above) to the following line for a custom version:
+!!!!!!!!!!!!!!!!!!!!!!!!!!! USER CUSTOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! add RETURN_CODES, and/or any other optional preprocessor flags (macros)
+! except VMSCLI to the following line for a custom version (do not forget
+! a trailing comma!!):
 COMMON_DEFS =
+!
+! WARNING: Do not use VMSCLI here!! The creation of an UnZip executable
+!          utilizing the VMS CLI$ command interface is handled differently.
 !!!!!!!!!!!!!!!!!!!!!!!! END OF USER CUSTOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!
 
 .IFDEF __GNUC__
@@ -97,10 +100,10 @@ LIBS =
 
 CFLAGS = /NOLIST/INCL=(SYS$DISK:[])
 
-OPTFILE = [.vms]vaxcshr.opt
+OPTFILE = sys$disk:[.vms]vaxcshr.opt
 
 .IFDEF __ALPHA__
-CC_OPTIONS = /STANDARD=VAXC/PREFIX=ALL/ANSI
+CC_OPTIONS = /STANDARD=RELAX/PREFIX=ALL/ANSI
 CC_DEFS = MODERN,
 OPTFILE_LIST =
 OPTIONS = $(LIBS)
@@ -133,45 +136,61 @@ CDEB =
 LDEB = /NOTRACE
 .ENDIF
 
-CFLAGS_SFX  = $(CC_OPTIONS) $(CFLAGS) $(CDEB) -
-              /def=($(CC_DEFS) $(COMMON_DEFS) $(VMSCLI) SFX, VMS)
 CFLAGS_ALL  = $(CC_OPTIONS) $(CFLAGS) $(CDEB) -
-              /def=($(CC_DEFS) $(COMMON_DEFS) $(VMSCLI) VMS)
+              /def=($(CC_DEFS) $(COMMON_DEFS) VMS)
+CFLAGS_SFX  = $(CC_OPTIONS) $(CFLAGS) $(CDEB) -
+              /def=($(CC_DEFS) $(COMMON_DEFS) SFX, VMS)
+CFLAGS_CLI  = $(CC_OPTIONS) $(CFLAGS) $(CDEB) -
+              /def=($(CC_DEFS) $(COMMON_DEFS) $(CLI_DEFS) VMS)
+CFLAGS_SXC = $(CC_OPTIONS) $(CFLAGS) $(CDEB) -
+              /def=($(CC_DEFS) $(COMMON_DEFS) $(CLI_DEFS) SFX, VMS)
 
 LINKFLAGS   = $(LDEB)
 
 
-COMMON_OBJS1 =	unzip$(O),crc32$(O),crctab$(O),crypt$(O),envargs$(O),-
+OBJM =		unzip$(O), unzcli$(O), unzipsfx$(O), unzsxcli$(O)
+COMMON_OBJS1 =	crc32$(O),crctab$(O),crypt$(O),envargs$(O),-
 		explode$(O),extract$(O),fileio$(O),globals$(O)
 COMMON_OBJS2 =	inflate$(O),list$(O),match$(O),process$(O),ttyio$(O),-
 		unreduce$(O),unshrink$(O),zipinfo$(O),-
 		vms$(O)
-COMMON_OBJS =	$(COMMON_OBJS1),$(COMMON_OBJS2)
+OBJUNZLIB =	$(COMMON_OBJS1),$(COMMON_OBJS2)
 
-COMMON_OBJX1 =	UNZIP=unzipsfx$(O),-
-		crc32$(O),crctab$(O),crypt$(O),-
+COMMON_OBJX1 =	crc32$(O),crctab$(O),crypt$(O),-
 		EXTRACT=extract_$(O),-
 		fileio$(O),globals$(O)
 COMMON_OBJX2 =	inflate$(O),match$(O),-
 		PROCESS=process_$(O),-
 		ttyio$(O),-
 		VMS=vms_$(O)
-COMMON_OBJX =	$(COMMON_OBJX1),$(COMMON_OBJX2)
+OBJSFXLIB =	$(COMMON_OBJX1),$(COMMON_OBJX2)
 
-.IFDEF VMSCLI
-CLI_OBJS = VMS_UNZIP_CLD=unz_cli$(O),-
+UNZX_UNX = unzip
+UNZX_CLI = unzip_cli
+UNZSFX_DEF = unzipsfx
+UNZSFX_CLI = unzipsfx_cli
+
+OBJS = unzip$(O), $(OBJUNZLIB)
+OBJX = UNZIP=unzipsfx$(O), $(OBJSFXLIB)
+OBJSCLI = UNZIP=unzipcli$(O), -
+	VMS_UNZIP_CLD=unz_cli$(O),-
 	VMS_UNZIP_CMDLINE=cmdline$(O)
-OBJS =	$(COMMON_OBJS),$(CLI_OBJS)
-CLI_OBJX = VMS_UNZIP_CLD=unz_cli$(O),-
+OBJXCLI = UNZIP=unzsxcli$(O),-
+	VMS_UNZIP_CLD=unz_cli$(O),-
 	VMS_UNZIP_CMDLINE=cmdline_$(O)
-OBJX =	$(COMMON_OBJX),$(CLI_OBJX)
-.ELSE
-CLI_OBJS =
-OBJS =	$(COMMON_OBJS)
-OBJX =	$(COMMON_OBJX)
-.ENDIF
+UNZHELP_UNX_RNH = [.vms]unzip_def.rnh
+UNZHELP_CLI_RNH = [.vms]unzip_cli.rnh
+
+OLBUNZ = unzip$(A)
+OLBCLI = unzipcli$(A)
+OLBSFX = unzipsfx$(A)
+OLBSXC = unzsxcli$(A)
 
 UNZIP_H = unzip.h unzpriv.h globals.h
+
+UNZIPS = $(UNZX_UNX)$(E), $(UNZX_CLI)$(E), $(UNZSFX_DEF)$(E), $(UNZSFX_CLI)$(E)
+UNZIPS_NOSHARE = $(UNZX_UNX)_noshare$(E), $(UNZSFX_DEF)_noshare$(E)
+UNZIPHELPS = $(UNZX_UNX).hlp, $(UNZX_CLI).hlp
 
 !!!!!!!!!!!!!!!!!!! override default rules: !!!!!!!!!!!!!!!!!!!
 .suffixes :
@@ -193,41 +212,64 @@ $(O)$(A) :
 .CLD$(O) :
 	SET COMMAND /OBJECT=$(MMS$TARGET) $(CLDFLAGS) $(MMS$SOURCE)
 
-.C$(O) :
+.c$(O) :
 	$(CC) $(CFLAGS_ALL) /OBJ=$(MMS$TARGET) $(MMS$SOURCE)
+
+.RNH.HLP :
+	runoff /out=$@ $<
 
 !!!!!!!!!!!!!!!!!! here starts the unzip specific part !!!!!!!!!!!
 
-default	:   	unzip$(E) unzipsfx$(E) unzip.hlp
+default :	$(UNZIPS), $(UNZIPHELPS)
 	@	!	Do nothing.
 
-noshare :	unzip_noshare$(E) unzipsfx_noshare$(E) unzip.hlp
+noshare :	$(UNZIPS_NOSHARE), $(UNZIPHELPS)
 	@	!	Do nothing.
 
-unzip$(E) :	UNZIP$(A)($(OBJS))$(OPTFILE_LIST)
+$(UNZX_UNX)$(E) : $(OLBUNZ)($(OBJS))$(OPTFILE_LIST)
 	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
-	UNZIP$(A)/INCLUDE=UNZIP/LIBRARY$(OPTIONS), -
-	[.vms]unzip.opt/OPT
-
-unzipsfx$(E) :	UNZIPSFX$(A)($(OBJX))$(OPTFILE_LIST)
-	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
-	UNZIPSFX$(A)/INCLUDE=UNZIP/LIBRARY$(OPTIONS), -
-	[.vms]unzipsfx.opt/OPT
-
-unzip_noshare$(E) :	UNZIP$(A)($(OBJS))
-	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
-	UNZIP$(A)/INCLUDE=UNZIP/LIBRARY$(NOSHARE_OPTS), -
+	$(OLBUNZ)/INCLUDE=UNZIP/LIBRARY$(OPTIONS), -
 	sys$disk:[.vms]unzip.opt/OPT
 
-unzipsfx_noshare$(E) :	UNZIPSFX$(A)($(OBJX))
+$(UNZX_CLI)$(E) : $(OLBCLI)($(OBJSCLI)),$(OLBUNZ)($(OBJUNZLIB))$(OPTFILE_LIST)
 	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
-	UNZIPSFX$(A)/INCLUDE=UNZIP/LIBRARY$(NOSHARE_OPTS), -
+	$(OLBCLI)/INCLUDE=UNZIP/LIBRARY, $(OLBUNZ)/LIBRARY$(OPTIONS), -
+	sys$disk:[.vms]unzip.opt/OPT
+
+$(UNZSFX_DEF)$(E) : $(OLBSFX)($(OBJX))$(OPTFILE_LIST)
+	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
+	$(OLBSFX)/INCLUDE=UNZIP/LIBRARY$(OPTIONS), -
+	sys$disk:[.vms]unzipsfx.opt/OPT
+
+$(UNZSFX_CLI)$(E) : $(OLBSXC)($(OBJXCLI)),$(OLBSFX)($(OBJSFXLIB))$(OPTFILE_LIST)
+	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
+	$(OLBSXC)/INCLUDE=UNZIP/LIBRARY, $(OLBSFX)/LIBRARY$(OPTIONS), -
+	sys$disk:[.vms]unzipsfx.opt/OPT
+
+$(UNZX_UNX)_noshare$(E) :	$(OLBUNZ)($(OBJS))
+	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
+	$(OLBUNZ)/INCLUDE=UNZIP/LIBRARY$(NOSHARE_OPTS), -
+	sys$disk:[.vms]unzip.opt/OPT
+
+$(UNZSFX_DEF)_noshare$(E) :	$(OLBSFX)($(OBJX))
+	$(LINK)$(LINKFLAGS) /EXE=$(MMS$TARGET) -
+	$(OLBSFX)/INCLUDE=UNZIP/LIBRARY$(NOSHARE_OPTS), -
 	sys$disk:[.vms]unzipsfx.opt/OPT
 
 $(OPTFILE) :
 	@ open/write tmp $(MMS$TARGET)
 	@ write tmp "SYS$SHARE:VAXCRTL.EXE/SHARE"
 	@ close tmp
+
+$(UNZHELP_CLI_RNH) : [.vms]unzip_cli.help
+	@ set default [.vms]
+	edit/tpu/nosection/nodisplay/command=cvthelp.tpu unzip_cli.help
+	@ set default [-]
+
+$(UNZX_UNX).hlp : $(UNZHELP_UNX_RNH)
+	runoff /out=$@ $<
+
+$(UNZX_CLI).hlp : $(UNZHELP_CLI_RNH)
 
 clean.com :
 	@ open/write tmp $(MMS$TARGET)
@@ -267,19 +309,19 @@ clean.com :
 clean : clean.com
 	! delete *$(O);*, *$(A);*, unzip$(exe);*, unzipsfx$(exe);*, -
 	!  unzip.hlp;*, [.vms]unzip.rnh;*
-!	@clean "$(OBJS)"
+	@clean "$(OBJM)"
 	@clean "$(COMMON_OBJS1)"
 	@clean "$(COMMON_OBJS2)"
-	@clean "$(CLI_OBJS)"
-!	@clean "$(OBJX)"
+	@clean "$(OBJSCLI)"
 	@clean "$(COMMON_OBJX1)"
 	@clean "$(COMMON_OBJX2)"
-	@clean "$(CLI_OBJX)"
-        @clean "$(OPTFILE)"
-	@clean unzip$(A),unzipsfx$(A)
-	@clean unzip$(E),unzipsfx$(E)
-	@clean unzip_noshare$(E),unzipsfx_noshare$(E)
-	@clean unzip.hlp,[.vms]unzip.rnh
+	@clean "$(OBJXCLI)"
+	@clean "$(OPTFILE)"
+	@clean "$(OLBUNZ),$(OLBCLI),$(OLBSFX),$(OLBSXC)"
+	@clean "$(UNZIPS)"
+	@clean "$(UNZIPS_NOSHARE)"
+	@clean "$(UNZHELP_CLI_RNH)"
+	@clean "$(UNZIPHELPS)"
 	- delete/noconfirm/nolog clean.com;*
 
 crc32$(O)		: crc32.c $(UNZIP_H) zip.h
@@ -298,13 +340,19 @@ ttyio$(O)		: ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce$(O)		: unreduce.c $(UNZIP_H)
 unshrink$(O)		: unshrink.c $(UNZIP_H)
 unzip$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
-unzip.hlp		: [.vms]unzip.rnh
 zipinfo$(O)		: zipinfo.c $(UNZIP_H)
+
+unzipcli$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
+	$(CC) $(CFLAGS_CLI) /OBJ=$(MMS$TARGET) $(MMS$SOURCE)
+
 cmdline$(O)		: [.vms]cmdline.c $(UNZIP_H) version.h
+	$(CC) $(CFLAGS_CLI) /OBJ=$(MMS$TARGET) $(MMS$SOURCE)
+
 unz_cli$(O)		: [.vms]unz_cli.cld
 
+
 cmdline_$(O)		: [.vms]cmdline.c $(UNZIP_H) version.h
-	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) [.vms]cmdline.c
+	$(CC) $(CFLAGS_SXC) /OBJ=$(MMS$TARGET) [.vms]cmdline.c
 
 extract_$(O)		: extract.c $(UNZIP_H) crypt.h
 	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) extract.c
@@ -315,6 +363,9 @@ process_$(O)		: process.c $(UNZIP_H)
 unzipsfx$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
 	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) unzip.c
 
+unzsxcli$(O)		: unzip.c $(UNZIP_H) crypt.h version.h consts.h
+	$(CC) $(CFLAGS_SXC) /OBJ=$(MMS$TARGET) unzip.c
+
 vms$(O)			: [.vms]vms.c [.vms]vms.h [.vms]vmsdefs.h $(UNZIP_H)
 !	@ x = ""
 !	@ if f$search("SYS$LIBRARY:SYS$LIB_C.TLB").nes."" then x = "+SYS$LIBRARY:SYS$LIB_C.TLB/LIBRARY"
@@ -324,19 +375,3 @@ vms_$(O)		: [.vms]vms.c [.vms]vms.h [.vms]vmsdefs.h $(UNZIP_H)
 !	@ x = ""
 !	@ if f$search("SYS$LIBRARY:SYS$LIB_C.TLB").nes."" then x = "+SYS$LIBRARY:SYS$LIB_C.TLB/LIBRARY"
 	$(CC) $(CFLAGS_SFX) /OBJ=$(MMS$TARGET) [.vms]vms.c
-
-
-.IFDEF VMSCLI
-
-[.vms]unzip.rnh		: [.vms]unzip_cli.help
-	@ set default [.vms]
-	edit/tpu/nosection/nodisplay/command=cvthelp.tpu unzip_cli.help
-	rename unzip_cli.rnh unzip.rnh
-	@ set default [-]
-
-.ELSE
-
-[.vms]unzip.rnh		: [.vms]unzip_def.rnh
-	copy [.vms]unzip_def.rnh [.vms]unzip.rnh
-
-.ENDIF

@@ -11,6 +11,7 @@
              checkdir()
              mkdir()
              close_outfile()
+             stamp_file()        [optional feature]
              version()
 
   Due to the amazing MiNT library being very, very close to BSD unix's
@@ -65,7 +66,7 @@ char *do_wild(__G__ wildspec)
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 0x201, ((char *)slide,
-                  "warning:  can't allocate wildcard buffers\n"));
+                  "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -148,9 +149,11 @@ int mapattr(__G)
 
     switch (G.pInfo->hostnum) {
         case UNIX_:
-        case ATARI_:
-            /* minix filesystem under MiNT on Atari [cjh] */
         case VMS_:
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
+        case QDOS_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
             return 0;
         case AMIGA_:
@@ -401,7 +404,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (mkdir(buildpath, 0777) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n", buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
@@ -524,7 +527,7 @@ int checkdir(__G__ pathcomp, flag)
                  * and create more than one level, but why really necessary?) */
                 if (mkdir(pathcomp, 0777) == -1) {
                     Info(slide, 1, ((char *)slide,
-                      "checkdir:  can't create extraction directory: %s\n",
+                      "checkdir:  cannot create extraction directory: %s\n",
                       pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
@@ -549,8 +552,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
+        if (rootlen > 0) {
             free(rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -606,7 +611,8 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         fclose(G.outfile);                  /* close "data" file for good... */
         unlink(G.filename);                 /* ...and delete it */
         linktarget[ucsize] = '\0';
-        Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
+        if (QCOND2)
+            Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
         if (symlink(linktarget, G.filename))  /* create the real link */
             perror("symlink error");
         free(linktarget);
@@ -623,9 +629,9 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
   ---------------------------------------------------------------------------*/
 
 #ifdef USE_EF_UT_TIME
-    eb_izux_flg = G.extra_field ?
-                 ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                                  &zt, NULL) : 0;
+    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
+                   &zt, NULL) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         tp.modtime = zt.mtime;
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
@@ -654,7 +660,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     /* set the file's access and modification times */
     if (utime(G.filename, &tp))
         Info(slide, 0x201, ((char *)slide,
-          "warning:  can't set the time for %s\n", G.filename));
+          "warning:  cannot set the time for %s\n", G.filename));
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
@@ -667,6 +673,28 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 #endif
 
 } /* end function close_outfile() */
+
+
+
+
+#ifdef TIMESTAMP
+
+/***************************/
+/*  Function stamp_file()  */
+/***************************/
+
+int stamp_file(fname, modtime)
+    ZCONST char *fname;
+    time_t modtime;
+{
+    ztimbuf tp;
+
+    tp.modtime = tp.actime = modtime;
+    return (utime(fname, &tp));
+
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
 
 
 

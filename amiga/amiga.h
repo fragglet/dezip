@@ -12,7 +12,11 @@
 #ifndef __amiga_amiga_h
 #define __amiga_amiga_h
 #include <time.h>
-#include <fcntl.h>
+#ifndef NO_FCNTL_H
+#  include <fcntl.h>
+#else
+   int mkdir(const char *_name);
+#endif
 #include <limits.h>
 
 #ifdef AZTEC_C                       /* Manx Aztec C, 5.0 or newer only */
@@ -25,6 +29,7 @@
 #  define DECLARE_TIMEZONE
 #  define ASM_INFLATECODES
 #  define ASM_CRC
+#  define USE_TIME_LIB
 
 /* Note that defining REENTRANT will not eliminate all global/static */
 /* variables.  The functions we use from c.lib, including stdio, are */
@@ -51,6 +56,8 @@
 #  include <proto/exec.h>   /* see SAS/C manual:part 2,chapter 2,pages 6-7  */
 #  include <proto/dos.h>
 #  include <proto/locale.h>
+
+#  define USE_TIME_LIB
 
 #  ifdef DEBUG
 #    include <sprof.h>      /* profiler header file */
@@ -98,9 +105,14 @@
 
 #define MALLOC_WORK
 #define USE_EF_UT_TIME
+#if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#  define TIMESTAMP
+#endif
 
 #define AMIGA_FILENOTELEN 80
-#define DATE_FORMAT       DF_MDY
+#ifndef DATE_FORMAT
+#  define DATE_FORMAT     DF_MDY
+#endif
 #define lenEOL            1
 #define PutNativeEOL      *q++ = native(LF);
 #define PIPE_ERROR        0

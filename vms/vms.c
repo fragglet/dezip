@@ -4,14 +4,16 @@
 
   This file contains routines to extract VMS file attributes from a zipfile
   extra field and create a file with these attributes.  The code was almost
-  entirely written by Igor, with a couple of routines by CN and lots of
-  modifications by Christian Spieler.
+  entirely written by Igor, with a couple of routines by GRR and lots of
+  modifications and fixes by Christian Spieler.
 
   Contains:  check_format()
              open_outfile()
              find_vms_attrs()
              flush()
              close_outfile()
+             dos_to_unix_time()         (TIMESTAMP only)
+             stamp_file()               (TIMESTAMP only)
              do_wild()
              mapattr()
              mapname()
@@ -23,7 +25,7 @@
 
   ---------------------------------------------------------------------------
 
-     Copyright (C) 1992-93 Igor Mandrichenko.
+     Portions copyright (C) 1992-93 Igor Mandrichenko.
      Permission is granted to any individual or institution to use, copy,
      or redistribute this software so long as all of the original files
      are included unmodified and that this copyright notice is retained.
@@ -39,14 +41,17 @@
 #include <lib$routines.h>
 #include <unixlib.h>
 
-#define BUFS512 8192*2          /* Must be a multiple of 512 */
+#define ASYNCH_QIO              /* Try out asynchronous PK-style QIO writes */
+
+#define BUFS512 (OUTBUFSIZ&(~512))      /* Must be a multiple of 512 ! */
+#define BUFDBLS512 (BUFS512 * 2)        /* locbuf size, max. record size */
 
 #define OK(s)   ((s)&1)         /* VMS success or warning status */
 #define STRICMP(s1,s2)  STRNICMP(s1,s2,2147483647)
 
 /*
-*   Local static storage
-*/
+ *   Local static storage
+ */
 static struct FAB       fileblk;
 static struct XABDAT    dattim;
 static struct XABRDT    rdt;
@@ -72,10 +77,19 @@ static int  hostnum;
 
 static uch rfm;
 
-static uch locbuf[BUFS512];
-static int loccnt = 0;
+static uch locbuf[BUFDBLS512];          /* Space for 2 buffers of BUFS512 */
+static unsigned loccnt = 0;
 static uch *locptr;
 static char got_eol = 0;
+
+struct bufdsc
+{
+    struct bufdsc *next;
+    uch *buf;
+    unsigned bufcnt;
+};
+
+static struct bufdsc b1, b2, *curbuf;   /* buffer ring for asynchronous I/O */
 
 static int  _flush_blocks(__GPRO__ uch *rawbuf, unsigned size, int final_flag),
             _flush_stream(__GPRO__ uch *rawbuf, unsigned size, int final_flag),
@@ -83,8 +97,11 @@ static int  _flush_blocks(__GPRO__ uch *rawbuf, unsigned size, int final_flag),
             _flush_qio(__GPRO__ uch *rawbuf, unsigned size, int final_flag),
             _close_rms(__GPRO),
             _close_qio(__GPRO),
-            WriteBuffer(__GPRO__ uch *buf, int len),
-            WriteRecord(__GPRO__ uch *rec, int len);
+#ifdef ASYNCH_QIO
+            WriteQIO(__GPRO__ uch *buf, unsigned len),
+#endif
+            WriteBuffer(__GPRO__ uch *buf, unsigned len),
+            WriteRecord(__GPRO__ uch *rec, unsigned len);
 
 static int  (*_flush_routine)(__GPRO__ uch *rawbuf, unsigned size,
                               int final_flag),
@@ -104,18 +121,13 @@ static int  get_vms_version(char *verbuf, int len);
 static uch  *extract_block(__GPRO__ struct IZ_block *p, int *retlen,
                            uch *init, int needlen);
 static void decompress_bits(uch *outptr, int needlen, uch *bitptr);
-static int  find_eol(uch *p, int n, int *l);
+static unsigned find_eol(uch *p, unsigned n, unsigned *l);
+#ifdef TIMESTAMP
+static time_t mkgmtime(struct tm *tm);
+static void uxtime2vmstime(time_t utimeval, long int binval[2]);
+#endif /* TIMESTAMP */
 static void vms_msg(__GPRO__ char *string, int status);
 
-struct bufdsc
-{
-    struct bufdsc *next;
-    uch *buf;
-    int bufcnt;
-};
-
-static struct bufdsc b1, b2, *curbuf;
-static uch buf1[BUFS512];
 
 int check_format(__G)
     __GDEF
@@ -213,7 +225,7 @@ static void init_buf_ring()
     b1.buf = &locbuf[0];
     b1.bufcnt = 0;
     b1.next = &b2;
-    b2.buf = &buf1[0];
+    b2.buf = &locbuf[BUFS512];
     b2.bufcnt = 0;
     b2.next = &b1;
     curbuf = &b1;
@@ -228,10 +240,10 @@ static ZCONST char *month[] =
              "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
 
 /*   buffer for time string */
-static char timbuf[24];         /* length = first entry in "stupid" + 1 */
+static char timbuf[24];         /* length = first entry in "date_str" + 1 */
 
 /*   fixed-length string descriptor for timbuf: */
-static ZCONST struct dsc$descriptor stupid =
+static ZCONST struct dsc$descriptor date_str =
             {sizeof(timbuf)-1, DSC$K_DTYPE_T, DSC$K_CLASS_S, timbuf};
 
 
@@ -242,8 +254,9 @@ static void set_default_datetime_XABs(__GPRO)
     iztimes z_utime;
 
     if (G.extra_field &&
-        (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 0,
-                          &z_utime, NULL) & EB_UT_FL_MTIME))
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
     {
         struct tm *t = localtime(&(z_utime.mtime));
 
@@ -277,7 +290,7 @@ static void set_default_datetime_XABs(__GPRO)
     rdt = cc$rms_xabrdt;
     sprintf(timbuf, "%02u-%3s-%04u %02u:%02u:%02u.00", dy, month[mo],
             yr, hh, mm, ss);
-    sys$bintim(&stupid, &dattim.xab$q_cdt);
+    sys$bintim(&date_str, &dattim.xab$q_cdt);
     memcpy(&rdt.xab$q_rdt, &dattim.xab$q_cdt, sizeof(rdt.xab$q_rdt));
 }
 
@@ -337,6 +350,7 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
         }
 
         outfab->fab$w_ifi = 0;  /* Clear IFI. It may be nonzero after ZIP */
+        outfab->fab$b_fac = FAB$M_BRO | FAB$M_PUT;  /* {block|record} output */
 
         ierr = sys$create(outfab);
         if (ierr == RMS$_FEX)
@@ -354,42 +368,6 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
             vms_msg(__G__ "", outfab->fab$l_stv);
             free_up();
             return PK_WARN;
-        }
-
-        if (!text_output)    /* Do not reopen text files and stdout
-                              *  Just open them in right mode         */
-        {
-            /*
-             *      Reopen file for Block I/O with no XABs.
-             */
-            if ((ierr = sys$close(outfab)) != RMS$_NORMAL)
-            {
-#ifdef DEBUG
-                vms_msg(__G__ "[ create_default_output: sys$close failed ]\n",
-                        ierr);
-                vms_msg(__G__ "", outfab->fab$l_stv);
-#endif
-                Info(slide, 1, ((char *)slide,
-                     "Can't create output file:  %s\n", G.filename));
-                free_up();
-                return PK_WARN;
-            }
-
-
-            outfab->fab$b_fac = FAB$M_BIO | FAB$M_PUT;  /* Get ready for block
-                                                         * output */
-            outfab->fab$l_xab = NULL;   /* Unlink all XABs */
-
-            if ((ierr = sys$open(outfab)) != RMS$_NORMAL)
-            {
-                char buf[256];
-
-                sprintf(buf, "[ Cannot open output file %s ]\n", G.filename);
-                vms_msg(__G__ buf, ierr);
-                vms_msg(__G__ "", outfab->fab$l_stv);
-                free_up();
-                return PK_WARN;
-            }
         }
 
         outrab = &rab;
@@ -415,7 +393,7 @@ static int create_default_output(__GPRO)        /* return 1 (PK_WARN) if fail */
 
     init_buf_ring();
 
-    _flush_routine = text_output? got_eol=0,_flush_stream : _flush_blocks;
+    _flush_routine = text_output ? got_eol=0,_flush_stream : _flush_blocks;
     _close_routine = _close_rms;
     return PK_COOL;
 }
@@ -471,6 +449,7 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
         }
 
         outfab->fab$w_ifi = 0;  /* Clear IFI. It may be nonzero after ZIP */
+        outfab->fab$b_fac = FAB$M_BIO | FAB$M_PUT;      /* block-mode output */
 
         ierr = sys$create(outfab);
         if (ierr == RMS$_FEX)
@@ -490,35 +469,14 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
             return PK_WARN;
         }
 
-        if (!text_output)    /* Do not reopen text files and stdout
-                              *  Just open them in right mode         */
-        {
-            /*
-             *      Reopen file for Block I/O with no XABs.
-             */
-            if ((ierr = sys$close(outfab)) != RMS$_NORMAL)
-            {
-#ifdef DEBUG
-                vms_msg(__G__ "[ create_rms_output: sys$close failed ]\n",
-                        ierr);
-                vms_msg(__G__ "", outfab->fab$l_stv);
-#endif
-                Info(slide, 1, ((char *)slide,
-                     "Can't create output file:  %s\n", G.filename));
-                free_up();
-                return PK_WARN;
-            }
-
-
-            outfab->fab$b_fac = FAB$M_BIO | FAB$M_PUT;  /* Get ready for block
-                                                         * output */
-            outfab->fab$l_xab = NULL;   /* Unlink all XABs */
-
-            if ((ierr = sys$open(outfab)) != RMS$_NORMAL)
+        if (outfab->fab$b_org & (FAB$C_REL | FAB$C_IDX)) {
+            /* relative and indexed files require explicit allocation */
+            ierr = sys$extend(outfab);
+            if (ERR(ierr))
             {
                 char buf[256];
 
-                sprintf(buf, "[ Cannot open output file %s ]\n", G.filename);
+                sprintf(buf, "[ Cannot allocate space for %s ]\n", G.filename);
                 vms_msg(__G__ buf, ierr);
                 vms_msg(__G__ "", outfab->fab$l_stv);
                 free_up();
@@ -528,7 +486,6 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
 
         outrab = &rab;
         rab.rab$l_fab = outfab;
-        if (!text_output)
         {
             rab.rab$l_rop |= (RAB$M_BIO | RAB$M_ASY);
         }
@@ -574,14 +531,22 @@ static int create_rms_output(__GPRO)           /* return 1 (PK_WARN) if fail */
 
 
 static  int pka_devchn;
-static  int pka_vbn;
+static  int pka_io_pending;
+static  unsigned pka_vbn;
 
+#if defined(__DECC) || defined(__DECCXX)
+#pragma __member_alignment __save
+#pragma __nomember_alignment
+#endif /* __DECC || __DECCXX */
 static struct
 {
     short   status;
     long    count;
     short   dummy;
 } pka_io_sb;
+#if defined(__DECC) || defined(__DECCXX)
+#pragma __member_alignment __restore
+#endif /* __DECC || __DECCXX */
 
 static struct
 {
@@ -605,6 +570,9 @@ static struct dsc$descriptor_s  pka_devdsc =
 static struct dsc$descriptor_s  pka_fnam =
 {   0, DSC$K_DTYPE_T, DSC$K_CLASS_S, NULL  };
 
+static char exp_nam[NAM$C_MAXRSS];
+static char res_nam[NAM$C_MAXRSS];
+
 #define PK_PRINTABLE_RECTYP(x)   ( (x) == FAT$C_VARIABLE \
                                 || (x) == FAT$C_STREAMLF \
                                 || (x) == FAT$C_STREAMCR \
@@ -614,8 +582,6 @@ static struct dsc$descriptor_s  pka_fnam =
 static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
 {
     int status;
-    static char exp_nam[NAM$C_MAXRSS];
-    static char res_nam[NAM$C_MAXRSS];
     int i;
 
     if ( G.cflag )
@@ -672,7 +638,7 @@ static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
 
         if ( ERR(status = sys$assign(&pka_devdsc,&pka_devchn,0,0)) )
         {
-            vms_msg(__G__ "sys$assign failed.\n",status);
+            vms_msg(__G__ "create_qio_output: sys$assign failed.\n", status);
             return PK_WARN;
         }
 
@@ -708,13 +674,18 @@ static int create_qio_output(__GPRO)            /* return 1 (PK_WARN) if fail */
 
         if ( ERR(status) )
         {
-            vms_msg(__G__ "[ Create file QIO failed.\n",status);
-            return PK_WARN;
+            vms_msg(__G__ "[ Create file QIO failed. ]\n", status);
             sys$dassgn(pka_devchn);
+            return PK_WARN;
         }
 
+#ifdef ASYNCH_QIO
+        init_buf_ring();
+        pka_io_pending = FALSE;
+#else
         locptr = locbuf;
         loccnt = 0;
+#endif
         pka_vbn = 1;
         _flush_routine = _flush_qio;
         _close_routine = _close_qio;
@@ -1085,7 +1056,7 @@ static uch *extract_block(__G__ p, retlen, init, needlen)
         *retlen = usiz;
 
 #ifndef MAX
-# define MAX(a,b)   ((a) > (b)? (a) : (b))
+# define MAX(a,b)   ((a) > (b) ? (a) : (b))
 #endif
 
     if ((block = (uch *) malloc(MAX(needlen, usiz))) == NULL)
@@ -1184,20 +1155,17 @@ static int _flush_blocks(__G__ rawbuf, size, final_flag)
     unsigned size;
     int final_flag;   /* 1 if this is the final flushout */
 {
-    int round;
-    int rest;
-    int off = 0;
     int status;
+    unsigned off = 0;
 
     while (size > 0)
     {
         if (curbuf->bufcnt < BUFS512)
         {
-            int ncpy;
+            unsigned ncpy;
 
             ncpy = size > (BUFS512 - curbuf->bufcnt) ?
-                            BUFS512 - curbuf->bufcnt :
-                            size;
+                   (BUFS512 - curbuf->bufcnt) : size;
             memcpy(curbuf->buf + curbuf->bufcnt, rawbuf + off, ncpy);
             size -= ncpy;
             curbuf->bufcnt += ncpy;
@@ -1219,6 +1187,84 @@ static int _flush_blocks(__G__ rawbuf, size, final_flag)
 }
 
 
+
+#ifdef ASYNCH_QIO
+static int WriteQIO(__G__ buf, len)
+    __GDEF
+    uch *buf;
+    unsigned len;
+{
+    int status;
+
+    if (pka_io_pending) {
+        status = sys$synch(0, &pka_io_sb);
+        if (!ERR(status))
+            status = pka_io_sb.status;
+        if (ERR(status))
+        {
+            vms_msg(__G__ "[ WriteQIO: sys$synch found I/O failure ]\n",
+                    status);
+            return PK_DISK;
+        }
+        pka_io_pending = FALSE;
+    }
+    /*
+     *   Put content of buffer as a single VB
+     */
+    status = sys$qio(0, pka_devchn, IO$_WRITEVBLK,
+                     &pka_io_sb, 0, 0,
+                     buf, len, pka_vbn,
+                     0, 0, 0);
+    if (ERR(status))
+    {
+        vms_msg(__G__ "[ WriteQIO: sys$qio failed ]\n", status);
+        return PK_DISK;
+    }
+    pka_io_pending = TRUE;
+    pka_vbn += (len>>9);
+
+    return PK_COOL;
+}
+
+static int _flush_qio(__G__ rawbuf, size, final_flag)
+                                                /* Asynchronous version */
+    __GDEF
+    uch *rawbuf;
+    unsigned size;
+    int final_flag;   /* 1 if this is the final flushout */
+{
+    int status;
+    unsigned off = 0;
+
+    while (size > 0)
+    {
+        if (curbuf->bufcnt < BUFS512)
+        {
+            unsigned ncpy;
+
+            ncpy = size > (BUFS512 - curbuf->bufcnt) ?
+                   (BUFS512 - curbuf->bufcnt) : size;
+            memcpy(curbuf->buf + curbuf->bufcnt, rawbuf + off, ncpy);
+            size -= ncpy;
+            curbuf->bufcnt += ncpy;
+            off += ncpy;
+        }
+        if (curbuf->bufcnt == BUFS512)
+        {
+            status = WriteQIO(__G__ curbuf->buf, curbuf->bufcnt);
+            if (status)
+                return status;
+            curbuf = curbuf->next;
+            curbuf->bufcnt = 0;
+        }
+    }
+
+    return (final_flag & (curbuf->bufcnt > 0)) ?
+        WriteQIO(curbuf->buf, (curbuf->bufcnt+1)&(~1)) : /* even byte count! */
+        PK_COOL;
+}
+
+#else /* !ASYNCH_QIO */
 
 static int _flush_qio(__G__ rawbuf, size, final_flag)
     __GDEF
@@ -1243,7 +1289,7 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
                 status = pka_io_sb.status;
             if (ERR(status))
             {
-                vms_msg(__G__ "[ Write QIO failed ]\n",status);
+                vms_msg(__G__ "[ Write QIO failed ]\n", status);
                 return PK_DISK;
             }
         }
@@ -1255,13 +1301,13 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
         /*
          *   Fill local buffer upto 512 bytes then put it out
          */
-        int ncpy;
+        unsigned ncpy;
 
         ncpy = 512-loccnt;
         if ( ncpy > size )
             ncpy = size;
 
-        memcpy(locptr,rawbuf,ncpy);
+        memcpy(locptr, out_ptr, ncpy);
         locptr += ncpy;
         loccnt += ncpy;
         size -= ncpy;
@@ -1276,7 +1322,7 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
                 status = pka_io_sb.status;
             if (ERR(status))
             {
-                vms_msg(__G__ "[ Write QIO failed ]\n",status);
+                vms_msg(__G__ "[ Write QIO failed ]\n", status);
                 return PK_DISK;
             }
 
@@ -1288,7 +1334,7 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
 
     if ( size >= 512 )
     {
-        int nblk,put_cnt;
+        unsigned nblk, put_cnt;
 
         /*
          *   Put rest of buffer as a single VB
@@ -1302,7 +1348,7 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
             status = pka_io_sb.status;
         if (ERR(status))
         {
-            vms_msg(__G__ "[ Write QIO failed ]\n",status);
+            vms_msg(__G__ "[ Write QIO failed ]\n", status);
             return PK_DISK;
         }
 
@@ -1313,69 +1359,66 @@ static int _flush_qio(__G__ rawbuf, size, final_flag)
 
     if ( size > 0 )
     {
-        memcpy(locptr,out_ptr,size);
+        memcpy(locptr, out_ptr, size);
         loccnt += size;
         locptr += size;
     }
 
     return PK_COOL;
 }
+#endif /* ?ASYNCH_QIO */
 
 
 
+/*
+ * The routine _flush_varlen() requires: "(size & 1) == 0"
+ * (The variable-length record algorithm assumes an even byte-count!)
+ */
 static int _flush_varlen(__G__ rawbuf, size, final_flag)
     __GDEF
     uch *rawbuf;
     unsigned size;
     int final_flag;
 {
-    ush nneed;
-    ush reclen;
+    unsigned nneed;
+    unsigned reclen;
     uch *inptr=rawbuf;
 
     /*
      * Flush local buffer
      */
 
-    if ( loccnt > 0 )
+    if ( loccnt > 0 )           /* incomplete record left from previous call */
     {
         reclen = *(ush*)locbuf;
-        if ( (nneed = reclen + 2 - loccnt) > 0 )
+        nneed = reclen + 2 - loccnt;
+        if ( nneed > size )
         {
-            if ( nneed > size )
+            if ( size+loccnt > BUFDBLS512 )
             {
-                if ( size+loccnt > BUFS512 )
-                {
-                    char buf[80];
-                    Info(buf, 1, (buf,
-                         "[ Record too long (%d bytes) ]\n",reclen ));
-                    return PK_DISK;
-                }
-                memcpy(locbuf+loccnt,rawbuf,size);
-                loccnt += size;
-                size = 0;
+                char buf[80];
+                Info(buf, 1, (buf,
+                     "[ Record too long (%u bytes) ]\n", reclen));
+                return PK_DISK;
             }
-            else
-            {
-                memcpy(locbuf+loccnt,rawbuf,nneed);
-                loccnt += nneed;
-                size -= nneed;
-                inptr += nneed;
-                if ( reclen & 1 )
-                {
-                    size--;
-                    inptr++;
-                }
-                if ( WriteRecord(__G__ locbuf+2,reclen) )
-                    return PK_DISK;
-                loccnt = 0;
-            }
+            memcpy(locbuf+loccnt, inptr, size);
+            loccnt += size;
+            size = 0;
         }
         else
         {
-            if (WriteRecord(__G__ locbuf+2,reclen))
+            memcpy(locbuf+loccnt, inptr, nneed);
+            loccnt += nneed;
+            size -= nneed;
+            inptr += nneed;
+            if ( reclen & 1 )
+            {
+                size--;
+                inptr++;
+            }
+            if ( WriteRecord(__G__ locbuf+2, reclen) )
                 return PK_DISK;
-            loccnt -= reclen+2;
+            loccnt = 0;
         }
     }
     /*
@@ -1386,7 +1429,7 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
         reclen = *(ush*)inptr;
         if ( reclen+2 <= size )
         {
-            if (WriteRecord(__G__ inptr+2,reclen))
+            if (WriteRecord(__G__ inptr+2, reclen))
                 return PK_DISK;
             size -= 2+reclen;
             inptr += 2+reclen;
@@ -1398,7 +1441,7 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
         }
         else
         {
-            memcpy(locbuf,inptr,size);
+            memcpy(locbuf, inptr, size);
             loccnt = size;
             size = 0;
         }
@@ -1412,9 +1455,9 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
         char buf[80];
 
         Info(buf, 1, (buf,
-            "[ Warning, incomplete record of length %d ]\n",
-            *(ush*)locbuf));
-        if ( WriteRecord(__G__ locbuf+2,loccnt-2) )
+             "[ Warning, incomplete record of length %u ]\n",
+             (unsigned)*(ush*)locbuf));
+        if ( WriteRecord(__G__ locbuf+2, loccnt-2) )
             return PK_DISK;
     }
     return PK_COOL;
@@ -1423,11 +1466,11 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
 
 
 /*
-*   Routine _flush_stream breaks decompressed stream into records
-*   depending on format of the stream (fab->rfm, G.pInfo->textmode, etc.)
-*   and puts out these records. It also handles CR LF sequences.
-*   Should be used when extracting *text* files.
-*/
+ *   Routine _flush_stream breaks decompressed stream into records
+ *   depending on format of the stream (fab->rfm, G.pInfo->textmode, etc.)
+ *   and puts out these records. It also handles CR LF sequences.
+ *   Should be used when extracting *text* files.
+ */
 
 #define VT      0x0B
 #define FF      0x0C
@@ -1455,19 +1498,19 @@ static int _flush_varlen(__G__ rawbuf, size, final_flag)
 #   define  RECORD_END(c,f)   ((c) == LF || (c) == (CR))
 #endif
 
-static int  find_eol(p,n,l)
+static unsigned find_eol(p,n,l)
 /*
- *  Find first CR,LF,CR-LF or LF-CR in string 'p' of length 'n'.
+ *  Find first CR, LF, CR/LF or LF/CR in string 'p' of length 'n'.
  *  Return offset of the sequence found or 'n' if not found.
  *  If found, return in '*l' length of the sequence (1 or 2) or
  *  zero if sequence end not seen, i.e. CR or LF is last char
  *  in the buffer.
  */
     uch *p;
-    int n;
-    int *l;
+    unsigned n;
+    unsigned *l;
 {
-    int off = n;
+    unsigned off = n;
     uch *q;
 
     *l = 0;
@@ -1501,21 +1544,20 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
     int final_flag; /* 1 if this is the final flushout */
 {
     int rest;
-    int end = 0, start = 0;
-    int off = 0;
+    unsigned end = 0, start = 0;
 
     if (size == 0 && loccnt == 0)
         return PK_COOL;         /* Nothing to do ... */
 
     if ( final_flag )
     {
-        int recsize;
+        unsigned recsize;
 
         /*
          * This is flush only call. size must be zero now.
          * Just eject everything we have in locbuf.
          */
-        recsize = loccnt - (got_eol ? 1:0);
+        recsize = loccnt - (got_eol ? 1 : 0);
         /*
          *  If the last char of file was ^Z ( end-of-file in MSDOS ),
          *  we will see it now.
@@ -1523,7 +1565,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
         if ( recsize==1 && locbuf[0] == CTRLZ )
             return PK_COOL;
 
-        return WriteRecord(__G__ locbuf, recsize) ? PK_DISK : PK_COOL;
+        return WriteRecord(__G__ locbuf, recsize);
     }
 
 
@@ -1531,7 +1573,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
     {
         /* Find end of record partially saved in locbuf */
 
-        int recsize;
+        unsigned recsize;
         int complete=0;
 
         if ( got_eol )
@@ -1547,12 +1589,12 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
         }
         else
         {
-            int eol_len;
-            int eol_off;
+            unsigned eol_len;
+            unsigned eol_off;
 
-            eol_off = find_eol(rawbuf,size,&eol_len);
+            eol_off = find_eol(rawbuf, size, &eol_len);
 
-            if ( loccnt+eol_off > BUFS512 )
+            if ( loccnt+eol_off > BUFDBLS512 )
             {
                 /*
                  *  No room in locbuf. Dump it and clear
@@ -1562,7 +1604,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
                 recsize = loccnt;
                 start = 0;
                 Info(buf, 1, (buf,
-                     "[ Warning: Record too long (%d) ]\n", loccnt+eol_off));
+                     "[ Warning: Record too long (%u) ]\n", loccnt+eol_off));
                 complete = 1;
                 end = 0;
             }
@@ -1602,7 +1644,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
 
     for (start = end; start < size && end < size; )
     {
-        int eol_off,eol_len;
+        unsigned eol_off, eol_len;
 
         got_eol = 0;
 
@@ -1640,16 +1682,16 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
 
     if (rest > 0)
     {
-        if ( rest > BUFS512 )
+        if ( rest > BUFDBLS512 )
         {
-            int recsize;
+            unsigned recsize;
             char buf[80];               /* CANNOT use slide for Info() */
 
-            recsize = rest - (got_eol ? 1:0 );
+            recsize = rest - (got_eol ? 1 : 0 );
             Info(buf, 1, (buf,
-                 "[ Warning: Record too long (%d) ]\n", recsize));
+                 "[ Warning: Record too long (%u) ]\n", recsize));
             got_eol = 0;
-            return WriteRecord(__G__ rawbuf+start,recsize) ? PK_DISK : PK_COOL;
+            return WriteRecord(__G__ rawbuf+start, recsize);
         }
         else
         {
@@ -1666,7 +1708,7 @@ static int _flush_stream(__G__ rawbuf, size, final_flag)
 static int WriteBuffer(__G__ buf, len)
     __GDEF
     uch *buf;
-    int len;
+    unsigned len;
 {
     int status;
 
@@ -1693,7 +1735,7 @@ static int WriteBuffer(__G__ buf, len)
 static int WriteRecord(__G__ rec, len)
     __GDEF
     uch *rec;
-    int len;
+    unsigned len;
 {
     int status;
 
@@ -1776,7 +1818,12 @@ static int _close_rms(__GPRO)
         outfab->fab$l_xab = (void *) &pro;
     }
 
-    sys$wait(outrab);
+    status = sys$wait(outrab);
+    if (ERR(status))
+    {
+        vms_msg(__G__ "[ _close_rms: sys$wait failed ]\n", status);
+        vms_msg(__G__ "", outrab->rab$l_stv);
+    }
 
     status = sys$close(outfab);
 #ifdef DEBUG
@@ -1809,6 +1856,20 @@ static int _close_qio(__GPRO)
     pka_fib.FIB$W_DID[1] =
     pka_fib.FIB$W_DID[2] = 0;
 
+#ifdef ASYNCH_QIO
+    if (pka_io_pending) {
+        status = sys$synch(0, &pka_io_sb);
+        if (!ERR(status))
+            status = pka_io_sb.status;
+        if (ERR(status))
+        {
+            vms_msg(__G__ "[ _close_qio: sys$synch found I/O failure ]\n",
+                    status);
+        }
+        pka_io_pending = FALSE;
+    }
+#endif /* ASYNCH_QIO */
+
     status = sys$qiow(0, pka_devchn, IO$_DEACCESS, &pka_acp_sb,
                       0, 0,
                       &pka_fibdsc, 0, 0, 0,
@@ -1819,11 +1880,268 @@ static int _close_qio(__GPRO)
         status = pka_acp_sb.status;
     if ( ERR(status) )
     {
-        vms_msg(__G__ "[ Deaccess QIO failed ]\n",status);
+        vms_msg(__G__ "[ Deaccess QIO failed ]\n", status);
         return PK_DISK;
     }
     return PK_COOL;
 }
+
+
+
+#ifdef TIMESTAMP
+
+/* Nonzero if `y' is a leap year, else zero. */
+#define leap(y) (((y) % 4 == 0 && (y) % 100 != 0) || (y) % 400 == 0)
+
+/* Number of leap years from 1970 to `y' (not including `y' itself). */
+#define nleap(y) (((y) - 1969) / 4 - ((y) - 1901) / 100 + ((y) - 1601) / 400)
+
+/* Accumulated number of days from 01-Jan up to start of current month. */
+static ZCONST short ydays[] = {
+    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
+};
+
+/***********************/
+/* Function mkgmtime() */
+/***********************/
+
+static time_t mkgmtime(tm)
+    struct tm *tm;
+{
+    time_t m_time;
+    int yr, mo, dy, hh, mm, ss;
+    unsigned days;
+
+    yr = tm->tm_year - 70;
+    mo = tm->tm_mon;
+    dy = tm->tm_mday - 1;
+    hh = tm->tm_hour;
+    mm = tm->tm_min;
+    ss = tm->tm_sec;
+
+    /* calculate days from BASE to this year and add expired days this year */
+    dy = (unsigned)dy + ((unsigned)yr * 365) + (unsigned)nleap(yr+1970) +
+         (unsigned)ydays[mo] + ((mo > 1) && leap(yr+1970));
+
+    /* convert date & time to seconds relative to 00:00:00, 01/01/1970 */
+    return (time_t)((unsigned long)(unsigned)dy * 86400L +
+                    (unsigned long)hh * 3600L +
+                    (unsigned long)(mm * 60 + ss));
+
+} /* end function mkgmtime() */
+
+
+
+/*******************************/
+/* Function dos_to_unix_time() */  /* only used for timestamping of archives */
+/*******************************/
+
+time_t dos_to_unix_time(ddate, dtime)
+    unsigned ddate, dtime;
+{
+    struct tm *ltm;             /* Local time. */
+    time_t loctime;             /* The time_t value of local time. */
+    time_t then;                /* The time to return. */
+    long tzoffset_adj;          /* timezone-adjustment `remainder' */
+    int bailout_cnt;            /* counter of tries for tz correction */
+
+    then = time(NULL);
+    ltm = localtime(&then);
+
+    /* dissect date */
+    ltm->tm_year = ((ddate >> 9) & 0x7f) + 80;
+    ltm->tm_mon  = ((ddate >> 5) & 0x0f) - 1;
+    ltm->tm_mday = (ddate & 0x1f);
+
+    /* dissect time */
+    ltm->tm_hour = (dtime >> 11) & 0x1f;
+    ltm->tm_min  = (dtime >> 5) & 0x3f;
+    ltm->tm_sec  = (dtime << 1) & 0x3e;
+
+    loctime = mkgmtime(ltm);
+
+    /* Correct for the timezone and any daylight savings time.
+       The correction is verified and repeated when not correct, to
+       take into account the rare case that a change to or from daylight
+       savings time occurs between when it is the time in `tm' locally
+       and when it is that time in Greenwich. After the second correction,
+       the "timezone & daylight" offset should be correct in all cases. To
+       be sure, we allow a third try, but then the loop is stopped. */
+    bailout_cnt = 3;
+    then = loctime;
+    do {
+      tzoffset_adj = loctime - mkgmtime(localtime(&then));
+      if (tzoffset_adj == 0L)
+        break;
+      then += tzoffset_adj;
+    } while (--bailout_cnt > 0);
+
+    if ( (ddate >= (unsigned)DOSDATE_2038_01_18) &&
+         (then < (time_t)0x70000000L) )
+        then = U_TIME_T_MAX;    /* saturate in case of (unsigned) overflow */
+    if (then < (time_t)0L)      /* a converted DOS time cannot be negative */
+        then = S_TIME_T_MAX;    /*  -> saturate at max signed time_t value */
+    return then;
+
+} /* end function dos_to_unix_time() */
+
+
+
+/*******************************/
+/*  Function uxtime2vmstime()  */
+/*******************************/
+
+static void uxtime2vmstime(  /* convert time_t value into 64 bit VMS bintime */
+    time_t utimeval,
+    long int binval[2] )
+{
+    time_t m_time = utimeval;
+    struct tm *t = localtime(&m_time);
+
+    sprintf(timbuf, "%02d-%3s-%04d %02d:%02d:%02d.00",
+            t->tm_mday, month[t->tm_mon], t->tm_year + 1900,
+            t->tm_hour, t->tm_min, t->tm_sec);
+    sys$bintim(&date_str, binval);
+} /* end function uxtime2vmstime() */
+
+
+
+/***************************/
+/*  Function stamp_file()  */  /* adapted from VMSmunch...it just won't die! */
+/***************************/
+
+int stamp_file(fname, modtime)
+    ZCONST char *fname;
+    time_t modtime;
+{
+    int status;
+    int i;
+    static long int Cdate[2], Rdate[2], Edate[2], Bdate[2];
+    static short int revisions;
+#if defined(__DECC) || defined(__DECCXX)
+#pragma __member_alignment __save
+#pragma __nomember_alignment
+#endif /* __DECC || __DECCXX */
+    static union {
+      unsigned short int value;
+      struct {
+        unsigned system : 4;
+        unsigned owner : 4;
+        unsigned group : 4;
+        unsigned world : 4;
+      } bits;
+    } prot;
+#if defined(__DECC) || defined(__DECCXX)
+#pragma __member_alignment __restore
+#endif /* __DECC || __DECCXX */
+    static unsigned long uic;
+    static struct fjndef jnl;
+
+    static struct atrdef Atr[] = {
+        {sizeof(pka_rattr), ATR$C_RECATTR, &pka_rattr},
+        {sizeof(pka_uchar), ATR$C_UCHAR, &pka_uchar},
+        {sizeof(Cdate), ATR$C_CREDATE, &Cdate[0]},
+        {sizeof(Rdate), ATR$C_REVDATE, &Rdate[0]},
+        {sizeof(Edate), ATR$C_EXPDATE, &Edate[0]},
+        {sizeof(Bdate), ATR$C_BAKDATE, &Bdate[0]},
+        {sizeof(revisions), ATR$C_ASCDATES, &revisions},
+        {sizeof(prot), ATR$C_FPRO, &prot},
+        {sizeof(uic), ATR$C_UIC, &uic},
+        {sizeof(jnl), ATR$C_JOURNAL, &jnl},
+        {0, 0, 0}
+    };
+
+    fileblk = cc$rms_fab;
+    fileblk.fab$l_fna = (char *)fname;
+    fileblk.fab$b_fns = strlen(fname);
+
+    nam = cc$rms_nam;
+    fileblk.fab$l_nam = &nam;
+    nam.nam$l_esa = exp_nam;
+    nam.nam$b_ess = sizeof(exp_nam);
+    nam.nam$l_rsa = res_nam;
+    nam.nam$b_rss = sizeof(res_nam);
+
+    if ( ERR(status = sys$parse(&fileblk)) )
+    {
+        vms_msg(__G__ "stamp_file: sys$parse failed.\n", status);
+        return -1;
+    }
+
+    pka_devdsc.dsc$w_length = (unsigned short)nam.nam$t_dvi[0];
+
+    if ( ERR(status = sys$assign(&pka_devdsc,&pka_devchn,0,0)) )
+    {
+        vms_msg(__G__ "stamp_file: sys$assign failed.\n", status);
+        return -1;
+    }
+
+    pka_fnam.dsc$a_pointer = nam.nam$l_name;
+    pka_fnam.dsc$w_length  = nam.nam$b_name + nam.nam$b_type + nam.nam$b_ver;
+
+    for (i=0;i<3;i++)
+    {
+        pka_fib.FIB$W_DID[i]=nam.nam$w_did[i];
+        pka_fib.FIB$W_FID[i]=nam.nam$w_fid[i];
+    }
+
+    /* Use the IO$_ACCESS function to return info about the file */
+    /* Note, used this way, the file is not opened, and the expiration */
+    /* and revision dates are not modified */
+    status = sys$qiow(0, pka_devchn, IO$_ACCESS,
+                      &pka_acp_sb, 0, 0,
+                      &pka_fibdsc, &pka_fnam, 0, 0, &Atr, 0);
+
+    if ( !ERR(status) )
+        status = pka_acp_sb.status;
+
+    if ( ERR(status) )
+    {
+        vms_msg(__G__ "[ Access file QIO failed. ]\n", status);
+        sys$dassgn(pka_devchn);
+        return -1;
+    }
+
+    uxtime2vmstime(modtime, Cdate);
+    memcpy(Rdate, Cdate, sizeof(Cdate));
+
+    /* note, part of the FIB was cleared by earlier QIOW, so reset it */
+    pka_fib.FIB$L_ACCTL = FIB$M_NORECORD;
+    for (i=0;i<3;i++)
+    {
+        pka_fib.FIB$W_DID[i]=nam.nam$w_did[i];
+        pka_fib.FIB$W_FID[i]=nam.nam$w_fid[i];
+    }
+
+    /* Use the IO$_MODIFY function to change info about the file */
+    /* Note, used this way, the file is not opened, however this would */
+    /* normally cause the expiration and revision dates to be modified. */
+    /* Using FIB$M_NORECORD prohibits this from happening. */
+    status = sys$qiow(0, pka_devchn, IO$_MODIFY,
+                      &pka_acp_sb, 0, 0,
+                      &pka_fibdsc, &pka_fnam, 0, 0, &Atr, 0);
+
+    if ( !ERR(status) )
+        status = pka_acp_sb.status;
+
+    if ( ERR(status) )
+    {
+        vms_msg(__G__ "[ Modify file QIO failed. ]\n", status);
+        sys$dassgn(pka_devchn);
+        return -1;
+    }
+
+    if ( ERR(status = sys$dassgn(pka_devchn)) )
+    {
+        vms_msg(__G__ "stamp_file: sys$dassgn failed.\n", status);
+        return -1;
+    }
+
+    return 0;
+
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
 
 
 
@@ -2035,7 +2353,7 @@ int mapattr(__G)
         }
         else
         {
-#endif /* ?SETDFPROT */
+#endif /* SETDFPROT */
             umask(defprot = umask(0));
             defprot = ~defprot;
             wlddef = unix_to_vms[defprot & 07] << XAB$V_WLD;
@@ -2045,13 +2363,17 @@ int mapattr(__G)
             defprot = sysdef | owndef | grpdef | wlddef;
 #ifdef SETDFPROT
         }
-#endif /* ?SETDFPROT */
+#endif /* SETDFPROT */
     }
 
     switch (G.pInfo->hostnum) {
         case UNIX_:
         case VMS_:  /*IM: ??? Does VMS Zip store protection in UNIX format ?*/
                     /* GRR:  Yup.  Bad decision on my part... */
+        case ACORN_:
+        case ATARI_:
+        case BEOS_:
+        case QDOS_:
             tmp = (unsigned)(tmp >> 16);  /* drwxrwxrwx */
             theprot  = (unix_to_vms[tmp & 07] << XAB$V_WLD)
                      | (unix_to_vms[(tmp>>3) & 07] << XAB$V_GRP)
@@ -2077,7 +2399,6 @@ int mapattr(__G)
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
-        case ATARI_:             /* (used to set = 0666) */
         case TOPS20_:
         default:
             theprot = defprot;
@@ -2622,7 +2943,9 @@ int check_for_newer(__G__ filenam)   /* return 1 if existing file newer or */
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
+    {
         struct tm *t = localtime(&(z_utime.mtime));
 
         yr2 = (unsigned)(t->tm_year) + 1900;
@@ -2727,7 +3050,7 @@ void return_VMS(err)
         case PK_BADERR:
             Info(slide, 1, ((char *)slide, "\n\
 [return-code %d:  error in zipfile \
-(e.g., can't find local file header sig)]\n", err));
+(e.g., cannot find local file header sig)]\n", err));
             break;
         case PK_MEM:
         case PK_MEM2:
@@ -2799,12 +3122,15 @@ void return_VMS(err)
     exit is both silent and has a $SEVERITY of "success").
   ---------------------------------------------------------------------------*/
 
-    severity = (err == 2 || (err >= 9 && err <= 11) || (err >= 80 && err <= 82))
-               ? 2 : 4;
-    exit(                                       /* $SEVERITY:        */
-         (err == PK_COOL) ? 1 :                 /*   success         */
-         (err == PK_WARN) ? 0x7FFF0000 :        /*   warning         */
-         (0x7FFF0000 | (err << 4) | severity)   /*   error or fatal  */
+    severity = (err == PK_WARN) ? 1 :           /* warn  */
+               (err == 2 ||                     /* error */
+                (err >= 9 && err <= 11) ||      /*  ...  */
+                (err >= 80 && err <= 82)) ? 2 : /*  ...  */
+               4;                               /* fatal */
+
+    exit(                                       /* $SEVERITY:              */
+         (err == PK_COOL) ? 1 :                 /*   success               */
+         (0x7FFF0000 | (err << 4) | severity)   /*   warning, error, fatal */
         );
 
 } /* end function return_VMS() */
@@ -2925,7 +3251,7 @@ void version(__G)
       "OpenVMS",   /* version has trailing spaces ("V6.1   "), so truncate: */
       (sprintf(buf, " (%.4s for Alpha)", VMS_VERSION), buf),
 #  else /* VAX */
-      (VMS_VERSION[1] >= '6')? "OpenVMS" : "VMS",
+      (VMS_VERSION[1] >= '6') ? "OpenVMS" : "VMS",
       (sprintf(buf, " (%.4s for VAX)", VMS_VERSION), buf),
 #  endif
 #else

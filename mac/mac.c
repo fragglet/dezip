@@ -86,7 +86,7 @@ char *do_wild(__G__ wildspec)
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 0x201, ((char *)slide,
-                  "warning:  can't allocate wildcard buffers\n"));
+                  "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -126,6 +126,7 @@ char *do_wild(__G__ wildspec)
     }
 
 #ifndef THINK_C            /* Think C only matches one at most (for now) */
+#ifndef __MWERKS__
     /* If we've gotten this far, we've read and matched at least one entry
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
@@ -139,6 +140,7 @@ char *do_wild(__G__ wildspec)
                 strcpy(matchname, file->d_name);
             return matchname;
         }
+#endif
 #endif
 
     closedir(dir);     /* have read at least one dir entry; nothing left */
@@ -365,7 +367,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (MKDIR(buildpath) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n", buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
@@ -484,7 +486,7 @@ int checkdir(__G__ pathcomp, flag)
                  * and create more than one level, but why really necessary?) */
                 if (MKDIR(pathcomp) == -1) {
                     Info(slide, 1, ((char *)slide,
-                      "checkdir:  can't create extraction directory: %s\n",
+                      "checkdir:  cannot create extraction directory: %s\n",
                       pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
@@ -509,8 +511,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
+        if (rootlen > 0) {
             free(rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -556,8 +560,10 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
      */
 
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field && (ef_scan_for_izux(G.extra_field,
-        G.lrec.extra_field_length, 0, &z_utime, NULL) & EB_UT_FL_MTIME))
+    if (G.extra_field &&
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
     {
         struct tm *t;
 
@@ -598,25 +604,25 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         hpbr.fileParam.ioVRefNum = G.gnVRefNum;
         hpbr.fileParam.ioDirID = G.glDirID;
         hpbr.fileParam.ioFDirIndex = 0;
-        err = PBHGetFInfo(&hpbr, 0L);
+        err = PBHGetFInfoSync(&hpbr);
         hpbr.fileParam.ioFlMdDat = m_time;
         if ( !G.fMacZipped )
             hpbr.fileParam.ioFlCrDat = m_time;
         hpbr.fileParam.ioDirID = G.glDirID;
         if (err == noErr)
-            err = PBHSetFInfo(&hpbr, 0L);
+            err = PBHSetFInfoSync(&hpbr);
         if (err != noErr)
-            printf("error:  can't set the time for %s\n", G.filename);
+            printf("error:  cannot set the time for %s\n", G.filename);
     } else {
         pbr.fileParam.ioNamePtr = (StringPtr)G.filename;
         pbr.fileParam.ioVRefNum = pbr.fileParam.ioFVersNum =
           pbr.fileParam.ioFDirIndex = 0;
-        err = PBGetFInfo(&pbr, 0L);
+        err = PBGetFInfoSync(&pbr);
         pbr.fileParam.ioFlMdDat = pbr.fileParam.ioFlCrDat = m_time;
         if (err == noErr)
-            err = PBSetFInfo(&pbr, 0L);
+            err = PBSetFInfoSync(&pbr);
         if (err != noErr)
-            printf("error:  can't set the time for %s\n", G.filename);
+            printf("error:  cannot set the time for %s\n", G.filename);
     }
 
     /* set read-only perms if needed */
@@ -625,11 +631,11 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
             hpbr.fileParam.ioNamePtr = (StringPtr)G.filename;
             hpbr.fileParam.ioVRefNum = G.gnVRefNum;
             hpbr.fileParam.ioDirID = G.glDirID;
-            err = PBHSetFLock(&hpbr, 0);
+            err = PBHSetFLockSync(&hpbr);
         } else
             err = SetFLock((ConstStr255Param)G.filename, 0);
     }
-    p2cstr(G.filename);
+    p2cstr((StringPtr)G.filename);
 
 } /* end function close_outfile() */
 
@@ -658,6 +664,9 @@ void version(__G)
 #  if 0
       "cc ", (sprintf(buf, " version %d", _RELEASE), buf),
 #  else
+#  ifdef __MWERKS__
+      "CodeWarrior C", "",
+#  else
 #  ifdef THINK_C
       "Think C", "",
 #  else
@@ -665,6 +674,7 @@ void version(__G)
       "MPW C", "",
 #  else
       "unknown compiler", "",
+#  endif
 #  endif
 #  endif
 #  endif
@@ -711,7 +721,7 @@ static int IsHFSDisk(short wRefNum)
         hpbr.volumeParam.ioNamePtr = temp;
         hpbr.volumeParam.ioVRefNum = wRefNum;
         hpbr.volumeParam.ioVolIndex = 0;
-        wErr = PBHGetVInfo(&hpbr, 0);
+        wErr = PBHGetVInfoSync(&hpbr);
 
         if (wErr == noErr && hpbr.volumeParam.ioVFSID == 0
             && hpbr.volumeParam.ioVSigWord == 0x4244) {
@@ -753,7 +763,7 @@ void MacFSTest(int vRefNum)
             wdpb.ioNamePtr = st;
             wdpb.ioWDIndex = 0;
             wdpb.ioVRefNum = vRefNum;
-            err = PBHGetVol(&wdpb, false);
+            err = PBHGetVolSync(&wdpb);
 
             if (err == noErr) {
                 wAppVRefNum = wdpb.ioWDVRefNum;
@@ -789,7 +799,7 @@ int macmkdir(char *path, short nVRefNum, long lDirID)
         {
             hpbr.fileParam.ioNamePtr = st;
             hpbr.fileParam.ioCompletion = NULL;
-            err = PBHGetVol((WDPBPtr)&hpbr, false);
+            err = PBHGetVolSync((WDPBPtr)&hpbr);
             nVRefNum = hpbr.wdParam.ioWDVRefNum;
             lDirID = hpbr.wdParam.ioWDDirID;
         }
@@ -802,9 +812,9 @@ int macmkdir(char *path, short nVRefNum, long lDirID)
             hpbr.fileParam.ioVRefNum = nVRefNum;
             hpbr.fileParam.ioDirID = lDirID;
             hpbr.fileParam.ioNamePtr = (StringPtr)path;
-            err = PBDirCreate(&hpbr, false);
+            err = PBDirCreateSync(&hpbr);
         }
-        p2cstr(path);
+        p2cstr((StringPtr)path);
     }
 
     return (int)err;
@@ -826,13 +836,13 @@ void ResolveMacVol(short nVRefNum, short *pnVRefNum, long *plDirID, StringPtr ps
         Str255   st;
         OSErr    err;
 
-        wdpbr.ioCompletion = (ProcPtr)NULL;
+        wdpbr.ioCompletion = (IOCompletionUPP)NULL;
         wdpbr.ioNamePtr = st;
         wdpbr.ioVRefNum = nVRefNum;
         wdpbr.ioWDIndex = 0;
         wdpbr.ioWDProcID = 0;
         wdpbr.ioWDVRefNum = 0;
-        err = PBGetWDInfo( &wdpbr, false );
+        err = PBGetWDInfoSync( &wdpbr );
         if ( err == noErr )
         {
             if (pnVRefNum)
@@ -871,7 +881,7 @@ short macopen(char *sz, short nFlags, short nVRefNum, long lDirID)
 
     c2pstr( sz );
     BlockMove( sz, st, sz[0]+1 );
-    p2cstr( sz );
+    p2cstr( (StringPtr)sz );
     if (G.HFSFlag)
     {
         if (nFlags > 1)
@@ -893,9 +903,9 @@ short macopen(char *sz, short nFlags, short nVRefNum, long lDirID)
         pbr.ioParam.ioPermssn = chPerms;
         pbr.ioParam.ioMisc = 0;
         if (nFlags >1)
-            err = PBOpenRF( &pbr, false );
+            err = PBOpenRFSync( &pbr );
         else
-            err = PBOpen( &pbr, false );
+            err = PBOpenSync( &pbr );
         nFRefNum = pbr.ioParam.ioRefNum;
     }
     if ( err || (nFRefNum == 1) )
@@ -950,7 +960,7 @@ FILE *macfopen(char *filename, char *mode, short nVRefNum, long lDirID)
             G.gostType = 'TEXT';
         }
     }
-    p2cstr(G.filename);
+    p2cstr((StringPtr)G.filename);
 
     if ((outfd = creat(G.filename, 0)) != -1) {
         if (G.fMacZipped) {
@@ -965,11 +975,11 @@ FILE *macfopen(char *filename, char *mode, short nVRefNum, long lDirID)
                 hpbr.fileParam.ioFlFndrInfo = mi.finfo;
                 hpbr.fileParam.ioFlCrDat = mi.lCrDat;
                 hpbr.fileParam.ioFlMdDat = mi.lMdDat;
-                err = PBHSetFInfo(&hpbr, 0);
+                err = PBHSetFInfoSync(&hpbr);
             } else {
                 err = SetFInfo((StringPtr)G.filename , 0, &mi.finfo);
             }
-            p2cstr(G.filename);
+            p2cstr((StringPtr)G.filename);
         }
         outfd = open(G.filename, (fDataFork) ? 1 : 2);
     }
@@ -996,7 +1006,7 @@ short maccreat(char *sz, short nVRefNum, long lDirID, OSType ostCreator, OSType 
 
     c2pstr( sz );
     BlockMove( sz, st, sz[0]+1 );
-    p2cstr( sz );
+    p2cstr( (StringPtr)sz );
     if (G.HFSFlag)
     {
         err = HGetFInfo( nVRefNum, lDirID, st, &fi );
@@ -1062,7 +1072,7 @@ long macwrite(short nFRefNum, char *pb, unsigned cb)
 {
     long    lcb = cb;
 
-#ifdef THINK_C
+#ifndef MPW
     if ( (nFRefNum == 1) || (nFRefNum == 2) )
         screenDump( pb, lcb );
     else
@@ -1106,7 +1116,7 @@ long maclseek(short nFRefNum, long lib, short nMode)
     pbr.ioParam.ioRefNum = nFRefNum;
     pbr.ioParam.ioPosMode = nMode;
     pbr.ioParam.ioPosOffset = lib;
-    (void)PBSetFPos(&pbr, 0);
+    (void)PBSetFPosSync(&pbr);
     return pbr.ioParam.ioPosOffset;
 }
 

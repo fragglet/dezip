@@ -5,7 +5,7 @@
   This file contains the non-ZipInfo-specific listing routines for UnZip.
 
   Contains:  list_files()
-             time_stamp()       [still experimental and Unix-only]
+             get_time_stamp()   [optional feature]
              ratio()
              fnprint()
 
@@ -23,29 +23,30 @@
 #endif
 
 
-#ifdef TIME_STAMP
+#ifdef TIMESTAMP
    static int  fn_is_dir   OF((__GPRO));
 #endif
 
-/* GRR 970327:  Headers*[] formerly referenced in WinGUI code; no longer? */
-
-#ifdef OS2_EAS
-   char Far HeadersS[]  = " Length    EAs   ACLs    Date    Time    Name";
-   char Far HeadersS1[] = " ------    ---   ----    ----    ----    ----";
-#else
-   char Far HeadersS[]  = " Length    Date    Time    Name";
-   char Far HeadersS1[] = " ------    ----    ----    ----";
-#endif
-
+#ifndef WINDLL
 static char Far CompFactorStr[] = "%c%d%%";
 static char Far CompFactor100[] = "100%%";
 
-#ifndef WINDLL
-   char Far HeadersL[]  =
+#ifdef OS2_EAS
+   static char Far HeadersS[]  =
+     " Length    EAs   ACLs    Date    Time    Name";
+   static char Far HeadersS1[] =
+     " ------    ---   ----    ----    ----    ----";
+#else
+   static char Far HeadersS[]  = " Length    Date    Time    Name";
+   static char Far HeadersS1[] = " ------    ----    ----    ----";
+#endif
+
+   static char Far HeadersL[]  =
      " Length  Method   Size  Ratio   Date    Time   CRC-32     Name";
-   char Far HeadersL1[] =
+   static char Far HeadersL1[] =
      " ------  ------   ----  -----   ----    ----   ------     ----";
-   char Far *Headers[][2] = { {HeadersS, HeadersS1}, {HeadersL, HeadersL1} };
+   static char Far *Headers[][2] =
+     { {HeadersS, HeadersS1}, {HeadersL, HeadersL1} };
 
    static char Far CaseConversion[] = "%s (\"^\" ==> case\n%s   conversion)\n";
    static char Far LongHdrStats[] =
@@ -80,17 +81,17 @@ static char Far CompFactor100[] = "100%%";
 int list_files(__G)    /* return PK-type error code */
     __GDEF
 {
-    char sgn, cfactorstr[10];
     int do_this_file=FALSE, cfactor, error, error_in_archive=PK_COOL;
 #ifndef WINDLL
+    char sgn, cfactorstr[10];
     int longhdr=(G.vflag>1);
 #endif
     int date_format;
-    unsigned methnum;
+    unsigned j, methnum, members=0;
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
 #endif
-    ush j, yr, mo, dy, hh, mm, members=0;
+    ush yr, mo, dy, hh, mm;
     ulg csiz, tot_csize=0L, tot_ucsize=0L;
 #ifdef OS2_EAS
     ulg ea_size, tot_easize=0L, tot_eafiles=0L;
@@ -134,7 +135,7 @@ int list_files(__G)    /* return PK-type error code */
                LoadFarStringSmall(Headers[longhdr][1])));
 #endif /* !WINDLL */
 
-    for (j = 0; j < G.ecrec.total_entries_central_dir; ++j) {
+    for (j = 0; j < (unsigned)G.ecrec.total_entries_central_dir; ++j) {
 
         if (readbuf(__G__ G.sig, 4) == 0)
             return PK_EOF;
@@ -236,28 +237,16 @@ int list_files(__G)    /* return PK-type error code */
 #ifdef USE_EF_UT_TIME
             if (G.extra_field &&
                 (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
-                                  &z_utime, NULL) & EB_UT_FL_MTIME))
+                                  G.crec.last_mod_file_date, &z_utime, NULL)
+                 & EB_UT_FL_MTIME))
             {
                 struct tm *t;
 
                 TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0, Mac */
                 t = localtime(&(z_utime.mtime));
-                switch (date_format) {
-                    case DF_YMD:
-                        mo = (ush)(t->tm_year);
-                        dy = (ush)(t->tm_mon + 1);
-                        yr = (ush)(t->tm_mday);
-                        break;
-                    case DF_DMY:
-                        mo = (ush)(t->tm_mday);
-                        dy = (ush)(t->tm_mon + 1);
-                        yr = (ush)(t->tm_year);
-                        break;
-                    default:
-                        mo = (ush)(t->tm_mon + 1);
-                        dy = (ush)(t->tm_mday);
-                        yr = (ush)(t->tm_year);
-                }
+                mo = (ush)(t->tm_mon + 1);
+                dy = (ush)(t->tm_mday);
+                yr = (ush)(t->tm_year % 100);
                 hh = (ush)(t->tm_hour);
                 mm = (ush)(t->tm_min);
             } else
@@ -267,34 +256,35 @@ int list_files(__G)    /* return PK-type error code */
                            (unsigned)100);
                 mo = (ush)((G.crec.last_mod_file_date >> 5) & 0x0f);
                 dy = (ush)(G.crec.last_mod_file_date & 0x1f);
-
-                /* permute date so it displays according to nat'l convention */
-                switch (date_format) {
-                    case DF_YMD:
-                        hh = mo; mo = yr; yr = dy; dy = hh;
-                        break;
-                    case DF_DMY:
-                        hh = mo; mo = dy; dy = hh;
-                }
-
                 hh = (ush)((G.crec.last_mod_file_time >> 11) & 0x1f);
                 mm = (ush)((G.crec.last_mod_file_time >> 5) & 0x3f);
+            }
+            /* permute date so it displays according to nat'l convention
+             * ('methnum' is not yet set, it is used as temporary buffer) */
+            switch (date_format) {
+                case DF_YMD:
+                    methnum = (unsigned)mo;
+                    mo = yr; yr = dy; dy = (ush)methnum;
+                    break;
+                case DF_DMY:
+                    methnum = (unsigned)mo;
+                    mo = dy; dy = (ush)methnum;
             }
 
             csiz = G.crec.csize;
             if (G.crec.general_purpose_bit_flag & 1)
                 csiz -= 12;   /* if encrypted, don't count encryption header */
             if ((cfactor = ratio(G.crec.ucsize, csiz)) < 0) {
+#ifndef WINDLL
                 sgn = '-';
+#endif
                 cfactor = (-cfactor + 5) / 10;
             } else {
+#ifndef WINDLL
                 sgn = ' ';
+#endif
                 cfactor = (cfactor + 5) / 10;
             }
-            if (cfactor == 100)
-                sprintf(cfactorstr, LoadFarString(CompFactor100));
-            else
-                sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
 
             methnum = MIN(G.crec.compression_method, NUM_METHODS);
             zfstrcpy(methbuf, method[methnum]);
@@ -305,11 +295,11 @@ int list_files(__G)    /* return PK-type error code */
             }
 
 #if 0       /* GRR/Euro:  add this? */
-#if defined(DOS_OS2_W32) || defined(UNIX)
+#if defined(DOS_FLX_OS2_W32) || defined(UNIX)
             for (p = G.filename;  *p;  ++p)
                 if (!isprint(*p))
                     *p = '?';  /* change non-printable chars to '?' */
-#endif /* DOS_OS2_W32 || UNIX */
+#endif /* DOS_FLX_OS2_W32 || UNIX */
 #endif /* 0 */
 
 #ifdef WINDLL
@@ -317,9 +307,13 @@ int list_files(__G)    /* return PK-type error code */
             (*lpUserFunctions->SendApplicationMessage)(G.crec.ucsize, csiz,
               (ush)cfactor, mo, dy, yr, hh, mm,
               (char)(G.pInfo->lcflag ? '^' : ' '),
-              fnfilter(G.filename, slide), methbuf, G.crec.crc32,
-              (G.crec.general_purpose_bit_flag & 1)? 'E' : ' ');
+              (LPSTR)fnfilter(G.filename, slide), (LPSTR)methbuf, G.crec.crc32,
+              (char)((G.crec.general_purpose_bit_flag & 1) ? 'E' : ' '));
 #else /* !WINDLL */
+            if (cfactor == 100)
+                sprintf(cfactorstr, LoadFarString(CompFactor100));
+            else
+                sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
             if (longhdr)
                 Info(slide, 0, ((char *)slide, LoadFarString(LongHdrStats),
                   G.crec.ucsize, methbuf, csiz, cfactorstr, mo, dy,
@@ -369,16 +363,16 @@ int list_files(__G)    /* return PK-type error code */
 
     if (G.qflag < 2) {
         if ((cfactor = ratio(tot_ucsize, tot_csize)) < 0) {
+#ifndef WINDLL
             sgn = '-';
+#endif
             cfactor = (-cfactor + 5) / 10;
         } else {
+#ifndef WINDLL
             sgn = ' ';
+#endif
             cfactor = (cfactor + 5) / 10;
         }
-        if (cfactor == 100)
-            sprintf(cfactorstr, LoadFarString(CompFactor100));
-        else
-            sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
 #ifdef WINDLL
         /* pass the totals back to the calling application */
         lpUserFunctions->TotalSizeComp = tot_csize;
@@ -387,6 +381,10 @@ int list_files(__G)    /* return PK-type error code */
         lpUserFunctions->NumMembers = members;
 
 #else /* !WINDLL */
+        if (cfactor == 100)
+            sprintf(cfactorstr, LoadFarString(CompFactor100));
+        else
+            sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
         if (longhdr) {
             Info(slide, 0, ((char *)slide, LoadFarString(LongFileTrailer),
               tot_ucsize, tot_csize, cfactorstr, members, members==1? "":"s"));
@@ -401,7 +399,7 @@ int list_files(__G)    /* return PK-type error code */
                 Info(slide, 0, ((char *)slide, LoadFarString(OS2ACLTrailer),
                   tot_aclfiles, tot_aclfiles == 1? " has" : "s have a total of",
                   tot_aclsize));
-#endif /* OS2_EAs */
+#endif /* OS2_EAS */
         } else
 #ifdef OS2_EAS
             Info(slide, 0, ((char *)slide, LoadFarString(ShortFileTrailer),
@@ -410,7 +408,7 @@ int list_files(__G)    /* return PK-type error code */
 #else
             Info(slide, 0, ((char *)slide, LoadFarString(ShortFileTrailer),
               tot_ucsize, members, members == 1? "" : "s"));
-#endif /* OS2_EAs */
+#endif /* OS2_EAS */
 #endif /* ?WINDLL */
     }
 /*---------------------------------------------------------------------------
@@ -456,17 +454,20 @@ static int fn_is_dir(__G)    /* returns TRUE if G.filename is directory */
 
 
 
-/*************************/
-/* Function time_stamp() */
-/*************************/
+/*****************************/
+/* Function get_time_stamp() */
+/*****************************/
 
-int time_stamp(__G)    /* return PK-type error code */
+int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
     __GDEF
+    time_t *last_modtime;
+    unsigned *nmember;
 {
     int do_this_file=FALSE, error, error_in_archive=PK_COOL;
+    unsigned j;
+#ifdef USE_EF_UT_TIME
     iztimes z_utime;
-    time_t last_modtime=0L;   /* assuming no zipfile data older than 1970 */
-    ush j, members=0;
+#endif
     min_info info;
 
 
@@ -477,9 +478,11 @@ int time_stamp(__G)    /* return PK-type error code */
     stamp.
   ---------------------------------------------------------------------------*/
 
+    *last_modtime = 0L;         /* assuming no zipfile data older than 1970 */
+    *nmember = 0;
     G.pInfo = &info;
 
-    for (j = 0; j < G.ecrec.total_entries_central_dir; ++j) {
+    for (j = 0; j < (unsigned)G.ecrec.total_entries_central_dir; ++j) {
 
         if (readbuf(__G__ G.sig, 4) == 0)
             return PK_EOF;
@@ -538,36 +541,25 @@ int time_stamp(__G)    /* return PK-type error code */
 #ifdef USE_EF_UT_TIME
             if (G.extra_field &&
                 (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
-                                  &z_utime, NULL) & EB_UT_FL_MTIME))
+                                  G.crec.last_mod_file_date, &z_utime, NULL)
+                 & EB_UT_FL_MTIME))
             {
-                if (last_modtime < z_utime.mtime)
-                    last_modtime = z_utime.mtime;
+                if (*last_modtime < z_utime.mtime)
+                    *last_modtime = z_utime.mtime;
             } else
 #endif /* USE_EF_UT_TIME */
             {
                 time_t modtime = dos_to_unix_time(G.crec.last_mod_file_date,
                                                   G.crec.last_mod_file_time);
 
-                if (last_modtime < modtime)
-                    last_modtime = modtime;
+                if (*last_modtime < modtime)
+                    *last_modtime = modtime;
             }
-            ++members;
+            ++*nmember;
         }
         SKIP_(G.crec.file_comment_length)
 
     } /* end for-loop (j: files in central directory) */
-
-/*---------------------------------------------------------------------------
-    Set the modification (and access) time on the zipfile, assuming we have
-    a modification time to set.
-  ---------------------------------------------------------------------------*/
-
-    if (members > 0) {
-        z_utime.mtime = z_utime.atime = last_modtime;
-        if (utime(G.zipfn, (ztimbuf *)&z_utime))
-            Info(slide, 0x201, ((char *)slide,
-              "warning:  can't set time for %s\n", G.zipfn));
-    }
 
 /*---------------------------------------------------------------------------
     Double check that we're back at the end-of-central-directory record.
@@ -579,12 +571,12 @@ int time_stamp(__G)    /* return PK-type error code */
         Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
         error_in_archive = PK_WARN;
     }
-    if (members == 0 && error_in_archive <= PK_WARN)
+    if (*nmember == 0 && error_in_archive <= PK_WARN)
         error_in_archive = PK_FIND;
 
     return error_in_archive;
 
-} /* end function time_stamp() */
+} /* end function get_time_stamp() */
 
 #endif /* TIMESTAMP */
 

@@ -1,6 +1,6 @@
 /* funzip.c -- put in the public domain by Mark Adler */
 
-#define VERSION "3.92 of 31 May 1997"
+#define VERSION "3.93 of 3 November 1997"
 
 
 /* You can do whatever you like with this source file, though I would
@@ -73,6 +73,8 @@
    3.92   13 Apr 97  G. Roelofs      minor cosmetic fixes to messages
     -     22 Apr 97  -               public release with UnZip 5.3
     -     31 May 97  -               public release with UnZip 5.31
+   3.93   20 Sep 97  G. Roelofs      minor cosmetic fixes to messages
+    -      3 Nov 97  -               public release with UnZip 5.32
  */
 
 
@@ -279,13 +281,13 @@ char **argv;
   }
   else
   {
-#ifdef DOS_H68_OS2_W32
-#ifdef __HIGHC__
+#ifdef DOS_FLX_H68_OS2_W32
+#if (defined(__HIGHC__) && !defined(FLEXOS))
     setmode(stdin, _BINARY);
 #else
     setmode(0, O_BINARY);  /* some buggy C libraries require BOTH setmode() */
 #endif                     /*  call AND the fdopen() in binary mode :-( */
-#endif /* DOS_H68_OS2_W32 */
+#endif /* DOS_FLX_H68_OS2_W32 */
 
 #ifdef RISCOS
     G.in = stdin;
@@ -295,13 +297,13 @@ char **argv;
 #endif
   }
 
-#ifdef DOS_H68_OS2_W32
-#ifdef __HIGHC__
+#ifdef DOS_FLX_H68_OS2_W32
+#if (defined(__HIGHC__) && !defined(FLEXOS))
   setmode(stdout, _BINARY);
 #else
   setmode(1, O_BINARY);
 #endif
-#endif /* DOS_H68_OS2_W32 */
+#endif /* DOS_FLX_H68_OS2_W32 */
 
 #ifdef RISCOS
   out = stdout;
@@ -317,7 +319,7 @@ char **argv;
     if (fread((char *)h, 1, LOCHDR, G.in) != LOCHDR || SH(h) != LOCREM)
       err(3, "invalid zipfile");
     if (SH(h + LOCHOW) != STORED && SH(h + LOCHOW) != DEFLATED)
-      err(3, "first entry not deflated or stored--can't funzip");
+      err(3, "first entry not deflated or stored--cannot unpack");
     for (n = SH(h + LOCFIL); n--; ) g = getc(G.in);
     for (n = SH(h + LOCEXT); n--; ) g = getc(G.in);
     g = 0;

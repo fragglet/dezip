@@ -56,7 +56,7 @@ ARGUMENTS
               matches are found, the specification is assumed  to
               be  a literal filename; and if that also fails, the
 
-Info-ZIP               31 May 1997 (v2.21)                      1
+Info-ZIP             3 November 1997 (v2.22)                    1
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -105,7 +105,7 @@ OPTIONS
               (in bytes) and total number of files is printed.
 
        -M     pipe all output through an internal  pager  similar
-              to  the  Unixmore(1)  command.   At  the  end  of a
+              to  the  Unix  more(1)  command.   At  the end of a
               screenful  of  output,  zipinfo   pauses   with   a
               ``--More--''  prompt;  the  next  screenful  may be
               viewed by pressing the Enter (Return)  key  or  the
@@ -115,7 +115,7 @@ OPTIONS
               forward-searching  or  editing  capability.   Also,
               zipinfo  doesn't  notice  if long lines wrap at the
 
-Info-ZIP               31 May 1997 (v2.21)                      2
+Info-ZIP             3 November 1997 (v2.22)                    2
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -174,7 +174,7 @@ DETAILED DESCRIPTION
        character  (`T'  or  `B').   The second character may also
        take on four values, depending  on  whether  there  is  an
 
-Info-ZIP               31 May 1997 (v2.21)                      3
+Info-ZIP             3 November 1997 (v2.22)                    3
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -233,7 +233,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
 
        The medium and long listings are almost identical  to  the
 
-Info-ZIP               31 May 1997 (v2.21)                      4
+Info-ZIP             3 November 1997 (v2.22)                    4
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -292,7 +292,7 @@ ZIPINFO(1L)                                           ZIPINFO(1L)
        lists  file  comments and the zipfile comment, if any, and
        the type and number of bytes in any stored  extra  fields.
 
-Info-ZIP               31 May 1997 (v2.21)                      5
+Info-ZIP             3 November 1997 (v2.22)                    5
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -351,7 +351,7 @@ ENVIRONMENT OPTIONS
        FOOPT  are  defined,  however,  ZIPINFO  takes precedence.
        unzip's diagnostic option (-v with no zipfile name) can be
 
-Info-ZIP               31 May 1997 (v2.21)                      6
+Info-ZIP             3 November 1997 (v2.22)                    6
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -410,7 +410,7 @@ EXAMPLES
        header and/or footer are printed.  This behavior is useful
        when   zipinfo   is   used   with   a   wildcard   zipfile
 
-Info-ZIP               31 May 1997 (v2.21)                      7
+Info-ZIP             3 November 1997 (v2.22)                    7
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -469,7 +469,7 @@ TIPS
 BUGS
        As  with  unzip,  zipinfo's -M (``more'') option is overly
 
-Info-ZIP               31 May 1997 (v2.21)                      8
+Info-ZIP             3 November 1997 (v2.22)                    8
 
 ZIPINFO(1L)                                           ZIPINFO(1L)
 
@@ -500,5 +500,5 @@ AUTHOR
        others.   Please  refer  to the CONTRIBS file in the UnZip
        source distribution for a more complete list.
 
-Info-ZIP               31 May 1997 (v2.21)                      9
+Info-ZIP             3 November 1997 (v2.22)                    9
 

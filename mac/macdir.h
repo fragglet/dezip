@@ -9,8 +9,20 @@
 
 #include <errno.h>
 
+#ifndef EINVAL
+#define EINVAL      9
+#endif
+
+#ifndef EIO
+#define EIO         10
+#endif
+
 #ifndef ENOTDIR
 #define ENOTDIR     20
+#endif
+
+#ifndef ENOENT
+#define ENOENT      39
 #endif
 
 #ifndef NAME_MAX

@@ -80,13 +80,16 @@ APIDocStruct REXXDetails[] = {
 "		the extracted file if successful or an error-code if not.\n"
 "		If a stem variable IS specified, rc contains 0 if successful.\n"},
 
+  /* GRR:  "include" and "exclude" used to be identified as stem variables
+   *       (Daniel H bug report)
+   */
   { "UZUNZIPTOSTEM", "UZUnZipToStem",
                "rc = UZUnZipToStem(zipfile, stem, [include], [exclude], [mode])\n"
 "	zipfile	- Name of ZIP file to search\n"
 "	stem	- Stem variable used to store the extracted files\n"
-"	include - Optional stem variable specifying a list of files (including\n"
+"	include - Optional string variable specifying a list of files (including\n"
 "		  wildcards) to include.  stem.0 must indicate number of items.\n"
-"	exclude - Optional stem variable specifying a list of files (including\n"
+"	exclude - Optional string variable specifying a list of files (including\n"
 "		  wildcards) to exclude.  stem.0 must indicate number of items.\n"
 "	    NOTE: If lists are not needed, filespec strings may be passed.\n"
 "	mode	- Optional mode parameter specifies either 'F'lat (the default)\n"

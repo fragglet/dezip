@@ -1,8 +1,8 @@
 /*
    This is a very simplistic example of how to load and make a call into the
-   dll. This has been compiled and tested for a 32 bit console version, but
-   not under 16 bit windows. However, the #ifdef's have been left in for the
-   16 bit code, simply as an example.
+   dll. This has been compiled and tested for a 32-bit console version, but
+   not under 16-bit windows. However, the #ifdef's have been left in for the
+   16-bit code, simply as an example.
 
  */
 
@@ -59,8 +59,11 @@ void FreeUpMemory(void);
 BOOL IsNT(VOID);
 #endif
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
+int exfc, infc;
+char **exfv, **infv;
+char *x_opt;
 DWORD dwVerInfoSize;
 DWORD dwVerHnd;
 char szFullPath[PATH_MAX];
@@ -73,7 +76,7 @@ OFSTRUCT ofs;
 #endif
 HANDLE  hMem;         /* handle to mem alloc'ed */
 
-if (argc != 2)  /* We must have an archive to unzip */
+if (argc < 2)   /* We must have an archive to unzip */
    return 0;
 
 hDCL = GlobalAlloc( GPTR, (DWORD)sizeof(DCL));
@@ -229,10 +232,48 @@ lpDCL->ndflag = 1; /* Recreate directories if true */
 lpDCL->noflag = 1; /* Over-write all files if true */
 lpDCL->naflag = 0; /* Do not convert CR to CRLF */
 lpDCL->lpszZipFN = argv[1]; /* The archive name */
-/* We want to extract all files, so the first two parameters (argc and argv)
-   are set to 0 and NULL respectively.
- */  
-retcode = (*windll_unzip)(0, NULL, lpDCL, lpUserFunctions);
+lpDCL->lpszExtractDir = NULL; /* The directory to extract to. This is set
+                                 to NULL if you are extracting to the
+                                 current directory.
+                               */
+/*
+   As this is a quite short example, intended primarily to show how to
+   load and call in to the dll, the command-line parameters are only
+   parsed in a very simplistic way:
+   We assume that the command-line parameters after the zip archive
+   make up a list of file patterns:
+   " [file_i1] [file_i2] ... [file_iN] [-x file_x1 [file_x2] ...]".
+   We scan for an argument "-x"; all arguments in front are
+   "include file patterns", all arguments after are "exclude file patterns".
+   If no more arguments are given, we extract ALL files.
+
+   In summary, the example program should be run like:
+   example <archive.name> [files to include] [-x files to exclude]
+   ("<...> denotes mandatory arguments, "[...]" optional arguments)
+ */
+x_opt = NULL;
+if (argc > 2) {
+  infv = &argv[2];
+  for (infc = 0; infc < argc-2; infc++)
+    if (!strcmp("-x", argv[infc+2])) {
+        x_opt = infv[infc];
+        argv[infc] = NULL;
+        break;
+    }
+  exfc = argc - infc - 3;
+  if (exfc > 0)
+    exfv = &argv[infc+3];
+  else
+    exfv = NULL;
+} else {
+  infc = exfc = 0;
+  infv = exfv = NULL;
+}
+retcode = (*windll_unzip)(infc, infv, exfc, exfv, lpDCL, lpUserFunctions);
+if (x_opt) {
+  infv[infc] = x_opt;
+  x_opt = NULL;
+}
 
 if (retcode != 0)
    printf("Error unzipping...\n");
@@ -292,12 +333,12 @@ return dwPlatformId;
    be put in, so this was used.
  */
 void WINAPI ReceiveDllMessage(unsigned long ucsize,unsigned long csiz,
-	ush cfactor, ush mo, ush dy, ush yr, ush hh, ush mm,
+        ush cfactor, ush mo, ush dy, ush yr, ush hh, ush mm,
     char c, char *filename, char *methbuf, unsigned long crc, char fCrypt)
 {
 char psLBEntry[PATH_MAX];
 char LongHdrStats[] =
-	  "%7lu  %7lu %4s  %02u-%02u-%02u  %02u:%02u  %c%s";
+          "%7lu  %7lu %4s  %02u-%02u-%02u  %02u:%02u  %c%s";
 char CompFactorStr[] = "%c%d%%";
 char CompFactor100[] = "100%%";
 char szCompFactor[10];
@@ -332,5 +373,4 @@ int WINAPI DisplayBuf(char far *buf, unsigned long size)
 printf("%s", buf);
 return (unsigned int) size;
 }
-
 

@@ -287,7 +287,7 @@ void main()
               match(str, pat, 1) ? "YES" : "NO");
         }
     }
-    exit(0);
+    EXIT(0);
 }
 
 #endif /* TEST_MATCH */

@@ -30,12 +30,12 @@
 static int    do_seekable        OF((__GPRO__ int lastchance));
 static int    find_ecrec         OF((__GPRO__ long searchlen));
 
-static char Far CantAllocateBuffers[] =
-  "error:  can't allocate unzip buffers\n";
+static char Far CannotAllocateBuffers[] =
+  "error:  cannot allocate unzip buffers\n";
 
 #ifdef SFX
-   static char Far CantFindMyself[] =
-     "unzipsfx:  can't find myself! [%s]\n";
+   static char Far CannotFindMyself[] =
+     "unzipsfx:  cannot find myself! [%s]\n";
 
 #else /* !SFX */
    /* process_zipfiles() strings */
@@ -52,21 +52,21 @@ static char Far CantAllocateBuffers[] =
 
    /* do_seekable() strings */
 # ifdef UNIX
-   static char Far CantFindZipfileDirMsg[] =
-     "%s:  can't find zipfile directory in one of %s or\n\
-        %s%s.zip, and can't find %s, period.\n";
-   static char Far CantFindEitherZipfile[] =
-     "%s:  can't find %s, %s.zip or %s, so there.\n";
+   static char Far CannotFindZipfileDirMsg[] =
+     "%s:  cannot find zipfile directory in one of %s or\n\
+        %s%s.zip, and cannot find %s, period.\n";
+   static char Far CannotFindEitherZipfile[] =
+     "%s:  cannot find %s, %s.zip or %s.\n";   /* ", so there" removed 970918 */
 # else /* !UNIX */
 # ifndef AMIGA
-   static char Far CantFindWildcardMatch[] =
-     "%s:  can't find any matches for wildcard specification \"%s\".\n";
+   static char Far CannotFindWildcardMatch[] =
+     "%s:  cannot find any matches for wildcard specification \"%s\".\n";
 # endif /* !AMIGA */
-   static char Far CantFindZipfileDirMsg[] =
-     "%s:  can't find zipfile directory in %s,\n\
-        %sand can't find %s, period.\n";
-   static char Far CantFindEitherZipfile[] =
-     "%s:  can't find either %s or %s, so there.\n";
+   static char Far CannotFindZipfileDirMsg[] =
+     "%s:  cannot find zipfile directory in %s,\n\
+        %sand cannot find %s, period.\n";
+   static char Far CannotFindEitherZipfile[] =
+     "%s:  cannot find either %s or %s.\n";    /* ", so there" removed 970918 */
 # endif /* ?UNIX */
    extern char Far Zipnfo[];              /* in unzip.c */
 #ifndef WINDLL
@@ -166,8 +166,9 @@ int process_zipfiles(__G)    /* return PK-type error code */
     G.realbuf = G.outbuf = (uch *)malloc(OUTBUFSIZ + 1);
 
     if ((G.inbuf == (uch *)NULL) || (G.outbuf == (uch *)NULL)) {
-        Info(slide, 0x401, ((char *)slide, LoadFarString(CantAllocateBuffers)));
-        RETURN(PK_MEM);
+        Info(slide, 0x401, ((char *)slide,
+          LoadFarString(CannotAllocateBuffers)));
+        return(PK_MEM);
     }
     G.hold = G.inbuf + INBUFSIZ;     /* to check for boundary-spanning sigs */
 #ifndef VMS     /* VMS uses its own buffer scheme for textmode flush(). */
@@ -215,11 +216,11 @@ int process_zipfiles(__G)    /* return PK-type error code */
             strcpy(G.zipfn+len, EXE_EXTENSION);
             error = do_seekable(__G__ 0);
             free(G.zipfn);
-            G.zipfn = G.argv0;  /* for "can't find myself" message only */
+            G.zipfn = G.argv0;  /* for "cannot find myself" message only */
         }
 #endif /* EXE_EXTENSION */
 #ifdef WIN32
-        G.zipfn = G.argv0;  /* for "can't find myself" message only */
+        G.zipfn = G.argv0;  /* for "cannot find myself" message only */
 #endif
     }
     if (error) {
@@ -228,7 +229,7 @@ int process_zipfiles(__G)    /* return PK-type error code */
         else
             error_in_archive = error;
         if (error == PK_NOZIP)
-            Info(slide, 1, ((char *)slide, LoadFarString(CantFindMyself),
+            Info(slide, 1, ((char *)slide, LoadFarString(CannotFindMyself),
               G.zipfn));
     }
 
@@ -242,13 +243,11 @@ int process_zipfiles(__G)    /* return PK-type error code */
         lastzipfn = G.zipfn;
 
         /* print a blank line between the output of different zipfiles */
-#ifdef TIMESTAMP
-        if (!G.qflag  &&  !G.T_flag  &&  error != PK_NOZIP  &&  error != IZ_DIR
-            && (NumWinFiles+NumLoseFiles+NumWarnFiles+NumMissFiles) > 0)
-#else
         if (!G.qflag  &&  error != PK_NOZIP  &&  error != IZ_DIR
-            && (NumWinFiles+NumLoseFiles+NumWarnFiles+NumMissFiles) > 0)
+#ifdef TIMESTAMP
+            && (!G.T_flag || G.zipinfo_mode)
 #endif
+            && (NumWinFiles+NumLoseFiles+NumWarnFiles+NumMissFiles) > 0)
             (*G.message)((zvoid *)&G, (uch *)"\n", 1L, 0);
 
         if ((error = do_seekable(__G__ 0)) == PK_WARN)
@@ -278,7 +277,7 @@ int process_zipfiles(__G)    /* return PK-type error code */
 #if (!defined(UNIX) && !defined(AMIGA)) /* filenames with wildcard characters */
         if (iswild(G.wildzipfn))
             Info(slide, 0x401, ((char *)slide,
-              LoadFarString(CantFindWildcardMatch), G.zipinfo_mode?
+              LoadFarString(CannotFindWildcardMatch), G.zipinfo_mode?
               LoadFarStringSmall(Zipnfo) : LoadFarStringSmall(Unzip),
               G.wildzipfn));
         else
@@ -291,6 +290,8 @@ int process_zipfiles(__G)    /* return PK-type error code */
 
 #if defined(UNIX) || defined(QDOS)
    /* only Unix has case-sensitive filesystems */
+   /* Well FlexOS (sometimes) also has them,  but support is per media */
+   /* and a pig to code for,  so treat as case insensitive for now */
    /* we do this under QDOS to check for .zip as well as _zip */
             if ((error = do_seekable(__G__ 0)) == PK_NOZIP || error == IZ_DIR) {
                 if (error == IZ_DIR)
@@ -332,17 +333,16 @@ int process_zipfiles(__G)    /* return PK-type error code */
 #ifndef SFX
     if (iswild(G.wildzipfn) && G.qflag < 3
 #ifdef TIMESTAMP
-                                           && !(G.T_flag && G.qflag)
+        && !(G.T_flag && G.qflag && !G.zipinfo_mode)
 #endif
-                                                                    )
+                                                    )
     {
-        if (NumMissFiles + NumLoseFiles + NumWarnFiles > 0 || NumWinFiles != 1)
-            if (!(G.tflag && G.qflag > 1)
+        if ((NumMissFiles + NumLoseFiles + NumWarnFiles > 0 || NumWinFiles != 1)
 #ifdef TIMESTAMP
-                                          && !G.T_flag
+            && !(G.T_flag && !G.zipinfo_mode)
 #endif
-                                                      )
-                (*G.message)((zvoid *)&G, (uch *)"\n", 1L, 0x401);
+            && !(G.tflag && G.qflag > 1))
+            (*G.message)((zvoid *)&G, (uch *)"\n", 1L, 0x401);
         if ((NumWinFiles > 1) || (NumWinFiles == 1 &&
             NumMissDirs + NumMissFiles + NumLoseFiles + NumWarnFiles > 0))
             Info(slide, 0x401, ((char *)slide, LoadFarString(FilesProcessOK),
@@ -415,8 +415,10 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
     G.inbuf = G.outbuf = (uch *)NULL;
 
 #ifdef MALLOC_WORK
-    free(G.area.Slide);
-    G.area.Slide = (uch *)NULL;
+    if (G.area.Slide) {
+        free(G.area.Slide);
+        G.area.Slide = (uch *)NULL;
+    }
 #endif
 
 } /* end function free_G_buffers() */
@@ -437,6 +439,10 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
     /* static int no_ecrec = FALSE;  SKM: moved to globals.h */
     int maybe_exe=FALSE;
     int too_weird_to_continue=FALSE;
+#ifdef TIMESTAMP
+    time_t uxstamp;
+    unsigned nmember;
+#endif
 #endif
     int error=0, error_in_archive;
 
@@ -454,24 +460,24 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 #if defined(UNIX) || defined(QDOS)
             if (G.no_ecrec)
                 Info(slide, 1, ((char *)slide,
-                  LoadFarString(CantFindZipfileDirMsg), G.zipinfo_mode?
+                  LoadFarString(CannotFindZipfileDirMsg), G.zipinfo_mode?
                   LoadFarStringSmall(Zipnfo) : LoadFarStringSmall(Unzip),
                   G.wildzipfn, G.zipinfo_mode? "  " : "", G.wildzipfn,
                   G.zipfn));
             else
                 Info(slide, 1, ((char *)slide,
-                  LoadFarString(CantFindEitherZipfile), G.zipinfo_mode?
+                  LoadFarString(CannotFindEitherZipfile), G.zipinfo_mode?
                   LoadFarStringSmall(Zipnfo) : LoadFarStringSmall(Unzip),
                   G.wildzipfn, G.wildzipfn, G.zipfn));
 #else /* !UNIX */
             if (G.no_ecrec)
                 Info(slide, 0x401, ((char *)slide,
-                  LoadFarString(CantFindZipfileDirMsg), G.zipinfo_mode?
+                  LoadFarString(CannotFindZipfileDirMsg), G.zipinfo_mode?
                   LoadFarStringSmall(Zipnfo) : LoadFarStringSmall(Unzip),
                   G.wildzipfn, G.zipinfo_mode? "  " : "", G.zipfn));
             else
                 Info(slide, 0x401, ((char *)slide,
-                  LoadFarString(CantFindEitherZipfile), G.zipinfo_mode?
+                  LoadFarString(CannotFindEitherZipfile), G.zipinfo_mode?
                   LoadFarStringSmall(Zipnfo) : LoadFarStringSmall(Unzip),
                   G.wildzipfn, G.zipfn));
 #endif /* ?UNIX */
@@ -514,9 +520,9 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 
 #if (!defined(WINDLL) && !defined(SFX))
 #ifdef TIMESTAMP
-    if (!G.qflag && !G.T_flag && !G.zipinfo_mode)
+    if (!G.zipinfo_mode && !G.qflag && !G.T_flag)
 #else
-    if (!G.qflag && !G.zipinfo_mode)
+    if (!G.zipinfo_mode && !G.qflag)
 #endif
         Info(slide, 0, ((char *)slide, "Archive:  %s\n", G.zipfn));
 #endif /* !WINDLL && !SFX */
@@ -701,14 +707,30 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 #ifndef SFX
 #ifdef TIMESTAMP
             if (G.T_flag)
-                error = time_stamp(__G);              /* TIME-STAMP 'EM */
+                error = get_time_stamp(__G__ &uxstamp, &nmember);
             else
 #endif
-            if (G.vflag && !G.tflag && !G.cflag)
+            /* G.fValidate is used only to look at an archive to see if
+               it appears to be a valid archive.  There is no interest
+               in what the archive contains, nor in validating that the
+               entries in the archive are in good condition.  This is
+               currently used only in the Windows DLLs for purposes of
+               checking archives within an archive to determine whether
+               or not to display the inner archives.
+             */
+            if (G.vflag && !G.tflag && !G.cflag
+#ifdef DLL
+                                                && !G.fValidate
+#endif
+                                                               )
                 error = list_files(__G);              /* LIST 'EM */
             else
+#endif /* !SFX */
+#ifdef DLL
+                if (!G.fValidate)
 #endif
                 error = extract_or_test_files(__G);   /* EXTRACT OR TEST 'EM */
+
 
         Trace((stderr, "done with extract/list files (error = %d)\n", error));
 
@@ -719,6 +741,17 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 #endif
 
     CLOSE_INFILE();
+
+#ifdef TIMESTAMP
+    if (G.T_flag && !G.zipinfo_mode && (nmember > 0)) {
+        if (stamp_file(G.zipfn, uxstamp)) {     /* TIME-STAMP 'EM */
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  cannot set time for %s\n", G.zipfn));
+            if (error_in_archive < PK_WARN)
+                error_in_archive = PK_WARN;
+        }
+    }
+#endif
     return error_in_archive;
 
 } /* end function do_seekable() */
@@ -827,9 +860,6 @@ static int find_ecrec(__G__ searchlen)          /* return PK-class error */
 
 fail:
     if (!found) {
-#ifdef WINDLL
-        MessageBeep(1);
-#endif
         if (G.qflag || G.zipinfo_mode)
             Info(slide, 0x401, ((char *)slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401, ((char *)slide,
@@ -897,7 +927,8 @@ int uz_end_central(__G)    /* return PK-type error code */
 
 #ifdef WINDLL
     /* for comment button: */
-    lpUserFunctions->cchComment = G.ecrec.zipfile_comment_length;
+    if ((!G.fValidate) && (lpUserFunctions != NULL))
+       lpUserFunctions->cchComment = G.ecrec.zipfile_comment_length;
     if (G.ecrec.zipfile_comment_length && (G.zflag > 0))
 #else /* !WINDLL */
     if (G.ecrec.zipfile_comment_length && (G.zflag > 0 ||
@@ -951,6 +982,7 @@ int process_cdir_file_hdr(__G)    /* return PK-type error code */
             case CPM_:        /* like MS-DOS, right? */
             case VM_CMS_:     /* all caps? */
             case MVS_:        /* all caps? */
+            case TANDEM_:
             case TOPS20_:
             case VMS_:        /* our Zip uses lowercase, but ASi's doesn't */
         /*  case Z_SYSTEM_:   ? */
@@ -1100,17 +1132,19 @@ int process_local_file_hdr(__G)    /* return PK-type error code */
 /* Function ef_scan_for_izux() */
 /*******************************/
 
-unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, z_utim, z_uidgid)
-    uch *ef_buf;       /* buffer containing extra field */
-    unsigned ef_len;   /* total length of extra field */
-    int ef_is_c;       /* flag indicating "is central extra field" */
-    iztimes *z_utim;   /* return storage: atime, mtime, ctime */
-    ush *z_uidgid;     /* return storage: uid and gid */
+unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdate, z_utim, z_uidgid)
+    uch *ef_buf;        /* buffer containing extra field */
+    unsigned ef_len;    /* total length of extra field */
+    int ef_is_c;        /* flag indicating "is central extra field" */
+    unsigned dos_mdate; /* last_mod_file_date in DOS format */
+    iztimes *z_utim;    /* return storage: atime, mtime, ctime */
+    ush *z_uidgid;      /* return storage: uid and gid */
 {
     unsigned flags = 0;
     unsigned eb_id;
     unsigned eb_len;
     int have_new_type_eb = FALSE;
+    int ut_zip_unzip_compatible = FALSE;
 
 /*---------------------------------------------------------------------------
     This function scans the extra field for EF_TIME, EF_IZUNIX2, or EF_IZUNIX
@@ -1154,7 +1188,7 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, z_utim, z_uidgid)
             have_new_type_eb = TRUE;
             if ( eb_len >= EB_UT_MINLEN && z_utim != NULL) {
                 unsigned eb_idx = EB_UT_TIME1;
-                TTrace((stderr,"ef_scan_ux_time: found TIME extra field\n"));
+                TTrace((stderr,"ef_scan_for_izux: found TIME extra field\n"));
                 flags |= (ef_buf[EB_HEADSIZE+EB_UT_FLAGS] & 0x00ff);
                 if ((flags & EB_UT_FL_MTIME)) {
                     if ((eb_idx+4) <= eb_len) {
@@ -1162,6 +1196,24 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, z_utim, z_uidgid)
                         eb_idx += 4;
                         TTrace((stderr,"  UT e.f. modification time = %ld\n",
                                 z_utim->mtime));
+
+                        if ((ulg)(z_utim->mtime) & (ulg)(0x80000000L)) {
+                            ut_zip_unzip_compatible =
+                              ((time_t)0x80000000L < (time_t)0L)
+                              ? (dos_mdate == (unsigned)DOSDATE_MINIMUM)
+                              : (dos_mdate >= (unsigned)DOSDATE_2038_01_18);
+                            if (!ut_zip_unzip_compatible) {
+                            /* UnZip interpretes mtime differently than Zip;
+                               without modtime: ignore complete UT field */
+                              flags &= !0x0ff;  /* no time_t times available */
+                              TTrace((stderr,
+                                "  UT modtime range error; ignore e.f.!\n"));
+                              break;            /* stop scanning this field */
+                            }
+                        } else {
+                            /* cannot determine, safe assumption is FALSE */
+                            ut_zip_unzip_compatible = FALSE;
+                        }
                     } else {
                         flags &= ~EB_UT_FL_MTIME;
                         TTrace((stderr,"  UT e.f. truncated; no modtime\n"));
@@ -1177,6 +1229,12 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, z_utim, z_uidgid)
                         eb_idx += 4;
                         TTrace((stderr,"  UT e.f. access time = %ld\n",
                                 z_utim->atime));
+                        if (((ulg)(z_utim->atime) & (ulg)(0x80000000L)) &&
+                            !ut_zip_unzip_compatible) {
+                            flags &= ~EB_UT_FL_ATIME;
+                            TTrace((stderr,
+                              "  UT access time range error: skip time!\n"));
+                        }
                     } else {
                         flags &= ~EB_UT_FL_ATIME;
                     }
@@ -1186,6 +1244,12 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, z_utim, z_uidgid)
                         z_utim->ctime = makelong((EB_HEADSIZE+eb_idx) + ef_buf);
                         TTrace((stderr,"  UT e.f. creation time = %ld\n",
                                 z_utim->ctime));
+                        if (((ulg)(z_utim->ctime) & (ulg)(0x80000000L)) &&
+                            !ut_zip_unzip_compatible) {
+                            flags &= ~EB_UT_FL_CTIME;
+                            TTrace((stderr,
+                              "  UT creation time range error: skip time!\n"));
+                        }
                     } else {
                         flags &= ~EB_UT_FL_CTIME;
                     }
@@ -1207,7 +1271,7 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, z_utim, z_uidgid)
 
           case EF_IZUNIX:
             if (eb_len >= EB_UX_MINLEN) {
-                TTrace((stderr,"ef_scan_ux_time: found IZUNIX extra field\n"));
+                TTrace((stderr,"ef_scan_for_izux: found IZUNIX extra field\n"));
                 if (have_new_type_eb) {
                     break;      /* Ignore IZUNIX extra field block ! */
                 }
@@ -1217,6 +1281,29 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, z_utim, z_uidgid)
                     TTrace((stderr,"  Unix EF actime = %ld\n", z_utim->atime));
                     TTrace((stderr,"  Unix EF modtime = %ld\n", z_utim->mtime));
                     flags |= (EB_UT_FL_MTIME | EB_UT_FL_ATIME);
+                    if ((ulg)(z_utim->mtime) & (ulg)(0x80000000L)) {
+                        ut_zip_unzip_compatible =
+                          ((time_t)0x80000000L < (time_t)0L)
+                          ? (dos_mdate == (unsigned)DOSDATE_MINIMUM)
+                          : (dos_mdate >= (unsigned)DOSDATE_2038_01_18);
+                        if (!ut_zip_unzip_compatible) {
+                            /* UnZip interpretes mtime differently than Zip;
+                               without modtime: ignore complete UT field */
+                            flags &= !0x0ff;    /* no time_t times available */
+                            TTrace((stderr,
+                                  "  UX modtime range error: ignore e.f.!\n"));
+                        }
+                    } else {
+                        /* cannot determine, safe assumption is FALSE */
+                        ut_zip_unzip_compatible = FALSE;
+                    }
+                    if ((ulg)(z_utim->atime) & (ulg)(0x80000000L) &&
+                        !ut_zip_unzip_compatible && (flags & 0x0ff)) {
+                        /* atime not in range of UnZip's time_t */
+                        flags &= ~EB_UT_FL_ATIME;
+                        TTrace((stderr,
+                                "  UX access time range error: skip time!\n"));
+                    }
                 }
                 if (eb_len >= EB_UX_FULLSIZE && z_uidgid != NULL) {
                     z_uidgid[0] = makeword((EB_HEADSIZE+EB_UX_UID) + ef_buf);

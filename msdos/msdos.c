@@ -14,18 +14,22 @@
              isfloppy()
              volumelabel()                  (non-djgpp, non-emx)
              close_outfile()
+             stamp_file()                   (TIMESTAMP only)
              dateformat()
              version()
-             _dos_getcountryinfo()          (djgpp, emx)
-            [_dos_getftime()                (djgpp, emx)   to be added]
-             _dos_setftime()                (djgpp, emx)
-             _dos_setfileattr()             (djgpp, emx)
-             _dos_getdrive()                (djgpp, emx)
-             _dos_creat()                   (djgpp, emx)
-             _dos_close()                   (djgpp, emx)
+             _dos_getcountryinfo()          (djgpp 1.x, emx)
+            [_dos_getftime()                (djgpp 1.x, emx)   to be added]
+             _dos_setftime()                (djgpp 1.x, emx)
+             _dos_setfileattr()             (djgpp 1.x, emx)
+             _dos_getdrive()                (djgpp 1.x, emx)
+             _dos_creat()                   (djgpp 1.x, emx)
+             _dos_close()                   (djgpp 1.x, emx)
              volumelabel()                  (djgpp, emx)
+             _dos_getcountryinfo()          (djgpp 2.x)
              __crt0_glob_function()         (djgpp 2.x)
              __crt_load_environment_file()  (djgpp 2.x)
+             screenlines()                  (emx)
+             screencolumns()                (emx)
              int86x_realmode()              (Watcom 32-bit)
              stat_bandaid()                 (Watcom)
 
@@ -54,14 +58,14 @@ static unsigned nLabelDrive;   /* ditto, plus volumelabel() */
 
 #ifndef SFX
   static char Far CantAllocateWildcard[] =
-    "warning:  can't allocate wildcard buffers\n";
+    "warning:  cannot allocate wildcard buffers\n";
 #endif
 static char Far Creating[] = "   creating: %s\n";
 static char Far ConversionFailed[] = "mapname:  conversion of %s failed\n";
 static char Far Labelling[] = "labelling %c: %-22s\n";
 static char Far ErrSetVolLabel[] = "mapname:  error setting volume label\n";
 static char Far PathTooLong[] = "checkdir error:  path too long: %s\n";
-static char Far CantCreateDir[] = "checkdir error:  can't create %s\n\
+static char Far CantCreateDir[] = "checkdir error:  cannot create %s\n\
                  unable to process %s.\n";
 static char Far DirIsntDirectory[] =
   "checkdir error:  %s exists but is not directory\n\
@@ -71,7 +75,7 @@ static char Far PathTooLongTrunc[] =
                 -> %s\n";
 #if (!defined(SFX) || defined(SFX_EXDIR))
    static char Far CantCreateExtractDir[] =
-     "checkdir:  can't create extraction directory: %s\n";
+     "checkdir:  cannot create extraction directory: %s\n";
 #endif
 #ifdef __TURBOC__
    static char Far AttribsMayBeWrong[] =
@@ -156,7 +160,7 @@ zDIR *Opendir(name)
 
     if ((dirp = (zDIR *)malloc(sizeof(zDIR))) == (zDIR *)NULL)
         return (zDIR *)NULL;
-    if ((nbuf = malloc(len + 5)) == (char *)NULL) {
+    if ((nbuf = malloc(len + 6)) == (char *)NULL) {
         free(dirp);
         return (zDIR *)NULL;
     }
@@ -633,7 +637,6 @@ static void map2fat(pathcomp, last_dot)
 
   ---------------------------------------------------------------------------*/
 
-    /* pEnd = pathcomp + strlen(pathcomp); */
     if (last_dot == (char *)NULL) {   /* no dots:  check for underscores... */
         char *plu = strrchr(pathcomp, '_');   /* pointer to last underscore */
 
@@ -656,15 +659,20 @@ static void map2fat(pathcomp, last_dot)
         *last_dot = '.';              /*  "..") is OK:  put it back in */
 
         if ((last_dot - pathcomp) > 8) {
-            char *p=last_dot, *q=pathcomp+8;
+            char *p, *q;
             int i;
 
+            p = last_dot;
+            q = last_dot = pathcomp + 8;
             for (i = 0;  (i < 4) && *p;  ++i)  /* too many chars in basename: */
                 *q++ = *p++;                   /*  shift extension left and */
             *q = '\0';                         /*  truncate/terminate it */
         } else if ((pEnd - last_dot) > 4)
             last_dot[4] = '\0';                /* too many chars in extension */
         /* else filename is fine as is:  no change */
+
+        if ((last_dot - pathcomp) > 0 && last_dot[-1] == ' ')
+            last_dot[-1] = '_';                /* NO blank in front of '.'! */
     }
 } /* end function map2fat() */
 
@@ -933,8 +941,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
+        if (rootlen > 0) {
             free(rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -1232,7 +1242,7 @@ void close_outfile(__G)
     iztimes z_utime;
 
     /* The following DOS date/time structure is machine-dependent as it
-     * assumes "little endian" byte order.  For MSDOS specific code, which
+     * assumes "little-endian" byte order.  For MSDOS-specific code, which
      * is run on x86 CPUs (or emulators), this assumption is valid; but
      * care should be taken when using this code as template for other ports.
      */
@@ -1287,15 +1297,19 @@ void close_outfile(__G)
   ---------------------------------------------------------------------------*/
 
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field && (ef_scan_for_izux(G.extra_field,
-        G.lrec.extra_field_length, 0, &z_utime, NULL) & EB_UT_FL_MTIME))
+    if (G.extra_field &&
+        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
     {
         struct tm *t;
 
         TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
           z_utime.mtime));
-        /* round up to even seconds */
-        z_utime.mtime = (z_utime.mtime + 1) & (~1);
+        /* round up (down if "up" overflows) to even seconds */
+        if (z_utime.mtime & 1)
+            z_utime.mtime = (z_utime.mtime + 1 > z_utime.mtime) ?
+                             z_utime.mtime + 1 : z_utime.mtime - 1;
         TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
         t = localtime(&(z_utime.mtime));
         if (t->tm_year < 80) {
@@ -1355,6 +1369,80 @@ void close_outfile(__G)
 
 } /* end function close_outfile() */
 
+
+
+
+
+#ifdef TIMESTAMP
+
+/*************************/
+/* Function stamp_file() */
+/*************************/
+
+int stamp_file(fname, modtime)
+    ZCONST char *fname;
+    time_t modtime;
+{
+    union {
+        ulg z_dostime;
+# ifdef __TURBOC__
+        struct ftime ft;        /* system file time record */
+# endif
+        struct {                /* date and time words */
+            union {             /* DOS file modification time word */
+                ush ztime;
+                struct {
+                    unsigned zt_se : 5;
+                    unsigned zt_mi : 6;
+                    unsigned zt_hr : 5;
+                } _tf;
+            } _t;
+            union {             /* DOS file modification date word */
+                ush zdate;
+                struct {
+                    unsigned zd_dy : 5;
+                    unsigned zd_mo : 4;
+                    unsigned zd_yr : 7;
+                } _df;
+            } _d;
+        } zt;
+    } dos_dt;
+    time_t t_even;
+    struct tm *t;
+    int fd;                             /* file handle */
+
+    /* round up (down if "up" overflows) to even seconds */
+    t_even = ((modtime + 1 > modtime) ? modtime + 1 : modtime) & (~1);
+    TIMET_TO_NATIVE(t_even)             /* NOP unless MSC 7.0 or Macintosh */
+    t = localtime(&t_even);
+    if (t->tm_year < 80) {
+        dos_dt.zt._t._tf.zt_se = 0;
+        dos_dt.zt._t._tf.zt_mi = 0;
+        dos_dt.zt._t._tf.zt_hr = 0;
+        dos_dt.zt._d._df.zd_dy = 1;
+        dos_dt.zt._d._df.zd_mo = 1;
+        dos_dt.zt._d._df.zd_yr = 0;
+    } else {
+        dos_dt.zt._t._tf.zt_se = t->tm_sec >> 1;
+        dos_dt.zt._t._tf.zt_mi = t->tm_min;
+        dos_dt.zt._t._tf.zt_hr = t->tm_hour;
+        dos_dt.zt._d._df.zd_dy = t->tm_mday;
+        dos_dt.zt._d._df.zd_mo = t->tm_mon + 1;
+        dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
+    }
+    if (((fd = open(fname, 0)) == -1) ||
+# ifdef __TURBOC__
+        (setftime(fd, &dos_dt.ft)))
+# else
+        (_dos_setftime(fd, dos_dt.zt._d.zdate, dos_dt.zt._t.ztime)))
+# endif
+        return -1;
+    close(fd);
+    return 0;
+
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
 
 
 
@@ -1463,10 +1551,10 @@ void version(__G)
 
     len = sprintf((char *)slide, LoadFarString(CompiledWith),
 
-#ifdef __GNUC__
-#  ifdef __DJGPP__
+#if defined(__GNUC__)
+#  if defined(__DJGPP__)
       (sprintf(buf, "djgpp v%d.%02d / gcc ", __DJGPP__, __DJGPP_MINOR__), buf),
-#  elif __GO32__                  /* __GO32__ is defined as "1" only (sigh) */
+#  elif defined(__GO32__)         /* __GO32__ is defined as "1" only (sigh) */
       "djgpp v1.x / gcc ",
 #  elif defined(__EMX__)          /* ...so is __EMX__ (double sigh) */
       "emx+gcc ",
@@ -1504,12 +1592,10 @@ void version(__G)
 #    endif
 #  else
       "Turbo C",
-#    if (__TURBOC__ > 0x0500)
-        "++ later than 5.0",
-#    elif (__TURBOC__ == 0x0500)     /* Mike W:  5.0 -> 0x0500 */
-        "++ 5.0",
-#    elif (__TURBOC__ >= 0x0400)     /* Kevin:  3.0 -> 0x0401 */
-        "++ 3.0 or 4.x",
+#    if (__TURBOC__ > 0x0401)        /* Kevin:  3.0 -> 0x0401 */
+        "++ later than 3.0",
+#    elif (__TURBOC__ >= 0x0400)
+        "++ 3.0",
 #    elif (__TURBOC__ == 0x0295)     /* [661] vfy'd by Kevin */
         "++ 1.0",
 #    elif ((__TURBOC__ >= 0x018d) && (__TURBOC__ <= 0x0200)) /* James: 0x0200 */
@@ -1602,7 +1688,9 @@ void version(__G)
 
 #if (defined(__GO32__) || defined(__EMX__))
 
-int volatile _doserrno;
+unsigned volatile _doserrno;
+
+#if (!defined(__DJGPP__) || (__DJGPP__ < 2))
 
 unsigned _dos_getcountryinfo(void *countrybuffer)
 {
@@ -1616,16 +1704,19 @@ unsigned _dos_getcountryinfo(void *countrybuffer)
     return _doserrno;
 }
 
-
-#if (!defined(__DJGPP__) || (__DJGPP__ < 2))
-
-void _dos_setftime(int fd, ush dosdate, ush dostime)
+unsigned _dos_setftime(int fd, ush dosdate, ush dostime)
 {
     asm("movl %0, %%ebx": : "g" (fd));
     asm("movl %0, %%ecx": : "g" (dostime));
     asm("movl %0, %%edx": : "g" (dosdate));
     asm("movl $0x5701, %eax");
     asm("int $0x21": : : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi");
+    _doserrno = 0;
+    asm("jnc 1f");
+    asm("movl %%eax, %0": "=m" (_doserrno));
+    errno = EBADF;
+    asm("1:");
+    return _doserrno;
 }
 
 void _dos_setfileattr(char *name, int attr)
@@ -1698,6 +1789,29 @@ static int volumelabel(char *name)
 
 #if (defined(__DJGPP__) && (__DJGPP__ > 1))
 
+#include <dpmi.h>               /* These includes for the country info */
+#include <go32.h>
+#include <sys/farptr.h>
+
+/* The above _dos_getcountryinfo function doesn't work with djgpp v2, presumably
+ * because ds is not set correctly (does it really work at all?). Note that
+ * this version only sets the date (ie. CountryInfo[0]).
+ */
+unsigned _dos_getcountryinfo(void *countrybuffer)
+{
+   __dpmi_regs regs;
+
+   regs.x.ax = 0x3800;
+   regs.x.dx = __tb & 0x0f;
+   regs.x.ds = (__tb >> 4) & 0xffff;
+   _doserrno = __dpmi_int(0x21, &regs);
+
+   *(ush*)countrybuffer = _farpeekw(_dos_ds, __tb & 0xfffff);
+
+   return _doserrno;
+}
+
+
 /* Prevent globbing of filenames.  This gives the same functionality as
  * "stubedit <program> globbing=no" did with DJGPP v1.
  */
@@ -1717,6 +1831,37 @@ void __crt_load_environment_file(void)
 #endif /* __GO32__ || __EMX__ */
 
 
+
+#ifdef __EMX__
+#ifdef MORE
+
+/**************************/
+/* Function screenlines() */
+/**************************/
+
+int screenlines()
+{
+    int scr_dimen[2];           /* scr_dimen[0]: columns, src_dimen[1]: rows */
+
+    _scrsize(scr_dimen);
+    return (scr_dimen[1]);
+}
+
+
+/****************************/
+/* Function screencolumns() */
+/****************************/
+
+int screencolumns()
+{
+    int scr_dimen[2];           /* scr_dimen[0]: columns, src_dimen[1]: rows */
+
+    _scrsize(scr_dimen);
+    return (scr_dimen[0]);
+}
+
+#endif /* MORE */
+#endif /* __EMX__ */
 
 
 

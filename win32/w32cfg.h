@@ -37,7 +37,9 @@
 #if defined(MSC)
 #  define DIR_END     '\\'   /* ZipInfo with VC++ 4.0 requires this */
 #endif
-#define DATE_FORMAT   DF_MDY
+#ifndef DATE_FORMAT
+#  define DATE_FORMAT DF_MDY
+#endif
 #define lenEOL        2
 #define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 
@@ -45,6 +47,9 @@
 #  define NT_TZBUG_WORKAROUND
 #endif
 #define USE_EF_UT_TIME
+#if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#  define TIMESTAMP
+#endif
 #ifdef __RSXNT__
 #  ifndef NO_NTSD_WITH_RSXNT
 #    define NO_NTSD_WITH_RSXNT  /* RSXNT windows.h does not yet support NTSD */

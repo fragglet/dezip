@@ -12,7 +12,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Eric Baatz             Borland version() info; Solaris zipgrep packaging fix
   Bob Babcock            DOS volume-label code (FCBs)
   Charles Bailey         VMS_SEVERITY fix; VMSWILD () extension
-  Audrey Beck            "Where" file info for AOL OS/2 forum
+  Audrey Beck            "WHERE" file info for AOL OS/2 forum
   Mike Bernardi          Unix makefile entry; CIX uploads
   James Birdsall         extract.c/makefile/NT stuff, etc.; awesome beta tester
   Allan Bjorklund        in misc.c
@@ -20,7 +20,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Wim Bonner             original OS/2 port; Unix makefile entry
   Paul Borman            BSD/386 (BSDI) fixes; Unix makefile entry
   Carlton Brewster       mapname bugfix
-  Rodney Brown           stdin-/dev/null bugfix; VMS error levels
+  Rodney Brown           stdin-/dev/null bugfix; VMS error levels; CRC optimiz.
   Stan Brown             "zipinfo -M"/isatty(1) bugfix
   John Bush              first full Amiga port; FileDate; Amiga fixes; etc.
   Christian Carey        Unix makefile bugfix for install target (create dirs)
@@ -32,6 +32,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Frank da Cruz          xxu.c, on which original mapname.c was based
   Bill Davidsen          -q(q); mapname stuff; envargs; Xenix stuff; opts; etc.
   Karl Davis             Acorn RISC OS port
+  Jim Delahanty          NTSD fixes
   Harald Denker          major Atari update/fixes
   Matt "Doc" D'Errico    AIX stuff, Unix makefile entry
   Kim DeVaughn           Unix makefile entry
@@ -39,12 +40,14 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Frank Donahoe          djgpp v2.x makefile; documentation updates
   James Dugal            ZMEM stuff; unshrink bugfix; file perms stuff; etc.
   Jim Dumser             -z stuff; umask, opendir/Borland, UID fixes; etc.
+  Peter Eckel            DOS buffer-overrun fix
   Mark Edwards           mapname.c, misc.c fixes; Unix makefile entry
   Gershon Elber          Unix makefile entry
   Patrick Ellis          VMS usage fix (`-' vs. `/' options)
   Shane Erstad           Borland makefile bugfix
   Thomas Esken           Acorn typo fix
   Bruce Evans            Unix makefile entry
+  Derek Fawcus           FlexOS port
   David Feinleib         Windows NT port
   David Fenyes           Unix makefile entry
   Scott Field            Windows NT security-descriptor support; CRC opts
@@ -55,6 +58,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Jeffrey Foy            OS/2 stuff(?); [CP/M]
   Mike Freeman           VMS gcc makefiles; VMS bugfixes; etc.
   Kevin Fritz            Borland bugfixes; MS-DOS makefile fixes; etc.
+  Aaron Gaalswyk         OS/2 checkdir() fix
   Jean-loup Gailly       decryption code; ReadByte replacement; much nagging :-)
   Forrest Gehrke         Unix makefile entry
   Tim Geibelhaus         Unix makefile entry
@@ -69,13 +73,15 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Walter Haidinger       Amiga SAS/C fixes
   Steve Hanna            Macintosh stuff
   Mark Hanning-Lee       docs corrections, Unix Makefile fixes, "check" target
+  Guy Harris             ZipInfo man-page typo fix
   Greg Hartwig           finished VM/CMS port
   Robert Heath           Windows GUI port (WizUnZip)
   Dave Heiland           new usage screen
   Ron Henderson          -a bugfix
   Chris Herborth         new Atari port; Atari fixes
   Greg Hill              docs update
-  John Hollow            "Where" file path corrections
+  John Hollow            "WHERE" file path corrections
+  Jason Hood             DOS screen-width support
   Phil Howard            Unix makefile entry
   Jonathan Hudson        SMS/QDOS port
   Joe Isuzu              Unix makefile entry
@@ -141,6 +147,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Harry Nyberg           Macintosh INSTALL info
   NIIMI Satoshi          Human68k port
   Mike O'Carroll         early OS/2 stuff
+  Michael D. O'Connor    DOS ifdef/elif mismatch fix; makefile.tc fixes
   "Moby" Dick O'Connor   Unix makefile entry
   Thomas Opheys          Watcom C stat() bugfix
   Humberto Ortiz-Zuazaga Linux port; permissions bugfix; missing declarations
@@ -151,6 +158,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Alan Phillips          Unix makefile entry
   Art Pina               C Set/2 crypt.c optimization bug
   Piet W. Plomp          Unix chmod()/chown() fix; msc_dos fixes; much testing
+  Norbert Pueschel       Amiga timelib
   Clint Pulley           Unix makefile entry
   Antonio Querubin, Jr.  descrip.mms (VMS makefile)
   Alistair Rae           Encore preprocessor bugfix
@@ -177,7 +185,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Jim Seymour            Borland OS/2 fixes
   Mark Shadley           Unix -X, FGETCH, DESTROYGLOBALS & Unix makefile fixes
   Timur Shaporev         inflate optimizations
-  Dave D. Smith          Tandem/NSK port (coming...)
+  Dave D. Smith          Tandem/NSK port
   Fred Smith             Coherent 4.0 fixes
   Nick Smith             return code for user abort (control-C)
   Samuel H. Smith        original unzip code (Pascal and C) for MS-DOS
@@ -190,10 +198,10 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Jochen Stein           Unix makefile entry
   Jim Steiner            Unix makefile entry
   Richard Stephen        Unix makefile entry
-  Wayne Stewart          "Where" file MS-DOS correction
+  Wayne Stewart          "WHERE" file MS-DOS correction
   Mike Strock            Win32 MSVC 5.0 "build file"; typo fixes
   E-Yen Tan              djgpp1/GNUmake 3.71 bug work-around; DOS makefile.emx
-  Brian Tillman          "Where" file VMS fix; make_unz.com portability bugfix
+  Brian Tillman          "WHERE" file VMS fix; make_unz.com portability bugfix
   Onno van der Linden    many fixes, esp. Intel Unix and 386 DOS
   Jim Van Zandt          one of original man pages
   Geraldo Veiga          Pyramid strrchr/rindex

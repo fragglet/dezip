@@ -8,6 +8,11 @@
 #define EF_BE_FL_NATURAL    0x01    /* data is 'natural' (not compressed) */
 #define EF_BE_FL_BADBITS    0xfe    /* bits currently undefined           */
 
+/* Leave this defined until BeOS has a way of accessing the attributes on a */
+/* symbolic link from C.  This might appear in DR10, but it doesn't exist   */
+/* in Preview Release or Preview Release 2 (aka DR9 and DR9.1). [cjh]       */
+#define BE_NO_SYMLINK_ATTRS 1
+
 /*
 DR9 'Be' extra-field layout:
 

@@ -173,11 +173,11 @@ struct Globals *globalsCtor()
     G.decr_passwd = UzpPassword;
 #endif /* !FUNZIP */
 
-#if (!defined(DOS_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
+#if (!defined(DOS_FLX_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
 #if (!defined(MACOS) && !defined(ATARI) && !defined(VMS))
     G.echofd = -1;
 #endif /* !(MACOS || ATARI || VMS) */
-#endif /* !(DOS_H68_OS2_W32 || AMIGA || RISCOS) */
+#endif /* !(DOS_FLX_H68_OS2_W32 || AMIGA || RISCOS) */
 
 #ifdef SYSTEM_SPECIFIC_CTOR
     SYSTEM_SPECIFIC_CTOR(__G);

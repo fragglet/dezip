@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.31                                                    17 May 1997
+# Version:  5.32                                                2 November 1997
 #==============================================================================
 
 
@@ -23,7 +23,7 @@
 # if things don't work, try using "make" instead of "$(MAKE)" in your system's
 # makerule.  Or try adding the following line to your .login file:
 #	setenv MAKE "make"
-# (That never works--makes which are too stupid to define MAKE are also too
+# (That never works--makes that are too stupid to define MAKE are also too
 # stupid to look in the environment--but try it anyway for kicks. :-) )
 #
 # Memcpy and memset are provided for those systems that don't have them; they
@@ -107,7 +107,7 @@ INSTALLEDMAN = $(MANDIR)/funzip.$(manext) $(MANDIR)/unzip.$(manext) \
 
 # Solaris 2.x stuff:
 PKGDIR = IZunzip
-VERSION = Version 5.31
+VERSION = Version 5.32
 
 UNZIPS = unzip$E funzip$E unzipsfx$E
 # this is a little ugly...well, OK, it's a lot ugly:
@@ -162,7 +162,7 @@ help:
 	@echo\
  '  the decryption version of UnZip, you must obtain the full versions of'
 	@echo\
- '  crypt.c and crypt.h (see the "Where" file for ftp and mail-server sites).'
+ '  crypt.c and crypt.h (see the "WHERE" file for ftp and mail-server sites).'
 	@echo\
  '  Have a mostly pretty good day.'
 	@echo ""
@@ -229,32 +229,22 @@ generic_msg:
 # these rules may be specific to Linux (or at least the GNU groff package)
 # and are really intended only for the authors' use in creating non-Unix
 # documentation files (which are provided with both source and binary
-# distributions).  We should probably add a ".1.man" rule for more generic
+# distributions).  We should probably add a ".1.doc" rule for more generic
 # systems...
 
 funzip.doc:	unix/funzip.1
-#	nroff -Tman -man unix/funzip.1 | col -b | uniq | \
-#	 sed 's/Sun Release ..../Info-ZIP        /' > $@
 	nroff -Tman -man unix/funzip.1 | col -b | uniq | expand > $@
 
 unzip.doc:	unix/unzip.1
-#	nroff -Tman -man unix/unzip.1 | col -b | uniq | \
-#	 sed 's/Sun Release ..../Info-ZIP        /' > $@
 	nroff -Tman -man unix/unzip.1 | col -b | uniq | expand > $@
 
 unzipsfx.doc:	unix/unzipsfx.1
-#	nroff -Tman -man unix/unzipsfx.1 | col -b | uniq | \
-#	 sed 's/Sun Release ..../Info-ZIP        /' > $@
 	nroff -Tman -man unix/unzipsfx.1 | col -b | uniq | expand > $@
 
 zipgrep.doc:	unix/zipgrep.1
-#	nroff -Tman -man unix/zipgrep.1 | col -b | uniq | \
-#	 sed 's/Sun Release ..../Info-ZIP        /' > $@
 	nroff -Tman -man unix/zipgrep.1 | col -b | uniq | expand > $@
 
 zipinfo.doc:	unix/zipinfo.1
-#	nroff -Tman -man unix/zipinfo.1 | col -b | uniq | \
-#	 sed 's/Sun Release ..../Info-ZIP        /' > $@
 	nroff -Tman -man unix/zipinfo.1 | col -b | uniq | expand > $@
 
 
@@ -338,6 +328,9 @@ crc_i86$O:	msdos/crc_i86.asm				# 16bit only
 	$(AS) $(AF) msdos/crc_i86.asm $(ASEOL)
 
 crc_gcc$O:	crc_i386.S					# 32bit, GNU AS
+	$(AS) $(AF) -x assembler-with-cpp -c -o $@ crc_i386.S
+
+crc_gcc.pic.o:	crc_i386.S					# 32bit, GNU AS
 	$(AS) $(AF) -x assembler-with-cpp -c -o $@ crc_i386.S
 
 crc_sysv$O:	crc_i386.S					# 32bit, SysV AS
@@ -596,13 +589,17 @@ _v7:
 #  "Unique" group (require non-standard options):
 #----------------------------------------------------------------------------
 
+# AT&T 3B2/1000-80; should work on any WE32XXX machine
+3Bx:		unix_make
+	$(MAKE) unzips CF="$(CF) -DCBREAK=2"
+
 # AT&T 7300 (M68000/SysV.3) (add -DSYSV? -DNO_LIMITS?)
 7300:		unix_make
-	$(MAKE) unzips CF="$(CF) -DNO_DIR -DNO_MKDIR -DNO_STRNICMP"
+	$(MAKE) unzips CF="$(CF) -DNO_DIR -DNO_MKDIR -DNO_STRNICMP -DNO_UID_GID -DCBREAK=2"
 
 7300_gcc:	unix_make
 	$(MAKE) unzips CC=gcc LD=gcc LF2="" \
-	 CF="-O2 -I. -DNO_DIR -DNO_MKDIR -DNO_STDLIB_H -DNO_STRNICMP $(LOC)"
+	 CF="-O2 -I. -DNO_DIR -DNO_MKDIR -DNO_STDLIB_H -DNO_STRNICMP -DNO_UID_GID -DCBREAK=2 $(LOC)"
 	$(STRIP) $(UNZIPS)
 
 # IBM AIX 3.x on an RS/6000:  see rs6000 target below
@@ -686,10 +683,11 @@ hk68:		unix_make
 isc:		unix_make
 	$(MAKE) unzips LF2="-lc_s $(LF2)" CRC32=crc_sysv \
 	 CF="-O -I. -DASM_CRC -DSYSV -DNO_UID_GID -DNEED_PTEM $(LOC)" \
-	 AF="-DNO_UNDERLINE -DALIGNMENT='.align 16' $(AF)"
+	 AF="-DNO_UNDERLINE -Djecxz=jcxz -DALIGNMENT='.align 16' $(AF)"
 
 isc_gcc:	unix_make
 	$(MAKE) unzips AS=gcc CC=gcc LD=gcc CRC32=crc_gcc LF="-shlib $(LF)" \
+	 SL="-shlib $(SL)" FL="-shlib $(FL)" \
 	 LF2="" CF="-O3 -I. -DSYSV -DASM_CRC -DNO_UID_GID -DNEED_PTEM $(LOC)" \
 	 AF="-DNO_UNDERLINE -Djecxz=jcxz -DALIGNMENT='.align 16' $(AF)"
 	$(STRIP) $(UNZIPS)
@@ -741,9 +739,12 @@ linux_dos:	unix_make
 # library).
 #
 linux_shlib:	unix_make
-	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -DDLL -fPIC $(LOC)"
-	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.3 $(OBJSDLL)
-	ln -sf libunzip.so.0.3 libunzip.so.0
+#	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -fPIC -DDLL $(LOC)"
+	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -fPIC -DDLL -DASM_CRC $(LOC)"\
+	 AS=gcc AF="-fPIC -Di386 $(AF)" CRC32=crc_gcc
+	ln -sf crc_gcc.pic.o crc32.pic.o
+	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.4 $(OBJSDLL)
+	ln -sf libunzip.so.0.4 libunzip.so.0
 	ln -sf libunzip.so.0 libunzip.so
 	gcc -c -O unzipstb.c
 	gcc -o unzip_shlib unzipstb.o -L. -lunzip
@@ -751,9 +752,12 @@ linux_shlib:	unix_make
 # Linux ELF shared library, as above, but using inflate() from zlib (libz.so)
 # instead of the original UnZip version.  (libz was libgz prior to 0.94)
 linux_shlibz:	unix_make
-	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -DDLL -DUSE_ZLIB -fPIC $(LOC)"
-	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.3 $(OBJSDLL)
-	ln -sf libunzip.so.0.3 libunzip.so.0
+#	$(MAKE) objsdll CC=gcc CF="-O3 -Wall -I. -fPIC -DDLL -DUSE_ZLIB $(LOC)"
+	$(MAKE) objsdll CC=gcc AS=gcc AF="-fPIC -Di386 $(AF)" CRC32=crc_gcc\
+	 CF="-O3 -Wall -I. -fPIC -DDLL -DUSE_ZLIB -DASM_CRC $(LOC)"
+	ln -sf crc_gcc.pic.o crc32.pic.o
+	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.4 $(OBJSDLL)
+	ln -sf libunzip.so.0.4 libunzip.so.0
 	gcc -c -O unzipstb.c
 	gcc -o unzip unzipstb.o -L. -lunzip -lz
 
@@ -816,7 +820,7 @@ rs6000:		unix_make
 # SCO cross compile from Unix to DOS. Tested with Xenix/386 and OpenDeskTop.
 # Should work with Xenix/286 as well. (davidsen)  Note that you *must* remove
 # the Unix objects and executable before doing this!  (Piet Plomp:  gcc won't
-# recognize the -M0 flag which forces 8086 code.)  (GRR:  may need to reduce
+# recognize the -M0 flag that forces 8086 code.)  (GRR:  may need to reduce
 # stack to 0c00h if using 286/small-model code...?)
 sco_dos:	unix_make
 	$(MAKE) unzips CF="-O -I. $(LOC) -dos -M0" M=msdos \

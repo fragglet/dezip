@@ -21,7 +21,7 @@
              UzpMorePause()
              UzpPassword()            (non-WINDLL)
              handler()
-             dos_to_unix_time()       (non-VMS, non-OS/2, non-VM/CMS, non-MVS)
+             dos_to_unix_time()       (non-VMS, non-VM/CMS, non-MVS)
              check_for_newer()        (non-VMS, non-OS/2, non-VM/CMS, non-MVS)
              do_string()
              makeword()
@@ -94,17 +94,17 @@ static int disk_error OF((__GPRO));
 /* Strings used in fileio.c */
 /****************************/
 
-#if (defined(UNIX) || defined(DOS_OS2_W32))
-   static char Far CantDeleteOldFile[] = "error:  can't delete old %s\n";
+#if (defined(UNIX) || defined(DOS_FLX_OS2_W32) || defined(__BEOS__))
+   static char Far CannotDeleteOldFile[] = "error:  cannot delete old %s\n";
 #ifdef UNIXBACKUP
-   static char Far CantRenameOldFile[] = "error:  can't rename old %s\n";
+   static char Far CannotRenameOldFile[] = "error:  cannot rename old %s\n";
    static char Far BackupSuffix[] = "~";
 #endif
 #endif
 
-static char Far CantOpenZipfile[] = "error:  can't open zipfile [ %s ]\n";
+static char Far CannotOpenZipfile[] = "error:  cannot open zipfile [ %s ]\n";
 #if (!defined(VMS) && !defined(AOS_VS) && !defined(CMS_MVS))
-   static char Far CantCreateFile[] = "error:  can't create %s\n";
+   static char Far CannotCreateFile[] = "error:  cannot create %s\n";
 #endif
 #ifdef NOVELL_BUG_FAILSAFE
    static char Far NovellBug[] =
@@ -123,6 +123,9 @@ static char Far ExtraFieldTooLong[] =
    static char Far DiskFullQuery[] =
      "%s:  write error (disk full?).  Continue? (y/n/^C) ";
    static char Far ZipfileCorrupt[] = "error:  zipfile probably corrupt (%s)\n";
+#  ifdef SYMLINKS
+     static char Far FileIsSymLink[] = "%s exists and is a symbolic link%s.\n";
+#  endif
 #  ifdef MORE
      static char Far MorePrompt[] = "--More--(%lu)";
 #  endif
@@ -148,9 +151,9 @@ int open_input_file(__G)    /* return 1 if open failed */
      *  translation, which would corrupt the bitstreams
      */
 
-#if (defined(UNIX) || defined(TOPS20) || defined(AOS_VS))
+#if (defined(UNIX) || defined(TOPS20) || defined(AOS_VS) || defined(__BEOS__))
     G.zipfd = open(G.zipfn, O_RDONLY);
-#else /* !(UNIX || TOPS20 || AOS_VS) */
+#else /* !(UNIX || TOPS20 || AOS_VS || __BEOS__) */
 #ifdef VMS
     G.zipfd = open(G.zipfn, O_RDONLY, 0, "ctx=stm");
 #else /* !VMS */
@@ -168,7 +171,7 @@ int open_input_file(__G)    /* return 1 if open failed */
 #endif /* ?RISCOS */
 #endif /* ?MACOS */
 #endif /* ?VMS */
-#endif /* ?(UNIX || TOPS20 || AOS_VS) */
+#endif /* ?(UNIX || TOPS20 || AOS_VS || __BEOS__) */
 
 #ifdef USE_STRM_INPUT
     if (G.zipfd == NULL)
@@ -177,7 +180,7 @@ int open_input_file(__G)    /* return 1 if open failed */
     if (G.zipfd == -1)
 #endif
     {
-        Info(slide, 0x401, ((char *)slide, LoadFarString(CantOpenZipfile),
+        Info(slide, 0x401, ((char *)slide, LoadFarString(CannotOpenZipfile),
           G.zipfn));
         return 1;
     }
@@ -204,7 +207,7 @@ int open_outfile(__G)         /* return 1 if fail */
 #ifdef QDOS
     QFilename(__G__ G.filename);
 #endif
-#if (defined(DOS_OS2_W32) || defined(UNIX))
+#if (defined(DOS_FLX_OS2_W32) || defined(UNIX) || defined(__BEOS__))
 #ifdef BORLAND_STAT_BUG
     /* Borland 5.0's stat() barfs if the filename has no extension and the
      * file doesn't exist. */
@@ -217,8 +220,13 @@ int open_outfile(__G)         /* return 1 if fail */
         fclose(tmp);
     }
 #endif /* BORLAND_STAT_BUG */
-    if (SSTAT(G.filename, &G.statbuf) == 0) {
-        Trace((stderr, "open_outfile:  stat(%s) returns 0 (file exists)\n",
+#ifdef SYMLINKS
+    if (SSTAT(G.filename, &G.statbuf) == 0 || lstat(G.filename,&G.statbuf) == 0)
+#else
+    if (SSTAT(G.filename, &G.statbuf) == 0)
+#endif /* ?SYMLINKS */
+    {
+        Trace((stderr, "open_outfile:  stat(%s) returns 0:  file exists\n",
           FnFilter1(G.filename)));
 #ifdef UNIXBACKUP
         if (G.B_flag) {    /* do backup */
@@ -246,14 +254,14 @@ int open_outfile(__G)         /* return 1 if fail */
             /* GRR:  should check if backup file exists, apply -n/-o to that */
             if (rename(G.filename, tname) < 0) {   /* move file */
                 Info(slide, 0x401, ((char *)slide,
-                  LoadFarString(CantRenameOldFile), FnFilter1(G.filename)));
+                  LoadFarString(CannotRenameOldFile), FnFilter1(G.filename)));
                 free(tname);
                 return 1;
             }
             free(tname);
         } else
 #endif /* UNIXBACKUP */
-#ifdef DOS_OS2_W32
+#ifdef DOS_FLX_OS2_W32
         if (!(G.statbuf.st_mode & S_IWRITE)) {
             Trace((stderr, "open_outfile:  existing file %s is read-only\n",
               FnFilter1(G.filename)));
@@ -261,19 +269,19 @@ int open_outfile(__G)         /* return 1 if fail */
             Trace((stderr, "open_outfile:  %s now writable\n",
               FnFilter1(G.filename)));
         }
-#endif /* DOS_OS2_W32 */
+#endif /* DOS_FLX_OS2_W32 */
         if (unlink(G.filename) != 0) {
             Info(slide, 0x401, ((char *)slide,
-              LoadFarString(CantDeleteOldFile), FnFilter1(G.filename)));
+              LoadFarString(CannotDeleteOldFile), FnFilter1(G.filename)));
             return 1;
         }
         Trace((stderr, "open_outfile:  %s now deleted\n",
           FnFilter1(G.filename)));
     }
-#endif /* DOS_OS2_W32 || UNIX */
+#endif /* DOS_FLX_OS2_W32 || UNIX || __BEOS__ */
 #ifdef RISCOS
     if (SWI_OS_File_7(G.filename,0xDEADDEAD,0xDEADDEAD,G.lrec.ucsize)!=NULL) {
-        Info(slide, 1, ((char *)slide, LoadFarString(CantCreateFile),
+        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
           FnFilter1(G.filename)));
         return 1;
     }
@@ -287,7 +295,7 @@ int open_outfile(__G)         /* return 1 if fail */
     upper(tfilnam);
     enquote(tfilnam);
     if ((G.outfile = fopen(tfilnam, FOPW)) == (FILE *)NULL) {
-        Info(slide, 1, ((char *)slide, LoadFarString(CantCreateFile),
+        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
           tfilnam));
         free(tfilnam);
         return 1;
@@ -300,11 +308,37 @@ int open_outfile(__G)         /* return 1 if fail */
     else
         G.outfile = fopen(G.filename, FOPW);
     if (G.outfile == (FILE *)NULL) {
-        Info(slide, 1, ((char *)slide, LoadFarString(CantCreateFile),
+        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
           FnFilter1(G.filename)));
         return 1;
     }
 #else /* !MTS */
+#ifdef TANDEM
+    if (stat(G.filename, &G.statbuf) == 0) {
+        Trace((stderr, "open_outfile:  stat(%s) returns 0 (file exists)\n",
+          FnFilter1(G.filename)));
+        if (unlink(G.filename) != 0) {
+            Trace((stderr, "open_outfile:  existing file %s is read-only\n",
+              FnFilter1(G.filename)));
+            chmod(G.filename, S_IRUSR | S_IWUSR);
+            Trace((stderr, "open_outfile:  %s now writable\n",
+              FnFilter1(G.filename)));
+            if (unlink(G.filename) != 0)
+                return 1;
+        }
+        Trace((stderr, "open_outfile:  %s now deleted\n",
+          FnFilter1(G.filename)));
+    }
+    if (G.pInfo->textmode)
+        G.outfile = fopen(G.filename, FOPWT);
+    else
+        G.outfile = fopen(G.filename, FOPW);
+    if (G.outfile == (FILE *)NULL) {
+        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
+          FnFilter1(G.filename)));
+        return 1;
+    }
+#else /* !TANDEM */
 #ifdef DEBUG
     Info(slide, 1, ((char *)slide,
       "open_outfile:  doing fopen(%s) for reading\n", FnFilter1(G.filename)));
@@ -330,12 +364,13 @@ int open_outfile(__G)         /* return 1 if fail */
     Trace((stderr, "open_outfile:  doing fopen(%s) for writing\n",
       FnFilter1(G.filename)));
     if ((G.outfile = fopen(G.filename, FOPW)) == (FILE *)NULL) {
-        Info(slide, 0x401, ((char *)slide, LoadFarString(CantCreateFile),
+        Info(slide, 0x401, ((char *)slide, LoadFarString(CannotCreateFile),
           FnFilter1(G.filename)));
         return 1;
     }
     Trace((stderr, "open_outfile:  fopen(%s) for writing succeeded\n",
       FnFilter1(G.filename)));
+#endif /* !TANDEM */
 #endif /* !MTS */
 #endif /* !TOPS20 */
 
@@ -819,7 +854,7 @@ int flush(__G__ rawbuf, size, unshrink)
                 } else if (*p == LF)      /* lone LF */
                     PutNativeEOL
                 else
-#ifndef DOS_OS2_W32
+#ifndef DOS_FLX_OS2_W32
                 if (*p != CTRLZ)          /* lose all ^Z's */
 #endif
                     *q++ = native(*p);
@@ -955,7 +990,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
         return 0;
 #endif
  */
-#ifdef DLL                    /* don't display message if data is redirected */
+#ifdef DLL                 /* don't display message if data is redirected */
     if (((struct Globals *)pG)->redirect_data &&
         !((struct Globals *)pG)->redirect_text)
         return 0;
@@ -984,7 +1019,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
 
     if (MSG_LNEWLN(flag) && !((struct Globals *)pG)->sol) {
         /* not at start of line:  want newline */
-#ifdef DLL
+#ifdef OS2DLL
         if (!((struct Globals *)pG)->redirect_text) {
 #endif
             putc('\n', outfp);          /* "more" will be off by one...oops */
@@ -996,7 +1031,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
                 putc('\n', stderr);
                 fflush(stderr);
             }
-#ifdef DLL
+#ifdef OS2DLL
         } else
            REDIRECTC('\n');
 #endif
@@ -1010,7 +1045,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     ((struct Globals *)pG)->height = SCREENLINES - 2;
 
     if (((struct Globals *)pG)->M_flag
-#ifdef DLL
+#ifdef OS2DLL
          && !((struct Globals *)pG)->redirect_text
 #endif
                                                  )
@@ -1036,7 +1071,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
 #endif /* MORE */
 
     if (size) {
-#ifdef DLL
+#ifdef OS2DLL
         if (!((struct Globals *)pG)->redirect_text) {
 #endif
             if ((error = WriteError(q, size, outfp)) != 0)
@@ -1050,7 +1085,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
                     return error;
                 fflush(stderr);
             }
-#ifdef DLL
+#ifdef OS2DLL
         } else {                /* GRR:  this is ugly:  hide with macro */
             if ((error = REDIRECTPRINT(q, size)) != 0)
                 return error;
@@ -1264,13 +1299,14 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 
 
 
-#if (!defined(VMS) && !defined(OS2) && !defined(CMS_MVS))
+#if (!defined(VMS) && !defined(CMS_MVS))
+#if (!defined(OS2) || defined(TIMESTAMP))
 
 /* also used in amiga/filedate.c and win32/win32.c */
 ZCONST ush ydays[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
 
 /*******************************/
-/* Function dos_to_unix_time() */   /* only used for freshening/updating */
+/* Function dos_to_unix_time() */ /* used for freshening/updating/timestamps */
 /*******************************/
 
 time_t dos_to_unix_time(ddate, dtime)
@@ -1334,19 +1370,25 @@ time_t dos_to_unix_time(ddate, dtime)
         ++days;                 /* OK through 2199 */
 
     /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
-    m_time = (time_t)((long)(days + dy) * 86400L + (long)hh * 3600L +
-                      (long)(mm * 60 + ss));
+    m_time = (time_t)((unsigned long)(days + dy) * 86400L +
+                      (unsigned long)hh * 3600L +
+                      (unsigned long)(mm * 60 + ss));
       /* - 1;   MS-DOS times always rounded up to nearest even second */
     TTrace((stderr, "dos_to_unix_time:\n"));
-    TTrace((stderr, "  m_time before timezone = %ld\n", (long)m_time));
+    TTrace((stderr, "  m_time before timezone = %lu\n", (ulg)m_time));
 
 /*---------------------------------------------------------------------------
     Adjust for local standard timezone offset.
   ---------------------------------------------------------------------------*/
 
-#if (!defined(MACOS) && !defined(RISCOS) && !defined(QDOS))
+#if (!defined(MACOS) && !defined(RISCOS) && !defined(QDOS) && !defined(TANDEM))
 #if (defined(BSD) || defined(MTS) || defined(__GO32__))
 #ifdef BSD4_4
+    if ( (ddate >= (unsigned)DOSDATE_2038_01_18) &&
+         (m_time < (time_t)0x70000000L) )
+        m_time = U_TIME_T_MAX;  /* saturate in case of (unsigned) overflow */
+    if (m_time < (time_t)0L)    /* a converted DOS time cannot be negative */
+        m_time = S_TIME_T_MAX;  /*  -> saturate at max signed time_t value */
     m_time -= localtime(&m_time)->tm_gmtoff;    /* sec. EAST of GMT: subtr. */
 #else /* !BSD4_4 */
     ftime(&tbp);                                /* get `timezone' */
@@ -1370,30 +1412,44 @@ time_t dos_to_unix_time(ddate, dtime)
 #endif
 #endif /* ?WIN32 */
 #endif /* ?(BSD || MTS || __GO32__) */
-    TTrace((stderr, "  m_time after timezone =  %ld\n", (long)m_time));
-#endif /* !MACOS && !RISCOS && !QDOS */
+    TTrace((stderr, "  m_time after timezone =  %lu\n", (ulg)m_time));
+#endif /* !MACOS && !RISCOS && !QDOS && !TANDEM */
 
 /*---------------------------------------------------------------------------
     Adjust for local daylight savings (summer) time.
   ---------------------------------------------------------------------------*/
 
 #ifndef BSD4_4  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
+    if ( (ddate >= (unsigned)DOSDATE_2038_01_18) &&
+         (m_time < (time_t)0x70000000L) )
+        m_time = U_TIME_T_MAX;  /* saturate in case of (unsigned) overflow */
+    if (m_time < (time_t)0L)    /* a converted DOS time cannot be negative */
+        m_time = S_TIME_T_MAX;  /*  -> saturate at max signed time_t value */
     TIMET_TO_NATIVE(m_time)     /* NOP unless MSC 7.0 or Macintosh */
     if (localtime((time_t *)&m_time)->tm_isdst)
         m_time -= 60L * 60L;    /* adjust for daylight savings time */
     NATIVE_TO_TIMET(m_time)     /* NOP unless MSC 7.0 or Macintosh */
-    TTrace((stderr, "  m_time after DST =       %ld\n", (long)m_time));
+    TTrace((stderr, "  m_time after DST =       %lu\n", (ulg)m_time));
 #endif /* !BSD4_4 */
 
 #endif /* ?TOPS20 */
+
+    if ( (ddate >= (unsigned)DOSDATE_2038_01_18) &&
+         (m_time < (time_t)0x70000000L) )
+        m_time = U_TIME_T_MAX;  /* saturate in case of (unsigned) overflow */
+    if (m_time < (time_t)0L)    /* a converted DOS time cannot be negative */
+        m_time = S_TIME_T_MAX;  /*  -> saturate at max signed time_t value */
 
     return m_time;
 
 } /* end function dos_to_unix_time() */
 
+#endif /* !OS2 || TIMESTAMP */
+#endif /* !VMS && !CMS_MVS */
 
 
 
+#if (!defined(VMS) && !defined(OS2) && !defined(CMS_MVS))
 
 /******************************/
 /* Function check_for_newer() */  /* used for overwriting/freshening/updating */
@@ -1428,15 +1484,41 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
         return DOES_NOT_EXIST;
 #endif /* AOS_VS */
 
-    Trace((stderr, "check_for_newer:  doing stat(%s)\n", filename));
+    Trace((stderr, "check_for_newer:  doing stat(%s)\n", FnFilter1(filename)));
     if (SSTAT(filename, &G.statbuf)) {
         Trace((stderr,
           "check_for_newer:  stat(%s) returns %d:  file does not exist\n",
-          filename, stat(filename, &G.statbuf)));
+          FnFilter1(filename), stat(filename, &G.statbuf)));
+#ifdef SYMLINKS
+        Trace((stderr, "check_for_newer:  doing lstat(%s)\n",
+          FnFilter1(filename)));
+        /* GRR OPTION:  could instead do this test ONLY if G.symlnk is true */
+        if (lstat(filename, &G.statbuf) == 0) {
+            Trace((stderr,
+              "check_for_newer:  lstat(%s) returns 0:  symlink does exist\n",
+              FnFilter1(filename)));
+            if (QCOND2)
+                Info(slide, 0, ((char *)slide, LoadFarString(FileIsSymLink),
+                  FnFilter1(filename), " with no real file"));
+            return EXISTS_AND_OLDER;   /* symlink dates are meaningless */
+        }
+#endif /* SYMLINKS */
         return DOES_NOT_EXIST;
     }
     Trace((stderr, "check_for_newer:  stat(%s) returns 0:  file exists\n",
-      filename));
+      FnFilter1(filename)));
+
+#ifdef SYMLINKS
+    /* GRR OPTION:  could instead do this test ONLY if G.symlnk is true */
+    if (lstat(filename, &G.statbuf) == 0 && S_ISLNK(G.statbuf.st_mode)) {
+        Trace((stderr, "check_for_newer:  %s is a symbolic link\n",
+          FnFilter1(filename)));
+        if (QCOND2)
+            Info(slide, 0, ((char *)slide, LoadFarString(FileIsSymLink),
+              FnFilter1(filename), ""));
+        return EXISTS_AND_OLDER;   /* symlink dates are meaningless */
+    }
+#endif /* SYMLINKS */
 
     NATIVE_TO_TIMET(G.statbuf.st_mtime)   /* NOP unless MSC 7.0 or Macintosh */
 
@@ -1447,27 +1529,35 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
      */
     if (G.extra_field &&
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
+    {
         TTrace((stderr, "check_for_newer:  using Unix extra field mtime\n"));
         existing = G.statbuf.st_mtime;
         archive  = z_utime.mtime;
     } else {
-        /* round up existing filetime to nearest 2 seconds for comparison */
-        existing = G.statbuf.st_mtime & 1 ? G.statbuf.st_mtime + 1
-                                          : G.statbuf.st_mtime;
+        /* round up existing filetime to nearest 2 seconds for comparison,
+         * but saturate in case of arithmetic overflow
+         */
+        existing = ((G.statbuf.st_mtime & 1) &&
+                    (G.statbuf.st_mtime + 1 > G.statbuf.st_mtime)) ?
+                   G.statbuf.st_mtime + 1 : G.statbuf.st_mtime;
         archive  = dos_to_unix_time(G.lrec.last_mod_file_date,
                                     G.lrec.last_mod_file_time);
     }
 #else /* !USE_EF_UT_TIME */
-    /* round up existing filetime to nearest 2 seconds for comparison */
-    existing = G.statbuf.st_mtime & 1 ? G.statbuf.st_mtime + 1
-                                      : G.statbuf.st_mtime;
+    /* round up existing filetime to nearest 2 seconds for comparison,
+     * but saturate in case of arithmetic overflow
+     */
+    existing = ((G.statbuf.st_mtime & 1) &&
+                (G.statbuf.st_mtime + 1 > G.statbuf.st_mtime)) ?
+               G.statbuf.st_mtime + 1 : G.statbuf.st_mtime;
     archive  = dos_to_unix_time(G.lrec.last_mod_file_date,
                                 G.lrec.last_mod_file_time);
 #endif /* ?USE_EF_UT_TIME */
 
-    TTrace((stderr, "check_for_newer:  existing %ld, archive %ld, e-a %ld\n",
-      existing, archive, existing-archive));
+    TTrace((stderr, "check_for_newer:  existing %lu, archive %lu, e-a %ld\n",
+      (ulg)existing, (ulg)archive, (long)(existing-archive)));
 
     return (existing >= archive);
 

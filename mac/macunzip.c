@@ -3,16 +3,11 @@
 #include "version.h"
 
 #include <Traps.h>
+#ifdef THINK_C
 #include <Values.h>
+#endif
 
 char UnzipVersion[32], ZipinfoVersion[32];
-
-void MacFSTest (int);
-void ResolveMacVol (short, short *, long *, StringPtr);
-
-void screenOpen(char *);
-void screenControl(char *, int);
-void screenClose(void);
 
 #define aboutAlert      128
 
@@ -139,7 +134,7 @@ char *macgetenv(s) char *s; {
     return(NULL);
 }
 
-Boolean TrapAvailable(machineType, trapNumber, trapType)
+static Boolean TrapAvailable(machineType, trapNumber, trapType)
 short machineType;
 short trapNumber;
 TrapType trapType;
@@ -154,10 +149,14 @@ TrapType trapType;
             trapNumber = _Unimplemented;
     }
     return (NGetTrapAddress(trapNumber, trapType) !=
+#ifdef __MWERKS__
+        NGetTrapAddress(_Unimplemented, trapType));
+#else
         GetTrapAddress(_Unimplemented));
+#endif
 }
 
-void domenu(menucommand) long menucommand;
+static void domenu(menucommand) long menucommand;
 {
     short themenu, theitem;
     DialogPtr thedialog;
@@ -240,7 +239,7 @@ void domenu(menucommand) long menucommand;
             if (theitem == okItem) {
                 GetDItem(thedialog, editItem, &itemType, &itemHandle, &itemRect);
                 GetIText(itemHandle, (StringPtr)&fileList);
-                p2cstr(fileList);
+                p2cstr((StringPtr)fileList);
             }
             DisposDialog(thedialog);
             check = -1;
@@ -435,7 +434,7 @@ void domenu(menucommand) long menucommand;
     return;
 }
 
-void dokey(myevent) EventRecord *myevent;
+static void dokey(myevent) EventRecord *myevent;
 {
     char code;
 
@@ -450,7 +449,7 @@ void dokey(myevent) EventRecord *myevent;
     return;
 }
 
-void domousedown(myevent) EventRecord *myevent;
+static void domousedown(myevent) EventRecord *myevent;
 {
     WindowPtr whichwindow;
     long code;
@@ -612,7 +611,7 @@ int main(argc, argv) int argc; char *argv[];
         SetCursor(&qd.arrow);
 
         if (useWNE) {
-            haveEvent = WaitNextEvent(everyEvent, &myevent, MAXLONG, NULL);
+            haveEvent = WaitNextEvent(everyEvent, &myevent, LONG_MAX, NULL);
         } else {
             SystemTask();
             haveEvent = GetNextEvent(everyEvent, &myevent);
@@ -634,7 +633,7 @@ int main(argc, argv) int argc; char *argv[];
                 break;
 
             case updateEvt:
-                screenUpdate(myevent.message);
+                screenUpdate((WindowPtr)myevent.message);
                 break;
 
             case mouseUp:
@@ -660,7 +659,7 @@ int main(argc, argv) int argc; char *argv[];
                 MacFSTest(fileRep.vRefNum);
                 ResolveMacVol(fileRep.vRefNum, &G.gnVRefNum, &G.glDirID, NULL);
 
-                p2cstr((Ptr)fileRep.fName);
+                p2cstr((StringPtr)fileRep.fName);
 
                 modifierMask &= modifiers;
 
@@ -719,8 +718,6 @@ int main(argc, argv) int argc; char *argv[];
                 memcpy(&G, &saveGlobals, sizeof(struct Globals));
 
                 printf("\nDone\n");
-
-                screenControl("r", 0);
             }
 
             fileList[0] = '\0';

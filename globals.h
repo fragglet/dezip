@@ -164,8 +164,10 @@ struct Globals {
     int overwrite_all;  /* -o: OK to overwrite files without prompting */
     int P_flag;         /* -P: give password on command line (ARGH!) */
     int qflag;          /* -q: produce a lot less output */
-#ifdef DOS_OS2_W32
+#ifdef DOS_FLX_OS2_W32
     int sflag;          /* -s: convert spaces in filenames to underscores */
+#endif
+#ifdef DOS_OS2_W32
     int volflag;        /* -$: extract volume labels */
 #endif
     int tflag;          /* -t: test (unzip) or totals line (zipinfo) */
@@ -195,6 +197,7 @@ struct Globals {
     long used_csize;      /* used by extract_or_test_member(), explode() */
 
 #ifdef DLL
+     int fValidate;       /* true if only validating an archive */
      int filenotfound;
      int redirect_data;   /* redirect data to memory buffer */
      int redirect_text;   /* redirect text output to buffer */
@@ -304,11 +307,11 @@ struct Globals {
     ulg keys[3];       /* crypt static: keys defining pseudo-random sequence */
     char *key;         /* crypt static: decryption password or NULL */
 
-#if (!defined(DOS_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
+#if (!defined(DOS_FLX_H68_OS2_W32) && !defined(AMIGA) && !defined(RISCOS))
 #if (!defined(MACOS) && !defined(ATARI) && !defined(VMS))
     int echofd;        /* crypt static: file descriptor whose echo is off */
 #endif /* !(MACOS || ATARI || VMS) */
-#endif /* !(DOS_H68_OS2_W32 || AMIGA || RISCOS) */
+#endif /* !(DOS_FLX_H68_OS2_W32 || AMIGA || RISCOS) */
 
     unsigned hufts;    /* track memory usage */
 

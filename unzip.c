@@ -42,7 +42,7 @@
   Version:  unzip53.{tar.Z | tar.gz | zip} for Unix, VMS, OS/2, MS-DOS, Amiga,
               Atari, Windows 3.x/95/NT/CE, Macintosh, Human68K, Acorn RISC OS,
               BeOS, SMS/QDOS, VM/CMS, MVS, AOS/VS and TOPS-20.  Decryption
-              requires sources in zcrypt27.zip.  See the accompanying "Where"
+              requires sources in zcrypt27.zip.  See the accompanying "WHERE"
               file in the main source distribution for ftp, uucp, BBS and mail-
               server sites, or see http://www.cdrom.com/pub/infozip/UnZip.html .
 
@@ -119,7 +119,7 @@ static char Far IgnoreOOptionMsg[] =
    static char Far Example2[] =
 "  unzip foo -d RAM:$   => extract all files from foo into RAMDisc\n";
 #else /* !RISCOS */
-#if defined(OS2) || (defined(DOS_OS2_W32) && defined(MORE))
+#if defined(OS2) || (defined(DOS_FLX_OS2_W32) && defined(MORE))
    static char Far Example2[] = "";   /* no room:  too many local3[] items */
 #else /* !OS2 */
    static char Far Example2[] = " \
@@ -136,8 +136,12 @@ static char Far IgnoreOOptionMsg[] =
 #endif /* ?(DLL && API_DOC) */
 
 /* local2[] and local3[]:  modifier options */
-#ifdef DOS_OS2_W32
+#ifdef DOS_FLX_OS2_W32
+#ifdef FLEXOS
+   static char Far local2[] = "";
+#else
    static char Far local2[] = " -$  label removables (-$$ => fixed disks)";
+#endif
 #ifdef OS2
 #ifdef MORE
    static char Far local3[] = "\
@@ -167,7 +171,7 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 #endif
 #endif /* ?WIN32 */
 #endif /* ?OS2 || ?WIN32 */
-#else /* !DOS_OS2_W32 */
+#else /* !DOS_FLX_OS2_W32 */
 #ifdef VMS
    static char Far local2[] = "\"-X\" restore owner/protection info";
 #ifdef MORE
@@ -205,7 +209,7 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 #endif /* ?AMIGA */
 #endif /* ?UNIX */
 #endif /* ?VMS */
-#endif /* ?DOS_OS2_W32 */
+#endif /* ?DOS_FLX_OS2_W32 */
 #endif /* !SFX */
 
 #ifndef NO_ZIPINFO
@@ -414,7 +418,7 @@ Send bug reports to authors at Zip-Bugs@lists.wku.edu; see README for details.\
 /*
 static char Far UnzipUsageLine2v[] = "\
 Latest sources and executables are always in ftp.uu.net:/pub/archiving/zip, at\
-\nleast as of date of this release; see \"Where\" for other ftp and non-ftp \
+\nleast as of date of this release; see \"WHERE\" for other ftp and non-ftp \
 sites.\n\n";
  */
 static char Far UnzipUsageLine2v[] = "\
@@ -459,7 +463,7 @@ static char Far UnzipUsageLine4[] = "\
 modifiers:                                   -q  quiet mode (-qq => quieter)\n\
   -n  never overwrite existing files         -a  auto-convert any text files\n\
   -o  overwrite files WITHOUT prompting      -aa treat ALL files as text\n \
- -j  junk paths (don't make directories)    -v  be verbose/print version info\n\
+ -j  junk paths (do not make directories)   -v  be verbose/print version info\n\
  %c-C%c match filenames case-insensitively    %c-L%c make (some) names \
 lowercase\n %-42s %c-V%c retain VMS version numbers\n%s";
 
@@ -505,7 +509,7 @@ int unzip(__G__ argc, argv)
 #ifndef NO_ZIPINFO
     char *p;
 #endif
-#ifdef DOS_H68_OS2_W32
+#ifdef DOS_FLX_H68_OS2_W32
     int i;
 #endif
     int retcode, error=FALSE;
@@ -530,7 +534,7 @@ int unzip(__G__ argc, argv)
 #endif
 
 #ifdef MALLOC_WORK
-    G.area.Slide =(uch *)calloc(8193, sizeof(short)+sizeof(char)+sizeof(char));
+    G.area.Slide =(uch *)calloc(8193, sizeof(shrint)+sizeof(uch)+sizeof(uch));
     G.area.shrink.Parent = (shrint *)G.area.Slide;
     G.area.shrink.value = G.area.Slide + (sizeof(shrint)*(HSIZE+1));
     G.area.shrink.Stack = G.area.Slide +
@@ -656,7 +660,7 @@ int unzip(__G__ argc, argv)
     maining options and file specifications.
   ---------------------------------------------------------------------------*/
 
-#ifdef DOS_H68_OS2_W32
+#ifdef DOS_FLX_H68_OS2_W32
     /* convert MSDOS-style directory separators to Unix-style ones for
      * user's convenience (include zipfile name itself)
      */
@@ -668,7 +672,7 @@ int unzip(__G__ argc, argv)
                 *q = '/';
         ++G.pfnames;
     }
-#endif /* DOS_H68_OS2_W32 */
+#endif /* DOS_FLX_H68_OS2_W32 */
 
 #ifndef SFX
     G.wildzipfn = *argv++;
@@ -1061,14 +1065,14 @@ int uz_opts(__G__ pargc, pargv)
                     qlflag ^= strtol(s, &s, 10);
                     break;    /* we XOR this as we can config qlflags */
 #endif
-#ifdef DOS_OS2_W32
+#ifdef DOS_FLX_OS2_W32
                 case ('s'):    /* spaces in filenames:  allow by default */
                     if (negative)
                         G.sflag = FALSE, negative = 0;
                     else
                         G.sflag = TRUE;
                     break;
-#endif /* DOS_OS2_W32 */
+#endif /* DOS_FLX_OS2_W32 */
                 case ('t'):
                     if (negative)
                         G.tflag = FALSE, negative = 0;
@@ -1489,6 +1493,9 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 #  endif
 #  ifdef DOS_OS2_W32
 #    define LOCAL "s$"
+#  endif
+#  ifdef FLEXOS
+#    define LOCAL "s"
 #  endif
 #  ifdef AMIGA
 #    define LOCAL "N"

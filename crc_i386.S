@@ -1,21 +1,32 @@
 /*
  * crc_i386.S, optimized CRC calculation function for Zip and UnZip, not
- * copyrighted by Paul Kienitz and Christian Spieler.  Last revised 10 Nov 96.
+ * copyrighted by Paul Kienitz and Christian Spieler.  Last revised 12 Oct 97.
  *
  * GRR 961110:  incorporated Scott Field optimizations from win32/crc_i386.asm
  *              => overall 6% speedup in "unzip -tq" on 9MB zipfile (486-66)
+ *
+ * SPC 970402:  revised for Rodney Brown's optimizations (32-bit-wide
+ *              aligned reads for most of the data from buffer), can be
+ *              disabled by defining the macro NO_32_BIT_LOADS
+ *
+ * SPC 971012:  added Rodney Brown's additional tweaks for 32-bit-optimized
+ *              CPUs (like the Pentium Pro, Pentium II, and probably some
+ *              Pentium clones). This optimization is controlled by the
+ *              preprocessor switch "__686" and is disabled by default.
+ *              (This default is based on the assumption that most users
+ *              do not yet work on a Pentium Pro or Pentium II machine ...)
  *
  * FLAT memory model assumed.  Calling interface:
  *   - args are pushed onto the stack from right to left,
  *   - return value is given in the EAX register,
  *   - all other registers (with exception of EFLAGS) are preserved. (With
  *     GNU C 2.7.x, %edx and %ecx are `scratch' registers, but preserving
- *     them nevertheless does only cost 4 single byte instructions.)
+ *     them nevertheless adds only 4 single byte instructions.)
  *
  * This source generates the function
- * ulg crc32(ulg oldcrc, ZCONST uch *text, ulg textlen).
+ * ulg crc32(ulg crc, ZCONST uch *buf, ulg len).
  *
- * The loop unroolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
+ * The loop unrolling can be disabled by defining the macro NO_UNROLLED_LOOPS.
  * This results in shorter code at the expense of reduced performance.
  */
 
@@ -73,28 +84,49 @@
 #endif /* ?USE_STD_STACKFRAME */
 
 /*
- * This is the loop body of the CRC32 cruncher.
+ * These two (three) macros make up the loop body of the CRC32 cruncher.
  * registers modified:
- *   ebx  : crc value "c"
- *   esi  : pointer to next data byte "text++"
+ *   eax  : crc value "c"
+ *   esi  : pointer to next data byte (or lword) "buf++"
  * registers read:
  *   edi  : pointer to base of crc_table array
  * scratch registers:
- *   eax  : requires upper three bytes of eax = 0, uses al
+ *   ebx  : index into crc_table array
+ *          (requires upper three bytes = 0 when __686 is undefined)
  */
-#define Do_CRC \
-                movb    (%esi),%al          ;/* al <-- *text                */\
-                incl    %esi                ;/* text++                      */\
-                xorb    %bl,%al             ;/* (c ^ *text++) & 0xFF        */\
-                shrl    $8,%ebx             ;/* c = (c >> 8)                */\
-                xorl    (%edi,%eax,4),%ebx  ;/*  ^table[(c^(*text++))&0xFF] */
+#ifndef __686   /* optimize for 386, 486, Pentium */
+#define Do_CRC          /* c = (c >> 8) ^ table[c & 0xFF] */\
+                movb    %al, %bl                ;/* tmp = c & 0xFF  */\
+                shrl    $8, %eax                ;/* c = (c >> 8)    */\
+                xorl    (%edi, %ebx, 4), %eax   ;/* c ^= table[tmp] */
+#else   /* __686 : optimize for Pentium Pro and compatible CPUs */
+#define Do_CRC          /* c = (c >> 8) ^ table[c & 0xFF] */\
+                movzbl  %al, %ebx               ;/* tmp = c & 0xFF  */\
+                shrl    $8, %eax                ;/* c = (c >> 8)    */\
+                xorl    (%edi, %ebx, 4), %eax   ;/* c ^=table[tmp]  */
+#endif  /* ?__686 */
+
+#define Do_CRC_byte     /* c = (c >> 8) ^ table[(c^*buf++)&0xFF] */\
+                xorb    (%esi), %al     ;/* c ^= *buf  */\
+                incl    %esi            ;/* buf++      */\
+                Do_CRC
+
+#ifndef  NO_32_BIT_LOADS
+#define Do_CRC_lword \
+                xorl    (%esi), %eax    ;/* c ^= *(ulg *)buf */\
+                addl    $4, %esi        ;/* ((ulg *)buf)++   */\
+                Do_CRC \
+                Do_CRC \
+                Do_CRC \
+                Do_CRC
+#endif  /* !NO_32_BIT_LOADS */
 
 
                 .text
 
                 .globl  _crc32
 
-_crc32:                         /* ulg crc32(ulg crc, uch *text, extent len) */
+_crc32:                         /* ulg crc32(ulg crc, uch *buf, extent len) */
                 _STD_ENTRY
                 pushl   %edi
                 pushl   %esi
@@ -102,52 +134,87 @@ _crc32:                         /* ulg crc32(ulg crc, uch *text, extent len) */
                 pushl   %edx
                 pushl   %ecx
 
-                movl    arg2,%esi            /* 2nd arg: uch *text           */
-                subl    %eax,%eax            /* > if (!text)                 */
-                testl   %esi,%esi            /* >   return 0;                */
-                jz      fine                 /* > else {                     */
+                movl    arg2, %esi           /* 2nd arg: uch *buf            */
+                subl    %eax, %eax           /* > if (!buf)                  */
+                testl   %esi, %esi           /* >   return 0;                */
+                jz      .L_fine              /* > else {                     */
                 call    _get_crc_table
-                movl    %eax,%edi
-                movl    arg1,%ebx            /* 1st arg: ulg crc             */
-                subl    %eax,%eax            /* eax=0; al usable as dword */
-                movl    arg3,%ecx            /* 3rd arg: extent textlen      */
-                notl    %ebx                 /* >   c = ~crc;                */
+                movl    %eax, %edi
+                movl    arg1, %eax           /* 1st arg: ulg crc             */
+#ifndef __686
+                subl    %ebx, %ebx           /* ebx=0; bl usable as dword    */
+#endif
+                movl    arg3, %ecx           /* 3rd arg: extent len          */
+                notl    %eax                 /* >   c = ~crc;                */
 
 #ifndef  NO_UNROLLED_LOOPS
-                movl    %ecx,%edx            /* save textlen in edx          */
-                andl    $7,%edx              /* edx = textlen % 8            */
-                shrl    $3,%ecx              /* ecx = textlen / 8            */
-                jz      No_Eights
+#  ifndef  NO_32_BIT_LOADS
+                testl   %ecx, %ecx
+                jz      .L_bail
+                /* Assert now have positive length */
+.L_align_loop:
+                testl   $3, %esi        /* Align buf on lword boundary */
+                jz      .L_aligned_now
+                Do_CRC_byte
+                decl    %ecx
+                jnz     .L_align_loop
+.L_aligned_now:
+#  endif  /* !NO_32_BIT_LOADS */
+                movl    %ecx, %edx           /* save len in edx          */
+                andl    $7, %edx             /* edx = len % 8            */
+                shrl    $3, %ecx             /* ecx = len / 8            */
+                jz      .L_No_Eights
 /*  align loop head at start of 486 internal cache line !! */
                 ALIGNMENT
-Next_Eight:
+.L_Next_Eight:
+#  ifndef NO_32_BIT_LOADS
+                 /* Do_CRC_lword */
+                 xorl    (%esi), %eax    ;/* c ^= *(ulg *)buf */
+                 addl    $4, %esi        ;/* ((ulg *)buf)++   */
                  Do_CRC
                  Do_CRC
                  Do_CRC
                  Do_CRC
+                 /* Do_CRC_lword */
+                 xorl    (%esi), %eax    ;/* c ^= *(ulg *)buf */
+                 addl    $4, %esi        ;/* ((ulg *)buf)++   */
                  Do_CRC
                  Do_CRC
                  Do_CRC
                  Do_CRC
+#  else   /* NO_32_BIT_LOADS */
+                 Do_CRC_byte
+                 Do_CRC_byte
+                 Do_CRC_byte
+                 Do_CRC_byte
+                 Do_CRC_byte
+                 Do_CRC_byte
+                 Do_CRC_byte
+                 Do_CRC_byte
+#  endif  /* ?NO_32_BIT_LOADS */
                 decl    %ecx
-                jnz     Next_Eight
+                jnz     .L_Next_Eight
 
-No_Eights:
-                movl    %edx,%ecx
+.L_No_Eights:
+                movl    %edx, %ecx
 #endif /* NO_UNROLLED_LOOPS */
 
-                jecxz   bail                 /* > if (textlen)               */
+#ifndef NO_JECXZ_SUPPORT
+                jecxz   .L_bail              /* > if (len)                   */
+#else
+                testl   %ecx, %ecx           /* > if (len)                   */
+                jz      .L_bail
+#endif
 /* align loop head at start of 486 internal cache line !! */
                 ALIGNMENT
-loupe:                                       /* >   do {                     */
-                 Do_CRC                      /*       c = CRC32(c, *text++); */
-                decl    %ecx                 /* >   } while (--textlen);     */
-                jnz     loupe
+.L_loupe:                                    /* >   do {                     */
+                 Do_CRC_byte                 /*       c = CRC32(c, *buf++);  */
+                decl    %ecx                 /* >   } while (--len);         */
+                jnz     .L_loupe
 
-bail:                                        /* > }                          */
-                movl    %ebx,%eax
+.L_bail:                                     /* > }                          */
                 notl    %eax                 /* > return ~c;                 */
-fine:
+.L_fine:
                 popl    %ecx
                 popl    %edx
                 popl    %ebx

@@ -40,13 +40,14 @@ RSC=rc.exe
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "..\Release\app"
 # PROP Intermediate_Dir "Release"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "d:\wiz\unzip" /I "d:\wiz\unzip\windll" /I "d:\wiz\unzip\win32" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D "USE_EF_UX_TIME" /D "DLL" /YX /FD /c
+# ADD CPP /nologo /Zp4 /MT /W3 /GX /O2 /I "d:\wiz\unzip" /I "d:\wiz\unzip\windll" /I "d:\wiz\unzip\win32" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D "USE_EF_UT_TIME" /D "DLL" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /d "NDEBUG"
+# ADD RSC /l 0x409 /d "NDEBUG" /d "WIN32"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -65,13 +66,14 @@ LINK32=link.exe
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "..\Debug\app"
 # PROP Intermediate_Dir "Debug"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /I "d:\wiz\unzip" /I "d:\wiz\unzip\windll" /I "d:\wiz\unzip\win32" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D "USE_EF_UX_TIME" /D "DLL" /YX /FD /c
+# ADD CPP /nologo /Zp4 /MTd /W3 /Gm /GX /Zi /Od /I "d:\wiz\unzip" /I "d:\wiz\unzip\windll" /I "d:\wiz\unzip\win32" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "WINDLL" /D "USE_EF_UT_TIME" /D "DLL" /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o NUL /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o NUL /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
-# ADD RSC /l 0x409 /d "_DEBUG"
+# ADD RSC /l 0x409 /d "_DEBUG" /d "WIN32"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -100,10 +102,6 @@ SOURCE=D:\wiz\unzip\crctab.c
 # Begin Source File
 
 SOURCE=D:\wiz\unzip\crypt.c
-# End Source File
-# Begin Source File
-
-SOURCE=D:\wiz\unzip\windll\dllsetup.c
 # End Source File
 # Begin Source File
 

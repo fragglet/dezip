@@ -25,12 +25,9 @@ Bogus bugs (not our fault!):
 Bugs (real and/or imagined):
 ---------------------------
 
- - MSC 7.0 timezone bug:  USE_EF_UT_TIME results in all 1-1-1980 timestamps
-    [should be fixed in 5.30]
-
  - [OS/2 DLL] when trying to use the REXX function UzUnZipToStem to extract a
-    file with `&' in its name, the DLL crashes (UzUnZipToVar works) [Daniel H,
-    961215]
+    file with `&' in its name, the DLL crashes (but UzUnZipToVar still works)
+    [Daniel H, 961215]
  - UnZip has problems with archives bigger than 2GB; it may print "note: didn't
     find end-of-central-dir signature at end of central dir" (harmless) or
     may not be able to seek to member files [James Lemley 970107, Iris Spaniol
@@ -47,8 +44,6 @@ Bugs (real and/or imagined):
     [Kevin Fritz 931102]
  - still NT/W95 bug with "unzip -v d:*.zip" not matching properly? [Steve S
     940527]
- - VMS: UnZip fails to extract some indexed files that were stored with
-    IM-style VMS extra field (zip "-V" for Zip 2.0 through 2.1)
 
  - when ^Z received in no-echo mode, echo is not restored (works OK if
     resume, however)

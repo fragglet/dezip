@@ -12,6 +12,8 @@
 
   Contains:  GetCountryInfo()
              GetFileTime()
+             SetFileTime()              (TIMESTAMP only)
+             stamp_file()               (TIMESTAMP only)
              Utime2DosDateTime()
              SetPathAttrTimes()
              SetEAs()
@@ -48,12 +50,15 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #include "os2acl.h"
+
 extern char Far TruncEAs[];
 
-char *StringLower(char *szArg);
-
 /* local prototypes */
-#ifdef USE_EF_UT_TIME
+
+#ifdef TIMESTAMP
+  static int SetFileTime(ZCONST char *name, ulg stamp);
+#endif
+#if defined(USE_EF_UT_TIME) || defined(TIMESTAMP)
   static ulg Utime2DosDateTime  OF((time_t uxtime));
 #endif
 static int   getOS2filetimes    OF((__GPRO__
@@ -71,20 +76,21 @@ static void  map2fat            OF((char *pathcomp, char **pEndFAT));
 static int   SetLongNameEA      OF((char *name, char *longname));
 static void  InitNLS            OF((void));
 
+
 /*****************************/
 /*  Strings used in os2.c  */
 /*****************************/
 
 #ifndef SFX
   static char Far CantAllocateWildcard[] =
-    "warning:  can't allocate wildcard buffers\n";
+    "warning:  cannot allocate wildcard buffers\n";
 #endif
 static char Far Creating[] = "   creating: %-22s ";
 static char Far ConversionFailed[] = "mapname:  conversion of %s failed\n";
 static char Far Labelling[] = "labelling %c: %-22s\n";
 static char Far ErrSetVolLabel[] = "mapname:  error setting volume label\n";
 static char Far PathTooLong[] = "checkdir error:  path too long: %s\n";
-static char Far CantCreateDir[] = "checkdir error:  can't create %s\n\
+static char Far CantCreateDir[] = "checkdir error:  cannot create %s\n\
                  unable to process %s.\n";
 static char Far DirIsntDirectory[] =
   "checkdir error:  %s exists but is not directory\n\
@@ -94,7 +100,7 @@ static char Far PathTooLongTrunc[] =
                 -> %s\n";
 #if (!defined(SFX) || defined(SFX_EXDIR))
    static char Far CantCreateExtractDir[] =
-     "checkdir:  can't create extraction directory: %s\n";
+     "checkdir:  cannot create extraction directory: %s\n";
 #endif
 
 #ifndef __EMX__
@@ -204,7 +210,7 @@ extern void closedir(DIR *);
 #define rewinddir(dirp) seekdir(dirp, 0L)
 
 int IsFileSystemFAT(__GPRO__ ZCONST char *dir);
-char *StringLower(char *);
+char *StringLower(char *szArg);
 
 
 
@@ -265,8 +271,38 @@ long GetFileTime(ZCONST char *name)
 }
 
 
+#ifdef TIMESTAMP
+
+static int SetFileTime(ZCONST char *name, ulg stamp)   /* swiped from Zip */
+{
+  FILESTATUS fs;
+  USHORT fd, ft;
+
+  if (DosQueryPathInfo(name, FIL_STANDARD, (PBYTE) &fs, sizeof(fs)))
+    return -1;
+
+  fd = (USHORT) (stamp >> 16);
+  ft = (USHORT) stamp;
+  fs.fdateLastWrite = fs.fdateCreation = * (FDATE *) &fd;
+  fs.ftimeLastWrite = fs.ftimeCreation = * (FTIME *) &ft;
+
+  if (DosSetPathInfo(name, FIL_STANDARD, (PBYTE) &fs, sizeof(fs), 0))
+    return -1;
+
+  return 0;
+}
+
+
+int stamp_file(ZCONST char *fname, time_t modtime)
+{
+    return SetFileTime(fname, Utime2DosDateTime(modtime));
+}
+
+#endif /* TIMESTAMP */
+
+
 /* The following DOS date/time structures are machine-dependent as they
- * assume "little endian" byte order.  For OS/2-specific code, which
+ * assume "little-endian" byte order.  For OS/2-specific code, which
  * is run on x86 CPUs (or emulators?), this assumption is valid; but
  * care should be taken when using this code as template for other ports.
  */
@@ -284,7 +320,9 @@ typedef union {
   } _fdt;
 } F_DATE_TIME, *PF_DATE_TIME;
 
-#ifdef USE_EF_UT_TIME
+
+#if defined(USE_EF_UT_TIME) || defined(TIMESTAMP)
+
 static ulg Utime2DosDateTime(uxtime)
     time_t uxtime;
 {
@@ -292,7 +330,9 @@ static ulg Utime2DosDateTime(uxtime)
     struct tm *t;
 
     /* round up to even seconds */
-    uxtime = (uxtime + 1) & (~1);
+    /* round up (down if "up" overflows) to even seconds */
+    if (uxtime & 1)
+        uxtime = (uxtime + 1 > uxtime) ? uxtime + 1 : uxtime - 1;
 
     t = localtime(&(uxtime));
     if (t->tm_year < 80) {
@@ -311,8 +351,10 @@ static ulg Utime2DosDateTime(uxtime)
         dosfiletime._fdt.fd.year    = t->tm_year - 80;
     }
     return dosfiletime.timevalue;
+
 } /* end function Utime2DosDateTime() */
-#endif /* USE_EF_UT_TIME */
+
+#endif /* USE_EF_UT_TIME || TIMESTAMP */
 
 
 static int getOS2filetimes(__GPRO__ ulg *pM_dt, ulg *pA_dt, ulg *pC_dt)
@@ -325,8 +367,11 @@ static int getOS2filetimes(__GPRO__ ulg *pM_dt, ulg *pA_dt, ulg *pC_dt)
     /* Copy and/or convert time and date variables, if necessary;   */
     /* return a flag indicating which time stamps are available.    */
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field && ((eb_izux_flg = ef_scan_for_izux(G.extra_field,
-        G.lrec.extra_field_length, 0, &z_utime, NULL)) & EB_UT_FL_MTIME)) {
+    if (G.extra_field &&
+        ((eb_izux_flg = ef_scan_for_izux(G.extra_field,
+          G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
+          &z_utime, NULL)) & EB_UT_FL_MTIME))
+    {
         TTrace((stderr, "getOS2filetimes: UT e.f. modif. time = %lu\n",
                 z_utime.mtime));
         *pM_dt = Utime2DosDateTime(z_utime.mtime);
@@ -461,7 +506,7 @@ static int SetEAs(__GPRO__ const char *path, void *ef_block)
   if ( ef_block == NULL || pEAblock -> nID != EF_OS2 )
     return PK_OK;  /* not an OS/2 extra field:  assume OK */
 
-  if ( pEAblock->lSize > 0L && pEAblock->nSize <= 10 )
+  if ( pEAblock->nSize < 4 || (pEAblock->lSize > 0L && pEAblock->nSize <= 10) )
     return IZ_EF_TRUNC;  /* no compressed data! */
 
   strcpy(szName, path);
@@ -525,7 +570,7 @@ static int SetACL(__GPRO__ const char *path, void *ef_block)
   if ( ef_block == NULL || pACLblock -> nID != EF_ACL )
     return PK_OK;  /* not an OS/2 extra field:  assume OK */
 
-  if ( pACLblock->lSize > 0L && pACLblock->nSize <= 10 )
+  if (pACLblock->nSize < 4 || (pACLblock->lSize > 0L && pACLblock->nSize <= 10))
     return IZ_EF_TRUNC;  /* no compressed data! */
 
   if ( (szACL = malloc((size_t) pACLblock -> lSize)) == NULL )
@@ -949,6 +994,9 @@ static int EvalExtraFields(__GPRO__ const char *path,
   {
     pEFblock = (PEFHEADER) ef_ptr;
 
+    if (pEFblock -> nSize > (ef_len - EB_HEADSIZE))
+      return PK_ERR;            /* claimed EFblock length exceeds EF size! */
+
     switch (pEFblock -> nID)
     {
     case EF_OS2:
@@ -1165,7 +1213,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                     if (G.qflag)
                         Info(slide, 1, ((char *)slide, "%-22s ", G.filename));
                     Info(slide, 1, ((char *)slide, LoadFarString(TruncEAs),
-                      makeword(G.extra_field+2)-10));
+                      makeword(G.extra_field+2)-10, "\n"));
                 } else if (!G.qflag)
                     (*G.message)((zvoid *)&G, (uch *)"\n", 1L, 0);
             } else if (!G.qflag)
@@ -1184,7 +1232,7 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
             if (err == IZ_EF_TRUNC) {
                 Info(slide, 0x421, ((char *)slide, "%-22s ", G.filename));
                 Info(slide, 0x401, ((char *)slide, LoadFarString(TruncEAs),
-                  makeword(G.extra_field+2)-10));
+                  makeword(G.extra_field+2)-10, "\n"));
             }
 
             /* set date/time stamps (dirs only have creation times) */
@@ -1405,7 +1453,7 @@ int checkdir(__G__ pathcomp, flag)
                 (char *)NULL)
             {
                 Info(slide, 1, ((char *)slide,
-                 "checkdir warning:  can't save longname EA: out of memory\n"));
+                 "checkdir warning:  cannot save longname EA: out of memory\n"));
                 G.os2.longnameEA = FALSE;
                 error = 1;   /* can't set .LONGNAME extended attribute */
             } else           /* used and freed in close_outfile() */
@@ -1542,8 +1590,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (G.os2.rootlen > 0)
+        if (G.os2.rootlen > 0) {
             free(G.os2.rootpath);
+            G.os2.rootlen = 0;
+        }
         return 0;
     }
 
@@ -1724,18 +1774,23 @@ static void map2fat(pathcomp, pEndFAT)
         *last_dot = '.';              /*  "..") is OK:  put it back in */
 
         if ((last_dot - pBegin) > 8) {
-            char *p=last_dot, *q=pBegin+8;
+            char *p, *q;
             int i;
 
+            p = last_dot;
+            q = last_dot = pBegin + 8;
             for (i = 0;  (i < 4) && *p;  ++i)  /* too many chars in basename: */
-                *q++ = *p++;                   /*  shift .ext left and trun- */
-            *q = '\0';                         /*  cate/terminate it */
+                *q++ = *p++;                   /*  shift ".ext" left and */
+            *q = '\0';                         /*  truncate/terminate it */
             *pEndFAT = q;
         } else if ((pEnd - last_dot) > 4) {    /* too many chars in extension */
             *pEndFAT = last_dot + 4;
             **pEndFAT = '\0';
         } else
             *pEndFAT = pEnd;   /* filename is fine; point at terminating zero */
+
+        if ((last_dot - pBegin) > 0 && last_dot[-1] == ' ')
+            last_dot[-1] = '_';                /* NO blank in front of '.'! */
     }
 } /* end function map2fat() */
 
@@ -1835,7 +1890,9 @@ int check_for_newer(__G__ filename)   /* return 1 if existing file newer or equa
 #ifdef USE_EF_UT_TIME
     if (G.extra_field &&
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          &z_utime, NULL) & EB_UT_FL_MTIME)) {
+                          G.lrec.last_mod_file_date, &z_utime, NULL)
+         & EB_UT_FL_MTIME))
+    {
         TTrace((stderr, "check_for_newer:  using Unix extra field mtime\n"));
         archive = Utime2DosDateTime(z_utime.mtime);
     } else {
@@ -1898,7 +1955,7 @@ void version(__G)
 
     len = sprintf((char *)slide, LoadFarString(CompiledWith),
 
-#ifdef __GNUC__
+#if defined(__GNUC__)
 #  ifdef __EMX__  /* __EMX__ is defined as "1" only (sigh) */
       "emx+gcc ", __VERSION__,
 #  else

@@ -87,7 +87,9 @@ typedef struct {
 
 #ifndef NO_UNZIPH_STUFF
 #  include <time.h>
-#  define DATE_FORMAT DF_DMY
+#  ifndef DATE_FORMAT
+#    define DATE_FORMAT DF_DMY
+#  endif
 #  define lenEOL 1
 #  define PutNativeEOL  *q++ = native(LF);
 #  define USE_STRM_INPUT
@@ -96,6 +98,9 @@ typedef struct {
 #  define isatty(x) (TRUE)   /* used in funzip.c to find if stdin redirected:
      should find a better way, now just work as if stdin never redirected */
 #  define USE_EF_UT_TIME
+#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
+#    define TIMESTAMP
+#  endif
 #  define localtime riscos_localtime
 #  define gmtime riscos_gmtime
 #endif /* !NO_UNZIPH_STUFF */

@@ -98,8 +98,8 @@
 //    NO_STDDEF_H
 //    NO_NTSD_WITH_RSXNT
 //
-//    USE_SMITH_CODE       (optional - See COPYING document) 
-//    USE_UNSHRINK         (optional - See COPYING document) 
+//    USE_SMITH_CODE       (optional - See COPYING document)
+//    USE_UNSHRINK         (optional - See COPYING document)
 //
 //    DEBUG                (When building for Debug)
 //    _DEBUG               (When building for Debug)
@@ -205,7 +205,7 @@ struct Globals {
    FILE          *outfile;
    uch           *outbuf;
    uch           *realbuf;
-                  
+
    uch           *outbuf2;              //  main() (never changes); else malloc'd
    uch           *outptr;
    ulg            outcnt;               // number of chars stored in outbuf
@@ -305,11 +305,11 @@ void SetCurrentFile(struct Globals *pG);
 int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag);
 int UzpInput2(zvoid *pG, uch *buffer, int *size, int flag);
 void UzpMorePause(zvoid *pG, const char *szPrompt, int flag);
-int UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize, 
+int UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
                 const char *szZipFile, const char *szFile);
 int WINAPI UzpReplace(char *szFile);
 void WINAPI UzpSound(void);
-void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month, 
+void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
                        int day, int year, int hour, int minute, int uppercase,
                        char *szPath, char *szMethod, ulg dwCRC);
 int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer);
@@ -417,7 +417,7 @@ BOOL DoExtractOrTestFiles(LPCSTR szZipFile, EXTRACT_INFO *pei) {
 
 #ifdef _WIN32_WCE
 
-   // On CE, we use good old CreateThread() since the WinCE CRT does not 
+   // On CE, we use good old CreateThread() since the WinCE CRT does not
    // allocate per-thread storage.
    hThread = CreateThread(NULL, 0, ExtractOrTestFilesThread, pG, 0, &dwThreadId);
 
@@ -502,7 +502,7 @@ BOOL SetExtractToDirectory(LPTSTR szDirectory) {
    }
 
 #ifndef _WIN32_WCE
-   
+
    // Check to see if a root directory was specified.
    if ((length == 2) && isalpha(szDirectory[0]) && (szDirectory[1] == ':')) {
 
@@ -531,7 +531,7 @@ BOOL SetExtractToDirectory(LPTSTR szDirectory) {
 
    // We always want a wack at the end of our path.
    strcat(g_szExtractToDirectory, "\\");
-   
+
    // Add the wack back to the end of the path.
    if (fNeedToAddWack) {
       _tcscat(szDirectory, TEXT("\\"));
@@ -553,7 +553,7 @@ struct Globals* InitGlobals(LPCSTR szZipFile) {
    // Clear our USERFUNCTIONS structure and assign our SendAppMsg() function.
    ZeroMemory(&g_uf, sizeof(g_uf));
    g_uf.SendApplicationMessage = SendAppMsg;
-   
+
    // Store a global pointer to our DCL structure so that EXTRACT.C can access it.
    lpDCL = &g_dcl;
 
@@ -656,7 +656,7 @@ BOOL SmartCreateDirectory(struct Globals *pG, LPCSTR szDirectory) {
 
    // If there is a file with the same name, then display an error.
    } else if (x == 1) {
-      Info(slide, 1, ((char *)slide, 
+      Info(slide, 1, ((char *)slide,
            "cannot create %s as a file with same name already exists.\n",
            szDirectory));
       return FALSE;
@@ -720,7 +720,7 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
    }
 
    // All args are files/dirs to be extracted.
-   pG->dflag = TRUE;                    
+   pG->dflag = TRUE;
 
    // Invalidate our file offset to show that we are starting a new operation.
    g_pExtractInfo->dwFileOffset = 0xFFFFFFFF;
@@ -735,7 +735,7 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
 
       // If setjmp() returns 0, then we just set our jump marker and we can
       // continue with the operation.  If setjmp() returned something else,
-      // then we reached this point because the operation was aborted and 
+      // then we reached this point because the operation was aborted and
       // set our instruction pointer back here.
 
       if (error > 0) {
@@ -759,7 +759,7 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
    FreeGlobals(pG);
 
    // Tell the progress dialog that we are done.
-   SendMessage(g_hDlgProgress, WM_PRIVATE, MSG_OPERATION_COMPLETE, 
+   SendMessage(g_hDlgProgress, WM_PRIVATE, MSG_OPERATION_COMPLETE,
                (LPARAM)g_pExtractInfo);
 
    // Clear our global pointer as we are done with it.
@@ -776,7 +776,7 @@ unsigned __stdcall ExtractOrTestFilesThread(void *lpv) {
 //******************************************************************************
 void CheckForAbort(struct Globals *pG) {
    if (g_pExtractInfo->fAbort) {
-      
+
       // Add a newline to our log if we are in the middle of a line of text.
       if (!g_pExtractInfo->fNewLineOfText) {
          SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT, (LPARAM)"\n");
@@ -800,7 +800,7 @@ void CheckForAbort(struct Globals *pG) {
       }
 
       // Display an aborted message in the log
-      SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT, 
+      SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
                   (LPARAM)"Operation aborted by user.\n");
 
       // I hate to do this... Take a giant step out of here.
@@ -839,7 +839,7 @@ int UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag) {
    // messages while processing DoExtractFiles().
    if (!g_pExtractInfo) {
       if (g_hWndEdit) {
-         SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT, 
+         SendMessage(g_hWndMain, WM_PRIVATE, MSG_ADD_TEXT_TO_EDIT,
                      (LPARAM)buffer);
       } else {
          DebugOut(TEXT("Unhandled call to UzpMessagePrnt2(\"%S\")"), buffer);
@@ -909,7 +909,7 @@ void UzpMorePause(zvoid *pG, const char *szPrompt, int flag) {
 }
 
 //******************************************************************************
-int UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize, 
+int UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
                 const char *szZipFile, const char *szFile)
 {
    // Return Values:
@@ -957,7 +957,7 @@ void WINAPI UzpSound(void) {
 
 //******************************************************************************
 // Called from LIST.C
-void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month, 
+void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
                        int day, int year, int hour, int minute, int uppercase,
                        char *szPath, char *szMethod, ulg dwCRC)
 {
@@ -1003,7 +1003,7 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
                               ((DWORD)(day    & 0x001F) << 11) |
                               ((DWORD)(hour   & 0x001F) <<  6) |
                               ((DWORD)(minute & 0x003F)));
-   
+
    // We need to get our globals structure to determine our attributes and
    // encryption information.
    g_pFileLast->dwAttributes = (pG->crec.external_file_attributes & 0xFF);
@@ -1022,7 +1022,7 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, int ratio, int month,
 //******************************************************************************
 int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
 
-   // win_fprintf() is used within Info-ZIP to write to a file as well as log 
+   // win_fprintf() is used within Info-ZIP to write to a file as well as log
    // information.  If the "file" is a real file handle (not stdout or stderr),
    // then we write the data to the file and return.
 
@@ -1054,7 +1054,7 @@ int win_fprintf(FILE *file, unsigned int dwCount, char far *buffer) {
    if (g_pExtractInfo) {
 
       // Most of our progress strings come to our UzpMessagePrnt2() callback,
-      // but we occasionally get one here.  We will just forward it to 
+      // but we occasionally get one here.  We will just forward it to
       // UzpMessagePrnt2() as if it never came here.  To do this, we need to
       // get a pointer to our Globals struct.  Calling GETGLOBALS() sort of
       // breaks us from be REENTRANT, but we don't support that anyway.
@@ -1148,7 +1148,7 @@ int mapattr(struct Globals *pG) {
 void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem) {
 
    // time_t    is a 32-bit value for the seconds since January 1, 1970
-   // FILETIME  is a 64-bit value for the number of 100-nanosecond intervals since 
+   // FILETIME  is a 64-bit value for the number of 100-nanosecond intervals since
    //           January 1, 1601
    // DWORDLONG is a 64-bit int that we can use to perform large math operations.
 
@@ -1162,7 +1162,7 @@ void utimeToFileTime(time_t ut, FILETIME *pft, BOOL fOldFileSystem) {
    }
 
    // Compute the FILETIME for the given time_t.
-   DWORDLONG dwl = ((DWORDLONG)116444736000000000 + 
+   DWORDLONG dwl = ((DWORDLONG)116444736000000000 +
                    ((DWORDLONG)ut * (DWORDLONG)10000000));
 
    // Store the return value.
@@ -1228,9 +1228,10 @@ int GetFileTimes(struct Globals *pG, FILETIME *pftCreated, FILETIME *pftAccessed
       iztimes z_utime;
 
       // Get any date/time we can.  This can return 0 to 3 unix time fields.
-      unsigned eb_izux_flg = ef_scan_for_izux(pG->extra_field, 
-                                              pG->lrec.extra_field_length,
-                                              0, &z_utime, NULL);
+      unsigned eb_izux_flg = ef_scan_for_izux(pG->extra_field,
+                                              pG->lrec.extra_field_length, 0,
+                                              pG->lrec.last_mod_file_date,
+                                              &z_utime, NULL);
 
       // We require at least a modified time.
       if (eb_izux_flg & EB_UT_FL_MTIME) {
@@ -1276,7 +1277,7 @@ void close_outfile(struct Globals *pG) {
    mbstowcs(szFile, pG->filename, countof(szFile));
 
 #ifdef _WIN32_WCE
-   
+
    // Cast the outfile to a HANDLE (since that is really what it is), and
    // flush the file.  We need to flush, because any unsaved data that is
    // written to the file during CloseHandle() will step on the work done
@@ -1302,7 +1303,7 @@ void close_outfile(struct Globals *pG) {
       if (timeFlags) {
 
          // Set the various date and time fields.
-         if (!SetFileTime(hFile, 
+         if (!SetFileTime(hFile,
                  (timeFlags & EB_UT_FL_CTIME) ? &ftCreated  : NULL,
                  (timeFlags & EB_UT_FL_ATIME) ? &ftAccessed : NULL,
                  (timeFlags & EB_UT_FL_MTIME) ? &ftModified : NULL))
@@ -1341,7 +1342,7 @@ char* do_wild(struct Globals *pG, char *wildspec) {
    // This is a very slimmed down version of do_wild() taken from WIN32.C.
    // Since we don't support wildcards, we basically just return the wildspec
    // passed in as the filename.
-   
+
    // First call - must initialize everything.
    if (!pG->notfirstcall) {
       pG->notfirstcall = TRUE;
@@ -1349,7 +1350,7 @@ char* do_wild(struct Globals *pG, char *wildspec) {
    }
 
    // Last time through - reset for new wildspec.
-   pG->notfirstcall = FALSE;    
+   pG->notfirstcall = FALSE;
 
    return (char*)NULL;
 }
@@ -1418,7 +1419,7 @@ int mapname(struct Globals *pG, int renamed) {
          case ':':
          case '*':
          case '?':
-         case '"': 
+         case '"':
          case '<':
          case '>':
          case '|':
@@ -1442,7 +1443,7 @@ int mapname(struct Globals *pG, int renamed) {
 
    // Remove any VMS version numbers if found (appended ";###").
    if (pLastSemi) {
-      
+
       // Walk over all digits following the semi-colon.
       for (pOut = pLastSemi + 1; (*pOut >= '0') && (*pOut <= '9'); pOut++) {
       }
@@ -1512,7 +1513,7 @@ int iswild(char *pattern) {
 BOOL IsOldFileSystem(char *szPath) {
 
 #ifdef _WIN32_WCE
-   
+
    char szRoot[10];
 
    // Get the first nine characters of the path.

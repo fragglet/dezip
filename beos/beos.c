@@ -5,13 +5,12 @@
   BeOS-specific routines for use with Info-ZIP's UnZip 5.30 and later.
   (based on unix/unix.c)
 
-  Contains:  readdir()
-             do_wild()           <-- generic enough to put in fileio.c?
+  Contains:  do_wild()           <-- generic enough to put in fileio.c?
              mapattr()
              mapname()
              checkdir()
-             mkdir()
              close_outfile()
+             stamp_file()
              version()
              scanBeOSexfield()
              isBeOSexfield()
@@ -33,13 +32,8 @@
 #include <dirent.h>
 
 /* For the new post-DR8 file attributes */
-#include <fs_attr.h>
+#include <kernel/fs_attr.h>
 int set_file_attrs( const char *, const unsigned char *, const off_t );
-
-/* I haven't gotten gcc for DR9 yet... */
-#ifdef __GNUC__
-#warn GNU C is not supported right now, you have been warned!
-#endif
 
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
@@ -78,7 +72,7 @@ char *do_wild(__G__ wildspec)
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
                 Info(slide, 0x201, ((char *)slide,
-                  "warning:  can't allocate wildcard buffers\n"));
+                  "warning:  cannot allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -160,7 +154,10 @@ int mapattr(__G)
     switch (G.pInfo->hostnum) {
         case UNIX_:
         case VMS_:
+        case ACORN_:
+        case ATARI_:
         case BEOS_:
+        case QDOS_:
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
             return 0;
         case AMIGA_:
@@ -172,7 +169,6 @@ int mapattr(__G)
         case FS_HPFS_:
         case FS_NTFS_:
         case MAC_:
-        case ATARI_:             /* (used to set = 0666) */
         case TOPS20_:
         default:
             tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
@@ -295,8 +291,17 @@ int mapname(__G__ renamed)   /*  truncated), 2 if warning (skip file because */
                 Info(slide, 0, ((char *)slide, "   creating: %s\n",
                   G.filename));
             }
+            {   /* Handle the BeOS extra field if present. */
+                void *ptr = scanBeOSexfield( G.extra_field,
+                                             G.lrec.extra_field_length );
+                if( ptr ) {
+                    setBeOSexfield( G.filename, ptr );
+                }
+            }
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
+        /* TODO: should we re-write the BeOS extra field data in case it's */
+        /* changed?                                                        */
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
@@ -384,7 +389,7 @@ int checkdir(__G__ pathcomp, flag)
             }
             if (mkdir(buildpath, 0777) == -1) {   /* create the directory */
                 Info(slide, 1, ((char *)slide,
-                  "checkdir error:  can't create %s\n\
+                  "checkdir error:  cannot create %s\n\
                  unable to process %s.\n", buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
@@ -505,7 +510,7 @@ int checkdir(__G__ pathcomp, flag)
                  * and create more than one level, but why really necessary?) */
                 if (mkdir(pathcomp, 0777) == -1) {
                     Info(slide, 1, ((char *)slide,
-                      "checkdir:  can't create extraction directory: %s\n",
+                      "checkdir:  cannot create extraction directory: %s\n",
                       pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
@@ -530,8 +535,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == END) {
         Trace((stderr, "freeing rootpath\n"));
-        if (rootlen > 0)
+        if (rootlen > 0) {
             free(rootpath);
+            rootlen = 0;
+        }
         return 0;
     }
 
@@ -582,9 +589,24 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         fclose(G.outfile);                  /* close "data" file for good... */
         unlink(G.filename);                 /* ...and delete it */
         linktarget[ucsize] = '\0';
-        Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
+        if (QCOND2)
+            Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
         if (symlink(linktarget, G.filename))  /* create the real link */
             perror("symlink error");
+
+/* See beos.h; there's currently no way to save/restore a symbolic link's */
+/* attributes from C, and I'm loathe to introduce any C++. [cjh]          */
+#  ifndef BE_NO_SYMLINK_ATTRS
+        {
+            /* Symlinkcs can have attributes, too. */
+            void *ptr = scanBeOSexfield( G.extra_field,
+                                         G.lrec.extra_field_length );
+            if( ptr ) {
+                setBeOSexfield( G.filename, ptr );
+            }
+        }
+#  endif
+
         free(linktarget);
         return;                             /* can't set time on symlinks */
     }
@@ -611,9 +633,9 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     then have to check for restoration of UID/GID.
   ---------------------------------------------------------------------------*/
 
-    eb_izux_flg = (G.extra_field ?
-                   ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                                    0, &zt, z_uidgid) : 0);
+    eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
+                   G.lrec.extra_field_length, 0, G.lrec.last_mod_file_date,
+                   &zt, z_uidgid) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
           zt.mtime));
@@ -635,17 +657,26 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
         if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
         {
-            Info(slide, 0x201, ((char *)slide,
-              "warning:  can't set UID %d and/or GID %d for %s\n",
-              z_uidgid[0], z_uidgid[1], G.filename));
+            if (G.qflag)
+                Info(slide, 0x201, ((char *)slide,
+                  "warning:  cannot set UID %d and/or GID %d for %s\n",
+                  z_uidgid[0], z_uidgid[1], G.filename));
+            else
+                Info(slide, 0x201, ((char *)slide,
+                  " (warning) cannot set UID %d and/or GID %d",
+                  z_uidgid[0], z_uidgid[1]));
 /* GRR: change return type to int and set up to return warning after utime() */
         }
     }
 
     /* set the file's access and modification times */
     if (utime(G.filename, (struct utimbuf *)&zt)) {
-        Info(slide, 0x201, ((char *)slide,
-             "warning:  can't set the time for %s\n", G.filename));
+        if (G.qflag)
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  cannot set time for %s\n", G.filename));
+        else
+            Info(slide, 0x201, ((char *)slide,
+              " (warning) cannot set time"));
     }
 
     /* handle the BeOS extra field if present */
@@ -662,6 +693,29 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 
 
 
+
+#ifdef TIMESTAMP
+
+/***************************/
+/*  Function stamp_file()  */
+/***************************/
+
+int stamp_file(fname, modtime)
+    ZCONST char *fname;
+    time_t modtime;
+{
+    struct utimbuf tp;
+
+    tp.modtime = tp.actime = modtime;
+    return (utime(fname, &tp));
+
+} /* end function stamp_file() */
+
+#endif /* TIMESTAMP */
+
+
+
+
 #ifndef SFX
 
 /************************/
@@ -672,20 +726,17 @@ void version(__G)
     __GDEF
 {
     sprintf((char *)slide, LoadFarString(CompiledWith),
-#ifdef __MWERKS__
+#if defined(__MWERKS__)
       "Metrowerks CodeWarrior", "",
-#else
-#  ifdef __GNUC__
-      "GNU C/C++", "",
-#  endif
+#elif defined(__GNUC__)
+      "GNU C ", __VERSION__,
 #endif
       "BeOS ",
 
 #ifdef __POWERPC__
       "(PowerPC)",
 #else
-      /* Some day we may have other architectures... */
-      "(unknown)",
+      "(unknown)",   /* someday we may have other architectures... */
 #endif
 
 #ifdef __DATE__
@@ -761,8 +812,8 @@ If set_file_attrs() fails, an error will be returned:
 (other values will be whatever the failed function returned; no docs
 yet, or I'd list a few)
 */
-int set_file_attrs( const char *name, 
-                    const unsigned char *attr_buff, 
+int set_file_attrs( const char *name,
+                    const unsigned char *attr_buff,
                     const off_t attr_size )
 {
     int                  retval = EOK;
@@ -792,24 +843,24 @@ int set_file_attrs( const char *name,
 
         attr_data  = ptr;
         ptr       += fa_info.size;
- 
+
         if( ptr > guard ) {
             /* We've got a truncated attribute. */
             Info(slide, 0x201, ((char *)slide,
                  "warning: truncated attribute\n"));
             break;
         }
- 
-        wrote_bytes = fs_write_attr( fd, attr_name, fa_info.type, 0, 
+
+        wrote_bytes = fs_write_attr( fd, attr_name, fa_info.type, 0,
                                      attr_data, fa_info.size );
         if( wrote_bytes != fa_info.size ) {
             Info(slide, 0x201, ((char *)slide,
                  "warning: wrote %ld attribute bytes of %ld\n",(unsigned long)wrote_bytes,(unsigned long)fa_info.size));
         }
     }
- 
+
     close( fd );
- 
+
     return retval;
 }
 
@@ -843,7 +894,15 @@ void setBeOSexfield( char *path, uch *extra_field )
     if( size <= EF_BE_SIZE ) {
         /* corrupted, unsupported, or truncated */
         Info(slide, 0x201, ((char *)slide,
-             "BeOS extra field is %d bytes, should be at least %d.\n",size,EF_BE_SIZE));
+             "BeOS extra field is %d bytes, should be at least %d.\n", size,
+             EF_BE_SIZE));
+        return;
+    }
+    if( full_size < ( size - EF_BE_SIZE ) ) {
+        /* possible old archive? will this screw up on valid archives? */
+        Info(slide, 0x201, ((char *)slide,
+             "Skipping attributes: BeOS extra field is %d bytes, "
+             "data size is %ld.\n", size - EF_BE_SIZE, full_size));
         return;
     }
 
@@ -861,7 +920,7 @@ void setBeOSexfield( char *path, uch *extra_field )
             return;
         }
 
-        retval = memextract( __G__ attrbuff, full_size, 
+        retval = memextract( __G__ attrbuff, full_size,
                              ptr, size - EF_BE_SIZE );
         if( retval != PK_OK ) {
             /* error uncompressing attributes */
@@ -930,18 +989,18 @@ void printBeOSexfield( int isdir, uch *extra_field )
     if( size <= EF_BE_SIZE ) {
         /* corrupted, unsupported, or truncated */
         printf( "\t*** Corrupted BeOS extra field:\n" );
-        printf( "\t*** size is %d, should be larger than %d\n", size, 
+        printf( "\t*** size is %d, should be larger than %d\n", size,
                 EF_BE_SIZE );
     }
 
     if( flags & EF_BE_FL_NATURAL ) {
         /* Uncompressed data */
         printf( "\tBeOS extra field data (uncompressed):\n" );
-        printf( "\t\t%d data bytes\n", full_size );
+        printf( "\t\t%ld data bytes\n", full_size );
     } else {
         /* Compressed data */
         printf( "\tBeOS extra field data (compressed):\n" );
         printf( "\t\t%d compressed bytes\n", size - EF_BE_SIZE );
-        printf( "\t\t%d uncompressed bytes\n", full_size );
+        printf( "\t\t%ld uncompressed bytes\n", full_size );
     }
 }

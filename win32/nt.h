@@ -3,18 +3,6 @@
 #ifndef _NT_H
 #define _NT_H
 
-#define EB_NTSD_MAX_VER_SUPPORT (0) /* maximum ver# we know how to handle */
-
-#define EB_NTSD_C_LEN     4    /* length of central EB data */
-#define EB_NTSD_L_LEN     5    /* length of minimal local EB data */
-#define EB_NTSD_LSIZE     0    /* offset of (ulg) uncompressed SD data size */
-#define EB_NTSD_VERSION   4    /* offset of NTSD version byte */
-/*  ...followed by... */
-/*  SHORT CType;  compression type */
-/*  ULONG EACRC;  CRC value for uncompressed security descriptor data */
-/*  <var.> Variable length data */
-
-
 #define NTSD_BUFFERSIZE (1024)  /* threshold to cause malloc() */
 #define OVERRIDE_BACKUP     1   /* we have SeBackupPrivilege on remote */
 #define OVERRIDE_RESTORE    2   /* we have SeRestorePrivilege on remote */

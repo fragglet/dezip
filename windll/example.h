@@ -23,7 +23,8 @@
 #define MSWIN
 #endif
 
-typedef int (WINAPI * _DLL_UNZIP)(int, char **, LPDCL, LPUSERFUNCTIONS);
+typedef int (WINAPI * _DLL_UNZIP)(int, char **, int, char **,
+                                  LPDCL, LPUSERFUNCTIONS);
 typedef int (WINAPI * _USER_FUNCTIONS)(LPUSERFUNCTIONS);
 
 /* Global variables */

@@ -1,10 +1,12 @@
-UnZip 5.31 for BeOS
+UnZip 5.32 for BeOS
 
 UnZip 5.30 was the first official release of Info-ZIP's UnZip to support
 the filesystem in BeOS.
 
 UnZip 5.31 supports the new filesystem present in Advanced Access Release
 DR9 of BeOS.
+
+UnZip 5.32 adds several important bug fixes.
 
 *** WARNING ***
 The format of the data stored for the BeOS file attributes had to change 
@@ -32,7 +34,13 @@ try to deal with this in a fairly sensible way, working on the assumption
 that the data in the file is more important than the data in the file
 attributes.
 
+KNOWN BUGS
+
+Zip and UnZip are unable to save or restore the file attributes associated
+with symbolic links.  This is a shortcoming in the C API for accessing file
+attributes and will be addressed by a future version of BeOS.
+
 Please report any bugs to Zip-Bugs@lists.wku.edu.
 
 - Chris Herborth (chrish@qnx.com)
-  May 29/1997
+  Sept. 12/1997

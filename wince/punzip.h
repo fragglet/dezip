@@ -182,7 +182,9 @@ extern "C" {
 #define PK_EXCEPTION  500
 #define PK_ABORTED    501
 
+#ifndef DATE_FORMAT
 #define DATE_FORMAT   DF_MDY
+#endif
 #define lenEOL        2
 #define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
 

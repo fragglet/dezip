@@ -55,7 +55,7 @@ DIR *opendir(dirName) char *dirName; {
 
     hPB.volumeParam.ioNamePtr = (StringPtr)pName;
 
-    err = PBHGetVInfo(&hPB, 0);
+    err = PBHGetVInfoSync(&hPB);
 
     if ((err != noErr) || (hPB.volumeParam.ioVFSID != 0)) {
         errno = ENOENT;
@@ -74,7 +74,7 @@ DIR *opendir(dirName) char *dirName; {
 
     cPB.hFileInfo.ioNamePtr = (StringPtr)pName;
 
-    err = PBGetCatInfo(&cPB, false);
+    err = PBGetCatInfoSync(&cPB);
 
     if (err != noErr) {
         errno = (err == fnfErr) ? ENOENT : EIO;
@@ -119,7 +119,7 @@ struct dirent *readdir(dPtr) DIR *dPtr; {
     cPB.hFileInfo.ioVRefNum = dPtr->ioVRefNum;
     cPB.hFileInfo.ioDirID = dPtr->ioDrDirID;
 
-    err = PBGetCatInfo(&cPB, false);
+    err = PBGetCatInfoSync(&cPB);
 
     if (err != noErr) {
         dPtr->flags = 0xff;

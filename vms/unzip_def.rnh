@@ -38,6 +38,8 @@
 .!		Added -h "help" option.
 .!	02-003		Christian Spieler	04-MAR-1997 20:25
 .!		Added -P "command line password" option.
+.!	02-004		Christian Spieler	26-JUL-1997 00:05
+.!		Added Exit_Codes subtopic, explaining UnZip's VMS return codes.
 .!
 .noflags
 .lm4 .rm72
@@ -154,6 +156,89 @@ Please note that using the "-P<password>" option is higly insecure, the
 plaintext password may be seen by others. For this reason (and because of
 lack of space), the "-P<password>" option is not advertised on UnZip's
 online help screen.
+.!------------------------------------------------------------------------------
+.indent -4
+2 Exit_Codes
+.br
+On VMS, UnZip's UNIX style exit values are mapped into proper
+VMS status codes:
+.sk;.literal
+   1                               (success)  normal exit,
+   (0x7fff0000 + 16*UnZip_errnum)  -W- warnings
+   (0x7fff0002 + 16*UnZip_errnum)  -E- normal errors
+   (0x7fff0004 + 16*UnZip_errnum)  -F- fatal errors
+.end literal;.sk
+The UnZip error level (or exit code) approximates the exit
+codes defined by PKWARE and takes on the following values:
+.sk;.literal
+  VMS       UnZip    Type of error
+  severity  errcode
+    -         0      normal; no errors or warnings detected.
+
+    W         1      one or more warning errors were encountered,
+                     but processing completed  successfully  any-
+                     way.   This  includes  zipfiles where one or
+                     more files was skipped  due  to  unsupported
+                     compression  method  or  encryption  with an
+                     unknown password.
+
+    E         2      a generic error in the  zipfile  format  was
+                     detected.   Processing  may  have  completed
+                     successfully anyway;  some  broken  zipfiles
+                     created by other archivers have simple work-
+                     arounds.
+
+    F         3      a severe error in  the  zipfile  format  was
+                     detected.   Processing probably failed imme-
+                     diately.
+
+    F         4      unzip was unable to allocate memory for  one
+                     or  more  buffers during program initializa-
+                     tion.
+
+    F         5      unzip  was  unable  to  allocate  memory  or
+                     unable  to  obtain a tty to read the decryp-
+                     tion password(s).
+
+    F         6      unzip was unable to allocate  memory  during
+                     decompression to disk.
+
+    F         7      unzip  was  unable to allocate memory during
+                     in-memory decompression.
+
+    F         8      [currently not used]
+
+    E         9      the specified zipfiles were not found.
+
+    E         10     invalid options were specified on  the  com-
+                     mand line.
+
+    E         11     no matching files were found.
+
+    F         50     the disk is (or was) full during extraction.
+
+    F         51     the end of the ZIP archive  was  encountered
+                     prematurely.
+
+    E         80     the user aborted unzip prematurely with con-
+                     trol-C (or similar)
+
+    E         81     no files were found due to unsupported  com-
+                     pression  methods or unsupported decryption.
+                     (If even one additional file is successfully
+                     processed, however, the exit status is 1.)
+
+    E         82     no  files  were  found due to bad decryption
+                     password(s).  This is also the  exit  status
+                     if  no files were found due to a combination
+                     of unsupported  compression  and  bad  pass-
+                     words.   As in the previous case, however, a
+                     single successful file  will  result  in  an
+                     exit status of 1 instead.)
+.end literal;.sk
+In addition, there is a compilation option to expand upon this behavior:
+An executable compiled with the option RETURN_CODES defined displays
+a human-readable explanation of what the error status means.
 .!------------------------------------------------------------------------------
 .indent -4
 2 Logical_Names

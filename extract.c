@@ -10,7 +10,7 @@
              store_info()
              extract_or_test_member()
              TestExtraField()
-             test_OS2()
+             test_compr_eb()
              memextract()
              memflush()
              fnfilter()
@@ -73,7 +73,10 @@ static int store_info OF((__GPRO));
 static int extract_or_test_member OF((__GPRO));
 #ifndef SFX
    static int TestExtraField OF((__GPRO__ uch *ef, unsigned ef_len));
-   static int test_OS2 OF((__GPRO__ uch *eb, unsigned eb_size));
+   static int test_compr_eb OF((__GPRO__ uch *eb, unsigned eb_size,
+        unsigned compr_offset,
+        int (*test_uc_ebdata)(__GPRO__ uch *eb, unsigned eb_size,
+                              uch *eb_ucptr, ulg eb_ucsize)));
 #endif
 #ifdef UNIX
    static int dircomp OF((ZCONST zvoid *a, ZCONST zvoid *b));
@@ -131,18 +134,18 @@ static char Far SkipVolumeLabel[] = "   skipping: %-22s  %svolume label\n";
 
 #ifdef UNIX  /* messages of code for setting directory attributes */
    static char Far DirlistNoMem[] =
-     "warning: can't alloc memory for dir times/permissions/UIDs/GIDs\n";
+     "warning:  cannot alloc memory for dir times/permissions/UIDs/GIDs\n";
    static char Far DirlistEntryNoMem[] =
-     "can't alloc memory for dir times/permissions/UID/GID\n";
+     "cannot alloc memory for dir times/permissions/UID/GID\n";
    static char Far DirlistSortNoMem[] =
-     "warning: can't alloc memory to sort dir times/perms/etc.\n";
+     "warning:  cannot alloc memory to sort dir times/perms/etc.\n";
    static char Far DirlistUidGidFailed[] =
-     "warning:  can't set UID %d and/or GID %d for %s\n";
+     "warning:  cannot set UID %d and/or GID %d for %s\n";
    static char Far DirlistUtimeFailed[] =
-     "warning:  can't set modification, access times for %s\n";
+     "warning:  cannot set modification, access times for %s\n";
 #  ifndef NO_CHMOD
      static char Far DirlistChmodFailed[] =
-       "warning:  can't set permissions for %s\n";
+       "warning:  cannot set permissions for %s\n";
 #  endif
 #endif
 
@@ -163,7 +166,7 @@ static char Far ZeroFilesTested[] = "Caution:  zero files tested in %s.\n";
 #endif
 
 #if CRYPT
-   static char Far SkipCantGetPasswd[] =
+   static char Far SkipCannotGetPasswd[] =
      "   skipping: %-22s  unable to get password\n";
    static char Far SkipIncorrectPasswd[] =
      "   skipping: %-22s  incorrect password\n";
@@ -208,9 +211,13 @@ char Far TruncEAs[] = " compressed EA data missing (%d bytes)%s";
 char Far TruncNTSD[] = " compressed WinNT security data missing (%d bytes)%s";
 
 #ifndef SFX
-   static char Far InconsistEFlength[] =
-     "bad EF entry: block length %u > rest EF_size %u\n";
+   static char Far InconsistEFlength[] = "bad extra-field entry:\n \
+     EF block length (%u bytes) exceeds remaining EF data (%u bytes)\n";
    static char Far InvalidComprDataEAs[] = " invalid compressed data for EAs\n";
+#  if (defined(WIN32) && defined(NTSD_EAS))
+     static char Far InvalidSecurityEAs[] = " EAs fail security check\n";
+#  endif
+   static char Far UnsuppNTSDVersEAs[] = " unsupported NTSD EAs version %d\n";
    static char Far BadCRC_EAs[] = " bad CRC for extended attributes\n";
    static char Far UnknComprMethodEAs[] =
      " unknown compression method for EAs (%u)\n";
@@ -219,9 +226,9 @@ char Far TruncNTSD[] = " compressed WinNT security data missing (%d bytes)%s";
 #endif /* !SFX */
 
 static char Far UnsupportedExtraField[] =
-  "\nerror:  unsupported extra field compression type (%u)--skipping\n";
+  "\nerror:  unsupported extra-field compression type (%u)--skipping\n";
 static char Far BadExtraFieldCRC[] =
-  "error [%s]:  bad extra field CRC %08lx (should be %08lx)\n";
+  "error [%s]:  bad extra-field CRC %08lx (should be %08lx)\n";
 
 
 
@@ -642,11 +649,10 @@ startover:
                             }
                             strcpy(dirlist[num_dirs].fn, G.filename);
                             dirlist[num_dirs].perms = G.pInfo->file_attr;
-                            eb_izux_flg = G.extra_field ?
-                              ef_scan_for_izux(G.extra_field,
-                                               G.lrec.extra_field_length, 0,
-                                               &dirlist[num_dirs].u.t3,
-                                               dirlist[num_dirs].uidgid)
+                            eb_izux_flg = G.extra_field? ef_scan_for_izux(
+                              G.extra_field, G.lrec.extra_field_length, 0,
+                              G.lrec.last_mod_file_date,
+                              &dirlist[num_dirs].u.t3, dirlist[num_dirs].uidgid)
                               : 0;
                             if (eb_izux_flg & EB_UT_FL_MTIME) {
                                 TTrace((stderr,
@@ -844,7 +850,7 @@ reprompt:
                     if (error > error_in_archive)
                         error_in_archive = error;
                     Info(slide, 0x401, ((char *)slide,
-                      LoadFarString(SkipCantGetPasswd),
+                      LoadFarString(SkipCannotGetPasswd),
                       FnFilter1(G.filename)));
                 }
                 continue;   /* go on to next file */
@@ -1044,16 +1050,16 @@ reprompt:
 
     if ((filnum == 0) && error_in_archive <= PK_WARN) {
         if (num_skipped > 0)
-            error_in_archive = IZ_UNSUP;  /* unsup. compression/encryption */
+            error_in_archive = IZ_UNSUP; /* unsupport. compression/encryption */
         else
-            error_in_archive = PK_FIND;   /* no files found at all */
+            error_in_archive = PK_FIND;  /* no files found at all */
     }
 #if CRYPT
     else if ((filnum == num_bad_pwd) && error_in_archive <= PK_WARN)
-        error_in_archive = IZ_BADPWD;     /* bad passwd => all files skipped */
+        error_in_archive = IZ_BADPWD;    /* bad passwd => all files skipped */
 #endif
-    else if ((num_skipped > 0) && !error_in_archive)
-        error_in_archive = PK_WARN;
+    else if ((num_skipped > 0) && error_in_archive <= PK_WARN)
+        error_in_archive = IZ_UNSUP;     /* was PK_WARN; Jean-loup complained */
 #if CRYPT
     else if ((num_bad_pwd > 0) && !error_in_archive)
         error_in_archive = PK_WARN;
@@ -1234,16 +1240,16 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
 #else
             G.outfile = stdout;
 #endif
-#ifdef DOS_H68_OS2_W32
-#ifdef __HIGHC__
+#ifdef DOS_FLX_H68_OS2_W32
+#if (defined(__HIGHC__) && !defined(FLEXOS))
             setmode(G.outfile, _BINARY);
-#else
+#else /* !(defined(__HIGHC__) && !defined(FLEXOS)) */
             setmode(fileno(G.outfile), O_BINARY);
-#endif
+#endif /* ?(defined(__HIGHC__) && !defined(FLEXOS)) */
 #           define NEWLINE "\r\n"
-#else /* !DOS_H68_OS2_W32 */
+#else /* !DOS_FLX_H68_OS2_W32 */
 #           define NEWLINE "\n"
-#endif /* ?DOS_H68_OS2_W32 */
+#endif /* ?DOS_FLX_H68_OS2_W32 */
 #ifdef VMS
             if (open_outfile(__G))   /* VMS:  required even for stdout! */
                 return PK_DISK;
@@ -1532,7 +1538,8 @@ static int TestExtraField(__G__ ef, ef_len)
         switch (ebID) {
             case EF_OS2:
             case EF_ACL:
-                if ((r = test_OS2(__G__ ef, ebLen)) != PK_OK) {
+                if ((r = test_compr_eb(__G__ ef, ebLen, EB_OS2_CHEAD, NULL))
+                    != PK_OK) {
                     if (G.qflag)
                         Info(slide, 1, ((char *)slide, "%-22s ",
                           FnFilter1(G.filename)));
@@ -1540,7 +1547,7 @@ static int TestExtraField(__G__ ef, ef_len)
                         case IZ_EF_TRUNC:
                             Info(slide, 1, ((char *)slide,
                               LoadFarString(TruncEAs),
-                              makeword(ef+2)-10, "\n"));
+                              ebLen-(EB_OS2_CHEAD+EB_CMPRHEADLEN), "\n"));
                             break;
                         case PK_ERR:
                             Info(slide, 1, ((char *)slide,
@@ -1571,8 +1578,12 @@ static int TestExtraField(__G__ ef, ef_len)
                 break;
 
             case EF_NTSD:
-#ifdef WIN32
-                if ((r = test_NT(__G__ ef, ebLen)) != PK_OK) {
+                Trace((stderr, "ebID: %i / ebLen: %u\n", ebID, ebLen));
+                r = ebLen < EB_NTSD_L_LEN ? IZ_EF_TRUNC :
+                    ((ef[EB_HEADSIZE+EB_NTSD_VERSION] > EB_NTSD_MAX_VER) ?
+                     (PK_WARN | 0x4000) :
+                     test_compr_eb(__G__ ef, ebLen, EB_NTSD_L_LEN, TEST_NTSD));
+                if (r != PK_OK) {
                     if (G.qflag)
                         Info(slide, 1, ((char *)slide, "%-22s ",
                           FnFilter1(G.filename)));
@@ -1580,8 +1591,14 @@ static int TestExtraField(__G__ ef, ef_len)
                         case IZ_EF_TRUNC:
                             Info(slide, 1, ((char *)slide,
                               LoadFarString(TruncNTSD),
-                              makeword(ef+2)-11, "\n"));
+                              ebLen-(EB_NTSD_L_LEN+EB_CMPRHEADLEN), "\n"));
                             break;
+#if (defined(WIN32) && defined(NTSD_EAS))
+                        case PK_WARN:
+                            Info(slide, 1, ((char *)slide,
+                              LoadFarString(InvalidSecurityEAs)));
+                            break;
+#endif
                         case PK_ERR:
                             Info(slide, 1, ((char *)slide,
                               LoadFarString(InvalidComprDataEAs)));
@@ -1590,6 +1607,12 @@ static int TestExtraField(__G__ ef, ef_len)
                         case PK_MEM4:
                             Info(slide, 1, ((char *)slide,
                               LoadFarString(NotEnoughMemEAs)));
+                            break;
+                        case (PK_WARN | 0x4000):
+                            Info(slide, 1, ((char *)slide,
+                              LoadFarString(UnsuppNTSDVersEAs),
+                              (int)ef[EB_HEADSIZE+EB_NTSD_VERSION]));
+                            r = PK_WARN;
                             break;
                         default:
                             if ((r & 0xff) != PK_ERR)
@@ -1609,7 +1632,6 @@ static int TestExtraField(__G__ ef, ef_len)
                     return r;
                 }
                 break;
-#endif
             case EF_PKVMS:
             case EF_ASIUNIX:
             case EF_IZVMS:
@@ -1636,31 +1658,41 @@ static int TestExtraField(__G__ ef, ef_len)
 
 
 
-/*************************/
-/*  Function test_OS2()  */
-/*************************/
+/******************************/
+/*  Function test_compr_eb()  */
+/******************************/
 
-static int test_OS2(__G__ eb, eb_size)
+static int test_compr_eb(__G__ eb, eb_size, compr_offset, test_uc_ebdata)
     __GDEF
     uch *eb;
     unsigned eb_size;
+    unsigned compr_offset;
+    int (*test_uc_ebdata) OF((__GPRO__ uch *eb, unsigned eb_size,
+                              uch *eb_ucptr, ulg eb_ucsize));
 {
-    ulg eb_ucsize = makelong(eb+4);
-    uch *eb_uncompressed;
+    ulg eb_ucsize;
+    uch *eb_ucptr;
     int r;
 
-    if (eb_ucsize > 0L && eb_size <= 10)
+    if ((eb_size < (EB_UCSIZE_P + 4)) ||
+        ((eb_ucsize = makelong(eb+(EB_HEADSIZE+EB_UCSIZE_P))) > 0L &&
+         eb_size <= (compr_offset + EB_CMPRHEADLEN)))
         return IZ_EF_TRUNC;               /* no compressed data! */
 
-    if ((eb_uncompressed = (uch *)malloc((extent)eb_ucsize)) == (uch *)NULL)
+    if ((eb_ucptr = (uch *)malloc((extent)eb_ucsize)) == (uch *)NULL)
         return PK_MEM4;
 
-    r = memextract(__G__ eb_uncompressed, eb_ucsize, eb+8, (ulg)(eb_size-4));
+    r = memextract(__G__ eb_ucptr, eb_ucsize,
+                   eb + (EB_HEADSIZE + compr_offset),
+                   (ulg)(eb_size - compr_offset));
 
-    free(eb_uncompressed);
+    if (r == PK_OK && test_uc_ebdata != NULL)
+        r = (*test_uc_ebdata)(__G__ eb, eb_size, eb_ucptr, eb_ucsize);
+
+    free(eb_ucptr);
     return r;
 
-} /* end function test_OS2() */
+} /* end function test_compr_eb() */
 
 #endif /* !SFX */
 

@@ -66,6 +66,10 @@
 #  define OS2
 #endif
 
+#if (defined(__TANDEM) && !defined(TANDEM))
+#  define TANDEM
+#endif
+
 #if (defined(__VMS) && !defined(VMS))
 #  define VMS
 #endif
@@ -109,6 +113,13 @@
 #  define RISCOS
 #endif
 
+#if (defined(THINK_C) || defined(MPW))
+#  define MACOS
+#endif
+#if (defined(__MWERKS__) && defined(macintosh))
+#  define MACOS
+#endif
+
 /* use prototypes and ANSI libraries if __STDC__, or Microsoft or Borland C, or
  * Silicon Graphics, or Convex?, or IBM C Set/2, or GNU gcc/emx, or Watcom C,
  * or Macintosh, or Windows NT, or Sequent, or Atari or IBM RS/6000.
@@ -129,7 +140,7 @@
 #    define MODERN
 #  endif
 #endif
-#if (defined(THINK_C) || defined(MPW) || defined(ATARI_ST) || defined(RISCOS))
+#if (defined(MACOS) || defined(ATARI_ST) || defined(RISCOS))
 #  ifndef PROTO
 #    define PROTO
 #  endif
@@ -153,6 +164,9 @@
 #  ifndef MODERN
 #    define MODERN
 #  endif
+#endif
+#if defined(__BEOS__) && defined(__GNUC__)  /* brain damage for our GCC port */
+#  define __USE_FIXED_PROTOTYPES__
 #endif
 
 /* turn off prototypes if requested */
@@ -275,6 +289,8 @@
 
 #define STRNICMP zstrnicmp
 
+#define UzpMatch match
+
 
 /*---------------------------------------------------------------------------
     OS-dependent includes
@@ -344,7 +360,7 @@
 #  endif
 #endif /* OS2 && !FUNZIP */
 
-#ifdef WINDLL
+#if (defined(WINDLL) || defined(USE_UNZIP_LIB))
 #  ifndef EXPENTRY
 #    define UZ_EXP WINAPI
 #  else
@@ -431,6 +447,19 @@ typedef struct _UzpVer {
     _version_type windll;
 } UzpVer;
 
+/* for Visual BASIC access to Windows DLLs: */
+typedef struct _UzpVer2 {
+    ulg structlen;          /* length of the struct being passed */
+    ulg flag;               /* bit 0: is_beta   bit 1: uses_zlib */
+    char betalevel[10];     /* e.g., "g BETA" or "" */
+    char date[20];          /* e.g., "4 Sep 95" (beta) or "4 September 1995" */
+    char zlib_version[10];  /* e.g., "0.95" or NULL */
+    _version_type unzip;
+    _version_type zipinfo;
+    _version_type os2dll;
+    _version_type windll;
+} UzpVer2;
+
 typedef struct central_directory_file_header { /* CENTRAL */
     uch version_made_by[2];
     uch version_needed_to_extract[2];
@@ -506,6 +535,15 @@ int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file,
                                        UzpBuffer *retstr));
 int      UZ_EXP UzpFileTree        OF((char *name, cbList(callBack),
                                        char *cpInclude[], char *cpExclude[]));
+
+#ifdef WINDLL
+   void  UZ_EXP UzpNoPrinting      OF((int));   /* turns all messages on/off */
+#endif
+void     UZ_EXP UzpVersion2        OF((UzpVer2 *version));
+int      UZ_EXP UzpGrep            OF((char *archive, char *file,
+                                       char *pattern, int cmd, int SkipBin));
+int      UZ_EXP UzpValidate        OF((char *archive, int AllCodes));
+
 
 /* default I/O functions (can be swapped out via UzpAltMain() entry point): */
 

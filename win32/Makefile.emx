@@ -1,6 +1,6 @@
 # Makefile for UnZip, fUnZip and UnZipSFX
 # for emx 0.9c + rsxnt 1.3 / gcc under WIN32. Derived from makefile.os2
-# By E-Yen Tan. Last updated 17 March 1997 (Christian Spieler).
+# By E-Yen Tan. Last updated 23 September 1997 (Christian Spieler).
 #
 # This makefile should work fine with GNU make and hopefully some others.
 # Tested with Spieler's special GNU make 3.74 gnuish 16-bit version.
@@ -25,7 +25,7 @@ DLLFLAG=
 AS=gcc
 ASFLAGS=-Di386
 LDFLAGS=-o ./
-LDFLAGS2=-s
+LDFLAGS2=-Zsmall-conv -s
 OUT=-o
 OBJ=.o
 
@@ -127,34 +127,34 @@ funzip$(OBJ):	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h	# funzip only
 	$(CC) -c $(CFLAGS) $(OUT)$@ funzip.c
 
 unzipstb$(OBJ):	unzipstb.c					# DLL version
-	$(CC) -c $(CFLAGS) unzipstb.c
+	$(CC) -c $(CFLAGS) $(OUT)$@ unzipstb.c
 
 win32$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h version.h	# win32 only
-	$(CC) -c $(CFLAGS) win32$(DIRSEP)win32.c
+	$(CC) -c $(CFLAGS) $(OUT)$@ win32$(DIRSEP)win32.c
 
 win32_$(OBJ):	win32/win32.c $(UNZIP_H) win32/nt.h		# win32 unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ win32$(DIRSEP)win32.c
 
 nt$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h		# win32 only
-	$(CC) -c $(CFLAGS) win32$(DIRSEP)nt.c
+	$(CC) -c $(CFLAGS) $(OUT)$@ win32$(DIRSEP)nt.c
 
 nt_$(OBJ):	win32/nt.c $(UNZIP_H) win32/nt.h		# win32 only
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ win32$(DIRSEP)nt.c
 
 os2$(OBJ):	os2/os2.c $(UNZIP_H) version.h			# OS/2 only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2.c
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ os2$(DIRSEP)os2.c
 
 os2_$(OBJ):	os2/os2.c $(UNZIP_H)				# OS/2 unzipsfx
 	$(CC) -c $(CFLAGS) -DSFX $(OUT)$@ os2$(DIRSEP)os2.c
 
 os2acl$(OBJ):	os2/os2acl.c $(UNZIP_H) version.h		# OS/2 only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)os2acl.c
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ os2$(DIRSEP)os2acl.c
 
 rexxhelp$(OBJ):	os2/rexxhelp.c					# OS/2 DLL only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)rexxhelp.c
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ os2$(DIRSEP)rexxhelp.c
 
 rexxapi$(OBJ):	os2/rexxapi.c					# OS/2 DLL only
-	$(CC) -c $(CFLAGS) $(DLLFLAG) os2$(DIRSEP)rexxapi.c
+	$(CC) -c $(CFLAGS) $(DLLFLAG) $(OUT)$@ os2$(DIRSEP)rexxapi.c
 
 crc_i86$(OBJ):	msdos/crc_i86.asm				# 16bit only
 	$(AS) $(ASFLAGS) msdos$(AS_DIRSEP)crc_i86.asm $(ASEOL)
