@@ -1,4 +1,13 @@
 
+/*
+ * crc32.c
+ *
+ * REVISION HISTORY
+ *
+ * 11/16/89  C. Mascott		keep working crcval in register
+ *
+ */
+
   /* ============================================================= */
   /*  COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or       */
   /*  code or tables extracted from it, as desired without restriction.     */
@@ -94,6 +103,8 @@ long crc_32_tab[] = {
       0x2d02ef8dL
    };
 
+typedef unsigned char byte;
+
 #define UPDCRC32(res,oct) res=crc_32_tab[(byte)res^(byte)oct] ^ ((res>>8) & 0x00FFFFFFL)
 
 /*
@@ -104,63 +115,21 @@ long crc_32_tab[] = {
 
 /* ------------------------------------------------------------- */
 
-/*
- * Inline assembly version of 32 bit CRC calculation
- * Copyright 1989 Samuel H. Smith
- *
- * You may use this program, or code extracted from it,
- * as desired without restriction.
- *
- */
+extern unsigned long crc32val;
 
-extern long crc32val;
-
-void UpdateCRC(unsigned char *s,
-               register int len)
+void UpdateCRC(s, len)
+register unsigned char *s;
+register int len;
  /* update running CRC calculation with contents of a buffer */
 {
+	register unsigned long crcval;
 
-#ifdef HIGH_LOW
+	crcval = crc32val;
         while (len--) {
-                UPDCRC32(crc32val, *s++);
+		crcval = crc_32_tab[(byte)crcval ^ (byte)(*s++)]
+			^ (crcval >> 8);
         }
-#else
-        asm     push cx
-        asm     push si
-
-        asm     mov cx,len
-
-        asm     les si,s
-
-        asm     mov dx,crc32val+2
-        asm     mov ax,crc32val
-
-crcNext:
-        asm     mov bh,al       /* save crc32val[0] */
-
-        asm     mov al,ah       /* (crc32 >> 8) & 0x00ffffff */
-        asm     mov ah,dl
-        asm     mov dl,dh
-        asm     xor dh,dh
-
-        asm     mov bl,es:[si]
-        asm     inc si
-
-        asm     xor bl,bh       /* crcval[0] */
-
-        asm     xor bh,bh
-        asm     shl bx,1
-        asm     shl bx,1
-        asm     xor ax,crc_32_tab[bx]
-        asm     xor dx,crc_32_tab[bx+2]
-
-        asm     loop crcNext
-
-        asm     mov crc32val+2,dx
-        asm     mov crc32val,ax
-        asm     pop si
-        asm     pop cx
-#endif
+	crc32val = crcval;
 }
 
 

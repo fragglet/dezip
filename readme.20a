@@ -1,0 +1,35 @@
+			UNZIP20A
+
+		DOS/UNIX VERSION OF UNZIP
+
+C. Mascott
+12/14/89
+
+1.  I intend this to be a "universal" version of UNZIP.  I have
+    tried to leave the DOS/Turbo C stuff alone while adding
+    the UNIX stuff.  However, I don't have Turbo C, so I can't
+    verify that the code still compiles under Turbo C.
+
+2.  I have discovered that some versions of memcpy() are too
+    smart to be used with UNZIP.  As used by unImplode(),
+    memcpy() must always start copying from the first source
+    address to the first destination address, even if the
+    source and destination regions overlap.  If your memcpy()
+    is too smart (you get CRC errors when unimploding), or
+    if you do not have memcpy(), use the memcpy() I have
+    provided.
+
+3.  If you do not have memset(), use the memset() I have provided.
+
+4.  UNZIP has been tested on the following UNIX systems:
+
+	XENIX 2.3A 68000 (basically V7)
+	Microport System V 386, pcc
+
+5.  Please read the following files:
+
+	new20a.doc	new features in UNZIP
+
+	why20a.doc	rationale for major changes to UNZIP
+
+6.  Compile-time options are described in the beginning of unzip.c.

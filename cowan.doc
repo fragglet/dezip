@@ -1,0 +1,5 @@
+Added feechers by cowan@magpie.masa.com
+
+-c option to output to stdout instead of to extracted files
+all error messages go to stderr
+case insensitive comparison for component names

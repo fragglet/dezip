@@ -15,23 +15,66 @@
  * To compile:
  *      tcc -B -O -Z -G -mc unzip.c        ;turbo C 2.0, compact model
  *
+ * Compile-time definitions:
+ *	HIGH_LOW	target machine is big-endian (68000 family)
+ *	ASM		critical functions are written in assembler
+ *	void=int	for compilers that don't implement void
+ *	UNIX		target o.s. is UNIX
+ *	BSD		UNIX is BSD
+ *	V7		UNIX is Version 7
+ *
+ * REVISION HISTORY
+ *
+ * 12/14/89  C. Mascott  2.0a	adapt for UNIX
+ *				ifdef HIGH_LOW swap bytes in time, date, CRC,
+ *				  version needed, bit flag
+ *				implement true s-f trees instead of table
+ *				don't pre-allocate output file space
+ *				implement -t, -v, member file specs
+ *				buffer all input
+ *				change hsize_array_integer to short
+ *				overlap storage used by different comp. methods
+ *				speed up unImplode
+ *				use insertion sort in SortLengths
+ *				define zipfile header structs in a way that
+ *				  avoids structure padding on 32-bit machines
+ *				fix "Bad CRC" msg: good/bad CRCs were swapped
+ *				check for write error on output file
+ *				added by John Cowan <cowan@magpie.masa.com>:
+ *				support -c option to expand to console
+ *				use stderr for messages
+ *				allow lowercase component name specs
+ * 3/18/91  M. Katz  2.0a	When in UNIX, filenames will be converted to lower
+ *                          case upon extraction. Created makefile type script
+ *                          to compile in UNIX/XENIX. Shortened some filenames
+ *                          so they would not be truncated by the compiler.
  */
 
-#define VERSION  "UnZip:  Zipfile Extract v2.0 (C) of 09-09-89;  (C) 1989 Samuel H. Smith"
+#define VERSION  "UnZip:  Zipfile Extract v2.0a (C) of 12-14-89;  (C) 1989 Samuel H. Smith"
 
 typedef unsigned char byte;	/* code assumes UNSIGNED bytes */
 typedef long longint;
-typedef unsigned word;
+typedef unsigned short word;
 typedef char boolean;
 
 #define STRSIZ 256
 
 #include <stdio.h>
  /* this is your standard header for all C compiles */
+#include <ctype.h>
+
+#ifdef __STDC__
 
 #include <stdlib.h>
  /* this include defines various standard library prototypes */
 
+#else
+
+char *malloc();
+
+#endif
+
+#define min(a,b) ((a) < (b) ? (a) : (b))
 
 /*
  * SEE HOST OPERATING SYSTEM SPECIFICS SECTION STARTING NEAR LINE 180
@@ -45,6 +88,15 @@ typedef char boolean;
  *
  */
 
+/* Macros for accessing the longint header fields.  These fields
+   are defined as array of char to prevent a 32-bit compiler from
+   padding the struct so that longints start on a 4-byte boundary.
+   This will not work on a machine that can access longints only
+   if they start on a 4-byte boundary. */
+
+#define LONGIP(l) ((longint *) &((l)[0]))
+#define LONGI(l) (*(LONGIP(l)))
+
 typedef longint signature_type;
 
 
@@ -57,9 +109,9 @@ typedef struct local_file_header {
 	word compression_method;
 	word last_mod_file_time;
 	word last_mod_file_date;
-	longint crc32;
-	longint compressed_size;
-        longint uncompressed_size;
+	byte crc32[4];
+	byte compressed_size[4];
+        byte uncompressed_size[4];
 	word filename_length;
 	word extra_field_length;
 } local_file_header;
@@ -75,16 +127,16 @@ typedef struct central_directory_file_header {
 	word compression_method;
 	word last_mod_file_time;
 	word last_mod_file_date;
-	longint crc32;
-	longint compressed_size;
-	longint uncompressed_size;
+	byte crc32[4];
+	byte compressed_size[4];
+	byte uncompressed_size[4];
 	word filename_length;
 	word extra_field_length;
 	word file_comment_length;
 	word disk_number_start;
 	word internal_file_attributes;
-	longint external_file_attributes;
-	longint relative_offset_local_header;
+	byte external_file_attributes[4];
+	byte relative_offset_local_header[4];
 } central_directory_file_header;
 
 
@@ -93,14 +145,30 @@ typedef struct central_directory_file_header {
 
 typedef struct end_central_dir_record {
 	word number_this_disk;
-	word number_disk_with_start_central_directory;
-	word total_entries_central_dir_on_this_disk;
+	word number_disk_with_start_c_dir;
+	word total_entries_cent_dir_otd;
 	word total_entries_central_dir;
-	longint size_central_directory;
-	longint offset_start_central_directory;
+	byte size_central_directory[4];
+	byte offset_start_central_directory[4];
 	word zipfile_comment_length;
 } end_central_dir_record;
 
+
+char *fnames[2] = {	/* default filenames vector */
+	"*",
+	NULL
+};
+char **fnv = &fnames[0];
+
+int tflag;		/* -t: test */
+int vflag;		/* -v: view directory */
+int cflag;		/* -c: output to stdout (JC) */
+
+int members;
+longint csize;
+longint ucsize;
+longint tot_csize;
+longint tot_ucsize;
 
 
 /* ----------------------------------------------------------- */
@@ -109,12 +177,12 @@ typedef struct end_central_dir_record {
  *
  */
 
-#define INBUFSIZ 0x2000
+#define INBUFSIZ BUFSIZ		/* same as stdio uses */
 byte *inbuf;			/* input file buffer - any size is legal */
 byte *inptr;
 
 int incnt;
-unsigned bitbuf;
+word bitbuf;
 int bits_left;
 boolean zipeof;
 
@@ -129,7 +197,7 @@ local_file_header lrec;
  *
  */
 
-#define OUTBUFSIZ 0x2000        /* must be 0x2000 or larger for unImplode */
+#define OUTBUFSIZ 0x2000        /* unImplode needs power of 2, >= 0x2000 */
 byte *outbuf;                   /* buffer for rle look-back */
 byte *outptr;
 
@@ -150,7 +218,9 @@ char extra[STRSIZ];
  */
 
 int factor;
-byte followers[256][64];
+/* really need only 256, but prefix_of, which shares the same
+   storage, is just over 16K */
+byte followers[257][64];	/* also lzw prefix_of, s-f lit_nodes */
 byte Slen[256];
 
 #define max_bits 13
@@ -159,12 +229,12 @@ byte Slen[256];
 #define first_ent 257
 #define clear 256
 
-typedef int hsize_array_integer[hsize+1];
+typedef short hsize_array_integer[hsize+1];	/* was used for prefix_of */
 typedef byte hsize_array_byte[hsize+1];
 
-hsize_array_integer prefix_of;
-hsize_array_byte suffix_of;
-hsize_array_byte stack;
+short *prefix_of = (short *) followers;	/* share reduce/shrink storage */
+hsize_array_byte suffix_of;		/* also s-f length_nodes */
+hsize_array_byte stack;			/* also s-f distance_nodes */
 
 int codesize;
 int maxcode;
@@ -181,18 +251,56 @@ int sizex;
  *
  */
 
+#ifdef UNIX
+
+/* On some systems the contents of sys/param.h duplicates the
+   contents of sys/types.h, so you don't need (and can't use)
+   sys/types.h. */
+
+#include <sys/types.h>
+#include <sys/param.h>
+#include <time.h>
+struct tm *gmtime(), *localtime();
+#define ZSUFX ".zip"
+
+#else
+
+#define BSIZE 512	/* disk block size */
+#define ZSUFX ".ZIP"
+
+#endif
+
+#if defined(V7) || defined(BSD)
+
+#define strchr index
+#define strrchr rindex
+
+#endif
+
+#ifdef __STDC__
+
 #include <string.h>
  /* this include defines strcpy, strcmp, etc. */
 
-#include <io.h>
- /*
-  * this include file defines
-  *             struct ftime ...        (* file time/date stamp info *)
-  *             int setftime (int handle, struct ftime *ftimep);
-  *             #define SEEK_CUR  1     (* lseek() modes *)
-  *             #define SEEK_END  2
-  *             #define SEEK_SET  0
-  */
+#else
+
+char *strchr(), *strrchr();
+
+#endif
+
+long lseek();
+
+#define SEEK_SET  0
+#define SEEK_CUR  1
+#define SEEK_END  2
+
+#ifdef V7
+
+#define O_RDONLY  0
+#define O_WRONLY  1
+#define O_RDWR    2
+
+#else
 
 #include <fcntl.h>
  /*
@@ -200,6 +308,10 @@ int sizex;
   *             #define O_BINARY 0x8000  (* no cr-lf translation *)
   * as used in the open() standard function
   */
+
+#endif
+
+#ifndef UNIX
 
 #include <sys/stat.h>
  /*
@@ -209,18 +321,15 @@ int sizex;
   * as used in the creat() standard function
   */
 
-#undef HIGH_LOW
- /*
-  * change 'undef' to 'define' if your machine stores high order bytes in
-  * lower addresses.
-  */
+#endif
 
-void set_file_time(void)
+void set_file_time()
  /*
   * set the output file date/time stamp according to information from the
   * zipfile directory record for this file 
   */
 {
+#ifndef UNIX
 	union {
                 struct ftime ft;        /* system file time record */
 		struct {
@@ -238,16 +347,124 @@ void set_file_time(void)
 	td.zt.zdate = lrec.last_mod_file_date;
 
 	setftime(outfd, &td.ft);
+
+#else
+
+    time_t times[2];
+    struct tm *tmbuf;
+    long m_time;
+    int yr, mo, dy, hh, mm, ss, leap, days = 0;
+
+    /*
+     * These date conversions look a little wierd, so I'll explain.
+     * UNIX bases all file modification times on the number of seconds
+     * elapsed since Jan 1, 1970, 00:00:00 GMT.  Therefore, to maintain
+     * compatibility with MS-DOS archives, which date from Jan 1, 1980,
+     * with NO relation to GMT, the following conversions must be made:
+     * 		the Year (yr) must be incremented by 10;
+     *		the Date (dy) must be decremented by 1;
+     *		and the whole mess must be adjusted by TWO factors:
+     *			relationship to GMT (ie.,Pacific Time adds 8 hrs.),
+     *			and whether or not it is Daylight Savings Time.
+     * Also, the usual conversions must take place to account for leap years,
+     * etc.
+     *                                     C. Seaman
+     */
+
+    yr = (((lrec.last_mod_file_date >> 9) & 0x7f) + 10);  /* dissect date */
+    mo = ((lrec.last_mod_file_date >> 5) & 0x0f);
+    dy = ((lrec.last_mod_file_date & 0x1f) - 1);
+
+    hh = ((lrec.last_mod_file_time >> 11) & 0x1f);        /* dissect time */
+    mm = ((lrec.last_mod_file_time >> 5) & 0x3f);
+    ss = ((lrec.last_mod_file_time & 0x1f) * 2);
+
+    /* leap = # of leap years from 1970 up to but not including
+       the current year */
+
+    leap = ((yr+1969)/4);              /* Leap year base factor */
+
+    /* How many days from 1970 to this year? */
+    days = (yr * 365) + (leap - 492);
+
+    switch(mo)			       /* calculate expired days this year */
+    {
+    case 12:
+        days += 30;
+    case 11:
+        days += 31;
+    case 10:
+        days += 30;
+    case 9:
+        days += 31;
+    case 8:
+        days += 31;
+    case 7:
+        days += 30;
+    case 6:
+        days += 31;
+    case 5:
+        days += 30;
+    case 4:
+        days += 31;
+    case 3:
+        days += 28;                    /* account for leap years */
+        if (((yr+1970) % 4 == 0) && (yr+1970) != 2000)
+            ++days;
+    case 2:
+        days += 31;
+    }
+
+    /* convert date & time to seconds relative to 00:00:00, 01/01/1970 */
+    m_time = ((days + dy) * 86400) + (hh * 3600) + (mm * 60) + ss;
+
+#ifdef BSD
+    struct timeval tv;
+    struct timezone tz;
+
+    gettimeofday(&tv, &tz);
+
+    if (tz.tz_dsttime != 0)
+        m_time -= 3600;
+
+    m_time += tz.tz_minuteswest * 60;  /* account for timezone differences */
+#else
+    tmbuf = localtime(&m_time);
+    hh = tmbuf->tm_hour;
+    tmbuf = gmtime(&m_time);
+    hh = tmbuf->tm_hour - hh;
+    if (hh < 0)
+	hh += 24;
+    m_time += (hh * 3600);             /* account for timezone differences */
+#endif
+
+    times[0] = m_time;             /* set the stamp on the file */
+    times[1] = m_time;
+    utime(filename, times);
+#endif
 }
 
 
-int create_output_file(void)
+int create_output_file()
  /* return non-0 if creat failed */
-{
-	/* create the output file with READ and WRITE permissions */
+{	/* create the output file with READ and WRITE permissions */
+	int i, len_str;
+	if (cflag) {		/* output to stdout (a copy of it, really) */
+		outfd = dup(1);
+		return 0;
+		}
+
+#ifndef UNIX
 	outfd = creat(filename, S_IWRITE | S_IREAD);
+#else
+	len_str = strlen(filename);
+    for ( i = 0; i < len_str; i++ ) /* convert uppercase to lowercase */
+		filename[i] = tolower(filename[i]);
+	outfd = creat(filename, 0666);	/* let umask strip unwanted perm's */
+#endif
+
 	if (outfd < 1) {
-		printf("Can't create output: %s\n", filename);
+		fprintf(stderr, "Can't create output: %s\n", filename);
 		return 1;
 	}
 
@@ -255,28 +472,29 @@ int create_output_file(void)
 	 * close the newly created file and reopen it in BINARY mode to
 	 * disable all CR/LF translations 
 	 */
+#ifndef UNIX
 	close(outfd);
 	outfd = open(filename, O_RDWR | O_BINARY);
-
-	/* write a single byte at EOF to pre-allocate the file */
-        lseek(outfd, lrec.uncompressed_size - 1L, SEEK_SET);
-	write(outfd, "?", 1);
-	lseek(outfd, 0L, SEEK_SET);
+#endif
 	return 0;
 }
 
 
-int open_input_file(void)
- /* return non-0 if creat failed */
+int open_input_file()
+ /* return non-0 if open failed */
 {
 	/*
 	 * open the zipfile for reading and in BINARY mode to prevent cr/lf
 	 * translation, which would corrupt the bitstreams 
 	 */
 
+#ifndef UNIX
 	zipfd = open(zipfn, O_RDONLY | O_BINARY);
+#else
+	zipfd = open(zipfn, O_RDONLY);
+#endif
 	if (zipfd < 1) {
-		printf("Can't open input file: %s\n", zipfn);
+		fprintf(stderr, "Can't open input file: %s\n", zipfn);
 		return (1);
 	}
 	return 0;
@@ -285,7 +503,8 @@ int open_input_file(void)
 
 #ifdef HIGH_LOW
 
-void swap_bytes(word *wordp)
+void swap_bytes(wordp)
+word *wordp;
  /* convert intel style 'short int' variable to host format */
 {
 	char *charp = (char *) wordp;
@@ -296,7 +515,8 @@ void swap_bytes(word *wordp)
 	charp[1] = temp;
 }
 
-void swap_lbytes(longint *longp)
+void swap_lbytes(longp)
+longint *longp;
  /* convert intel style 'long' variable to host format */
 {
 	char *charp = (char *) longp;
@@ -319,39 +539,50 @@ void swap_lbytes(longint *longp)
 
 /* ============================================================= */
 
-int FillBuffer(void)
- /* fill input buffer if possible */
+int readbuf(fd, buf, size)
+int fd;
+char *buf;
+register unsigned size;
 {
-	int readsize;
+	register int count;
+	int n;
 
-        if (lrec.compressed_size <= 0)
-		return incnt = 0;
-
-        if (lrec.compressed_size > INBUFSIZ)
-		readsize = INBUFSIZ;
-	else
-                readsize = (int) lrec.compressed_size;
-	incnt = read(zipfd, inbuf, readsize);
-
-        lrec.compressed_size -= incnt;
-	inptr = inbuf;
-	return incnt--;
+	n = size;
+	while (size)  {
+		if (incnt == 0)  {
+			if ((incnt = read(fd, inbuf, INBUFSIZ)) <= 0)
+				return(incnt);
+			inptr = inbuf;
+		}
+		count = min(size, incnt);
+		memcpy(buf, inptr, count);
+		buf += count;
+		inptr += count;
+		incnt -= count;
+		size -= count;
+	}
+	return(n);
 }
 
-int ReadByte(unsigned *x)
+int ReadByte(x)
+word *x;
  /* read a byte; return 8 if byte available, 0 if not */
 {
-	if (incnt-- == 0)
-		if (FillBuffer() == 0)
+	if (csize-- <= 0)
+		return 0;
+	if (incnt == 0)  {
+		if ((incnt = read(zipfd, inbuf, INBUFSIZ)) <= 0)
 			return 0;
-
+		inptr = inbuf;
+	}
 	*x = *inptr++;
+	--incnt;
 	return 8;
 }
 
 
 /* ------------------------------------------------------------- */
-static unsigned mask_bits[] =
+static word mask_bits[] =
         {0,     0x0001, 0x0003, 0x0007, 0x000f,
                 0x001f, 0x003f, 0x007f, 0x00ff,
                 0x01ff, 0x03ff, 0x07ff, 0x0fff,
@@ -359,11 +590,12 @@ static unsigned mask_bits[] =
         };
 
 
-int FillBitBuffer(register int bits)
+int FillBitBuffer(bits)
+register int bits;
 {
 	/* get the bits that are left and read the next word */
-	unsigned temp;
         register int result = bitbuf;
+	word temp;
 	int sbits = bits_left;
 	bits -= bits_left;
 
@@ -404,11 +636,15 @@ int FillBitBuffer(register int bits)
 
 /* ------------------------------------------------------------- */
 
-void FlushOutput(void)
+void FlushOutput()
  /* flush contents of output buffer */
 {
 	UpdateCRC(outbuf, outcnt);
-	write(outfd, outbuf, outcnt);
+	if (!tflag)
+		if (write(outfd, outbuf, outcnt) != outcnt)  {
+			fprintf(stderr, " File write error\n");
+			exit(1);
+		}
 	outpos += outcnt;
 	outcnt = 0;
 	outptr = outbuf;
@@ -429,7 +665,7 @@ void FlushOutput(void)
 
 /* ----------------------------------------------------------- */
 
-void LoadFollowers(void)
+void LoadFollowers()
 {
         register int x;
         register int i;
@@ -475,7 +711,7 @@ int B_table[] = {8, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5,
 
 /* ----------------------------------------------------------- */
 
-void unReduce(void)
+void unReduce()
  /* expand probablisticly reduced data */
 {
         register int lchar;
@@ -489,7 +725,7 @@ void unReduce(void)
 	lchar = 0;
 	LoadFollowers();
 
-        while (((outpos+outcnt) < lrec.uncompressed_size) && (!zipeof)) {
+        while (((outpos+outcnt) < ucsize) && (!zipeof)) {
 		if (Slen[lchar] == 0)
                         READBIT(8,nchar)      /* ; */
                 else
@@ -588,7 +824,7 @@ void unReduce(void)
  *
  */
 
-void partial_clear(void)
+void partial_clear()
 {
         register int pr;
         register int cd;
@@ -619,9 +855,9 @@ void partial_clear(void)
 
 /* ------------------------------------------------------------- */
 
-void unShrink(void)
+void unShrink()
 {
-        #define  GetCode(dest) READBIT(codesize,dest)
+#define  GetCode(dest) READBIT(codesize,dest)
 
 	register int code;
 	register int stackp;
@@ -748,68 +984,78 @@ void unShrink(void)
  *
  */ 
 
-   enum { maxSF        = 256 };
+#define LITVALS		256
+#define DISTVALS	64
+#define LENVALS		64
+#define MAXSF		LITVALS
 
    typedef struct sf_entry { 
-                 word         Code; 
                  byte         Value; 
                  byte         BitLength; 
               } sf_entry; 
 
-   typedef struct sf_tree {   /* a shannon-fano tree */ 
-      sf_entry     entry[maxSF];
+   typedef struct sf_tree {   /* a shannon-fano "tree" (table) */
+      sf_entry     entry[MAXSF];
       int          entries;
       int          MaxLength;
    } sf_tree; 
 
    typedef sf_tree      *sf_treep; 
 
+   typedef struct sf_node {   /* node in a true shannon-fano tree */
+      word         left;	/* 0 means leaf node */
+      word         right;	/* or value if leaf node */
+   } sf_node;
+
    sf_tree      lit_tree; 
    sf_tree      length_tree; 
    sf_tree      distance_tree; 
+   /* s-f storage is shared with that used by other comp. methods */
+   sf_node	*lit_nodes = (sf_node *) followers;	/* 2*LITVALS nodes */
+   sf_node	*length_nodes = (sf_node *) suffix_of;	/* 2*LENVALS nodes */
+   sf_node	*distance_nodes = (sf_node *) stack;	/* 2*DISTVALS nodes */
    boolean      lit_tree_present; 
    boolean      eightK_dictionary; 
    int          minimum_match_length;
    int          dict_bits;
 
 
-void         SortLengths(sf_tree *    tree)
+void         SortLengths(tree)
+sf_tree *tree;
   /* Sort the Bit Lengths in ascending order, while retaining the order
     of the original lengths stored in the file */ 
 { 
-   int          x;
-   int          gap;
-   sf_entry     t; 
-   boolean      noswaps;
-   int          a, b;
+	register sf_entry *ejm1;	/* entry[j - 1] */
+	register int j;
+	register sf_entry *entry;
+	register int i;
+	sf_entry tmp;
+	int entries;
+	unsigned a, b;
 
-   gap = tree->entries / 2; 
+	entry = &tree->entry[0];
+	entries = tree->entries;
 
-   do { 
-      do { 
-         noswaps = 1;
-         for (x = 0; x <= (tree->entries - 1) - gap; x++) 
-         { 
-            a = tree->entry[x].BitLength; 
-            b = tree->entry[x + gap].BitLength; 
-            if ((a > b) || ((a == b) && (tree->entry[x].Value > tree->entry[x + gap].Value))) 
-            { 
-               t = tree->entry[x]; 
-               tree->entry[x] = tree->entry[x + gap]; 
-               tree->entry[x + gap] = t; 
-               noswaps = 0;
-            } 
-         } 
-      }  while (!noswaps);
-
-      gap = gap / 2; 
-   }  while (gap > 0);
+	for (i = 0; ++i < entries; )  {
+		tmp = entry[i];
+		b = tmp.BitLength;
+		j = i;
+		while ((j > 0)
+		&& ((a = (ejm1 = &entry[j - 1])->BitLength) >= b))  {
+			if ((a == b) && (ejm1->Value <= tmp.Value))
+				break;
+			*(ejm1 + 1) = *ejm1;	/* entry[j] = entry[j - 1] */
+			--j;
+		}
+		entry[j] = tmp;
+	}
 } 
 
 
 /* ----------------------------------------------------------- */ 
 
-void         ReadLengths(sf_tree *    tree)
+void         ReadLengths(tree)
+sf_tree *tree;
 { 
    int          treeBytes;
    int          i;
@@ -846,94 +1092,68 @@ void         ReadLengths(sf_tree *    tree)
 
 /* ----------------------------------------------------------- */ 
 
-void         GenerateTrees(sf_tree *    tree)
+void         GenerateTrees(tree, nodes)
+sf_tree *tree;
+sf_node *nodes;
      /* Generate the Shannon-Fano trees */ 
 { 
-   word         Code;
-   int          CodeIncrement;
-   int          LastBitLength;
-   int          i;
+	int codelen, i, j, lvlstart, next, parents;
 
+	i = tree->entries - 1;	/* either 255 or 63 */
+	lvlstart = next = 1;
 
-   Code = 0;
-   CodeIncrement = 0; 
-   LastBitLength = 0; 
+	/* believe it or not, there may be a 1-bit code */
 
-   i = tree->entries - 1;   /* either 255 or 63 */ 
-   while (i >= 0) 
-   { 
-      Code += CodeIncrement; 
-      if (tree->entry[i].BitLength != LastBitLength) 
-      { 
-         LastBitLength = tree->entry[i].BitLength; 
-         CodeIncrement = 1 << (16 - LastBitLength); 
-      } 
+	for (codelen = tree->MaxLength; codelen >= 1; --codelen)  {
 
-      tree->entry[i].Code = Code; 
-      i--; 
-   } 
+		/* create leaf nodes at level <codelen> */
+
+		while ((i >= 0) && (tree->entry[i].BitLength == codelen))  {
+			nodes[next].left = 0;
+			nodes[next].right = tree->entry[i].Value;
+			++next;
+			--i;
+		}
+
+		/* create parent nodes for all nodes at level <codelen>,
+		   but don't create the root node here */
+
+		parents = next;
+		if (codelen > 1)  {
+			for (j = lvlstart; j <= parents-2; j += 2)  {
+				nodes[next].left = j;
+				nodes[next].right = j + 1;
+				++next;
+			}
+		}
+		lvlstart = parents;
+	}
+
+	/* create root node */
+
+	nodes[0].left = next - 2;
+	nodes[0].right = next - 1;
 } 
 
 
 /* ----------------------------------------------------------- */ 
 
-void         ReverseBits(sf_tree *    tree)
- /* Reverse the order of all the bits in the above ShannonCode[]
-    vector, so that the most significant bit becomes the least
-    significant bit. For example, the value 0x1234 (hex) would become
-    0x2C48 (hex). */ 
-{ 
-   int          i;
-   word         mask;
-   word         revb;
-   word         v;
-   word         o;
-   int          b;
-
-
-   for (i = 0; i <= tree->entries - 1; i++) 
-   { 
-        /* get original code */ 
-      o = tree->entry[i].Code; 
-
-        /* reverse each bit */ 
-      mask = 0x0001;
-      revb = 0x8000;
-      v = 0;
-      for (b = 0; b <= 15; b++) 
-      { 
-           /* if bit set in mask, then substitute reversed bit */ 
-         if ((o & mask) != 0) 
-            v = v | revb; 
-
-           /* advance to next bit */ 
-         revb = (revb >> 1);
-         mask = (mask << 1);
-      } 
-
-        /* store reversed bits */ 
-      tree->entry[i].Code = v; 
-   } 
-} 
-
-
-/* ----------------------------------------------------------- */ 
-
-void         LoadTree(sf_tree *    tree,
-                      int          treesize)
+void         LoadTree(tree, treesize, nodes)
+sf_tree *tree;
+int treesize;
+sf_node *nodes;
      /* allocate and load a shannon-fano tree from the compressed file */ 
 { 
    tree->entries = treesize; 
    ReadLengths(tree); 
    SortLengths(tree); 
-   GenerateTrees(tree); 
-   ReverseBits(tree); 
+   GenerateTrees(tree, nodes); 
 } 
 
 
 /* ----------------------------------------------------------- */ 
 
-void         LoadTrees(void)
+void         LoadTrees()
 { 
    eightK_dictionary = (lrec.general_purpose_bit_flag & 0x02) != 0;   /* bit 1 */
    lit_tree_present = (lrec.general_purpose_bit_flag & 0x04) != 0;   /* bit 2 */
@@ -946,90 +1166,69 @@ void         LoadTrees(void)
    if (lit_tree_present) 
    { 
       minimum_match_length = 3; 
-      LoadTree(&lit_tree,256); 
+      LoadTree(&lit_tree,256,lit_nodes);
    } 
    else 
       minimum_match_length = 2; 
 
-   LoadTree(&length_tree,64); 
-   LoadTree(&distance_tree,64); 
+   LoadTree(&length_tree,64,length_nodes);
+   LoadTree(&distance_tree,64,distance_nodes);
 } 
 
 
 /* ----------------------------------------------------------- */ 
 
-void         ReadTree(sf_tree *    tree,
-                      int     *    dest)
+#ifndef ASM
+
+void         ReadTree(nodes, dest)
+register sf_node *nodes;
+int *dest;
      /* read next byte using a shannon-fano tree */ 
 { 
-   int          bits = 0;
-   word         cv = 0;
-   int          cur = 0;
-   int          b;
+	register int cur;
+	register int left;
+	word b;
 
-   *dest = -1;   /* in case of error */ 
-
-   for (;;)
-   { 
-      READBIT(1,b);
-      cv = cv | (b << bits);
-      bits++; 
-
-      /* this is a very poor way of decoding shannon-fano.  two quicker
-         methods come to mind:
-            a) arrange the tree as a huffman-style binary tree with
-               a "leaf" indicator at each node,
-         and
-            b) take advantage of the fact that s-f codes are at most 8
-               bits long and alias unused codes for all bits following
-               the "leaf" bit.
-      */
-
-      while (tree->entry[cur].BitLength < bits) 
-      { 
-         cur++; 
-         if (cur >= tree->entries) 
-            return; /* data error */
-      } 
-
-      while (tree->entry[cur].BitLength == bits) 
-      { 
-         if (tree->entry[cur].Code == cv) 
-         { 
-            *dest = tree->entry[cur].Value; 
-            return; 
-         } 
-
-         cur++; 
-         if (cur >= tree->entries) 
-            return; /* data error */
-      } 
-   } 
+	for (cur = 0; ; )  {
+		if ((left = nodes[cur].left) == 0)  {
+			*dest = nodes[cur].right;
+			return;
+		}
+		READBIT(1, b);
+		cur = (b ? nodes[cur].right : left);
+	}
 } 
 
+#endif
 
 /* ----------------------------------------------------------- */ 
 
-void         unImplode(void)
+void         unImplode()
      /* expand imploded data */ 
-
 { 
+   register int srcix;
+   register int Length;
+   register int limit;
    int          lout;
-   longint      op;
-   int          Length;
    int          Distance;
-   int          i;
 
    LoadTrees(); 
 
-   while ((!zipeof) && ((outpos+outcnt) < lrec.uncompressed_size))
+#ifdef DEBUG
+   printf("\n");
+#endif
+   while ((!zipeof) && ((outpos+outcnt) < ucsize))
    { 
       READBIT(1,lout);
 
       if (lout != 0)   /* encoded data is literal data */ 
       { 
-         if (lit_tree_present)  /* use Literal Shannon-Fano tree */
-            ReadTree(&lit_tree,&lout);
+         if (lit_tree_present)  /* use Literal Shannon-Fano tree */  {
+            ReadTree(lit_nodes,&lout);
+#ifdef DEBUG
+	    printf("lit=%d\n", lout);
+#endif
+	 }
          else 
             READBIT(8,lout);
 
@@ -1037,59 +1236,53 @@ void         unImplode(void)
       } 
       else             /* encoded data is sliding dictionary match */
       {                
-         READBIT(dict_bits,lout);
-         Distance = lout; 
+         READBIT(dict_bits,Distance);
 
-         ReadTree(&distance_tree,&lout); 
+         ReadTree(distance_nodes,&lout); 
+#ifdef DEBUG
+	 printf("d=%5d (%2d,%3d)", (lout << dict_bits) | Distance, lout,
+			Distance);
+#endif
          Distance |= (lout << dict_bits);
          /* using the Distance Shannon-Fano tree, read and decode the
             upper 6 bits of the Distance value */ 
 
-         ReadTree(&length_tree,&Length); 
+         ReadTree(length_nodes,&lout);
+	 Length = lout;
+#ifdef DEBUG
+	 printf("\tl=%3d\n", Length);
+#endif
          /* using the Length Shannon-Fano tree, read and decode the
             Length value */
 
-         Length += minimum_match_length; 
-         if (Length == (63 + minimum_match_length)) 
+         if (Length == 63)
          { 
             READBIT(8,lout);
             Length += lout; 
          } 
+         Length += minimum_match_length; 
 
         /* move backwards Distance+1 bytes in the output stream, and copy
           Length characters from this position to the output stream.
           (if this position is before the start of the output stream,
           then assume that all the data before the start of the output
-          stream is filled with zeros) */ 
+          stream is filled with zeros.  Requires initializing outbuf
+	  for each file.) */ 
 
-         op = (outpos+outcnt) - Distance - 1L;
+	srcix = (outcnt - (Distance + 1)) & (OUTBUFSIZ-1);
+	limit = OUTBUFSIZ - Length;
+	if ((srcix <= limit) && (outcnt < limit))  {
+		memcpy(outptr, &outbuf[srcix], Length);
+		outptr += Length;
+		outcnt += Length;
+	}
+	else {
+		while (Length--)  {
+			OUTB(outbuf[srcix++]);
+			srcix &= OUTBUFSIZ-1;
+		}
+	}
 
-          /* special case- before start of file */
-          while ((op < 0L) && (Length > 0)) {
-                  OUTB(0);
-                  op++;
-                  Length--;
-          }
-
-          /* normal copy of data from output buffer */
-          {
-                  register int ix = (int) (op % OUTBUFSIZ);
-
-                  /* do a block memory copy if possible */
-                  if ( ((ix    +Length) < OUTBUFSIZ) &&
-                       ((outcnt+Length) < OUTBUFSIZ) ) {
-                          memcpy(outptr,&outbuf[ix],Length);
-                          outptr += Length;
-                          outcnt += Length;
-                  }
-
-                  /* otherwise copy byte by byte */
-                  else while (Length--) {
-                          OUTB(outbuf[ix]);
-                          if (++ix >= OUTBUFSIZ)
-                                  ix = 0;
-                  }
-         }
       } 
    } 
 } 
@@ -1098,13 +1291,93 @@ void         unImplode(void)
 
 /* ---------------------------------------------------------- */
 
-void extract_member(void)
+/*
+ Length  Method   Size  Ratio   Date    Time   CRC-32    Name
+ ------  ------   ----- -----   ----    ----   ------    ----
+  44004  Implode  13041  71%  11-02-89  19:34  88420727  DIFF3.C
+ */
+
+void dir_member()
+{
+	char *method;
+	int ratio;
+	int yr, mo, dy, hh, mm;
+
+	yr = (((lrec.last_mod_file_date >> 9) & 0x7f) + 80);
+	mo = ((lrec.last_mod_file_date >> 5) & 0x0f);
+	dy = (lrec.last_mod_file_date & 0x1f);
+
+	hh = ((lrec.last_mod_file_time >> 11) & 0x1f);
+	mm = ((lrec.last_mod_file_time >> 5) & 0x3f);
+
+	switch (lrec.compression_method)  {
+	case 0:
+		method = "Stored";
+		break;
+	case 1:
+		method = "Shrunk";
+		break;
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		method = "Reduced";
+		break;
+	case 6:
+		method = "Implode";
+		break;
+	}
+
+	if (ucsize != 0)  {
+		ratio = (int) ((1000L * (ucsize	- csize)) / ucsize);
+		if ((ratio % 10) >= 5)
+			ratio += 10;
+	}
+	else
+		ratio = 0;	/* can .zip contain 0-size file? */
+
+	printf("%7ld  %-7s%7ld %3d%%  %02d-%02d-%02d  %02d:%02d  \
+%08lx  %s\n", ucsize, method, csize,
+		ratio / 10, mo, dy, yr, hh, mm,
+		LONGI(lrec.crc32), filename);
+	tot_ucsize += ucsize;
+	tot_csize += csize;
+	++members;
+}
+
+/* ---------------------------------------------------------- */
+
+void skip_member()
+{
+	register long pos;
+	long endbuf;
+	int offset;
+
+	endbuf = lseek(zipfd, 0L, SEEK_CUR);	/* 1st byte beyond inbuf */
+	pos = endbuf - incnt;			/* 1st compressed byte */
+	pos += csize;		/* next header signature */
+	if (pos < endbuf)  {
+		incnt -= csize;
+		inptr += csize;
+	}
+	else  {
+		offset = pos % BSIZE;		/* offset within block */
+		pos = (pos / BSIZE) * BSIZE;	/* block start */
+	        lseek(zipfd, pos, SEEK_SET);
+		incnt = read(zipfd, inbuf, INBUFSIZ);
+		incnt -= offset;
+		inptr = inbuf + offset;
+	}
+}
+
+/* ---------------------------------------------------------- */
+
+void extract_member()
 {
         word     b;
 
 	bits_left = 0;
 	bitbuf = 0;
-	incnt = 0;
 	outpos = 0L;
 	outcnt = 0;
 	outptr = outbuf;
@@ -1112,22 +1385,30 @@ void extract_member(void)
 	crc32val = 0xFFFFFFFFL;
 
 
-	/* create the output file with READ and WRITE permissions */
-	if (create_output_file())
-		exit(1);
+	memset(outbuf, 0, OUTBUFSIZ);
+	if (tflag)
+		fprintf(stderr, "Testing: %-12s ", filename);
+	else
+		/* create the output file with READ and WRITE permissions */
+		if (create_output_file())
+			exit(1);
 
         switch (lrec.compression_method) {
 
 	case 0:		/* stored */
 		{
-			printf(" Extracting: %-12s ", filename);
+			if (!tflag)
+				fprintf(stderr, " Extracting: %-12s ", filename);
+			if (cflag) fprintf(stderr, "\n");
 			while (ReadByte(&b))
 				OUTB(b);
 		}
 		break;
 
         case 1: {
-			printf("UnShrinking: %-12s ", filename);
+			if (!tflag)
+				fprintf(stderr, "UnShrinking: %-12s ", filename);
+			if (cflag) fprintf(stderr, "\n");
 			unShrink();
 		}
 		break;
@@ -1136,81 +1417,121 @@ void extract_member(void)
 	case 3:
 	case 4:
         case 5: {
-			printf("  Expanding: %-12s ", filename);
+			if (!tflag)
+				fprintf(stderr, "  Expanding: %-12s ", filename);
+			if (cflag) fprintf(stderr, "\n");
 			unReduce();
 		}
 		break;
 
         case 6: {
-                        printf("  Exploding: %-12s ", filename);
+			if (!tflag)
+	                        fprintf(stderr, "  Exploding: %-12s ", filename);
+			if (cflag) fprintf(stderr, "\n");
                         unImplode();
 		}
 		break;
 
         default:
-		printf("Unknown compression method.");
+		fprintf(stderr, "Unknown compression method.");
 	}
 
 
 	/* write the last partial buffer, if any */
 	if (outcnt > 0) {
 		UpdateCRC(outbuf, outcnt);
-		write(outfd, outbuf, outcnt);
+		if (!tflag)
+			write(outfd, outbuf, outcnt);
 	}
 
-	/* set output file date and time */
-	set_file_time();
+	if (!tflag)  {
+#ifndef UNIX
+		/* set output file date and time */
+		set_file_time();
+		close(outfd);
+#else
+		close(outfd);
+		/* set output file date and time */
+		set_file_time();
+#endif
+	}
 
-	close(outfd);
+	crc32val = ~crc32val;
+        if (crc32val != LONGI(lrec.crc32))
+                fprintf(stderr, " Bad CRC %08lx  (should be %08lx)", crc32val,
+			LONGI(lrec.crc32));
+	else if (tflag)
+		fprintf(stderr, " OK");
 
-	crc32val = -1 - crc32val;
-        if (crc32val != lrec.crc32)
-                printf(" Bad CRC %08lx  (should be %08lx)", lrec.crc32, crc32val);
-
-	printf("\n");
+	fprintf(stderr, "\n");
 }
 
 
 /* ---------------------------------------------------------- */
 
-void get_string(int len,
-                char *s)
+void get_string(len, s)
+int len;
+char *s;
 {
-	read(zipfd, s, len);
+	readbuf(zipfd, s, len);
 	s[len] = 0;
 }
 
 
 /* ---------------------------------------------------------- */
 
-void process_local_file_header(void)
+void process_local_file_header(fnamev)
+char **fnamev;
 {
-	read(zipfd, &lrec, sizeof(lrec));
+	int extracted;
+
+	readbuf(zipfd, &lrec, sizeof(lrec));
 
 #ifdef HIGH_LOW
 	swap_bytes(&lrec.filename_length);
 	swap_bytes(&lrec.extra_field_length);
-	swap_lbytes(&lrec.compressed_size);
-	swap_lbytes(&lrec.uncompressed_size);
+	swap_lbytes(LONGIP(lrec.compressed_size));
+	swap_lbytes(LONGIP(lrec.uncompressed_size));
 	swap_bytes(&lrec.compression_method);
+	swap_bytes(&lrec.version_needed_to_extract);
+        swap_bytes(&lrec.general_purpose_bit_flag);
+	swap_bytes(&lrec.last_mod_file_time);
+	swap_bytes(&lrec.last_mod_file_date);
+        swap_lbytes(LONGIP(lrec.crc32));
 #endif
+	csize = LONGI(lrec.compressed_size);
+	ucsize = LONGI(lrec.uncompressed_size);
 
 	get_string(lrec.filename_length, filename);
 	get_string(lrec.extra_field_length, extra);
-	extract_member();
+
+	extracted = 0;
+	for (--fnamev; *++fnamev; )  {
+		if (match(filename, *fnamev))  {
+			if (vflag)
+				dir_member();
+			else  {
+				extract_member();
+				extracted = 1;
+			}
+			break;
+		}
+	}
+	if (!extracted)
+		skip_member();
 }
 
 
 /* ---------------------------------------------------------- */
 
-void process_central_file_header(void)
+void process_central_file_header()
 {
 	central_directory_file_header rec;
 	char filename[STRSIZ];
 	char extra[STRSIZ];
 	char comment[STRSIZ];
 
-	read(zipfd, &rec, sizeof(rec));
+	readbuf(zipfd, &rec, sizeof(rec));
 
 #ifdef HIGH_LOW
 	swap_bytes(&rec.filename_length);
@@ -1226,29 +1547,45 @@ void process_central_file_header(void)
 
 /* ---------------------------------------------------------- */
 
-void process_end_central_dir(void)
+void process_end_central_dir()
 {
 	end_central_dir_record rec;
 	char comment[STRSIZ];
 
-	read(zipfd, &rec, sizeof(rec));
+	readbuf(zipfd, &rec, sizeof(rec));
 
 #ifdef HIGH_LOW
 	swap_bytes(&rec.zipfile_comment_length);
 #endif
 
+	/* There seems to be no limit to the zipfile
+	   comment length.  Some zipfiles have comments
+	   longer than 256 bytes.  Currently no use is
+	   made of the comment anyway.
+	 */
+#if 0
 	get_string(rec.zipfile_comment_length, comment);
+#endif
 }
 
 
 /* ---------------------------------------------------------- */
 
-void process_headers(void)
+void process_headers()
 {
+	int ratio;
 	longint sig;
 
+	if (vflag)  {
+		members = 0;
+		tot_ucsize = tot_csize = 0;
+		printf("\n Length  Method   Size  Ratio   Date    Time   \
+CRC-32    Name\n ------  ------   ----- -----   ----    ----   ------    \
+----\n");
+	}
+
 	while (1) {
-		if (read(zipfd, &sig, sizeof(sig)) != sizeof(sig))
+		if (readbuf(zipfd, &sig, sizeof(sig)) != sizeof(sig))
 			return;
 
 #ifdef HIGH_LOW
@@ -1256,25 +1593,38 @@ void process_headers(void)
 #endif
 
                 if (sig == LOCAL_FILE_HEADER_SIGNATURE)
-			process_local_file_header();
+			process_local_file_header(fnv);
                 else if (sig == CENTRAL_FILE_HEADER_SIGNATURE)
 			process_central_file_header();
                 else if (sig == END_CENTRAL_DIR_SIGNATURE) {
 			process_end_central_dir();
-			return;
+			break;
 		}
                 else {
-			printf("Invalid Zipfile Header\n");
+			fprintf(stderr, "Invalid Zipfile Header\n");
 			return;
 		}
 	}
-
+	if (vflag)  {
+		if (tot_ucsize != 0)  {
+			ratio = (int) ((1000L * (tot_ucsize-tot_csize))
+					/ tot_ucsize);
+			if ((ratio % 10) >= 5)
+				ratio += 10;
+		}
+		else
+			ratio = 0;
+		printf(" ------          ------  \
+---                             -------\n\
+%7ld         %7ld %3d%%                             %7d\n",
+		tot_ucsize, tot_csize, ratio / 10, members);
+	}
 }
 
 
 /* ---------------------------------------------------------- */
 
-void extract_zipfile(void)
+void process_zipfile()
 {
 	/*
 	 * open the zipfile for reading and in BINARY mode to prevent cr/lf
@@ -1289,48 +1639,79 @@ void extract_zipfile(void)
 	close(zipfd);
 }
 
+/* ---------------------------------------------------------- */
+
+usage()
+{
+	fprintf(stderr, "\n%s\nCourtesy of:  S.H.Smith  and  The Tool Shop BBS,  (602) 279-2673.\n\n",VERSION);
+	fprintf(stderr, "Usage:  unzip [-tcv] file[.zip] [filespec...]\n\
+\t-t\ttest member files\n\
+\t-c\toutput to stdout\n\
+\t-v\tview directory\n");
+	exit(1);
+}
 
 /* ---------------------------------------------------------- */
+
 /*
  * main program
  *
  */
 
-void main(int argc, char **argv)
+void main(argc, argv)
+int argc;
+char **argv;
 {
-	if (argc != 2) {
-                printf("\n%s\nCourtesy of:  S.H.Smith  and  The Tool Shop BBS,  (602) 279-2673.\n\n",VERSION);
-		printf("You may copy and distribute this program freely, provided that:\n");
-		printf("    1)   No fee is charged for such copying and distribution, and\n");
-		printf("    2)   It is distributed ONLY in its original, unmodified state.\n\n");
-		printf("If you wish to distribute a modified version of this program, you MUST\n");
-		printf("include the source code.\n\n");
-		printf("If you modify this program, I would appreciate a copy of the  new source\n");
-		printf("code.   I am holding the copyright on the source code, so please don't\n");
-		printf("delete my name from the program files or from the documentation.\n\n");
-                printf("IN NO EVENT WILL I BE LIABLE TO YOU FOR ANY DAMAGES, INCLUDING ANY LOST\n");
-                printf("PROFITS, LOST SAVINGS OR OTHER INCIDENTAL OR CONSEQUENTIAL DAMAGES\n");
-                printf("ARISING OUT OF YOUR USE OR INABILITY TO USE THE PROGRAM, OR FOR ANY\n");
-                printf("CLAIM BY ANY OTHER PARTY.\n\n");
-                printf("Usage:  UnZip FILE[.zip]\n");
-                exit(1);
+	char *s;
+	int c;
+
+	while (--argc > 0 && (*++argv)[0] == '-')  {
+		s = argv[0] + 1;
+		while (c = *s++)  {
+			switch (tolower(c))  {
+			case 't':
+				++tflag;
+				break;
+			case 'v':
+				++vflag;
+				break;
+			case 'c':
+				++cflag;
+				break;
+			default:
+				usage();
+				break;
+			}
+		}
 	}
 
+	if ((tflag && vflag) || (tflag && cflag) || (vflag && cflag))  {
+		fprintf(stderr, "only one of -t, -c, or -v\n");
+		exit(1);
+	}
+	if (argc-- == 0)
+		usage();
+
 	/* .ZIP default if none provided by user */
-	strcpy(zipfn, argv[1]);
+	strcpy(zipfn, *argv++);
 	if (strchr(zipfn, '.') == NULL)
-		strcat(zipfn, ".ZIP");
+		strcat(zipfn, ZSUFX);
+
+	/* if any member file specs on command line, set filename
+	   pointer to point to them. */
+
+	if (argc != 0)
+		fnv = argv;
 
         /* allocate i/o buffers */
 	inbuf = (byte *) (malloc(INBUFSIZ));
 	outbuf = (byte *) (malloc(OUTBUFSIZ));
 	if ((inbuf == NULL) || (outbuf == NULL)) {
-		printf("Can't allocate buffers!\n");
+		fprintf(stderr, "Can't allocate buffers!\n");
 		exit(1);
 	}
 
         /* do the job... */
-        extract_zipfile();
+        process_zipfile();
 	exit(0);
 }
-

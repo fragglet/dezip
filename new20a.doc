@@ -1,0 +1,12 @@
+
+			NEW FEATURES IN UNZIP20A
+
+11/19/89
+C. Mascott
+
+1.  The following command-line options have been added:
+	-t	test
+	-v	view directory.
+
+2.  Member filespecs may be given on the command line.
+    Filespecs may contain UNIX-style wildcards.
