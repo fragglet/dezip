@@ -9,21 +9,23 @@
               mapname()
               do_wild()
               checkdir()
-              cmptime()
-              invlocal()
               close_outfile()
-              _abort()         (Aztec C only)
+              _abort()                (Aztec C only)
+             [dateformat()]           (currently not used)
+              windowheight()
               version()
 
   ------------------------------------------------------------------------*/
 
 
+#define UNZIP_INTERNAL
 #include "unzip.h"
 
-/* Globular varibundus */
+/* Globular varibundus -- now declared in SYSTEM_SPECIFIC_GLOBALS in amiga.h */
 
-static int created_dir;      /* used in mapname(), checkdir() */
-static int renamed_fullpath; /* ditto */
+/* static int created_dir; */      /* used in mapname(), checkdir() */
+/* static int renamed_fullpath; */ /* ditto */
+
 #define PERMS   0777
 #define MKDIR(path,mode) mkdir(path)
 
@@ -43,33 +45,41 @@ static int renamed_fullpath; /* ditto */
 #  define S_IHIDDEN  0200  /* hidden supported in future AmigaDOS (someday) */
 #endif /* !S_HIDDEN */
 
+#ifndef SFX
+/* Make sure the number here matches version.h in the *EXACT* form */
+/* UZ_MAJORVER "." UZ_MINORVER PATCHLEVEL vvvv     No non-digits!  */
+static char version_id[] = "\0$VER: UnZip 5.20 ("
+#  include "env:VersionDate"
+")\r\n";
+#endif
 
 
 /**********************/
 /* Function mapattr() */
 /**********************/
 
-int mapattr(void)      /* Amiga version */
+int mapattr(__G)      /* Amiga version */
+    __GDEF
 {
-    ulg  tmp = crec.external_file_attributes;
+    ulg  tmp = G.crec.external_file_attributes;
 
 
     /* Amiga attributes = hsparwed = hidden, script, pure, archive,
      * read, write, execute, delete */
 
-    switch (pInfo->hostnum) {
+    switch (G.pInfo->hostnum) {
         case AMIGA_:
             if ((tmp & 1) == (tmp>>18 & 1))
                 tmp ^= 0x000F0000;      /* PKAZip compatibility kluge */
             /* turn off archive bit for restored Amiga files */
-            pInfo->file_attr = (unsigned)((tmp>>16) & (~S_IARCHIVE));
+            G.pInfo->file_attr = (unsigned)((tmp>>16) & (~S_IARCHIVE));
             break;
 
         case UNIX_:   /* preserve read, write, execute:  use logical-OR of */
         case VMS_:    /* user, group, and other; if writable, set delete bit */
             tmp >>= 16;
             tmp = (( tmp>>6 | tmp>>3 | tmp) & 07) << 1;
-            pInfo->file_attr = (unsigned)(tmp&S_IWRITE? tmp|S_IDELETE : tmp);
+            G.pInfo->file_attr = (unsigned)(tmp&S_IWRITE? tmp|S_IDELETE : tmp);
             break;
 
         /* all other platforms:  assume read-only bit in DOS half of attribute
@@ -81,12 +91,12 @@ int mapattr(void)      /* Amiga version */
         case ATARI_:
         case TOPS20_:
         default:
-            pInfo->file_attr = (unsigned)(tmp&1? S_IREAD : S_IRWD); 
+            G.pInfo->file_attr = (unsigned)(tmp&1? S_IREAD : S_IRWD);
             break;
 
     } /* end switch (host-OS-created-by) */
 
-    pInfo->file_attr &= 0xff;   /* mask off all but lower eight bits */
+    G.pInfo->file_attr &= 0xff;   /* mask off all but lower eight bits */
     return 0;
 
 } /* end function mapattr() */
@@ -98,13 +108,13 @@ int mapattr(void)      /* Amiga version */
 /*  Function mapname()  */
 /************************/
 
-int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
-    int renamed;      /* 2 if warning (skip file because dir doesn't exist), */
-{                     /* 3 if error (skip file), 10 if no memory (skip file) */
+int mapname(__G__ renamed)  /* return 0 if no error, 1 if caution (truncate), */
+    __GDEF                  /* 2 if warning (skip because dir doesn't exist), */
+    int renamed;            /* 3 if error (skip file), 10 if no memory (skip) */
+{
     char pathcomp[FILNAMSIZ];   /* path-component buffer */
     char *pp, *cp=NULL;         /* character pointers */
     char *lastsemi = NULL;      /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;          /* flags */
     int error = 0;
     register unsigned workch;   /* hold the character being tested */
 
@@ -114,22 +124,22 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
   ---------------------------------------------------------------------------*/
 
     /* can create path as long as not just freshening, or if user told us */
-    create_dirs = (!fflag || renamed);
+    G.create_dirs = (!G.fflag || renamed);
 
-    created_dir = FALSE;        /* not yet */
+    G.created_dir = FALSE;      /* not yet */
 
     /* user gave full pathname:  don't prepend rootpath */
-    renamed_fullpath = (renamed && strchr(filename, ':'));
+    G.renamed_fullpath = (renamed && strchr(G.filename, ':'));
 
-    if (checkdir((char *)NULL, INIT) == 10)
+    if (checkdir(__G__ (char *)NULL, INIT) == 10)
         return 10;              /* initialize path buffer, unless no memory */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (jflag)                  /* junking directories */
-        cp = (char *)strrchr(filename, '/');
+    if (G.jflag)                /* junking directories */
+        cp = (char *)strrchr(G.filename, '/');
     if (cp == NULL)             /* no '/' or not junking dirs */
-        cp = filename;          /* point to internal zipfile-member pathname */
+        cp = G.filename;        /* point to internal zipfile-member pathname */
     else
         ++cp;                   /* point to start of last component of path */
 
@@ -139,40 +149,31 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
 
     while ((workch = (uch)*cp++) != 0) {
 
-        if (quote) {                 /* if character quoted, */
-            *pp++ = (char)workch;    /*  include it literally */
-            quote = FALSE;
-        } else
-            switch (workch) {
-            case '/':             /* can assume -j flag not given */
-                *pp = '\0';
-                if ((error = checkdir(pathcomp, APPEND_DIR)) > 1)
-                    return error;
-                pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = NULL;  /* leave directory semi-colons alone */
-                break;
+        switch (workch) {
+        case '/':             /* can assume -j flag not given */
+            *pp = '\0';
+            if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
+                return error;
+            pp = pathcomp;    /* reset conversion buffer for next piece */
+            lastsemi = NULL;  /* leave directory semi-colons alone */
+            break;
 
-            case ';':             /* VMS version (or DEC-20 attrib?) */
-                lastsemi = pp;         /* keep for now; remove VMS ";##" */
-                *pp++ = (char)workch;  /*  later, if requested */
-                break;
+        case ';':             /* VMS version (or DEC-20 attrib?) */
+            lastsemi = pp;         /* keep for now; remove VMS ";##" */
+            *pp++ = (char)workch;  /*  later, if requested */
+            break;
 
-            case '\026':          /* control-V quote for special chars */
-                quote = TRUE;     /* set flag for next character */
-                break;
-
-            default:
-                /* allow European characters in filenames: */
-                if (isprint(workch) || (128 <= workch && workch <= 255))
-                    *pp++ = (char)workch;
-            } /* end switch */
-
+        default:
+            /* allow ISO European characters in filenames: */
+            if (isprint(workch) || (160 <= workch && workch <= 255))
+                *pp++ = (char)workch;
+        } /* end switch */
     } /* end while loop */
 
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove with VMS version numbers (appended ";###") */
-    if (!V_flag && lastsemi) {
+    if (!G.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -186,28 +187,26 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     fore exiting.
   ---------------------------------------------------------------------------*/
 
-    if (filename[strlen(filename) - 1] == '/') {
-        if (checkdir(filename, GETPATH) == 1) {
-            fprintf(stderr, "pathname too long:  truncat{ed/ing}\n");
-            return 1;  /* GRR:  NEEDS WORK! (do checking only when appending) */
-        }
-        if (created_dir && QCOND2) {
-            fprintf(stdout, "   creating: %s\n", filename);
+    if (G.filename[strlen(G.filename) - 1] == '/') {
+        checkdir(__G__ G.filename, GETPATH);
+        if (G.created_dir && QCOND2) {
+            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
     if (*pathcomp == '\0') {
-        fprintf(stderr, "mapname:  conversion of %s failed\n", filename);
+        Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
+             G.filename));
         return 3;
     }
 
-    if ((error = checkdir(pathcomp, APPEND_NAME)) == 1) {
+    if ((error = checkdir(__G__ pathcomp, APPEND_NAME)) == 1) {
         /* GRR:  OK if truncated here:  warn and continue */
         /* (warn in checkdir?) */
     }
-    checkdir(filename, GETPATH);
+    checkdir(__G__ G.filename, GETPATH);
 
     return error;
 
@@ -218,9 +217,9 @@ static int ispattern(char *p)
 {
     register char c;
     while (c = *p++)
-	if (c == '\\') {
-	    if (!*++p)
-		return FALSE;
+        if (c == '\\') {
+            if (!*++p)
+                return FALSE;
         } else if (c == '?' || c == '*')
             return TRUE;
         else if (c == '[') {
@@ -229,7 +228,7 @@ static int ispattern(char *p)
                     return FALSE;
                 else if (c == '\\') {
                     if (!*++p)
-			return FALSE;
+                        return FALSE;
                 } else if (c == ']')
                     return TRUE;
             }
@@ -238,78 +237,77 @@ static int ispattern(char *p)
 }
 
 /**********************/
-/* Function do_wild() */   /* for porting:  dir separator; match(ignore_case) */
+/* Function do_wild() */
 /**********************/
 
-char *do_wild(wildspec)
+char *do_wild(__G__ wildspec)
+    __GDEF
     char *wildspec;         /* only used first time on a given dir */
 {
-    static DIR *dir = NULL;
+/* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in amiga.h:
+    static DIR *wild_dir = NULL;
     static char *dirname, *wildname, matchname[FILNAMSIZ];
-    static int firstcall=TRUE, have_dirname, dirnamelen;
+    static int notfirstcall = FALSE, dirnamelen;
+*/
     struct dirent *file;
     BPTR lok = 0;
     /* Even when we're just returning wildspec, we *always* do so in
      * matchname[]--calling routine is allowed to append four characters
      * to the returned string, and wildspec may be a pointer to argv[].
      */
-    if (firstcall) {        /* first call:  must initialize everything */
-        firstcall = FALSE;
+    if (!G.notfirstcall) {      /* first call:  must initialize everything */
+        G.notfirstcall = TRUE;
         /* avoid needless readdir() scans: */
         if (!ispattern(wildspec) || (lok = Lock(wildspec, ACCESS_READ))) {
-            if (lok) UnLock(lok);
-            have_dirname = FALSE;
-            strcpy(matchname, wildspec);
-            return matchname;
+            if (lok) UnLock(lok);       /* ^^ we ignore wildcard chars if */
+            G.dirnamelen = 0;           /* the name matches a real file   */
+            strcpy(G.matchname, wildspec);
+            return G.matchname;
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((wildname = strrchr(wildspec, '/')) == NULL
-                        && (wildname = strrchr(wildspec, ':')) == NULL) {
-            dirname = "";               /* current dir */
-            dirnamelen = 1;
-            have_dirname = FALSE;
-            wildname = wildspec;
+        if ((G.wildname = strrchr(wildspec, '/')) == NULL
+                        && (G.wildname = strrchr(wildspec, ':')) == NULL) {
+            G.dirname = "";             /* current dir */
+            G.dirnamelen = 0;
+            G.wildname = wildspec;
         } else {
-            ++wildname;     /* point at character after '/' or ':' */
-            dirnamelen = wildname - wildspec;
-            if ((dirname = (char *)malloc(dirnamelen+1)) == NULL) {
-                fprintf(stderr, "warning:  can't allocate wildcard buffers\n");
-                strcpy(matchname, wildspec);
-                return matchname;   /* but maybe filespec was not a wildcard */
+            ++G.wildname;     /* point at character after '/' or ':' */
+            G.dirnamelen = G.wildname - wildspec;
+            if ((G.dirname = (char *)malloc(G.dirnamelen+1)) == NULL) {
+                Info(slide, 1, ((char *)slide,
+                     "warning:  can't allocate wildcard buffers\n"));
+                strcpy(G.matchname, wildspec);
+                return G.matchname; /* but maybe filespec was not a wildcard */
             }
-            strncpy(dirname, wildspec, dirnamelen);
-            dirname[dirnamelen] = 0;
-            have_dirname = TRUE;
+            strncpy(G.dirname, wildspec, G.dirnamelen);
+            G.dirname[G.dirnamelen] = 0;
         }
 
-        if ((dir = opendir(dirname)) != NULL) {
-            while ((file = readdir(dir)) != NULL) {
-                if (match(file->d_name, wildname, 1)) {  /* case insensitive */
-                    if (have_dirname) {
-                        strcpy(matchname, dirname);
-                        strcpy(matchname+dirnamelen, file->d_name);
-                    } else
-                        strcpy(matchname, file->d_name);
-                    return matchname;
+        if ((G.wild_dir = opendir(G.dirname)) != NULL) {
+            while ((file = readdir(G.wild_dir)) != NULL) {
+                if (match(file->d_name, G.wildname, 1)) {  /* ignore case */
+                    strcpy(G.matchname, G.dirname);
+                    strcpy(G.matchname + G.dirnamelen, file->d_name);
+                    return G.matchname;
                 }
             }
             /* if we get to here directory is exhausted, so close it */
-            closedir(dir);
-            dir = NULL;
+            closedir(G.wild_dir);
+            G.wild_dir = NULL;
         }
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
-        strcpy(matchname, wildspec);
-        return matchname;
+        strcpy(G.matchname, wildspec);
+        return G.matchname;
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == NULL) {
-        firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
-        if (have_dirname)
-            free(dirname);
+    if (G.wild_dir == NULL) {
+        G.notfirstcall = FALSE;    /* nothing left to try -- reset */
+        if (G.dirnamelen > 0)
+            free(G.dirname);
         return (char *)NULL;
     }
 
@@ -317,21 +315,18 @@ char *do_wild(wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir(dir)) != NULL)
-        if (match(file->d_name, wildname, 0)) {   /* 0 == don't ignore case */
-            if (have_dirname) {
-                /* strcpy(matchname, dirname); */
-                strcpy(matchname+dirnamelen, file->d_name);
-            } else
-                strcpy(matchname, file->d_name);
-            return matchname;
+    while ((file = readdir(G.wild_dir)) != NULL)
+        if (match(file->d_name, G.wildname, 1)) {   /* 1 == ignore case */
+            /* strcpy(G.matchname, dirname); */
+            strcpy(G.matchname + G.dirnamelen, file->d_name);
+            return G.matchname;
         }
 
-    closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = NULL;
-    firstcall = TRUE;  /* reset for new wildspec */
-    if (have_dirname)
-        free(dirname);
+    closedir(G.wild_dir);  /* have read at least one dir entry; nothing left */
+    G.wild_dir = NULL;
+    G.notfirstcall = FALSE;  /* reset for new wildspec */
+    if (G.dirnamelen > 0)
+        free(G.dirname);
     return (char *)NULL;
 
 } /* end function do_wild() */
@@ -342,7 +337,8 @@ char *do_wild(wildspec)
 /* Function checkdir() */
 /***********************/
 
-int checkdir(pathcomp, flag)
+int checkdir(__G__ pathcomp, flag)
+    __GDEF
     char *pathcomp;
     int flag;
 /*
@@ -350,6 +346,7 @@ int checkdir(pathcomp, flag)
  *           2 - path doesn't exist, not allowed to create
  *           3 - path doesn't exist, tried to create and failed; or
  *               path exists and is not a directory, but is supposed to be
+ *           4 - path is too long
  *          10 - can't allocate memory for filename buffers
  */
 {
@@ -372,29 +369,45 @@ int checkdir(pathcomp, flag)
 /* GRR:  check path length after each segment:  warn about truncation */
 
     if (FUNCTION == APPEND_DIR) {
+        int too_long = FALSE;
+
         Trace((stderr, "appending dir segment [%s]\n", pathcomp));
         while ((*end = *pathcomp++))
             ++end;
-        if (stat(buildpath, &statbuf)) {   /* path doesn't exist */
-            if (!create_dirs) {   /* told not to create (freshening) */
+        /* Truncate components over 30 chars? Nah, the filesystem handles it. */
+        if ((end-buildpath) > FILNAMSIZ-3)  /* need '/', one-char name, '\0' */
+            too_long = TRUE;                /* check if extracting directory? */
+        if (stat(buildpath, &G.statbuf)) {  /* path doesn't exist */
+            if (!G.create_dirs) { /* told not to create (freshening) */
                 free(buildpath);
                 return 2;         /* path doesn't exist:  nothing to do */
             }
+            if (too_long) {
+                Info(slide, 1, ((char *)slide,
+                  "checkdir error:  path too long: %s\n", buildpath));
+                free(buildpath);
+                return 4;         /* no room for filenames:  fatal */
+            }
             if (MKDIR(buildpath, 0777) == -1) {   /* create the directory */
-                fprintf(stderr, 
-                "checkdir:  can't create %s\n           unable to process %s.\n"
-                  , buildpath, filename);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide,
+                 "checkdir error:  can't create %s\n\
+                 unable to process %s.\n", buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
             }
-            created_dir = TRUE;
-        } else if (!S_ISDIR(statbuf.st_mode)) {
-            fprintf(stderr, "checkdir:  %s exists but is not a directory\n\
-           unable to process %s.\n", buildpath, filename);
-            fflush(stderr);
+            G.created_dir = TRUE;
+        } else if (!S_ISDIR(G.statbuf.st_mode)) {
+            Info(slide, 1, ((char *)slide,
+                 "checkdir error:  %s exists but is not a directory\n\
+                 unable to process %s.\n", buildpath, G.filename));
             free(buildpath);
             return 3;          /* path existed but wasn't dir */
+        }
+        if (too_long) {
+            Info(slide, 1, ((char *)slide,
+                 "checkdir error:  path too long: %s\n", buildpath));
+            free(buildpath);
+            return 4;         /* no room for filenames:  fatal */
         }
         *end++ = '/';
         *end = '\0';
@@ -405,11 +418,11 @@ int checkdir(pathcomp, flag)
 
 /*---------------------------------------------------------------------------
     GETPATH:  copy full path to the string pointed at by pathcomp, and free
-    buildpath.
+    buildpath.  Not our responsibility to worry whether pathcomp has room.
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == GETPATH) {
-        strcpy(pathcomp, buildpath);  /* DO ERROR CHECKING:  TOO LONG? */
+        strcpy(pathcomp, buildpath);
         Trace((stderr, "getting and freeing path [%s]\n", pathcomp));
         free(buildpath);
         buildpath = end = NULL;
@@ -421,10 +434,18 @@ int checkdir(pathcomp, flag)
     return without checking for existence.
   ---------------------------------------------------------------------------*/
 
-    if (FUNCTION == APPEND_NAME) {                /* DO ERROR CHECKING */
+    if (FUNCTION == APPEND_NAME) {
         Trace((stderr, "appending filename [%s]\n", pathcomp));
-        while ((*end = *pathcomp++))
+        while ((*end = *pathcomp++)) {
             ++end;
+            if ((end-buildpath) >= FILNAMSIZ) {
+                *--end = '\0';
+                Info(slide, 1, ((char *)slide,
+                   "checkdir warning:  path too long; truncating\n\
+                   %s\n                -> %s\n", G.filename, buildpath));
+                return 1;   /* filename truncated */
+            }
+        }
         Trace((stderr, "buildpath now = [%s]\n", buildpath));
         return 0;  /* could check for existence here, prompt for new name... */
     }
@@ -437,9 +458,9 @@ int checkdir(pathcomp, flag)
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(filename)+rootlen+1)) == NULL)
+        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1)) == NULL)
             return 10;
-        if ((rootlen > 0) && !renamed_fullpath) {
+        if ((rootlen > 0) && !G.renamed_fullpath) {
             strcpy(buildpath, rootpath);
             end = buildpath + rootlen;
         } else {
@@ -465,30 +486,18 @@ int checkdir(pathcomp, flag)
             return 0;
         }
         if ((rootlen = strlen(pathcomp)) > 0) {
-            int had_trailing_pathsep=FALSE;
-
-            if (pathcomp[rootlen-1] == '/') {
-                pathcomp[--rootlen] = '\0';
-                had_trailing_pathsep = TRUE;
-            }
-            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
-                !S_ISDIR(statbuf.st_mode)))      /* path does not exist */
-            {
-                if (!create_dirs                     /* || iswild(pathcomp) */
-#ifdef OLD_EXDIR
-                                 || !had_trailing_pathsep
-#endif
-                                                         ) {
+            if (stat(pathcomp, &G.statbuf) || !S_ISDIR(G.statbuf.st_mode)) {
+                /* path does not exist */
+                if (!G.create_dirs) {
                     rootlen = 0;
                     return 2;   /* treat as stored file */
                 }
                 /* create the directory (could add loop here to scan pathcomp
                  * and create more than one level, but why really necessary?) */
                 if (MKDIR(pathcomp, 0777) == -1) {
-                    fprintf(stderr,
-                      "checkdir:  can't create extraction directory: %s\n",
-                      pathcomp);
-                    fflush(stderr);
+                    Info(slide, 1, ((char *)slide,
+                         "checkdir:  can't create extraction directory: %s\n",
+                         pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
                 }
@@ -498,11 +507,11 @@ int checkdir(pathcomp, flag)
                 return 10;
             }
             strcpy(rootpath, pathcomp);
-            if (rootpath[rootlen - 1] != ':')
+            if (rootpath[rootlen - 1] != ':' && rootpath[rootlen - 1] != '/')
                 rootpath[rootlen++] = '/';
             rootpath[rootlen] = '\0';
+            Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
-        Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
 #endif /* !SFX || SFX_EXDIR */
@@ -523,132 +532,65 @@ int checkdir(pathcomp, flag)
 } /* end function checkdir() */
 
 
-/**********************/
-/* Function cmptime() */
-/**********************/
-
-/* cmptime() clone pinched from from Zip1.9h,
- * by Mark Adler, Jean-loup Gailly, et al., circa 1991.  
- * Incorporated into UnZip 5.1d by John Bush
- */
-
-int cmptime(p, q)
-struct tm *p, *q;       /* times to compare */
-/* Return negative if time p is before time q, positive if after, and
-   zero if the same */
-{
-  int r;                /* temporary variable */
-
-  if (p == NULL)
-    return -1;
-  else if ((r = p->tm_year - q->tm_year) != 0)
-    return r;
-  else if ((r = p->tm_mon - q->tm_mon) != 0)
-    return r;
-  else if ((r = p->tm_mday - q->tm_mday) != 0)
-    return r;
-  else if ((r = p->tm_hour - q->tm_hour) != 0)
-    return r;
-  else if ((r = p->tm_min - q->tm_min) != 0)
-    return r;
-  else
-    return p->tm_sec - q->tm_sec;
-}
-
-
-/***********************/
-/* Function invlocal() */
-/***********************/
-
-/* mktime() clone pinched from from Zip1.9h,
- * by Mark Adler and Jean-loup Gailly, et.al, circa 1991.  
- * Incorporated into UnZip 5.1d by John Bush
- */
-time_t invlocal(t)
-struct tm *t;           /* time to convert */
-/* Find inverse of localtime() using bisection.  This routine assumes that
-   time_t is an integer type, either signed or unsigned.  The expectation
-   is that sometime before the year 2038, time_t will be made a 64-bit
-   integer, and this routine will still work. */
-{
-  time_t i;             /* midpoint of current root range */
-  time_t l;             /* lower end of root range */
-  time_t u;             /* upper end of root range */
-
-  /* Bracket the root [0,largest time_t].  Note: if time_t is a 32-bit signed
-     integer, then the upper bound is GMT 1/19/2038 03:14:07, after which all
-     the Unix systems in the world come to a grinding halt.  Either that, or
-     all those systems will suddenly find themselves transported to December
-     of 1901 ... */
-  l = 0;
-  u = 1;
-  while (u < (u << 1))
-    u = (u << 1) + 1;
-
-  /* Find the root */
-  while (u - l > 1)
-  {
-    i = l + ((u - l) >> 1);
-    if (cmptime(localtime(&i), t) <= 0)
-      l = i;
-    else
-      u = i;
-  }
-  return l;
-}
-
-
-
 /**************************************/
 /* Function close_outfile() */
 /**************************************/
 /* this part differs slightly with Zip */
 /*-------------------------------------*/
 
-void close_outfile(void)
+void close_outfile(__G)
+    __GDEF
 {
-    struct tm t;                /* good ole time structure */
-    time_t u[2];                /* mean ole time stamp */
-    ulg dd,dt;                  /* DOS format time stamps */
+    time_t m_time;
+#ifdef USE_EF_UX_TIME
+    ztimbuf z_utime;
+#endif
     LONG FileDate();
-    time_t invlocal();
 
-    if (cflag)                  /* can't set time on stdout */
+    if (G.cflag)                /* can't set time or filenote on stdout */
         return;
 
   /* close the file *before* setting its time under AmigaDos */
 
-    fclose(outfile);
+    fclose(G.outfile);
 
-  /* assign date and time to local variables */
-
-    dd = lrec.last_mod_file_date;
-    dt = lrec.last_mod_file_time;
-
-  /* Convert DOS time to time_t format in (time_t)u */
-
-    t.tm_sec =   (int) (dt <<  1) & 0x3e;
-    t.tm_min =   (int) (dt >>  5) & 0x3f;
-    t.tm_hour =  (int) (dt >> 11) & 0x1f;
-
-    t.tm_mday =  (int) (dd        & 0x1f);
-    t.tm_mon =  ((int) (dd >>  5) & 0xf ) - 1;
-    t.tm_year = ((int) (dd >>  9) & 0x7f) + 80;
-
-  /* invlocal() is equivalent to mktime() */
-
-    u[0] = u[1] = invlocal(&t); 
+#ifdef USE_EF_UX_TIME
+    if (G.extra_field &&
+        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
+                         &z_utime, NULL) > 0) {
+        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+                         z_utime.modtime));
+        m_time = z_utime.modtime;
+    } else {
+        /* Convert DOS time to time_t format */
+        m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
+                                  G.lrec.last_mod_file_time);
+    }
+#else /* !USE_EF_UX_TIME */
+    /* Convert DOS time to time_t format */
+    m_time = dos_to_unix_time(G.lrec.last_mod_file_date,
+                              G.lrec.last_mod_file_time);
+#endif /* ?USE_EF_UX_TIME */
 
 #ifdef DEBUG
-    fprintf (stderr,"\nclose_outfile(): u=%s\n",ctime(&u[0]));
+    Info(slide, 1, (slide, "\nclose_outfile(): m_time=%s\n", ctime(&m_time));
 #endif
 
-    if (!FileDate(filename, u))
-        fprintf(stderr, "warning:  can't set the time for %s\n", filename);
+    if (!FileDate(G.filename, &m_time))
+        Info(slide, 1, ((char *)slide,
+             "warning:  can't set the time for %s\n", G.filename));
 
   /* set file perms after closing (not done at creation)--see mapattr() */
 
-    chmod(filename, pInfo->file_attr);
+    chmod(G.filename, G.pInfo->file_attr);
+
+  /* give it a filenote from the zipfile comment, if appropriate */
+
+    if (G.N_flag && G.filenotes[G.filenote_slot]) {
+        SetComment(G.filename, G.filenotes[G.filenote_slot]);
+        free(G.filenotes[G.filenote_slot]);
+        G.filenotes[G.filenote_slot] = NULL;
+    }
 
 } /* end function close_outfile() */
 
@@ -667,11 +609,10 @@ void close_outfile(void)
 /* this is the exact same stat.c used for Aztec by Zip */
 
 #  include <stdio.h>
-#  include "crypt.h"
 
 void _abort(void)               /* called when ^C is pressed */
 {
-    echon();
+    /* echon(); */
     close_leftover_open_dirs();
     fflush(stdout);
     fputs("\n^C\n", stderr);
@@ -680,14 +621,139 @@ void _abort(void)               /* called when ^C is pressed */
 #endif /* AZTEC_C */
 
 
+/**************************************************************/
+/* function windowheight() -- uses sendpkt() from filedate.c: */
+/**************************************************************/
+
+#include <devices/conunit.h>
+#include <dos/dosextens.h>
+#include <exec/memory.h>
+#include <clib/exec_protos.h>
+
+extern long sendpkt(struct MsgPort *pid, long action, long *args, long nargs);
+
+int windowheight(BPTR fh)
+{
+    if (fh && IsInteractive(fh)) {
+        struct ConUnit *conunit = NULL;
+        void *conp = ((struct FileHandle *) (fh << 2))->fh_Type;
+        struct InfoData *ind = AllocMem(sizeof(*ind), MEMF_PUBLIC);
+        long argp = ((unsigned long) ind) >> 2;
+
+        if (ind && conp && sendpkt(conp, ACTION_DISK_INFO, &argp, 1))
+            conunit = (void *) ((struct IOStdReq *) ind->id_InUse)->io_Unit;
+        if (ind)
+            FreeMem(ind, sizeof(*ind));
+        if (conunit)
+            return conunit->cu_YMax + 1;
+    }
+    return MAXINT;
+}
+
+
+#ifdef AMIGA_VOLUME_LABELS
+/* This function is for if we someday implement -$ on the Amiga. */
+#  include <dos/dosextens.h>
+#  include <dos/filehandler.h>
+#  include <clib/macros.h>
+
+BOOL is_floppy(char *path)
+{
+    BOOL okay = FALSE;
+    char devname[32], *debna;
+    ushort i;
+    BPTR lok = Lock(path, ACCESS_READ), pok;
+    struct FileSysStartupMsg *fart;
+    struct DeviceNode *debb, devlist = (void *) BADDR((struct DosInfo *)
+                                BADDR(DOSBase->dl_Root->rn_Info)->di_DevInfo);
+    if (!lok)
+        return FALSE;                   /* should not happen */
+    if (pok = ParentDir(path)) {
+        UnLock(lok);
+        UnLock(pok);
+        return FALSE;                   /* it's not a root directory path */
+    }
+    Forbid();
+    for (debb = devlist; debb; debb = BADDR(debb->dn_Next))
+        if (debb->dn_Type == DLT_DEVICE && (debb->dn_Task == lick->fl_Task))
+            if (fart = BADDR(debb->dn_Startup)) {
+                debna = (char *) BADDR(fart->fssm_Device) + 1;
+                if ((i = debna[-1]) > 31) i = 30;
+                strncpy(devname, debna, i);
+                devname[i] = 0;
+                okay = !strcmp(devname, "trackdisk.device")
+                                || !strcmp(devname, "mfm.device")
+                                || !strcmp(devname, "messydisk.device");
+                break;  /* We only support obvious floppy drives, not tricky */
+            }           /* things like removable cartrige hard drives, or    */
+    Permit();           /* any unusual kind of floppy device driver.         */
+    return okay;
+}
+#endif /* AMIGA_VOLUME_LABELS */
+
+
 #ifndef SFX
+
+# if 0
+/* As far as I can tell, all the locales AmigaDOS 2.1 knows about all */
+/* happen to use DF_MDY ordering, so there's no point in using this.  */
+
+/*************************/
+/* Function dateformat() */
+/*************************/
+
+#include <clib/locale_protos.h>
+#ifdef AZTEC_C
+#  include <pragmas/locale_lib.h>
+#endif
+
+int dateformat()
+{
+/*---------------------------------------------------------------------------
+    For those operating systems which support it, this function returns a
+    value which tells how national convention says that numeric dates are
+    displayed.  Return values are DF_YMD, DF_DMY and DF_MDY (the meanings
+    should be fairly obvious).
+  ---------------------------------------------------------------------------*/
+    struct Library *LocaleBase;
+    struct Locale *ll;
+    int result = DF_MDY;        /* the default */
+
+    if ((LocaleBase = OpenLibrary("locale.library", 0))) {
+        if (ll = OpenLocale(NULL)) {
+            uch *f = ll->loc_ShortDateFormat;
+            /* In this string, %y|%Y is year, %b|%B|%h|%m is month, */
+            /* %d|%e is day day, and %D|%x is short for mo/da/yr.   */
+            if (!strstr(f, "%D") && !strstr(f, "%x")) {
+                uch *da, *mo, *yr;
+                if (!(mo = strstr(f, "%b")) && !(mo = strstr(f, "%B"))
+                                    && !(mo = strstr(f, "%h")))
+                    mo = strstr(f, "%m");
+                if (!(da = strstr(f, "%d")))
+                    da = strstr(f, "%e");
+                if (!(yr = strstr(f, "%y")))
+                    yr = strstr(f, "%Y");
+                if (yr && yr < mo)
+                    result = DF_YMD;
+                else if (da && da < mo)
+                    result = DF_DMY;
+            }
+            CloseLocale(ll);
+        }
+        CloseLibrary(LocaleBase);
+    }
+    return result;
+}
+
+# endif /* 0 */
+
 
 /************************/
 /*  Function version()  */
 /************************/
 
 
-/* NOTE:  the following include depends upon the environment 
+/* NOTE:  the following include depends upon the environment
  *        variable $Workbench to be set correctly.  (Set by
  *        default, by kickstart during startup)
  */
@@ -695,10 +761,9 @@ int WBversion = (int)
 #include "ENV:Workbench"
 ;
 
-void version()
+void version(__G)
+   __GDEF
 {
-   extern char Far  CompiledWith[];
-
 /* Define buffers. */
 
    char buf1[16];  /* compiler name */
@@ -730,7 +795,7 @@ void version()
   strcpy(buf3,"Unknown OS");
 #endif
 
-/* Define revision, date, and time strings.  
+/* Define revision, date, and time strings.
  * NOTE:  Do not calculate run time, be sure to use time compiled.
  * Pass these strings via your makefile if undefined.
  */
@@ -765,10 +830,10 @@ void version()
 
    printf(LoadFarString(CompiledWith),
      buf1,
-     buf2, 
+     buf2,
      buf3,
      buf4,
-     /* buf5, */ "",
+     "",    /* buf5 not used */
      "" );  /* buf6 not used */
 
 } /* end function version() */

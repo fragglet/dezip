@@ -2,20 +2,22 @@
 
   unix.c
 
-  Unix-specific routines for use with Info-ZIP's UnZip 5.1 and later.
+  Unix-specific routines for use with Info-ZIP's UnZip 5.13 and later.
 
   Contains:  readdir()
-             do_wild()           <-- generic enough to put in file_io.c?
+             do_wild()           <-- generic enough to put in fileio.c?
              mapattr()
              mapname()
              checkdir()
              mkdir()
              close_outfile()
+             screenlines()    GRR 960204: moved to ttyio.c (permanently?)
              version()
 
   ---------------------------------------------------------------------------*/
 
 
+#define UNZIP_INTERNAL
 #include "unzip.h"
 
 /* SCO Unix, AIX, DNIX, TI SysV, Coherent 4.x, ... */
@@ -31,17 +33,10 @@
 #  endif
 #endif
 
-/* GRR:  may need to uncomment one or both of these for the relevant systems */
-
+/* GRR:  may need to uncomment this: */
 #if 0
 #if defined(_POSIX_VERSION)
 #  define DIRENT
-#endif
-#endif
-
-#if 0
-#if defined(M_XENIX)
-#  define SYSNDIR
 #endif
 #endif
 
@@ -69,7 +64,7 @@ static int renamed_fullpath;   /* ditto */
 
 
 #ifndef SFX
-#ifdef NO_DIR                    /* for AT&T 3B1 */
+#ifdef NO_DIR                  /* for AT&T 3B1 */
 
 #define opendir(path) fopen(path,"r")
 #define closedir(dir) fclose(dir)
@@ -84,13 +79,13 @@ struct dirent *readdir(dirp)
 {
     static struct dirent entry;
 
-    if (dirp == NULL) 
+    if (dirp == NULL)
         return NULL;
 
     for (;;)
-        if (fread(&entry, sizeof (struct dirent), 1, dirp) == 0) 
+        if (fread(&entry, sizeof (struct dirent), 1, dirp) == 0)
             return (struct dirent *)NULL;
-        else if (entry.d_ino) 
+        else if (entry.d_ino)
             return &entry;
 
 } /* end function readdir() */
@@ -102,7 +97,8 @@ struct dirent *readdir(dirp)
 /* Function do_wild() */   /* for porting:  dir separator; match(ignore_case) */
 /**********************/
 
-char *do_wild(wildspec)
+char *do_wild(__G__ wildspec)
+    __GDEF
     char *wildspec;         /* only used first time on a given dir */
 {
     static DIR *dir = (DIR *)NULL;
@@ -128,7 +124,8 @@ char *do_wild(wildspec)
             ++wildname;     /* point at character after '/' */
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
-                FPRINTF(stderr, "warning:  can't allocate wildcard buffers\n");
+                Info(slide, 0x201, ((char *)slide,
+                  "warning:  can't allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -202,18 +199,19 @@ char *do_wild(wildspec)
 /* Function mapattr() */
 /**********************/
 
-int mapattr()
+int mapattr(__G)
+    __GDEF
 {
-    ulg tmp = crec.external_file_attributes;
+    ulg tmp = G.crec.external_file_attributes;
 
-    switch (pInfo->hostnum) {
+    switch (G.pInfo->hostnum) {
         case UNIX_:
         case VMS_:
-            pInfo->file_attr = (unsigned)(tmp >> 16);
+            G.pInfo->file_attr = (unsigned)(tmp >> 16);
             return 0;
         case AMIGA_:
             tmp = (unsigned)(tmp>>17 & 7);   /* Amiga RWE bits */
-            pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
+            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
             break;
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
         case FS_FAT_:
@@ -224,13 +222,13 @@ int mapattr()
         case TOPS20_:
         default:
             tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
-            pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
+            G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
     } /* end switch (host-OS-created-by) */
 
     /* for originating systems with no concept of "group," "other," "system": */
     umask( (int)(tmp=umask(0)) );    /* apply mask to expanded r/w(/x) perms */
-    pInfo->file_attr &= ~tmp;
+    G.pInfo->file_attr &= ~tmp;
 
     return 0;
 
@@ -244,9 +242,10 @@ int mapattr()
 /*  Function mapname()  */
 /************************/
 
-int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
-    int renamed;      /* 2 if warning (skip file because dir doesn't exist), */
-{                     /* 3 if error (skip file), 10 if no memory (skip file) */
+int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
+    __GDEF                   /* truncated), 2 if warning (skip file because  */
+    int renamed;             /* dir doesn't exist), 3 if error (skip file),  */
+{                            /* 10 if no memory (skip file) */
     char pathcomp[FILNAMSIZ];    /* path-component buffer */
     char *pp, *cp=(char *)NULL;  /* character pointers */
     char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
@@ -259,26 +258,26 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     Initialize various pointers and counters and stuff.
   ---------------------------------------------------------------------------*/
 
-    if (pInfo->vollabel)
+    if (G.pInfo->vollabel)
         return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
 
     /* can create path as long as not just freshening, or if user told us */
-    create_dirs = (!fflag || renamed);
+    G.create_dirs = (!G.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
     /* user gave full pathname:  don't prepend rootpath */
-    renamed_fullpath = (renamed && (*filename == '/'));
+    renamed_fullpath = (renamed && (*G.filename == '/'));
 
-    if (checkdir((char *)NULL, INIT) == 10)
+    if (checkdir(__G__ (char *)NULL, INIT) == 10)
         return 10;              /* initialize path buffer, unless no memory */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (jflag)                  /* junking directories */
-        cp = (char *)strrchr(filename, '/');
+    if (G.jflag)                /* junking directories */
+        cp = (char *)strrchr(G.filename, '/');
     if (cp == (char *)NULL)     /* no '/' or not junking dirs */
-        cp = filename;          /* point to internal zipfile-member pathname */
+        cp = G.filename;        /* point to internal zipfile-member pathname */
     else
         ++cp;                   /* point to start of last component of path */
 
@@ -295,7 +294,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
             switch (workch) {
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
-                if ((error = checkdir(pathcomp, APPEND_DIR)) > 1)
+                if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
                 lastsemi = (char *)NULL; /* leave directory semi-colons alone */
@@ -327,7 +326,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!V_flag && lastsemi) {
+    if (!G.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -341,22 +340,23 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     fore exiting.
   ---------------------------------------------------------------------------*/
 
-    if (filename[strlen(filename) - 1] == '/') {
-        checkdir(filename, GETPATH);
+    if (G.filename[strlen(G.filename) - 1] == '/') {
+        checkdir(__G__ G.filename, GETPATH);
         if (created_dir && QCOND2) {
-            FPRINTF(stdout, "   creating: %s\n", filename);
+            Info(slide, 0, ((char *)slide, "   creating: %s\n", G.filename));
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
     if (*pathcomp == '\0') {
-        FPRINTF(stderr, "mapname:  conversion of %s failed\n", filename);
+        Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
+          G.filename));
         return 3;
     }
 
-    checkdir(pathcomp, APPEND_NAME);   /* returns 1 if truncated:  care? */
-    checkdir(filename, GETPATH);
+    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ G.filename, GETPATH);
 
     return error;
 
@@ -369,7 +369,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
 
   extract-to dir:      a:path/
   buildpath:           path1/path2/ ...   (NULL-terminated)
-  pathcomp:                filename 
+  pathcomp:                filename
 
   mapname():
     loop over chars in zipfile member name
@@ -390,7 +390,8 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
 /* Function checkdir() */
 /***********************/
 
-int checkdir(pathcomp, flag)
+int checkdir(__G__ pathcomp, flag)
+    __GDEF
     char *pathcomp;
     int flag;
 /*
@@ -439,36 +440,35 @@ int checkdir(pathcomp, flag)
 
         if ((end-buildpath) > FILNAMSIZ-3)  /* need '/', one-char name, '\0' */
             too_long = TRUE;                /* check if extracting directory? */
-        if (stat(buildpath, &statbuf)) {    /* path doesn't exist */
-            if (!create_dirs) {   /* told not to create (freshening) */
+        if (stat(buildpath, &G.statbuf)) {  /* path doesn't exist */
+            if (!G.create_dirs) { /* told not to create (freshening) */
                 free(buildpath);
                 return 2;         /* path doesn't exist:  nothing to do */
             }
             if (too_long) {
-                FPRINTF(stderr, "checkdir error:  path too long: %s\n",
-                  buildpath);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide,
+                  "checkdir error:  path too long: %s\n", buildpath));
                 free(buildpath);
                 return 4;         /* no room for filenames:  fatal */
             }
             if (mkdir(buildpath, 0777) == -1) {   /* create the directory */
-                FPRINTF(stderr, "checkdir error:  can't create %s\n\
-                 unable to process %s.\n", buildpath, filename);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide,
+                  "checkdir error:  can't create %s\n\
+                 unable to process %s.\n", buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
             }
             created_dir = TRUE;
-        } else if (!S_ISDIR(statbuf.st_mode)) {
-            FPRINTF(stderr, "checkdir error:  %s exists but is not directory\n\
-                 unable to process %s.\n", buildpath, filename);
-            fflush(stderr);
+        } else if (!S_ISDIR(G.statbuf.st_mode)) {
+            Info(slide, 1, ((char *)slide,
+              "checkdir error:  %s exists but is not directory\n\
+                 unable to process %s.\n", buildpath, G.filename));
             free(buildpath);
             return 3;          /* path existed but wasn't dir */
         }
         if (too_long) {
-            FPRINTF(stderr, "checkdir error:  path too long: %s\n", buildpath);
-            fflush(stderr);
+            Info(slide, 1, ((char *)slide,
+              "checkdir error:  path too long: %s\n", buildpath));
             free(buildpath);
             return 4;         /* no room for filenames:  fatal */
         }
@@ -511,10 +511,9 @@ int checkdir(pathcomp, flag)
 #endif
             if ((end-buildpath) >= FILNAMSIZ) {
                 *--end = '\0';
-                FPRINTF(stderr, "checkdir warning:  path too long; truncating\n\
-checkdir warning:  path too long; truncating\n\
-                   %s\n                -> %s\n", filename, buildpath);
-                fflush(stderr);
+                Info(slide, 0x201, ((char *)slide,
+                  "checkdir warning:  path too long; truncating\n\
+                   %s\n                -> %s\n", G.filename, buildpath));
                 return 1;   /* filename truncated */
             }
         }
@@ -532,7 +531,7 @@ checkdir warning:  path too long; truncating\n\
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(filename)+rootlen+1)) ==
+        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1)) ==
             (char *)NULL)
             return 10;
         if ((rootlen > 0) && !renamed_fullpath) {
@@ -561,30 +560,22 @@ checkdir warning:  path too long; truncating\n\
             return 0;
         }
         if ((rootlen = strlen(pathcomp)) > 0) {
-            int had_trailing_pathsep=FALSE;
-
             if (pathcomp[rootlen-1] == '/') {
                 pathcomp[--rootlen] = '\0';
-                had_trailing_pathsep = TRUE;
             }
-            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
-                !S_ISDIR(statbuf.st_mode)))          /* path does not exist */
+            if (rootlen > 0 && (stat(pathcomp, &G.statbuf) ||
+                !S_ISDIR(G.statbuf.st_mode)))        /* path does not exist */
             {
-                if (!create_dirs                     /* || iswild(pathcomp) */
-#ifdef OLD_EXDIR
-                                 || !had_trailing_pathsep
-#endif
-                                                         ) {
+                if (!G.create_dirs /* || iswild(pathcomp) */ ) {
                     rootlen = 0;
                     return 2;   /* skip (or treat as stored file) */
                 }
                 /* create the directory (could add loop here to scan pathcomp
                  * and create more than one level, but why really necessary?) */
                 if (mkdir(pathcomp, 0777) == -1) {
-                    FPRINTF(stderr,
+                    Info(slide, 1, ((char *)slide,
                       "checkdir:  can't create extraction directory: %s\n",
-                      pathcomp);
-                    fflush(stderr);
+                      pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
                 }
@@ -596,8 +587,8 @@ checkdir warning:  path too long; truncating\n\
             strcpy(rootpath, pathcomp);
             rootpath[rootlen++] = '/';
             rootpath[rootlen] = '\0';
+            Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
-        Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
 #endif /* !SFX || SFX_EXDIR */
@@ -651,27 +642,47 @@ int mkdir(path, mode)
 
 
 
+#if 0
+#ifdef MORE
+
+/**************************/
+/* Function screenlines() */
+/**************************/
+
+int screenlines()
+{
+    char *envptr, *getenv();
+    int n;
+
+    /* GRR:  this is overly simplistic; should use winsize struct and
+     * appropriate TIOCGWINSZ ioctl(), assuming exists on enough systems
+     */
+    envptr = getenv("LINES");
+    if (envptr == (char *)NULL || (n = atoi(envptr)) < 5)
+        return 24;   /* VT-100 assumed to be minimal hardware */
+    else
+        return n;
+}
+
+#endif /* MORE */
+#endif /* 0 */
+
+
+
+
+
 #ifndef MTS
 
 /****************************/
 /* Function close_outfile() */
 /****************************/
 
-void close_outfile()
+void close_outfile(__G)    /* GRR: change to return PK-style warning level */
+    __GDEF
 {
-    static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-    time_t m_time;
-    int yr, mo, dy, hh, mm, ss, leap, days;
-    struct utimbuf tp;
-#   define YRBASE  1970
-#ifndef BSD4_4
-#ifdef BSD
-    static struct timeb tbp;
-#else /* !BSD */
-    extern long timezone;
-#endif /* ?BSD */
-#endif /* !BSD4_4 */
-
+    ztimbuf tp;
+    ush z_uidgid[2];
+    unsigned eb_izux_len;
 
 /*---------------------------------------------------------------------------
     If symbolic links are supported, allocate a storage area, put the uncom-
@@ -681,32 +692,34 @@ void close_outfile()
   ---------------------------------------------------------------------------*/
 
 #ifdef SYMLINKS
-    if (symlnk) {
-        unsigned ucsize = (unsigned)lrec.ucsize;
-        char *linktarget = (char *)malloc((unsigned)lrec.ucsize+1);
+    if (G.symlnk) {
+        unsigned ucsize = (unsigned)G.lrec.ucsize;
+        char *linktarget = (char *)malloc((unsigned)G.lrec.ucsize+1);
 
-        fclose(outfile);                    /* close "data" file... */
-        outfile = fopen(filename, FOPR);    /* ...and reopen for reading */
-        if (!linktarget || (fread(linktarget, 1, ucsize, outfile) != ucsize)) {
-            FPRINTF(stderr, "\nwarning:  symbolic link (%s) failed\n",
-              filename);
+        fclose(G.outfile);                      /* close "data" file... */
+        G.outfile = fopen(G.filename, FOPR);    /* ...and reopen for reading */
+        if (!linktarget || fread(linktarget, 1, ucsize, G.outfile) !=
+                           (int)ucsize)
+        {
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  symbolic link (%s) failed\n", G.filename));
             if (linktarget)
                 free(linktarget);
-            fclose(outfile);
+            fclose(G.outfile);
             return;
         }
-        fclose(outfile);                    /* close "data" file for good... */
-        unlink(filename);                   /* ...and delete it */
+        fclose(G.outfile);                  /* close "data" file for good... */
+        unlink(G.filename);                 /* ...and delete it */
         linktarget[ucsize] = '\0';
-        FPRINTF(stdout, "-> %s ", linktarget);
-        if (symlink(linktarget, filename))  /* create the real link */
+        Info(slide, 0, ((char *)slide, "-> %s ", linktarget));
+        if (symlink(linktarget, G.filename))  /* create the real link */
             perror("symlink error");
         free(linktarget);
         return;                             /* can't set time on symlinks */
     }
 #endif /* SYMLINKS */
 
-    fclose(outfile);
+    fclose(G.outfile);
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
@@ -714,66 +727,57 @@ void close_outfile()
   ---------------------------------------------------------------------------*/
 
 #ifndef NO_CHMOD
-    if (chmod(filename, 0xffff & pInfo->file_attr))
-            perror("chmod (file attributes) error");
+    if (chmod(G.filename, 0xffff & G.pInfo->file_attr))
+        perror("chmod (file attributes) error");
 #endif
 
 /*---------------------------------------------------------------------------
     Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
     time:  adjust base year from 1980 to 1970, do usual conversions from
     yy/mm/dd hh:mm:ss to elapsed seconds, and account for timezone and day-
-    light savings time differences.
+    light savings time differences.  If we have a Unix extra field, however,
+    we're laughing:  both mtime and atime are ours.  On the other hand, we
+    then have to check for restoration of UID/GID.
   ---------------------------------------------------------------------------*/
 
-    yr = ((lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
-    mo = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
-    dy = (lrec.last_mod_file_date & 0x1f) - 1;
-    hh = (lrec.last_mod_file_time >> 11) & 0x1f;
-    mm = (lrec.last_mod_file_time >> 5) & 0x3f;
-    ss = (lrec.last_mod_file_time & 0x1f) * 2;
+    if (G.extra_field &&
+        (eb_izux_len = ef_scan_for_izux(G.extra_field,
+                                        G.lrec.extra_field_length,
+                                        &tp, z_uidgid)) > 0)
+    {
+        TTrace((stderr, "\nclose_outfile:  Unix e.f. access time = %ld\n",
+          tp.actime));
+        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+          tp.modtime));
 
-    /* leap = # of leap yrs from YRBASE up to but not including current year */
-    leap = ((yr + YRBASE - 1) / 4);   /* leap year base factor */
+        /* if -X option was specified and we have UID/GID info, restore it */
+        if (G.X_flag && eb_izux_len >= EB_UX_FULLSIZE) {
+            TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
+            if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
+            {
+                Info(slide, 0x201, ((char *)slide,
+                  "warning:  can't set UID %d and/or GID %d for %s\n",
+                  z_uidgid[0], z_uidgid[1], G.filename));
+/* GRR: change return type to int and set up to return warning after utime() */
+            }
+        }
+    } else {
+        tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_file_date,
+                                                  G.lrec.last_mod_file_time);
 
-    /* how many days from YRBASE to this year? (& add expired days this year) */
-    days = (yr * 365) + (leap - 492) + yday[mo];
-
-    /* if year is a leap year and month is after February, add another day */
-    if ((mo > 1) && ((yr+YRBASE)%4 == 0) && ((yr+YRBASE) != 2100))
-        ++days;   /* OK through 2199 */
-
-    /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
-    m_time = ((days + dy) * 86400) + (hh * 3600) + (mm * 60) + ss;
-
-    /* adjust for local timezone */
-#ifdef BSD
-#ifdef BSD4_4
-    m_time -= localtime(&m_time)->tm_gmtoff;  /* seconds EAST of GMT:  subtr. */
-#else
-    ftime(&tbp);                    /* get `timezone' */
-    m_time += tbp.timezone * 60L;   /* seconds WEST of GMT:  add */
-#endif /* ?BSD4_4 */
-#else /* !BSD */
-    tzset();              /* get `timezone' */
-    m_time += timezone;   /* seconds WEST of GMT:  add */
-#endif /* ?BSD */
-
-    /* adjust for daylight savings time (or local equivalent) */
-#ifndef BSD4_4  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
-    if (localtime(&m_time)->tm_isdst)
-        m_time -= 60L * 60L;   /* adjust for daylight savings time */
-#endif
+        TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
+          tp.modtime));
+    }
 
     /* set the file's access and modification times */
-    tp.actime = tp.modtime = m_time;
-    if (utime(filename, &tp)) {
+    if (utime(G.filename, &tp))
 #ifdef AOS_VS
-        FPRINTF(stderr, "... can't set time for %s", filename);
+        Info(slide, 0x201, ((char *)slide, "... can't set time for %s",
+          G.filename));
 #else
-        FPRINTF(stderr, "warning:  can't set the time for %s\n", filename);
+        Info(slide, 0x201, ((char *)slide,
+          "warning:  can't set the time for %s\n", G.filename));
 #endif
-        FFLUSH(stderr);
-    }
 
 } /* end function close_outfile() */
 
@@ -788,20 +792,28 @@ void close_outfile()
 /*  Function version()  */
 /************************/
 
-void version()
+void version(__G)
+    __GDEF
 {
-    extern char Far  CompiledWith[];
-#if defined(CRAY) || defined(NetBSD)
+#if defined(CRAY) || defined(NX_CURRENT_COMPILER_RELEASE) || defined(NetBSD)
     char buf1[40];
-#if defined(CRAY)
+#if defined(CRAY) || defined(NX_CURRENT_COMPILER_RELEASE)
     char buf2[40];
 #endif
 #endif
 
-    PRINTF(LoadFarString(CompiledWith),
+    /* Pyramid, NeXT have problems with huge macro expansion, too:  no Info() */
+    sprintf((char *)slide, LoadFarString(CompiledWith),
 
 #ifdef __GNUC__
+#  ifdef NX_CURRENT_COMPILER_RELEASE
+      (sprintf(buf1, "NeXT DevKit %d.%02d ", NX_CURRENT_COMPILER_RELEASE/100,
+        NX_CURRENT_COMPILER_RELEASE%100), buf1),
+      (strlen(__VERSION__) > 8)? "(gcc)" :
+        (sprintf(buf2, "(gcc %s)", __VERSION__), buf2),
+#  else
       "gcc ", __VERSION__,
+#  endif
 #else
 #  if defined(CRAY) && defined(_RELEASE)
       "cc ", (sprintf(buf1, "version %d", _RELEASE), buf1),
@@ -822,9 +834,9 @@ void version()
 #ifdef sun
 #  ifdef sparc
 #    ifdef __SVR4
-      " (Sun Sparc/Solaris)",
+      " (Sun SPARC/Solaris)",
 #    else /* may or may not be SunOS */
-      " (Sun Sparc)",
+      " (Sun SPARC)",
 #    endif
 #  else
 #  if defined(sun386) || defined(i386)
@@ -868,7 +880,11 @@ void version()
 #  endif
 #else              /* the next dozen or so are somewhat order-dependent */
 #ifdef LINUX
-      " (Linux)",
+#  ifdef __ELF__
+      " (Linux ELF)",
+#  else
+      " (Linux a.out)",
+#  endif
 #else
 #ifdef MINIX
       " (Minix)",
@@ -963,7 +979,9 @@ void version()
 #else
       "", ""
 #endif
-      );
+    );
+
+    (*G.message)((zvoid *)&G, slide, (ulg)strlen((char *)slide), 0);
 
 } /* end function version() */
 

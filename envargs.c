@@ -1,15 +1,15 @@
 /*----------------------------------------------------------------*
  | envargs - add default options from environment to command line
- |---------------------------------------------------------------- 
+ |----------------------------------------------------------------
  | Author: Bill Davidsen, original 10/13/91, revised 23 Oct 1991.
  | This program is in the public domain.
- |---------------------------------------------------------------- 
+ |----------------------------------------------------------------
  | Minor program notes:
  |  1. Yes, the indirection is a tad complex
  |  2. Parenthesis were added where not needed in some cases
  |     to make the action of the code less obscure.
  |  3. Set tabsize to four to make this pretty
- |---------------------------------------------------------------- 
+ |----------------------------------------------------------------
  | UnZip notes: 24 May 92 ("v1.4"):
  |  1. #include "unzip.h" for prototypes (24 May 92)
  |  2. changed ch to type char (24 May 92)
@@ -20,10 +20,11 @@
  *----------------------------------------------------------------*/
 
 
+#define UNZIP_INTERNAL
 #include "unzip.h"
 
-static int count_args __((char *));
-static void mem_err __((void));
+static int count_args OF((char *));
+static void mem_err OF((__GPRO));
 
 #if (defined(SCCS) && !defined(lint))  /* causes warnings:  annoying */
    static char *SCCSid = "@(#)envargs.c    1.3 23 Oct 1991";
@@ -33,11 +34,14 @@ static char Far NoMemArguments[] = "envargs:  can't get memory for arguments";
 
 
 
-void envargs(Pargc, Pargv, envstr, envstr2)
+void envargs(__G__ Pargc, Pargv, envstr, envstr2)
+    __GDEF
     int *Pargc;
     char ***Pargv, *envstr, *envstr2;
 {
+#ifndef RISCOS
     char *getenv();
+#endif
     char *envptr;       /* value returned by getenv */
     char *bufptr;       /* copy of env info */
     int argc = 0;       /* internal arg count */
@@ -54,13 +58,13 @@ void envargs(Pargc, Pargv, envstr, envstr2)
     argc = count_args(envptr);
     bufptr = (char *)malloc(1+strlen(envptr));
     if (bufptr == (char *)NULL)
-        mem_err();
+        mem_err(__G);
     strcpy(bufptr, envptr);
 
     /* allocate a vector large enough for all args */
     argv = (char **)malloc((argc+*Pargc+1)*sizeof(char *));
     if (argv == (char **)NULL)
-        mem_err();
+        mem_err(__G);
     argvect = argv;
 
     /* copy the program name first, that's always true */
@@ -113,10 +117,12 @@ static int count_args(s)
 
 
 
-static void mem_err()
+static void mem_err(__G)
+    __GDEF
 {
     perror(LoadFarString(NoMemArguments));
-    exit(2);
+    DESTROYGLOBALS()
+    EXIT(2);
 }
 
 
@@ -131,7 +137,7 @@ main(argc, argv)
 
     printf("Orig argv: %p\n", argv);
     dump_args(argc, argv);
-    envargs(&argc, &argv, "ENVTEST");
+    envargs(__G__ &argc, &argv, "ENVTEST");
     printf(" New argv: %p\n", argv);
     dump_args(argc, argv);
 }
@@ -153,7 +159,7 @@ dump_args(argc, argv)
 
 
 
-#ifdef MSDOS   /* DOS_OS2?  DOS_NT_OS2? */
+#ifdef MSDOS   /* DOS_OS2?  DOS_OS2_W32? */
 
 /*
  * void mksargs(int *argcp, char ***argvp)
@@ -180,7 +186,9 @@ void mksargs(argcp, argvp)
     char ***argvp;
 {
 #ifndef MSC /* declared differently in MSC 7.0 headers, at least */
+#ifndef __WATCOMC__
     extern char **environ;          /* environment */
+#endif
 #endif
     char        **envp;             /* pointer into environment */
     char        **newargv;          /* new argument list */

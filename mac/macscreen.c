@@ -31,7 +31,7 @@ void screenOpen(char *Title) {
 
     if ((Title != NULL) && (*Title != '\0')) {
         c2pstr(Title);
-        SetWTitle(theWindow, Title);
+        SetWTitle(theWindow, (StringPtr)Title);
         p2cstr(Title);
     }
 
@@ -109,7 +109,7 @@ void screenControl(options, setting) char *options; int setting; {
 }
 
 void screenClose(void) {
-    DisposPtr(screenLine);
+    DisposPtr((Ptr)screenLine);
 
     DisposeWindow(theWindow);
 
@@ -188,7 +188,6 @@ static char waitChar(void) {
 }
 
 static void screenPause(void) {
-
     if (pausePosition == 0) {
         if (screenOptions & pauseOption) {
             DrawText("Press any key to continue ...", 0, 29);

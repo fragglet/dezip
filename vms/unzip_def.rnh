@@ -32,6 +32,10 @@
 .!		Added -Z, -C and -L options, removed -U, minor clean-up.
 .!	01-008		Cave Newt		28-JUL-1994 08:57
 .!		Removed semi-colons from comments.
+.!	02-001		Christian Spieler	09-DEC-1995 02:25
+.!		Modified for UnZip 5.2.
+.!	02-002		Christian Spieler	06-FEB-1996 02:25
+.!		Added -h "help" option.
 .!
 .noflags
 .lm4 .rm72
@@ -42,7 +46,8 @@ UnZip is used to extract files compressed and packaged by Zip (see HELP ZIP
 for information on ZIP).
 .sk
 For a brief help on Zip and Unzip, run each without specifying any
-parameters on the command line.
+parameters on the command line, or specify the -h flag (but not in UnZip's
+Zipinfo mode).
 .sk
 UNZIP will list, test, or extract from a ZIP archive.  ZIP archives are commonly
 found on MS-DOS systems; a VMS version of ZIP can also be found here.
@@ -52,7 +57,7 @@ Archive member extraction is implied by the absence of the -c, -p, -t, -l, -v or
 specify a subset of the archive members.
 Format:
 .sk;.lm+1;.literal
-UNZIP [-cflptuvxz[ajnoqCLVX]] file[.zip] [list] [-x xlist] [-d out_dir]
+UNZIP [-cfhlptuvxz[ajnoqCLMVX]] file[.zip] [list] [-x xlist] [-d out_dir]
 .end literal;.lm-1
 .!------------------------------------------------------------------------------
 .indent -4
@@ -106,6 +111,7 @@ options and modifiers can be provided:
    -Z   ZipInfo mode
    -c   extract files to SYS$OUTPUT (terminal)
    -f   freshen existing files (replace if newer); create none
+   -h   show brief help screen and exit quietly
    -l   list archive files (short format)
    -p   extract files to SYS$OUTPUT; no informational messages
    -t   test archive files
@@ -116,20 +122,31 @@ options and modifiers can be provided:
  MODIFIERS
    -a   extract text files in standard VMS text file format
    -aa  extract all files as text
+   -b   auto-extract only binary files in VMS fixed 512 record file format 
+   -bb  extract all files as binary in VMS fixed 512 byte record format
    -j   junk paths (don't recreate archive's directory structure)
    -n   never overwrite existing files; don't prompt
    -o   OK to overwrite files without prompting
    -q   perform operations quietly (-qq => even quieter)
    -C   match filenames case-insensitively
    -L   convert filenames to lowercase if created under DOS, VMS, etc.
+   -M   feed screen output through built-in "more" pager
    -V   retain (VMS) file version numbers
    -X   restore owner/protection info (may require privileges)
 .end literal;.sk
-Note that uppercase options (-C, -L, -V and -X) must be specified in quotes.
-For example:
+Note that uppercase options (-C, -L, -M, -V and -X) must be specified in
+quotes. For example:
 .sk;.literal
     unzip "-VX" -a zipfile
 .end literal;.sk
+The output conversion options -b and -a may be combined to perform
+binary conversions on binary files and text conversion on text files.
+But note: For compatibility with implementation on other systems, -b cancels
+any -a option; to get the intended result, -a must be specified AFTER -b.
+And, in combination, "text" recognition takes precedence; this means
+that -bb has the same effect as -b, and -aa overrides binary conversion
+for ALL files.
+.sk
 .![this should probably be a separate section]:
 In addition, default options may be specified via the UNZIP_OPTS logical.
 For example, the following will cause UnZip to restore owner/protection

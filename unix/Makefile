@@ -1,12 +1,12 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Unix and MS-DOS ("real" makes only)
-# Version:  5.12                                                 25 August 1994
+# Version:  5.20                                                  27 April 1996
 #==============================================================================
 
 
 # INSTRUCTIONS (such as they are):
 #
-# "make vax"	-- makes UnZip on a generic Unix VAX in the current directory
+# "make sunos"	-- makes UnZip in current directory on a generic SunOS 4.x Sun
 # "make list"	-- lists all supported systems (targets)
 # "make help"	-- provides pointers on what targets to try if problems occur
 # "make wombat" -- chokes and dies if you haven't added the specifics for your
@@ -27,7 +27,7 @@
 # stupid to look in the environment--but try it anyway for kicks. :-) )
 #
 # Memcpy and memset are provided for those systems that don't have them; they
-# are in file_io.c and will be used if -DZMEM is included in CF.  These days
+# are in fileio.c and will be used if -DZMEM is included in CF.  These days
 # almost all systems have them.
 #
 # Be sure to test your new UnZip (and UnZipSFX and fUnZip); successful compila-
@@ -38,13 +38,15 @@
 # MACRO DEFINITIONS #
 #####################
 
-# Defaults most systems use (use LOCAL_UNZIP in environment to add flags, 
+# Defaults most systems use (use LOCAL_UNZIP in environment to add flags,
 # such as -DDOSWILD).
 
 # UnZip flags
 CC = cc#	try using "gcc" target rather than changing this (if you do,
-LD = $(CC)#	you MUST change LD, too--else "unresolved symbol:  ___main")
+LD = $(CC)#	LD MUST change, also--else "unresolved symbol:  ___main")
+AS = as
 LOC = $(LOCAL_UNZIP)
+AF = $(LOC)
 CF = -O -I. $(LOC)
 LF = -o unzip
 LF2 = -s
@@ -68,23 +70,31 @@ O = .o
 M = unix
 SHELL = /bin/sh
 
+# defaults for crc32 stuff and system dependent headers
+CRC32 = crc32
+OSDEP_H =
+
 # object files
-OBJS1 = unzip$O crypt$O envargs$O explode$O extract$O file_io$O
-OBJS2 = inflate$O match$O unreduce$O unshrink$O zipinfo$O
-OBJS = $(OBJS1) $(OBJS2) $M$O
+OBJS1 = unzip$O $(CRC32)$O crctab$O crypt$O envargs$O explode$O
+OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
+OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
+OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
-OBJX = unzipsfx$O crypt$O extract_$O file_io$O inflate$O match$O $M_$O
+OBJSDLL = $(OBJS) api$O
+OBJX = unzipsfx$O $(CRC32)$O crctab$O crypt$O extract_$O fileio$O globals$O \
+	inflate$O match$O process_$O ttyio$O $M_$O
 LOBJX = $(OBJX)
-OBJF = funzip$O crypt_$O inflate_$O
+OBJF = funzip$O $(CRC32)$O crypt_$O globals_$O inflate_$O ttyio_$O
 #OBJS_OS2 = $(OBJS1:.o=.obj) $(OBJS2:.o=.obj) os2.obj
 #OBJF_OS2 = $(OBJF:.o=.obj)
+UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 
 # installation
 INSTALL = cp#	probably can change this to 'install' if you have it
 # on some systems, manext=l and MANDIR=/usr/man/man$(manext) may be appropriate
 manext = 1
 prefix = /usr/local
-BINDIR = $(prefix)/bin# 		where to install executables
+BINDIR = $(prefix)/bin#			where to install executables
 MANDIR = $(prefix)/man/man$(manext)#	where to install man pages
 INSTALLEDBIN = $(BINDIR)/funzip$E $(BINDIR)/zipinfo$E $(BINDIR)/unzipsfx$E \
 	$(BINDIR)/unzip$E
@@ -97,14 +107,16 @@ MANS = unix/unzip.1 unix/unzipsfx.1 unix/zipinfo.1 unix/funzip.1
 DOCS = unzip.doc unzipsfx.doc zipinfo.doc funzip.doc
 
 # list of supported systems/targets in this version
-SYSTEMS1 = 386i 3Bx 7300 7300_gcc aix aix_rt amdahl amdahl_eft apollo
-SYSTEMS2 = aviion bcc_dos bsd bsd386 bull coherent convex cray cray_scc
-SYSTEMS3 = cray_v3 cyber_sgi dec dnix encore eta gcc gcc_dos generic
-SYSTEMS4 = generic2 generic3 gould hk68 hp hpux linux minix mips msc_dos
-SYSTEMS5 = next next10 next2x next3x nextfat osf1 pixel ptx pyramid
-SYSTEMS6 = regulus rs6000 sco sco_dos sco_sl sco_x286 sequent sgi solaris
-SYSTEMS7 = stellar sun sysv sysv_gcc sysv6300 tahoe ultrix vax v7 wombat
-SYSTEMS8 = xenix xos
+SYSTEMS1 = generic generic2 generic3 generic_zlib
+SYSTEMS2 = 386i 3Bx 7300 7300_gcc aix aix_rt amdahl amdahl_eft apollo
+SYSTEMS3 = aviion bcc_dos bsd bsd386 bull coherent convex cray cray_opt
+SYSTEMS4 = cyber_sgi dec djgpp djgpp1 dnix encore eta gcc gcc_dos gould
+SYSTEMS5 = hk68 hp hpux isi linux linux_dos linux_shlib linux_shlibz minix
+SYSTEMS6 = mips msc_dos next next10 next2x next3x nextfat osf1 pixel ptx
+SYSTEMS7 = pyramid realix regulus rs6000 sco sco_dos sco_sl sco_x286 sequent
+SYSTEMS8 = sgi solaris stardent stellar sunos sysv sysv_gcc sysv6300 tahoe
+SYSTEMS9 = ti_sysv ultrix vax v7 wombat xenix xos
+
 
 ####################
 # DEFAULT HANDLING #
@@ -153,6 +165,7 @@ list:
  'Type "make <system>", where <system> is one of the following:'
 	@echo ""
 	@echo  "	$(SYSTEMS1)"
+	@echo ""
 	@echo  "	$(SYSTEMS2)"
 	@echo  "	$(SYSTEMS3)"
 	@echo  "	$(SYSTEMS4)"
@@ -185,9 +198,14 @@ generic_msg:
 ###############################################
 
 # this is for GNU make; comment out and notify zip-bugs if it causes errors
-.SUFFIXES:	.c $O
+.SUFFIXES:	.c .o .obj
 
-.c$O:
+# yes, we should be able to use the $O macro to combine these two, but it
+# fails on some brain-damaged makes (e.g., AIX's)...no big deal
+.c.o:
+	$(CC) -c $(CF) $*.c
+
+.c.obj:
 	$(CC) -c $(CF) $*.c
 
 # this doesn't work...directories are always a pain with implicit rules
@@ -220,28 +238,11 @@ funzip.doc:	unix/funzip.1
 
 all:		generic_msg generic
 unzips:		$(UNZIPS)
+objs:		$(OBJS)
+objsdll:	$(OBJSDLL)
 docs:		$(DOCS)
 unzipsman:	unzips docs
 unzipsdocs:	unzips docs
-
-# this really only works for Unix targets, unless specify E and O on cmd line
-clean:
-	rm -f $(OBJS) $(OBJF) $(OBJX) $(UNZIPS)
-
-install:	$(UNZIPS) $(MANS)
-	$(INSTALL) $(UNZIPS) $(BINDIR)
-	$(RM) $(BINDIR)/zipinfo$E
-	$(LN) $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E
-	$(INSTALL) unix/unzip.1 $(MANDIR)/unzip.$(manext)
-	$(INSTALL) unix/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
-	$(INSTALL) unix/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
-	$(INSTALL) unix/funzip.1 $(MANDIR)/funzip.$(manext)
-	$(CHMOD) 755  $(INSTALLEDBIN)
-	$(CHMOD) 644  $(INSTALLEDMAN)
-
-# alternatively, could use zip method:  -cd $(BINDIR); rm -f $(UNZIPS)  [etc.]
-uninstall:
-	rm -f $(INSTALLEDBIN) $(INSTALLEDMAN)
 
 
 # EDIT HERE FOR PARALLEL MAKES on Sequent (and others?)--screws up MS-DOS
@@ -256,7 +257,7 @@ unzipsfx$E:	$(OBJX)			# add `&' for parallel makes
 funzip$E:	$(OBJF)			# add `&' for parallel makes
 	$(LD) $(FL) $(OBJF) $(FL2)
 
-zipinfo$E:	unzip$E
+zipinfo$E:	unzip$E			# `&' is pointless here...
 	@echo\
  '  This is a Unix-specific target.  ZipInfo is not enabled in some MS-DOS'
 	@echo\
@@ -266,54 +267,85 @@ zipinfo$E:	unzip$E
 	$(LN) unzip$E zipinfo$E
 
 
-crypt$O:	crypt.c unzip.h zip.h crypt.h
-envargs$O:	envargs.c unzip.h
-explode$O:	explode.c unzip.h
-extract$O:	extract.c unzip.h crypt.h
-file_io$O:	file_io.c unzip.h crypt.h tables.h
-funzip$O:	funzip.c unzip.h crypt.h tables.h
-inflate$O:	inflate.c inflate.h unzip.h
-match$O:	match.c unzip.h
-unreduce$O:	unreduce.c unzip.h
-unshrink$O:	unshrink.c unzip.h
-unzip$O:	unzip.c unzip.h crypt.h version.h
-zipinfo$O:	zipinfo.c unzip.h
+crc32$O:	crc32.c $(UNZIP_H) zip.h
+crctab$O:	crctab.c $(UNZIP_H) zip.h
+crypt$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+envargs$O:	envargs.c $(UNZIP_H)
+explode$O:	explode.c $(UNZIP_H)
+extract$O:	extract.c $(UNZIP_H) crypt.h
+fileio$O:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+funzip$O:	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+globals$O:	globals.c $(UNZIP_H)
+inflate$O:	inflate.c inflate.h $(UNZIP_H)
+list$O:		list.c $(UNZIP_H)
+match$O:	match.c $(UNZIP_H)
+process$O:	process.c $(UNZIP_H)
+ttyio$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+unreduce$O:	unreduce.c $(UNZIP_H)
+unshrink$O:	unshrink.c $(UNZIP_H)
+unzip$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h
+zipinfo$O:	zipinfo.c $(UNZIP_H)
 
-crypt_$O:	crypt.c unzip.h zip.h crypt.h		# funzip only
+crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
 	$(CP) crypt.c crypt_.c
 	$(CC) -c $(CF) -DFUNZIP crypt_.c
 	$(RM) crypt_.c
 
-extract_$O:	extract.c unzip.h crypt.h		# unzipsfx only
+extract_$O:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
 	$(CP) extract.c extract_.c
 	$(CC) -c $(CF) -DSFX extract_.c
 	$(RM) extract_.c
 
-inflate_$O:	inflate.c inflate.h unzip.h crypt.h	# funzip only
+globals_$O:	globals.c $(UNZIP_H)				# funzip only
+	$(CP) globals.c globals_.c
+	$(CC) -c $(CF) -DFUNZIP globals_.c
+	$(RM) globals_.c
+
+inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
 	$(CP) inflate.c inflate_.c
 	$(CC) -c $(CF) -DFUNZIP inflate_.c
 	$(RM) inflate_.c
 
-msdos$O:	msdos/msdos.c unzip.h			# MS-DOS only
+ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+	$(CP) ttyio.c ttyio_.c
+	$(CC) -c $(CF) -DFUNZIP ttyio_.c
+	$(RM) ttyio_.c
+
+# optional assembler replacements
+crc_i86$O:	msdos/crc_i86.asm				# 16bit only
+	$(AS) $(AF) msdos/crc_i86.asm $(ASEOL)
+
+crc_gcc$O:	crc_i386.S					# 32bit, GNU AS
+	$(AS) $(AF) -x assembler-with-cpp -c -o $@ crc_i386.S
+
+msdos$O:	msdos/msdos.c $(UNZIP_H) version.h		# DOS only
 	$(CC) -c $(CF) msdos/msdos.c
 
-msdos_$O:	msdos/msdos.c unzip.h			# MS-DOS unzipsfx only
+# version() not used by unzipsfx, so no version.h dependency
+msdos_$O:	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
 	$(CP) msdos\msdos.c msdos_.c > nul
 	$(CC) -c $(CF) -DSFX msdos_.c
 	$(RM) msdos_.c
 
-#os2$O:		os2/os2.c unzip.h			# OS/2 only
+#os2$O:		os2/os2.c $(UNZIP_H)				# OS/2 only
 #	$(CC) -c $(CF) os2/os2.c
 
-unix$O:		unix/unix.c unzip.h			# Unix only
+
+process_$O:	process.c $(UNZIP_H)				# unzipsfx only
+	$(CP) process.c process_.c
+	$(CC) -c $(CF) -DSFX process_.c
+	$(RM) process_.c
+
+unix$O:		unix/unix.c $(UNZIP_H) version.h		# Unix only
 	$(CC) -c $(CF) unix/unix.c
 
-unix_$O:	unix/unix.c unzip.h			# Unix unzipsfx only
+# version() not used by unzipsfx, so no version.h dependency
+unix_$O:	unix/unix.c $(UNZIP_H)				# Unix unzipsfx
 	$(CP) unix/unix.c unix_.c
 	$(CC) -c $(CF) -DSFX unix_.c
 	$(RM) unix_.c
 
-unzipsfx$O:	unzip.c unzip.h crypt.h version.h	# unzipsfx only
+unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h version.h consts.h	# unzipsfx only
 	$(CP) unzip.c unzipsfx.c
 	$(CC) -c $(CF) -DSFX unzipsfx.c
 	$(RM) unzipsfx.c
@@ -324,13 +356,79 @@ unix_make:
 # '(Ignore any errors from `make'"' due to the following command; it's harmless.)"
 	-@2>&1 $(LN) unix/Makefile . > /dev/null || echo > /dev/null
 
+# this really only works for Unix targets, unless E and O specified on cmd line
+clean:
+	@echo ""
+	@echo '         This is a Unix-specific target.  (Just so you know.)'
+	@echo ""
+	rm -f $(UNZIPS) $(OBJS) $(OBJF) $(OBJX) api$O apihelp$O crc_gcc$O \
+	  unzipstb$O
+
+install:	$(UNZIPS) $(MANS)
+	$(INSTALL) $(UNZIPS) $(BINDIR)
+	$(RM) $(BINDIR)/zipinfo$E
+	$(LN) $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E
+	$(INSTALL) unix/unzip.1 $(MANDIR)/unzip.$(manext)
+	$(INSTALL) unix/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
+	$(INSTALL) unix/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
+	$(INSTALL) unix/funzip.1 $(MANDIR)/funzip.$(manext)
+	$(CHMOD) 755  $(INSTALLEDBIN)
+	$(CHMOD) 644  $(INSTALLEDMAN)
+
+install_asm:	unix_make
+	$(MAKE) install CRC32=crc_gcc
+
+# alternatively, could use zip method:  -cd $(BINDIR); rm -f $(UNZIPS)  [etc.]
+uninstall:
+	rm -f $(INSTALLEDBIN) $(INSTALLEDMAN)
+
+
+TESTZIP = testmake.zip	# the test zipfile
+
+# test some basic features of the build
+test:		check
+
+check:	unzips
+	@echo '  This is a Unix-specific target.  (Just so you know.)'
+	if test ! -f $(TESTZIP); then \
+		echo "  error:  can't find test file $(TESTZIP)"; exit 1; fi
+#
+	echo "  testing extraction"
+	./unzip -b $(TESTZIP) testmake.zipinfo
+	if test $? ; then \
+	    echo "  error:  file extraction from $(TESTZIP) failed"; exit 1; fi
+#
+	echo '  testing zipinfo (unzip -Z)'
+	./unzip -Z $(TESTZIP) > testmake.unzip-Z
+	if diff testmake.unzip-Z testmake.zipinfo; then ;; else \
+	    echo '  error:  zipinfo output doesn't match stored version'; fi
+	$(RM) testmake.unzip-Z testmake.zipinfo
+#
+	echo '  testing unzip -d exdir option'
+	./unzip -b $(TESTZIP) -d testun
+	cat testun/notes
+#
+	echo '  testing unzip -o and funzip (ignore funzip warning)'
+	./unzip -boq $(TESTZIP) notes -d testun
+	./funzip < $(TESTZIP) > testun/notes2
+	if diff testun/notes testun/notes2; then ;; else \
+	    echo 'error:  funzip output disagrees with unzip'; fi
+#
+	echo '  testing unzipsfx (self-extractor)'
+	cat unzipsfx $(TESTZIP) > testsfx
+	$(CHMOD) 0700 testsfx
+	./testsfx -b notes
+	if diff notes testun/notes; then ;; else \
+	    echo '  error:  unzipsfx file disagrees with unzip'; fi
+	$(RM) testsfx notes testun/notes testun/notes2
+	rmdir testun
+#
+	echo '  testing complete.'
+
 
 ################################
 # INDIVIDUAL MACHINE MAKERULES #
 ################################
-
-#####   TABS ARE REQUIRED FOR MANY VERSIONS OF "MAKE"!   #####
-
 
 #----------------------------------------------------------------------------
 #  Generic targets (can't assume make utility groks "$(MAKE)")
@@ -339,13 +437,22 @@ unix_make:
 generic:	unzips	   # first try if unknown
 
 generic2:	unix_make  # second try if unknown:  hope make is called "make"
-	make unzips CF="$(CF) -DBSD"
+	make -f unix/Makefile unzips CF="$(CF) -DBSD"
 
 generic3:	unix_make  # third try if unknown:  hope make is called "make"
-	make unzips CF="$(CF) -DSYSV"
+	make -f unix/Makefile unzips CF="$(CF) -DSYSV"
+
+# Generic unzip and funzip target using either shared or static zlib for
+# inflate rather than the original UnZip version.  (libz was libgz prior
+# to 0.94)  Need to figure out how to force unzipsfx to use static libz.
+
+generic_zlib:	unix_make
+	@echo\
+ "This target assumes zlib (libz.a or libz.so.*) is already installed."
+	$(MAKE) unzip funzip CF="$(CF) -DUSE_ZLIB" LF2="-lz $(LF2)"
 
 #----------------------------------------------------------------------------
-#  "Normal" group (both big- and little-endian, structure-padding or not):
+#  "Normal" group (BSD vs. SysV may be set in unzip.h via predefined macros):
 #----------------------------------------------------------------------------
 
 386i:		unzips	# sun386i, SunOS 4.0.2
@@ -366,14 +473,15 @@ next10:		unzips	# NeXT (generic; use next2x or next3x for better opt.)
 osf1:		unzips	# DECstation, including Alpha-based; DEC OSF/1 v1.x
 pyr_:		unzips	# [failsafe target for pyramid target below]
 pyr_ucb:	unzips	# Pyramids running BSD universe by default (see below)
+realix:		unzips	# Modcomp Real/IX (SysV.3); note "gcc" = GLS C, not GNU
 sco:		unzips	# Xenix/386 (tested on 2.3.1); SCO Unix 3.2.0.
+sgi:		unzips	# Silicon Graphics; Irix 3.3.2, 4.0.x, 5.2, etc.
 stellar:	unzips	# gs-2000
 sun:		unzips	# old target; no good with solaris...use "sunos" now
 sunos:		unzips	# Sun 3, 4; SunOS 4.x (SOME SYSTEMS ARE SYSTEM V!)
 tahoe:		unzips	# tahoe (CCI Power6/32), 4.3BSD
 ultrix:		unzips	# VAXen, DEC 58x0 (MIPS guts), DECstation 2100; v4.x
 vax:		unzips	# general-purpose VAX target (not counting VMS)
-xenix:		unzips	# Xenix/386 (tested on 2.3.1); SCO Unix 3.2.0.
 
 #----------------------------------------------------------------------------
 #  BSD group (for timezone structs [struct timeb]):
@@ -393,8 +501,8 @@ aix_rt:		_sysv	# IBM RT 6150 under AIX 2.2.1
 amdahl:		_sysv	# Amdahl (IBM) mainframe, UTS (SysV) 1.2.4 and 2.0.1
 aviion:		_sysv	# Data General AViiONs, DG/UX 4.3x
 pyr_att:	_sysv	# Pyramids running AT&T (SysV) universe by default
-sgi:		_sysv	# Silicon Graphics Iris 4D, Irix 3.3.2, 4.0.x (5.x?)
 solaris:	_sysv	# Sun SPARC & x86, Solaris 2.x
+stardent:	_sysv	# Stardent ...
 sysv:		_sysv	# generic System V Unix (Xenix handled in unzip.h)
 xos:		_sysv	# Olivetti LSX-3005..3045, X/OS 2.3 and 2.4
 
@@ -409,7 +517,8 @@ pixel:		_v7	# Pixel 80, 100 (68000-based, V7/mostly BSD4.1 compat.)
 v7:		_v7	# generic Unix Version 7 box (prob. only Pixel...)
 
 _v7:
-	make unzips CF="$(CF) -DV7 -DNO_PARAM_H -DSHORT_NAMES -DBSD -DZMEM"
+	make -f unix/Makefile unzips \
+	 CF="$(CF) -DV7 -DNO_PARAM_H -DSHORT_NAMES -DBSD -DZMEM"
 
 #----------------------------------------------------------------------------
 #  "Unique" group (require non-standard options):
@@ -443,7 +552,8 @@ _bcc_dos:	bcc_rsp		#  v-- change to -ml for large model
 
 bcc_rsp:
 	echo $(OBJS1:.o=.obj) > bcc_rsp
-	echo msdos.obj $(OBJS2:.o=.obj) >> bcc_rsp
+	echo $(OBJS2:.o=.obj) >> bcc_rsp
+	echo $(OBJS3:.o=.obj) msdos.obj >> bcc_rsp
 
 fu_bcc:
 	$(MAKE) funzip.exe CF="-w -ms -O2 -I. $(LOC)" CC=bcc LD=bcc E=.exe\
@@ -459,14 +569,10 @@ sfx_bcc:
 coherent:	unix_make
 	$(MAKE) unzips CF="$(CF) -T0"
 
-# Cray-2 and Y-MP, running Unicos 5.1 to 6.1 (SysV + BSD enhancements)
-# and Standard (ANSI) C compiler 1.5, 2.0 or 3.0.
-cray_scc:	unix_make
-	$(MAKE) unzips CC=scc LD=scc
-
-# Ditto, for Cray Standard C 3.0 or later.
-cray_v3:	unix_make
-	$(MAKE) unzips CC="scc" LD="scc" CF="$(CF) -h scalar3 -h vector3"
+# Cray-2, Y-MP or C90, running Unicos 5.x to 8.x (SysV + BSD enhancements)
+# and Standard (ANSI) C compiler 3.0 or later.
+cray_opt:	unix_make
+	$(MAKE) unzips CF="$(CF) -h scalar3 -h vector3"
 
 # The unzip41 build on a Cyber 910/SGI running Irix v3.3.3 was successful
 # with the following change to Makefile:
@@ -504,72 +610,125 @@ gcc:		unix_make
 # makefile continuation lines correctly, most likely because of the MS-DOS
 # CR-LF line-endings (seems to be fixed in 3.71?), so long lines are used;
 # and (3) it doesn't handle quotes as in CF="-O2 -Wall etc." correctly, so
-# these macros have been changed to "CF=-O2 -Wall etc." where necessary.  The
-# newer GNU make (version 3.71) does not handle quotes correctly and has no
-# known work-around, so don't bother to use it.  Likewise, the emx version
-# of GNU make 3.71 which is maintained by Kai Uwe Rommel has other fatal bugs
-# involving the shell (necessary for recursive targets like this one).
-# GRR 940430, 940723, 940814
+# these macros have been changed to "CF=-O2 -Wall etc." where necessary.
+# The newer GNU make (version 3.71) does not handle quotes correctly, but
+# prepending "command /c" to each make line is reported by E-Yen Tan
+# <e-yen.tan@brasenose.oxford.ac.uk> to be a successful work-around.  The
+# emx version of GNU make 3.71 which is maintained by Kai Uwe Rommel has
+# other fatal bugs involving the shell (necessary for recursive targets
+# like this one).  GRR 940430, 940723, 940814, 951230
 #
-gcc_dos: _gcc_dos fu_gcc sfx_gcc
+djgpp1:		_gcc_dos1 fu_gcc1 sfx_gcc1	# djgpp v1.x with GO32 extender
+gcc_dos1:	_gcc_dos1 fu_gcc1 sfx_gcc1	# djgpp v1.x with GO32 extender
 
-# this target may be used with djgpp 1.12m1 or later; replace "_gcc_dos" above
-# with "_gcc_dos_new":
-
-_gcc_dos_new: gcc_rsp
-	make unzip CC=gcc LD=gcc M=msdos "CF=-O2 -Wall -I. $(LOC)" LOBJS="" "LF=-o unzip @gcc_rsp" LF2=""
-	$(STRIP) unzip
-	coff2exe unzip
-#	use this instead if you want to create a stand-alone executable (bigger)
-#	coff2exe -s go32.exe unzip
-	stubedit unzip.exe globbing=no
-#	del gcc_rsp
-#	del unzip
-	coff2exe -g zipinfo
-	stubedit zipinfo.exe runfile=unzip.exe globbing=no
-
-_gcc_dos: gcc_rsp
-	make unzip CC=gcc LD=gcc M=msdos "CF=-O2 -Wall -I. $(LOC)" LOBJS="" "LF=-o unzip @gcc_rsp" LF2=""
+_gcc_dos1: gcc_rsp
+# this line works with GNU make 3.69:
+#	make unzip CC=gcc LD=gcc M=msdos "CF=-O2 -Wall -I. $(LOC)" LOBJS="" "LF=-o unzip @gcc_rsp" LF2=""
+#
+# this line should work with GNU make 3.71:
+	command /c make unzip CC=gcc LD=gcc M=msdos "CF=-O2 -Wall -I. $(LOC)" LOBJS="" "LF=-o unzip @gcc_rsp" LF2=""
+#
+# these lines don't work at all, to our knowledge:
 #	$(MAKE) unzip CC=gcc LD=gcc M=msdos "CF=-O2 -Wall -I. $(LOC)"\
 #	 LOBJS="" LF="-o unzip @gcc_rsp" LF2=""
+#
 	$(STRIP) unzip
 	coff2exe unzip
-#	use this instead if you want to create a stand-alone executable (bigger)
+#	use this instead if you want to create a stand-alone executable (bigger;
+#	may require full path to go32.exe):
 #	coff2exe -s go32.exe unzip
 	stubedit unzip.exe globbing=no
-#	del gcc_rsp
-#	del unzip
+	del gcc_rsp
+	del unzip
 #
-#	@echo Ignore the following bogus error message:
-#	-@copy < nul > zipinfo
-	-@find " " < nul > zipinfo
-	coff2exe zipinfo
+	coff2exe -g zipinfo
 	stubedit zipinfo.exe runfile=unzip.exe globbing=no
 	del zipinfo
 
-gcc_rsp:
-	echo $(OBJS1) > gcc_rsp
-	echo $(OBJS2) msdos.o >> gcc_rsp
-
-fu_gcc:
-	make funzip CC=gcc LD=gcc "CF=-Wall -O2 -I. $(LOC)" FL2="" CP=copy RM=del
+fu_gcc1:
+# this line works with GNU make 3.69:
+#	make funzip CC=gcc LD=gcc "CF=-Wall -O2 -I. $(LOC)" FL2="" CP=copy RM=del
+#
+# this line should work with GNU make 3.71:
+	command /c make funzip CC=gcc LD=gcc "CF=-Wall -O2 -I. $(LOC)" FL2="" CP=copy RM=del
+#
+# these lines don't work at all, to our knowledge:
 #	$(MAKE) funzip CC=gcc LD=gcc "CF=-Wall -O2 -I. $(LOC)" FL2=""\
 #	 CP=copy RM=del
+#
+	$(STRIP) funzip
 	coff2exe funzip
-#	use this instead if you want to create a stand-alone executable (bigger)
+#	use this instead if you want to create a stand-alone executable (bigger;
+#	may require full path to go32.exe):
 #	coff2exe -s go32.exe funzip
-#	del funzip
+	del funzip
+
+sfx_gcc1:
+# this line works with GNU make 3.69:
+#	make unzipsfx CC=gcc LD=gcc M=msdos "CF=-Wall -O2 -I. $(LOC)" SL2="" CP=copy RM=del
+#
+# this line should work with GNU make 3.71:
+	command /c make unzipsfx CC=gcc LD=gcc M=msdos "CF=-Wall -O2 -I. $(LOC)" SL2="" CP=copy RM=del
+#
+# these lines don't work at all, to our knowledge:
+#	$(MAKE) unzipsfx CC=gcc LD=gcc M=msdos "CF=-Wall -O2 -I. $(LOC)"\
+#	 SL2="" CP=copy RM=del
+#
+	$(STRIP) unzipsfx
+	coff2exe unzipsfx
+#	use this instead if you want to create a stand-alone executable (bigger;
+#	may require full path to go32.exe):
+#	coff2exe -s go32.exe unzipsfx
+	stubedit unzipsfx.exe globbing=no
+	del unzipsfx
+
+# We don't need this with djgpp 2.x.
+gcc_rsp:
+	echo $(OBJS1) > gcc_rsp
+	echo $(OBJS2) >> gcc_rsp
+	echo $(OBJS3) msdos.o >> gcc_rsp
+
+# MS-DOS with D.J. Delorie's djgpp 2.0.  See above for comments about make
+# utilities (may or may not still be relevant).  All executables are now
+# stand-alone, but can provide Charles W. Sandmann's (alternate?) DPMI server
+# if needed via "stubedit unzip.exe dpmi=cwsdpmi.exe" (for example).  950816
+
+djgpp:		dj_make _gcc_dos fu_gcc sfx_gcc		# djgpp v2.x
+djgpp2:		dj_make _gcc_dos fu_gcc sfx_gcc		# djgpp v2.x
+gcc_dos:	dj_make _gcc_dos fu_gcc sfx_gcc		# djgpp v2.x
+
+dj_make: unix/Makefile
+	@copy unix\Makefile >nul
+
+_gcc_dos:
+	make unzip CC=gcc LD=gcc AS=gcc M=msdos "CF=-O2 -Wall -I. -DASM_CRC $(LOC)" CRC32=crc_gcc "LF=-o unzip" LF2=""
+#	$(MAKE) unzip CC=gcc LD=gcc M=msdos "CF=-O2 -Wall -I. $(LOC)"\
+#	 LOBJS="" LF="-o unzip @gcc_rsp" LF2=""
+	$(STRIP) unzip
+	stubify unzip
+	del gcc_rsp
+	del unzip
+	stubify -g zipinfo.exe
+	stubedit zipinfo.exe runfile=unzip argv0=zipinfo
+	@echo 'Make sure to use the install_asm target rather than the install target'
+
+fu_gcc:
+	make funzip CC=gcc LD=gcc AS=gcc "CF=-Wall -O2 -I. -DASM_CRC $(LOC)" CRC32=crc_gcc FL2="" CP=copy RM=del
+#	$(MAKE) funzip CC=gcc LD=gcc "CF=-Wall -O2 -I. $(LOC)" FL2=""\
+#	 CP=copy RM=del
+	$(STRIP) funzip
+	stubify funzip
+	del funzip
+	@echo 'Make sure to use the install_asm target rather than the install target'
 
 sfx_gcc:
-	make unzipsfx CC=gcc LD=gcc M=msdos "CF=-Wall -O2 -I. $(LOC)" SL2="" CP=copy RM=del
+	make unzipsfx CC=gcc LD=gcc AS=gcc M=msdos "CF=-Wall -O2 -I. -DASM_CRC $(LOC)" CRC32=crc_gcc SL2="" CP=copy RM=del
 #	$(MAKE) unzipsfx CC=gcc LD=gcc M=msdos "CF=-Wall -O2 -I. $(LOC)"\
 #	 SL2="" CP=copy RM=del
 	$(STRIP) unzipsfx
-	coff2exe unzipsfx
-#	use this instead if you want to create a stand-alone executable (bigger)
-#	coff2exe -s go32.exe unzipsfx
-	stubedit unzipsfx.exe globbing=no
-#	del unzipsfx
+	stubify unzipsfx
+	del unzipsfx
+	@echo 'Make sure to use the install_asm target rather than the install target'
 
 # Heurikon HK68 (68010), UniPlus+ System V 5.0, Green Hills C-68000
 hk68:		unix_make
@@ -577,16 +736,53 @@ hk68:		unix_make
 	 LF="-n $(LF)" SL="-n $(SL)" FL="-n $(FL)"\
 	 CF="-ga -X138 -I. $(LOC) -Dlocaltime=localti -Dtimezone=timezon"
 
-# Rules needed to build the unzip program for an SGI Iris Indigo running
-# Irix Version 4.0.1
-#indigo:
-#	$(MAKE) unzips CF="-cckr $(CF) -DSYSV $(LOC)"
+# "ISI machine (68025 CPU)" (based on e-mail from Rob White <rsw@TFS.COM>;
+# no further information).  May also need DIRENT defined.
+isi:		unix_make
+	$(MAKE) unzips CF="$(CF) -DDECLARE_ERRNO"
 
-# Linux pre-0.96 + gcc 2.1; also 0.99.13 + gcc 2.4.5.  Linux is Posix
-# (almost SysV but not quite).  [apparently don't need -DSHORT_NAMES]
+# Linux (Posix, approximately SysV):  virtually any version since before 0.96.
 linux:		unix_make
-	$(MAKE) unzips CC=gcc LD=gcc
-#	$(MAKE) unzips CF="$(CF) -DLINUX" CC=gcc LD=gcc  (linux pre-defined?)
+	$(MAKE) unzips CC=gcc LD=gcc CF="-O3 -I. $(LOC)"
+#	$(MAKE) unzips CC=gcc LD=gcc
+
+# Linux on 386 platform, using the assembler replacement for crc32.c:
+linux_asm:	unix_make
+	$(MAKE) unzips CC=gcc LD=gcc AS=gcc CF="-O3 -I. -DASM_CRC $(LOC)"\
+	 AF="-Di386 $(AF)" CRC32=crc_gcc
+	@echo 'Be sure to use the install_asm target rather than the install target'
+
+# Linux host with go32 (djgpp) cross-compiler (go32crs.tgz) for 32-bit DOS.
+# Change msdos_$O target (near line 303 above) from msdos\msdos to msdos/msdos.
+linux_dos:	unix_make
+	$(MAKE) unzips CC=go32gcc LD=go32gcc M=msdos CF="-Wall -O2 -I. $(LOC)"
+#	go32-strip unzip
+#	Due to limitations of the cross-compiling package, this has to be
+#	done manually:
+	@echo Copy $(UNZIPS) to your DOS partition and use coff2exe.
+
+# Linux ELF shared library (ooo, it's so easy).  This is a test target for
+# now, and it only makes the UnZip/ZipInfo stuff (not fUnZip or UnZipSFX).
+# Do "make clean" before using this target the first time, eh?  The version
+# number may change to match the UnZip version.  Or not.  Whatever.  Also
+# do "setenv LD_LIBRARY_PATH `pwd`" or similar to test the DLL in place
+# (with unzip, which is now the version linked with the shared library).
+#
+linux_shlib:	unix_make
+	$(MAKE) objsdll CC=gcc CF="$(CF) -DDLL -fPIC"
+	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.2 $(OBJSDLL)
+	ln -sf libunzip.so.0.2 libunzip.so.0
+	gcc -c -O unzipstb.c
+	gcc -o unzip unzipstb.o -L. -lunzip
+
+# Linux ELF shared library, as above, but using inflate() from zlib (libz.so)
+# instead of the original UnZip version.  (libz was libgz prior to 0.94)
+linux_shlibz:	unix_make
+	$(MAKE) objsdll CC=gcc CF="$(CF) -DDLL -DUSE_ZLIB -fPIC"
+	gcc -shared -Wl,-soname,libunzip.so.0 -o libunzip.so.0.2 $(OBJSDLL)
+	ln -sf libunzip.so.0.2 libunzip.so.0
+	gcc -c -O unzipstb.c
+	gcc -o unzip unzipstb.o -L. -lunzip -lz
 
 # Minix 1.5 PC for the 386.  Invoke as is to use default cc, or as "make
 # minix CC=gcc" to use gcc.  Try "make linux" if you have a working termios.h.
@@ -613,7 +809,8 @@ _msc_dos:	msc_rsp
 
 msc_rsp:
 	echo $(OBJS1:.o=.obj) + > msc_rsp
-	echo msdos.obj $(OBJS2:.o=.obj)/noi/e/st:0x0c00; >> msc_rsp
+	echo $(OBJS2:.o=.obj) + >> msc_rsp
+	echo $(OBJS3:.o=.obj) msdos.obj/noi/e/st:0x0c00; >> msc_rsp
 
 fu_msc:
 	set CL=-AS -Oait -Gs -nologo -I.
@@ -680,7 +877,7 @@ ptx:		unix_make
 # experimental target!  If it fails, use either pyr_ucb or pyr_att instead.)
 # The make in the BSD half is too stupid to understand $(MAKE), sigh...
 pyramid:	unix_make
-	-make pyr_`universe`
+	-make -f unix/Makefile pyr_`universe`
 
 # REGULUS:  68040-based, "real-time" SysV.3 mutant; uses gcc, with "REGULUS"
 # predefined.
@@ -727,6 +924,15 @@ sysv_gcc:	unix_make
 sysv6300:	unix_make
 	$(MAKE) unzips CF="$(CF) -Ml -DSYSV" LF="$(LF) -Ml"\
 	 SL="$(SL) -Ml" FL="$(FL) -Ml"
+
+# Texas Instruments System V.3 (running on HP 9000-1500)
+ti_sysv:	unix_make
+	$(MAKE) unzips CF="$(CF) -DSYSV -DNO_UID_GID -DUID_USHORT"
+
+# SCO Xenix (Joe Foster 950508:  "unzip needs to be linked with -lx [for the
+# opendir(), readdir(), telldir(), rewinddir(), and closedir() calls]")
+xenix:		 unix_make
+	$(MAKE) unzips LF2="$(LF2) -lx"
 
 # Wombat 68000 (or whatever).
 # I didn't do this.  I swear.  No, really.

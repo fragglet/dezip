@@ -7,11 +7,25 @@
   gorithm takes the compressed stream from the first algorithm and applies a
   probabilistic compression method.
 
+     * Copyright 1989 Samuel H. Smith;  All rights reserved
+     *
+     * Do not distribute modified versions without my permission.
+     * Do not remove or alter this notice or any other copyright notice.
+     * If you use this in your own program you must distribute source code.
+     * Do not use any of this in a commercial product.
+
+  See the accompanying file "COPYING" in UnZip source and binary distributions
+  for further information.  This code is NOT used unless USE_SMITH_CODE is
+  explicitly defined (==> COPYRIGHT_CLEAN is not defined).
+
   ---------------------------------------------------------------------------*/
 
 
-#include "unzip.h"
+#define UNZIP_INTERNAL
+#include "unzip.h"   /* defines COPYRIGHT_CLEAN by default */
 
+
+#ifndef COPYRIGHT_CLEAN
 
 /**************************************/
 /*  UnReduce Defines, Typedefs, etc.  */
@@ -21,32 +35,29 @@
 
 typedef uch f_array[64];        /* for followers[256][64] */
 
-static void LoadFollowers __((void));
+
+
+/******************************/
+/*  UnReduce Local Functions  */
+/******************************/
+
+static void LoadFollowers OF((__GPRO__ f_array *followers, uch *Slen));
 
 
 
 /*******************************/
-/*  UnReduce Global Variables  */
+/*  UnReduce Global Constants  */
 /*******************************/
 
-#if defined(MALLOC_WORK) || defined(MTS)
-   f_array *followers;     /* shared work space */
-#else
-   f_array *followers = (f_array *) (slide + 0x4000);
-#endif
-
-uch Slen[256];
-int factor;
-
-int L_table[] =
+static shrint L_table[] =
 {0, 0x7f, 0x3f, 0x1f, 0x0f};
 
-int D_shift[] =
+static shrint D_shift[] =
 {0, 0x07, 0x06, 0x05, 0x04};
-int D_mask[] =
+static shrint D_mask[] =
 {0, 0x01, 0x03, 0x07, 0x0f};
 
-int B_table[] =
+static shrint B_table[] =
 {8, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5,
  5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6,
  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
@@ -71,24 +82,23 @@ int B_table[] =
 /*  Function unreduce()  */
 /*************************/
 
-void unreduce()   /* expand probabilistically reduced data */
+void unreduce(__G)   /* expand probabilistically reduced data */
+     __GDEF
 {
     register int lchar = 0;
-    int nchar;
-    int ExState = 0;
-    int V = 0;
-    int Len = 0;
-    long s = ucsize;  /* number of bytes left to decompress */
+    shrint nchar;
+    shrint ExState = 0;
+    shrint V = 0;
+    shrint Len = 0;
+    long s = G.ucsize;  /* number of bytes left to decompress */
     unsigned w = 0;      /* position in output window slide[] */
     unsigned u = 1;      /* true if slide[] unflushed */
+    uch Slen[256];
 
+    f_array *followers = (f_array *)(slide + 0x4000);
+    int factor = G.lrec.compression_method - 1;
 
-#if defined(MALLOC_WORK) || defined(MTS)
-    followers = (f_array *)(slide + 0x4000);
-#endif
-
-    factor = lrec.compression_method - 1;
-    LoadFollowers();
+    LoadFollowers(__G__ followers, Slen);
 
     while (s > 0 /* && (!zipeof) */) {
         if (Slen[lchar] == 0)
@@ -98,7 +108,7 @@ void unreduce()   /* expand probabilistically reduced data */
             if (nchar != 0)
                 READBITS(8, nchar)       /* ; */
             else {
-                int follower;
+                shrint follower;
                 int bitsneeded = B_table[Slen[lchar]];
 
                 READBITS(bitsneeded, follower)   /* ; */
@@ -113,7 +123,7 @@ void unreduce()   /* expand probabilistically reduced data */
                 s--;
                 slide[w++] = (uch)nchar;
                 if (w == 0x4000) {
-                    flush(slide, w, 0);
+                    flush(__G__ slide, w, 0);
                     w = u = 0;
                 }
             }
@@ -134,7 +144,7 @@ void unreduce()   /* expand probabilistically reduced data */
                 slide[w++] = DLE;
                 if (w == 0x4000)
                 {
-                  flush(slide, w, 0);
+                  flush(__G__ slide, w, 0);
                   w = u = 0;
                 }
                 ExState = 0;
@@ -176,7 +186,7 @@ void unreduce()   /* expand probabilistically reduced data */
                     }
                   if (w == 0x4000)
                   {
-                    flush(slide, w, 0);
+                    flush(__G__ slide, w, 0);
                     w = u = 0;
                   }
                 } while (n);
@@ -191,7 +201,7 @@ void unreduce()   /* expand probabilistically reduced data */
     }
 
     /* flush out slide */
-    flush(slide, w, 0);
+    flush(__G__ slide, w, 0);
 }
 
 
@@ -202,7 +212,10 @@ void unreduce()   /* expand probabilistically reduced data */
 /*  Function LoadFollowers()  */
 /******************************/
 
-static void LoadFollowers()
+static void LoadFollowers(__G__ followers, Slen)
+     __GDEF
+     f_array *followers;
+     uch *Slen;
 {
     register int x;
     register int i;
@@ -213,3 +226,5 @@ static void LoadFollowers()
             READBITS(8, followers[x][i])   /* ; */
     }
 }
+
+#endif /* !COPYRIGHT_CLEAN */

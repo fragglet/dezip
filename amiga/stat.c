@@ -4,6 +4,12 @@
 /* This stat() is by Paul Wells, modified by Paul Kienitz. */
 /* for use with Aztec C >= 5.0 and Lattice C <= 4.01  */
 
+/* POLICY DECISION: We will not attempt to remove global variables from */
+/* this source file for Aztec C.  These routines are essentially just   */
+/* augmentations of Aztec's c.lib, which is itself not reentrant.  If   */
+/* we want to produce a fully reentrant UnZip, we will have to use a    */
+/* suitable startup module, such as purify.a for Aztec by Paul Kienitz. */
+
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <libraries/dos.h>
@@ -20,6 +26,7 @@
 #  include <proto/exec.h>
 #  include <proto/dos.h>
 #endif
+#include <string.h>
 
 #ifndef SUCCESS
 #  define SUCCESS (-1)
@@ -34,24 +41,25 @@ struct stat *buf;
 {
 
         struct FileInfoBlock *inf;
-        struct FileLock *lock;
+        BPTR lock;
         long ftime;
+        void tzset(void);
 
-        if( (lock = (struct FileLock *)Lock(file,SHARED_LOCK))==0 )
+        if( (lock = Lock(file,SHARED_LOCK))==0 )
                 /* file not found */
                 return(-1);
 
         if( !(inf = (struct FileInfoBlock *)AllocMem(
                 (long)sizeof(struct FileInfoBlock),MEMF_PUBLIC|MEMF_CLEAR)) )
         {
-                UnLock((BPTR)lock);
+                UnLock(lock);
                 return(-1);
         }
 
-        if( Examine((BPTR)lock,inf)==FAILURE )
+        if( Examine(lock,inf)==FAILURE )
         {
                 FreeMem((char *)inf,(long)sizeof(*inf));
-                UnLock((BPTR)lock);
+                UnLock(lock);
                 return(-1);
         }
 
@@ -78,7 +86,8 @@ struct stat *buf;
                 (86400 * 8 * 365 )                              +
                 (86400 * 2 );  /* two leap years */
 
-    /*  ftime += timezone;  */
+        tzset();
+        ftime += timezone;
 
         buf->st_ctime =
         buf->st_atime =
@@ -97,12 +106,11 @@ struct stat *buf;
 }
 
 
-
-/* opendir(), readdir(), closedir() and rmdir() by Paul Kienitz: */
+/* opendir(), readdir(), closedir() and rmdir() by Paul Kienitz. */
 
 unsigned short disk_not_mounted;
-
 static DIR *dir_cleanup_list = NULL;    /* for resource tracking */
+
 
 DIR *opendir(char *path)
 {
@@ -146,9 +154,9 @@ void close_leftover_open_dirs(void)
         closedir(dir_cleanup_list);
 }
 
-DIR *readdir(DIR *dd)
+struct dirent *readdir(DIR *dd)
 {
-    return (ExNext(dd->d_parentlock, &dd->d_fib) ? dd : NULL);
+    return (ExNext(dd->d_parentlock, &dd->d_fib) ? (struct dirent *)dd : NULL);
 }
 
 int rmdir(char *path)
@@ -167,16 +175,11 @@ int chmod(char *filename, int bits)     /* bits are as for st_mode */
 #ifdef AZTEC_C
 
 /* This here removes unnecessary bulk from the executable with Aztec: */
-void _wb_parse()  { }
-
-/* This here pretends we have time zone support and suchlike when we don't: */
-int timezone = 0;
-void tzset()  { }
+void _wb_parse(void)  { }
 
 /* fake a unix function that does not apply to amigados: */
-int umask()  { return 0; }
+int umask(void)  { return 0; }
 
-int _OSERR;
 
 #  include <signal.h>
 
@@ -198,6 +201,9 @@ void _cli_parse(struct Process *pp, long alen, register UBYTE *aptr)
     register struct CommandLineInterface *cli;
     register short c;
     register short starred = 0;
+#  ifdef PRESTART_HOOK
+    void Prestart_Hook(void);
+#  endif
 
     cli = (struct CommandLineInterface *) (pp->pr_CLI << 2);
     cp = (UBYTE *) (cli->cli_CommandName << 2);
@@ -210,7 +216,8 @@ void _cli_parse(struct Process *pp, long alen, register UBYTE *aptr)
     for (cp = _arg_lin + c + 1; alen && (*aptr < '\n' || *aptr > '\r'); alen--)
         *cp++ = *aptr++;
     *cp = 0;
-    for (_argc = 1, aptr = cp = _arg_lin + c + 1; ; _argc++) {
+    aptr = cp = _arg_lin + c + 1;
+    for (_argc = 1; ; _argc++) {
         while (*cp == ' ' || *cp == '\t')
             cp++;
         if (!*cp)
@@ -252,6 +259,9 @@ void _cli_parse(struct Process *pp, long alen, register UBYTE *aptr)
         cp += strlen(cp) + 1;
     }
     _argv[c] = NULL;
+#  ifdef PRESTART_HOOK
+    Prestart_Hook();
+#  endif
 }
 
 #endif /* AZTEC_C */

@@ -1,15 +1,16 @@
-vms/README for UnZip 5.12 and later, 25 Aug 94
-----------------------------------------------
+VMS README for UnZip 5.2 and later, 27 April 1996
+-------------------------------------------------
 
 Notes about using UnZip and zipfiles under VMS (see INSTALL for instructions
 on compiling):
 
  - Install UnZip as foreign symbol by adding this to login.com:
       $ unzip == "$disk:[dir]unzip.exe"
-      $ zipinfo == "$disk:[dir]unzip.exe -Z"
+      $ zipinfo == "$disk:[dir]unzip.exe ""-Z"""
    where "disk" and "dir" are location of UnZip executable; the "$" before
    the disk name is important.  Some people, including the author, prefer
-   a short alias such as "ii" instead of "zipinfo"; edit to taste.
+   a short alias such as "ii" instead of "zipinfo"; edit to taste.  (All of
+   the quotes around the -Z are necessary, but don't ask us to explain it...)
 
  - Optionally install UnZipSFX for use with the MAKESFX.COM command file:
       $ unzipsfx :== disk:[dir]unzipsfx.exe
@@ -28,7 +29,7 @@ on compiling):
    placed in an environment variable (UNZIP_OPTS) must be of the short, hy-
    phenated form regardless of how UnZip was compiled.
 
- - VMS (or the C compiler) translates all command-line text to lowercase
+ - The VMS C runtime library translates all command-line text to lowercase
    unless it is quoted, making some options and/or filenames not work as
    intended.  For example:
 	unzip -V zipfile vms/README
@@ -42,17 +43,22 @@ on compiling):
    Note that quoting the whole line probably won't work, since it would
    be interpreted as a single argument by the C library.
 
- - Wildcards which refer to files internal to the archive behave like Unix
+ - Wildcards that refer to files internal to the archive behave like Unix
    wildcards, not VMS ones (assuming UnZip was not compiled with VMSWILD
    defined).  This is both a matter of consistency (see above) and power--
    full Unix regular expressions are supported, so that one can specify
-   "all .c and .h files which start with a, b, c or d and do not have a 2
+   "all .c and .h files that start with a, b, c or d and do not have a 2
    before the dot" as "[a-d]*[^2].[ch]".  Of course, "*.[ch]" is a much more
    common wildcard specification, but the power is there if you need it.
    Note that "*" matches zipfile directory separators ('/'), too.  If UnZip
    *was* compiled with VMSWILD defined (do "unzip -v" to check), the single-
    character wildcard is "%" rather than "?", and character sets (ranges)
    are delimited with () instead of [] (for example, "*.(ch)").
+
+ - Wildcards that refer to zipfiles (i.e., external VMS files) behave like
+   normal VMS wildcards regardless of whether VMSWILD was defined or not.
+   Ranges are not supported.  Thus "unzip *font-%.zip" is about as much as
+   one can do for specifying wildcard zipfiles.
 
  - Created files get whatever permissions were stored in the archive (mapped
    to VMS and/or masked with your default permissions, depending on the 

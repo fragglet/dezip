@@ -1,6 +1,6 @@
 __________________________________________________________________________
 
-  This is the Info-ZIP file INSTALL (for UnZip), last updated 23 Aug 94.
+  This is the Info-ZIP file INSTALL (for UnZip), last updated 24 Apr 96.
 __________________________________________________________________________
 
   Yes, this is a rather long file, but don't be intimidated:  much of its
@@ -10,21 +10,45 @@ __________________________________________________________________________
 
 
 
-To compile UnZip, UnZipSFX and/or fUnZip:
+To compile UnZip, UnZipSFX and/or fUnZip (quick-start instructions):
+=========================================
+
+(1) Unpack everything into a work directory somewhere, and make sure you're
+    in the main UnZip directory (the one with this file in it).
+
+(2) Copy the appropriate makefile into the current directory, except under
+    OS/2.
+
+(3) Run your "make" utility on the makefile (e.g., "nmake -f makefile.msc").
+
+(4) Try out your new UnZip the way you would any new utility:  read the
+    docs first.
+
+    Ah ha ha ha!!  Oh, that kills me.  But seriously...for VMS, UnZip must
+    be installed as a "foreign symbol"; see the Install section below or
+    [.vms]readme.vms for details.  (It basically involves adding a line
+    sort of like this to login.com:    $ unzip == "$disk:[dir]unzip.exe")
+    For DOS and other OSes without explicit timezone support (i.e., every-
+    body but Unix), make sure the "TZ" environment variable is set to a
+    valid and reasonable value; see your compiler docs for details.
+
+
+
+To compile UnZip, UnZipSFX and/or fUnZip (detailed instructions):
 =========================================
 
 (1) Unpack *.c and *.h (the actual source files), preserving the directory
     structure (e.g., ./unix/unix.c).  The sole exception is TOPS-20, where
     tops20/* should be unpacked into the current directory, but TOPS-20
-    is no longer fully supported in this version.
+    is no longer fully supported anyway.
 
     If you wish to compile with decryption enabled, you must get the zcrypt
-    package (see "Where").  Unpack crypt.c and crypt.h from the zcrypt ar-
-    chive, overwriting the dummy versions supplied with UnZip.  If you don't
-    have any sort of unzipper available, you'll have to compile the non-
-    crypt version first and use that to unpack the full crypt sources, then
-    recompile.  (The included zipcloak.c file is for use only with the Zip
-    2.0.x sources, so don't bother unpacking it.)
+    package (see the "Where" file).  Unpack crypt.c and crypt.h from the
+    zcrypt archive, overwriting the dummy versions supplied with UnZip.  If
+    you don't have any sort of unzipper available, you'll have to compile the
+    non-crypt version first and use that to unpack the full crypt sources,
+    then recompile.  (The zipcloak.c file included in the zcrypt archive is
+    for use only with the Zip 2.x sources, so don't bother unpacking it.)
 
 
 (2) Choose the appropriate makefile based on the description in the Con-
@@ -39,6 +63,10 @@ To compile UnZip, UnZipSFX and/or fUnZip:
     target of the Unix makefile (unix/Makefile).  In addition, OS/2 users
     of MSC can cross-compile to MS-DOS with makefile.os2's mscdos target.
 
+    Extra special point of confusion:  makefile.os2 expects to remain in
+    the os2 subdirectory.  Invoke it as "nmake -f os2/makefile.os2 gcc",
+    for example.
+
 
 (3) If you want a non-standard version of UnZip, define one or more of the
     following optional macros, either by adding them to the LOCAL_UNZIP
@@ -49,17 +77,8 @@ To compile UnZip, UnZipSFX and/or fUnZip:
     in the current release).  Note also that very short command lines in
     MS-DOS (128 characters) may place severe limits on how many of these
     can be used; if need be, the definitions can be placed at the top of
-    unzip.h instead (it is included in all source files).
-
-      CHECK_EOF   (recommended!)
-        Corrupt zipfiles and zipfiles stored on damaged media (e.g., bad
-        floppies) may cause UnZip to go into an infinite loop and either
-        fill the disk(!) or, in some cases (notably under MS-DOS), hang the
-        system.  (This only applies to testing or extraction of *damaged*
-        archives, however.)  Defining CHECK_EOF enables special code which
-        corrects the problem on most systems; DEC Ultrix may be one excep-
-        tion.  The only reason this option is not defined by default is that
-        it was introduced too late in the testing process.
+    unzip.h instead (it is included in all source files)--for example,
+    "#define MACRO_NAME".
 
       DOSWILD   (MS-DOS only)
         Treat trailing "*.*" like Unix "*" (i.e., matches anything); treat
@@ -91,70 +110,91 @@ To compile UnZip, UnZipSFX and/or fUnZip:
 
       CHECK_VERSIONS   (VMS only)
         UnZip "extra fields" are used to store VMS (RMS) filesystem info,
-	and the format of this information may differ in various versions
-	of VMS.  Defining this option will enable UnZip warnings when the
-	stored extra-field VMS version(s) do(es) not match the version of
-	VMS currently being used.  This is a common occurrence in zipfiles 
-	received from other sites, but since the format of the filesystem
-	does not seem to have changed in years (including on Alpha and Open-
-	VMS systems), the warnings are not enabled by default.
-
-      RETURN_SEVERITY   (VMS only)
-        Return a VMS-style value in the range 0x7fff0001 to 0x7fff0332 for
-        warnings or errors, or 1 for successful completion.  See unzip.doc
-        for an explanation of the encoding of the normal UnZip return value.
-        This option was added late in the beta cycle and hasn't been tested
-        much yet, but it will likely become the default in future versions
-        (assuming no collisions with official VMS error codes).
+        and the format of this information may differ in various versions
+        of VMS.  Defining this option will enable UnZip warnings when the
+        stored extra-field VMS version(s) do(es) not match the version of
+        VMS currently being used.  This is a common occurrence in zipfiles
+        received from other sites, but since the format of the filesystem
+        does not seem to have changed in years (including on Alpha and Open-
+        VMS systems), the warnings are not enabled by default.
 
       RETURN_CODES   (VMS only)
         VMS interprets return codes according to a rigid set of guidelines,
         which means it misinterprets normal UnZip return codes as all sorts
-        of really nasty errors.  Therefore by default VMS UnZip always returns
-        zero regardless of whether any warnings or errors occurred (but see
-        RETURN_SEVERITY above).  Define RETURN_CODES for a human-readable ex-
-        planation of UnZip's return codes.  Note that this is often annoying.
+        of really nasty errors.  Therefore VMS UnZip returns an alternate set
+        of return codes; since these may be difficult to interpret, define
+        RETURN_CODES for human-readable explanations.
 
-      ASM_CRC   (Amiga/Aztec C only, for now)
+      ASM_CRC   (Amiga/Aztec C; many x86 systems:  DOS, OS/2, Win32, Unix)
         Use an assembler routine to calculate the CRC for each file (speed).
 
       ASM_INFLATECODES   (Amiga/Aztec C only, for now)
         Use an assembler version of inflate_codes() for speed.
 
-      OLD_EXDIR   (not VMS or TOPS-20)
-        Use old behavior regarding the directory to which to extract:  the
-        argument immediately after the zipfile name is the extraction dir;
-        if the directory doesn't exist, create it if it was specified as
-        "dir/" (i.e., with trailing path separator), else treat it as a
-        stored file; if -d is used, treat the argument as a stored file re-
-        gardless of trailing '/'.  For example:
-            unzip foo bar       if bar is a dir, extract everything into it;
-                                  otherwise extract bar as stored file
-            unzip foo bar/      extract everything into bar, creating if nec.
-            unzip -d foo bar/   treat bar/ as a stored directory and extract it
+      OLD_EXDIR
+        No longer supported.
 
       SFX_EXDIR
         Enable the "-d <extract_dir>" option for UnZipSFX.  By default it is
         disabled so as to generate the smallest possible executable stub, but
         for use with automated installation scripts and the like it may be
-        useful to enable -d.  Be sure to read unzipsfx.doc for restrictions
-        on the use of this option and of -x; these restrictions should be 
-        lifted in a later release.
+        useful to enable -d.
 
       NO_ZIPINFO
-        Compile without zipinfo mode (-Z) enabled; makes a smaller executable
+        Compile without ZipInfo mode (-Z) enabled; makes a smaller executable
         because many text strings are left out.  Automatically enabled for
         some small-model compiles under MS-DOS and OS/2, so ordinarily there
         is no need to specify this explicitly.  (Note that even with this
         defined, the resulting executable may still be too big to extract
-        some zipfiles correctly.)
+        some zipfiles correctly, if compiled with the small memory model.)
+
+      LZW_CLEAN
+        The "shrinking" algorithm from PKZIP 1.0 is an LZW variant.  Unisys
+        patented the Lempel-Ziv-Welch algorithm in 1985 and has publicly
+        claimed that decompression is covered by it.  (IBM also patented the
+        same thing in a filing 3 weeks prior to Unisys's.)  Unisys has also
+        publicly said that freeware implementations will be allowed without
+        the requirement for licensing fees.  Therefore unshrinking is enabled
+        by default, but companies that wish to use the code for commercial
+        purposes may wish to disable unshrinking by compiling with LZW_CLEAN
+        defined.  Some older zipfiles still contain shrunk files, but all
+        newer archives use only the deflation method.
+
+      COPYRIGHT_CLEAN   (now default)
+      USE_SMITH_CODE
+        The last chunk of code in UnZip that was blatantly derived from Sam
+        Smith's unzip 2.0 (as in, "substantially similar") is in unreduce.c.
+        Since reducing was only used by very early PKZIP beta versions (0.9x),
+        support for it is now omitted by default (COPYRIGHT_CLEAN).  To in-
+        clude unreducing capability, define USE_SMITH_CODE.  Note that this
+        subjects UnZip to any and all restrictions in Smith's copyright; see
+        the UnZip COPYING file for details.
+
+      PASSWD_FROM_STDIN   (with full crypt sources only; Unix, VMS only)
+        Used to allow the password on encrypted files to be read from stdin
+        rather than the default stderr.  This is useful for those who wish
+        to automate the testing or decoding of encrypted archives (say, in a
+        shell script via ``echo "password" | unzip -tq archive'').  Note that
+        this is dangerous, however:  on many Unix systems the ps(1) command
+        can be used to read the command line associated with running processes,
+        and it's possible that the echo command could show up in a precisely
+        timed "ps".  Placing the password in a file on disk is orders of mag-
+        nitude worse, obviously, but that can be done as well (``unzip -tq foo
+        < file.password'').  Not recommended for security reasons.
+
+      OS2_EAS
+        List the sizes of OS/2 EAs and ACLs for each file as two extra columns
+        in "unzip -l" output.  This is primarily useful for OS/2 systems, but
+        because zipfiles are portable, OS2_EAS can be defined for any system.
+        (May be extended someday to show sizes of Mac resource forks, RISCOS
+        and VMS file info, etc.)
 
       DEBUG
         Used for debugging purposes; enables Trace() statements.  Generally
         it's best to compile only one or two modules this way.
 
       DEBUG_TIME
-        Used for debugging the timezone code in file_io.c; enables TTrace()
+        Used for debugging the timezone code in fileio.c; enables TTrace()
         statements.  This code is only used for the freshen/update options
         (-f and -u), and non-Unix compilers often get it wrong.
 
@@ -164,7 +204,7 @@ To compile UnZip, UnZipSFX and/or fUnZip:
     environment variable (assuming it's supported in your makefile).  Under
     MS-DOS, for example, add this to AUTOEXEC.BAT:
 
-        set LOCAL_UNZIP -DDOSWILD -DOLD_EXDIR
+        set LOCAL_UNZIP=-DDOSWILD -DOLD_EXDIR
 
     You can also use the variable to hold special compiler options (e.g.,
     -FPi87 for Microsoft C, if the x87 libraries are the only ones on your
@@ -183,20 +223,28 @@ To compile UnZip, UnZipSFX and/or fUnZip:
         unresolved or timezone redefined, do "make clean", "make help", and
         then either "make generic2" or "make generic3" as instructed.  If all
         else fails, read the makefile itself; it contains numerous comments.
+        (One of these days we'll make a configure script that automates this
+        procedure better.)
 
       VMS
         For a one-time build of the default UnZip, simply run the supplied
-        command file MAKE.COM.  To use either DEC C on an Alpha or VAX C on
-        a VAX, type "@make" (after copying make.com into the current direc-
-        tory; otherwise do "@[.vms]make" to invoke it in place).  To use GNU
-        C (gcc) on either platform, do "@make gcc".
+        command file MAKE_UNZ.COM.  To use either DEC C on an Alpha or the
+        default compiler (DEC C if available, else VAX C) on a VAX, type
+        "@make_unz" (after copying make_unz.com into the current directory;
+        otherwise do "@[.vms]make_unz" to invoke it in place).
+        If you want to force the use of VAX C when both VAX C and DEC C are
+        available, do "@make_unz vaxc" (or "@[.vms]make_unz vaxc").
+        To use GNU C (gcc) on either platform, do "@make_unz gnuc".
+        (NOTE: Currently, gcc for VMS(AXP) is not yet available!)
 
         For repeated makes or other hacker-like tinkering with the sources,
         or to create a custom version of UnZip (especially with VMSCLI), use
         the included "MMS" makefile, DESCRIP.MMS.  Copy it into the current
         directory, read the comments at the top of it and run MadGoat's free
-        MMS clone "MMK" on it.  DEC's MMS is no longer supported due to the
-        use of MMK-specific extensions in DESCRIP.MMS.
+        MMS clone "MMK" on it.  Newer versions of DEC's MMS should work, too,
+        but older ones apparently choke on some MMK-specific extensions in
+        DESCRIP.MMS.  (If somebody has an "older" version that works, let us
+        know and we'll remove this caveat.)
 
       MS-DOS
         See the msdos\Contents file for notes regarding which makefile(s) to
@@ -205,102 +253,47 @@ To compile UnZip, UnZipSFX and/or fUnZip:
         emx+gcc or the Unix gcc_dos target for djgpp.  There is also an
         mscdos cross-compilation target in os2\makefile.os2, an sco_dos
         cross-compilation target in unix\Makefile and bcc_dos and msc_dos
-        targets in unix\Makefile as well.  The latter may disappear soon.
-        For Watcom 16-bit or 32-bit versions, see the comments in the OS/2
-        section below.
+        targets in unix\Makefile as well.  The latter two will disappear in
+        the next release, most likely.  For Watcom 16-bit or 32-bit versions,
+        see the comments in the OS/2 section below.
 
         After choosing the appropriate makefile and editing as necessary or
         desired, invoke the corresponding make utility.  Microsoft's NMAKE
         and the free dmake and GNU make utilities are generally the most
-        versatile.  Unfortunately, all current ports of GNU make 3.71 (djgpp,
-        emx and gnuish flavors) have bugs which prevent their use with the
-        Unix makefile; the older djgpp port of make 3.69 still works and for
-        now is distributed with the MS-DOS executables on the primary Info-
-        ZIP mirror site (see the Where file).  The makefiles in the msdos dir-
-        ectory can be invoked in place (e.g., "nmake -f msdos\makefile.msc"),
-        but the MS-DOS targets in the Unix makefile (gcc_dos, bcc_dos and
-        msc_dos) cannot.
+        versatile.  Unfortunately, many current ports of GNU make 3.71 (djgpp,
+        emx and gnuish flavors) have bugs which may prevent their use with
+        the Unix makefile; the older djgpp port of make 3.69 still works and
+        for now is distributed with the MS-DOS executables on the primary
+        Info-ZIP ftp site (see the Where file).  The makefiles in the msdos
+        directory can be invoked in place ("nmake -f msdos\makefile.msc",
+        for example), but the MS-DOS targets in the Unix makefile (gcc_dos,
+        bcc_dos and msc_dos) cannot.
 
       OS/2
         Either GNU make, nmake or dmake may be used with the OS/2 makefile;
         all are freely available on the net.  Do "nmake -f os2\makefile.os2",
-        for example, to get a list of supported targets.  For Watcom C/386 it
-        is necessary to edit makefile.os2 and change the os2$(OBJ) target so
-        it uses backslashes (i.e., "os2/os2.c" -> "os2\os2.c").  For Watcom
-        16-bit OS/2 versions or any Watcom DOS version (cross-compilation),
-        or for Metaware High C++ (OS/2 32-bit), it is necessary to apply the
-        patch in os2\wat_met.dif.  (This patch arrived too late to be fully
-        tested.)
+        for example, to get a list of supported targets.  More generally,
+        read the comments at the top of the makefile for an explanation of
+        the differences between some of the same-compiler targets.
 
-        More generally, read the comments at the top of the makefile for an
-        explanation of the differences between some of the same-compiler tar-
-        gets.
-
-      NT (also applies to Chicago/Windows 4)
-        You will need the Windows NT SDK or Visual C++ for NT, both from
-        Microsoft; or DEC C/C++ for DECpc AXP and NT.  Use the command line
-        to compile.  For the DEC compiler edit out the "cdebug" line in
-        nt\makefile as noted in the comments at the top of the makefile.
-        From the main source directory do "nmake -F nt\makefile".
-
-        If you are using VC++ you will get warnings about CL386 invoking CL,
-        etc.  Don't worry, this is for compatibility with the SDK.  Microsoft
-        should have changed the definition of $(cc) in ntwin32.mak for VC++.
-
-        If you have VC++ 1.5 (16-bit) installed together with VC++ 1.0 (32-
-        bit), make sure that you don't run the 16-bit compiler when you run
-        nmake.
-
-        At least with MSC 8.x (VC++ 1.x), it is possible to make a dual-mode
-        self-extractor (DOS and NT/Chicago).  This is not built by default,
-        but for those who don't care too much about the size, here's how:
-
-            From: Steve Salisbury <stevesa@microsoft.com>
-            Date: Fri, 22 Jul 94 17:18:06 PDT
-
-            Did y'all know that you can build a dual mode (MS-DOS and Win32
-            (NT + Chicago)) unzipsfx.exe by just making a 16-bit unzipsfx.exe
-            and then specifying that as the 16-bit stub for the 32-bit unzip-
-            sfx.exe?  You also have to specify the /Knoweas flag to the 16-bit
-            linker.  I suspect that this won't work with C 6.0 and earlier,
-            maybe not even with MS C/C++ 7.0.  Anyway, I use C 8.0 (a.k.a.
-            Visual C 1.X), which has been shipping for 15+ months now.
-
-            Make a little change to MSDOS\MAKEFILE.MSC to add the /KNOWEAS
-            flag:
-
-	            LDFLAGS = /KNOWEAS /nologo/noi/e/st:0x0c00
-
-            rename the output file
-
-	            ren UNZIPSFX.EXE UNZIPSFX.E16
-
-            and then make a little change to NT\MAKEFILE to add the -STUB
-            directive:
-
-	            .obj.exe:
-		            $(link) $(ldebug) $(conflags) $(conflibs) $** \
-                             -out:$@ -STUB:$*.e16
-
-            This is pretty useful.  It's nice to have dual-mode self-extracting
-            files.
-
-            I do notice that they are pretty huge files (41K for 16-bit 
-            unzipsfx.exe, 69k for the 32-bit version, 110k for the dual).  Oh
-            well.
+      Win32 (NT or Win95)
+        You will need Microsoft Visual C++ 2.x for Win95 or NT (Intel, MIPS,
+        Alpha, PowerPC?), or Watcom C++ for Win95 or NT (Intel only).  DEC
+        C/C++ for NT/Alpha may or may not still work.  For the Watcom com-
+        piler, use WMAKE and win32\makefile.wat; for the others, use NMAKE
+        and win32\Makefile.
 
       AmigaDOS
         SAS/Lattice C and Manx Aztec C are supported.  For SAS C 6.x do "lmk
-        -f amiga/SMakeFile all"; for Aztec C do "make -f amiga/makefile.azt
+        -f amiga/smakefile all"; for Aztec C do "make -f amiga/makefile.azt
         all".  The Aztec C version supports assembly-language versions of two
         routines; these are enabled by default.
 
       Atari TOS
-        Turbo C is no longer supported; use gcc (tested with 2.4.5 and 2.5.8)
-        and the MiNT libraries, and do "make".  Note that all versions of gcc
-        prior to 2.5.8 have a bug affecting 68000-based machines (optimizer
-        adds 68020 instructions).  See atari\README for comments on using
-        other compilers.
+        Turbo C is no longer supported; use gcc and the MiNT libraries, and
+        do "make".  Note that all versions of gcc prior to 2.5.8 have a bug
+        affecting 68000-based machines (optimizer adds 68020 instructions).
+        See atari\README for comments on using other compilers.
 
       Macintosh
         Think C is the only currently supported compiler, although the Mac
@@ -310,16 +303,39 @@ To compile UnZip, UnZipSFX and/or fUnZip:
         something or other... :-)  (I'm just making this up, since I haven't
         the faintest idea how Mac programming works.)
 
+      Acorn (RISC OS)
+        Extract the files from the archive and place in standard 'Acorn' C
+        form (i.e., *.c, *.h and *.s become c.*, h.* and s.*, respectively),
+        either using the UNZIP$EXT environment variable and a pre-built UnZip
+        binary, or using Spark[FS] and doing it manually.  Then copy the
+        Acorn.Makefile to the main UnZip directory and either type 'amu' or
+        use the desktop make utility.
+
+      VM/CMS
+        Unpack all the files and transfer them with ASCII -> EBCDIC conver-
+        sion to an appropriate directory/minidisk/whatever, then execute
+        UNZVMC to compile and link all the sources.  This requires C/370 2.1
+        or later and certain ``nucleus extensions''; see the README.CMS file
+        for details.  [This is a new port, but it has been tested and debugged
+        reasonably well.  It should compile and run cleanly.]
+
+      MVS
+        Unpack all the files and transfer them to an appropriate PDS with
+        ASCII -> EBCDIC conversion enabled, then edit UNZMVSC.JOB as required,
+        and execute it to compile and link all the sources.  C/370 2.1 or
+        later is required.  See README.MVS for further details.  [This is a
+        new port and may need a little more work even to compile.]
+
       Human68K
         [This is a Japanese machine and OS.]  It appears that GNU make and
         gcc are required; presumably just do "gmake -f human68k/Makefile.gcc"
-        to build everything.
+        to build everything.  This port was not tested for the 5.20 release.
 
       TOPS-20
         [No longer fully supported due to new, unported features, although
-        patches always accepted.]  Unpack all files into the current directory
-        only (including those in the zipfile's tops20 directory), then use
-        make.mic and "do make".
+        patches are always accepted.]  Unpack all files into the current
+        directory only (including those in the zipfile's tops20 directory),
+        then use make.mic and "do make".
 
     Running the appropriate make utility should produce three executables on
     most systems, one for UnZip/ZipInfo, one for UnZipSFX, and one for fUnZip.
@@ -336,8 +352,9 @@ To compile UnZip, UnZipSFX and/or fUnZip:
     Then test your new UnZip on a few archives and let us know if there are
     problems (but *please* first make certain that the archives aren't actu-
     ally corrupted and that you didn't make one of the silly mistakes dis-
-    cussed in the documentation).  If possible, test with PKUNZIP or with a
-    previous version of UnZip, if you have one.
+    cussed in the documentation).  If possible, double-check any problems
+    with PKUNZIP or with a previous version of UnZip prior to reporting a
+    "bug."  The zipfile itself may be damaged.
 
 
 
@@ -349,7 +366,9 @@ Unix
   go into the bin and man/man1 subdirectories beneath the prefix), and
   the default man-page extension is "1" (corresponding to man/man1, above).
   To install as per the defaults, do "make install"; otherwise do "make
-  prefix=/your/path manext=your_extension install".  For example, to install
+  prefix=/your/path manext=your_extension install".  (For Intel Unix flavors
+  where the assembler CRC routines were used [ASM_CRC], use the install_asm
+  target instead of the regular install target.)  For example, to install
   in your home directory with "l" as the man-page extension (for "local"),
   do "make prefix=$HOME manext=l install".  Permissions will be 755 for the
   executables and 644 for the man pages.  In general root must perform in-
@@ -373,9 +392,13 @@ VMS
 OS/2, MS-DOS, NT, Atari, Amiga
   Move or copy unzip.exe (or unzip.ttp, or UnZip, or whatever) to a direc-
   tory in your path; also possibly copy the UnZip executable to zipinfo.exe
-  (or ii.exe), or else create an alias or a batch or command file for zipinfo
+  (or ii.exe), or else create an alias or a batch/command file for ZipInfo
   ("@unzip -Z %1 %2 %3 %4 %5 %6 %7 %8 %9" under MS-DOS).  The latter is only
-  relevant if NO_ZIPINFO was not defined, obviously...
+  relevant if NO_ZIPINFO was *not* defined, obviously...
 
-Macintosh, Human68K, TOPS-20
+Acorn RISC OS
+  Copy the executables unzip, funzip and zipinfo to somewhere in your
+  Run$Path.  See your Welcome manual if you don't know about Run$Path.
+
+Macintosh, Human68K, TOPS-20, AOS/VS, MVS, VM/CMS, etc.
   Dunno...

@@ -8,25 +8,34 @@
 #ifndef __version_h   /* don't include more than once */
 #define __version_h
 
+/* #define BETA */
+
 #ifdef BETA
-#  define BETALEVEL   "e"
-#  define UZ_VERSION  "5.12e BETA of 25 Aug 94"   /* internal beta level */
-#  define ZI_VERSION  "2.02e BETA of 25 Aug 94"
-#  define D2_VERSION  "0.0 BETA of xx Xxx 94"
+#  define BETALEVEL         "x BETA"
+#  define VERSION_DATE      "27 Apr 96"         /* internal beta version */
+#  define WIN_VERSION_DATE  "27 Apr 96"
 #else
-#  define BETALEVEL   ""
-#  define UZ_VERSION  "5.12 of 28 August 1994"   /* official release version */
-#  define ZI_VERSION  "2.02 of 28 August 1994"
-#  define D2_VERSION  "0.0 of x Xxxxxx 1994"   /* (DLL for OS/2) */
+#  define BETALEVEL         ""
+#  define VERSION_DATE      "30 April 1996"     /* official release version */
+#  define WIN_VERSION_DATE  VERSION_DATE
 #  define RELEASE
 #endif
 
-#define UZ_MAJORVER  5
-#define UZ_MINORVER  1
+#define UZ_MAJORVER  5   /* UnZip */
+#define UZ_MINORVER  2
 
-#define ZI_MAJORVER  2
-#define ZI_MINORVER  0
+#define ZI_MAJORVER  2   /* ZipInfo */
+#define ZI_MINORVER  1
 
-#define PATCHLEVEL   2
+#define D2_MAJORVER  1   /* DLL for OS/2 */  /* prob. should link to UZ ver */
+#define D2_MINORVER  0
+
+#define DW_MAJORVER  0   /* old DLL For Win16 */
+#define DW_MINORVER  1
+
+#define WIZUZ_MAJORVER 3 /* WizUnZip */
+#define WIZUZ_MINORVER 0
+
+#define PATCHLEVEL   0
 
 #endif /* !__version_h */

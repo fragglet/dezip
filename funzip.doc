@@ -7,7 +7,8 @@ NAME
 SYNOPSIS
      [...]  |  funzip [-password]  |  [...]
 
-     funzip [-password] input.zip  |  [...]
+     funzip [-password] input.zip  |   [...]  funzip  [-password]
+     input.gz  |  [...]
 
 ARGUMENTS
      [-password]
@@ -17,19 +18,19 @@ ARGUMENTS
 
 DESCRIPTION
      funzip acts as a filter; that is,  it  assumes  that  a  ZIP
-     archive  is being piped into standard input, and it extracts
-     the first member from the archive to stdout.  If there is an
-     argument,  then  the  input  comes  from  the specified file
-     instead of from stdin.  A password for encrypted  zip  files
-     can  be  specified  on  the command line (preceding the file
-     name, if any) by prefixing the password with a  dash.   Note
-     that  this  constitutes  a  security  risk  on many systems;
-     currently running processes are  often  visible  via  simple
-     commands  (e.g.,  ps(1)  under  Unix), and command-line his-
-     tories can be read.  If the first entry of the zip  file  is
-     encrypted  and no password is specified on the command line,
-     then the user is prompted for a password and the password is
-     not echoed on the console.
+     archive  (or  a gzip'd(1) file) is being piped into standard
+     input, and it extracts the first member from the archive  to
+     stdout.   If there is an argument, then the input comes from
+     the specified file instead of from stdin.   A  password  for
+     encrypted  zip  files  can  be specified on the command line
+     (preceding the file name, if any) by prefixing the  password
+     with  a dash.  Note that this constitutes a security risk on
+     many systems; currently running processes are often  visible
+     via  simple  commands (e.g., ps(1) under Unix), and command-
+     line histories can be read.  If the first entry of  the  zip
+     file  is  encrypted and no password is specified on the com-
+     mand line, then the user is prompted for a password and  the
+     password is not echoed on the console.
 
      Given the limitation on single-member extraction, funzip  is
      most useful in conjunction with a secondary archiver program
@@ -53,7 +54,7 @@ EXAMPLES
          tar cf - . | zip -7 | dd of=/dev/nrst0 obs=8k
          dd if=/dev/nrst0 ibs=8k | funzip | tar xf -
 
-Info-ZIP         Last change: 28 Aug 94 (v3.83)                 1
+Info-ZIP          Last change: 30 Apr 96 (v3.9)                 1
 
 FUNZIP(1)                USER COMMANDS                  FUNZIP(1)
 
@@ -87,5 +88,5 @@ SEE ALSO
 AUTHOR
      Mark Adler (Info-ZIP)
 
-Info-ZIP         Last change: 28 Aug 94 (v3.83)                 2
+Info-ZIP          Last change: 30 Apr 96 (v3.9)                 2
 

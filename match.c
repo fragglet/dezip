@@ -63,6 +63,7 @@
 
 /* define ToLower() in here (for Unix, define ToLower to be macro (using
  * isupper()); otherwise just use tolower() */
+#define UNZIP_INTERNAL
 #include "unzip.h"
 
 #if 0  /* this is not useful until it matches Amiga names insensitively */

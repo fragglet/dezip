@@ -1,12 +1,18 @@
+#define UNZIP_INTERNAL
 #include "unzip.h"
+#include "version.h"
 
 #include <Traps.h>
 #include <Values.h>
 
-extern char UnzipVersion[], ZipinfoVersion[];
+char UnzipVersion[32], ZipinfoVersion[32];
 
 void MacFSTest (int);
 void ResolveMacVol (short, short *, long *, StringPtr);
+
+void screenOpen(char *);
+void screenControl(char *, int);
+void screenClose(void);
 
 #define aboutAlert      128
 
@@ -37,44 +43,87 @@ void ResolveMacVol (short, short *, long *, StringPtr);
 #define pasteItem       3
 
 #define modifierMenu    131
-#define selectItem      1
+#define excludeItem     1
+#define selectItem      2
+#define quietItem       9
+#define verboseItem     10
+
+#define screenMenu      132
+#define pauseItem       1
+#define scrollItem      2
+
+#define extractMenu     133
 #define screenItem      3
-#define pauseItem       4
-#define scrollItem      5
-#define convertItem     7
-#define junkItem        8
-#define lowercaseItem   9
-#define neverItem       10
-#define promptItem      11
-#define quietItem       12
-#define verboseItem     13
+#define junkItem        5
 
-short modifiers, modifierMask;
+#define caseMenu        134
+#define insensitiveItem 1
+#define lowercaseItem   2
 
-#define convertFlag     0x0001
-#define junkFlag        0x0002
-#define lowercaseFlag   0x0004
-#define neverFlag       0x0008
-#define promptFlag      0x0010
-#define quietFlag       0x0020
-#define screenFlag      0x0040
-#define scrollFlag      0x0200
-#define verboseFlag     0x0080
-#define allFlags        0x03FF
+#define convertMenu     135
+#define autoItem        1
+#define binaryItem      2
+#define textItem        3
 
-#define pauseFlag       0x0100
-#define scrollFlag      0x0200
+#define overwriteMenu   136
+#define alwaysItem      1
+#define neverItem       2
+#define promptItem      3
 
-#define extractMask     0x003F
-#define infoMask        0x0000
-#define listMask        0x0020
-#define testMask        0x0020
-#define commentMask     0x0000
-#define freshenMask     0x003F
-#define updateMask      0x003F
+#define infoMenu        137
+#define prtCommentItem  2
+#define prtHeaderItem   3
+#define prtTotalsItem   4
+
+#define formatMenu      138
+#define filenameItem    1
+#define longItem        2
+#define mediumItem      3
+#define shortItem       4
+
+long modifiers, modifierMask;
+
+#define allFlags        0x000FFFFF
+
+#define quietFlag       0x00000001
+#define verboseFlag     0x00000002
+
+#define pauseFlag       0x00080000
+#define scrollFlag      0x00040000
+
+#define screenFlag      0x00000004
+#define junkFlag        0x00000008
+
+#define insensitiveFlag 0x00000010
+#define lowercaseFlag   0x00000020
+
+#define autoFlag        0x00000040
+#define textFlag        0x00000080
+
+#define neverFlag       0x00000100
+#define overwriteFlag   0x00000200
+
+#define prtCommentFlag  0x00000400
+#define prtHeaderFlag   0x00000800
+#define prtTotalsFlag   0x00001000
+
+#define filenameFlag    0x00002000
+#define longFlag        0x00004000
+#define mediumFlag      0x00008000
+#define shortFlag       0x00010000
+
+#define extractMask     0x000003FD
+#define infoMask        0x0001FE02
+#define listMask        0x00000001
+#define testMask        0x00000001
+#define commentMask     0x00000000
+#define freshenMask     0x000003FD
+#define updateMask      0x000003FD
 
 EventRecord myevent;
-MenuHandle appleHandle, modifierHandle;
+MenuHandle appleHandle, modifierHandle, screenHandle, extractHandle;
+MenuHandle caseHandle, convertHandle, overwriteHandle, infoHandle;
+MenuHandle formatHandle;
 Handle menubar, itemHandle;
 short itemType;
 Rect itemRect;
@@ -110,9 +159,10 @@ TrapType trapType;
 
 void domenu(menucommand) long menucommand;
 {
-    short check, themenu, theitem;
+    short themenu, theitem;
     DialogPtr thedialog;
     Str255 name;
+    long check;
 
     themenu = HiWord(menucommand);
     theitem = LoWord(menucommand);
@@ -121,7 +171,7 @@ void domenu(menucommand) long menucommand;
 
     case appleMenu:
         if (theitem == aboutItem) {
-            ParamText(UnzipVersion, ZipinfoVersion, nil, nil);
+            ParamText((StringPtr)UnzipVersion, (StringPtr)ZipinfoVersion, nil, nil);
             Alert(aboutAlert, nil);
         } else {
             GetItem(appleHandle, theitem, name);
@@ -178,57 +228,22 @@ void domenu(menucommand) long menucommand;
 
     case modifierMenu:
         switch (theitem) {
+        case excludeItem:
+            check = -1;
+            break;
         case selectItem:
             thedialog = GetNewDialog(selectDialog, nil, (WindowPtr)(-1));
             SetPort(thedialog);
             do
-                ModalDialog(nil, &check);
-            while ((check != okItem) && (check != cancelItem));
-            if (check == okItem) {
+                ModalDialog(nil, &theitem);
+            while ((theitem != okItem) && (theitem != cancelItem));
+            if (theitem == okItem) {
                 GetDItem(thedialog, editItem, &itemType, &itemHandle, &itemRect);
-                GetIText(itemHandle, &fileList);
+                GetIText(itemHandle, (StringPtr)&fileList);
                 p2cstr(fileList);
             }
             DisposDialog(thedialog);
             check = -1;
-            break;
-        case screenItem:
-            check = (modifiers ^= screenFlag) & screenFlag;
-            break;
-        case pauseItem:
-            check = (modifiers ^= pauseFlag) & pauseFlag;
-            screenControl("p", check);
-            break;
-        case scrollItem:
-            check = (modifiers ^= scrollFlag) & scrollFlag;
-            screenControl("s", check);
-            break;
-        case convertItem:
-            check = (modifiers ^= convertFlag) & convertFlag;
-            break;
-        case junkItem:
-            check = (modifiers ^= junkFlag) & junkFlag;
-            break;
-        case lowercaseItem:
-            check = (modifiers ^= lowercaseFlag) & lowercaseFlag;
-            break;
-        case neverItem:
-            if (check = (modifiers ^= neverFlag) & neverFlag) {
-                if (modifiers & promptFlag) {
-                    CheckItem(modifierHandle, promptItem, false);
-                    modifiers &= (allFlags ^ promptFlag);
-                }
-            } else {
-                CheckItem(modifierHandle, promptItem, true);
-                modifiers |= promptFlag;
-            }
-            break;
-        case promptItem:
-            if (check = (modifiers ^= promptFlag) & promptFlag)
-                if (modifiers & neverFlag) {
-                    CheckItem(modifierHandle, neverItem, false);
-                    modifiers &= (allFlags ^ neverFlag);
-                }
             break;
         case quietItem:
             check = (modifiers ^= quietFlag) & quietFlag;
@@ -243,6 +258,172 @@ void domenu(menucommand) long menucommand;
             CheckItem(modifierHandle, theitem, false);
         else if (check > 0)
             CheckItem(modifierHandle, theitem, true);
+        break;
+
+    case screenMenu:
+        switch (theitem) {
+        case pauseItem:
+            check = (modifiers ^= pauseFlag) & pauseFlag;
+            screenControl("p", check);
+            break;
+        case scrollItem:
+            check = (modifiers ^= scrollFlag) & scrollFlag;
+            screenControl("s", check);
+            break;
+        default:
+            break;
+        }
+        if (check == 0)
+            CheckItem(screenHandle, theitem, false);
+        else if (check > 0)
+            CheckItem(screenHandle, theitem, true);
+        break;
+
+    case extractMenu:
+        switch (theitem) {
+        case screenItem:
+            check = (modifiers ^= screenFlag) & screenFlag;
+            break;
+        case junkItem:
+            check = (modifiers ^= junkFlag) & junkFlag;
+            break;
+        default:
+            break;
+        }
+        if (check == 0)
+            CheckItem(extractHandle, theitem, false);
+        else if (check > 0)
+            CheckItem(extractHandle, theitem, true);
+        break;
+
+    case caseMenu:
+        switch (theitem) {
+        case insensitiveItem:
+            check = (modifiers ^= insensitiveFlag) & insensitiveFlag;
+            break;
+        case lowercaseItem:
+            check = (modifiers ^= lowercaseFlag) & lowercaseFlag;
+            break;
+        default:
+            break;
+        }
+        if (check == 0)
+            CheckItem(caseHandle, theitem, false);
+        else if (check > 0)
+            CheckItem(caseHandle, theitem, true);
+        break;
+
+    case convertMenu:
+        switch (theitem) {
+        case autoItem:
+            CheckItem(convertHandle, autoItem, true);
+            CheckItem(convertHandle, binaryItem, false);
+            CheckItem(convertHandle, textItem, false);
+            modifiers &= (allFlags ^ textFlag);
+            modifiers |= autoFlag;
+            break;
+        case binaryItem:
+            CheckItem(convertHandle, autoItem, false);
+            CheckItem(convertHandle, binaryItem, true);
+            CheckItem(convertHandle, textItem, false);
+            modifiers &= (allFlags ^ (autoFlag | textFlag));
+            break;
+        case textItem:
+            CheckItem(convertHandle, autoItem, false);
+            CheckItem(convertHandle, binaryItem, false);
+            CheckItem(convertHandle, textItem, true);
+            modifiers &= (allFlags ^ autoFlag);
+            modifiers |= textFlag;
+            break;
+        default:
+            break;
+        }
+        break;
+
+    case overwriteMenu:
+        switch (theitem) {
+        case alwaysItem:
+            CheckItem(overwriteHandle, alwaysItem, true);
+            CheckItem(overwriteHandle, neverItem, false);
+            CheckItem(overwriteHandle, promptItem, false);
+            modifiers &= (allFlags ^ neverFlag);
+            modifiers |= overwriteFlag;
+            break;
+        case neverItem:
+            CheckItem(overwriteHandle, alwaysItem, false);
+            CheckItem(overwriteHandle, neverItem, true);
+            CheckItem(overwriteHandle, promptItem, false);
+            modifiers &= (allFlags ^ overwriteFlag);
+            modifiers |= neverFlag;
+            break;
+        case promptItem:
+            CheckItem(overwriteHandle, alwaysItem, false);
+            CheckItem(overwriteHandle, neverItem, false);
+            CheckItem(overwriteHandle, promptItem, true);
+            modifiers &= (allFlags ^ (neverFlag | overwriteFlag));
+            break;
+        default:
+            break;
+        }
+        break;
+
+    case infoMenu:
+        switch (theitem) {
+        case prtCommentItem:
+            check = (modifiers ^= prtCommentFlag) & prtCommentFlag;
+            break;
+        case prtHeaderItem:
+            check = (modifiers ^= prtHeaderFlag) & prtHeaderFlag;
+            break;
+        case prtTotalsItem:
+            check = (modifiers ^= prtTotalsFlag) & prtTotalsFlag;
+            break;
+        default:
+            break;
+        }
+        if (check == 0)
+            CheckItem(infoHandle, theitem, false);
+        else if (check > 0)
+            CheckItem(infoHandle, theitem, true);
+        break;
+
+    case formatMenu:
+        switch (theitem) {
+        case filenameItem:
+            CheckItem(formatHandle, filenameItem, true);
+            CheckItem(formatHandle, longItem, false);
+            CheckItem(formatHandle, mediumItem, false);
+            CheckItem(formatHandle, shortItem, false);
+            modifiers &= (allFlags ^ (longFlag | mediumFlag | shortFlag));
+            modifiers |= filenameFlag;
+            break;
+        case longItem:
+            CheckItem(formatHandle, filenameItem, false);
+            CheckItem(formatHandle, longItem, true);
+            CheckItem(formatHandle, mediumItem, false);
+            CheckItem(formatHandle, shortItem, false);
+            modifiers &= (allFlags ^ (filenameFlag | mediumFlag | shortFlag));
+            modifiers |= longFlag;
+            break;
+        case mediumItem:
+            CheckItem(formatHandle, filenameItem, false);
+            CheckItem(formatHandle, longItem, false);
+            CheckItem(formatHandle, mediumItem, true);
+            CheckItem(formatHandle, shortItem, false);
+            modifiers &= (allFlags ^ (filenameFlag | longFlag | shortFlag));
+            modifiers |= mediumFlag;
+            break;
+        case shortItem:
+            CheckItem(formatHandle, filenameItem, false);
+            CheckItem(formatHandle, longItem, false);
+            CheckItem(formatHandle, mediumItem, false);
+            CheckItem(formatHandle, shortItem, true);
+            modifiers &= (allFlags ^ (filenameFlag | longFlag | mediumFlag));
+            modifiers |= shortFlag;
+            break;
+        default:
+            break;
+        }
         break;
 
     default:
@@ -293,6 +474,7 @@ void domousedown(myevent) EventRecord *myevent;
 
 int main(argc, argv) int argc; char *argv[];
 {
+    struct Globals saveGlobals;
     Boolean haveEvent, useWNE;
     short markChar;
     FILE *fp;
@@ -306,6 +488,13 @@ int main(argc, argv) int argc; char *argv[];
     InitDialogs(nil);
     InitCursor();
 
+    CONSTRUCTGLOBALS();
+
+    sprintf(UnzipVersion, "%d.%d%d%s of %s", UZ_MAJORVER, UZ_MINORVER,
+        PATCHLEVEL, BETALEVEL, VERSION_DATE);
+    sprintf(ZipinfoVersion, "%d.%d%d%s of %s", ZI_MAJORVER, ZI_MINORVER,
+        PATCHLEVEL, BETALEVEL, VERSION_DATE);
+
     c2pstr(UnzipVersion);
     c2pstr(ZipinfoVersion);
 
@@ -314,41 +503,109 @@ int main(argc, argv) int argc; char *argv[];
 
     SetMenuBar(menubar = GetNewMBar(unzipMenuBar));
     DisposeHandle(menubar);
+    InsertMenu(GetMenu(screenMenu), -1);
+    InsertMenu(GetMenu(extractMenu), -1);
+    InsertMenu(GetMenu(caseMenu), -1);
+    InsertMenu(GetMenu(convertMenu), -1);
+    InsertMenu(GetMenu(overwriteMenu), -1);
+    InsertMenu(GetMenu(infoMenu), -1);
+    InsertMenu(GetMenu(formatMenu), -1);
     AddResMenu(appleHandle = GetMHandle(appleMenu), 'DRVR');
     modifierHandle = GetMHandle(modifierMenu);
+    screenHandle = GetMHandle(screenMenu);
+    extractHandle = GetMHandle(extractMenu);
+    caseHandle = GetMHandle(caseMenu);
+    convertHandle = GetMHandle(convertMenu);
+    overwriteHandle = GetMHandle(overwriteMenu);
+    infoHandle = GetMHandle(infoMenu);
+    formatHandle = GetMHandle(formatMenu);
     DrawMenuBar();
 
     screenOpen("Unzip");
 
     modifiers = 0;
 
-    GetItemMark(modifierHandle, pauseItem, &markChar);
-    if (markChar) modifiers ^= pauseFlag;
-    screenControl("p", markChar);
-    GetItemMark(modifierHandle, scrollItem, &markChar);
-    if (markChar) modifiers ^= scrollFlag;
-    screenControl("s", markChar);
-
-    GetItemMark(modifierHandle, screenItem, &markChar);
-    if (markChar) modifiers ^= screenFlag;
-    GetItemMark(modifierHandle, convertItem, &markChar);
-    if (markChar) modifiers ^= convertFlag;
-    GetItemMark(modifierHandle, junkItem, &markChar);
-    if (markChar) modifiers ^= junkFlag;
-    GetItemMark(modifierHandle, lowercaseItem, &markChar);
-    if (markChar) modifiers ^= lowercaseFlag;
-    GetItemMark(modifierHandle, neverItem, &markChar);
-    if (markChar) modifiers ^= neverFlag;
-    GetItemMark(modifierHandle, promptItem, &markChar);
-    if (markChar) modifiers ^= promptFlag;
     GetItemMark(modifierHandle, quietItem, &markChar);
     if (markChar) modifiers ^= quietFlag;
     GetItemMark(modifierHandle, verboseItem, &markChar);
     if (markChar) modifiers ^= verboseFlag;
 
-    if ((modifiers & (neverFlag | promptFlag)) == (neverFlag | promptFlag)) {
-        CheckItem(modifierHandle, promptItem, false);
-        modifiers &= (allFlags ^ promptFlag);
+    GetItemMark(screenHandle, pauseItem, &markChar);
+    if (markChar) modifiers ^= pauseFlag;
+    screenControl("p", markChar);
+    GetItemMark(screenHandle, scrollItem, &markChar);
+    if (markChar) modifiers ^= scrollFlag;
+    screenControl("s", markChar);
+
+    GetItemMark(extractHandle, screenItem, &markChar);
+    if (markChar) modifiers ^= screenFlag;
+    GetItemMark(extractHandle, junkItem, &markChar);
+    if (markChar) modifiers ^= junkFlag;
+
+    GetItemMark(caseHandle, insensitiveItem, &markChar);
+    if (markChar) modifiers ^= insensitiveFlag;
+    GetItemMark(caseHandle, lowercaseItem, &markChar);
+    if (markChar) modifiers ^= lowercaseFlag;
+
+    GetItemMark(convertHandle, autoItem, &markChar);
+    if (markChar) modifiers ^= autoFlag;
+    GetItemMark(convertHandle, textItem, &markChar);
+    if (markChar) modifiers ^= textFlag;
+
+    if ((modifiers & (autoFlag | textFlag)) == (autoFlag | textFlag)) {
+        CheckItem(convertHandle, textItem, false);
+        modifiers &= (allFlags ^ textFlag);
+    } else if (modifiers & (autoFlag | textFlag))
+        CheckItem(convertHandle, binaryItem, false);
+    else
+        CheckItem(convertHandle, binaryItem, true);
+
+    GetItemMark(overwriteHandle, alwaysItem, &markChar);
+    if (markChar) modifiers ^= overwriteFlag;
+    GetItemMark(overwriteHandle, neverItem, &markChar);
+    if (markChar) modifiers ^= neverFlag;
+
+    if ((modifiers & (neverFlag | overwriteFlag)) == (neverFlag | overwriteFlag)) {
+        CheckItem(overwriteHandle, alwaysItem, false);
+        CheckItem(overwriteHandle, neverItem, false);
+        CheckItem(overwriteHandle, promptItem, true);
+        modifiers &= (allFlags ^ (neverFlag | overwriteFlag));
+    } else if (modifiers & (neverFlag | overwriteFlag))
+        CheckItem(overwriteHandle, promptItem, false);
+    else
+        CheckItem(overwriteHandle, promptItem, true);
+
+    GetItemMark(infoHandle, prtCommentItem, &markChar);
+    if (markChar) modifiers ^= prtCommentFlag;
+    GetItemMark(infoHandle, prtHeaderItem, &markChar);
+    if (markChar) modifiers ^= prtHeaderFlag;
+    GetItemMark(infoHandle, prtTotalsItem, &markChar);
+    if (markChar) modifiers ^= prtTotalsFlag;
+
+    GetItemMark(formatHandle, filenameItem, &markChar);
+    if (markChar) modifiers ^= filenameFlag;
+    GetItemMark(formatHandle, longItem, &markChar);
+    if (markChar) modifiers ^= longFlag;
+    GetItemMark(formatHandle, mediumItem, &markChar);
+    if (markChar) modifiers ^= mediumFlag;
+    GetItemMark(formatHandle, shortItem, &markChar);
+    if (markChar) modifiers ^= shortFlag;
+
+    if (modifiers & longFlag) {
+        CheckItem(formatHandle, filenameItem, false);
+        CheckItem(formatHandle, mediumItem, false);
+        CheckItem(formatHandle, shortItem, false);
+        modifiers &= (allFlags ^ (filenameFlag | mediumFlag | shortFlag));
+    } else if (modifiers & mediumFlag) {
+        CheckItem(formatHandle, filenameItem, false);
+        CheckItem(formatHandle, shortItem, false);
+        modifiers &= (allFlags ^ (filenameFlag | shortFlag));
+    } else if (modifiers & shortFlag) {
+        CheckItem(formatHandle, filenameItem, false);
+        modifiers &= (allFlags ^ filenameFlag);
+    } else if (! (modifiers & filenameFlag)) {
+        CheckItem(formatHandle, shortItem, false);
+        modifiers |= shortFlag;
     }
 
     command = ' ';
@@ -394,7 +651,7 @@ int main(argc, argv) int argc; char *argv[];
         }
 
         if (command != ' ') {
-            char *s, **v, modifierString[16];
+            char *s, **v, modifierString[32];
             SFReply fileRep;
             Point p;
             int m, n;
@@ -404,26 +661,38 @@ int main(argc, argv) int argc; char *argv[];
             SFGetFile(p, "\pSpecify ZIP file:", 0L, -1, nil, 0L, &fileRep);
             if (fileRep.good) {
                 MacFSTest(fileRep.vRefNum);
-                ResolveMacVol(fileRep.vRefNum, &gnVRefNum, &glDirID, NULL);
+                ResolveMacVol(fileRep.vRefNum, &G.gnVRefNum, &G.glDirID, NULL);
 
-                p2cstr(fileRep.fName);
+                p2cstr((Ptr)fileRep.fName);
 
                 modifierMask &= modifiers;
 
                 s = modifierString;
 
-                if ((command != 'Z') || modifierMask) {
-                    *s++ = '-';
-                    *s++ = command;
+                *s++ = '-';
+                if ((command != 'x') && (command != 'Z')) *s++ = command;
 
-                    if (modifierMask & convertFlag) *s++ = 'a';
-                    if (!HFSFlag || (modifierMask & junkFlag)) *s++ = 'j';
-                    if (!modifierMask & lowercaseFlag) *s++ = 'U';
+                if (modifierMask) {
+                    if (modifierMask & (autoFlag | textFlag)) *s++ = 'a';
+                    if (modifierMask & textFlag) *s++ = 'a';
+                    if (modifierMask & insensitiveFlag) *s++ = 'C';
+                    if (!G.HFSFlag || (modifierMask & junkFlag)) *s++ = 'j';
+                    if (modifierMask & lowercaseFlag) *s++ = 'L';
                     if (modifierMask & neverFlag) *s++ = 'n';
-                    if (!modifierMask & promptFlag) *s++ = 'o';
+                    if (modifierMask & overwriteFlag) *s++ = 'o';
                     if (modifierMask & quietFlag) *s++ = 'q';
                     if (modifierMask & verboseFlag) *s++ = 'v';
+
+                    if (modifierMask & prtCommentFlag) *s++ = 'z';
+                    if (modifierMask & prtHeaderFlag) *s++ = 'h';
+                    if (modifierMask & prtTotalsFlag) *s++ = 't';
+                    if (modifierMask & filenameFlag) *s++ = '2';
+                    if (modifierMask & longFlag) *s++ = 'l';
+                    if (modifierMask & mediumFlag) *s++ = 'm';
+                    if (modifierMask & shortFlag) *s++ = 's';
                 }
+
+                if (*(s - 1) == '-') s -= 1;
 
                 *s = '\0';
 
@@ -446,7 +715,11 @@ int main(argc, argv) int argc; char *argv[];
                 for (n = 0; argv[n] != NULL; n++) printf("%s ", argv[n]);
                 printf("...\n\n");
 
-                unzip(argc, argv);
+                memcpy(&saveGlobals, &G, sizeof(struct Globals));
+
+                unzip(__G__ argc, argv);
+                
+                memcpy(&G, &saveGlobals, sizeof(struct Globals));
 
                 printf("\nDone\n");
             }
@@ -457,6 +730,8 @@ int main(argc, argv) int argc; char *argv[];
     }
 
     screenClose();
+
+    DESTROYGLOBALS()
 
     ExitToShell();
 }

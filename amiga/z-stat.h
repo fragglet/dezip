@@ -11,7 +11,7 @@
 /* with this package, so I made a separate one.  This has to be pulled into  */
 /* unzip.h when compiling an Amiga version, as "amiga/z-stat.h".             */
 
-/* We also provide here a "struct direct" for use with opendir() & readdir() */
+/* We also provide here a "struct dirent" for use with opendir() & readdir() */
 /* functions included in amiga/stat.c.  If you use amiga/stat.c, this must   */
 /* be included wherever you use either readdir() or stat().                  */
 
@@ -59,8 +59,8 @@ int stat(char *name, struct stat *buf);
 
 #include <libraries/dos.h>
 
-typedef struct direct {
-    struct direct       *d_cleanuplink,
+typedef struct dirent {
+    struct dirent       *d_cleanuplink,
                        **d_cleanupparent;
     BPTR                 d_parentlock;
     struct FileInfoBlock d_fib;
@@ -72,12 +72,13 @@ extern unsigned short disk_not_mounted;         /* flag set by opendir() */
 DIR *opendir(char *);
 void closedir(DIR *);
 void close_leftover_open_dirs(void);    /* call this if aborted in mid-run */
-DIR *readdir(DIR *);
+struct dirent *readdir(DIR *);
 
 int rmdir(char *);
 
 #  ifdef AZTEC_C
 void tzset(void);
+int umask(void);
 int chmod(char *filename, int bits);
 #  endif
 

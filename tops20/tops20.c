@@ -17,6 +17,7 @@
   ---------------------------------------------------------------------------*/
 
 
+#define UNZIP_INTERNAL
 #include "unzip.h"
 
 
@@ -24,18 +25,19 @@
 /* Function mapattr() */
 /**********************/
 
-int mapattr()      /* just like Unix except no umask() */
+int mapattr(__G)        /* just like Unix except no umask() */
+    __GDEF
 {
-    ulg  tmp = crec.external_file_attributes;
+    ulg  tmp = G.crec.external_file_attributes;
 
-    switch (pInfo->hostnum) {
+    switch (G.pInfo->hostnum) {
         case UNIX_:
         case VMS_:
-            pInfo->file_attr = (unsigned)(tmp >> 16);
+            G.pInfo->file_attr = (unsigned)(tmp >> 16);
             break;
         case AMIGA_:
             tmp = (unsigned)(tmp>>1 & 7);   /* Amiga RWE bits */
-            pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
+            G.pInfo->file_attr = (unsigned)(tmp<<6 | tmp<<3 | tmp);
             break;
         case FS_FAT_:   /* MSDOS half of attributes should always be correct */
         case FS_HPFS_:
@@ -45,13 +47,13 @@ int mapattr()      /* just like Unix except no umask() */
         case TOPS20_:
         default:
             tmp = !(tmp & 1) << 1;   /* read-only bit --> write perms bits */
-            pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
+            G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
 #if 0
         case ATARI_:
         case TOPS20_:
         default:
-            pInfo->file_attr = 0666;
+            G.pInfo->file_attr = 0666;
             break;
 #endif
     } /* end switch (host-OS-created-by) */
@@ -68,7 +70,8 @@ int mapattr()      /* just like Unix except no umask() */
 /* Function close_outfile() */
 /****************************/
 
-void close_outfile()
+void close_outfile(__G)
+    __GDEF
 {
 #   define JSYS_CLASS           0070000000000
 #   define FLD(val,mask)        (((unsigned)(val)*((mask)&(-(mask))))&(mask))
@@ -80,25 +83,56 @@ void close_outfile()
     int yr, mo, dy, hh, mm, ss;
     char temp[100];
     unsigned tad;
+#ifdef USE_EF_UX_TIME
+    ztimbuf z_utime;
 
+
+    if (G.extra_field &&
+        ef_scan_for_izux(G.extra_field, G.crec.extra_field_length,
+                         &z_utime, NULL) > 0)
+    {
+        struct tm *t = localtime(&(z_utime.modtime));
+
+        yr = t->tm_year + 1900;
+        mo = t->tm_mon;
+        dy = t->tm_mday;
+        hh = t->tm_hour;
+        mm = t->tm_min;
+        ss = t->tm_sec;
+    }
+    else
+    {
+        /* dissect the date */
+        yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
+        mo = ((G.lrec.last_mod_file_date >> 5) & 0x0f) - 1;
+        dy = (G.lrec.last_mod_file_date & 0x1f);
+
+        /* dissect the time */
+        hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
+        mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
+        ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
+    }
+#else /* !USE_EF_UX_TIME */
 
     /* dissect the date */
-    yr = ((lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
-    mo = (lrec.last_mod_file_date >> 5) & 0x0f;
-    dy = lrec.last_mod_file_date & 0x1f;
+    yr = ((G.lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
+    mo = (G.lrec.last_mod_file_date >> 5) & 0x0f;
+    dy = G.lrec.last_mod_file_date & 0x1f;
 
     /* dissect the time */
-    hh = (lrec.last_mod_file_time >> 11) & 0x1f;
-    mm = (lrec.last_mod_file_time >> 5) & 0x3f;
-    ss = (lrec.last_mod_file_time & 0x1f) * 2;
-    
+    hh = (G.lrec.last_mod_file_time >> 11) & 0x1f;
+    mm = (G.lrec.last_mod_file_time >> 5) & 0x3f;
+    ss = (G.lrec.last_mod_file_time & 0x1f) * 2;
+#endif /* ?USE_EF_UX_TIME */
+
     sprintf(temp, "%02d/%02d/%02d %02d:%02d:%02d", mo, dy, yr, hh, mm, ss);
 
     ablock[1] = (int)(temp - 1);
     ablock[2] = 0;
     if (!jsys(IDTIM, ablock)) {
-        fprintf(stderr, "error:  IDTIM failure for %s\n", filename);
-        fclose(outfile);
+        Info(slide, 1, ((char *)slide, "error:  IDTIM failure for %s\n",
+          G.filename));
+        fclose(G.outfile);
         return;
     }
 
@@ -107,13 +141,15 @@ void close_outfile()
     tblock[1] = tad;
     tblock[2] = -1;
 
-    ablock[1] = fcntl(fileno(outfile), F_GETSYSFD, 0); /* _uffd[outfd]->uf_ch */
+    ablock[1] = fcntl(fileno(G.outfile), F_GETSYSFD, 0);
+                                                /* _uffd[outfd]->uf_ch */
     ablock[2] = (int) tblock;
     ablock[3] = 3;
     if (!jsys(SFTAD, ablock))
-        fprintf(stderr, "error:  can't set the time for %s\n", filename);
+        Info(slide, 1,((char *)slide, "error:  can't set the time for %s\n",
+          G.filename));
 
-    fclose(outfile);
+    fclose(G.outfile);
 
 } /* end function close_outfile() */
 
@@ -127,14 +163,14 @@ void close_outfile()
 /*  Function version()  */
 /************************/
 
-void version()
+void version(__G)
+    __GDEF
 {
-    extern char Far  CompiledWith[];
 #if 0
     char buf[40];
 #endif
 
-    printf(LoadFarString(CompiledWith),
+    sprintf((char *)slide, LoadFarString(CompiledWith),
 
 #ifdef __GNUC__
       "gcc ", __VERSION__,
@@ -163,7 +199,9 @@ void version()
 #else
       "", ""
 #endif
-      );
+    );
+
+    (*G.message)((zvoid *)&G, slide, (ulg)strlen((char *)slide), 0);
 
 } /* end function version() */
 

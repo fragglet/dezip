@@ -3,16 +3,19 @@
 #ifndef __zip_h   /* don't include more than once */
 #define __zip_h
 
+#define UNZIP_INTERNAL
 #include "unzip.h"
 
 #define decrypt_member decrypt  /* for compatibility with zcrypt20 */
 #define local static
-#define CRC32(c, b)    (crc_32_tab[((int)(c) ^ (b)) & 0xff] ^ ((c) >> 8))
 
-#ifdef FUNZIP
-   extern ulg near crc_32_tab[];
-#else
-   extern ulg *crc_32_tab;
+#if defined(REENTRANT) && defined(DYNALLOC_CRCTAB)
+#  undef DYNALLOC_CRCTAB
+#endif
+#define ziperr(c, h)   return
+
+#ifdef MSWIN
+#  include "wingui\password.h"
 #endif
 
 #endif /* !__zip_h */

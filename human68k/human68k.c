@@ -20,6 +20,7 @@
 #include <sys/dos.h>
 #include <sys/xunistd.h>
 #include <jstring.h>
+#define UNZIP_INTERNAL
 #include "unzip.h"
 
 
@@ -28,11 +29,14 @@ static void normalize_name(char *);
 static int created_dir;        /* used in mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
 
+#ifndef SFX
+
 /**********************/
 /* Function do_wild() */
 /**********************/
 
-char *do_wild(wildspec)
+char *do_wild(__G__ wildspec)
+    __GDEF
     char *wildspec;         /* only used first time on a given dir */
 {
     static DIR *dir = NULL;
@@ -58,7 +62,8 @@ char *do_wild(wildspec)
             ++wildname;     /* point at character after '/' */
             dirnamelen = wildname - wildspec;
             if ((dirname = (char *)malloc(dirnamelen+1)) == NULL) {
-                fprintf(stderr, "warning:  can't allocate wildcard buffers\n");
+                Info(slide, 1, ((char *)slide,
+                  "warning:  can't allocate wildcard buffers\n"));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
@@ -122,6 +127,7 @@ char *do_wild(wildspec)
 
 } /* end function do_wild() */
 
+#endif /* !SFX */
 
 
 
@@ -130,15 +136,17 @@ char *do_wild(wildspec)
 /* Function mapattr() */
 /**********************/
 
-int mapattr()
+int mapattr(__G)
+    __GDEF
 {
-    ulg  tmp = crec.external_file_attributes;
+    ulg  tmp = G.crec.external_file_attributes;
 
-    if (pInfo->hostnum == UNIX_ || pInfo->hostnum == VMS_)
-	pInfo->file_attr = _mode2dos(tmp >> 16);
+    if (G.pInfo->hostnum == UNIX_ || G.pInfo->hostnum == VMS_)
+	G.pInfo->file_attr = _mode2dos(tmp >> 16);
     else
 	/* set archive bit (file is not backed up): */
-	pInfo->file_attr = (unsigned)(crec.external_file_attributes|32) & 0xff;
+	G.pInfo->file_attr = (unsigned)(G.crec.external_file_attributes|32) &
+          0xff;
     return 0;
 
 } /* end function mapattr() */
@@ -151,41 +159,42 @@ int mapattr()
 /* Function mapname() */
 /**********************/
 
-int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
-    int renamed;      /* 2 if warning (skip file because dir doesn't exist), */
-{                     /* 3 if error (skip file), 10 if no memory (skip file) */
-    char pathcomp[FILNAMSIZ];   /* path-component buffer */
-    char *pp, *cp=NULL;         /* character pointers */
-    char *lastsemi = NULL;      /* pointer to last semi-colon in pathcomp */
-    int quote = FALSE;          /* flags */
+int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
+    __GDEF                   /* trunc), 2 if warning (skip file because dir */
+    int renamed;             /* doesn't exist), 3 if error (skip file), 10 */
+{                            /* if no memory (skip file) */
+    char pathcomp[FILNAMSIZ];    /* path-component buffer */
+    char *pp, *cp=(char *)NULL;  /* character pointers */
+    char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
+    int quote = FALSE;           /* flags */
     int error = 0;
-    register unsigned workch;   /* hold the character being tested */
+    register unsigned workch;    /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
     Initialize various pointers and counters and stuff.
   ---------------------------------------------------------------------------*/
 
-    if (pInfo->vollabel)
+    if (G.pInfo->vollabel)
         return IZ_VOL_LABEL;    /* can't set disk volume labels in Unix */
 
     /* can create path as long as not just freshening, or if user told us */
-    create_dirs = (!fflag || renamed);
+    G.create_dirs = (!G.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
 
     /* user gave full pathname:  don't prepend rootpath */
     renamed_fullpath = (renamed && (*filename == '/'));
 
-    if (checkdir((char *)NULL, INIT) == 10)
+    if (checkdir(__G__ (char *)NULL, INIT) == 10)
         return 10;              /* initialize path buffer, unless no memory */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
-    if (jflag)                  /* junking directories */
-        cp = (char *)strrchr(filename, '/');
+    if (G.jflag)                /* junking directories */
+        cp = (char *)strrchr(G.filename, '/');
     if (cp == NULL)             /* no '/' or not junking dirs */
-        cp = filename;          /* point to internal zipfile-member pathname */
+        cp = G.filename;        /* point to internal zipfile-member pathname */
     else
         ++cp;                   /* point to start of last component of path */
 
@@ -204,7 +213,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
             switch (workch) {
             case '/':             /* can assume -j flag not given */
                 *pp = '\0';
-                if ((error = checkdir(pathcomp, APPEND_DIR)) > 1)
+                if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
                     return error;
                 pp = pathcomp;    /* reset conversion buffer for next piece */
                 lastsemi = NULL;  /* leave directory semi-colons alone */
@@ -234,7 +243,7 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!V_flag && lastsemi) {
+    if (!G.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch)(*pp)))
             ++pp;
@@ -248,22 +257,24 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     fore exiting.
   ---------------------------------------------------------------------------*/
 
-    if (filename[strlen(filename) - 1] == '/') {
-        checkdir(filename, GETPATH);
+    if (G.filename[strlen(G.filename) - 1] == '/') {
+        checkdir(__G__ G.filename, GETPATH);
         if (created_dir && QCOND2) {
-            fprintf(stdout, "   creating: %s\n", filename);
+            Info(slide, 0, ((char *)slide, "   creating: %s\n",
+              G.filename));
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
     if (*pathcomp == '\0') {
-        fprintf(stderr, "mapname:  conversion of %s failed\n", filename);
+        Info(slide, 1, ((char *)slide, "mapname:  conversion of %s failed\n",
+          G.filename));
         return 3;
     }
 
-    checkdir(pathcomp, APPEND_NAME);   /* returns 1 if truncated:  care? */
-    checkdir(filename, GETPATH);
+    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated:  care? */
+    checkdir(__G__ G.filename, GETPATH);
 
     return error;
 
@@ -277,7 +288,8 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
 /* Function checkdir() */
 /***********************/
 
-int checkdir(pathcomp, flag)
+int checkdir(__G__ pathcomp, flag)
+    __GDEF
     char *pathcomp;
     int flag;
 /*
@@ -321,36 +333,40 @@ int checkdir(pathcomp, flag)
 
         if ((end-buildpath) > FILNAMSIZ-3)  /* need '/', one-char name, '\0' */
             too_long = TRUE;                /* check if extracting directory? */
-        if (stat(buildpath, &statbuf)) {    /* path doesn't exist */
-            if (!create_dirs) {   /* told not to create (freshening) */
+        if (stat(buildpath, &G.statbuf))    /* path doesn't exist */
+        {
+            if (!G.create_dirs) { /* told not to create (freshening) */
                 free(buildpath);
                 return 2;         /* path doesn't exist:  nothing to do */
             }
             if (too_long) {
-                fprintf(stderr, "checkdir error:  path too long: %s\n",
-                  buildpath);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide,
+                  "checkdir error:  path too long: %s\n",
+                  buildpath));
                 free(buildpath);
                 return 4;         /* no room for filenames:  fatal */
             }
-            if (mkdir(buildpath, 0666) == -1) {   /* create the directory */
-                fprintf(stderr, "checkdir error:  can't create %s\n\
-                 unable to process %s.\n", buildpath, filename);
-                fflush(stderr);
+            if (MKDIR(buildpath, 0666) == -1) {   /* create the directory */
+                Info(slide, 1, ((char *)slide,
+                  "checkdir error:  can't create %s\n\
+                 unable to process %s.\n",
+                  buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
             }
             created_dir = TRUE;
-        } else if (!S_ISDIR(statbuf.st_mode)) {
-            fprintf(stderr, "checkdir error:  %s exists but is not directory\n\
-                 unable to process %s.\n", buildpath, filename);
-            fflush(stderr);
+        } else if (!S_ISDIR(G.statbuf.st_mode)) {
+            Info(slide, 1, ((char *)slide,
+              "checkdir error:  %s exists but is not directory\n\
+                 unable to process %s.\n",
+              buildpath, G.filename));
             free(buildpath);
             return 3;          /* path existed but wasn't dir */
         }
         if (too_long) {
-            fprintf(stderr, "checkdir error:  path too long: %s\n", buildpath);
-            fflush(stderr);
+            Info(slide, 1, ((char *)slide,
+              "checkdir error:  path too long: %s\n",
+              buildpath));
             free(buildpath);
             return 4;         /* no room for filenames:  fatal */
         }
@@ -370,7 +386,7 @@ int checkdir(pathcomp, flag)
         strcpy(pathcomp, buildpath);
         Trace((stderr, "getting and freeing path [%s]\n", pathcomp));
         free(buildpath);
-        buildpath = end = NULL;
+        buildpath = end = (char *)NULL;
         return 0;
     }
 
@@ -385,13 +401,13 @@ int checkdir(pathcomp, flag)
         Trace((stderr, "appending filename [%s]\n", pathcomp));
         while ((*end = *pathcomp++) != '\0') {
             ++end;
-	    normalize_name(old_end);
+            normalize_name(old_end);
             if ((end-buildpath) >= FILNAMSIZ) {
                 *--end = '\0';
-                fprintf(stderr, "checkdir warning:  path too long; truncating\n\
-checkdir warning:  path too long; truncating\n\
-                   %s\n                -> %s\n", filename, buildpath);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide,
+                  "checkdir warning:  path too long; truncating\n\
+                   %s\n                -> %s\n",
+                  G.filename, buildpath));
                 return 1;   /* filename truncated */
             }
         }
@@ -409,7 +425,8 @@ checkdir warning:  path too long; truncating\n\
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(filename)+rootlen+1)) == NULL)
+        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+1)) ==
+            (char *)NULL)
             return 10;
         if ((rootlen > 0) && !renamed_fullpath) {
             strcpy(buildpath, rootpath);
@@ -432,7 +449,7 @@ checkdir warning:  path too long; truncating\n\
 #if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n", pathcomp));
-        if (pathcomp == NULL) {
+        if (pathcomp == (char *)NULL) {
             rootlen = 0;
             return 0;
         }
@@ -443,24 +460,19 @@ checkdir warning:  path too long; truncating\n\
                 pathcomp[--rootlen] = '\0';
                 had_trailing_pathsep = TRUE;
             }
-            if (rootlen > 0 && (stat(pathcomp, &statbuf) ||
-                !S_ISDIR(statbuf.st_mode)))          /* path does not exist */
+            if (rootlen > 0 && (SSTAT(pathcomp, &G.statbuf) ||
+                !S_ISDIR(G.statbuf.st_mode)))          /* path does not exist */
             {
-                if (!create_dirs                     /* || iswild(pathcomp) */
-#ifdef OLD_EXDIR
-                                 || !had_trailing_pathsep
-#endif
-                                                         ) {
+                if (!G.create_dirs /* || iswild(pathcomp) */ ) {
                     rootlen = 0;
                     return 2;   /* skip (or treat as stored file) */
                 }
                 /* create the directory (could add loop here to scan pathcomp
                  * and create more than one level, but why really necessary?) */
-                if (mkdir(pathcomp, 0777) == -1) {
-                    fprintf(stderr,
+                if (MKDIR(pathcomp, 0777) == -1) {
+                    Info(slide, 1, ((char *)slide,
                       "checkdir:  can't create extraction directory: %s\n",
-                      pathcomp);
-                    fflush(stderr);
+                      pathcomp));
                     rootlen = 0;   /* path didn't exist, tried to create, and */
                     return 3;  /* failed:  file exists, or 2+ levels required */
                 }
@@ -472,8 +484,8 @@ checkdir warning:  path too long; truncating\n\
             strcpy(rootpath, pathcomp);
             rootpath[rootlen++] = '/';
             rootpath[rootlen] = '\0';
+            Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
-        Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
 #endif /* !SFX || SFX_EXDIR */
@@ -501,17 +513,84 @@ checkdir warning:  path too long; truncating\n\
 /* Function close_outfile() */
 /****************************/
 
-void close_outfile()
+void close_outfile(__G)
+    __GDEF
 {
-    if (cflag) {
-	fclose(outfile);
+#ifdef USE_EF_UX_TIME
+    ztimbuf z_utime;
+
+    /* The following DOS date/time structure is machine dependent as it
+     * assumes "little endian" byte order. For MSDOS specific code, which
+     * is run on ix86 CPUs (or emulators), this assumption is valid; but
+     * care should be taken when using this code as template for other ports.
+     */
+    union {
+        ulg z_dostime;
+        struct {                /* date and time words */
+            union {             /* DOS file modification time word */
+                ush ztime;
+                struct {
+                    unsigned zt_se : 5;
+                    unsigned zt_mi : 6;
+                    unsigned zt_hr : 5;
+                } _tf;
+            } _t;
+            union {             /* DOS file modification date word */
+                ush zdate;
+                struct {
+                    unsigned zd_dy : 5;
+                    unsigned zd_mo : 4;
+                    unsigned zd_yr : 7;
+                } _df;
+            } _d;
+        } zt;
+    } dos_dt;
+#endif /* USE_EF_UX_TIME */
+
+    if (G.cflag) {
+	fclose(G.outfile);
         return;
     }
 
-    _dos_filedate(fileno(outfile),
-      (ulg)lrec.last_mod_file_date << 16 | lrec.last_mod_file_time);
-    fclose(outfile);
-    _dos_chmod(filename, pInfo->file_attr);
+#ifdef USE_EF_UX_TIME
+    if (G.extra_field &&
+        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
+                         &z_utime, NULL) > 0) {
+        struct tm *t;
+
+        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+          z_utime.modtime));
+        /* round up to even seconds */
+        z_utime.modtime = (z_utime.modtime + 1) & (~1);
+        t = localtime(&(z_utime.modtime));
+        if (t->tm_year < 80) {
+            dos_dt.zt._t._tf.zt_se = 0;
+            dos_dt.zt._t._tf.zt_mi = 0;
+            dos_dt.zt._t._tf.zt_hr = 0;
+            dos_dt.zt._d._df.zd_dy = 1;
+            dos_dt.zt._d._df.zd_mo = 1;
+            dos_dt.zt._d._df.zd_yr = 0;
+        } else {
+            dos_dt.zt._t._tf.zt_se = t->tm_sec >> 1;
+            dos_dt.zt._t._tf.zt_mi = t->tm_min;
+            dos_dt.zt._t._tf.zt_hr = t->tm_hour;
+            dos_dt.zt._d._df.zd_dy = t->tm_mday;
+            dos_dt.zt._d._df.zd_mo = t->tm_mon + 1;
+            dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
+        }
+    } else {
+        dos_dt.zt._t.ztime = G.lrec.last_mod_file_time;
+        dos_dt.zt._d.zdate = G.lrec.last_mod_file_date;
+    }
+    _dos_filedate(fileno(G.outfile), dos_dt.z_dostime);
+#else /* !USE_EF_UX_TIME */
+    _dos_filedate(fileno(G.outfile),
+      (ulg)G.lrec.last_mod_file_date << 16 | G.lrec.last_mod_file_time);
+#endif /* ?USE_EF_UX_TIME */
+
+    fclose(G.outfile);
+
+    _dos_chmod(G.filename, G.pInfo->file_attr);
 
 } /* end function close_outfile() */
 
@@ -524,14 +603,15 @@ void close_outfile()
 /*  Function version()  */
 /************************/
 
-void version()
+void version(__G)
+    __GDEF
 {
-    extern char Far  CompiledWith[];
+    int len;
 #if 0
     char buf[40];
 #endif
 
-    printf(LoadFarString(CompiledWith),
+    len = sprintf((char *)slide, LoadFarString(CompiledWith),
 
 #ifdef __GNUC__
       "gcc ", __VERSION__,
@@ -551,6 +631,8 @@ void version()
       "", ""
 #endif
       );
+
+    (*G.message)((zvoid *)&G, slide, (ulg)len, 0);
 
 } /* end function version() */
 

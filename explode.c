@@ -1,5 +1,5 @@
 /* explode.c -- put in the public domain by Mark Adler
-   version c13, 25 August 1994 */
+   version c14, 22 November 1995 */
 
 
 /* You can do whatever you like with this source file, though I would
@@ -34,6 +34,7 @@
     c12   9 Apr 94  G. Roelofs      fixed split comments on preprocessor lines
                                     to avoid bug in Encore compiler.
     c13  25 Aug 94  M. Adler        fixed distance-length comment (orig c9 fix)
+    c14  22 Nov 95  S. Maxwell      removed unnecessary "static" on auto array
  */
 
 
@@ -48,13 +49,13 @@
    compressed stream for a total of nine bits) or Huffman coded with a
    supplied literal code tree.  If literals are coded, then the minimum match
    length is three, otherwise it is two.
-   
+
    There are therefore four kinds of imploded streams: 8K search with coded
    literals (min match = 3), 4K search with coded literals (min match = 3),
    8K with uncoded literals (min match = 2), and 4K with uncoded literals
    (min match = 2).  The kind of stream is identified in two bits of a
    general purpose bit flag that is outside of the compressed stream.
-   
+
    Distance-length pairs for matched strings are preceded by a zero bit (to
    distinguish them from literals) and are always coded.  The distance comes
    first and is either the low six (4K) or low seven (8K) bits of the
@@ -80,38 +81,30 @@
    module.
  */
 
+#define UNZIP_INTERNAL
 #include "unzip.h"      /* must supply slide[] (uch) array and NEXTBYTE macro */
 
 #ifndef WSIZE
 #  define WSIZE 0x8000  /* window size--must be a power of two, and */
 #endif                  /* at least 8K for zip's implode method */
 
-
-struct huft {
-  uch e;                /* number of extra bits or operation */
-  uch b;                /* number of bits in this code or subcode */
-  union {
-    ush n;              /* literal, length base, or distance base */
-    struct huft *t;     /* pointer to next level of table */
-  } v;
-};
-
-/* Function prototypes */
-/* routines from inflate.c */
-extern unsigned hufts;
-int huft_build OF((unsigned *, unsigned, unsigned, ush *, ush *,
-                   struct huft **, int *));
-int huft_free OF((struct huft *));
+#ifdef DLL
+# define wsize G._wsize
+#else
+# define wsize WSIZE
+#endif
 
 /* routines here */
-int get_tree OF((unsigned *, unsigned));
-int explode_lit8 OF((struct huft *, struct huft *, struct huft *,
-                     int, int, int));
-int explode_lit4 OF((struct huft *, struct huft *, struct huft *,
-                     int, int, int));
-int explode_nolit8 OF((struct huft *, struct huft *, int, int));
-int explode_nolit4 OF((struct huft *, struct huft *, int, int));
-int explode OF((void));
+static int get_tree OF((__GPRO__ unsigned *l, unsigned n));
+static int explode_lit8 OF((__GPRO__ struct huft *tb, struct huft *tl,
+                            struct huft *td, int bb, int bl, int bd));
+static int explode_lit4 OF((__GPRO__ struct huft *tb, struct huft *tl,
+                            struct huft *td, int bb, int bl, int bd));
+static int explode_nolit8 OF((__GPRO__ struct huft *tl, struct huft *td,
+                              int bl, int bd));
+static int explode_nolit4 OF((__GPRO__ struct huft *tl, struct huft *td,
+                              int bl, int bd));
+int explode OF((__GPRO));
 
 
 /* The implode algorithm uses a sliding 4K or 8K byte window on the
@@ -128,25 +121,30 @@ int explode OF((void));
 
 
 /* Tables for length and distance */
-ush cplen2[] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+static ush cplen2[] =
+        {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
         18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
         35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
         52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65};
-ush cplen3[] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+static ush cplen3[] =
+        {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
         19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
         36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
         53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66};
-ush extra[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+static ush extra[] =
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         8};
-ush cpdist4[] = {1, 65, 129, 193, 257, 321, 385, 449, 513, 577, 641, 705,
+static ush cpdist4[] =
+        {1, 65, 129, 193, 257, 321, 385, 449, 513, 577, 641, 705,
         769, 833, 897, 961, 1025, 1089, 1153, 1217, 1281, 1345, 1409, 1473,
         1537, 1601, 1665, 1729, 1793, 1857, 1921, 1985, 2049, 2113, 2177,
         2241, 2305, 2369, 2433, 2497, 2561, 2625, 2689, 2753, 2817, 2881,
         2945, 3009, 3073, 3137, 3201, 3265, 3329, 3393, 3457, 3521, 3585,
         3649, 3713, 3777, 3841, 3905, 3969, 4033};
-ush cpdist8[] = {1, 129, 257, 385, 513, 641, 769, 897, 1025, 1153, 1281,
+static ush cpdist8[] =
+        {1, 129, 257, 385, 513, 641, 769, 897, 1025, 1153, 1281,
         1409, 1537, 1665, 1793, 1921, 2049, 2177, 2305, 2433, 2561, 2689,
         2817, 2945, 3073, 3201, 3329, 3457, 3585, 3713, 3841, 3969, 4097,
         4225, 4353, 4481, 4609, 4737, 4865, 4993, 5121, 5249, 5377, 5505,
@@ -156,7 +154,7 @@ ush cpdist8[] = {1, 129, 257, 385, 513, 641, 769, 897, 1025, 1153, 1281,
 
 /* Macros for inflate() bit peeking and grabbing.
    The usage is:
-   
+
         NEEDBITS(j)
         x = b & mask_bits[j];
         DUMPBITS(j)
@@ -172,7 +170,8 @@ ush cpdist8[] = {1, 129, 257, 385, 513, 641, 769, 897, 1025, 1153, 1281,
 
 
 
-int get_tree(l, n)
+static int get_tree(__G__ l, n)
+     __GDEF
 unsigned *l;            /* bit lengths */
 unsigned n;             /* number expected */
 /* Get the bit lengths for a code representation from the compressed
@@ -182,7 +181,7 @@ unsigned n;             /* number expected */
   unsigned i;           /* bytes remaining in list */
   unsigned k;           /* lengths entered */
   unsigned j;           /* number of codes */
-  unsigned b;           /* bit length for those codes */ 
+  unsigned b;           /* bit length for those codes */
 
 
   /* get bit lengths */
@@ -202,7 +201,8 @@ unsigned n;             /* number expected */
 
 
 
-int explode_lit8(tb, tl, td, bb, bl, bd)
+static int explode_lit8(__G__ tb, tl, td, bb, bl, bd)
+     __GDEF
 struct huft *tb, *tl, *td;      /* literal, length, and distance tables */
 int bb, bl, bd;                 /* number of bits decoded by those */
 /* Decompress the imploded data using coded literals and an 8K sliding
@@ -225,7 +225,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   mb = mask_bits[bb];           /* precompute masks for speed */
   ml = mask_bits[bl];
   md = mask_bits[bd];
-  s = ucsize;
+  s = G.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -243,10 +243,10 @@ int bb, bl, bd;                 /* number of bits decoded by those */
           NEEDBITS(e)
         } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
       DUMPBITS(t->b)
-      slide[w++] = (uch)t->v.n;
-      if (w == WSIZE)
+      redirSlide[w++] = (uch)t->v.n;
+      if (w == wsize)
       {
-        flush(slide, w, 0);
+        flush(__G__ redirSlide, w, 0);
         w = u = 0;
       }
     }
@@ -288,10 +288,15 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       /* do the copy */
       s -= n;
       do {
-        n -= (e = (e = WSIZE - ((d &= WSIZE-1) > w ? d : w)) > n ? n : e);
+#ifdef DLL
+	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+	else
+#endif
+	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
-          memzero(slide + w, e);
+          memzero(redirSlide + w, e);
           w += e;
           d += e;
         }
@@ -299,29 +304,29 @@ int bb, bl, bd;                 /* number of bits decoded by those */
 #ifndef NOMEMCPY
           if (w - d >= e)       /* (this test assumes unsigned comparison) */
           {
-            memcpy(slide + w, slide + d, e);
+            memcpy(redirSlide + w, redirSlide + d, e);
             w += e;
             d += e;
           }
           else                  /* do it slow to avoid memcpy() overlap */
 #endif /* !NOMEMCPY */
             do {
-              slide[w++] = slide[d++];
+              redirSlide[w++] = redirSlide[d++];
             } while (--e);
-        if (w == WSIZE)
+        if (w == wsize)
         {
-          flush(slide, w, 0);
+          flush(__G__ redirSlide, w, 0);
           w = u = 0;
         }
       } while (n);
     }
   }
 
-  /* flush out slide */
-  flush(slide, w, 0);
-  if (csize + (k >> 3))   /* should have read csize bytes, but sometimes */
-  {                       /* read one too many:  k>>3 compensates */
-    used_csize = lrec.csize - csize - (k >> 3);
+  /* flush out redirSlide */
+  flush(__G__ redirSlide, w, 0);
+  if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
+  {                        /* sometimes read one too many:  k>>3 compensates */
+    G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
     return 5;
   }
   return 0;
@@ -329,7 +334,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
 
 
 
-int explode_lit4(tb, tl, td, bb, bl, bd)
+static int explode_lit4(__G__ tb, tl, td, bb, bl, bd)
+     __GDEF
 struct huft *tb, *tl, *td;      /* literal, length, and distance tables */
 int bb, bl, bd;                 /* number of bits decoded by those */
 /* Decompress the imploded data using coded literals and a 4K sliding
@@ -352,7 +358,7 @@ int bb, bl, bd;                 /* number of bits decoded by those */
   mb = mask_bits[bb];           /* precompute masks for speed */
   ml = mask_bits[bl];
   md = mask_bits[bd];
-  s = ucsize;
+  s = G.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -370,10 +376,10 @@ int bb, bl, bd;                 /* number of bits decoded by those */
           NEEDBITS(e)
         } while ((e = (t = t->v.t + ((~(unsigned)b) & mask_bits[e]))->e) > 16);
       DUMPBITS(t->b)
-      slide[w++] = (uch)t->v.n;
-      if (w == WSIZE)
+      redirSlide[w++] = (uch)t->v.n;
+      if (w == wsize)
       {
-        flush(slide, w, 0);
+        flush(__G__ redirSlide, w, 0);
         w = u = 0;
       }
     }
@@ -415,10 +421,15 @@ int bb, bl, bd;                 /* number of bits decoded by those */
       /* do the copy */
       s -= n;
       do {
-        n -= (e = (e = WSIZE - ((d &= WSIZE-1) > w ? d : w)) > n ? n : e);
+#ifdef DLL
+	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+	else
+#endif
+	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
-          memzero(slide + w, e);
+          memzero(redirSlide + w, e);
           w += e;
           d += e;
         }
@@ -426,29 +437,29 @@ int bb, bl, bd;                 /* number of bits decoded by those */
 #ifndef NOMEMCPY
           if (w - d >= e)       /* (this test assumes unsigned comparison) */
           {
-            memcpy(slide + w, slide + d, e);
+            memcpy(redirSlide + w, redirSlide + d, e);
             w += e;
             d += e;
           }
           else                  /* do it slow to avoid memcpy() overlap */
 #endif /* !NOMEMCPY */
             do {
-              slide[w++] = slide[d++];
+              redirSlide[w++] = redirSlide[d++];
             } while (--e);
-        if (w == WSIZE)
+        if (w == wsize)
         {
-          flush(slide, w, 0);
+          flush(__G__ redirSlide, w, 0);
           w = u = 0;
         }
       } while (n);
     }
   }
 
-  /* flush out slide */
-  flush(slide, w, 0);
-  if (csize + (k >> 3))   /* should have read csize bytes, but sometimes */
-  {                       /* read one too many:  k>>3 compensates */
-    used_csize = lrec.csize - csize - (k >> 3);
+  /* flush out redirSlide */
+  flush(__G__ redirSlide, w, 0);
+  if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
+  {                        /* sometimes read one too many:  k>>3 compensates */
+    G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
     return 5;
   }
   return 0;
@@ -456,7 +467,8 @@ int bb, bl, bd;                 /* number of bits decoded by those */
 
 
 
-int explode_nolit8(tl, td, bl, bd)
+static int explode_nolit8(__G__ tl, td, bl, bd)
+     __GDEF
 struct huft *tl, *td;   /* length and distance decoder tables */
 int bl, bd;             /* number of bits decoded by tl[] and td[] */
 /* Decompress the imploded data using uncoded literals and an 8K sliding
@@ -478,7 +490,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   u = 1;                        /* buffer unflushed */
   ml = mask_bits[bl];           /* precompute masks for speed */
   md = mask_bits[bd];
-  s = ucsize;
+  s = G.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -487,10 +499,10 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       DUMPBITS(1)
       s--;
       NEEDBITS(8)
-      slide[w++] = (uch)b;
-      if (w == WSIZE)
+      redirSlide[w++] = (uch)b;
+      if (w == wsize)
       {
-        flush(slide, w, 0);
+        flush(__G__ redirSlide, w, 0);
         w = u = 0;
       }
       DUMPBITS(8)
@@ -533,10 +545,15 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       /* do the copy */
       s -= n;
       do {
-        n -= (e = (e = WSIZE - ((d &= WSIZE-1) > w ? d : w)) > n ? n : e);
+#ifdef DLL
+	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+	else
+#endif
+	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
-          memzero(slide + w, e);
+          memzero(redirSlide + w, e);
           w += e;
           d += e;
         }
@@ -544,29 +561,29 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
 #ifndef NOMEMCPY
           if (w - d >= e)       /* (this test assumes unsigned comparison) */
           {
-            memcpy(slide + w, slide + d, e);
+            memcpy(redirSlide + w, redirSlide + d, e);
             w += e;
             d += e;
           }
           else                  /* do it slow to avoid memcpy() overlap */
 #endif /* !NOMEMCPY */
             do {
-              slide[w++] = slide[d++];
+              redirSlide[w++] = redirSlide[d++];
             } while (--e);
-        if (w == WSIZE)
+        if (w == wsize)
         {
-          flush(slide, w, 0);
+          flush(__G__ redirSlide, w, 0);
           w = u = 0;
         }
       } while (n);
     }
   }
 
-  /* flush out slide */
-  flush(slide, w, 0);
-  if (csize + (k >> 3))   /* should have read csize bytes, but sometimes */
-  {                       /* read one too many:  k>>3 compensates */
-    used_csize = lrec.csize - csize - (k >> 3);
+  /* flush out redirSlide */
+  flush(__G__ redirSlide, w, 0);
+  if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
+  {                        /* sometimes read one too many:  k>>3 compensates */
+    G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
     return 5;
   }
   return 0;
@@ -574,7 +591,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
 
 
 
-int explode_nolit4(tl, td, bl, bd)
+static int explode_nolit4(__G__ tl, td, bl, bd)
+     __GDEF
 struct huft *tl, *td;   /* length and distance decoder tables */
 int bl, bd;             /* number of bits decoded by tl[] and td[] */
 /* Decompress the imploded data using uncoded literals and a 4K sliding
@@ -596,7 +614,7 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   u = 1;                        /* buffer unflushed */
   ml = mask_bits[bl];           /* precompute masks for speed */
   md = mask_bits[bd];
-  s = ucsize;
+  s = G.ucsize;
   while (s > 0)                 /* do until ucsize bytes uncompressed */
   {
     NEEDBITS(1)
@@ -605,10 +623,10 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       DUMPBITS(1)
       s--;
       NEEDBITS(8)
-      slide[w++] = (uch)b;
-      if (w == WSIZE)
+      redirSlide[w++] = (uch)b;
+      if (w == wsize)
       {
-        flush(slide, w, 0);
+        flush(__G__ redirSlide, w, 0);
         w = u = 0;
       }
       DUMPBITS(8)
@@ -651,10 +669,15 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
       /* do the copy */
       s -= n;
       do {
-        n -= (e = (e = WSIZE - ((d &= WSIZE-1) > w ? d : w)) > n ? n : e);
+#ifdef DLL
+	if (G.redirect_data)  /* &= w/ wsize not needed and wrong if redirect */
+	  n -= (e = (e = wsize - (d > w ? d : w)) > n ? n : e);
+	else
+#endif
+	  n -= (e = (e = wsize - ((d &= wsize-1) > w ? d : w)) > n ? n : e);
         if (u && w <= d)
         {
-          memzero(slide + w, e);
+          memzero(redirSlide + w, e);
           w += e;
           d += e;
         }
@@ -662,29 +685,29 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
 #ifndef NOMEMCPY
           if (w - d >= e)       /* (this test assumes unsigned comparison) */
           {
-            memcpy(slide + w, slide + d, e);
+            memcpy(redirSlide + w, redirSlide + d, e);
             w += e;
             d += e;
           }
           else                  /* do it slow to avoid memcpy() overlap */
 #endif /* !NOMEMCPY */
             do {
-              slide[w++] = slide[d++];
+              redirSlide[w++] = redirSlide[d++];
             } while (--e);
-        if (w == WSIZE)
+        if (w == wsize)
         {
-          flush(slide, w, 0);
+          flush(__G__ redirSlide, w, 0);
           w = u = 0;
         }
       } while (n);
     }
   }
 
-  /* flush out slide */
-  flush(slide, w, 0);
-  if (csize + (k >> 3))   /* should have read csize bytes, but sometimes */
-  {                       /* read one too many:  k>>3 compensates */
-    used_csize = lrec.csize - csize - (k >> 3);
+  /* flush out redirSlide */
+  flush(__G__ redirSlide, w, 0);
+  if (G.csize + G.incnt + (k >> 3))   /* should have read csize bytes, but */
+  {                        /* sometimes read one too many:  k>>3 compensates */
+    G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
     return 5;
   }
   return 0;
@@ -692,7 +715,8 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
 
 
 
-int explode()
+int explode(__G)
+     __GDEF
 /* Explode an imploded compressed stream.  Based on the general purpose
    bit flag, decide on coded or uncoded literals, and an 8K or 4K sliding
    window.  Construct the literal (if any), length, and distance codes and
@@ -709,8 +733,14 @@ int explode()
   int bb;               /* bits for tb */
   int bl;               /* bits for tl */
   int bd;               /* bits for td */
-  static unsigned l[256]; /* bit lengths for codes */
+  unsigned l[256];      /* bit lengths for codes */
 
+#ifdef DLL
+  if (G.redirect_data)
+    wsize = G.redirect_size, redirSlide = G.redirect_buffer;
+  else
+    wsize = WSIZE, redirSlide = slide;
+#endif
 
   /* Tune base table sizes.  Note: I thought that to truly optimize speed,
      I would have to select different bl, bd, and bb values for different
@@ -718,36 +748,36 @@ int explode()
      7, 7, and 9 worked best over a very wide range of sizes, except that
      bd = 8 worked marginally better for large compressed sizes. */
   bl = 7;
-  bd = csize > 200000L ? 8 : 7;
+  bd = (G.csize + G.incnt) > 200000L ? 8 : 7;
 
 
   /* With literal tree--minimum match length is 3 */
-  hufts = 0;                    /* initialize huft's malloc'ed */
-  if (lrec.general_purpose_bit_flag & 4)
+  G.hufts = 0;                    /* initialize huft's malloc'ed */
+  if (G.lrec.general_purpose_bit_flag & 4)
   {
     bb = 9;                     /* base table size for literals */
-    if ((r = get_tree(l, 256)) != 0)
+    if ((r = get_tree(__G__ l, 256)) != 0)
       return (int)r;
-    if ((r = huft_build(l, 256, 256, NULL, NULL, &tb, &bb)) != 0)
+    if ((r = huft_build(__G__ l, 256, 256, NULL, NULL, &tb, &bb)) != 0)
     {
       if (r == 1)
         huft_free(tb);
       return (int)r;
     }
-    if ((r = get_tree(l, 64)) != 0)
+    if ((r = get_tree(__G__ l, 64)) != 0)
       return (int)r;
-    if ((r = huft_build(l, 64, 0, cplen3, extra, &tl, &bl)) != 0)
+    if ((r = huft_build(__G__ l, 64, 0, cplen3, extra, &tl, &bl)) != 0)
     {
       if (r == 1)
         huft_free(tl);
       huft_free(tb);
       return (int)r;
     }
-    if ((r = get_tree(l, 64)) != 0)
+    if ((r = get_tree(__G__ l, 64)) != 0)
       return (int)r;
-    if (lrec.general_purpose_bit_flag & 2)      /* true if 8K */
+    if (G.lrec.general_purpose_bit_flag & 2)      /* true if 8K */
     {
-      if ((r = huft_build(l, 64, 0, cpdist8, extra, &td, &bd)) != 0)
+      if ((r = huft_build(__G__ l, 64, 0, cpdist8, extra, &td, &bd)) != 0)
       {
         if (r == 1)
           huft_free(td);
@@ -755,11 +785,11 @@ int explode()
         huft_free(tb);
         return (int)r;
       }
-      r = explode_lit8(tb, tl, td, bb, bl, bd);
+      r = explode_lit8(__G__ tb, tl, td, bb, bl, bd);
     }
     else                                        /* else 4K */
     {
-      if ((r = huft_build(l, 64, 0, cpdist4, extra, &td, &bd)) != 0)
+      if ((r = huft_build(__G__ l, 64, 0, cpdist4, extra, &td, &bd)) != 0)
       {
         if (r == 1)
           huft_free(td);
@@ -767,7 +797,7 @@ int explode()
         huft_free(tb);
         return (int)r;
       }
-      r = explode_lit4(tb, tl, td, bb, bl, bd);
+      r = explode_lit4(__G__ tb, tl, td, bb, bl, bd);
     }
     huft_free(td);
     huft_free(tl);
@@ -778,43 +808,43 @@ int explode()
 
   /* No literal tree--minimum match length is 2 */
   {
-    if ((r = get_tree(l, 64)) != 0)
+    if ((r = get_tree(__G__ l, 64)) != 0)
       return (int)r;
-    if ((r = huft_build(l, 64, 0, cplen2, extra, &tl, &bl)) != 0)
+    if ((r = huft_build(__G__ l, 64, 0, cplen2, extra, &tl, &bl)) != 0)
     {
       if (r == 1)
         huft_free(tl);
       return (int)r;
     }
-    if ((r = get_tree(l, 64)) != 0)
+    if ((r = get_tree(__G__ l, 64)) != 0)
       return (int)r;
-    if (lrec.general_purpose_bit_flag & 2)      /* true if 8K */
+    if (G.lrec.general_purpose_bit_flag & 2)      /* true if 8K */
     {
-      if ((r = huft_build(l, 64, 0, cpdist8, extra, &td, &bd)) != 0)
+      if ((r = huft_build(__G__ l, 64, 0, cpdist8, extra, &td, &bd)) != 0)
       {
         if (r == 1)
           huft_free(td);
         huft_free(tl);
         return (int)r;
       }
-      r = explode_nolit8(tl, td, bl, bd);
+      r = explode_nolit8(__G__ tl, td, bl, bd);
     }
     else                                        /* else 4K */
     {
-      if ((r = huft_build(l, 64, 0, cpdist4, extra, &td, &bd)) != 0)
+      if ((r = huft_build(__G__ l, 64, 0, cpdist4, extra, &td, &bd)) != 0)
       {
         if (r == 1)
           huft_free(td);
         huft_free(tl);
         return (int)r;
       }
-      r = explode_nolit4(tl, td, bl, bd);
+      r = explode_nolit4(__G__ tl, td, bl, bd);
     }
     huft_free(td);
     huft_free(tl);
   }
 #ifdef DEBUG
-  fprintf(stderr, "<%u > ", hufts);
+  fprintf(stderr, "<%u > ", G.hufts);
 #endif /* DEBUG */
   return (int)r;
 }

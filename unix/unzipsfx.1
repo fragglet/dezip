@@ -17,11 +17,10 @@
 .fi
 ..
 .\" =========================================================================
-.TH UNZIPSFX 1L "28 Aug 94 (v5.12)"
+.TH UNZIPSFX 1L "30 Apr 96 (v5.2)"
 .SH NAME
 unzipsfx \- self-extracting stub for prepending to ZIP archives
 .PD
-.\" =========================================================================
 .SH SYNOPSIS
 \fB<name of unzipsfx+archive combo>\fP [\fB\-cfptuz\fP[\fBajnoqsCLV$\fP]]
 [\fIfile(s)\fP\ .\|.\|. [\fB\-x\fP\ \fIxfile(s)\fP\ .\|.\|.]]
@@ -41,7 +40,7 @@ to decompress older compression formats (the ``reduce,'' ``shrink'' and
 ``implode'' methods), and the ability to extract to a directory other than 
 the current one.  Decryption is supported as a compile-time option but 
 should be avoided unless the attached archive contains encrypted files.
-.LP
+.PP
 \fBNote that
 self-extracting archives made with\fP \fIunzipsfx\fP \fBare no more (or less)
 portable across different operating systems than is 
@@ -51,6 +50,11 @@ a particular Unix system, for example, will only self-extract under the same
 flavor of Unix.  Regular \fIunzip\fP may still be used to extract the
 embedded archive as with any normal zipfile, although it will generate
 a harmless warning about extra bytes at the beginning of the zipfile.
+\fIDespite this\fP, however, the self-extracting archive is technically
+\fInot\fP a valid ZIP archive, and PKUNZIP may be unable to test or extract
+it.  This limitation is due to the simplistic manner in which the archive
+is created; the internal directory structure is not updated to reflect the
+extra bytes prepended to the original zipfile.
 .PD
 .\" =========================================================================
 .SH ARGUMENTS
@@ -71,22 +75,17 @@ characters within the brackets is complemented (that is, anything \fIexcept\fP
 the characters inside the brackets is considered a match).
 .RE
 .IP
-(Be sure to quote any character which might otherwise be interpreted or
+(Be sure to quote any character that might otherwise be interpreted or
 modified by the operating system, particularly under Unix and VMS.)
 .IP [\fB\-x\fP\ \fIxfile(s)\fP]
 An optional list of archive members to be excluded from processing.
 Since wildcard characters match directory separators (`/'), this option
-may be used to exclude any files which are in subdirectories.  For
+may be used to exclude any files that are in subdirectories.  For
 example, ``\fCfoosfx *.[ch] -x */*\fR'' would extract all C source files
 in the main directory, but none in any subdirectories.  Without the \fB\-x\fP
 option, all C source files in all directories within the zipfile would be
 extracted.
-Unlike in \fIunzip\fP(1L), the \fB\-x\fP option may only be used if one or
-more \fIfiles\fP are given.  This is because there is no zipfile separating
-the normal options from the \fB\-x\fP option, so \fIunzipsfx\fP sees it as
-another normal option.  For historical reasons, the ``normal'' \fB\-x\fP is 
-silently ignored.  See the \fBEXAMPLES\fP section below.
-.LP
+.PP
 If \fIunzipsfx\fP is compiled with SFX_EXDIR defined, the following option
 is also enabled:
 .IP [\fB\-d\fP\ \fIexdir\fP]
@@ -98,9 +97,7 @@ be concatenated without any white space between them, but note that this
 may cause normal shell behavior to be suppressed.  In particular,
 ``\fC\-d\ ~\fR'' (tilde) is expanded by Unix C shells into the name 
 of the user's home directory, but ``\fC\-d~\fR'' is treated as a
-literal subdirectory ``\fB~\fP'' of the current directory.  As with 
-\fB\-x\fP, the \fB\-d\fP option may only be used if one or more \fIfiles\fP
-are given.
+literal subdirectory ``\fB~\fP'' of the current directory.
 .PD
 .\" =========================================================================
 .SH OPTIONS
@@ -112,7 +109,7 @@ archive) and \fB\-z\fP (print archive comment).  All normal listing options
 option (\fB\-t\fP) may be used as a ``poor man's'' listing.  Alternatively,
 those creating self-extracting archives may wish to include a short listing 
 in the zipfile comment.
-.LP
+.PP
 See \fIunzip\fP(1L) for a more complete description of these options.
 .PD
 .\" =========================================================================
@@ -125,17 +122,17 @@ case-insenstively), \fB\-L\fP (convert uppercase-OS names to lowercase),
 following operating-system specific options:  \fB\-X\fP (restore VMS 
 owner/protection info), \fB\-s\fP (convert spaces in filenames to underscores
 [DOS, OS/2, NT]) and \fB\-$\fP (restore volume label [DOS, OS/2, NT, Amiga]).
-.LP
+.PP
 (Support for regular ASCII text-conversion may be removed in future versions, 
 since it is simple enough for the archive's creator to ensure that text 
 files have the appropriate format for the local OS.  EBCDIC conversion will 
 of course continue to be supported since the zipfile format implies ASCII 
 storage of text files.)
-.LP
+.PP
 See \fIunzip\fP(1L) for a more complete description of these modifiers.
 .PD
 .\" =========================================================================
-.SH ENVIRONMENT OPTIONS
+.SH "ENVIRONMENT OPTIONS"
 \fIunzipsfx\fP uses the same environment variables as \fIunzip\fP(1L) does,
 although this is likely to be an issue only for the person creating and
 testing the self-extracting archive.  See \fIunzip\fP(1L) for details.
@@ -153,57 +150,63 @@ that only adds to the size of the archive.
 To create a self-extracting archive \fIletters\fP from a regular zipfile 
 \fIletters.zip\fP and change the new archive's permissions to be 
 world-executable under Unix:
-.LP
+.PP
 .PD 0
 .Y "cat unzipsfx letters.zip > letters"
 .Y "chmod 755 letters"
+.Y "zip -A letters"
 .PD
-.LP
+.PP
 To create the same archive under MS-DOS, OS/2 or NT (note the use of the
 \fB/b\fP [binary] option to the \fIcopy\fP command):
-.LP
+.PP
 .Y "copy /b unzipsfx.exe+letters.zip letters.exe"
-.LP
+.Y "zip -A letters.exe"
+.PP
 Under VMS:
-.LP
+.PP
 .Y "copy unzipsfx.exe,letters.zip letters.exe"
 .Y "letters == ""$currentdisk:[currentdir]letters.exe"""
-.LP
+.Y "zip -A letters.exe"
+.PP
 (The VMS \fIappend\fP command may also be used.  The second command installs
-the new program as a ``foreign command'' capable of taking arguments.)
+the new program as a ``foreign command'' capable of taking arguments.  The
+third line assumes that Zip is already installed as a foreign command.)
+Under AmigaDOS:
+.PP
+.Y "MakeSFX letters letters.zip UnZipSFX"
+.PP
+(MakeSFX is included with the UnZip source distribution and with Amiga
+binary distributions.  ``\fCzip -A\fR'' doesn't work on Amiga self-extracting
+archives.)
 To test (or list) the newly created self-extracting archive:
-.LP
+.PP
 .Y "letters \-t"
-.LP
+.PP
 To test \fIletters\fP quietly, printing only a summary message indicating
 whether the archive is OK or not:
-.LP
-.Y "letters \-tq"
-.LP
+.PP
+.Y "letters \-tqq"
+.PP
 To extract the complete contents into the current directory, recreating all
 files and subdirectories as necessary:
-.LP
+.PP
 .Y "letters"
-.LP
-To extract all \fC*.txt\fP files (in Unix quote the `*'):
-.LP
+.PP
+To extract all \fC*.txt\fR files (in Unix quote the `*'):
+.PP
 .Y "letters *.txt"
-.LP
-To extract everything \fIexcept\fP the \fC*.txt\fP files:
-.LP
-.Y "letters * -x *.txt"
-.LP
-(Note that with regular \fIunzip\fP(1L) it would not be necessary to use 
-the first `*'; ``\fCunzip letters -x *.txt\fP'' would work equally well.
-With \fIunzipsfx\fP the \fB\-x\fP option would be silently ignored and 
-the effect would be the same as in the previous example, i.e., the opposite
-of what was intended.)
+.PP
+To extract everything \fIexcept\fP the \fC*.txt\fR files:
+.PP
+.Y "letters -x *.txt"
+.PP
 To extract only the README file to standard output (the screen):
-.LP
+.PP
 .Y "letters -c README"
-.LP
+.PP
 To print only the zipfile comment:
-.LP
+.PP
 .Y "letters \-z"
 .PD
 .\" =========================================================================
@@ -212,7 +215,15 @@ The principle and fundamental limitation of \fIunzipsfx\fP is that it is
 not portable across architectures or operating systems, and therefore
 neither are the resulting archives.  For some architectures there is 
 limited portability, however (e.g., between some flavors of Intel-based Unix).
-.LP
+.PP
+Another problem with the current implementation is that any archive
+with ``junk'' prepended to the beginning technically is no longer a zipfile
+(unless \fIzip\fP(1) is used to adjust the zipfile offsets appropriately,
+as noted above).  \fIunzip\fP(1) takes note of the prepended bytes
+and ignores them since some file-transfer protocols, notably MacBinary, are 
+also known to prepend junk.  But PKWARE's archiver suite may not be able to 
+deal with the modified archive unless its offsets have been adjusted.
+.PP
 \fIunzipsfx\fP has no knowledge of the user's PATH, so in general an archive 
 must either be in the current directory when it is invoked, or else a full
 or relative path must be given.  If a user attempts to extract the archive
@@ -221,27 +232,27 @@ print a warning to the effect, ``can't find myself.''  This is always true
 under Unix and may be true in some cases under MS-DOS, depending on the 
 compiler used (Microsoft C fully qualifies the program name, but other 
 compilers may not).  Under OS/2 and NT there are operating-system calls 
-available which provide the full path name, so the archive may be invoked 
-from anywhere in the user's path.  The situation is not known for Atari TOS, 
-MacOS, etc.
-.LP
+available that provide the full path name, so the archive may be invoked 
+from anywhere in the user's path.  The situation is not known for AmigaDOS,
+Atari TOS, MacOS, etc.
+.PP
 As noted above, a number of the normal \fIunzip\fP(1L) functions have
 been removed in order to make \fIunzipsfx\fP smaller:  usage and diagnostic
 info, listing functions and extraction to other directories.  Also, only
 stored and deflated files are supported.  The latter limitation is mainly
 relevant to those who create SFX archives, however.
-.LP
+.PP
 VMS users must know how to set up self-extracting archives as foreign 
 commands in order to use any of \fIunzipsfx\fP's options.  This is not
 necessary for simple extraction, but the command to do so then becomes,
 e.g., ``\fCrun letters\fR'' (to continue the examples given above).
-.LP
-\fIunzipsfx\fP is not supported on the Amiga because of the way the loader
-works; the entire archive contents would be loaded into memory by default.
-It may be possible to work around this by defining the attached archive to
-be a ``debug hunk,'' but compatibility problems between the ROM levels of
-older Amigas and newer ones are likely to cause problems regardless.
-.LP
+.PP
+\fIunzipsfx\fP on the Amiga requires the use of a special program, MakeSFX,
+in order to create working self-extracting archives; simple concatenation
+does not work.  (For technically oriented users, the attached archive is 
+defined as a ``debug hunk.'')  There may be compatibility problems between 
+the ROM levels of older Amigas and newer ones.
+.PP
 All current bugs in \fIunzip\fP(1L) exist in \fIunzipsfx\fP as well.
 .PD
 .\" =========================================================================
@@ -250,7 +261,7 @@ All current bugs in \fIunzip\fP(1L) exist in \fIunzipsfx\fP as well.
 \fIunzip\fP(1L); see the corresponding man page.
 .PD
 .\" =========================================================================
-.SH SEE ALSO
+.SH "SEE ALSO"
 \fIfunzip\fP(1L), \fIunzip\fP(1L), \fIzip\fP(1L), \fIzipcloak\fP(1L),
 \fIzipgrep\fP(1L), \fIzipinfo\fP(1L), \fIzipnote\fP(1L), \fIzipsplit\fP(1L)
 .PD

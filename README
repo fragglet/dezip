@@ -1,9 +1,9 @@
-This is the README file for the 28 August 1994 public release of the
+This is the README file for the 30 April 1996 public release of the
 Info-ZIP group's portable UnZip zipfile-extraction program (and related
 utilities).
 
-unzip512.zip	portable UnZip, version 5.12, source code distribution
-unzip512.tar.Z	same as above, but compress'd tar format
+unzip52.zip      portable UnZip, version 5.2, source code distribution
+unzip52.tar.Z    same as above, but compress'd tar format
 
 __________________________________________________________________________
 
@@ -15,10 +15,6 @@ source distribution, the file "ZipPorts".  Also in source distributions:
 read "BUGS" for a list of known bugs, non-bugs and possible future bugs;
 INSTALL for instructions on how to build UnZip; and "Contents" for a com-
 mented listing of all the distributed files.
-
-ALSO NOTE:  Info-ZIP's mailing addresses changed between UnZip 5.0p1 and
-5.1 releases (and since Zip 2.0.1)!  The old BITNET address doesn't even
-exist anymore.  See below.
 __________________________________________________________________________
 
 
@@ -29,14 +25,16 @@ called "zipfiles").  Although highly compatible both with PKWARE's PKZIP
 and PKUNZIP utilities for MS-DOS and with Info-ZIP's own Zip program, our
 primary objectives have been portability and non-MSDOS functionality.
 
-This version of UnZip has been ported to a wide array of hardware--from 
-micros to supercomputers--and operating systems:  Unix (many flavors),
-VMS, OS/2, MSDOS (+ Windows), NT, TOPS-20 (partly), AmigaDOS, Atari TOS,
-Macintosh and Human68k.  UnZip features not found in PKUNZIP include source
-code; default extraction of directory trees (with a switch to defeat this, 
-rather than the reverse); VMS, Macintosh and OS/2 extended file attributes; 
-and, of course, the ability to run under most of your favorite operating 
-systems.  Plus, it's free. :-)
+This version of UnZip has been ported to a stupendous array of hardware--
+from micros to supercomputers--and operating systems:  Unix (many flavors),
+VMS, OS/2 (including DLL version), Windows NT and Windows 95 (including DLL
+version), Windows 3.x (including DLL versions), MS-DOS, AmigaDOS, Atari TOS,
+Acorn RISC OS, Macintosh, VM/CMS, MVS (mostly), Human68k (mostly), AOS/VS
+(partly) and TOPS-20 (partly).  UnZip features not found in PKUNZIP include
+source code; default extraction of directory trees (with a switch to defeat
+this, rather than the reverse); OS/2, VMS, Unix, RISC OS and Macintosh ex-
+tended file attributes; and, of course, the ability to run under most of 
+your favorite operating systems.  Plus, it's free. :-)
 
 For source distributions, see the main Contents file for a list of what's
 included, and read INSTALL for instructions on compiling (including OS-
@@ -52,46 +50,89 @@ into unzip.hlp and installed as a normal VMS help entry; see vms/descrip.mms.
 
 CHANGES AND NEW FEATURES
 ------------------------
-The 5.12 release mainly fixes some bugs in 5.11, including a silly pointer
-error in unzipsfx.  The only new features are fairly minor:
+The 5.2 release adds many way-cool features:
 
-   - ZipInfo check for dead space inside archives (PKZIP/Netware bug)
-   - SFX_EXDIR compilation option to allow -d <exdir> with UnZipSFX
-   - "unzip -vqqqq" prints just the version number (e.g., "512")
+   - new "Unix" extra field to preserve file times across timezones and
+      operating systems (and, optionally within Unix, UID/GID info)
+   - new OS/2 access-control-list support (LAN Server/Requester, Warp Peer)
+   - new OS/2 -l listing of sizes of stored EAs and ACLs
+   - new Amiga self-extracting-zipfile support
+   - new assembly-language CRC routines for Intel and Motorola processors
+   - new -M "more" option
+   - extended VMS -b support to allow fixed-length 512-byte file format
+   - greatly updated Windows GUI interface (WizUnZip)
+   - new DLL ports:  OS/2 (both C and REXX interfaces!), 16- and 32-bit Windows,
+      and some Unixen (see below for caveats)
+   - new Acorn RISC OS port
+   - new VM/CMS port
+   - new MVS port (mostly done)
+   - new AOS/VS port (partly done)
+   - unshrink() rewritten again for lower memory usage; now COPYRIGHT_CLEAN
+      is default for all systems (unreducing supported via compilation option)
+   - ability to pause zipfile comments with embedded ^S (useful for self-
+      extracting archives)
+   - many new work-arounds for broken zipfiles, compilers and/or OSes
+   - various performance enhancements
+   - lots of little fixes and improvements
 
-Since neither 5.11 nor 5.1 was posted to Usenet, here's a summary of their
-new features.  In UnZip 5.11:
+The DLL ports need a little explaining.  Basically, it's like this:  as of
+version 5.12, there were no DLL ports.  During the 5.2 beta process, no less
+than three completely independent DLL ports showed up.  The first was Scott
+Maxwell's OS/2 C and REXX DLL, which involved humongous changes to the code
+to support reentrancy; it uses a simple and somewhat awkward strings-based
+interface (that is, you basically create an UnZip command line and feed it 
+to the API functions).  The second port was Stew Loving-Gibbard's 16-bit
+Windows DLL.  It too is strings-based and was created as part of another,
+divergent project; it is no longer actively maintained and is therefore not
+included with the main sources archive.  The third DLL port was Mike White's
+16- and 32-bit Windows DLLs, created as part of the latest WizUnZip (Windows
+graphical interface) update.  It uses a "binary" interface wherein UnZip's
+internal variables can be set directly by API calls, without the need for 
+any awkward and artificial pseudo-command-line strings.  This interface will
+almost certainly become the "standard" UnZip DLL interface, but it still 
+needs to be merged with the unique features of the other ports (particularly
+the OS/2 REXX code, which is naturally strings-based).  And, of course, none
+of this is documented particularly well, other than in the source code.
+We'll get to it eventually. :-)
 
-   - UnZipSFX, a self-extraction stub for prepending to (new-style) zipfiles
-      (tested under Unix, VMS, MS-DOS, OS/2, etc.; NOT portable *across* OSes)
-   - unshrink() rewritten to avoid copyright problems; 32-bit version only
-   - strings moved to far memory in MS-DOS:  can use small model again (MSC)
-   - numerous customization options (see INSTALL)
-   - diagnostic screen with -v option and no zipfile (i.e., "unzip -v")
-   - -C option for case-insensitive filename matching (esp. for MS-DOS, OS/2)
-   - more bad-zipfile "intelligence" (can sometimes even extract concatenated
-      multi-part archives)
-   - former -U behavior is now the default; new -L option to provide what was
-      the default behavior (auto-conversion of uppercase-OS filenames to lower
-      case)
-   - ZipInfo -T option to print times in decimal format (yymmdd.hhmmss) for
-      piping into sort(1)
-   - performance tweaks for listing archive contents
-   - improved/expanded documentation, esp. man pages (*.doc files) and INSTALL
 
-In UnZip 5.1:
+EXCUSES
+-------
+The more astute humanoids amongst you will notice that the promised multi-
+part archive support did NOT make it into this release.  The maintainer is
+most apologetic; 1995 turned out to be a busy year, with a dissertation, a
+new job and a new baby all colliding to make life extra-specially busy.  The
+massive code changes to support the various DLL ports didn't help any, either.
+Multi-part archive support will be the very FIRST item on the list for ver-
+sion 6.0, and with luck it will be released within six months or so of this 
+release, maybe even by summer.  (No promises, but we'll try hard.)
 
-   - wildcard zipfiles (e.g., "unzip -tq \*.zip")
-   - extract to a directory other than the current one (-d <exdir> option)
-   - auto-conversion of text files
-   - ANSI sequences disabled in comments and filenames (avoid "ANSI bombs")
-   - ZipInfo incorporated into UnZip (-Z option)
-   - full Amiga, Atari, Mac, NT and Human68K support (partial TOPS-20)
-   - performance tuning for 35-70% faster extraction (depends on compression
-      method)
+On the plus side, special thanks go to Christian Spieler, who did a spectac-
+ular job of integrating patches, fixing bugs, working with a remote VM/CMS
+user to make that port fully functional, and just generally picking up a lot 
+of the slack.  This release owes a lot to Christian's dedication.
 
-Note that, according to one tester, the 32-bit MS-DOS version is now *faster*
-than PKUNZIP on most archives!  Cool.
+
+"IMPOSTERS"
+-----------
+Info-ZIP is aware of four "imposter" zip programs, one of which creates .zip
+files.  The Andrew Toolkit (ATK) comes with a (now-obsolete) drawing editor
+called "zip" that creates these files (incompatible with .zip archives, of
+course); there is an interpreter for Infocom games called ZIP ("Z-code Inter-
+preter Program); Chris Barker has developed a pseudo-random number generator
+called "ZIP" for crypto purposes; and SGI may bundle an editor called "zip"
+with some versions of their operating system (it has apparently been renamed
+to "jot" in newer releases).  The Andrew version actually predates not only
+Info-ZIP but also PKWARE (1984), but fortunately it has been replaced by a
+program called "figure" that uses the extension ".fi".  The Infocom inter-
+preter appears to postdate Info-ZIP's version by a couple of years, although
+the documentation is too sparse to be certain.  Barker's and SGI's versions
+were certainly publicly released long after Info-ZIP's and may have been 
+created after ours, as well (almost certainly in the case of Barker's PRNG).
+
+In any case, there's nothing to be done about it now; just be aware of the
+potential name collisions and file incompatibilities (and upgrade to "figure"
+if you still have Andrew Zip installed).
 
 
 DISTRIBUTION
@@ -101,9 +142,9 @@ either as-is, as packaging for a commercial product, or as an integral
 part of a commercial product, read the Frequently Asked Questions (FAQ)
 section of the included COPYING file.
 
-Insofar as C compilers are rare on some platforms and the authors only
-have direct access to Unix, VMS, OS/2, MS-DOS, Mac, Amiga and Atari 
-systems, others may wish to provide ready-to-run executables for new
+Insofar as C compilers are rare on some platforms and the authors only have
+direct access to Unix, VMS, OS/2, MS-DOS, NT/Intel, Win95, Mac, Amiga and 
+Atari systems, others may wish to provide ready-to-run executables for new 
 systems.  In general there is no problem with this; we require only that 
 such distributions include this README file, the Where file, the COPYING 
 file (contains copyright/redistribution information), and the appropriate 
@@ -120,33 +161,35 @@ Zoo or LHa), that may also be used.
 BUGS AND NEW PORTS:  CONTACTING INFO-ZIP
 ----------------------------------------
 All bug reports and patches (context diffs only, please!) should go to 
-zip-bugs@wkuvx1.wku.edu, which is the e-mail address for the Info-ZIP
-authors.  "Dumb questions" which aren't adequately answered in the docu-
+Zip-Bugs@wkuvx1.wku.edu, which is the e-mail address for the Info-ZIP
+authors.  (Note that a few rare systems require the Zip-Bugs part to be
+capitalized as shown; most systems work OK with lowercase "zip-bugs,"
+however.)  "Dumb questions" that aren't adequately answered in the docu-
 mentation should also be directed here rather than to a global forum such
-as Usenet.  (Kindly make certain that your questions *isn't* answered by
+as Usenet.  (Kindly make certain that your question *isn't* answered by
 the documentation, however--a great deal of effort has gone into making
 it clear and complete.)  Suggestions for new features can be sent to
 info-zip@wkuvx1.wku.edu, a mailing list for the Info-ZIP beta testers, 
 for discussion (the authors hang out here as well, of course), although 
-we don't promise to act on all suggestions.  If it is something which is 
-manifestly useful, sending the required patches to zip-bugs directly (as
+we don't promise to act on all suggestions.  If it is something that is 
+manifestly useful, sending the required patches to Zip-Bugs directly (as
 per the instructions in the ZipPorts file) is likely to produce a quicker 
 response than asking us to do it--the authors are always somewhat short 
 on time.  (Please do NOT send patches or encoded zipfiles to the info-zip 
-address.)
+address.  Please DO read the ZipPorts file before sending any large patch.
+It would be difficult to emphasize this point too much...)
 
 If you are considering a port, not only should you read the ZipPorts file,
-but also please check in with zip-bugs BEFORE getting started, since the 
-code is constantly being updated behind the scenes.  For example, an Acorn/
-Archimedes port is already almost complete, as is an OS/2 dynamic link lib-
-rary (DLL) version; VMOS, VM/CMS, Netware, QDOS and NT DLL ports are claimed
-to be under construction, although we have yet to see any up-to-date patches.
-We will arrange to send you the latest sources.  The alternative is the pos-
-sibility that your hard work will be tucked away in a sub-archive and mostly
-ignored, or completely ignored if someone else has already done the port
-(and you'd be surprised how often this has happened).  IBM mainframe ports
-(VM/CMS and/or MVS) would be particularly welcome.  (It can't be *that* hard,
-folks...the VMS filesystem is similar in many ways.)
+but also please check in with Zip-Bugs BEFORE getting started, since the 
+code is constantly being updated behind the scenes.  For example, VMOS, 
+VxWorks, Netware and QDOS ports are claimed to be under construction, al-
+though we have yet to see any up-to-date patches.  (Actually, the QDOS
+port is apparently finished and available at a site in France; with luck,
+it will be fully integrated for the next release.)  We will arrange to send 
+you the latest sources.  The alternative is the possibility that your hard 
+work will be tucked away in a sub-archive and mostly ignored, or completely 
+ignored if someone else has already done the port (and you'd be surprised 
+how often this has happened).
 
 
 BETA TESTING:  JOINING INFO-ZIP
@@ -156,15 +199,15 @@ development, join the ranks of beta testers, add your own thoughts and con-
 tributions, etc., send a two-line mail message containing the commands HELP
 and LIST (on separate lines in the body of the message, not on the subject
 line) to mxserver@wkuvx1.wku.edu.  You'll receive two messages listing the 
-various Info-ZIP mailing-list formats which are available (and also various
+various Info-ZIP mailing-list formats that are available (and also various
 unrelated lists) and instructions on how to subscribe to one or more of them
-(courtesy of Hunter Goatley).  As of mid-1994, subscribing to the announce-
+(courtesy of Hunter Goatley).  As of mid-1996, subscribing to the announce-
 ments list requires a command of the form
 
 	SUBSCRIBE Info-ZIP-announce "Joe Isuzu"
 
-The discussion list is called either Info-ZIP or Info-ZIP-digest, depending
-on one's preference for delivery.
+The discussion list is called Info-ZIP; it can be set for either normal or
+digest-style delivery.
 
 
 -- Greg Roelofs (Cave Newt), UnZip maintainer/container/explainer and

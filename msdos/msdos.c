@@ -2,34 +2,41 @@
 
   msdos.c
 
-  MSDOS-specific routines for use with Info-ZIP's UnZip 5.1 and later.
+  MSDOS-specific routines for use with Info-ZIP's UnZip 5.2 and later.
 
-  Contains:  Opendir()           (from zip)
-             Readdir()           (from zip)
+  Contains:  Opendir()                      (from zip)
+             Readdir()                      (from zip)
              do_wild()
              mapattr()
              mapname()
+             map2fat()
              checkdir()
              isfloppy()
-             volumelabel()       (non-djgpp, non-emx)
+             volumelabel()                  (non-djgpp, non-emx)
              close_outfile()
              dateformat()
              version()
-             _dos_getcountryinfo() (djgpp, emx)
-             _dos_setftime()     (djgpp, emx)
-             _dos_setfileattr()  (djgpp, emx)
-             _dos_getdrive()     (djgpp, emx)
-             _dos_creat()        (djgpp, emx)
-             _dos_close()        (djgpp, emx)
-             volumelabel()       (djgpp, emx)
+             _dos_getcountryinfo()          (djgpp, emx)
+            [_dos_getftime()                (djgpp, emx)   to be added]
+             _dos_setftime()                (djgpp, emx)
+             _dos_setfileattr()             (djgpp, emx)
+             _dos_getdrive()                (djgpp, emx)
+             _dos_creat()                   (djgpp, emx)
+             _dos_close()                   (djgpp, emx)
+             volumelabel()                  (djgpp, emx)
+             __crt0_glob_function()         (djgpp 2.x)
+             __crt_load_environment_file()  (djgpp 2.x)
 
   ---------------------------------------------------------------------------*/
 
 
 
+#define UNZIP_INTERNAL
 #include "unzip.h"
-#undef FILENAME    /* BC++ 3.1 and djgpp 1.11 define FILENAME in <dir.h> */
 
+#ifndef USE_VFAT
+static void map2fat OF((char *pathcomp, char *last_dot));
+#endif
 static int isfloppy OF((int nDrive));
 static int volumelabel OF((char *newlabel));
 
@@ -37,12 +44,51 @@ static int created_dir;        /* used by mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
 static unsigned nLabelDrive;   /* ditto, plus volumelabel() */
 
+/*****************************/
+/*  Strings used in msdos.c  */
+/*****************************/
+
+#ifndef SFX
+  static char Far CantAllocateWildcard[] =
+    "warning:  can't allocate wildcard buffers\n";
+#endif
+static char Far Creating[] = "   creating: %s\n";
+static char Far ConversionFailed[] = "mapname:  conversion of %s failed\n";
+static char Far Labelling[] = "labelling %c: %-22s\n";
+static char Far ErrSetVolLabel[] = "mapname:  error setting volume label\n";
+static char Far PathTooLong[] = "checkdir error:  path too long: %s\n";
+static char Far CantCreateDir[] = "checkdir error:  can't create %s\n\
+                 unable to process %s.\n";
+static char Far DirIsntDirectory[] =
+  "checkdir error:  %s exists but is not directory\n\
+                 unable to process %s.\n";
+static char Far PathTooLongTrunc[] =
+  "checkdir warning:  path too long; truncating\n                   %s\n\
+                -> %s\n";
+#if (!defined(SFX) || defined(SFX_EXDIR))
+   static char Far CantCreateExtractDir[] =
+     "checkdir:  can't create extraction directory: %s\n";
+#endif
+#ifdef __TURBOC__
+   static char Far AttribsMayBeWrong[] =
+     "\nwarning:  file attributes may not be correct\n";
+#endif
+
+#ifdef WATCOMC_386
+#  define WREGS(v,r) (v##.w.##r)
+#  define int86x int386x
+#else
+#  define WREGS(v,r) (v##.x.##r)
+#endif
+
 #if (defined(__GO32__) || defined(__EMX__))
-#  define MKDIR(path,mode)   mkdir(path,mode)
 #  include <dirent.h>        /* use readdir() */
-#  define direct dirent
-#  define Opendir opendir
-#  define Readdir readdir
+#  define MKDIR(path,mode)   mkdir(path,mode)
+#  define Opendir  opendir
+#  define Readdir  readdir
+#  define Closedir closedir
+#  define zdirent  dirent
+#  define zDIR     DIR
 #  ifdef __EMX__
 #    include <dos.h>
 #    define GETDRIVE(d)      d = _getdrive()
@@ -67,14 +113,14 @@ static unsigned nLabelDrive;   /* ditto, plus volumelabel() */
 #    define GETDRIVE(d)      _dos_getdrive(&d)
 #    include <direct.h>
 #  endif /* ?__TURBOC__ */
-   typedef struct direct {
+   typedef struct zdirent {
        char d_reserved[30];
        char d_name[13];
        int d_first;
-   } DIR;
-#  define closedir free
-   DIR *Opendir OF((const char *));
-   struct direct *Readdir OF((DIR *));
+   } zDIR;
+   zDIR *Opendir OF((const char *));
+   struct zdirent *Readdir OF((zDIR *));
+#  define Closedir free
 
 
 
@@ -85,19 +131,19 @@ static unsigned nLabelDrive;   /* ditto, plus volumelabel() */
 /* Function Opendir() */   /*  library routines, but earlier versions don't, */
 /**********************/   /*  so use ours regardless */
 
-DIR *Opendir(name)
+zDIR *Opendir(name)
     const char *name;        /* name of directory to open */
 {
-    DIR *dirp;               /* malloc'd return value */
+    zDIR *dirp;              /* malloc'd return value */
     char *nbuf;              /* malloc'd temporary string */
     int len = strlen(name);  /* path length to avoid strlens and strcats */
 
 
-    if ((dirp = (DIR *)malloc(sizeof(DIR))) == (DIR *)NULL)
-        return (DIR *)NULL;
+    if ((dirp = (zDIR *)malloc(sizeof(zDIR))) == (zDIR *)NULL)
+        return (zDIR *)NULL;
     if ((nbuf = malloc(len + 5)) == (char *)NULL) {
         free(dirp);
-        return (DIR *)NULL;
+        return (zDIR *)NULL;
     }
     strcpy(nbuf, name);
     if (nbuf[len-1] == ':') {
@@ -105,13 +151,13 @@ DIR *Opendir(name)
     } else if (nbuf[len-1] == '/' || nbuf[len-1] == '\\')
         --len;
     strcpy(nbuf+len, "/*.*");
-    Trace((stderr, "opendir:  nbuf = [%s]\n", nbuf));
+    Trace((stderr, "Opendir:  nbuf = [%s]\n", nbuf));
 
     if (FFIRST(nbuf, dirp, FATTR)) {
-        free((voidp *)nbuf);
-        return (DIR *)NULL;
+        free((zvoid *)nbuf);
+        return (zDIR *)NULL;
     }
-    free((voidp *)nbuf);
+    free((zvoid *)nbuf);
     dirp->d_first = 1;
     return dirp;
 }
@@ -124,8 +170,8 @@ DIR *Opendir(name)
 /* Function Readdir() */
 /**********************/
 
-struct direct *Readdir(d)
-    DIR *d;         /* directory stream from which to read */
+struct zdirent *Readdir(d)
+    zDIR *d;        /* directory stream from which to read */
 {
     /* Return pointer to first or next directory entry, or NULL if end. */
 
@@ -133,8 +179,8 @@ struct direct *Readdir(d)
         d->d_first = 0;
     else
         if (FNEXT(d))
-            return (struct direct *)NULL;
-    return (struct direct *)d;
+            return (struct zdirent *)NULL;
+    return (struct zdirent *)d;
 }
 
 #endif /* !SFX */
@@ -150,15 +196,14 @@ struct direct *Readdir(d)
 /*  Function do_wild()  */   /* identical to OS/2 version */
 /************************/
 
-char *do_wild(wildspec)
+char *do_wild(__G__ wildspec)
+    __GDEF
     char *wildspec;          /* only used first time on a given dir */
 {
-    static DIR *dir = (DIR *)NULL;
+    static zDIR *dir = (zDIR *)NULL;
     static char *dirname, *wildname, matchname[FILNAMSIZ];
-    static char Far CantAllocateWildcard[] =
-      "warning:  can't allocate wildcard buffers\n";
     static int firstcall=TRUE, have_dirname, dirnamelen;
-    struct direct *file;
+    struct zdirent *file;
 
 
     /* Even when we're just returning wildspec, we *always* do so in
@@ -167,6 +212,13 @@ char *do_wild(wildspec)
      */
     if (firstcall) {        /* first call:  must initialize everything */
         firstcall = FALSE;
+
+        if (!iswild(wildspec)) {
+            strcpy(matchname, wildspec);
+            have_dirname = FALSE;
+            dir = NULL;
+            return matchname;
+        }
 
         /* break the wildspec into a directory part and a wildcard filename */
         if ((wildname = strrchr(wildspec, '/')) == (char *)NULL &&
@@ -177,22 +229,23 @@ char *do_wild(wildspec)
             wildname = wildspec;
         } else {
             ++wildname;     /* point at character after '/' or ':' */
-            dirnamelen = wildname - wildspec;
+            dirnamelen = (int)(wildname - wildspec);
             if ((dirname = (char *)malloc(dirnamelen+1)) == (char *)NULL) {
-                FPRINTF(stderr, LoadFarString(CantAllocateWildcard));
+                Info(slide, 1, ((char *)slide,
+                  LoadFarString(CantAllocateWildcard)));
                 strcpy(matchname, wildspec);
                 return matchname;   /* but maybe filespec was not a wildcard */
             }
 /* GRR:  can't strip trailing char for opendir since might be "d:/" or "d:"
  *       (would have to check for "./" at end--let opendir handle it instead) */
             strncpy(dirname, wildspec, dirnamelen);
-            dirname[dirnamelen] = '\0';   /* terminate for strcpy below */
+            dirname[dirnamelen] = '\0';       /* terminate for strcpy below */
             have_dirname = TRUE;
         }
         Trace((stderr, "do_wild:  dirname = [%s]\n", dirname));
 
-        if ((dir = Opendir(dirname)) != (DIR *)NULL) {
-            while ((file = Readdir(dir)) != (struct direct *)NULL) {
+        if ((dir = Opendir(dirname)) != (zDIR *)NULL) {
+            while ((file = Readdir(dir)) != (struct zdirent *)NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n", file->d_name));
                 if (match(file->d_name, wildname, 1)) {  /* 1 == ignore case */
                     Trace((stderr, "do_wild:  match() succeeds\n"));
@@ -205,10 +258,10 @@ char *do_wild(wildspec)
                 }
             }
             /* if we get to here directory is exhausted, so close it */
-            closedir(dir);
-            dir = (DIR *)NULL;
+            Closedir(dir);
+            dir = (zDIR *)NULL;
         }
-        Trace((stderr, "do_wild:  opendir(%s) returns NULL\n", dirname));
+        Trace((stderr, "do_wild:  Opendir(%s) returns NULL\n", dirname));
 
         /* return the raw wildspec in case that works (e.g., directory not
          * searchable, but filespec was not wild and file is readable) */
@@ -217,7 +270,7 @@ char *do_wild(wildspec)
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if (dir == (DIR *)NULL) {
+    if (dir == (zDIR *)NULL) {
         firstcall = TRUE;  /* nothing left to try--reset for new wildspec */
         if (have_dirname)
             free(dirname);
@@ -228,7 +281,7 @@ char *do_wild(wildspec)
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = Readdir(dir)) != (struct direct *)NULL)
+    while ((file = Readdir(dir)) != (struct zdirent *)NULL)
         if (match(file->d_name, wildname, 1)) {   /* 1 == ignore case */
             if (have_dirname) {
                 /* strcpy(matchname, dirname); */
@@ -238,8 +291,8 @@ char *do_wild(wildspec)
             return matchname;
         }
 
-    closedir(dir);     /* have read at least one dir entry; nothing left */
-    dir = (DIR *)NULL;
+    Closedir(dir);     /* have read at least one dir entry; nothing left */
+    dir = (zDIR *)NULL;
     firstcall = TRUE;  /* reset for new wildspec */
     if (have_dirname)
         free(dirname);
@@ -257,37 +310,15 @@ char *do_wild(wildspec)
 /* Function mapattr() */
 /**********************/
 
-int mapattr()
+int mapattr(__G)
+    __GDEF
 {
     /* set archive bit (file is not backed up): */
-    pInfo->file_attr = (unsigned)(crec.external_file_attributes | 32) & 0xff;
+    G.pInfo->file_attr = (unsigned)(G.crec.external_file_attributes | 32) &
+      0xff;
     return 0;
 
 } /* end function mapattr() */
-
-
-
-
-
-/*****************************/
-/*  Strings used in msdos.c  */
-/*****************************/
-
-static char Far ConversionFailed[] = "mapname:  conversion of %s failed\n";
-static char Far ErrSetVolLabel[] = "mapname:  error setting volume label\n";
-static char Far PathTooLong[] = "checkdir error:  path too long: %s\n";
-static char Far CantCreateDir[] = "checkdir error:  can't create %s\n\
-                 unable to process %s.\n";
-static char Far DirIsntDirectory[] =
-  "checkdir error:  %s exists but is not directory\n\
-                 unable to process %s.\n";
-static char Far PathTooLongTrunc[] =
-  "checkdir warning:  path too long; truncating\n                   %s\n\
-                -> %s\n";
-#if (!defined(SFX) || defined(SFX_EXDIR))
-   static char Far CantCreateExtractDir[] =
-     "checkdir:  can't create extraction directory: %s\n";
-#endif
 
 
 
@@ -297,15 +328,19 @@ static char Far PathTooLongTrunc[] =
 /*  Function mapname()  */
 /************************/
 
-int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
-    int renamed;      /* 2 if warning (skip file because dir doesn't exist), */
-{                     /* 3 if error (skip file), 10 if no memory (skip file) */
+int mapname(__G__ renamed)   /* return 0 if no error, 1 if caution (filename */
+    __GDEF                   /* trunc), 2 if warning (skip file because dir */
+    int renamed;             /* doesn't exist), 3 if error (skip file), 10 */
+{                            /* if no memory (skip file) */
     char pathcomp[FILNAMSIZ];    /* path-component buffer */
     char *pp, *cp=(char *)NULL;  /* character pointers */
     char *lastsemi=(char *)NULL; /* pointer to last semi-colon in pathcomp */
+#ifndef USE_VFAT
     char *last_dot=(char *)NULL; /* last dot not converted to underscore */
-    int quote = FALSE;           /* flag:  next char is literal */
+#endif
+#ifndef USE_VFAT
     int dotname = FALSE;         /* flag:  path component begins with dot */
+#endif
     int error = 0;
     register unsigned workch;    /* hold the character being tested */
 
@@ -315,25 +350,24 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
   ---------------------------------------------------------------------------*/
 
     /* can create path as long as not just freshening, or if user told us */
-    create_dirs = (!fflag || renamed);
+    G.create_dirs = (!G.fflag || renamed);
 
     created_dir = FALSE;        /* not yet */
     renamed_fullpath = FALSE;
 
-/* GRR:  for VMS, convert to internal format now or later? or never? */
     if (renamed) {
-        cp = filename - 1;      /* point to beginning of renamed name... */
+        cp = G.filename - 1;    /* point to beginning of renamed name... */
         while (*++cp)
             if (*cp == '\\')    /* convert backslashes to forward */
                 *cp = '/';
-        cp = filename;
+        cp = G.filename;
         /* use temporary rootpath if user gave full pathname */
-        if (filename[0] == '/') {
+        if (G.filename[0] == '/') {
             renamed_fullpath = TRUE;
             pathcomp[0] = '/';  /* copy the '/' and terminate */
             pathcomp[1] = '\0';
             ++cp;
-        } else if (isalpha(filename[0]) && filename[1] == ':') {
+        } else if (isalpha(G.filename[0]) && G.filename[1] == ':') {
             renamed_fullpath = TRUE;
             pp = pathcomp;
             *pp++ = *cp++;      /* copy the "d:" (+ '/', possibly) */
@@ -345,16 +379,16 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     }
 
     /* pathcomp is ignored unless renamed_fullpath is TRUE: */
-    if ((error = checkdir(pathcomp, INIT)) != 0)    /* initialize path buffer */
+    if ((error = checkdir(__G__ pathcomp, INIT)) != 0)    /* initialize path buffer */
         return error;           /* ...unless no mem or vol label on hard disk */
 
     *pathcomp = '\0';           /* initialize translation buffer */
     pp = pathcomp;              /* point to translation buffer */
     if (!renamed) {             /* cp already set if renamed */
-        if (jflag)              /* junking directories */
-            cp = (char *)strrchr(filename, '/');
+        if (G.jflag)            /* junking directories */
+            cp = (char *)strrchr(G.filename, '/');
         if (cp == (char *)NULL) /* no '/' or not junking dirs */
-            cp = filename;      /* point to internal zipfile-member pathname */
+            cp = G.filename;    /* point to internal zipfile-member pathname */
         else
             ++cp;               /* point to start of last component of path */
     }
@@ -365,92 +399,111 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
 
     while ((workch = (uch)*cp++) != 0) {
 
-        if (quote) {              /* if character quoted, */
-            *pp++ = (char)workch; /*  include it literally */
-            quote = FALSE;
-        } else
-            switch (workch) {
-            case '/':             /* can assume -j flag not given */
-                *pp = '\0';
-/* GRR:  can add 8.3 truncation here */
-                if (last_dot) {   /* one dot in directory name is legal */
-                    *last_dot = '.';
-                    last_dot = (char *)NULL;
-                }
-                if ((error = checkdir(pathcomp, APPEND_DIR)) > 1)
-                    return error;
-                pp = pathcomp;    /* reset conversion buffer for next piece */
-                lastsemi = (char *)NULL; /* leave directory semi-colons alone */
-                break;
+        switch (workch) {
+        case '/':             /* can assume -j flag not given */
+            *pp = '\0';
+#ifndef USE_VFAT
+            map2fat(pathcomp, last_dot);   /* 8.3 truncation (in place) */
+            last_dot = (char *)NULL;
+#endif
+            if ((error = checkdir(__G__ pathcomp, APPEND_DIR)) > 1)
+                return error;
+            pp = pathcomp;    /* reset conversion buffer for next piece */
+            lastsemi = (char *)NULL; /* leave directory semi-colons alone */
+            break;
 
-            case ':':             /* drive names not stored in zipfile, */
-            case '[':             /*  so no colons allowed; no brackets, */
-            case ']':             /*  either */
+        /* drive names are not stored in zipfile, so no colons allowed;
+         *  no brackets or most other punctuation either (all of which
+         *  can appear in Unix-created archives; backslash is particularly
+         *  bad unless all necessary directories exist) */
+        case ':':
+        case '\\':
+        case '"':
+#ifndef USE_VFAT
+        case '[':
+        case ']':
+        case '+':
+        case ',':
+        case '=':
+#endif
+        case '<':
+        case '>':
+        case '|':
+        case '*':
+        case '?':
+            *pp++ = '_';
+            break;
+
+#ifndef USE_VFAT
+        case '.':
+            if (pp == pathcomp) {     /* nothing appended yet... */
+                if (*cp == '/') {     /* don't bother appending a "./" */
+                    ++cp;             /*  component to the path:  skip */
+                    break;            /*  to next char after the '/' */
+                } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
+                    *pp++ = '.';      /* add first dot, unchanged... */
+                    ++cp;             /* skip second dot, since it will */
+                } else {              /*  be "added" at end of if-block */
+                    *pp++ = '_';      /* FAT doesn't allow null filename */
+                    dotname = TRUE;   /*  bodies, so map .exrc -> _.exrc */
+                }                     /*  (extra '_' now, "dot" below) */
+            } else if (dotname) {     /* found a second dot, but still */
+                dotname = FALSE;      /*  have extra leading underscore: */
+                *pp = '\0';           /*  remove it by shifting chars */
+                pp = pathcomp + 1;    /*  left one space (e.g., .p1.p2: */
+                while (pp[1]) {       /*  __p1 -> _p1_p2 -> _p1.p2 when */
+                    *pp = pp[1];      /*  finished) [opt.:  since first */
+                    ++pp;             /*  two chars are same, can start */
+                }                     /*  shifting at second position] */
+            }
+            last_dot = pp;    /* point at last dot so far... */
+            *pp++ = '_';      /* convert dot to underscore for now */
+            break;
+#endif
+
+        case ';':             /* start of VMS version? */
+#ifdef USE_VFAT
+            lastsemi = pp;
+            *pp++ = ';';      /* keep for now; remove VMS ";##" */
+#else
+            lastsemi = pp;    /* omit for now; remove VMS vers. later */
+#endif
+            break;
+
+#ifndef USE_VFAT
+        case ' ':             /* change spaces to underscore only */
+            if (G.sflag)      /*  if specifically requested */
                 *pp++ = '_';
-                break;
+            else
+                *pp++ = (char)workch;
+            break;
+#endif
 
-            case '.':
-                if (pp == pathcomp) {     /* nothing appended yet... */
-                    if (*cp == '/') {     /* don't bother appending a "./" */
-                        ++cp;             /*  component to the path:  skip */
-                        break;            /*  to next char after the '/' */
-                    } else if (*cp == '.' && cp[1] == '/') {   /* "../" */
-                        *pp++ = '.';      /* add first dot, unchanged... */
-                        ++cp;             /* skip second dot, since it will */
-                    } else {              /*  be "added" at end of if-block */
-                        *pp++ = '_';      /* FAT doesn't allow null filename */
-                        dotname = TRUE;   /*  bodies, so map .exrc -> _.exrc */
-                    }                     /*  (extra '_' now, "dot" below) */
-                } else if (dotname) {     /* found a second dot, but still */
-                    dotname = FALSE;      /*  have extra leading underscore: */
-                    *pp = '\0';           /*  remove it by shifting chars */
-                    pp = pathcomp + 1;    /*  left one space (e.g., .p1.p2: */
-                    while (pp[1]) {       /*  __p1 -> _p1_p2 -> _p1.p2 when */
-                        *pp = pp[1];      /*  finished) [opt.:  since first */
-                        ++pp;             /*  two chars are same, can start */
-                    }                     /*  shifting at second position] */
-                }
-                last_dot = pp;    /* point at last dot so far... */
-                *pp++ = '_';      /* convert dot to underscore for now */
-                break;
-
-            case ';':             /* start of VMS version? */
-                lastsemi = pp;    /* omit for now; remove VMS vers. later */
-                break;
-
-            case '\026':          /* control-V quote for special chars */
-                quote = TRUE;     /* set flag for next character */
-                break;
-
-            case ' ':             /* change spaces to underscore only */
-                if (sflag)        /*  if specifically requested */
-                    *pp++ = '_';
-                else
-                    *pp++ = (char)workch;
-                break;
-
-            default:
-                /* allow European characters in filenames: */
-                if (isprint(workch) || (128 <= workch && workch <= 254))
-                    *pp++ = (char)workch;
-            } /* end switch */
-
+        default:
+            /* allow ASCII 255 and European characters in filenames: */
+            if (isprint(workch) || workch >= 127)
+                *pp++ = (char)workch;
+        } /* end switch */
     } /* end while loop */
 
     *pp = '\0';                   /* done with pathcomp:  terminate it */
 
-    /* if not saving them, remove VMS version numbers (appended "###") */
-    if (!V_flag && lastsemi) {
+    /* if not saving them, remove VMS version numbers (appended ";###") */
+    if (!G.V_flag && lastsemi) {
+#ifdef USE_VFAT
+        pp = lastsemi + 1;
+#else
         pp = lastsemi;            /* semi-colon was omitted:  expect all #'s */
+#endif
         while (isdigit((uch)(*pp)))
             ++pp;
         if (*pp == '\0')          /* only digits between ';' and end:  nuke */
             *lastsemi = '\0';
     }
 
-/* GRR:  can add 8.3 truncation here */
-    if (last_dot != (char *)NULL) /* one dot is OK:  put it back in */
-        *last_dot = '.';          /* (already done for directories) */
+#ifndef USE_VFAT
+    map2fat(pathcomp, last_dot);  /* 8.3 truncation (in place) */
+#endif
 
 /*---------------------------------------------------------------------------
     Report if directory was created (and no file to create:  filename ended
@@ -458,29 +511,31 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
     fore exiting.
   ---------------------------------------------------------------------------*/
 
-    if (filename[strlen(filename) - 1] == '/') {
-        checkdir(filename, GETPATH);
+    if (G.filename[strlen(G.filename) - 1] == '/') {
+        checkdir(__G__ G.filename, GETPATH);
         if (created_dir && QCOND2) {
-            FPRINTF(stdout, "   creating: %s\n", filename);
+            Info(slide, 0, ((char *)slide, LoadFarString(Creating),
+              G.filename));
             return IZ_CREATED_DIR;   /* set dir time (note trailing '/') */
         }
         return 2;   /* dir existed already; don't look for data to extract */
     }
 
     if (*pathcomp == '\0') {
-        FPRINTF(stderr, LoadFarString(ConversionFailed), filename);
+        Info(slide, 1, ((char *)slide, LoadFarString(ConversionFailed),
+          G.filename));
         return 3;
     }
 
-    checkdir(pathcomp, APPEND_NAME);   /* returns 1 if truncated:  care? */
-    checkdir(filename, GETPATH);
+    checkdir(__G__ pathcomp, APPEND_NAME);   /* returns 1 if truncated: care? */
+    checkdir(__G__ G.filename, GETPATH);
 
-    if (pInfo->vollabel) {   /* set the volume label now */
+    if (G.pInfo->vollabel) {    /* set the volume label now */
         if (QCOND2)
-            FPRINTF(stdout, "labelling %c: %-22s\n", (nLabelDrive + 'a' - 1),
-              filename);
-        if (volumelabel(filename)) {
-            FPRINTF(stderr, LoadFarString(ErrSetVolLabel));
+            Info(slide, 0, ((char *)slide, LoadFarString(Labelling),
+              (nLabelDrive + 'a' - 1), G.filename));
+        if (volumelabel(G.filename)) {
+            Info(slide, 1, ((char *)slide, LoadFarString(ErrSetVolLabel)));
             return 3;
         }
         return 2;   /* success:  skip the "extraction" quietly */
@@ -494,11 +549,73 @@ int mapname(renamed)  /* return 0 if no error, 1 if caution (filename trunc), */
 
 
 
+#ifndef USE_VFAT
+/**********************/
+/* Function map2fat() */
+/**********************/
+
+static void map2fat(pathcomp, last_dot)
+    char *pathcomp, *last_dot;
+{
+    char *pEnd = pathcomp + strlen(pathcomp);
+
+/*---------------------------------------------------------------------------
+    Case 1:  filename has no dot, so figure out if we should add one.  Note
+    that the algorithm does not try to get too fancy:  if there are no dots
+    already, the name either gets truncated at 8 characters or the last un-
+    derscore is converted to a dot (only if more characters are saved that
+    way).  In no case is a dot inserted between existing characters.
+
+              GRR:  have problem if filename is volume label??
+
+  ---------------------------------------------------------------------------*/
+
+    /* pEnd = pathcomp + strlen(pathcomp); */
+    if (last_dot == (char *)NULL) {   /* no dots:  check for underscores... */
+        char *plu = strrchr(pathcomp, '_');   /* pointer to last underscore */
+
+        if (plu == (char *)NULL) {  /* no dots, no underscores:  truncate at */
+            if (pEnd > pathcomp+8)  /* 8 chars (could insert '.' and keep 11) */
+                *(pEnd = pathcomp+8) = '\0';
+        } else if (MIN(plu - pathcomp, 8) + MIN(pEnd - plu - 1, 3) > 8) {
+            last_dot = plu;       /* be lazy:  drop through to next if-block */
+        } else if ((pEnd - pathcomp) > 8)    /* more fits into just basename */
+            pathcomp[8] = '\0';    /* than if convert last underscore to dot */
+        /* else whole thing fits into 8 chars or less:  no change */
+    }
+
+/*---------------------------------------------------------------------------
+    Case 2:  filename has dot in it, so truncate first half at 8 chars (shift
+    extension if necessary) and second half at three.
+  ---------------------------------------------------------------------------*/
+
+    if (last_dot != (char *)NULL) {   /* one dot (or two, in the case of */
+        *last_dot = '.';              /*  "..") is OK:  put it back in */
+
+        if ((last_dot - pathcomp) > 8) {
+            char *p=last_dot, *q=pathcomp+8;
+            int i;
+
+            for (i = 0;  (i < 4) && *p;  ++i)  /* too many chars in basename: */
+                *q++ = *p++;                   /*  shift extension left and */
+            *q = '\0';                         /*  truncate/terminate it */
+        } else if ((pEnd - last_dot) > 4)
+            last_dot[4] = '\0';                /* too many chars in extension */
+        /* else filename is fine as is:  no change */
+    }
+} /* end function map2fat() */
+#endif
+
+
+
+
+
 /***********************/
 /* Function checkdir() */
 /***********************/
 
-int checkdir(pathcomp, flag)
+int checkdir(__G__ pathcomp, flag)
+    __GDEF
     char *pathcomp;
     int flag;
 /*
@@ -544,39 +661,37 @@ int checkdir(pathcomp, flag)
         if ((end-buildpath) > FILNAMSIZ-3)  /* need '/', one-char name, '\0' */
             too_long = TRUE;                /* check if extracting directory? */
 #ifdef MSC /* MSC 6.00 bug:  stat(non-existent-dir) == 0 [exists!] */
-        if (_dos_getfileattr(buildpath, &attrs) || stat(buildpath, &statbuf))  
+        if (_dos_getfileattr(buildpath, &attrs) || stat(buildpath, &G.statbuf))
 #else
-        if (stat(buildpath, &statbuf))      /* path doesn't exist */
+        if (stat(buildpath, &G.statbuf))    /* path doesn't exist */
 #endif
         {
-            if (!create_dirs) {   /* told not to create (freshening) */
+            if (!G.create_dirs) { /* told not to create (freshening) */
                 free(buildpath);
                 return 2;         /* path doesn't exist:  nothing to do */
             }
             if (too_long) {
-                FPRINTF(stderr, LoadFarString(PathTooLong), buildpath);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide, LoadFarString(PathTooLong),
+                  buildpath));
                 free(buildpath);
                 return 4;         /* no room for filenames:  fatal */
             }
             if (MKDIR(buildpath, 0777) == -1) {   /* create the directory */
-                FPRINTF(stderr, LoadFarString(CantCreateDir), buildpath,
-                        filename);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide, LoadFarString(CantCreateDir),
+                  buildpath, G.filename));
                 free(buildpath);
                 return 3;      /* path didn't exist, tried to create, failed */
             }
             created_dir = TRUE;
-        } else if (!S_ISDIR(statbuf.st_mode)) {
-            FPRINTF(stderr, LoadFarString(DirIsntDirectory), buildpath,
-                    filename);
-            fflush(stderr);
+        } else if (!S_ISDIR(G.statbuf.st_mode)) {
+            Info(slide, 1, ((char *)slide, LoadFarString(DirIsntDirectory),
+              buildpath, G.filename));
             free(buildpath);
             return 3;          /* path existed but wasn't dir */
         }
         if (too_long) {
-            FPRINTF(stderr, LoadFarString(PathTooLong), buildpath);
-            fflush(stderr);
+            Info(slide, 1, ((char *)slide, LoadFarString(PathTooLong),
+              buildpath));
             free(buildpath);
             return 4;         /* no room for filenames:  fatal */
         }
@@ -606,14 +721,21 @@ int checkdir(pathcomp, flag)
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == APPEND_NAME) {
+#ifdef NOVELL_BUG_WORKAROUND
+        if (end == buildpath) {
+            /* work-around for Novell's "overwriting executables" bug:
+               prepend "./" to name when no path component is specified */
+            *end++ = '.';
+            *end++ = '/';
+        }
+#endif /* NOVELL_BUG_WORKAROUND */
         Trace((stderr, "appending filename [%s]\n", pathcomp));
         while ((*end = *pathcomp++) != '\0') {
             ++end;
             if ((end-buildpath) >= FILNAMSIZ) {
                 *--end = '\0';
-                FPRINTF(stderr, LoadFarString(PathTooLongTrunc),
-                        filename, buildpath);
-                fflush(stderr);
+                Info(slide, 1, ((char *)slide, LoadFarString(PathTooLongTrunc),
+                  G.filename, buildpath));
                 return 1;   /* filename truncated */
             }
         }
@@ -629,22 +751,24 @@ int checkdir(pathcomp, flag)
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((buildpath = (char *)malloc(strlen(filename)+rootlen+1)) ==
+        /* allocate space for full filename, root path, and maybe "./" */
+        if ((buildpath = (char *)malloc(strlen(G.filename)+rootlen+3)) ==
             (char *)NULL)
             return 10;
-        if (pInfo->vollabel) {
+        if (G.pInfo->vollabel) {
 /* GRR:  for network drives, do strchr() and return IZ_VOL_LABEL if not [1] */
             if (renamed_fullpath && pathcomp[1] == ':')
                 *buildpath = ToLower(*pathcomp);
-            else if (!renamed_fullpath && rootpath && rootpath[1] == ':')
+            else if (!renamed_fullpath && rootlen > 1 && rootpath[1] == ':')
                 *buildpath = ToLower(*rootpath);
             else {
                 GETDRIVE(nLabelDrive);   /* assumed that a == 1, b == 2, etc. */
                 *buildpath = (char)(nLabelDrive - 1 + 'a');
             }
-            nLabelDrive = *buildpath - 'a' + 1;       /* save for mapname() */
-            if (volflag == 0 || *buildpath < 'a' ||   /* no labels/bogus disk */
-                (volflag == 1 && !isfloppy(nLabelDrive))) {  /* -$:  no fixed */
+            nLabelDrive = *buildpath - 'a' + 1;        /* save for mapname() */
+            if (G.volflag == 0 || *buildpath < 'a' ||  /* no label/bogus disk */
+               (G.volflag == 1 && !isfloppy(nLabelDrive)))  /* -$:  no fixed */
+            {
                 free(buildpath);
                 return IZ_VOL_LABEL;     /* skipping with message */
             }
@@ -699,17 +823,13 @@ int checkdir(pathcomp, flag)
 #ifdef MSC
                 /* MSC 6.00 bug:  stat(non-existent-dir) == 0 [exists!] */
                 if (_dos_getfileattr(pathcomp, &attrs) ||
-                    SSTAT(pathcomp, &statbuf) || !S_ISDIR(statbuf.st_mode))
+                    SSTAT(pathcomp,&G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
 #else
-                if (SSTAT(pathcomp, &statbuf) || !S_ISDIR(statbuf.st_mode))
+                if (SSTAT(pathcomp,&G.statbuf) || !S_ISDIR(G.statbuf.st_mode))
 #endif
                 {
                     /* path does not exist */
-                    if (!create_dirs                 /* || iswild(pathcomp) */
-#ifdef OLD_EXDIR
-                                     || (!has_drive && !had_trailing_pathsep)
-#endif
-                                                                             ) {
+                    if (!G.create_dirs /* || iswild(pathcomp) */ ) {
                         rootlen = 0;
                         return 2;   /* treat as stored file */
                     }
@@ -718,9 +838,8 @@ int checkdir(pathcomp, flag)
                     /* create directory (could add loop here to scan pathcomp
                      * and create more than one level, but really necessary?) */
                     if (MKDIR(pathcomp, 0777) == -1) {
-                        FPRINTF(stderr, LoadFarString(CantCreateExtractDir),
-                                pathcomp);
-                        fflush(stderr);
+                        Info(slide, 1, ((char *)slide,
+                          LoadFarString(CantCreateExtractDir), pathcomp));
                         rootlen = 0;   /* path didn't exist, tried to create, */
                         return 3;  /* failed:  file exists, or need 2+ levels */
                     }
@@ -735,8 +854,8 @@ int checkdir(pathcomp, flag)
                 rootpath[rootlen++] = '.';
             rootpath[rootlen++] = '/';
             rootpath[rootlen] = '\0';
+            Trace((stderr, "rootpath now = [%s]\n", rootpath));
         }
-        Trace((stderr, "rootpath now = [%s]\n", rootpath));
         return 0;
     }
 #endif /* !SFX || SFX_EXDIR */
@@ -775,18 +894,18 @@ static int isfloppy(nDrive)  /* more precisely, is it removable? */
     regs.h.bl = (uch)nDrive;
 #ifdef __EMX__
     _int86(0x21, &regs, &regs);
-    if (regs.x.flags & 1)
+    if (WREGS(regs,flags) & 1)
 #else
     intdos(&regs, &regs);
-    if (regs.x.cflag)        /* error:  do default a/b check instead */
+    if (WREGS(regs,cflag))        /* error:  do default a/b check instead */
 #endif
     {
         Trace((stderr,
           "error in DOS function 0x44 (AX = 0x%04x):  guessing instead...\n",
-          regs.x.ax));
+          WREGS(regs,ax)));
         return (nDrive == 1 || nDrive == 2)? TRUE : FALSE;
     } else
-        return regs.x.ax? FALSE : TRUE;
+        return WREGS(regs,ax)? FALSE : TRUE;
 }
 
 
@@ -855,21 +974,21 @@ static int volumelabel(newlabel)
 
     /* set the disk transfer address for subsequent FCB calls */
     sregs.ds = FP_SEG(pdta);
-    regs.x.dx = FP_OFF(pdta);
-    Trace((stderr, "segment:offset of pdta = %x:%x\n", sregs.ds, regs.x.dx));
+    WREGS(regs,dx) = FP_OFF(pdta);
+    Trace((stderr, "segment:offset of pdta = %x:%x\n", sregs.ds, WREGS(regs,dx)));
     Trace((stderr, "&dta = %lx, pdta = %lx\n", (ulg)&dta, (ulg)pdta));
     regs.h.ah = 0x1a;
     intdosx(&regs, &regs, &sregs);
 
     /* fill in the FCB */
     sregs.ds = FP_SEG(pfcb);
-    regs.x.dx = FP_OFF(pfcb);
+    WREGS(regs,dx) = FP_OFF(pfcb);
     pfcb->flag = 0xff;          /* extended FCB */
     pfcb->vattr = 0x08;         /* attribute:  disk volume label */
     pfcb->drive = (uch)nLabelDrive;
 
 #ifdef DEBUG
-    Trace((stderr, "segment:offset of pfcb = %x:%x\n", sregs.ds, regs.x.dx));
+    Trace((stderr, "segment:offset of pfcb = %x:%x\n", sregs.ds, WREGS(regs,dx)));
     Trace((stderr, "&fcb = %lx, pfcb = %lx\n", (ulg)&fcb, (ulg)pfcb));
     Trace((stderr, "(2nd check:  labelling drive %c:)\n", pfcb->drive-1+'A'));
     if (pfcb->flag != fcb.flag)
@@ -895,7 +1014,7 @@ static int volumelabel(newlabel)
     strncpy((char *)fcb.vn, "???????????", 11);   /* i.e., "*.*" */
     Trace((stderr, "fcb.vn = %lx\n", (ulg)fcb.vn));
     Trace((stderr, "regs.h.ah = %x, regs.x.dx = %04x, sregs.ds = %04x\n",
-      regs.h.ah, regs.x.dx, sregs.ds));
+      regs.h.ah, WREGS(regs,dx), sregs.ds));
     Trace((stderr, "flag = %x, drive = %d, vattr = %x, vn = %s = %s.\n",
       fcb.flag, fcb.drive, fcb.vattr, fcb.vn, pfcb->vn));
     intdosx(&regs, &regs, &sregs);
@@ -966,7 +1085,8 @@ static int volumelabel(newlabel)
 /* Function close_outfile() */
 /****************************/
 
-void close_outfile()
+void close_outfile(__G)
+    __GDEF
  /*
   * MS-DOS VERSION
   *
@@ -976,15 +1096,49 @@ void close_outfile()
   * the file, this routine is optional (but most compilers support it).
   */
 {
-#ifdef __TURBOC__
+#ifdef USE_EF_UX_TIME
+    ztimbuf z_utime;
+
+    /* The following DOS date/time structure is machine dependent as it
+     * assumes "little endian" byte order. For MSDOS specific code, which
+     * is run on x86 CPUs (or emulators), this assumption is valid; but
+     * care should be taken when using this code as template for other ports.
+     */
+    union {
+        ulg z_dostime;
+# ifdef __TURBOC__
+        struct ftime ft;        /* system file time record */
+# endif
+        struct {                /* date and time words */
+            union {             /* DOS file modification time word */
+                ush ztime;
+                struct {
+                    unsigned zt_se : 5;
+                    unsigned zt_mi : 6;
+                    unsigned zt_hr : 5;
+                } _tf;
+            } _t;
+            union {             /* DOS file modification date word */
+                ush zdate;
+                struct {
+                    unsigned zd_dy : 5;
+                    unsigned zd_mo : 4;
+                    unsigned zd_yr : 7;
+                } _df;
+            } _d;
+        } zt;
+    } dos_dt;
+#else /* !USE_EF_UX_TIME */
+# ifdef __TURBOC__
     union {
         struct ftime ft;        /* system file time record */
         struct {
             ush ztime;          /* date and time words */
             ush zdate;          /* .. same format as in .ZIP file */
         } zt;
-    } td;
-#endif
+    } dos_dt;
+# endif
+#endif /* ?USE_EF_UX_TIME */
 
 
 /*---------------------------------------------------------------------------
@@ -1000,14 +1154,51 @@ void close_outfile()
     just before setftime() call.  Weird, huh?
   ---------------------------------------------------------------------------*/
 
-#ifdef __TURBOC__
-    td.zt.ztime = lrec.last_mod_file_time;
-    td.zt.zdate = lrec.last_mod_file_date;
-    setftime(fileno(outfile), &td.ft);
-#else
-    _dos_setftime(fileno(outfile), lrec.last_mod_file_date,
-                                   lrec.last_mod_file_time);
-#endif
+#ifdef USE_EF_UX_TIME
+    if (G.extra_field &&
+        ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
+                         &z_utime, NULL) > 0) {
+        struct tm *t;
+
+        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+          z_utime.modtime));
+        /* round up to even seconds */
+        z_utime.modtime = (z_utime.modtime + 1) & (~1);
+        t = localtime(&(z_utime.modtime));
+        if (t->tm_year < 80) {
+            dos_dt.zt._t._tf.zt_se = 0;
+            dos_dt.zt._t._tf.zt_mi = 0;
+            dos_dt.zt._t._tf.zt_hr = 0;
+            dos_dt.zt._d._df.zd_dy = 1;
+            dos_dt.zt._d._df.zd_mo = 1;
+            dos_dt.zt._d._df.zd_yr = 0;
+        } else {
+            dos_dt.zt._t._tf.zt_se = t->tm_sec >> 1;
+            dos_dt.zt._t._tf.zt_mi = t->tm_min;
+            dos_dt.zt._t._tf.zt_hr = t->tm_hour;
+            dos_dt.zt._d._df.zd_dy = t->tm_mday;
+            dos_dt.zt._d._df.zd_mo = t->tm_mon + 1;
+            dos_dt.zt._d._df.zd_yr = t->tm_year - 80;
+        }
+    } else {
+        dos_dt.zt._t.ztime = G.lrec.last_mod_file_time;
+        dos_dt.zt._d.zdate = G.lrec.last_mod_file_date;
+    }
+# ifdef __TURBOC__
+    setftime(fileno(G.outfile), &dos_dt.ft);
+# else
+    _dos_setftime(fileno(G.outfile), dos_dt.zt._d.zdate, dos_dt.zt._t.ztime);
+# endif
+#else /* !USE_EF_UX_TIME */
+# ifdef __TURBOC__
+    dos_dt.zt.ztime = G.lrec.last_mod_file_time;
+    dos_dt.zt.zdate = G.lrec.last_mod_file_date;
+    setftime(fileno(G.outfile), &dos_dt.ft);
+# else
+    _dos_setftime(fileno(G.outfile), G.lrec.last_mod_file_date,
+                                     G.lrec.last_mod_file_time);
+# endif
+#endif /* ?USE_EF_UX_TIME */
 
 /*---------------------------------------------------------------------------
     And finally we can close the file...at least everybody agrees on how to
@@ -1015,7 +1206,7 @@ void close_outfile()
     attributes, since we didn't do that when we opened the dude.
   ---------------------------------------------------------------------------*/
 
-    fclose(outfile);
+    fclose(G.outfile);
 
 #ifdef __TURBOC__
 #   if (defined(__BORLANDC__) && (__BORLANDC__ >= 0x0452))
@@ -1023,10 +1214,10 @@ void close_outfile()
 #   else
 #     define Chmod  _chmod
 #   endif
-    if (Chmod(filename, 1, pInfo->file_attr) != pInfo->file_attr)
-        FPRINTF(stderr, "\nwarning:  file attributes may not be correct\n");
+    if (Chmod(G.filename, 1, G.pInfo->file_attr) != G.pInfo->file_attr)
+        Info(slide, 1, ((char *)slide, LoadFarString(AttribsMayBeWrong)));
 #else /* !__TURBOC__ */
-    _dos_setfileattr(filename, pInfo->file_attr);
+    _dos_setfileattr(G.filename, G.pInfo->file_attr);
 #endif /* ?__TURBOC__ */
 
 } /* end function close_outfile() */
@@ -1052,19 +1243,21 @@ int dateformat()
   ---------------------------------------------------------------------------*/
 
 #ifndef MSWIN
+    unsigned short CountryInfo[18];
 #if (!defined(__GO32__) && !defined(__EMX__))
-    unsigned short _CountryInfo[18];
-    unsigned short far *CountryInfo = _CountryInfo;
+    unsigned short far *_CountryInfo = CountryInfo;
     struct SREGS sregs;
     union REGS regs;
 
-    sregs.ds  = FP_SEG(CountryInfo);
-    regs.x.dx = FP_OFF(CountryInfo);
-    regs.x.ax = 0x3800;
+#ifdef __WATCOMC__
+    segread(&sregs);
+#endif
+    sregs.ds  = FP_SEG(_CountryInfo);
+    WREGS(regs,dx) = FP_OFF(_CountryInfo);
+    WREGS(regs,ax) = 0x3800;
     int86x(0x21, &regs, &regs, &sregs);
 
 #else /* __GO32__ || __EMX__ */
-    unsigned short CountryInfo[18];
 
     _dos_getcountryinfo(CountryInfo);
 #endif
@@ -1091,76 +1284,75 @@ int dateformat()
 /*  Function version()  */
 /************************/
 
-void version()
+void version(__G)
+    __GDEF
 {
-    extern char Far  CompiledWith[];
-#if defined(__WATCOMC__) || defined(__TURBOC__) || defined(_MSC_VER)
+    int len;
+#if defined(__DJGPP__) || defined(__WATCOMC__) || \
+    (defined(_MSC_VER) && (_MSC_VER != 800))
     char buf[80];
 #endif
 
-    PRINTF(LoadFarString(CompiledWith),
+    len = sprintf((char *)slide, LoadFarString(CompiledWith),
 
 #ifdef __GNUC__
-#  ifdef __EMX__      /* __EMX__ is defined as "1" only (sigh) */
+#  ifdef __DJGPP__
+      (sprintf(buf, "djgpp v%d / gcc ", __DJGPP__), buf),
+#  elif __GO32__                  /* __GO32__ is defined as "1" only (sigh) */
+      "djgpp v1.x / gcc ",
+#  elif defined(__EMX__)          /* ...so is __EMX__ (double sigh) */
       "emx+gcc ",
-#  else
-#  ifdef __GO32__     /* ...so is __GO32__ (double sigh) */
-      "djgpp gcc ",
 #  else
       "gcc ",
 #  endif
-#  endif
       __VERSION__,
-#else
-#ifdef __WATCOMC__
-      "Watcom C", (sprintf(buf, " (__WATCOMC__ = %d)", __WATCOMC__), buf),
-#else
-#ifdef __TURBOC__
+#elif defined(__WATCOMC__)
+#  if (__WATCOMC__ % 10 != 0)
+      "Watcom C/C++", (sprintf(buf, " %d.%02d", __WATCOMC__ / 100,
+                               __WATCOMC__ % 100), buf),
+#  else
+      "Watcom C/C++", (sprintf(buf, " %d.%d", __WATCOMC__ / 100,
+                               (__WATCOMC__ % 100) / 10), buf),
+#  endif
+#elif defined(__TURBOC__)
 #  ifdef __BORLANDC__
       "Borland C++",
 #    if (__BORLANDC__ < 0x0200)
         " 1.0",
-#    else
-#    if (__BORLANDC__ == 0x0200)   /* James:  __TURBOC__ = 0x0297 */
+#    elif (__BORLANDC__ == 0x0200)   /* James:  __TURBOC__ = 0x0297 */
         " 2.0",
-#    else
-#    if (__BORLANDC__ == 0x0400)
+#    elif (__BORLANDC__ == 0x0400)
         " 3.0",
-#    else
-#    if (__BORLANDC__ == 0x0410)   /* __BCPLUSPLUS__ = 0x0310 */
+#    elif (__BORLANDC__ == 0x0410)   /* __BCPLUSPLUS__ = 0x0310 */
         " 3.1",
-#    else
-#    if (__BORLANDC__ == 0x0452)   /* __BCPLUSPLUS__ = 0x0320 */
+#    elif (__BORLANDC__ == 0x0452)   /* __BCPLUSPLUS__ = 0x0320 */
         " 4.0 or 4.02",
+#    elif (__BORLANDC__ == 0x0460)   /* __BCPLUSPLUS__ = 0x0340 */
+        " 4.5",
+#    elif (__BORLANDC__ == 0x0500)
+        " 5.0",
 #    else
-        " later than 4.1",
-#    endif
-#    endif
-#    endif
-#    endif
+        " later than 5.0",
 #    endif
 #  else
       "Turbo C",
-#    if (__TURBOC__ >= 0x0400)     /* Kevin:  3.0 -> 0x0401 */
-        "++ 3.0 or later",
-#    else
-#    if (__TURBOC__ == 0x0295)     /* [661] vfy'd by Kevin */
+#    if (__TURBOC__ > 0x0500)
+        "++ later than 5.0",
+#    elif (__TURBOC__ == 0x0500)     /* Mike W:  5.0 -> 0x0500 */
+        "++ 5.0",
+#    elif (__TURBOC__ >= 0x0400)     /* Kevin:  3.0 -> 0x0401 */
+        "++ 3.0 or 4.x",
+#    elif (__TURBOC__ == 0x0295)     /* [661] vfy'd by Kevin */
         "++ 1.0",
-#    else
-#    if ((__TURBOC__ >= 0x018d) && (__TURBOC__ <= 0x0200))  /* James: 0x0200 */
+#    elif ((__TURBOC__ >= 0x018d) && (__TURBOC__ <= 0x0200)) /* James: 0x0200 */
         " 2.0",
+#    elif (__TURBOC__ > 0x0100)
+        " 1.5",                      /* James:  0x0105? */
 #    else
-#    if (__TURBOC__ > 0x0100)
-        " 1.5",                    /* James:  0x0105? */
-#    else
-        " 1.0",                    /* James:  0x0100 */
-#    endif
-#    endif
-#    endif
+        " 1.0",                      /* James:  0x0100 */
 #    endif
 #  endif
-#else
-#ifdef MSC
+#elif defined(MSC)
       "Microsoft C ",
 #  ifdef _MSC_VER
 #    if (_MSC_VER == 800)
@@ -1173,14 +1365,11 @@ void version()
 #  endif
 #else
       "unknown compiler", "",
-#endif /* MSC */
-#endif /* __TURBOC__ */
-#endif /* __WATCOMC__ */
-#endif /* __GNUC__ */
+#endif /* ?compilers */
 
       "MS-DOS",
 
-#if (defined(__GNUC__) || (defined(__WATCOMC__) && defined(__386__)))
+#if (defined(__GNUC__) || defined(WATCOMC_386))
       " (32-bit)",
 #else
 #  if defined(M_I86HM) || defined(__HUGE__)
@@ -1215,25 +1404,32 @@ void version()
 #else
       "", ""
 #endif
-      );
+    );
+
+    (*G.message)((zvoid *)&G, slide, (ulg)len, 0);
+                                /* MSC can't handle huge macro expansion */
 
     /* temporary debugging code for Borland compilers only */
 #ifdef __TURBOC__
-    PRINTF("\tdebug(__TURBOC__ = 0x%04x = %d)\n", __TURBOC__, __TURBOC__);
+    Info(slide, 0, ((char *)slide, "\tdebug(__TURBOC__ = 0x%04x = %d)\n",
+      __TURBOC__, __TURBOC__));
 #ifdef __BORLANDC__
-    PRINTF("\tdebug(__BORLANDC__ = 0x%04x)\n", __BORLANDC__);
+    Info(slide, 0, ((char *)slide, "\tdebug(__BORLANDC__ = 0x%04x)\n",
+      __BORLANDC__));
 #else
-    PRINTF("\tdebug(__BORLANDC__ not defined)\n");
+    Info(slide, 0, ((char *)slide, "\tdebug(__BORLANDC__ not defined)\n"));
 #endif
 #ifdef __TCPLUSPLUS__
-    PRINTF("\tdebug(__TCPLUSPLUS__ = 0x%04x)\n", __TCPLUSPLUS__);
+    Info(slide, 0, ((char *)slide, "\tdebug(__TCPLUSPLUS__ = 0x%04x)\n",
+      __TCPLUSPLUS__));
 #else
-    PRINTF("\tdebug(__TCPLUSPLUS__ not defined)\n");
+    Info(slide, 0, ((char *)slide, "\tdebug(__TCPLUSPLUS__ not defined)\n"));
 #endif
 #ifdef __BCPLUSPLUS__
-    PRINTF("\tdebug(__BCPLUSPLUS__ = 0x%04x)\n\n", __BCPLUSPLUS__);
+    Info(slide, 0, ((char *)slide, "\tdebug(__BCPLUSPLUS__ = 0x%04x)\n\n",
+      __BCPLUSPLUS__));
 #else
-    PRINTF("\tdebug(__BCPLUSPLUS__ not defined)\n\n");
+    Info(slide, 0, ((char *)slide, "\tdebug(__BCPLUSPLUS__ not defined)\n\n"));
 #endif
 #endif
 
@@ -1260,6 +1456,9 @@ unsigned _dos_getcountryinfo(void *countrybuffer)
     asm("1:");
     return _doserrno;
 }
+
+
+#if (!defined(__DJGPP__) || (__DJGPP__ < 2))
 
 void _dos_setftime(int fd, ush dosdate, ush dostime)
 {
@@ -1327,6 +1526,9 @@ unsigned _dos_close(int fd)
     return _doserrno;
 }
 
+#endif /* !__DJGPP__ || (__DJGPP__ < 2) */
+
+
 static int volumelabel(char *name)
 {
     int fd;
@@ -1334,4 +1536,23 @@ static int volumelabel(char *name)
     return _dos_creat(name, FA_LABEL, &fd) ? fd : _dos_close(fd);
 }
 
+
+#if (defined(__DJGPP__) && (__DJGPP__ > 1))
+
+/* Prevent globbing of filenames.  This gives the same functionality as
+ * "stubedit <program> globbing=no" did with DJGPP v1.
+ */
+int __crt0_glob_function(void)
+{
+    return 0;
+}
+
+/* Reduce the size of the executable and remove the functionality to read
+ * the program's environment from whatever $DJGPP points to.
+ */
+void __crt_load_environment_file(void)
+{
+}
+
+#endif /* __DJGPP__ > 1 */
 #endif /* __GO32__ || __EMX__ */

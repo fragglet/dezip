@@ -17,13 +17,12 @@
 .fi
 ..
 .\" =========================================================================
-.TH UNZIP 1L "28 Aug 94 (v5.12)"
+.TH UNZIP 1L "30 Apr 96 (v5.2)"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
-.\" =========================================================================
 .SH SYNOPSIS
-\fBunzip\fP [\fB\-Z\fP] [\fB\-cflptuvz\fP[\fBabjnoqsCLV$\fP]]
+\fBunzip\fP [\fB\-Z\fP] [\fB\-cflptuvz\fP[\fBabjnoqsCLMVX$\fP]]
 \fIfile\fP[\fI.zip\fP] [\fIfile(s)\fP\ .\|.\|.]
 [\fB\-x\fP\ \fIxfile(s)\fP\ .\|.\|.] [\fB\-d\fP\ \fIexdir\fP]
 .PD
@@ -59,12 +58,12 @@ characters within the brackets is complemented (that is, anything \fIexcept\fP
 the characters inside the brackets is considered a match).
 .RE
 .IP
-(Be sure to quote any character which might otherwise be interpreted or
+(Be sure to quote any character that might otherwise be interpreted or
 modified by the operating system, particularly under Unix and VMS.)  If no
 matches are found, the specification is assumed to be a literal filename; 
-and if that also fails, the suffix \fC.zip\fP is appended.  Note that 
+and if that also fails, the suffix \fC.zip\fR is appended.  Note that 
 self-extracting ZIP files are supported, as with any other ZIP archive;
-just specify the \fC.exe\fP suffix (if any) explicitly.
+just specify the \fC.exe\fR suffix (if any) explicitly.
 .IP [\fIfile(s)\fP]
 An optional list of archive members to be processed, separated by spaces.
 (VMS versions compiled with VMSCLI defined must delimit files with commas
@@ -75,7 +74,7 @@ or modified by the operating system.
 .IP [\fB\-x\fP\ \fIxfile(s)\fP]
 An optional list of archive members to be excluded from processing.
 Since wildcard characters match directory separators (`/'), this option
-may be used to exclude any files which are in subdirectories.  For
+may be used to exclude any files that are in subdirectories.  For
 example, ``\fCunzip foo *.[ch] -x */*\fR'' would extract all C source files
 in the main directory, but none in any subdirectories.  Without the \fB\-x\fP
 option, all C source files in all directories within the zipfile would be
@@ -85,20 +84,20 @@ An optional directory to which to extract files.  By default, all files
 and subdirectories are recreated in the current directory; the \fB\-d\fP
 option allows extraction in an arbitrary directory (always assuming one
 has permission to write to the directory).  This option need not appear
-at the end of the command line; it is also accepted immediately after the
-zipfile specification, or between the \fIfile(s)\fP and the \fB\-x\fP
-option.  The option and directory may
-be concatenated without any white space between them, but note that this
-may cause normal shell behavior to be suppressed.  In particular,
-``\fC\-d\ ~\fR'' (tilde) is expanded by Unix C shells into the name 
-of the user's home directory, but ``\fC\-d~\fR'' is treated as a
-literal subdirectory ``\fB~\fP'' of the current directory.
+at the end of the command line; it is also accepted before the zipfile
+specification (with the normal options), immediately after the zipfile
+specification, or between the \fIfile(s)\fP and the \fB\-x\fP option.
+The option and directory may be concatenated without any white space
+between them, but note that this may cause normal shell behavior to be
+suppressed.  In particular, ``\fC\-d\ ~\fR'' (tilde) is expanded by Unix
+C shells into the name of the user's home directory, but ``\fC\-d~\fR''
+is treated as a literal subdirectory ``\fB~\fP'' of the current directory.
 .\" =========================================================================
 .SH OPTIONS
 Note that, in order to support obsolescent hardware, \fIunzip\fP's usage
-screen is limited to 22 or 23 lines and should therefore be considered a
-reminder of the basic \fIunzip\fP syntax rather than an exhaustive list
-of all possible flags.
+screen is limited to 22 or 23 lines and should therefore be considered
+only a reminder of the basic \fIunzip\fP syntax rather than an exhaustive
+list of all possible flags.
 .TP
 .B \-Z
 \fIzipinfo\fP(1L) mode.  If the first option on the command line is \fB\-Z\fP,
@@ -113,8 +112,8 @@ is automatically performed if appropriate.  This option is not listed in
 the \fIunzip\fP usage screen.
 .TP
 .B \-f
-freshen existing files, i.e., extract only those files which
-already exist on disk and which are newer than the disk copies.  By
+freshen existing files, i.e., extract only those files that
+already exist on disk and that are newer than the disk copies.  By
 default \fIunzip\fP queries before overwriting, but the \fB\-o\fP option
 may be used to suppress the queries.  Note that under many operating systems,
 the TZ (timezone) environment variable must be set correctly in order for 
@@ -128,11 +127,13 @@ adjustment for Daylight Savings Time or ``summer time'').
 .B \-l
 list archive files (short format).  The names, uncompressed file sizes and
 modification dates and times of the specified files are printed, along
-with totals for all files specified.  In addition, the zipfile comment and 
-individual file comments (if any) are displayed.  If a file was archived 
-from a single-case file system (for example, the old MS-DOS FAT file system) 
-and the \fB\-L\fP option was given, the filename is converted to lowercase 
-and is prefixed with a caret (^).
+with totals for all files specified.  If UnZip was compiled with OS2_EAS
+defined, the \fB\-l\fP option also lists columns for the sizes of stored
+OS/2 extended attributes (EAs) and OS/2 access control lists (ACLs).  In 
+addition, the zipfile comment and individual file comments (if any) are 
+displayed.  If a file was archived from a single-case file system (for 
+example, the old MS-DOS FAT file system) and the \fB\-L\fP option was given,
+the filename is converted to lowercase and is prefixed with a caret (^).
 .TP
 .B \-p
 extract files to pipe (stdout).  Nothing but the file data is sent to
@@ -147,15 +148,15 @@ the expanded file with the original file's stored CRC value.
 .B \-u
 update existing files and create new ones if needed.  This option performs
 the same function as the \fB\-f\fP option, extracting (with query) files
-which are newer than those with the same name on disk, and in addition it
-extracts those files which do not already exist on disk.  See \fB\-f\fP 
+that are newer than those with the same name on disk, and in addition it
+extracts those files that do not already exist on disk.  See \fB\-f\fP 
 above for information on setting the timezone properly.
 .TP
 .B \-v
 be verbose or print diagnostic version info.  This option has evolved and
 now behaves as both an option and a modifier.  As an option it has two
-purposes:  when a zipfile is specified with no other options, \fB\-v\fP
-lists archive files verbosely, adding to the \fB\-l\fP info the compression 
+purposes:  when a zipfile is specified with no other options, \fB\-v\fP lists
+archive files verbosely, adding to the basic \fB\-l\fP info the compression 
 method, compressed size, compression ratio and 32-bit CRC.  When no zipfile
 is specified (that is, the complete command is simply ``\fCunzip -v\fR''), a
 diagnostic screen is printed.  In addition to the normal header with release
@@ -163,9 +164,9 @@ date and version, \fIunzip\fP lists the home Info-ZIP ftp site and where to
 find a list of other ftp and non-ftp sites; the target operating system for 
 which it was compiled, as well as (possibly) the hardware on which it was 
 compiled, the compiler and version used, and the compilation date; any special 
-compilation options which might affect the program's operation (see also
+compilation options that might affect the program's operation (see also
 \fBDECRYPTION\fP below); and any options stored in environment variables 
-which might do the same (see \fBENVIRONMENT OPTIONS\fP below).  As a
+that might do the same (see \fBENVIRONMENT OPTIONS\fP below).  As a
 modifier it works in conjunction with other options (e.g., \fB\-t\fP) to
 produce more verbose or debugging output; this is not yet fully implemented
 but will be in future releases.
@@ -200,7 +201,7 @@ treat all files as binary (no text conversions).  This is a shortcut for
 .B \-C
 match filenames case-insensitively.  \fIunzip\fP's philosophy is ``you get
 what you ask for'' (this is also responsible for the \fB\-L\fP/\fB\-U\fP 
-change; see the relevant options below).  Because some filesystems are fully
+change; see the relevant options below).  Because some file systems are fully
 case-sensitive (notably those under the Unix operating system) and because
 both ZIP archives and \fIunzip\fP itself are portable across platforms,
 \fIunzip\fP's default behavior is to match both wildcard and literal filenames
@@ -208,7 +209,7 @@ case-sensitively.  That is, specifying ``\fCmakefile\fR'' on the command line
 will \fIonly\fP match ``makefile'' in the archive, not ``Makefile'' or
 ``MAKEFILE'' (and similarly for wildcard specifications).  Since this does
 not correspond to the behavior of many other operating/file systems (for 
-example, OS/2 HPFS which preserves mixed case but is not sensitive to it),
+example, OS/2 HPFS, which preserves mixed case but is not sensitive to it),
 the \fB\-C\fP option may be used to force all filename matches to be 
 case-insensitive.  In the example above, all three files would then match 
 ``\fCmakefile\fR'' (or ``\fCmake*\fR'', or similar).  The \fB\-C\fP option
@@ -220,22 +221,35 @@ are deposited in the extraction directory (by default, the current one).
 .TP
 .B \-L
 convert to lowercase any filename originating on an uppercase-only operating 
-system or filesystem.  (This was \fIunzip\fP's default behavior in releases 
+system or file system.  (This was \fIunzip\fP's default behavior in releases 
 prior to 5.11; the new default behavior is identical to the old behavior with 
 the \fB\-U\fP option, which is now obsolete and will be removed in a future 
 release.)  Depending on the archiver, files archived under single-case 
-filesystems (VMS, old MS-DOS FAT, etc.) may be stored as all-uppercase names; 
+file systems (VMS, old MS-DOS FAT, etc.) may be stored as all-uppercase names; 
 this can be ugly or inconvenient when extracting to a case-preserving 
-filesystem such as OS/2 HPFS or a case-sensitive one such as under
+file system such as OS/2 HPFS or a case-sensitive one such as under
 Unix.  By default \fIunzip\fP lists and extracts such filenames exactly as 
 they're stored (excepting truncation, conversion of unsupported characters, 
 etc.); this option causes the names of all files from certain systems to be 
 converted to lowercase.
 .TP
+.B \-M
+pipe all output through an internal pager similar to the Unix\fImore\fP(1) 
+command.  At the end of a screenful of output, \fIunzip\fP pauses with a
+``\-\-More\-\-'' prompt; the next screenful may be viewed by pressing the
+Enter (Return) key or the space bar.  \fIunzip\fP can be terminated by 
+pressing the ``q'' key and, on some systems, the Enter/Return key.  Unlike
+Unix \fImore\fP(1), there is no forward-searching or editing capability.
+Also, \fIunzip\fP doesn't notice if long lines wrap at the edge of the screen,
+effectively resulting in the printing of two or more lines and the likelihood
+that some text will scroll off the top of the screen before being viewed.
+On some systems the number of available lines on the screen is not detected,
+in which case \fIunzip\fP assumes the height is 24 lines.
+.TP
 .B \-n
 never overwrite existing files.  If a file already exists, skip the extraction
 of that file without prompting.  By default \fIunzip\fP queries before
-extracting any file which already exists; the user may choose to overwrite
+extracting any file that already exists; the user may choose to overwrite
 only the current file, overwrite all files, skip extraction of the current
 file, skip extraction of all existing files, or rename the current file.
 .TP
@@ -246,7 +260,7 @@ use it with care.  (It is often used with \fB\-f\fP, however.)
 .B \-q
 perform operations quietly (\fB\-qq\fP = even quieter).  Ordinarily \fIunzip\fP
 prints the names of the files it's extracting or testing, the extraction
-methods, any file or zipfile comments which may be stored in the archive,
+methods, any file or zipfile comments that may be stored in the archive,
 and possibly a summary when finished with each archive.  The \fB\-q\fP[\fBq\fP]
 options suppress the printing of some or all of these messages.
 .TP
@@ -264,25 +278,33 @@ created under MS-DOS, VMS, etc.  See \fB\-L\fP above.
 .TP
 .B \-V
 retain (VMS) file version numbers.  VMS files can be stored with a version
-number, in the format \fCfile.ext;##\fP.  By default the ``\fC;##\fR'' version 
+number, in the format \fCfile.ext;##\fR.  By default the ``\fC;##\fR'' version 
 numbers are stripped, but this option allows them to be retained.  (On 
-filesystems which limit filenames to particularly short lengths, the version 
+file systems that limit filenames to particularly short lengths, the version 
 numbers may be truncated or stripped regardless of this option.)
 .TP
 .B \-X
-[VMS] restore owner/protection info (may require system privileges).  Ordinary
-file attributes are always restored, but this option allows UICs to be restored
-as well.  [The next version of \fIunzip\fP will support Unix UID/GID info as 
-well, and possibly NT permissions.]
+[VMS, Unix, OS/2] restore owner/protection info (UICs) under VMS, or user and
+group info (UID/GID) under Unix, or access control lists (ACLs) under certain 
+network-enabled versions of OS/2 (Warp Server with IBM LAN Server/Requester
+3.0 to 5.0; Warp Connect with IBM Peer 1.0).  In most cases this will require
+special system privileges; but under Unix, for example, a user who belongs to
+several groups can restore files owned by any of those groups, as long as the
+user IDs match his or her own.  Note that ordinary file attributes are always
+restored; this option applies only to optional, extra ownership info available
+on some operating systems.  [Note that NT's access control lists are probably 
+compatible with OS/2's.  A future release will support cross-platform storage
+and restoration of ACLs.]
 .TP
 .B \-$
-[MS-DOS, OS/2, NT, Amiga] restore the volume label if the extraction medium is
+.\" Amiga support possible eventually, but not yet
+[MS-DOS, OS/2, NT] restore the volume label if the extraction medium is
 removable (e.g., a diskette).  Doubling the option (\fB\-$$\fP) allows fixed
 media (hard disks) to be labelled as well.  By default, volume labels are
 ignored.
 .PD
 .\" =========================================================================
-.SH ENVIRONMENT OPTIONS
+.SH "ENVIRONMENT OPTIONS"
 \fIunzip\fP's default behavior may be modified via options placed in
 an environment variable.  This can be done with any option, but it
 is probably most useful with the \fB\-a\fP, \fB\-L\fP, \fB\-C\fP, \fB\-q\fP, 
@@ -292,7 +314,7 @@ lowercase, make it match names case-insensitively, make it quieter,
 or make it always overwrite or never overwrite files as it extracts
 them.  For example, to make \fIunzip\fP act as quietly as possible, only
 reporting errors, one would use one of the following commands:
-.LP
+.PP
 .DT
 .ft CW
 .in +4n
@@ -305,30 +327,30 @@ reporting errors, one would use one of the following commands:
 .Y "set UNZIP=\-qq\t\fROS/2 or MS-DOS"
 .Y "define UNZIP_OPTS ""\-qq""\t\fRVMS (quotes for \fIlowercase\fP)"
 .PD
-.LP
+.PP
 Environment options are, in effect, considered to be just like any other
 command-line options, except that they are effectively the first options
 on the command line.  To override an environment option, one may use the
 ``minus operator'' to remove it.  For instance, to override one of the 
 quiet-flags in the example above, use the command
-.LP
+.PP
 .Y "unzip \-\-q[\fIother options\fC] zipfile"
-.LP
+.PP
 The first hyphen is the normal
 switch character, and the second is a minus sign, acting on the q option.
 Thus the effect here is to cancel one quantum of quietness.  To cancel
 both quiet flags, two (or more) minuses may be used:
-.LP
+.PP
 .PD 0
 .Y "unzip \-t\-\-q zipfile"
 .Y "unzip \-\-\-qt zipfile"
 .PD
-.LP
+.PP
 (the two are equivalent).  This may seem awkward
 or confusing, but it is reasonably intuitive:  just ignore the first
 hyphen and go from there.  It is also consistent with the behavior of
 Unix \fInice\fP(1).
-.LP
+.PP
 As suggested by the examples above, the default variable names are UNZIP_OPTS 
 for VMS (where the symbol used to install \fIunzip\fP as a foreign command
 would otherwise be confused with the environment variable), and UNZIP
@@ -337,7 +359,7 @@ UNZIPOPT is also accepted (don't ask).  If both UNZIP and UNZIPOPT
 are defined, however, UNZIP takes precedence.  \fIunzip\fP's diagnostic
 option (\fB\-v\fP with no zipfile name) can be used to check the values
 of all four possible \fIunzip\fP and \fIzipinfo\fP environment variables.
-.LP
+.PP
 The timezone variable (TZ) should be set according to the local timezone
 in order for the \fB\-f\fP and \fB\-u\fP to operate correctly.  See the
 description of \fB\-f\fP above for details.  This variable may also be
@@ -352,27 +374,27 @@ Since the crypt sources were written by Europeans, however, they are
 freely available at sites throughout the world; see the file ``Where'' in 
 any Info-ZIP source or binary distribution for locations both inside and
 outside the US.
-.LP
+.PP
 Because of the separate distribution, not all compiled versions of \fIunzip\fP
 support decryption.  To check a version for crypt support, either attempt to
 test or extract an encrypted archive, or else check \fIunzip\fP's diagnostic
 screen (see the \fB\-v\fP option above) for ``\fC[decryption]\fR'' as one of
 the special compilation options.
-.LP
+.PP
 There are no runtime options for decryption; if a zipfile member is encrypted,
 \fIunzip\fP will prompt for the password without echoing what is typed.
 \fIunzip\fP continues to use the same password as long as it appears to be
 valid; it does this by testing a 12-byte header.  The correct password will
 always check out against the header, but there is a 1-in-256 chance that an
 incorrect password will as well.  (This is a security feature of the PKWARE
-zipfile format; it helps prevent brute-force attacks which might otherwise
+zipfile format; it helps prevent brute-force attacks that might otherwise
 gain a large speed advantage by testing only the header.)  In the case that
 an incorrect password is 
 given but it passes the header test anyway, either an incorrect CRC will be 
 generated for the extracted data or else \fIunzip\fP will fail during the 
 extraction because the ``decrypted'' bytes do not constitute a valid 
 compressed data stream.
-.LP
+.PP
 If the first password fails the header check on some file, \fIunzip\fP will
 prompt for another password, and so on until all files are extracted.  If
 a password is not known, entering a null password (that is, just a carriage
@@ -382,7 +404,7 @@ quite true; older versions of \fIzip\fP(1L) and \fIzipcloak\fP(1L) allowed
 null passwords, so \fIunzip\fP checks each encrypted file to see if the null
 password works.  This may result in ``false positives'' and extraction
 errors, as noted above.)
-.LP
+.PP
 Note that there is presently no way to avoid interactive decryption.  This
 is another security feature:  plaintext passwords given on the command line 
 or stored in files constitute a risk because they may be seen by others.
@@ -394,102 +416,103 @@ shenanigans.
 To use \fIunzip\fP to extract all members of the archive \fIletters.zip\fP
 into the current directory and subdirectories below it, creating any
 subdirectories as necessary:
-.LP
+.PP
 .Y "unzip letters"
-.LP
+.PP
 To extract all members of \fIletters.zip\fP into the current directory only:
-.LP
+.PP
 .Y "unzip -j letters"
-.LP
+.PP
 To test \fIletters.zip\fP, printing only a summary message indicating
 whether the archive is OK or not:
-.LP
+.PP
 .Y "unzip -tq letters"
-.LP
+.PP
 To test \fIall\fP zipfiles in the current directory, printing only the
 summaries:
-.LP
+.PP
 .Y "unzip -tq \e*.zip"
-.LP
+.PP
 (The backslash before the asterisk is only required if the shell expands
 wildcards, as in Unix; double quotes could have been used instead, as in
 the source examples below.)\ \ To extract to standard output all members of 
 \fIletters.zip\fP whose names end in \fI.tex\fP, auto-converting to the 
 local end-of-line convention and piping the output into \fImore\fP(1):
-.LP
+.PP
 .Y "unzip \-ca letters \e*.tex | more"
-.LP
+.PP
 To extract the binary file \fIpaper1.dvi\fP to standard output and pipe it 
 to a printing program:
-.LP
+.PP
 .Y "unzip \-p articles paper1.dvi | dvips"
-.LP
+.PP
 To extract all FORTRAN and C source files--*.f, *.c, *.h, and Makefile--into
 the /tmp directory:
-.LP
+.PP
 .Y "unzip source.zip ""*.[fch]"" Makefile -d /tmp"
-.LP
+.PP
 (the double quotes are necessary only in Unix and only if globbing is turned
 on).  To extract all FORTRAN and C source files, regardless of case (e.g.,
 both *.c and *.C, and any makefile, Makefile, MAKEFILE or similar):
-.LP
+.PP
 .Y "unzip \-C source.zip ""*.[fch]"" makefile -d /tmp"
-.LP
+.PP
 To extract any such files but convert any uppercase MS-DOS or VMS names to
 lowercase and convert the line-endings of all of the files to the local
-standard (without respect to any files which might be marked ``binary''):
-.LP
+standard (without respect to any files that might be marked ``binary''):
+.PP
 .Y "unzip \-aaCL source.zip ""*.[fch]"" makefile -d /tmp"
-.LP
+.PP
 To extract only newer versions of the files already in the current 
 directory, without querying (NOTE:  be careful of unzipping in one timezone a 
 zipfile created in another--ZIP archives to date contain no timezone 
 information, and a ``newer'' file from an eastern timezone may, in fact, be
 older):
-.LP
+.PP
 .Y "unzip \-fo sources"
-.LP
+.PP
 To extract newer versions of the files already in the current directory and
 to create any files not already there (same caveat as previous example):
-.LP
+.PP
 .Y "unzip \-uo sources"
-.LP
+.PP
 To display a diagnostic screen showing which \fIunzip\fP and \fIzipinfo\fP
 options are stored in environment variables, whether decryption support was 
 compiled in, the compiler with which \fIunzip\fP was compiled, etc.:
-.LP
+.PP
 .Y "unzip \-v"
-.LP
+.PP
 In the last five examples, assume that UNZIP or UNZIP_OPTS is set to -q.
 To do a singly quiet listing:
-.LP
+.PP
 .Y "unzip \-l file.zip"
-.LP
+.PP
 To do a doubly quiet listing:
-.LP
+.PP
 .Y "unzip \-ql file.zip"
-.LP
+.PP
 (Note that the ``\fC.zip\fR'' is generally not necessary.)  To do a standard
 listing:
-.LP
+.PP
 .PD 0
 .Y "unzip \-\-ql file.zip"
-.LP
+.PP
 or
 .Y "unzip \-l\-q file.zip"
-.LP
+.PP
 or
 .Y "unzip \-l\-\-q file.zip\t\fR(extra minuses don't hurt)"
 .PD
 .\" =========================================================================
 .SH TIPS
 The current maintainer, being a lazy sort, finds it very useful to define
-a pair of aliases:  \fCtt\fP for ``\fCunzip \-tq\fR'' and \fCii\fP for 
+a pair of aliases:  \fCtt\fR for ``\fCunzip \-tq\fR'' and \fCii\fR for 
 ``\fCunzip \-Z\fR'' (or ``\fCzipinfo\fR'').  One may then simply type 
-``\fCtt zipfile\fR'' to test an archive, something which is worth making a 
+``\fCtt zipfile\fR'' to test an archive, something that is worth making a 
 habit of doing.  With luck \fIunzip\fP will report ``\fCNo errors detected 
-in zipfile.zip\fP,'' after which one may breathe a sigh of relief.
-.LP
+in compressed data of zipfile.zip\fR,'' after which one may breathe a sigh
+of relief.
+.PP
 The maintainer also finds it useful to set the UNZIP environment variable
 to ``\fC\-aL\fR'' and is tempted to add ``\fC\-C\fR'' as well.  His ZIPINFO 
 variable is set to ``\fC\-z\fR''.
@@ -526,52 +549,54 @@ the disk is (or was) full during extraction.
 .IP 51
 the end of the ZIP archive was encountered prematurely.
 .RE
-.LP
+.PP
 VMS interprets standard Unix (or PC) return values as other, scarier-looking
-things, so by default \fIunzip\fP always returns 0 (which reportedly gets
-converted into a VMS status of 1--i.e., success).  There are two compilation
-options available to modify or expand upon this behavior:  defining
-RETURN_CODES results in a human-readable explanation of what the real
-error status was (but still with a faked ``success'' exit value), while
-defining RETURN_SEVERITY causes \fIunzip\fP to exit with a ``real'' VMS
-status.  The latter behavior will become the default in future
-versions unless it is found to conflict with officially defined VMS codes.
-The current mapping is as follows:   1 (success) for normal exit, 0x7fff0001
+things, so \fIunzip\fP instead maps them into VMS-style status codes.  The
+current mapping is as follows:   1 (success) for normal exit, 0x7fff0001
 for warning errors, and (0x7fff000? + 16*normal_unzip_exit_status) for all
 other errors, where the `?' is 2 (error) for \fIunzip\fP values 2 and 9-11,
-and 4 (fatal error) for the remaining ones (3-8, 50, 51).  Check the 
-``\fCunzip \-v\fR'' output to see whether RETURN_SEVERITY was defined at 
-compilation time.
+and 4 (fatal error) for the remaining ones (3-8, 50, 51).  In addition,
+there is a compilation option to expand upon this behavior:  defining
+RETURN_CODES results in a human-readable explanation of what the error
+status means.
 .PD
 .\" =========================================================================
 .SH BUGS
-When attempting to extract a corrupted archive, \fIunzip\fP may go into
-an infinite loop and, if not stopped quickly enough, fill all available disk
-space.  Compiling with CHECK_EOF should fix this problem for all zipfiles,
-but the option was introduced too late in the testing process to be made
-the default behavior.  Future versions will be robust enough to fail
-gracefully on damaged archives.  Check the ``\fCunzip \-v\fR'' output to
-see whether CHECK_EOF was defined during compilation.
-.LP
+Multi-part archives are not yet supported, except in conjunction with
+\fIzip\fP.  (All parts must be concatenated together in order, and then
+``\fCzip \-F\fR'' must be performed on the concatenated archive in order
+to ``fix'' it.)  This will definitely be corrected in the next major release.
+.PP
+Archives read from standard input are not yet supported, except with 
+\fIfunzip\fP (and then only the first member of the archive can be extracted).
+.PP
+\fIunzip\fP's \fB\-M\fP (``more'') option is overly simplistic in its handling
+of screen output; as noted above, it fails to detect the wrapping of long lines
+and may thereby cause lines at the top of the screen to be scrolled off before
+being read.  \fIunzip\fP should detect and treat each occurrence of line-wrap
+as one additional line printed.  This requires knowledge of the screen's width
+as well as its height.  In addition, \fIunzip\fP should detect the true screen
+geometry on all systems.
+.PP
 [MS-DOS] When extracting or testing files from an archive on a defective
 floppy diskette, if the ``Fail'' option is chosen from DOS's ``Abort, Retry,
 Fail?'' message, \fIunzip\fP may hang the system, requiring a reboot.  Instead,
 press control-C (or control-Break) to terminate \fIunzip\fP.
-.LP
+.PP
 Under DEC Ultrix, \fIunzip\fP will sometimes fail on long zipfiles (bad CRC,
 not always reproducible).  This is apparently due either to a hardware bug
 (cache memory) or an operating system bug (improper handling of page faults?).
-.LP
+.PP
 Dates and times of stored directories are not restored.
-.LP
+.PP
 [OS/2] Extended attributes for existing directories are never updated.  This
 is a limitation of the operating system; \fIunzip\fP has no way to determine
 whether the stored attributes are newer or older than the existing ones.
-.LP
+.PP
 [VMS] When extracting to another directory, only the \fI[.foo]\fP syntax is
 accepted for the \fB\-d\fP option; the simple Unix \fIfoo\fP syntax is
 silently ignored (as is the less common VMS \fIfoo.dir\fP syntax).
-.LP
+.PP
 [VMS] When the file being extracted already exists, \fIunzip\fP's query only
 allows skipping, overwriting or renaming; there should additionally be a 
 choice for creating a new version of the file.  In fact, the ``overwrite''
@@ -579,23 +604,26 @@ choice does create a new version; the old version is not overwritten or
 deleted.
 .PD
 .\" =========================================================================
-.SH SEE ALSO
+.SH "SEE ALSO"
 \fIfunzip\fP(1L), \fIzip\fP(1L), \fIzipcloak\fP(1L), \fIzipgrep\fP(1L),
 \fIzipinfo\fP(1L), \fIzipnote\fP(1L), \fIzipsplit\fP(1L)
 .PD
 .\" =========================================================================
 .SH AUTHORS
-The primary Info-ZIP authors (current zip-bugs workgroup) are:  Jean-loup
-Gailly (Zip); Greg R. Roelofs (UnZip); Mark Adler (decompression, fUnZip); 
-Kai Uwe Rommel (OS/2); Igor Mandrichenko and Hunter Goatley (VMS); John Bush
-and Paul Kienitz (Amiga); Antoine Verheijen (Macintosh); Chris Herborth 
-(Atari); Henry Gessau (NT); Karl Davis, Sergio Monesi and Evan Shattock 
-(Acorn Archimedes); and Robert Heath (Windows).  The author of the original 
-unzip code upon which Info-ZIP's is based was Samuel H. Smith; Carl Mascott 
-did the first Unix port; and David P. Kirschbaum organized and led Info-ZIP
-in its early days.  The full list of contributors to UnZip has grown quite
-large; please refer to the CONTRIBS file in the UnZip source distribution
-for a relatively complete version.
+The primary Info-ZIP authors (current zip-bugs workgroup) are:  Greg ``Cave
+Newt'' Roelofs (UnZip); Onno van der Linden (Zip); Jean-loup Gailly 
+(compression); Mark Adler (decompression, fUnZip); Christian Spieler (VMS, 
+MS-DOS, shared code, general Zip and UnZip integration); Mike White (Windows 
+GUI, Windows DLLs); Kai Uwe Rommel (OS/2); Paul Kienitz (Amiga, Windows 95); 
+Karl Davis and Sergio Monesi (Acorn RISC OS); George Petrov (MVS, VM/CMS); 
+Harald Denker (Atari, MVS); John Bush (Amiga); Hunter Goatley (VMS); Antoine 
+Verheijen (Macintosh); Chris Herborth (Atari, QNX, BeBox); Johnny Lee (MS-DOS, 
+NT, Windows 95); Steve Salisbury (NT, Windows 95); and Robert Heath (Windows 
+GUI).  The author of the original unzip code upon which Info-ZIP's was based 
+is Samuel H. Smith; Carl Mascott did the first Unix port; and David P. 
+Kirschbaum organized and led Info-ZIP in its early days.  The full list of 
+contributors to UnZip has grown quite large; please refer to the CONTRIBS 
+file in the UnZip source distribution for a relatively complete version.
 .PD
 .\" =========================================================================
 .SH VERSIONS
@@ -626,5 +654,7 @@ Info-ZIP (zip-bugs subgroup, GRR)
 .IP "v5.11\t\ 2 Aug 94"
 Info-ZIP (zip-bugs subgroup, GRR)
 .IP "v5.12\t28 Aug 94"
+Info-ZIP (zip-bugs subgroup, GRR)
+.IP "v5.2\t30 Apr 96"
 Info-ZIP (zip-bugs subgroup, GRR)
 .PD
