@@ -14,54 +14,10 @@
 
 -------------------------------------------------------------------------------
 
-  Copyright in match.c, originally from arcmatch.c, version 1.1 (?):
-
-     * ARC - Archive utility - ARCMATCH
-     * Version 2.17, created on 12/17/85) at 20:32:18
-     * (C) COPYRIGHT 1985 by System Enhancement Associates; ALL RIGHTS RESERVED
-
--------------------------------------------------------------------------------
-
   Copyright in misc.c, applying to UpdateCRC() and crc_32_tab[]:
 
      COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or code
      or tables extracted from it, as desired without restriction.
-
--------------------------------------------------------------------------------
-
-  Copyright in unimplod.c (and UnZip in general?), claimed retroactively by 
-  Carl Mascott, cmascott@world.std.com, 7 November 1991:
-
-     Portions copyright (C) 1989 Carl Mascott.  All rights reserved.
-     Permission is granted to any individual or institution to use,
-     copy, or redistribute this software so long as it is not sold for
-     profit or included with other software that is sold for profit,
-     provided this copyright notice is retained.
-
-  Also noted by Carl Mascott:
-
-     The following routines in unimplod.c were written entirely by me:
-          SortLengths
-          GenerateTrees
-          ReadTree
-
-  Original notes from unzip 2.0a:
-
-     * 12/14/89  C. Mascott  2.0a   adapt for UNIX
-     *              ifdef HIGH_LOW swap bytes in time, date, CRC,
-     *                version needed, bit flag
-     *              implement true s-f trees instead of table
-     *              don't pre-allocate output file space
-     *              implement -t, -v, member file specs
-     *              buffer all input
-     *              change hsize_array_integer to short
-     *              overlap storage used by different comp. methods
-     *              speed up unImplode
-     *              use insertion sort in SortLengths
-     *              define zipfile header structs in a way that
-     *                avoids structure padding on 32-bit machines
-     *              fix "Bad CRC" msg: good/bad CRCs were swapped
-     *              check for write error on output file
 
 -------------------------------------------------------------------------------
 
@@ -89,10 +45,23 @@
      grams note their source.
 
      The function decrypt_member() in extract.c and the password functions
-     in file_io.c were written by Mark Adler.
+     in file_io.c were written by Mark Adler, as were the inflate.c and
+     explode.c modules.
 
      The function mapped_name() in mapname.c was written by David Kirschbaum,
      based on the XXU program by Frank Da Cruz.
+
+     The module match.c was written by J. Kercheval and modified by David
+     Kirschbaum for use in UnZip.
+
+     Original notes from unzip 2.0a by Carl Mascott, cmascott@world.std.com
+     (these are only the modifications which seem still to exist):
+        * 12/14/89  C. Mascott  2.0a   adapt for UNIX
+        *              don't pre-allocate output file space
+        *              implement -t, -v, member file specs
+        *              buffer all input
+        *              fix "Bad CRC" msg: good/bad CRCs were swapped
+        *              check for write error on output file
 
      Most of the remaining routines have contributions from all of us, and
      show it. :-)
@@ -102,27 +71,29 @@
    Info-ZIP comments:
 
    Info-ZIP has very little interest in legal matters, aside from the usual
-   "CYA" sense.  In particular, Info-ZIP makes no claim as to the validity of
-   the fourth copyright notice, which did not appear in any of the original 
-   source code in question.  We do NOT, however, dispute the fact that Mr.
-   Mascott made contributions to unzip--in fact, he was apparently responsi-
-   ble for the original port to Unix on which Info-ZIP UnZip is based.  As
-   an author, his wishes should be honored, regardless of any copyrights.
+   "CYA" sense (that's an acronym, and you can figure it out yourself :-) ).
 
-   Regarding the original copyright by Mr. Smith:  Info-ZIP has attempted to
-   contact Mr. Smith at the BBS formerly listed in the usage screen, in order
-   to comply with his first stipulation; no response was ever received, and 
-   as of early 1992 the number no longer exists (hence was removed from the 
-   usage screen lest it be reassigned to someone else by the phone company).
-   Since the current incarnation of UnZip can be considered "our own"--it
-   bears very little resemblance to his original program, in either content
-   or size :-) --and since we freely distribute the source code, we feel that
-   we are within the bounds of his third stipulation.  In any case, Info-ZIP
-   has acted in good faith, and we hope we are not overstepping our authority.
+   As far as we are aware--and please note that the numerous contributors 
+   and copyright holders make this a little uncertain--the UnZip code is now 
+   "clean" in the sense that an UnZip executable may be distributed with a
+   commercial product SO LONG AS IT IS CLEAR THAT UNZIP IS NOT BEING SOLD,
+   THAT THE SOURCE CODE IS FREELY AVAILABLE, AND THAT THERE ARE NO EXTRA OR
+   HIDDEN CHARGES RESULTING FROM ITS USE BY OR INCLUSION WITH THE COMMERCIAL
+   PRODUCT.  In particular, the retroactive copyright on unimplode.c which
+   Carl Mascott requested we include in UnZip 4.2 is no longer in force, since
+   Mark Adler has rewritten the module in question from scratch (it's about
+   twice as fast, too! :-) ).
 
-   Info-ZIP would *like* UnZip to be distributed with minimal restrictions,
-   and to that end, the authors are working to rewrite portions of the code
-   where time permits.  This is a slow business, however, and it is not a
-   primary concern for most of us.  So don't hold your breath. :-)
+   Regarding the original copyright by Mr. Smith:  Info-ZIP has finally found
+   him again (he's moved to southern California), and he's apparently happy
+   with the current code and restrictions.  More specifically, since the 
+   current incarnation of UnZip can be considered "our own"--it bears very 
+   little resemblance to his original program, in either content or size :-)
+   --and since we freely distribute the source code, we believe that we are 
+   within the bounds of his third stipulation.
+
+   Info-ZIP continues to rewrite portions of the code as time permits, in an
+   effort to eliminate as many of the restrictions (and bugs) as possible.
+   The bugs are our primary concern, however, so don't hold your breath. :-)
 
 ===============================================================================

@@ -1,1 +1,0 @@
-tcc -w -w-eff -a -d -G -O -Z -mt -lt -Ic:\tc\include -Lc:\tc\lib ship.c

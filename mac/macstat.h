@@ -5,7 +5,7 @@
  *****************************************************************/
 
 #include <time.h>
-extern stat();
+extern int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID );
 typedef long dev_t;
 typedef long ino_t;
 typedef long off_t;

@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------
 
-  mac.c
+  macfile.c
 
   This source file is used by the mac port to support commands not available
   directly on the Mac, i.e. mkdir().
@@ -13,10 +13,8 @@
 #include "unzip.h"
 
 #ifdef MACOS
-#ifndef THINK_C
+#ifndef FSFCBLen
 #define FSFCBLen    (*(short *)0x3F6)
-#define CtoPstr     c2pstr
-#define PtoCstr     p2cstr
 #endif
 
 static short wAppVRefNum;
@@ -80,27 +78,34 @@ void macfstest(int vrefnum)
         /* is the disk we're using formatted for HFS? */
         hfsflag = IsHFSDisk(wAppVRefNum);
     }
+    
+    return;
 } /* mactest */
 
-int mkdir(char *path)
+int macmkdir(char *path, short nVRefNum, long lDirID)
 {
     OSErr    err = -1;
 
     if (path != 0 && strlen(path)<256 && hfsflag == true) {
         HParamBlockRec    hpbr;
         Str255    st;
-        short     wVol;
-        long      lDirID;
 
         CtoPstr(path);
-        hpbr.fileParam.ioNamePtr = st;
-        hpbr.fileParam.ioCompletion = NULL;
-        err = PBHGetVol((WDPBPtr)&hpbr, false);
-        if (err == noErr) {
-            wVol = hpbr.wdParam.ioWDVRefNum;
-            lDirID = hpbr.wdParam.ioWDDirID;
+        if ((nVRefNum == 0) && (lDirID == 0))
+        {
+            hpbr.fileParam.ioNamePtr = st;
             hpbr.fileParam.ioCompletion = NULL;
-            hpbr.fileParam.ioVRefNum = wVol;
+            err = PBHGetVol((WDPBPtr)&hpbr, false);
+            nVRefNum = hpbr.wdParam.ioWDVRefNum;
+            lDirID = hpbr.wdParam.ioWDDirID;
+        }
+        else
+        {
+            err = noErr;
+        }
+        if (err == noErr) {
+            hpbr.fileParam.ioCompletion = NULL;
+            hpbr.fileParam.ioVRefNum = nVRefNum;
             hpbr.fileParam.ioDirID = lDirID;
             hpbr.fileParam.ioNamePtr = (StringPtr)path;
             err = PBDirCreate(&hpbr, false);
@@ -111,28 +116,161 @@ int mkdir(char *path)
     return (int)err;
 } /* mkdir */
 
-void SetMacVol(char *pch, short wVRefNum)
+void ResolveMacVol(short nVRefNum, short *pnVRefNum, long *plDirID, StringPtr pst)
 {
-    OSErr err = -1;
+    if (hfsflag)
+    {
+        WDPBRec  wdpbr;
+        Str255   st;
+        OSErr    err;
 
-    if (hfsflag == true) {
-        HParamBlockRec  hpbr;
-        Str255  st;
-
-        hpbr.wdParam.ioCompletion = NULL;
-        hpbr.wdParam.ioNamePtr = st;
-        hpbr.wdParam.ioVRefNum = wVRefNum;
-        hpbr.wdParam.ioWDIndex = 0;
-        hpbr.wdParam.ioWDProcID = 0;
-        hpbr.wdParam.ioWDVRefNum = 0;
-        err = PBGetWDInfo((WDPBPtr)&hpbr, false);
-        if (err == noErr) {
-            hpbr.wdParam.ioCompletion = NULL;
-            hpbr.wdParam.ioNamePtr = NULL;
-            err = PBHSetVol((WDPBPtr)&hpbr, false);
+        wdpbr.ioCompletion = (ProcPtr)NULL;
+        wdpbr.ioNamePtr = st;
+        wdpbr.ioVRefNum = nVRefNum;
+        wdpbr.ioWDIndex = 0;
+        wdpbr.ioWDProcID = 0;
+        wdpbr.ioWDVRefNum = 0;
+        err = PBGetWDInfo( &wdpbr, false );
+        if ( err == noErr )
+        {
+            if (pnVRefNum)
+                *pnVRefNum = wdpbr.ioWDVRefNum;
+            if (plDirID)
+                *plDirID = wdpbr.ioWDDirID;
+            if (pst)
+                BlockMove( st, pst, st[0]+1 );
         }
-    } else {
-        err = SetVol((StringPtr)pch, wVRefNum);
     }
-} /* SetMacVol */
+    else
+    {
+        if (pnVRefNum)
+            *pnVRefNum = nVRefNum;
+        if (plDirID)
+            *plDirID = 0;
+        if (pst)
+            *pst = 0;
+    }
+}
+
+short macopen(char *sz, short nFlags, short nVRefNum, long lDirID)
+{
+    OSErr   err;
+    Str255  st;
+    char    chPerms = (!nFlags) ? fsRdPerm : fsRdWrPerm;
+    short   nFRefNum;
+
+    CtoPstr( sz );
+    BlockMove( sz, st, sz[0]+1 );
+    PtoCstr( sz );
+    if (hfsflag)
+    {
+        if (nFlags > 1)
+            err = HOpenRF( nVRefNum, lDirID, st, chPerms, &nFRefNum);
+        else
+            err = HOpen( nVRefNum, lDirID, st, chPerms, &nFRefNum);
+    }
+    else
+    {
+        /*
+         * Have to use PBxxx style calls since the high level
+         * versions don't support specifying permissions
+         */
+        ParamBlockRec    pbr;
+
+        pbr.ioParam.ioNamePtr = st;
+        pbr.ioParam.ioVRefNum = gnVRefNum;
+        pbr.ioParam.ioVersNum = 0;
+        pbr.ioParam.ioPermssn = chPerms;
+        pbr.ioParam.ioMisc = 0;
+        if (nFlags >1)
+            err = PBOpenRF( &pbr, false );
+        else
+            err = PBOpen( &pbr, false );
+        nFRefNum = pbr.ioParam.ioRefNum;
+    }
+    if ( err )
+        return -1;
+    else
+        return nFRefNum;
+}
+
+short maccreat(char *sz, short nVRefNum, long lDirID, OSType ostCreator, OSType ostType)
+{
+    OSErr   err;
+    Str255  st;
+    FInfo   fi;
+
+    CtoPstr( sz );
+    BlockMove( sz, st, sz[0]+1 );
+    PtoCstr( sz );
+    if (hfsflag)
+    {
+        err = HGetFInfo( nVRefNum, lDirID, st, &fi );
+        if (err == fnfErr)
+            err = HCreate( nVRefNum, lDirID, st, ostCreator, ostType );
+        else if (err == noErr)
+        {
+            fi.fdCreator = ostCreator;
+            fi.fdType = ostType;
+            err = HSetFInfo( nVRefNum, lDirID, st, &fi );
+        }
+    }
+    else
+    {
+        err = GetFInfo( st, nVRefNum, &fi );
+        if (err == fnfErr)
+            err = Create( st, nVRefNum, ostCreator, ostType );
+        else if (err == noErr)
+        {
+            fi.fdCreator = ostCreator;
+            fi.fdType = ostType;
+            err = SetFInfo( st, nVRefNum, &fi );
+        }
+    }
+    if (err == noErr)
+        return noErr;
+    else
+        return -1;
+}
+
+short macread(short nFRefNum, char *pb, unsigned cb)
+{
+    long    lcb = cb;
+
+    (void)FSRead( nFRefNum, &lcb, pb );
+
+    return (short)lcb;
+}
+
+short macwrite(short nFRefNum, char *pb, unsigned cb)
+{
+    long    lcb = cb;
+
+    (void)FSWrite( nFRefNum, &lcb, pb );
+
+    return (short)lcb;
+}
+
+short macclose(short nFRefNum)
+{
+    return FSClose( nFRefNum );
+}
+
+long maclseek(short nFRefNum, long lib, short nMode)
+{
+    ParamBlockRec   pbr;
+
+    if (nMode == SEEK_SET)
+        nMode = fsFromStart;
+    else if (nMode == SEEK_CUR)
+        nMode = fsFromMark;
+    else if (nMode == SEEK_END)
+        nMode = fsFromLEOF;
+    pbr.ioParam.ioRefNum = nFRefNum;
+    pbr.ioParam.ioPosMode = nMode;
+    pbr.ioParam.ioPosOffset = lib;
+    (void)PBSetFPos(&pbr, 0);
+    return pbr.ioParam.ioPosOffset;
+}
+
 #endif /* MACOS */

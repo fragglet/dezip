@@ -1,4 +1,4 @@
-/*--------------------------------------------------------------------------
+/*---------------------------------------------------------------------------
 
   zipinfo.c
 
@@ -17,7 +17,7 @@
 
   Another dandy product from your buddies at Newtware!
 
-  --------------------------------------------------------------------------
+  ---------------------------------------------------------------------------
 
   To compile (partial instructions; some of this stuff doesn't exist yet):
 
@@ -38,27 +38,35 @@
 
      under Macintosh OS:  who knows?
 
-  --------------------------------------------------------------------------
+  ---------------------------------------------------------------------------
 
-  Version:    unzip42.zip (.tar.Z, etc.) for Unix, VMS, OS/2 and MS-DOS
-  Source:     wuarchive.wustl.edu (128.252.135.4) in /mirrors/misc/unix
-              wsmr-simtel20.army.mil (192.88.110.20) in pd1:[misc.unix]
-  Author:     Greg Roelofs, roelofs@amelia.nas.nasa.gov, 23 August 1990
-  Copyright:  none (except that some of the file input/output code comes
-              from unzip, which has its own copyrights, sort of...MY stuff
-              is in the public domain, however)
+  Source:     unzip50.zip (.tar.Z, etc.) for Unix, VMS, OS/2 and MS-DOS; see
+              `Where' in source distribution for ftp, uucp and mail-server
+              sites.
+  Author:     Greg Roelofs, roelofs@nas.nasa.gov, 23 August 1990
+  Copyright:  Portions copyright 1992 Greg Roelofs.  Portions adapted from
+              unzip 3.1.  SizeOfEAs() by Kai Uwe Rommel.
 
-  --------------------------------------------------------------------------*/
-
+  ---------------------------------------------------------------------------*/
 
 
 
 
-#define ZIPINFO
+#ifndef ZIPINFO
+#  define ZIPINFO   /* needed for Unix permissions in non-Unix environments */
+#endif /* !ZIPINFO */
 #include "unzip.h"
 
-#define VERSION  "v0.96k BETA of 20 Mar 92"
+#define VERSION  "v1.0 of 21 August 92"
 
+#define LFLAG    3        /* for short "ls -l" type listing */
+
+#define EAID     0x0009   /* OS/2 EA extra field ID */
+typedef struct {          /* for OS/2 info in OS/2 and non-OS/2 environments */
+    unsigned short nID;
+    unsigned short nSize;
+    ULONG lSize;
+} EAHEADER, *PEAHEADER;
 
 
 
@@ -68,22 +76,24 @@
 /**********************/
 
 #ifdef EBCDIC
-   int  aflag=1;    /* this is so you can read it on the screen  */
-#else               /* (basically, entire program is "unzip -c") */
+   int  aflag=1;        /* this is so you can read it on the screen  */
+#else                   /* (basically, entire program is "unzip -c") */
    int  aflag=0;
 #endif
-int lflag=2;        /* for "ls -l" type listing */
-
+int lflag=(-1);         /* '-1slmv':  listing format */
+int hflag=0;            /* '-h':  header line */
+int tflag=0;            /* '-t':  totals line */
 
 byte *inbuf, *inptr;    /* input buffer (any size is legal) and pointer */
 int incnt;
 
-int zipfd;                      /* zipfile file handle */
+int zipfd;              /* zipfile file handle */
 char zipfn[FILNAMSIZ];
 
 char local_hdr_sig[5] = "\120";    /* remaining signature bytes come later:  */
 char central_hdr_sig[5] = "\120";  /*  must initialize at runtime so zipinfo */
 char end_central_sig[5] = "\120";  /*  executable won't look like a zipfile  */
+char extd_local_sig[5] = "\120";
 
 cdir_file_hdr crec;             /* used in zipinfo.c, misc.c */
 local_file_hdr lrec;
@@ -91,21 +101,18 @@ ecdir_rec ecrec;
 struct stat statbuf;            /* used by main() */
 
 int process_all_files;
+longint real_ecrec_offset, expect_ecrec_offset;
 longint extra_bytes=0;          /* used in zipinfo.c, misc.c */
 longint cur_zipfile_bufstart;   /* find_end_central_dir, readbuf */
 
 min_info info, *pInfo=(&info);
 
-byte *extra_field = NULL;       /* currently used by VMS version only */
-
-
+byte *extra_field = NULL;       /* used by VMS, Mac and OS/2 versions */
 byte *outbuf;                   /* buffer for rle look-back, zipfile comment */
 byte *outout;                   /* scratch pad for ASCII-native trans */
 
 char filename[FILNAMSIZ];
 char sig[5];
-
-
 char *fnames[2] = {"*", NULL};    /* default filenames vector */
 char **fnv = fnames;
 
@@ -114,11 +121,6 @@ static longint ziplen;
 static UWORD hostnum;
 static UWORD methnum;
 static UWORD extnum;
-/*
-    UWORD j, yr, mo, dy, hh, mm, members = 0;
-    ULONG tot_csize = 0L, tot_ucsize = 0L;
- */
-
 
 char *EndSigMsg = "\nwarning:\
   didn't find end-of-central-dir signature at end of central dir.\n";
@@ -151,7 +153,10 @@ main(argc, argv)
     char   *argv[];
 {
     char   *s;
-    int    c, error=FALSE;
+    int    c, error=FALSE, negative=0;
+    int    hflag_slmv=TRUE, hflag_1=FALSE;  /* diff options => diff defaults */
+    int    tflag_slm=TRUE, tflag_1v=FALSE;
+    int    explicit_h=FALSE, explicit_t=FALSE;
 
 
 
@@ -186,21 +191,66 @@ Makefile, or try \"make zipinfo\").\n\n", mach_type[error]);
 #endif /* 0 */
 
 /*---------------------------------------------------------------------------
-    Rip through any command-line options lurking about...
+    Put environment-variable options into the queue, then rip through any
+    command-line options lurking about...
   ---------------------------------------------------------------------------*/
+
+    envargs(&argc, &argv, ENV_ZIPINFO);
 
     while (--argc > 0 && (*++argv)[0] == '-') {
         s = argv[0] + 1;
         while ((c = *s++) != 0) {    /* "!= 0":  prevent Turbo C warning */
             switch (c) {
-                case ('1'):    /* minimum listing:  just names */
-                    lflag = 0;
+                case '-':
+                    ++negative;
                     break;
-                case ('l'):    /* default:  "ls -l" type listing */
-                    lflag = 2;
+                case '1':      /* shortest listing:  just filenames */
+                    if (negative)
+                        lflag = -2, negative = 0;
+                    else
+                        lflag = 1;
                     break;
-                case ('v'):    /* turbo-verbose listing */
-                    lflag = 10;
+                case 'h':      /* header line */
+                    if (negative)
+                        hflag_1 = hflag_slmv = FALSE, negative = 0;
+                    else {
+                        hflag_1 = hflag_slmv = explicit_h = TRUE;
+                        if (lflag == -1)
+                            lflag = 0;
+                    }
+                    break;
+                case 'l':      /* longer form of "ls -l" type listing */
+                    if (negative)
+                        lflag = -2, negative = 0;
+                    else
+                        lflag = 5;
+                    break;
+                case 'm':      /* medium form of "ls -l" type listing */
+                    if (negative)
+                        lflag = -2, negative = 0;
+                    else
+                        lflag = 4;
+                    break;
+                case 's':      /* default:  shorter "ls -l" type listing */
+                    if (negative)
+                        lflag = -2, negative = 0;
+                    else
+                        lflag = 3;
+                    break;
+                case 't':      /* totals line */
+                    if (negative)
+                        tflag_1v = tflag_slm = FALSE, negative = 0;
+                    else {
+                        tflag_1v = tflag_slm = explicit_t = TRUE;
+                        if (lflag == -1)
+                            lflag = 0;
+                    }
+                    break;
+                case 'v':      /* turbo-verbose listing */
+                    if (negative)
+                        lflag = -2, negative = 0;
+                    else
+                        lflag = 10;
                     break;
                 default:
                     error = TRUE;
@@ -210,6 +260,35 @@ Makefile, or try \"make zipinfo\").\n\n", mach_type[error]);
     }
     if ((argc-- == 0) || error)
         RETURN(usage(error));
+
+    if (argc != 0)
+        process_all_files = FALSE;
+    else
+        process_all_files = TRUE;   /* for speed */
+
+    /* if no listing options given (or all negated), or if only -h/-t given
+     * with individual files specified, use default listing format */
+    if ((lflag < 0) || (!process_all_files && (lflag == 0)))
+        lflag = LFLAG;
+
+    /* set header and totals flags to default or specified values */
+    switch (lflag) {
+        case 0:   /* 0:  can only occur if either -t or -h explicitly given; */
+        case 1:   /*  therefore set both flags equal to normally false value */
+            hflag = hflag_1;
+            tflag = tflag_1v;
+            break;
+        case 3:
+        case 4:
+        case 5:
+            hflag = (!process_all_files && !explicit_h)? FALSE : hflag_slmv;
+            tflag = (!process_all_files && !explicit_t)? FALSE : tflag_slm;
+            break;
+        case 10:
+            hflag = hflag_slmv;
+            tflag = tflag_1v;
+            break;
+    }
 
 /*---------------------------------------------------------------------------
     Now get the zipfile name from the command line and see if it exists as a
@@ -222,22 +301,19 @@ Makefile, or try \"make zipinfo\").\n\n", mach_type[error]);
     strcpy(zipfn, *argv++);
     if (stat(zipfn, &statbuf) || (statbuf.st_mode & S_IFMT) == S_IFDIR)
         strcat(zipfn, ZSUFX);
-#if defined(UNIX) && !defined(VMS)   /* Unix executables have no extension-- */
-    else if (statbuf.st_mode & S_IEXEC)  /* might find zip, not zip.zip; etc */
+#if defined(UNIX) && !defined(VMS)  /* Unix executables have no extension-- */
+    else if (statbuf.st_mode & S_IXUSR)  /* might find zip, not zip.zip; etc */
         fprintf(stderr, "\nnote:  file [ %s ] may be an executable\n\n", zipfn);
 #endif /* UNIX && !VMS */
 
-    if (stat(zipfn, &statbuf)) {       /* try again */
+    if (stat(zipfn, &statbuf)) {    /* try again */
         fprintf(stderr, "error:  can't find zipfile [ %s ]\n", zipfn);
-        RETURN(9);                     /* 9:  file not found */
+        RETURN(9);                  /* 9:  file not found */
     } else
         ziplen = statbuf.st_size;
 
-    if (argc != 0) {
+    if (!process_all_files)
         fnv = argv;
-        process_all_files = FALSE;
-    } else
-        process_all_files = TRUE;      /* for speed */
 
 /*---------------------------------------------------------------------------
     Okey dokey, we have everything we need to get started.  Let's roll.
@@ -258,7 +334,7 @@ Makefile, or try \"make zipinfo\").\n\n", mach_type[error]);
 
     RETURN(process_zipfile());  /* keep passing errors back... */
 
-}       /* end main() */
+} /* end main() */
 
 
 
@@ -286,11 +362,15 @@ int usage(error)
     fprintf(usagefp, "\
    ZipInfo:  Zipfile Information Utility %s\n\
    (brought to you by Newtware, Inc., and the fine folks at Info-ZIP)\n\n\
-   Usage:  zipinfo [-1lv] file[.zip] [filespec...]\n", VERSION);
+   Usage:  zipinfo [-1smlvht] file[.zip] [filespec...]\n", VERSION);
     fprintf(usagefp, "\
      -1  list filenames only, one per line (useful for pipes)\n\
-     -l  list files in Unix \"ls -l\" format:  default\n\
-     -v  list files in verbose, multi-page format\n");
+     -s  list zipfile info in short Unix \"ls -l\" format:  default\n\
+     -m  list zipfile info in medium Unix \"ls -l\" format\n\
+     -l  list zipfile info in long Unix \"ls -l\" format\n\
+     -v  list zipfile information in verbose, multi-page format\n\
+     -h  list header line\n\
+     -t  list totals for files listed or for all files\n");
 /*
      -p  disable automatic \"more\" function (for pipes) [not implemented]\n");
  */
@@ -318,7 +398,6 @@ int usage(error)
 int process_zipfile()   /* return PK-type error code */
 {
     int error=0, error_in_archive;
-    longint real_ecrec_offset, expect_ecrec_offset;
 
 
 /*---------------------------------------------------------------------------
@@ -327,38 +406,27 @@ int process_zipfile()   /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
 #ifdef VMS
-    {
-        int rtype;
-
-        VMSmunch(zipfn, GET_RTYPE, (char *)&rtype);
-        if (rtype == FAT$C_VARIABLE) {
-            fprintf(stderr,
-     "\n     Error:  zipfile is in variable-length record format.  Please\n\
-     run \"bilf l %s\" to convert the zipfile to stream-LF\n\
-     record format.  (Both bilf.c and make_bilf.com are included\n\
-     in the VMS unzip distribution.)\n\n", zipfn);
-            return 2;           /* 2:  error in zipfile */
-        }
-        rtype = FAT$C_STREAMLF; /* Unix I/O loves it */
-        VMSmunch(zipfn, CHANGE_RTYPE, (char *)&rtype);
-    }
-#endif
+    if (check_format())         /* check for variable-length format */
+        return 2;               /* 2:  error in zipfile */
+#endif /* VMS */
 
     if (open_input_file())      /* this should never happen, given the */
-        return (9);             /*   stat() test in main(), but... */
+        return 9;               /*   stat() test in main(), but... */
 
 /*---------------------------------------------------------------------------
-    Reconstruct the various PK signature strings; find and process the end-
-    of-central-directory header and the central directory; and close the
-    zipfile.
+    Reconstruct the various PK signature strings, and find and process the
+    end-of-central-directory header.
   ---------------------------------------------------------------------------*/
 
     strcat(local_hdr_sig, LOCAL_HDR_SIG);
     strcat(central_hdr_sig, CENTRAL_HDR_SIG);
     strcat(end_central_sig, END_CENTRAL_SIG);
+    strcat(extd_local_sig, EXTD_LOCAL_SIG);
 
-    if (find_end_central_dir()) /* not found; nothing to do */
-        return (2);             /* 2:  error in zipfile */
+    if (find_end_central_dir()) {   /* not found; nothing to do */
+        close(zipfd);
+        return 2;                   /* 2:  error in zipfile */
+    }
 
     real_ecrec_offset = cur_zipfile_bufstart + (inptr-inbuf);
 #ifdef TEST
@@ -368,12 +436,23 @@ int process_zipfile()   /* return PK-type error code */
       inptr-inbuf, inptr-inbuf);
 #endif
 
-    if ((error_in_archive = process_end_central_dir()) > 1)
-        return (error_in_archive);
+    /* sets expect_ecrec_offset: */
+    if ((error_in_archive = process_end_central_dir()) > 1) {
+        close(zipfd);
+        return error_in_archive;
+    }
 
-    if (ecrec.number_this_disk == ecrec.num_disk_with_start_central_dir) {
-        expect_ecrec_offset = ecrec.offset_start_central_directory +
-                              ecrec.size_central_directory;
+/*---------------------------------------------------------------------------
+    Test the end-of-central-directory info for incompatibilities (multi-disk
+    archives) or inconsistencies (missing or extra bytes in zipfile).
+  ---------------------------------------------------------------------------*/
+
+    if (ecrec.number_this_disk != ecrec.num_disk_with_start_central_dir) {
+        fprintf(stderr, "\n\
+     Zipfile is part of a multi-disk archive, and this is not the disk on\
+     which the central zipfile directory begins.\n");
+        error_in_archive = 11;  /* 11:  no files found */
+    } else {
         if ((extra_bytes = real_ecrec_offset - expect_ecrec_offset) < 0) {
             fprintf(stderr, "\nerror:  missing %ld bytes in zipfile (\
 attempting to process anyway)\n\n", -extra_bytes);
@@ -391,25 +470,60 @@ attempting to process anyway)\n\n");
                 error_in_archive = 1;   /* 1:  warning error */
             }
         }
+
+    /*-----------------------------------------------------------------------
+        Check for empty zipfile and exit now if so.
+      -----------------------------------------------------------------------*/
+
+        if (expect_ecrec_offset == 0L  &&  ecrec.size_central_directory == 0) {
+            printf("%sEmpty zipfile.\n", lflag>9 ? "\n  " : "");
+            close(zipfd);
+            return (error_in_archive > 1)? error_in_archive : 1;
+        }
+
+    /*-----------------------------------------------------------------------
+        Compensate for missing or extra bytes, and seek to where the start
+        of central directory should be.  If header not found, uncompensate
+        and try again (necessary for at least some Atari archives created
+        with STZIP, as well as archives created by J.H. Holm's ZIPSPLIT).
+      -----------------------------------------------------------------------*/
+
+        LSEEK( ecrec.offset_start_central_directory )
+        if ((readbuf(sig, 4) <= 0) || strncmp(sig, central_hdr_sig, 4)) {
+            longint tmp = extra_bytes;
+
+            extra_bytes = 0;
+            LSEEK( ecrec.offset_start_central_directory )
+            if ((readbuf(sig, 4) <= 0) || strncmp(sig, central_hdr_sig, 4)) {
+                fprintf(stderr,
+            "error:  start of central directory not found; zipfile corrupt.\n");
+                fprintf(stderr, ReportMsg);
+                close(zipfd);
+                return 3;           /* 3:  severe error in zipfile */
+            }
+            fprintf(stderr, "error:  reported length of central directory is \
+%d bytes too\n        long (Atari STZIP zipfile?  J.H. Holm ZIPSPLIT zipfile?)\
+.\n        Compensating...\n\n", -tmp);
+            error_in_archive = 2;   /* 2:  (weak) error in zipfile */
+        }
+
+    /*-----------------------------------------------------------------------
+        Seek to the start of the central directory one last time, since we
+        have just read the first entry's signature bytes; then do the central
+        directory and close the zipfile.
+      -----------------------------------------------------------------------*/
+
         LSEEK( ecrec.offset_start_central_directory )
         if ((error = process_central_dir()) > error_in_archive)
             error_in_archive = error;    /* don't overwrite stronger error */
         if (lflag > 9)
             printf("\n");
-    } else {
-        fprintf(stderr, "\n\
-     Zipfile is part of a multi-disk archive, and this is not the disk on\
-     which the central zipfile directory begins.\n");
-        error_in_archive = 11;  /* 11:  no files found */
     }
 
     close(zipfd);
-#ifdef VMS
-    VMSmunch(zipfn, RESTORE_RTYPE, NULL);
-#endif
-    return (error_in_archive);
+    return error_in_archive;
 
-}       /* end function process_zipfile() */
+} /* end function process_zipfile() */
 
 
 
@@ -432,14 +546,13 @@ int find_end_central_dir()   /* return 0 if found, 1 otherwise */
 
     if (ziplen <= INBUFSIZ) {
         lseek(zipfd, 0L, SEEK_SET);
-        if ((incnt = read(zipfd,inbuf,(unsigned int)ziplen)) == ziplen)
-
+        if ((incnt = read(zipfd,inbuf,(unsigned int)ziplen)) == (int)ziplen)
             /* 'P' must be at least 22 bytes from end of zipfile */
-            for ( inptr = inbuf+ziplen-22  ;  inptr >= inbuf  ;  --inptr )
-                if ( (ascii_to_native(*inptr) == 'P')  &&
-                      !strncmp(inptr, end_central_sig, 4) ) {
+            for (inptr = inbuf+(int)ziplen-22;  inptr >= inbuf;  --inptr)
+                if ((ascii_to_native(*inptr) == 'P')  &&
+                     !strncmp((char *)inptr, end_central_sig, 4)) {
                     incnt -= inptr - inbuf;
-                    return(0);  /* found it! */
+                    return 0;   /* found it! */
                 }               /* ...otherwise fall through & fail */
 
 /*---------------------------------------------------------------------------
@@ -450,21 +563,21 @@ int find_end_central_dir()   /* return 0 if found, 1 otherwise */
     } else {
         if ((tail_len = ziplen % INBUFSIZ) > ECREC_SIZE) {
             cur_zipfile_bufstart = lseek(zipfd, ziplen-tail_len, SEEK_SET);
-            if ((incnt = read(zipfd,inbuf,(unsigned int)tail_len)) != tail_len)
-                goto fail;      /* shut up, it's expedient. */
+            if ((incnt = read(zipfd,inbuf,(unsigned int)tail_len)) !=
+                (int)tail_len)
+                goto fail;      /* shut up; it's expedient. */
 
             /* 'P' must be at least 22 bytes from end of zipfile */
-            for ( inptr = inbuf+tail_len-22  ;  inptr >= inbuf  ;  --inptr )
-                if ( (ascii_to_native(*inptr) == 'P')  &&
-                      !strncmp(inptr, end_central_sig, 4) ) {
+            for (inptr = inbuf+(int)tail_len-22;  inptr >= inbuf;  --inptr)
+                if ((ascii_to_native(*inptr) == 'P')  &&
+                     !strncmp((char *)inptr, end_central_sig, 4)) {
                     incnt -= inptr - inbuf;
-                    return(0);  /* found it! */
+                    return 0;   /* found it */
                 }               /* ...otherwise search next block */
-            strncpy(hold, inbuf, 3);    /* sig may span block boundary */
-
-        } else {
+            /* sig may span block boundary: */
+            strncpy((char *)hold, (char *)inbuf, 3);
+        } else
             cur_zipfile_bufstart = ziplen - tail_len;
-        }
 
         /*
          * Loop through blocks of zipfile data, starting at the end and going
@@ -475,28 +588,24 @@ int find_end_central_dir()   /* return 0 if found, 1 otherwise */
          * 
          * zipinfo:  check the whole file, just in case some transfer protocol
          * has appended a whole bunch of garbage at the end of the archive.
-         */
+         *
+         *                =todo=   ==done==   ==rounding==    =blksiz=      */
+        numblks = (int) ((ziplen - tail_len + (INBUFSIZ-1)) / INBUFSIZ);
 
-#ifndef ZIPINFO
-        /*         ==amt to search==   ==done==   ==rounding==    =blksiz= */
-        numblks = (min(ziplen,65557) - tail_len + (INBUFSIZ-1)) / INBUFSIZ;
-#else
-        numblks = (    ziplen        - tail_len + (INBUFSIZ-1)) / INBUFSIZ;
-#endif
-
-        for ( i = 1  ;  i <= numblks  ;  ++i ) {
+        for (i = 1;  i <= numblks;  ++i) {
             cur_zipfile_bufstart -= INBUFSIZ;
             lseek(zipfd, cur_zipfile_bufstart, SEEK_SET);
             if ((incnt = read(zipfd,inbuf,INBUFSIZ)) != INBUFSIZ)
                 break;          /* fall through and fail */
 
-            for ( inptr = inbuf+INBUFSIZ-1  ;  inptr >= inbuf  ;  --inptr )
-                if ( (ascii_to_native(*inptr) == 'P')  &&
-                      !strncmp(inptr, end_central_sig, 4) ) {
+            for (inptr = inbuf+INBUFSIZ-1;  inptr >= inbuf;  --inptr)
+                if ((ascii_to_native(*inptr) == 'P')  &&
+                     !strncmp((char *)inptr, end_central_sig, 4)) {
                     incnt -= inptr - inbuf;
-                    return(0);  /* found it! */
+                    return 0;   /* found it */
                 }
-            strncpy(hold, inbuf, 3);    /* sig may span block boundary */
+            /* sig may span block boundary: */
+            strncpy((char *)hold, (char *)inbuf, 3);
         }
 
     } /* end if (ziplen > INBUFSIZ) */
@@ -509,13 +618,14 @@ int find_end_central_dir()   /* return 0 if found, 1 otherwise */
 fail:
 
     fprintf(stderr, "\n\
+     %s:\n\n\
      End-of-central-directory signature not found.  Either this file is not\n\
      a zipfile, or it constitutes one disk of a multi-part archive.  In the\n\
      latter case the central directory and zipfile comment will be found on\n\
-     the last disk(s) of this archive.\n");
-    return(1);          /* failed */
+     the last disk(s) of this archive.\n", zipfn);
+    return 1;   /* failed */
 
-}       /* end function find_end_central_dir() */
+} /* end function find_end_central_dir() */
 
 
 
@@ -537,8 +647,8 @@ int process_end_central_dir()   /* return PK-type error code */
     copying character array to struct.
   ---------------------------------------------------------------------------*/
 
-    if (readbuf((char *) byterec, ECREC_SIZE+4) <= 0)
-        return (51);
+    if (readbuf((char *)byterec, ECREC_SIZE+4) <= 0)
+        return 51;
 
     ecrec.number_this_disk =
         makeword(&byterec[NUMBER_THIS_DISK]);
@@ -555,27 +665,38 @@ int process_end_central_dir()   /* return PK-type error code */
     ecrec.zipfile_comment_length =
         makeword(&byterec[ZIPFILE_COMMENT_LENGTH]);
 
+    expect_ecrec_offset = ecrec.offset_start_central_directory +
+                           ecrec.size_central_directory;
+
 /*---------------------------------------------------------------------------
     Print out various interesting things about the zipfile.
   ---------------------------------------------------------------------------*/
 
-    if (lflag == 2) {
-        if (process_all_files)
-           /* fits on one line, for anything up to 10GB and 10000 files */
-           printf((strlen(zipfn)<39)? "Archive:  %s   %ld bytes   %d file%s\n"
-             : "Archive:  %s   %ld   %d\n", zipfn, ziplen,
-             ecrec.total_entries_central_dir,
-             (ecrec.total_entries_central_dir==1)? "":"s");
-    } else if (lflag > 9) {   /* verbose format */
+    /* header fits on one line, for anything up to 10GB and 10000 files: */
+    if (hflag)
+        printf((strlen(zipfn)<39)? "Archive:  %s   %ld bytes   %d file%s\n"
+          : "Archive:  %s   %ld   %d\n", zipfn, ziplen,
+          ecrec.total_entries_central_dir,
+          (ecrec.total_entries_central_dir==1)? "":"s");
+
+    /* verbose format */
+    if (lflag > 9) {
         printf("\nEnd-of-central-directory record:\n");
         printf("-------------------------------\n\n");
+
+        printf("\
+  Actual offset of end-of-central-dir record:   %9ld (%.8lXh)\n\
+  Expected offset of end-of-central-dir record: %9ld (%.8lXh)\n\
+  (based on the length of the central directory and its expected offset)\n\n",
+          expect_ecrec_offset, expect_ecrec_offset,
+          real_ecrec_offset, real_ecrec_offset);
 
         if (ecrec.number_this_disk == 0) {
             printf("\
   This zipfile constitutes the sole disk of a single-part archive; its\n\
   central directory contains %u %s.  The central directory is %lu\n\
-  (%.8lXh) bytes long, and its offset in bytes from the beginning of\n\
-  the zipfile is %lu (%.8lXh).\n\n",
+  (%.8lXh) bytes long, and its (expected) offset in bytes from the\n\
+  beginning of the zipfile is %lu (%.8lXh).\n\n",
               ecrec.total_entries_central_dir,
               (ecrec.total_entries_central_dir == 1)? "entry" : "entries",
               ecrec.size_central_directory, ecrec.size_central_directory,
@@ -622,22 +743,22 @@ int process_end_central_dir()   /* return PK-type error code */
 
     return error;
 
-}       /* end function process_end_central_dir() */
+} /* end function process_end_central_dir() */
 
 
 
 
 
-/******************************************/
-/*  Function process_central_directory()  */
-/******************************************/
+/************************************/
+/*  Function process_central_dir()  */
+/************************************/
 
 int process_central_dir()   /* return PK-type error code */
 {
     char    **fnamev;
     int     do_this_file=FALSE, none_found=TRUE, error, error_in_archive=0;
     UWORD   j, members=0;
-    ULONG   tot_csize=0L, tot_ucsize=0L;
+    ULONG   c=0L, uc=0L;
 
 
 /*---------------------------------------------------------------------------
@@ -656,17 +777,17 @@ int process_central_dir()   /* return PK-type error code */
 
     for (j = 0;  j < ecrec.total_entries_central_dir;  ++j) {
         if (readbuf(sig, 4) <= 0)
-            return (51);        /* 51:  unexpected EOF */
+            return 51;          /* 51:  unexpected EOF */
         if (strncmp(sig, central_hdr_sig, 4)) {  /* just to make sure */
             fprintf(stderr, CentSigMsg, j);  /* sig not found */
-            return (3);         /* 3:  error in zipfile */
+            return 3;           /* 3:  error in zipfile */
         }
         if ((error = process_cdir_file_hdr()) != 0)
-            return (error);     /* only 51 (EOF) defined */
+            return error;       /* only 51 (EOF) defined */
         if ((error = do_string(crec.filename_length, FILENAME)) != 0) {
           error_in_archive = error;   /* might be warning */
           if (error > 1)        /* fatal */
-              return (error);
+              return error;
         }
 
         if (!process_all_files) {   /* check if specified on command line */
@@ -688,17 +809,19 @@ int process_central_dir()   /* return PK-type error code */
 
         if (process_all_files || do_this_file) {
             switch (lflag) {
-                case 0:
+                case 1:
                     printf("%s\n", filename);
                     SKIP_(crec.extra_field_length)
                     SKIP_(crec.file_comment_length)
                     break;
 
-                case 2:
+                case 3:
+                case 4:
+                case 5:
                     if ((error = short_info()) != 0) {
                         error_in_archive = error;   /* might be warning */
                         if (error > 1)              /* fatal */
-                            return (error);
+                            return error;
                     }
                     break;
 
@@ -714,7 +837,7 @@ int process_central_dir()   /* return PK-type error code */
                     if ((error = long_info()) != 0) {
                       error_in_archive = error;   /* might be warning */
                       if (error > 1)              /* fatal */
-                          return (error);
+                          return error;
                     }
                     break;
 
@@ -725,8 +848,10 @@ int process_central_dir()   /* return PK-type error code */
 
             } /* end switch (lflag) */
 
-            tot_ucsize += crec.uncompressed_size;
-            tot_csize += crec.compressed_size;
+            uc += crec.uncompressed_size;
+            c += crec.compressed_size;
+            if (crec.general_purpose_bit_flag & 1)
+                c -= 12;    /* if encrypted, don't count encryption header */
             ++members;
 
         } else {   /* not listing */
@@ -748,17 +873,22 @@ int process_central_dir()   /* return PK-type error code */
     }
 
 /*---------------------------------------------------------------------------
-    Check that we actually found requested files.
+    Check that we actually found requested files; if so, print totals.
   ---------------------------------------------------------------------------*/
 
     if (none_found && !process_all_files) {
         fnamev = fnv;       /* don't destroy permanent filename ptr */
         for (--fnamev;  *++fnamev; )
             printf("zipinfo:  %s not found in %s\n", *fnamev, zipfn);
-    }
+    } else if (tflag)
+        printf(
+          "%d file%s, %lu bytes uncompressed, %lu bytes compressed:  %d%%\n",
+          members, (members==1)? "":"s", uc, c, (uc==0)? 0 : ((uc>2000000L)?
+          ((int)((uc-c)/(uc/1000L))+5)/10 : ((int)((1000L*(uc-c))/uc)+5)/10) );
 
-    return (error_in_archive);
-}
+    return error_in_archive;
+
+} /* end function process_central_dir() */
 
 
 
@@ -781,7 +911,7 @@ int process_cdir_file_hdr()   /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     if (readbuf((char *) byterec, CREC_SIZE) <= 0)
-        return (51);            /* 51:  unexpected EOF */
+        return 51;   /* 51:  unexpected EOF */
 
     crec.version_made_by[0] = byterec[C_VERSION_MADE_BY_0];
     crec.version_made_by[1] = byterec[C_VERSION_MADE_BY_1];
@@ -817,7 +947,7 @@ int process_cdir_file_hdr()   /* return PK-type error code */
     crec.relative_offset_local_header =
         makelong(&byterec[C_RELATIVE_OFFSET_LOCAL_HEADER]);
 
-    return (0);
+    return 0;
 
 } /* end function process_cdir_file_hdr() */
 
@@ -848,11 +978,11 @@ int long_info()   /* return PK-type error code */
     Print out various interesting things about the compressed file.
   ---------------------------------------------------------------------------*/
 
-    hostnum = min(crec.version_made_by[1], NUM_HOSTS);
+    hostnum = MIN(crec.version_made_by[1], NUM_HOSTS);
     hostver = crec.version_made_by[0];
-    extnum = min(crec.version_needed_to_extract[1], NUM_HOSTS);
+    extnum = MIN(crec.version_needed_to_extract[1], NUM_HOSTS);
     extver = crec.version_needed_to_extract[0];
-    methnum = min(crec.compression_method, NUM_METHODS);
+    methnum = MIN(crec.compression_method, NUM_METHODS);
     if (methnum == NUM_METHODS)
         sprintf(unkn, "unknown (%d)", crec.compression_method);
 
@@ -905,7 +1035,7 @@ int long_info()   /* return PK-type error code */
     printf("  external file attributes (hex):                   %.8lx\n",
       crec.external_file_attributes);
  */
-    xattr = (crec.external_file_attributes >> 16) & 0xFFFF;
+    xattr = (UWORD) ((crec.external_file_attributes >> 16) & 0xFFFF);
     if (hostnum == VMS_) {
         char   *p=attribs, *q=attribs+1;
         int    i, j, k;
@@ -1023,7 +1153,7 @@ int long_info()   /* return PK-type error code */
 
     } /* endif (hostnum: external attributes format) */
 
-    if ((xattr=crec.external_file_attributes & 0xFF) == 0)
+    if ((xattr=(UWORD)(crec.external_file_attributes & 0xFF)) == 0)
         printf("  MS-DOS file attributes (%02X hex):                  none\n",
           xattr);
     else if (xattr == 1)
@@ -1046,8 +1176,25 @@ int long_info()   /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     if (crec.extra_field_length > 0) {
+/* #ifdef OS2 */
+#if TRUE
+        ULONG ea_size;
+        if ((error = do_string(crec.extra_field_length, EXTRA_FIELD)) != 0) {
+            error_in_archive = error;
+            if (error > 1)      /* fatal:  can't continue */
+                return (error);
+        }
+        if ((ea_size = SizeOfEAs(extra_field)) != 0)
+            printf("\n\
+  This file has %lu bytes of OS/2 EA's in the local extra field.\n\
+  (May not match OS/2 \"dir\" amount due to storage method.)\n\n",
+              ea_size);
+        else
+            printf("\n  There is an unknown extra field (skipping).\n");
+#else
         printf("\n  There is an extra field (skipping).\n");
         SKIP_(crec.extra_field_length)
+#endif
     } else
         printf("\n");
 
@@ -1059,15 +1206,34 @@ int long_info()   /* return PK-type error code */
         if ((error = do_string(crec.file_comment_length, DISPLAY)) != 0) {
           error_in_archive = error;   /* might be warning */
           if (error > 1)      /* fatal */
-              return (error);
+              return error;
         }
         printf("\n\
 -------------------------- file comment ends -----------------------------\n");
     }
 
-    return (error_in_archive);
+    return error_in_archive;
 
 } /* end function long_info() */
+
+
+
+
+
+/**************************/
+/*  Function SizeOfEAs()  */
+/**************************/
+
+ULONG SizeOfEAs(extra_field)   /* Author: Kai Uwe Rommel */
+    void   *extra_field;
+{
+    EAHEADER *pEAblock = (PEAHEADER) extra_field;
+
+    if ( extra_field != NULL && pEAblock -> nID == EAID )
+      return pEAblock -> lSize;
+
+    return 0L;
+}
 
 
 
@@ -1094,11 +1260,11 @@ int short_info()   /* return PK-type error code */
     Print out various interesting things about the compressed file.
   ---------------------------------------------------------------------------*/
 
-    methnum = min(crec.compression_method, NUM_METHODS);
-    hostnum = min(crec.version_made_by[1], NUM_HOSTS);
+    methnum = MIN(crec.compression_method, NUM_METHODS);
+    hostnum = MIN(crec.version_made_by[1], NUM_HOSTS);
     hostver = crec.version_made_by[0];
 /*
-    extnum = min(crec.version_needed_to_extract[1], NUM_HOSTS);
+    extnum = MIN(crec.version_needed_to_extract[1], NUM_HOSTS);
     extver = crec.version_needed_to_extract[0];
  */
 
@@ -1116,7 +1282,7 @@ int short_info()   /* return PK-type error code */
         attribs[k] = ' ';
     attribs[15] = 0;
 
-    xattr = (crec.external_file_attributes >> 16) & 0xFFFF;
+    xattr = (UWORD) ((crec.external_file_attributes >> 16) & 0xFFFF);
     switch (hostnum) {
       case VMS_:
           {   char   *p=attribs;
@@ -1163,7 +1329,7 @@ int short_info()   /* return PK-type error code */
 
       case DOS_OS2_FAT_:
       case OS2_HPFS_:
-          xattr = crec.external_file_attributes & 0xFF;
+          xattr = (UWORD) (crec.external_file_attributes & 0xFF);
           sprintf(attribs, "%s,%s,%s,%s", (xattr&32)?"arc":"",
             (xattr&2)?"hid":"", (xattr&1)?"rdo":"rw", (xattr&4)?"sys":"");
           if ((k = strlen(attribs)) < 15)
@@ -1242,13 +1408,25 @@ int short_info()   /* return PK-type error code */
 
     } /* end switch (hostnum: external attributes format) */
 
-    printf("%s %s %7lu %c%c %7lu %s %s %s\n", attribs, os[hostnum], 
-      crec.uncompressed_size, (crec.general_purpose_bit_flag & 1)?
+    printf("%s %s %7lu %c%c", attribs, os[hostnum], crec.uncompressed_size,
+      (crec.general_purpose_bit_flag & 1)?
       ((crec.internal_file_attributes & 1)? 'T' : 'B') :   /* encrypted */
       ((crec.internal_file_attributes & 1)? 't' : 'b'),    /* plaintext */
       (crec.general_purpose_bit_flag & 8)? (crec.extra_field_length? 'X' : 'l')
-                                         : (crec.extra_field_length? 'x' : '-'),
-      crec.compressed_size, method[methnum],
+                                        : (crec.extra_field_length? 'x' : '-'));
+    if (lflag == 4) {
+        longint c = (longint) crec.compressed_size;
+        longint uc = (longint) crec.uncompressed_size;
+
+        if (crec.general_purpose_bit_flag & 1)
+            c -= 12;    /* if encrypted, don't count encryption header */
+        /* risk signed overflow if blindly multiply: */
+        printf("%3d%%", (uc==0)? 0 : ((uc>2000000L)?
+          ((int)((uc-c)/(uc/1000L))+5)/10 : ((int)((1000L*(uc-c))/uc)+5)/10) );
+    } else if (lflag == 5)
+        printf(" %7lu", crec.compressed_size);
+
+    printf(" %s %s %s\n", method[methnum],
       zipinfo_time(&crec.last_mod_file_date, &crec.last_mod_file_time),
       filename);
 
@@ -1260,7 +1438,7 @@ int short_info()   /* return PK-type error code */
     SKIP_(crec.extra_field_length)
     SKIP_(crec.file_comment_length)
 
-    return (error_in_archive);
+    return error_in_archive;
 
 } /* end function short_info() */
 
@@ -1295,13 +1473,13 @@ char *zipinfo_time(datez, timez)
     mm = (*timez >> 5) & 0x3f;
     ss = (*timez & 0x1f) * 2;
 
-    if (lflag == 2)
+    if ((lflag >= 3) && (lflag <= 5))
         sprintf(d_t_str, "%2u-%s-%u %02u:%02u", dy, month[mo], yr, hh, mm);
     else if (lflag > 9)  /* verbose listing format */
         sprintf(d_t_str, "%u %s %u %02u:%02u:%02u", dy, month[mo], yr+1900,
           hh, mm, ss);
 
-    return(d_t_str);
+    return d_t_str;
 
 } /* end function zipinfo_time() */
 
@@ -1313,24 +1491,33 @@ char *zipinfo_time(datez, timez)
 /*  Function open_input_file()  */
 /********************************/
 
-int open_input_file()
-{                               /* return non-0 if open failed */
+int open_input_file()   /* return 1 if open failed */
+{
     /*
      *  open the zipfile for reading and in BINARY mode to prevent cr/lf
      *  translation, which would corrupt the bitstreams
      */
 
-#ifndef UNIX
-    zipfd = open(zipfn, O_RDONLY | O_BINARY);
-#else
+#ifdef VMS
+    zipfd = open(zipfn, O_RDONLY, 0, "ctx=stm");
+#else /* !VMS */
+#ifdef UNIX
     zipfd = open(zipfn, O_RDONLY);
-#endif
+#else /* !UNIX */
+#ifdef MACOS
+    zipfd = open(zipfn, 0);
+#else /* !MACOS */
+    zipfd = open(zipfn, O_RDONLY | O_BINARY);
+#endif /* ?MACOS */
+#endif /* ?UNIX */
+#endif /* ?VMS */
     if (zipfd < 1) {
         fprintf(stderr, "error:  can't open zipfile [ %s ]\n", zipfn);
-        return (1);
+        return 1;
     }
     return 0;
-}
+
+} /* end function open_input_file() */
 
 
 
@@ -1340,10 +1527,10 @@ int open_input_file()
 /*  Function readbuf()  */
 /************************/
 
-int readbuf(buf, size)
+int readbuf(buf, size)   /* return number of bytes read into buf */
     char *buf;
     register unsigned size;
-{                               /* return number of bytes read into buf */
+{
     register int count;
     int n;
 
@@ -1356,12 +1543,13 @@ int readbuf(buf, size)
             cur_zipfile_bufstart += INBUFSIZ;
             inptr = inbuf;
         }
-        count = min(size, incnt);
+        count = MIN(size, (unsigned)incnt);
         memcpy(buf, inptr, count);
         buf += count;
         inptr += count;
         incnt -= count;
         size -= count;
     }
-    return (n);
-}
+    return n;
+
+} /* end function readbuf() */

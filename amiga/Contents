@@ -1,10 +1,8 @@
-Contents of the AMIGA sub-archive for UnZip 4.2 and later:
+Contents of the AMIGA sub-archive for UnZip 5.0 and later:
 
   Contents      this file
-  DMakefile     DICE compiler makefile for regular UnZip
-  DMakefile.cr  DICE compiler makefile for UnZip with decryption (need crypt.c)
-  lmkfile       SAS/C makefile for regular UnZip
-  lmkfile.cr    SAS/C makefile for UnZip with decryption (need crypt.c)
+  DMakefile     DICE compiler makefile for UnZip
+  lmkfile       SAS/C makefile for UnZip
   patch.pw      Paul Wells _TZ patch, subsequently modified (see below)
   readme.pw     Paul Wells comments
   stat.c        stat() function for Paul Wells port

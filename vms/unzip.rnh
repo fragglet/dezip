@@ -19,6 +19,10 @@
 .!		Genesis.
 .!	01-002		Cave Newt		16-MAR-1992 22:37
 .!		Update for UnZip 4.2.
+.!	01-003		Igor Mandrichenko	23-MAY-1992 22:14
+.!		Add -X option to command syntax.
+.!	01-004		Cave Newt		24-MAY-1992 13:30
+.!		Add UNZIP_OPTS environment variable help.
 .!
 .noflags
 .lm4 .rm72
@@ -53,7 +57,7 @@ expression, and may contain:
 .sk
 Format:
 .sk;.lm+1;.literal
-UNZIP [-cflptuvxz[ajnoqUV]] file[.zip] [filespec...]
+UNZIP [-cflptuvxz[ajnoqUVX]] file[.zip] [filespec...]
 .end literal;.lm-1
 .!------------------------------------------------------------------------------
 .indent -4
@@ -97,7 +101,30 @@ options and modifiers can be provided:
    -U   leave filenames uppercase if created under MS-DOS, VMS, etc.
    -V   retain (VMS) file version numbers
    -X   restore owner/protection info (may require privileges)
+.end literal;.sk
+! [this should probably be a separate section]:
+In addition, default options may be specified via the UNZIP_OPTS logical.
+For example, the following will cause UnZip to restore owner/protection
+information and perform all operations at quiet-level 1 by default:
+.sk;.literal
+    define UNZIP_OPTS "-qX"
+.end literal;.sk
+Note that the quotation marks are required to preserve lowercase options.
+To negate a default option on the command line, add one or more minus 
+signs before the option letter, in addition to the leading switch character
+`-':
+.sk;.literal
+    unzip --ql zipfile
 .end literal
+or
+.literal
+    unzip -l-q zipfile
+.end literal;.sk
+At present it is not possible to decrement an option below zero--that is,
+more than a few minuses have no effect.
+.sk
+UNZIP_OPTS may be defined as a symbol rather than a logical, but if both
+are defined, the logical is used.
 .!-----------------------------------------------------------------------------
 .indent -4
 2 Authors

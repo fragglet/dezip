@@ -22,6 +22,7 @@
 typedef byte f_array[64];       /* for followers[256][64] */
 
 static void LoadFollowers __((void));
+void flush OF((unsigned));      /* routine from inflate.c */
 
 
 
@@ -29,7 +30,12 @@ static void LoadFollowers __((void));
 /*  UnReduce Global Variables  */
 /*******************************/
 
-f_array *followers = (f_array *) prefix_of;     /* shared work space */
+#if (defined(MACOS) || defined(MTS))
+   f_array *followers;     /* shared work space */
+#else
+   f_array *followers = (f_array *) (slide + 0x4000);
+#endif
+
 byte Slen[256];
 int factor;
 
@@ -66,21 +72,26 @@ int B_table[] =
 /*  Function unReduce()  */
 /*************************/
 
-void unReduce()
- /* expand probabilistically reduced data */
+void unReduce()   /* expand probabilistically reduced data */
 {
-    register int lchar;
+    register int lchar = 0;
     int nchar;
-    int ExState;
-    int V;
-    int Len;
+    int ExState = 0;
+    int V = 0;
+    int Len = 0;
+    longint s = ucsize;  /* number of bytes left to decompress */
+    unsigned w = 0;      /* position in output window slide[] */
+    unsigned u = 1;      /* true if slide[] unflushed */
+
+
+#if (defined(MACOS) || defined(MTS))
+    followers = (f_array *) (slide + 0x4000);
+#endif
 
     factor = lrec.compression_method - 1;
-    ExState = 0;
-    lchar = 0;
     LoadFollowers();
 
-    while (((outpos + outcnt) < ucsize) && (!zipeof)) {
+    while (s > 0 /* && (!zipeof) */) {
         if (Slen[lchar] == 0)
             READBIT(8, nchar)   /* ; */
         else {
@@ -98,8 +109,14 @@ void unReduce()
         switch (ExState) {
 
         case 0:
-            if (nchar != DLE)
-                OUTB(nchar)     /*;*/
+            if (nchar != DLE) {
+                s--;
+                slide[w++] = (byte) nchar;
+                if (w == 0x4000) {
+                    flush(w);
+                    w = u = 0;
+                }
+            }
             else
                 ExState = 1;
             break;
@@ -113,7 +130,13 @@ void unReduce()
                 else
                     ExState = 3;
             } else {
-                OUTB(DLE);
+                s--;
+                slide[w++] = DLE;
+                if (w == 0x4000)
+                {
+                  flush(w);
+                  w = u = 0;
+                }
                 ExState = 0;
             }
             break;
@@ -125,37 +148,38 @@ void unReduce()
             break;
 
         case 3:{
-                register int i = Len + 3;
-                int offset = (((V >> D_shift[factor]) &
-                               D_mask[factor]) << 8) + nchar + 1;
-                longint op = (outpos + outcnt) - offset;
+                register unsigned e;
+                register unsigned n = Len + 3;
+                register unsigned d = w - ((((V >> D_shift[factor]) &
+                               D_mask[factor]) << 8) + nchar + 1);
 
-                /* special case- before start of file */
-                while ((op < 0L) && (i > 0)) {
-                    OUTB(0);
-                    op++;
-                    i--;
-                }
-
-                /* normal copy of data from output buffer */
-                {
-                    register int ix = (int) (op % OUTBUFSIZ);
-
-                    /* do a block memory copy if possible */
-                    if (((ix + i) < OUTBUFSIZ) &&
-                        ((outcnt + i) < OUTBUFSIZ)) {
-                        memcpy(outptr, &outbuf[ix], i);
-                        outptr += i;
-                        outcnt += i;
-                    }
-                    /* otherwise copy byte by byte */
+                s -= n;
+                do {
+                  n -= (e = (e = 0x4000 - ((d &= 0x3fff) > w ? d : w)) > n ?
+                        n : e);
+                  if (u && w <= d)
+                  {
+                    memset(slide + w, 0, e);
+                    w += e;
+                    d += e;
+                  }
+                  else
+                    if (w - d < e)      /* (assume unsigned comparison) */
+                      do {              /* slow to avoid memcpy() overlap */
+                        slide[w++] = slide[d++];
+                      } while (--e);
                     else
-                        while (i--) {
-                            OUTB(outbuf[ix]);
-                            if (++ix >= OUTBUFSIZ)
-                                ix = 0;
-                        }
-                }
+                    {
+                      memcpy(slide + w, slide + d, e);
+                      w += e;
+                      d += e;
+                    }
+                  if (w == 0x4000)
+                  {
+                    flush(w);
+                    w = u = 0;
+                  }
+                } while (n);
 
                 ExState = 0;
             }
@@ -165,6 +189,9 @@ void unReduce()
         /* store character for next iteration */
         lchar = nchar;
     }
+
+    /* flush out slide */
+    flush(w);
 }
 
 

@@ -14,48 +14,63 @@
 #ifdef MACOS
 #include    <string.h>
 #include    "macstat.h"
-int stat(char *path, struct stat *buf);
+int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID );
+
+#define unixTime(t) ((t) = ((t) < (time_t)0x7c25b080) ? 0 : (t) - (time_t)0x7c25b080)
 
 /* assume that the path will contain a Mac-type pathname, i.e. ':'s, etc. */
-int stat(path, buf)
-char *path;
-struct stat *buf;
+int macstat(char *path, struct stat *buf, short nVRefNum, long lDirID )
 {
     char    temp[256];
-    short   curVolume;
-    long    curDir;
+    short   nVRefNumT;
+    long    lDirIDT;
     short   fIsHFS = false;
     OSErr   err;
+    short   fUseDefault = ((nVRefNum == 0) && (lDirID == 0));
 
     if (buf == (struct stat *)0L || path == (char *)0L) {
         SysBeep(1);
         return -1;
     }
-    
+
     if (path[0] == '\0' || strlen(path)>255) {
         return -1;
     }
 
-    if (GetVol((StringPtr)&temp[0], &curVolume) != noErr) {
-        SysBeep(1);
-        return -1;
+    if ( fUseDefault )
+    {
+        if (GetVol((StringPtr)&temp[0], &nVRefNumT) != noErr) {
+            SysBeep(1);
+            return -1;
+        }
     }
-    
+
     /* get info about the specified volume */
     if (FSFCBLen > 0)   /* HFS Disk? */
     {
-        WDPBRec wdpb;
         HParamBlockRec    hpbr;
-        Str255 st;
 
-        wdpb.ioCompletion = 0;
-        wdpb.ioNamePtr = (StringPtr)temp;
-        err = PBHGetVol(&wdpb, 0);
+        if ( fUseDefault )
+        {
+            WDPBRec wdpb;
+    
+            wdpb.ioCompletion = 0;
+            wdpb.ioNamePtr = (StringPtr)temp;
+            err = PBHGetVol(&wdpb, 0);
+            nVRefNumT = wdpb.ioWDVRefNum;
+            lDirIDT = wdpb.ioWDDirID;
+        }
+        else
+        {
+            nVRefNumT = nVRefNum;
+            lDirIDT = lDirID;
+            err = noErr;
+        }
         if (err == noErr)
         {
             hpbr.volumeParam.ioCompletion = 0;
-            hpbr.volumeParam.ioNamePtr = st;
-            hpbr.volumeParam.ioVRefNum = wdpb.ioVRefNum;
+            hpbr.volumeParam.ioNamePtr = (StringPtr)temp;
+            hpbr.volumeParam.ioVRefNum = nVRefNumT;
             hpbr.volumeParam.ioVolIndex = 0;
             err = PBHGetVInfo(&hpbr, 0);
 
@@ -77,31 +92,20 @@ struct stat *buf;
     if (fIsHFS == true)   /* HFS? */
     {
         CInfoPBRec  cPB;
-        HParamBlockRec  wPB;
-        
-        wPB.wdParam.ioCompletion = (ProcPtr)0L;
-        wPB.wdParam.ioNamePtr = (StringPtr)temp;
-        err = PBHGetVol((WDPBPtr)&wPB, false);
-        if (err != noErr) {
-            SysBeep(1);
-            return -1;
-        }
+        HParamBlockRec  hPB;
 
-        curVolume = wPB.wdParam.ioWDVRefNum;
-        buf->st_dev = curDir = wPB.wdParam.ioWDDirID;
-        
         /* get information about file */
         cPB.hFileInfo.ioCompletion = (ProcPtr)0L;
         CtoPstr(path);
         strncpy(temp,path, path[0]+1);
         PtoCstr(path);
         cPB.hFileInfo.ioNamePtr = (StringPtr)temp;
-        cPB.hFileInfo.ioVRefNum = 0;
-        cPB.hFileInfo.ioDirID = 0;
+        cPB.hFileInfo.ioVRefNum = nVRefNumT;
+        cPB.hFileInfo.ioDirID = lDirIDT;
         cPB.hFileInfo.ioFDirIndex = 0;
-        
+
         err = PBGetCatInfo(&cPB, false); 
-        
+
         if (err != noErr) {
             if (err != fnfErr) {
                 SysBeep(1);
@@ -109,94 +113,91 @@ struct stat *buf;
             return -1;
         }
         
-        /* Type of file: directory or regular file */
-        buf->st_mode = (cPB.hFileInfo.ioFlAttrib & ioDirMask) ? S_IFDIR : S_IFREG;
+        /* Type of file: directory or regular file + access */
+        buf->st_mode = (cPB.hFileInfo.ioFlAttrib & ioDirMask) ? S_IFDIR : S_IFREG |
+                       (cPB.hFileInfo.ioFlAttrib & 0x01) ? S_IREAD : (S_IREAD | S_IWRITE);
         
         /* last access time, modification time and creation time(?) */
         buf->st_atime = buf->st_mtime = cPB.hFileInfo.ioFlMdDat;
         buf->st_ctime = cPB.hFileInfo.ioFlCrDat;
+        /* dev number */
+        buf->st_dev = (long)cPB.hFileInfo.ioVRefNum;
         /* inode number */
-        buf->st_ino = cPB.hFileInfo.ioDirID + ((long)curVolume)<<16;
+        buf->st_ino = cPB.hFileInfo.ioDirID;
         /* size of file - use only the data fork */
         buf->st_size = cPB.hFileInfo.ioFlLgLen;
+
         /* size of disk block */
-        if (cPB.hFileInfo.ioFlClpSiz == 0) {
-            HParamBlockRec hPB;
-            
-            hPB.volumeParam.ioCompletion = (ProcPtr)0L;
-            hPB.volumeParam.ioNamePtr = (StringPtr)temp;
-            hPB.volumeParam.ioVRefNum = 0;
-            hPB.volumeParam.ioVolIndex = 0;
-            
-            err = PBHGetVInfo(&hPB, false);
-            
-            if (err != noErr) {
-                SysBeep(1);
-                return -1;
-            }
-            
-            buf->st_blksize = hPB.volumeParam.ioVClpSiz;
+        hPB.volumeParam.ioCompletion = (ProcPtr)0L;
+        hPB.volumeParam.ioNamePtr = (StringPtr)temp;
+        hPB.volumeParam.ioVRefNum = nVRefNumT;
+        hPB.volumeParam.ioVolIndex = 0;
+
+        err = PBHGetVInfo(&hPB, false);
+
+        if (err != noErr) {
+            SysBeep(1);
+            return -1;
         }
-        else
-            buf->st_blksize = cPB.hFileInfo.ioFlClpSiz;
-    
-        buf->st_blocks = cPB.hFileInfo.ioFlPyLen/ buf->st_blksize;
+            
+        buf->st_blksize = cPB.hFileInfo.ioFlPyLen / hPB.volumeParam.ioVAlBlkSiz;
     }
     else    /* MFS? */
     {
         ParamBlockRec   pPB;
-        
-        buf->st_dev = 0;
-        
+        ParamBlockRec   hPB;
+
         CtoPstr(path);
         strncpy(temp, path, path[0]+1);
         PtoCstr(path);
         pPB.fileParam.ioCompletion = (ProcPtr)0;
         pPB.fileParam.ioNamePtr = (StringPtr)temp;
-        pPB.fileParam.ioVRefNum = curVolume;
+        pPB.fileParam.ioVRefNum = nVRefNumT;
         pPB.fileParam.ioFVersNum = 0;
         pPB.fileParam.ioFDirIndex = 0;
-        
-        err = PBGetFInfo(&pPB, false);   
-        
+
+        err = PBGetFInfo(&pPB, false);
+
         if (err != noErr) {
             SysBeep(1);
             return -1;
         }
-        
-        /* Type of file: either directory or regular file */
+
+        /* Type of file: either directory or regular file + access */
         buf->st_mode = (pPB.fileParam.ioFlAttrib & ioDirMask) ? S_IFDIR : S_IFREG;
-        
+                       (pPB.fileParam.ioFlAttrib & 0x01) ? S_IREAD : (S_IREAD | S_IWRITE);
+
         /* last access time, modification time and creation time(?) */
         buf->st_atime = buf->st_mtime = pPB.fileParam.ioFlMdDat;
         buf->st_ctime = pPB.fileParam.ioFlCrDat;
+        /* dev number */
+        buf->st_dev = (long)pPB.fileParam.ioVRefNum;
         /* inode number */
-        buf->st_ino = pPB.fileParam.ioFlNum + ((long)curVolume)<<16;
+        buf->st_ino = pPB.fileParam.ioFlNum;
         /* size of file - use only the data fork */
         buf->st_size = pPB.fileParam.ioFlLgLen;
+
         /* size of disk block */
-        {
-            ParamBlockRec hPB;
-            
-            hPB.volumeParam.ioCompletion = (ProcPtr)0;
-            hPB.volumeParam.ioNamePtr = (StringPtr)temp;
-            hPB.volumeParam.ioVRefNum = curVolume;
-            hPB.volumeParam.ioVolIndex = 0;
-            
-            err = PBGetVInfo(&hPB, false);
-            
-            if (err != noErr) {
-                SysBeep(1);
-                return -1;
-            }
-            
-            buf->st_blksize = hPB.volumeParam.ioVClpSiz;
+        hPB.volumeParam.ioCompletion = (ProcPtr)0;
+        hPB.volumeParam.ioNamePtr = (StringPtr)temp;
+        hPB.volumeParam.ioVRefNum = nVRefNumT;
+        hPB.volumeParam.ioVolIndex = 0;
+
+        err = PBGetVInfo(&hPB, false);
+
+        if (err != noErr) {
+            SysBeep(1);
+            return -1;
         }
-    
-        /* number of disk blocks used by file - includes resource fork */
-        buf->st_blocks = pPB.fileParam.ioFlPyLen/ buf->st_blksize +
-                            pPB.fileParam.ioFlRPyLen/buf->st_blksize;
+
+        buf->st_blksize = pPB.fileParam.ioFlPyLen / hPB.volumeParam.ioVAlBlkSiz;
     }
+
+    /* Convert from Macintosh time format to Unix time format. */
+
+    unixTime(buf->st_atime);
+    unixTime(buf->st_mtime);
+    unixTime(buf->st_ctime);
 
     return 0;
 }

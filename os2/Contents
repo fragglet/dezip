@@ -1,27 +1,10 @@
-Contents of the OS2 sub-archive for UnZip 4.2 and later:
+Contents of the OS2 sub-archive for UnZip 5.0 and later:
 
   Contents      this file
-  dosname.c     OS/2 HPFS/FAT support routines (required)
-  unzip.bad     support file for Kai Uwe Rommel's CS program (optional)
-  unzip.cs      script for Kai Uwe Rommel's CS program (optional)
-  unzip.def     OS/2 linker definition file (required)
-  ship.def      OS/2 linker definition file (required for ship)
-  zipinfo.cs    script for Kai Uwe Rommel's CS program (optional)
-  zipinfo.def   OS/2 linker definition file (required for zipinfo)
-  ship.dif      patch to allow ship to be compiled with IBM C Set/2 (32-bit)
+  makefile.os2  makefile for MSC, IBM C Set/2, gcc/emx, or Watcom C/386 9.0
+  os2unzip.c    OS/2 HPFS/FAT support routines
+  unzip.def     OS/2 linker definition file
+  zipinfo.def   OS/2 linker definition file
 
-Make targets for OS/2 are provided in other makefiles.  For MSC 6.0 or later
-and NMAKE, or for IBM C Set/2, or for GNU C and Eberhard Mattes' EMX environ-
-ment, use the main (Unix) Makefile and its msc_os2, ship_os2 and zi_os2 (or
-icc_os2, ship_icc and zi_icc, or gcc_os2, ship_gcc and zi_gcc, respectively)
-targets.  For MSC 5.1 and possibly 5.0, use the makefile in the MSDOS sub-
-archive (edit appropriately).  There is, as yet, no support for the Zortech
-compiler, and the Borland OS/2 compiler doesn't exist yet.
-
-Note about the ship patch:  *only* use it for the 32-bit IBM compiler; it
-will break under Microsoft C.  The same problem *may* occur with the IBM
-compiler--namely, that stdin and stdout are not treated as binary file han-
-dles, with the result that piping things into and out of ship won't work 
-right.  This has to do with the reliance on fopen() to set the binary mode,
-rather than the original setmode().  (It may have been intended to use
-fdopen() for this, rather than fopen().)
+There is, as yet, no support for the Zortech or gcc2.1 (Michael Johnson port)
+compilers, and the Borland 32-bit OS/2 compiler doesn't exist yet.

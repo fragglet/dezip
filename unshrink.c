@@ -47,12 +47,21 @@ void unShrink()
     maxcodemax = HSIZE;         /* (1 << MAX_BITS) */
     free_ent = FIRST_ENT;
 
+    code = maxcodemax;
+    do {
+        prefix_of[code] = -1;
+    } while (--code > 255);
+/*
+    OvdL: -Ox with SCO's 3.2.0 cc gives
+    a. warning: overflow in constant multiplication
+    b. segmentation fault (core dumped) when using the executable
     for (code = maxcodemax; code > 255; code--)
         prefix_of[code] = -1;
+ */
 
     for (code = 255; code >= 0; code--) {
         prefix_of[code] = 0;
-        suffix_of[code] = code;
+        suffix_of[code] = (byte) code;
     }
 
     GetCode(oldcode);
@@ -72,19 +81,17 @@ void unShrink()
         while (code == CLEAR) {
             GetCode(code);
             switch (code) {
-
-            case 1:{
+                case 1:
                     codesize++;
                     if (codesize == MAX_BITS)
                         maxcode = maxcodemax;
                     else
                         maxcode = (1 << codesize) - 1;
-                }
-                break;
+                    break;
 
-            case 2:
-                partial_clear();
-                break;
+                case 2:
+                    partial_clear();
+                    break;
             }
 
             GetCode(code);
@@ -96,13 +103,13 @@ void unShrink()
         /* special case for KwKwK string */
         incode = code;
         if (prefix_of[code] == -1) {
-            stack[--stackp] = finchar;
+            stack[--stackp] = (byte) finchar;
             code = oldcode;
         }
         /* generate output characters in reverse order */
         while (code >= FIRST_ENT) {
             if (prefix_of[code] == -1) {
-                stack[--stackp] = finchar;
+                stack[--stackp] = (byte) finchar;
                 code = oldcode;
             } else {
                 stack[--stackp] = suffix_of[code];
@@ -111,7 +118,7 @@ void unShrink()
         }
 
         finchar = suffix_of[code];
-        stack[--stackp] = finchar;
+        stack[--stackp] = (byte) finchar;
 
 
         /* and put them out in forward order, block copy */
@@ -131,7 +138,7 @@ void unShrink()
         code = free_ent;
         if (code < maxcodemax) {
             prefix_of[code] = oldcode;
-            suffix_of[code] = finchar;
+            suffix_of[code] = (byte) finchar;
 
             do
                 code++;
@@ -143,6 +150,7 @@ void unShrink()
         oldcode = incode;
     }
 }
+
 
 
 /******************************/

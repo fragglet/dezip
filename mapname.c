@@ -10,26 +10,19 @@
 
   Notes:
 
-     - Unix allows multiple dots in directory names; MS-DOS and OS/2 FAT
-       allow one; VMS does not allow any.  Things are almost as bad with
-       regular filenames (VMS allows a single dot but TOPS-20 allows two,
-       if you count the one in front of the version number).  As of v4.04,
-       mapname converts directory-name dots to underscores on VMS, but it
-       otherwise leaves the dots alone.  Since it is now possible to create
-       zipfiles under Unix, this whole routine pretty much needs to be
-       rewritten (different routines for each output OS, and different 
-       rules for different parts of the path name).
-     - If each zip program stores local-format names (like the VMS one did
-       at one time), it would probably be best to convert to an intermedi-
-       ate format first (assuming we're not extracting under the same OS 
-       as that under which the zipfile was created), then from that to the 
-       current operating system's format.
+     - This routine REALLY needs to be rewritten (different routines for
+       each output OS, with different rules for different parts of the path
+       name).  If each zip program stores local-format names (like the VMS
+       one did at one time), it would probably be best to convert to an in-
+       termediate format first (assuming we're not extracting under the same
+       OS as that under which the zipfile was created), then from that to
+       the current operating system's format.
      - The strcpy and strcat operations on both cdp and filename may over-
        write memory, since they don't check lengths.  With a kilobyte in
        which to work, this is probably not that big a deal, but it could
        cause problems eventually.
 
-  ------------------------------------------------------------------------- */
+  ---------------------------------------------------------------------------*/
 
 
 #include "unzip.h"
@@ -46,20 +39,20 @@
 #endif
 
 #ifndef NO_MKDIR
-#  ifdef DOS_OS2
+#  if (defined(DOS_OS2) && !defined(__GO32__))
 #    if (_MSC_VER >= 600)       /* have special MSC mkdir prototype */
 #      include <direct.h>
 #    else                       /* own prototype because dir.h conflicts? */
        int mkdir(const char *path);
 #    endif /* ?(MSC 6.0 or later) */
 #    define MKDIR(path,mode)   mkdir(path)
-#  else /* !DOS_OS2 */
+#  else /* !DOS_OS2 || __GO32__ */
 #    ifdef MACOS
-#      define MKDIR(path,mode)   mkdir(path)
+#      define MKDIR(path,mode)   macmkdir(path,gnVRefNum,glDirID)
 #    else /* !MACOS */
 #      define MKDIR(path,mode)   mkdir(path,mode)
 #    endif /* ?MACOS */
-#  endif /* ?DOS_OS2 */
+#  endif /* ?(DOS_OS2 && !__GO32__)  */
 #endif /* !NO_MKDIR */
 
 
@@ -78,20 +71,25 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
 #ifdef VMS
     int stat_val;               /* temp. holder for stat() return value */
     char *dp, *xp;              /* pointers to directory name */
-#endif
+    char *np;                   /* pointer into filename */
+#endif /* VMS */
+#ifdef DOS_VMS
+    char *last_dot=NULL;        /* last dot not converted to underscore */
+#endif /* DOS_VMS */
 #ifdef OS2
     char *last;
-    extern int longname;        /* used also in file_io.c:  set EAs */
     extern char longfilename[]; /*  AFTER file created and closed */
-#endif
+    extern int longname;        /* used also in file_io.c:  set EAs */
+    int longdir;
+#endif /* OS2 */
     char name[FILNAMSIZ];       /* file name buffer */
     char *pp, *cp, *cdp;        /* character pointers */
     char delim = '\0';          /* directory delimiter */
-    int dc = 0;                 /* counters */
     int quote = FALSE;          /* flags */
     int indir = FALSE;
     int done = FALSE;
-    register int workch;        /* hold the character being tested */
+    int created = FALSE;
+    register unsigned workch;   /* hold the character being tested */
 
 
 /*---------------------------------------------------------------------------
@@ -101,12 +99,12 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
 #ifdef MAP_DEBUG
     fprintf(stderr, "%s ", filename);   /* echo name of this file */
 #endif
-    pp = name;                  /* Point to translation buffer */
-    *name = '\0';               /* Initialize buffer */
-
+    cdp = (char *)NULL;
+    pp = name;                  /* point to translation buffer */
+    *name = '\0';               /* initialize buffer */
     if (!jflag) {               /* -j => junk pathnames */
-        cdp = (char *) malloc(strlen(filename) + 3);  /* place for holding */
-        if (cdp == NULL) {                            /*  directory name */
+        cdp = (char *)malloc(strlen(filename) + 3);   /* place for holding */
+        if (cdp == (char *)NULL) {                    /*  directory name */
             fprintf(stderr, "mapname:  out of memory [%s]\n", filename);
             return 3;
         }
@@ -122,33 +120,32 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
         *cdp = '\0';
 #endif /* ?MACOS */
     }
-    dc = 0;                     /* Filename dot counter */
 
 /*---------------------------------------------------------------------------
     Begin main loop through characters in filename.
   ---------------------------------------------------------------------------*/
 
-    for (cp = filename; (workch = *cp++) != 0  &&  !done;) {
+    for (cp = filename; (workch = (unsigned char) *cp++) != 0  &&  !done;) {
 
-        if (quote) {            /* If this char quoted... */
-            *pp++ = workch;     /*  include it literally. */
+        if (quote) {                 /* if char quoted, */
+            *pp++ = (char) workch;   /*  include it literally */
             quote = FALSE;
-        } else if (indir) {     /* If in directory name... */
-            if (workch == delim)
-                indir = FALSE;  /*  look for end delimiter. */
+        } else if (indir) {          /* if in directory name, */
+            if (workch == (unsigned)delim)  /*  look for end delimiter */
+                indir = FALSE;
         } else
             switch (workch) {
-            case '<':           /* Discard DEC-20 directory name */
+            case '<':                /* discard DEC-20 directory name */
                 indir = TRUE;
                 delim = '>';
                 break;
-            case '[':           /* Discard VMS directory name */
+            case '[':                /* discard VMS directory name */
                 indir = TRUE;
                 delim = ']';
                 break;
-            case '/':           /* Discard Unix path name... */
-            case '\\':          /*  or MS-DOS path name...
-                                 *  IF -j flag was given. */
+            case '/':                /* discard Unix path name  */
+            case '\\':               /*  or MS-DOS path name... */
+                                     /*  iff -j flag was given  */
                 /*
                  * Special processing case:  if -j flag was not specified on
                  * command line and create_dirs is TRUE, create any necessary
@@ -164,21 +161,25 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
                     *pp = '\0';
 #ifdef VMS
                     dp = name;
-                    while (*++xp = *dp++)   /* copy name to cdp, while */
-                        if (*xp == '.')     /*   changing all dots... */
-                            *xp = '_';      /*   ...to underscores */
-                    strcpy(xp, ".dir");    /* add extension for stat check */
+                    while (*++xp = *dp++);  /* copy name to cdp */
+                    last_dot = NULL;        /* dir name:  no dots allowed */
+                    strcpy(xp, ".dir");     /* add extension for stat check */
                     stat_val = stat(cdp, &statbuf);
-                    *xp = '\0';         /* remove extension for all else */
-                    if (stat_val) {     /* doesn't exist, so create */
+                    *xp = '\0';             /* remove extension for all else */
+                    if (stat_val) {         /* doesn't exist, so create */
 #else /* !VMS */
+#ifdef MSDOS
+                    if (last_dot != NULL) {  /* one dot in dir name is legal */
+                        *last_dot = '.';
+                        last_dot = NULL;
+                    }
+#endif /* MSDOS */
                     strcat(cdp, name);
 #ifdef OS2
-                    if (longname = !IsFileNameValid(cdp)) {
+                    if ((longdir = !IsFileNameValid(cdp)) != 0) {
                         last = strrchr(cdp, '/');
                         strcpy(longfilename, last ? last + 1 : cdp);
-                        fprintf(stderr, "caution:  renaming directory \"%s\"",
-                          cdp);
+                        fprintf(stderr, "renaming directory \"%s\"", cdp);
                         ChangeNameForFAT(cdp);
                         fprintf(stderr, " to \"%s\"\n", cdp);
                     }
@@ -200,8 +201,9 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
                               filename);
                             return 3;
                         }
+                        created = TRUE;
 #ifdef OS2
-                        if (longname)
+                        if (longdir)
                             SetLongNameEA(cdp, longfilename);
 #endif /* OS2 */
                     } else if (!(statbuf.st_mode & S_IFDIR)) {
@@ -232,27 +234,29 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
 #endif /* ?UNIX */
              /* pp = name;  (OLD) discard DEC dev: or node:: name */
                 break;
-            case '.':                   /* DEC-20 generation number
-                                         * or MS-DOS type */
-#ifdef NUKE_DOTS
-                if (++dc == 1)          /* Keep first dot */
-                    *pp++ = workch;
-#else /* !NUKE_DOTS */
-                ++dc;                   /* Not used, but what the hell. */
+            case '.':                   /* DEC-20 generation number or */
+#ifdef DOS_VMS                          /*  MS-DOS or VMS separator */
+                last_dot = pp;          /* point at last dot so far... */
+                *pp++ = '_';            /* convert dot to underscore */
+#else /* !DOS_VMS */
                 *pp++ = workch;
-#endif /* ?NUKE_DOTS */
+#endif /* ?DOS_VMS */
                 break;
             case ';':                   /* VMS generation or DEC-20 attrib */
-                if (V_flag)             /* If requested, save VMS ";##" */
-                    *pp++ = workch;     /*  version info; else discard */
-                else                    /*  everything starting with */
-                    done = TRUE;        /*  semicolon.  (Worry about */
-                break;                  /*  DEC-20 later.) */
-            case '\026':                /* Control-V quote for special chars */
-                quote = TRUE;           /* Set flag for next time. */
+#ifdef MACOS
+                if (V_flag || macflag)
+#else /* !MACOS */
+                if (V_flag)                 /* if requested, save VMS ";##" */
+#endif /* ?MACOS */                         /*  version info or Macintosh */
+                    *pp++ = (char) workch;  /*  (?) info; otherwise discard */
+                else                        /*  everything starting with */
+                    done = TRUE;            /*  semicolon.  (Worry about */
+                break;                      /*  DEC-20 later.) */
+            case '\026':                /* control-V quote for special chars */
+                quote = TRUE;           /* set flag for next character */
                 break;
             case ' ':
-#if defined(VMS) || defined(MTS)
+#if (defined(VMS) || defined(MTS))
                 *pp++ = '_';            /* change spaces to underscore */
 #else /* !(VMS || MTS) */               /*  under VMS and MTS, and under DOS */
 #ifdef DOS_OS2                          /*  and OS/2 if -s not specified. */
@@ -260,15 +264,27 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
                     *pp++ = '_';
                 else
 #endif /* DOS_OS2 */
-                *pp++ = workch;         /* otherwise, leave as spaces */
+                *pp++ = (char) workch;  /* otherwise, leave as spaces */
 #endif /* ?(VMS || MTS) */
                 break;
             default:
+#ifdef MACOS
+                if ((macflag && ((unsigned)workch > 0x1F)) || isprint(workch))
+#else /* !MACOS */
+#if (defined(DOS_OS2) || (defined(UNIX) && !defined(VMS)))  /* allow non-US */
+                if (isprint(workch) || (128 <= workch && workch <= 254))
+#else /* !(DOS_OS2 || UNIX) */
                 if (isprint(workch))    /* other printable, just keep */
-                    *pp++ = workch;
-            }                   /* end switch */
-    }                           /* end for loop */
-    *pp = '\0';                 /* done with name:  terminate it */
+#endif /* ?(DOS_OS2 || UNIX) */
+#endif /* ?MACOS */
+                    *pp++ = (char) workch;
+            } /* end switch */
+    } /* end for loop */
+    *pp = '\0';                         /* done with name:  terminate it */
+#ifdef DOS_VMS                          /*  and put a dot back in if VMS */
+    if (last_dot != NULL)               /*  or MS-DOS */
+        *last_dot = '.';
+#endif /* DOS_VMS */
 
 /*---------------------------------------------------------------------------
     We COULD check for existing names right now, create a "unique" name, etc.
@@ -278,50 +294,76 @@ int mapname(create_dirs)   /* return 0 if no error, 1 if caution (filename */
     able to create the extracted file and other error msgs will result.
   ---------------------------------------------------------------------------*/
 
+    if (filename[strlen(filename) - 1] == '/') {
+        /* A directory was extracted. It had a trailing /, 
+         * don't report the error below. */
+        if (created) {
+            printf("   Creating: %s", filename);
+#ifdef OS2
+            SetPathInfo(filename, lrec.last_mod_file_date,
+                                  lrec.last_mod_file_time, -1);
+            if (extra_field)
+                SetEAs(filename, extra_field);
+#endif
+            printf("\n");
+        }
+        return 2; /* but skip file */
+    }
+
     if (*name == '\0') {
         fprintf(stderr, "mapname:  conversion of [%s] failed\n", filename);
         return 3;
     }
 
-#ifdef OS2   /* (if necessary, can use outbuf for temp filename holder) */
-    if (longname = !IsFileNameValid(name)) {  /* THIS time, save for file_io */
-        last = strrchr(name, '/');
-        last = last ? last + 1 : name;  /* should ALWAYS be name... */
+#ifdef OS2
+    if (!longname && ((longname = !IsFileNameValid(name)) != 0)) {
+        /* in case of second call after user renamed the file, skip this */
+        last = strrchr(name, '/');      /* THIS time, save for file_io */
+        last = last ? last + 1 : name;  /* only last component */
         strcpy(longfilename, last);
-        fprintf(stderr, "caution:  renaming \"%s\"", name);
+        fprintf(stderr, "renaming \"%s\"", name);
         ChangeNameForFAT(last);
         fprintf(stderr, " to \"%s\"\n", name);
     }
 #endif /* OS2 */
 
+#ifdef VMS
+    /* convert filename to legal VMS one, substituting underscores for
+     * all invalid characters */
+    for (np = name;  *np;  ++np)
+        if (!(isdigit(*np) || isalpha(*np) || (*np == '$') ||
+            (*np == '-') || (*np == '_') || (*np == '.') || (*np == ';')))
+            *np = '_';
+#endif /* VMS */
+
     if (!jflag) {
 #ifdef VMS
-        *xp++ = ']';            /* proper end-of-dir-name delimiter */
-        if (xp == cdp) {        /* no path-name stuff, so... */
+        *xp++ = ']';                 /* proper end-of-dir-name delimiter */
+        if (xp == cdp) {             /* no path-name stuff, so... */
             strcpy(filename, name);  /* copy file name into global */
-            cdp -= 2;           /*   prepare to free malloc'd space */
-        } else {                /* we've added path-name stuff... */
-            *xp = '\0';         /*   so terminate... */
-            dp = cdp;           /*   and convert to VMS subdir separators:  */
-            while (*++dp)       /*   (skip first char:  better not be "/") */
-                if (*dp == '/') /*   change all slashes */
-                    *dp = '.';  /*     to dots */
-            cdp -= 2;           /*   include leading bracket and dot */
+            cdp -= 2;                /*   prepare to free malloc'd space */
+        } else {                     /* we've added path-name stuff... */
+            *xp = '\0';              /*   so terminate and convert to */
+            dp = cdp;                /*   VMS subdir separators (skip */
+            while (*++dp)            /*   first char:  better not be */
+                if (*dp == '/')      /*   "/"):  change all slashes */
+                    *dp = '.';       /*   to dots */
+            cdp -= 2;                /*   include leading bracket and dot */
             strcpy(filename, cdp);   /* copy VMS-style path name into global */
             strcat(filename, name);  /* concatenate file name to global */
         }
 #else /* !VMS */
-        strcpy(filename, cdp);  /* Either "" or slash-terminated path */
-        strcat(filename, name); /* append file name to path name */
+        strcpy(filename, cdp);       /* either "" or slash-terminated path */
+        strcat(filename, name);      /* append file name to path name */
 #endif /* ?VMS */
         free(cdp);
     } else
-        strcpy(filename, name); /* copy converted name into global */
+        strcpy(filename, name);      /* copy converted name into global */
 
 #if PATH_MAX < (FILNAMSIZ - 1)
     /* check the length of the file name and truncate if necessary */
     if (PATH_MAX < strlen(filename)) {
-        fprintf(stderr, "caution:  truncating filename.\n");
+        fprintf(stderr, "caution:  truncating filename\n");
         filename[PATH_MAX] = '\0';
         fprintf(stderr, "[ %s ]\n", filename);
         return 1;             /* 1:  warning error */

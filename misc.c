@@ -20,6 +20,9 @@
 
 
 #include "unzip.h"
+#ifdef MSWIN
+#  include "wizunzip.h"
+#endif
 
 
 
@@ -121,17 +124,16 @@ ULONG crc_32_tab[] =
     0xcdd70693L, 0x54de5729L, 0x23d967bfL, 0xb3667a2eL, 0xc4614ab8L,
     0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
     0x2d02ef8dL
-};
+}; /* end crc_32_tab[] */
 
 
 void UpdateCRC(s, len)
-register byte *s;
-register int len;
- /* update running CRC calculation with contents of a buffer */
+    register byte *s;
+    register int len;
 {
     register ULONG crcval = crc32val;
 
-
+    /* update running CRC calculation with contents of a buffer */
     while (len--)
         crcval = crc_32_tab[((byte) crcval ^ (*s++)) & 0xff] ^ (crcval >> 8);
     crc32val = crcval;
@@ -148,12 +150,11 @@ register int len;
 /**************************/
 
 int do_string(len, option)      /* return PK-type error code */
-unsigned int len;               /* without prototype, UWORD converted to this */
-int option;
+    unsigned int len;           /* without prototype, UWORD converted to this */
+    int option;
 {
     int block_length, error = 0;
     UWORD comment_bytes_left, extra_len;
-
 
 
 /*---------------------------------------------------------------------------
@@ -184,8 +185,8 @@ int option;
      * which case comment_bytes_left will remain at some non-zero value for
      * all time.  outbuf is used as a scratch buffer because it is avail-
      * able (we should be either before or in between any file processing).
-     * [The typecast in front of the min() macro was added because of the
-     * new promotion rules under ANSI C; readbuf() wants an int, but min()
+     * [The typecast in front of the MIN() macro was added because of the
+     * new promotion rules under ANSI C; readbuf() wants an int, but MIN()
      * returns a signed long, if I understand things correctly.  The proto-
      * type should handle it, but just in case...]
      */
@@ -194,9 +195,9 @@ int option;
         comment_bytes_left = len;
         block_length = OUTBUFSIZ;    /* for the while statement, first time */
         while (comment_bytes_left > 0 && block_length > 0) {
-            if ((block_length = readbuf((char *) outbuf,
-                         (int) min(OUTBUFSIZ, comment_bytes_left))) <= 0)
-                return (51);    /* 51:  unexpected EOF */
+            if ((block_length = readbuf((char *)outbuf,
+                   (int) MIN(OUTBUFSIZ, comment_bytes_left))) <= 0)
+                return 51;                      /* 51:  unexpected EOF */
             comment_bytes_left -= block_length;
             NUKE_CRs(outbuf, block_length);     /* (modifies block_length) */
 
@@ -207,7 +208,12 @@ int option;
 
             printf("%s", outbuf);
         }
-        printf("\n", outbuf);   /* assume no newline at end */
+#ifdef MSWIN
+        /* ran out of local mem -- had to cheat */
+        WriteStringToMsgWin(outbuf, bRealTimeMsgUpdate);
+#else /* !MSWIN */
+        printf("\n");   /* assume no newline at end */
+#endif /* ?MSWIN */
         break;
 
     /*
@@ -225,7 +231,7 @@ int option;
             len = FILNAMSIZ - 1;
         }
         if (readbuf(filename, len) <= 0)
-            return (51);        /* 51:  unexpected EOF */
+            return 51;          /* 51:  unexpected EOF */
         filename[len] = '\0';   /* terminate w/zero:  ASCIIZ */
 
         A_TO_N(filename);       /* translate string to native */
@@ -262,9 +268,9 @@ int option;
      */
 
     case EXTRA_FIELD:
-        if (extra_field != NULL)
+        if (extra_field != (byte *)NULL)
             free(extra_field);
-        if ((extra_field = (byte *)malloc(len)) == NULL) {
+        if ((extra_field = (byte *)malloc(len)) == (byte *)NULL) {
             fprintf(stderr,
               "warning:  extra field too long (%d).  Ignoring...\n", len);
             LSEEK(cur_zipfile_bufstart + (inptr-inbuf) + len)
@@ -273,10 +279,10 @@ int option;
                 return 51;      /* 51:  unexpected EOF */
         break;
 
-    }                           /* end switch (option) */
+    } /* end switch (option) */
     return error;
 
-}                               /* end function do_string() */
+} /* end function do_string() */
 
 
 
@@ -290,18 +296,20 @@ int option;
 /*********************************/
 
 time_t dos_to_unix_time(ddate, dtime)
-unsigned ddate, dtime;
+    unsigned ddate, dtime;
 {
     static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     int yr, mo, dy, hh, mm, ss, leap;
     long m_time, days=0;
-#if !defined(MACOS) && !defined(MSC)
-#if defined(BSD) || defined(MTS)
+#if (!defined(MACOS) && !defined(MSC) && !defined(__GO32__))
+#if (defined(BSD) || defined(MTS))
+#ifndef __386BSD__
     static struct timeb tbp;
+#endif /* __386BSD__ */
 #else /* !(BSD || MTS) */
     extern long timezone;    /* declared in <time.h> for MSC (& Borland?) */
 #endif /* ?(BSD || MTS) */
-#endif /* !MACOS && !MSC (may need to change to DOS_OS2) */
+#endif /* !MACOS && !MSC && !__GO32__ */
 
 #   define YRBASE  1970
 
@@ -326,21 +334,31 @@ unsigned ddate, dtime;
         ++days;                 /* OK through 2199 */
 
     /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
-    m_time = ((long)(days + dy) * 86400) + ((long) hh * 3600) + (mm * 60) + ss;
+    m_time = ((long)(days + dy) * 86400L) + ((long)hh * 3600) + (mm * 60) + ss;
       /* - 1;   MS-DOS times always rounded up to nearest even second */
 
-#if !defined(MACOS) && !defined(EMX32)
-#if defined(BSD) || defined(MTS)
+#if (!defined(MACOS) && !defined(__GO32__))
+#if (defined(BSD) || defined(MTS))
+#ifndef __386BSD__
     ftime(&tbp);
     m_time += tbp.timezone * 60L;
+#endif
 #else /* !(BSD || MTS) */
+#ifdef WIN32
+    /* later... */
+#else /* !WIN32 */
     tzset();                    /* set `timezone' */
+#endif /* ?WIN32 */
     m_time += timezone;         /* account for timezone differences */
 #endif /* ?(BSD || MTS) */
-#endif /* !MACOS && !EMX32 */
+#endif /* !MACOS && !__GO32__ */
 
+#ifdef __386BSD__
+    m_time += localtime((time_t *) &m_time))->tm_gmtoff;
+#else
     if (localtime((time_t *)&m_time)->tm_isdst)
         m_time -= 60L * 60L;    /* adjust for daylight savings time */
+#endif /* __386BSD__ */
 
     return m_time;
 
@@ -357,75 +375,99 @@ unsigned ddate, dtime;
 /********************************/
 
 int check_for_newer(filename)   /* return 1 if existing file newer or equal; */
-char *filename;                 /*  0 if older; -1 if doesn't exist yet */
+    char *filename;             /*  0 if older; -1 if doesn't exist yet */
 {
 #ifdef VMS
+    unsigned short timbuf[7];
     int dy, mo, yr, hh, mm, ss, dy2, mo2, yr2, hh2, mm2, ss2;
-    float sec;
-    char mon[4];
-    static char actimbuf[24], modtimbuf[24];
-    static char *month[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-                            "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-    struct VMStimbuf {
-        char *actime;           /* VMS revision date, ASCII format */
-        char *modtime;          /* VMS creation date, ASCII format */
-    } ascii_times={actimbuf,modtimbuf};
+    struct FAB fab;
+    struct XABDAT xdat;
 
 
     if (stat(filename, &statbuf))
-        return -1;
+        return DOES_NOT_EXIST;
 
-    if (VMSmunch(filename, GET_TIMES, &ascii_times) != RMS$_NMF)
-        return 0;   /* exists but can't get the time:  assume older */
+    fab  = cc$rms_fab;
+    xdat = cc$rms_xabdat;
 
-    sscanf(modtimbuf, "%2d-%3s-%04d %02d:%02d:%05f", &dy, mon,
-      &yr, &hh, &mm, &sec);
+    fab.fab$l_xab = &xdat;
+    fab.fab$l_fna = filename;
+    fab.fab$b_fns = strlen(filename);
+    fab.fab$l_fop = FAB$M_GET | FAB$M_UFO;
 
+    if ((sys$open(&fab) & 1) == 0)       /* open failure:  report exists and */
+        return EXISTS_AND_OLDER;         /*  older so new copy will be made  */
+    sys$numtim(&timbuf,&xdat.xab$q_cdt);
+    fab.fab$l_xab = 0L;
+
+    sys$dassgn(fab.fab$l_stv);
+    sys$close(&fab);   /* be sure file is closed and RMS knows about it */
+
+    yr = timbuf[0];
     yr2 = ((lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
     if (yr > yr2)
-        return 1;
+        return EXISTS_AND_NEWER;
     else if (yr < yr2)
-        return 0;
+        return EXISTS_AND_OLDER;
 
-    for (mo = 0;  mo < 11;  ++mo)
-        if (!strcmp(mon, month[mo]))
-            break;
-    mo2 = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
+    mo = timbuf[1];
+    mo2 = ((lrec.last_mod_file_date >> 5) & 0x0f);
     if (mo > mo2)
-        return 1;
+        return EXISTS_AND_NEWER;
     else if (mo < mo2)
-        return 0;
+        return EXISTS_AND_OLDER;
 
+    dy = timbuf[2];
     dy2 = (lrec.last_mod_file_date & 0x1f);
     if (dy > dy2)
-        return 1;
+        return EXISTS_AND_NEWER;
     else if (dy < dy2)
-        return 0;
+        return EXISTS_AND_OLDER;
 
+    hh = timbuf[3];
     hh2 = (lrec.last_mod_file_time >> 11) & 0x1f;
     if (hh > hh2)
-        return 1;
+        return EXISTS_AND_NEWER;
     else if (hh < hh2)
-        return 0;
+        return EXISTS_AND_OLDER;
 
+    mm = timbuf[4];
     mm2 = (lrec.last_mod_file_time >> 5) & 0x3f;
     if (mm > mm2)
-        return 1;
+        return EXISTS_AND_NEWER;
     else if (mm < mm2)
-        return 0;
+        return EXISTS_AND_OLDER;
 
     /* round to nearest 2 secs--may become 60, but doesn't matter for compare */
-    ss = (int)(sec + 1.) & -2;
+    ss = (int)((float)timbuf[5] + (float)timbuf[6]*.01 + 1.) & -2;
     ss2 = (lrec.last_mod_file_time & 0x1f) * 2;
     if (ss >= ss2)
-        return 1;
+        return EXISTS_AND_NEWER;
 
-    return 0;
+    return EXISTS_AND_OLDER;
 
-#else /* !VMS */        /* round up filetime to nearest 2 secs --v  */
-    return stat(filename, &statbuf)?  -1 :
-      ( ((statbuf.st_mtime & 1)? statbuf.st_mtime+1 : statbuf.st_mtime) >=
-      dos_to_unix_time(lrec.last_mod_file_date, lrec.last_mod_file_time) );
+#else /* !VMS */
+#ifdef OS2
+    long existing, archive;
+
+    if ((existing = GetFileTime(filename)) == -1)
+        return DOES_NOT_EXIST;
+    archive = ((long) lrec.last_mod_file_date) << 16 | lrec.last_mod_file_time;
+
+    return (existing >= archive);
+#else /* !OS2 */
+    time_t existing, archive;
+
+    if (stat(filename, &statbuf))
+        return DOES_NOT_EXIST;
+
+    /* round up existing filetime to nearest 2 seconds for comparison */
+    existing = (statbuf.st_mtime & 1) ? statbuf.st_mtime+1 : statbuf.st_mtime;
+    archive  = dos_to_unix_time(lrec.last_mod_file_date,
+                                lrec.last_mod_file_time);
+
+    return (existing >= archive);
+#endif /* ?OS2 */
 #endif /* ?VMS */
 
 } /* end function check_for_newer() */
@@ -450,20 +492,7 @@ int dateformat()
  -----------------------------------------------------------------------------*/
 
 #ifdef OS2
-    COUNTRYINFO    ctryi;
-    COUNTRYCODE    ctryc;
-#ifdef __32BIT__
-    ULONG          cbCountryInfo;
-#else
-    USHORT         cbCountryInfo;
-#endif
-
-
-    ctryc.country = ctryc.codepage = 0;
-    if (DosGetCtryInfo(sizeof ctryi, &ctryc, &ctryi, &cbCountryInfo) != NO_ERROR)
-        return DF_MDY;
-    else
-        switch (ctryi.fsDateFmt) {
+    switch (GetCountryInfo()) {
             case 0 /* DATEFMT_MM_DD_YY */ :
                 return DF_MDY;
             case 1 /* DATEFMT_DD_MM_YY */ :
@@ -472,16 +501,23 @@ int dateformat()
                 return DF_YMD;
         }
 #else /* !OS2 */
-#ifdef MSDOS
-    unsigned short int CountryInfo[18];
+#if (defined(MSDOS) && !defined(MSWIN))
+    unsigned short _CountryInfo[18];
+#ifdef __GO32__
+    unsigned short *CountryInfo = _CountryInfo;
+
+    bdos(0x38, (unsigned)CountryInfo, 0);
+#else /* !__GO32__ */
+    unsigned short far *CountryInfo = _CountryInfo;
     union REGS regs;
     struct SREGS sregs;
-
 
     regs.x.ax = 0x3800;
     regs.x.dx = FP_OFF(CountryInfo);
     sregs.ds  = FP_SEG(CountryInfo);
     int86x(0x21, &regs, &regs, &sregs);
+#endif /* ?__GO32__ */
+
     switch(CountryInfo[0]) {
         case 0:
             return DF_MDY;
@@ -490,11 +526,12 @@ int dateformat()
         case 2:
             return DF_YMD;
     }
-#endif /* !MSDOS */
+#endif /* MSDOS && !MSWIN */
 #endif /* ?OS2 */
 
     return DF_MDY;   /* default for Unix, VMS, etc. */
-}                               /* end function dateformat() */
+
+} /* end function dateformat() */
 
 #endif /* !ZIPINFO */
 
@@ -511,23 +548,39 @@ int dateformat()
 
 unsigned char ebcdic[] =
 {
-    0x00, 0x01, 0x02, 0x03, 0x37, 0x2d, 0x2e, 0x2f, 0x16, 0x05, 0x25, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-    0x10, 0x11, 0x12, 0x13, 0x3c, 0x3d, 0x32, 0x26, 0x18, 0x19, 0x3f, 0x27, 0x1c, 0x1d, 0x1e, 0x1f,
-    0x40, 0x5a, 0x7f, 0x7b, 0x5b, 0x6c, 0x50, 0x7d, 0x4d, 0x5d, 0x5c, 0x4e, 0x6b, 0x60, 0x4b, 0x61,
-    0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0x7a, 0x5e, 0x4c, 0x7e, 0x6e, 0x6f,
-    0x7c, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6,
-    0xd7, 0xd8, 0xd9, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xba, 0xe0, 0xbb, 0xb0, 0x6d,
-    0x79, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,
-    0x97, 0x98, 0x99, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xc0, 0x4f, 0xd0, 0xa1, 0x07,
-    0x20, 0x21, 0x22, 0x23, 0x24, 0x15, 0x06, 0x17, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x09, 0x0a, 0x1b,
-    0x30, 0x31, 0x1a, 0x33, 0x34, 0x35, 0x36, 0x08, 0x38, 0x39, 0x3a, 0x3b, 0x04, 0x14, 0x3e, 0xff,
-    0x41, 0xaa, 0x4a, 0xb1, 0x9f, 0xb2, 0x6a, 0xb5, 0xbd, 0xb4, 0x9a, 0x8a, 0x5f, 0xca, 0xaf, 0xbc,
-    0x90, 0x8f, 0xea, 0xfa, 0xbe, 0xa0, 0xb6, 0xb3, 0x9d, 0xda, 0x9b, 0x8b, 0xb7, 0xb8, 0xb9, 0xab,
-    0x64, 0x65, 0x62, 0x66, 0x63, 0x67, 0x9e, 0x68, 0x74, 0x71, 0x72, 0x73, 0x78, 0x75, 0x76, 0x77,
-    0xac, 0x69, 0xed, 0xee, 0xeb, 0xef, 0xec, 0xbf, 0x80, 0xfd, 0xfe, 0xfb, 0xfc, 0xad, 0xae, 0x59,
-    0x44, 0x45, 0x42, 0x46, 0x43, 0x47, 0x9c, 0x48, 0x54, 0x51, 0x52, 0x53, 0x58, 0x55, 0x56, 0x57,
-    0x8c, 0x49, 0xcd, 0xce, 0xcb, 0xcf, 0xcc, 0xe1, 0x70, 0xdd, 0xde, 0xdb, 0xdc, 0x8d, 0x8e, 0xdf
-};
+    0x00, 0x01, 0x02, 0x03, 0x37, 0x2d, 0x2e, 0x2f,
+    0x16, 0x05, 0x25, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+    0x10, 0x11, 0x12, 0x13, 0x3c, 0x3d, 0x32, 0x26,
+    0x18, 0x19, 0x3f, 0x27, 0x1c, 0x1d, 0x1e, 0x1f,
+    0x40, 0x5a, 0x7f, 0x7b, 0x5b, 0x6c, 0x50, 0x7d,
+    0x4d, 0x5d, 0x5c, 0x4e, 0x6b, 0x60, 0x4b, 0x61,
+    0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
+    0xf8, 0xf9, 0x7a, 0x5e, 0x4c, 0x7e, 0x6e, 0x6f,
+    0x7c, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7,
+    0xc8, 0xc9, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6,
+    0xd7, 0xd8, 0xd9, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6,
+    0xe7, 0xe8, 0xe9, 0xba, 0xe0, 0xbb, 0xb0, 0x6d,
+    0x79, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+    0x88, 0x89, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,
+    0x97, 0x98, 0x99, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6,
+    0xa7, 0xa8, 0xa9, 0xc0, 0x4f, 0xd0, 0xa1, 0x07,
+    0x20, 0x21, 0x22, 0x23, 0x24, 0x15, 0x06, 0x17,
+    0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x09, 0x0a, 0x1b,
+    0x30, 0x31, 0x1a, 0x33, 0x34, 0x35, 0x36, 0x08,
+    0x38, 0x39, 0x3a, 0x3b, 0x04, 0x14, 0x3e, 0xff,
+    0x41, 0xaa, 0x4a, 0xb1, 0x9f, 0xb2, 0x6a, 0xb5,
+    0xbd, 0xb4, 0x9a, 0x8a, 0x5f, 0xca, 0xaf, 0xbc,
+    0x90, 0x8f, 0xea, 0xfa, 0xbe, 0xa0, 0xb6, 0xb3,
+    0x9d, 0xda, 0x9b, 0x8b, 0xb7, 0xb8, 0xb9, 0xab,
+    0x64, 0x65, 0x62, 0x66, 0x63, 0x67, 0x9e, 0x68,
+    0x74, 0x71, 0x72, 0x73, 0x78, 0x75, 0x76, 0x77,
+    0xac, 0x69, 0xed, 0xee, 0xeb, 0xef, 0xec, 0xbf,
+    0x80, 0xfd, 0xfe, 0xfb, 0xfc, 0xad, 0xae, 0x59,
+    0x44, 0x45, 0x42, 0x46, 0x43, 0x47, 0x9c, 0x48,
+    0x54, 0x51, 0x52, 0x53, 0x58, 0x55, 0x56, 0x57,
+    0x8c, 0x49, 0xcd, 0xce, 0xcb, 0xcf, 0xcc, 0xe1,
+    0x70, 0xdd, 0xde, 0xdb, 0xdc, 0x8d, 0x8e, 0xdf
+}; /* end ebcdic[] */
 
 #endif                          /* EBCDIC */
 
@@ -540,15 +593,12 @@ unsigned char ebcdic[] =
 /*************************/
 
 UWORD makeword(b)
-byte *b;
- /*
-  * Convert Intel style 'short' integer to non-Intel non-16-bit
-  * host format.  This routine also takes care of byte-ordering.
-  */
+    byte *b;
 {
-/*
-    return  ( ((UWORD)(b[1]) << 8)  |  (UWORD)(b[0]) );
- */
+    /*
+     * Convert Intel style 'short' integer to non-Intel non-16-bit
+     * host format.  This routine also takes care of byte-ordering.
+     */
     return ((b[1] << 8) | b[0]);
 }
 
@@ -561,12 +611,12 @@ byte *b;
 /*************************/
 
 ULONG makelong(sig)
-byte *sig;
- /*
-  * Convert intel style 'long' variable to non-Intel non-16-bit
-  * host format.  This routine also takes care of byte-ordering.
-  */
+    byte *sig;
 {
+    /*
+     * Convert intel style 'long' variable to non-Intel non-16-bit
+     * host format.  This routine also takes care of byte-ordering.
+     */
     return (((ULONG) sig[3]) << 24)
         + (((ULONG) sig[2]) << 16)
         + (((ULONG) sig[1]) << 8)
@@ -584,7 +634,7 @@ byte *sig;
 /***************************/
 
 void return_VMS(zip_error)
-int zip_error;
+    int zip_error;
 {
 #ifdef RETURN_CODES
 /*---------------------------------------------------------------------------
@@ -596,7 +646,7 @@ int zip_error;
     switch (zip_error) {
 
     case 0:
-        break;                  /* life is fine... */
+        break;   /* life is fine... */
     case 1:
         fprintf(stderr, "\n[return-code 1:  warning error \
 (e.g., failed CRC or unknown compression method)]\n");
@@ -613,26 +663,26 @@ int zip_error;
     case 7:
     case 8:
         fprintf(stderr, "\n[return-code %d:  insufficient memory]\n",
-                zip_error);
+          zip_error);
         break;
     case 9:
         fprintf(stderr, "\n[return-code 9:  zipfile not found]\n");
         break;
-    case 10:                    /* this is the one that gives "access violation," I think */
+    case 10:   /* this is the one that gives "access violation," I think */
         fprintf(stderr, "\n[return-code 10:  bad or illegal parameters \
 specified on command line]\n");
         break;
-    case 11:                    /* I'm not sure this one is implemented, but maybe soon? */
-        fprintf(stderr, "\n[return-code 11:  no files found to \
-extract/view/etc.]\n");
+    case 11:   /* I'm not sure this one is implemented, but maybe soon? */
+        fprintf(stderr,
+          "\n[return-code 11:  no files found to extract/view/etc.]\n");
         break;
     case 50:
-        fprintf(stderr, "\n[return-code 50:  disk full \
-(or otherwise unable to open output file)]\n");
+        fprintf(stderr,
+  "\n[return-code 50:  disk full (or otherwise unable to open output file)]\n");
         break;
     case 51:
-        fprintf(stderr, "\n[return-code 51:  unexpected EOF in zipfile \
-(i.e., truncated)]\n");
+        fprintf(stderr,
+          "\n[return-code 51:  unexpected EOF in zipfile (i.e., truncated)]\n");
         break;
     default:
         fprintf(stderr, "\n[return-code %d:  unknown return-code \
@@ -640,26 +690,27 @@ extract/view/etc.]\n");
                 zip_error);
         break;
     }
-#endif                          /* RETURN_CODES */
+#endif /* RETURN_CODES */
 
-    exit(0);                    /* everything okey-dokey as far as VMS concerned */
-}
+    exit(0);   /* everything okey-dokey as far as VMS concerned */
 
-#endif                          /* VMS */
+} /* end function return_VMS() */
 
-
-
+#endif /* VMS */
 
 
-#ifdef ZMEM                     /* memset, memcpy for systems without them */
+
+
+
+#ifdef ZMEM   /* memset, memcpy for systems without them */
 
 /***********************/
 /*  Function memset()  */
 /***********************/
 
 char *memset(buf, init, len)
-register char *buf, init;       /* buffer loc and initializer */
-register unsigned int len;      /* length of the buffer */
+    register char *buf, init;   /* buffer loc and initializer */
+    register unsigned int len;  /* length of the buffer */
 {
     char *start;
 
@@ -678,8 +729,8 @@ register unsigned int len;      /* length of the buffer */
 /***********************/
 
 char *memcpy(dst, src, len)
-register char *dst, *src;
-register unsigned int len;
+    register char *dst, *src;
+    register unsigned int len;
 {
     char *start;
 
@@ -689,4 +740,4 @@ register unsigned int len;
     return (start);
 }
 
-#endif                          /* ZMEM */
+#endif /* ZMEM */
