@@ -1,5 +1,6 @@
 
-{$undef DEBUGGING}             (* define to enable test code *)
+{$undef DEBUGGING}      {define to enable test code}
+{$define OVERLAY}       {DEFINE to enable overlay code}
 
 {$I+}    {I/O checking}
 {$N-}    {Numeric coprocessor}
@@ -8,5 +9,5 @@
 {$S-}    {Stack checking}
 {$R-}    {Range checking}
 {$D+}    {Global debug information}
-{$L+}    {Local debug information}
+{$L-}    {Local debug information}
 

@@ -17,7 +17,7 @@
  *
  */
 
-#define VERSION  "UnZip:  Zipfile Extract v1.2 of 03-15-89;  (C) 1989 Samuel H. Smith"
+#define VERSION  "UnZip:  Zipfile Extract v2.0 (C) of 09-09-89;  (C) 1989 Samuel H. Smith"
 
 typedef unsigned char byte;	/* code assumes UNSIGNED bytes */
 typedef long longint;
@@ -53,13 +53,13 @@ typedef longint signature_type;
 
 typedef struct local_file_header {
 	word version_needed_to_extract;
-	word general_purpose_bit_flag;
+        word general_purpose_bit_flag;
 	word compression_method;
 	word last_mod_file_time;
 	word last_mod_file_date;
 	longint crc32;
 	longint compressed_size;
-	longint uncompressed_size;
+        longint uncompressed_size;
 	word filename_length;
 	word extra_field_length;
 } local_file_header;
@@ -129,7 +129,7 @@ local_file_header lrec;
  *
  */
 
-#define OUTBUFSIZ 0x6000
+#define OUTBUFSIZ 0x2000        /* must be 0x2000 or larger for unImplode */
 byte *outbuf;                   /* buffer for rle look-back */
 byte *outptr;
 
@@ -489,7 +489,7 @@ void unReduce(void)
 	lchar = 0;
 	LoadFollowers();
 
-        while (((outpos + outcnt) < lrec.uncompressed_size) && (!zipeof)) {
+        while (((outpos+outcnt) < lrec.uncompressed_size) && (!zipeof)) {
 		if (Slen[lchar] == 0)
                         READBIT(8,nchar)      /* ; */
                 else
@@ -541,7 +541,7 @@ void unReduce(void)
 				register int i = Len + 3;
 				int offset = (((V >> D_shift[factor]) &
                                           D_mask[factor]) << 8) + nchar + 1;
-				longint op = outpos + outcnt - offset;
+                                longint op = (outpos+outcnt) - offset;
 
 				/* special case- before start of file */
 				while ((op < 0L) && (i > 0)) {
@@ -735,11 +735,372 @@ void unShrink(void)
 }
 
 
+/* ------------------------------------------------------------- */ 
+/*
+ * Imploding
+ * ---------
+ *
+ * The Imploding algorithm is actually a combination of two distinct
+ * algorithms.  The first algorithm compresses repeated byte sequences
+ * using a sliding dictionary.  The second algorithm is used to compress
+ * the encoding of the sliding dictionary ouput, using multiple
+ * Shannon-Fano trees.
+ *
+ */ 
+
+   enum { maxSF        = 256 };
+
+   typedef struct sf_entry { 
+                 word         Code; 
+                 byte         Value; 
+                 byte         BitLength; 
+              } sf_entry; 
+
+   typedef struct sf_tree {   /* a shannon-fano tree */ 
+      sf_entry     entry[maxSF];
+      int          entries;
+      int          MaxLength;
+   } sf_tree; 
+
+   typedef sf_tree      *sf_treep; 
+
+   sf_tree      lit_tree; 
+   sf_tree      length_tree; 
+   sf_tree      distance_tree; 
+   boolean      lit_tree_present; 
+   boolean      eightK_dictionary; 
+   int          minimum_match_length;
+   int          dict_bits;
+
+
+void         SortLengths(sf_tree *    tree)
+  /* Sort the Bit Lengths in ascending order, while retaining the order
+    of the original lengths stored in the file */ 
+{ 
+   int          x;
+   int          gap;
+   sf_entry     t; 
+   boolean      noswaps;
+   int          a, b;
+
+   gap = tree->entries / 2; 
+
+   do { 
+      do { 
+         noswaps = 1;
+         for (x = 0; x <= (tree->entries - 1) - gap; x++) 
+         { 
+            a = tree->entry[x].BitLength; 
+            b = tree->entry[x + gap].BitLength; 
+            if ((a > b) || ((a == b) && (tree->entry[x].Value > tree->entry[x + gap].Value))) 
+            { 
+               t = tree->entry[x]; 
+               tree->entry[x] = tree->entry[x + gap]; 
+               tree->entry[x + gap] = t; 
+               noswaps = 0;
+            } 
+         } 
+      }  while (!noswaps);
+
+      gap = gap / 2; 
+   }  while (gap > 0);
+} 
+
+
+/* ----------------------------------------------------------- */ 
+
+void         ReadLengths(sf_tree *    tree)
+{ 
+   int          treeBytes;
+   int          i;
+   int          num, len;
+
+  /* get number of bytes in compressed tree */
+   READBIT(8,treeBytes);
+   treeBytes++; 
+   i = 0; 
+
+   tree->MaxLength = 0;
+
+ /* High 4 bits: Number of values at this bit length + 1. (1 - 16)
+    Low  4 bits: Bit Length needed to represent value + 1. (1 - 16) */
+   while (treeBytes > 0)
+   {
+      READBIT(4,len); len++;
+      READBIT(4,num); num++;
+
+      while (num > 0)
+      {
+         if (len > tree->MaxLength)
+            tree->MaxLength = len;
+         tree->entry[i].BitLength = len;
+         tree->entry[i].Value = i;
+         i++;
+         num--;
+      }
+
+      treeBytes--;
+   } 
+} 
+
+
+/* ----------------------------------------------------------- */ 
+
+void         GenerateTrees(sf_tree *    tree)
+     /* Generate the Shannon-Fano trees */ 
+{ 
+   word         Code;
+   int          CodeIncrement;
+   int          LastBitLength;
+   int          i;
+
+
+   Code = 0;
+   CodeIncrement = 0; 
+   LastBitLength = 0; 
+
+   i = tree->entries - 1;   /* either 255 or 63 */ 
+   while (i >= 0) 
+   { 
+      Code += CodeIncrement; 
+      if (tree->entry[i].BitLength != LastBitLength) 
+      { 
+         LastBitLength = tree->entry[i].BitLength; 
+         CodeIncrement = 1 << (16 - LastBitLength); 
+      } 
+
+      tree->entry[i].Code = Code; 
+      i--; 
+   } 
+} 
+
+
+/* ----------------------------------------------------------- */ 
+
+void         ReverseBits(sf_tree *    tree)
+ /* Reverse the order of all the bits in the above ShannonCode[]
+    vector, so that the most significant bit becomes the least
+    significant bit. For example, the value 0x1234 (hex) would become
+    0x2C48 (hex). */ 
+{ 
+   int          i;
+   word         mask;
+   word         revb;
+   word         v;
+   word         o;
+   int          b;
+
+
+   for (i = 0; i <= tree->entries - 1; i++) 
+   { 
+        /* get original code */ 
+      o = tree->entry[i].Code; 
+
+        /* reverse each bit */ 
+      mask = 0x0001;
+      revb = 0x8000;
+      v = 0;
+      for (b = 0; b <= 15; b++) 
+      { 
+           /* if bit set in mask, then substitute reversed bit */ 
+         if ((o & mask) != 0) 
+            v = v | revb; 
+
+           /* advance to next bit */ 
+         revb = (revb >> 1);
+         mask = (mask << 1);
+      } 
+
+        /* store reversed bits */ 
+      tree->entry[i].Code = v; 
+   } 
+} 
+
+
+/* ----------------------------------------------------------- */ 
+
+void         LoadTree(sf_tree *    tree,
+                      int          treesize)
+     /* allocate and load a shannon-fano tree from the compressed file */ 
+{ 
+   tree->entries = treesize; 
+   ReadLengths(tree); 
+   SortLengths(tree); 
+   GenerateTrees(tree); 
+   ReverseBits(tree); 
+} 
+
+
+/* ----------------------------------------------------------- */ 
+
+void         LoadTrees(void)
+{ 
+   eightK_dictionary = (lrec.general_purpose_bit_flag & 0x02) != 0;   /* bit 1 */
+   lit_tree_present = (lrec.general_purpose_bit_flag & 0x04) != 0;   /* bit 2 */
+
+   if (eightK_dictionary) 
+      dict_bits = 7;
+   else 
+      dict_bits = 6; 
+
+   if (lit_tree_present) 
+   { 
+      minimum_match_length = 3; 
+      LoadTree(&lit_tree,256); 
+   } 
+   else 
+      minimum_match_length = 2; 
+
+   LoadTree(&length_tree,64); 
+   LoadTree(&distance_tree,64); 
+} 
+
+
+/* ----------------------------------------------------------- */ 
+
+void         ReadTree(sf_tree *    tree,
+                      int     *    dest)
+     /* read next byte using a shannon-fano tree */ 
+{ 
+   int          bits = 0;
+   word         cv = 0;
+   int          cur = 0;
+   int          b;
+
+   *dest = -1;   /* in case of error */ 
+
+   for (;;)
+   { 
+      READBIT(1,b);
+      cv = cv | (b << bits);
+      bits++; 
+
+      /* this is a very poor way of decoding shannon-fano.  two quicker
+         methods come to mind:
+            a) arrange the tree as a huffman-style binary tree with
+               a "leaf" indicator at each node,
+         and
+            b) take advantage of the fact that s-f codes are at most 8
+               bits long and alias unused codes for all bits following
+               the "leaf" bit.
+      */
+
+      while (tree->entry[cur].BitLength < bits) 
+      { 
+         cur++; 
+         if (cur >= tree->entries) 
+            return; /* data error */
+      } 
+
+      while (tree->entry[cur].BitLength == bits) 
+      { 
+         if (tree->entry[cur].Code == cv) 
+         { 
+            *dest = tree->entry[cur].Value; 
+            return; 
+         } 
+
+         cur++; 
+         if (cur >= tree->entries) 
+            return; /* data error */
+      } 
+   } 
+} 
+
+
+/* ----------------------------------------------------------- */ 
+
+void         unImplode(void)
+     /* expand imploded data */ 
+
+{ 
+   int          lout;
+   longint      op;
+   int          Length;
+   int          Distance;
+   int          i;
+
+   LoadTrees(); 
+
+   while ((!zipeof) && ((outpos+outcnt) < lrec.uncompressed_size))
+   { 
+      READBIT(1,lout);
+
+      if (lout != 0)   /* encoded data is literal data */ 
+      { 
+         if (lit_tree_present)  /* use Literal Shannon-Fano tree */
+            ReadTree(&lit_tree,&lout);
+         else 
+            READBIT(8,lout);
+
+         OUTB(lout);
+      } 
+      else             /* encoded data is sliding dictionary match */
+      {                
+         READBIT(dict_bits,lout);
+         Distance = lout; 
+
+         ReadTree(&distance_tree,&lout); 
+         Distance |= (lout << dict_bits);
+         /* using the Distance Shannon-Fano tree, read and decode the
+            upper 6 bits of the Distance value */ 
+
+         ReadTree(&length_tree,&Length); 
+         /* using the Length Shannon-Fano tree, read and decode the
+            Length value */
+
+         Length += minimum_match_length; 
+         if (Length == (63 + minimum_match_length)) 
+         { 
+            READBIT(8,lout);
+            Length += lout; 
+         } 
+
+        /* move backwards Distance+1 bytes in the output stream, and copy
+          Length characters from this position to the output stream.
+          (if this position is before the start of the output stream,
+          then assume that all the data before the start of the output
+          stream is filled with zeros) */ 
+
+         op = (outpos+outcnt) - Distance - 1L;
+
+          /* special case- before start of file */
+          while ((op < 0L) && (Length > 0)) {
+                  OUTB(0);
+                  op++;
+                  Length--;
+          }
+
+          /* normal copy of data from output buffer */
+          {
+                  register int ix = (int) (op % OUTBUFSIZ);
+
+                  /* do a block memory copy if possible */
+                  if ( ((ix    +Length) < OUTBUFSIZ) &&
+                       ((outcnt+Length) < OUTBUFSIZ) ) {
+                          memcpy(outptr,&outbuf[ix],Length);
+                          outptr += Length;
+                          outcnt += Length;
+                  }
+
+                  /* otherwise copy byte by byte */
+                  else while (Length--) {
+                          OUTB(outbuf[ix]);
+                          if (++ix >= OUTBUFSIZ)
+                                  ix = 0;
+                  }
+         }
+      } 
+   } 
+} 
+
+
+
 /* ---------------------------------------------------------- */
 
 void extract_member(void)
 {
-	unsigned b;
+        word     b;
 
 	bits_left = 0;
 	bitbuf = 0;
@@ -780,7 +1141,13 @@ void extract_member(void)
 		}
 		break;
 
-	default:
+        case 6: {
+                        printf("  Exploding: %-12s ", filename);
+                        unImplode();
+		}
+		break;
+
+        default:
 		printf("Unknown compression method.");
 	}
 

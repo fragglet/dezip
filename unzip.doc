@@ -1,11 +1,11 @@
   
                                    UnZip
   
-                           Version 1.2, 03-15-89
+                           Version 2.0, 09-09-89
   
                            Zipfile Extract Utility
   
-                                 UnZip12.ZIP
+                                 UnZip20.ZIP
   
           Copyright (C) 1989 Samuel H. Smith;  ALL RIGHTS RESERVED
   
@@ -21,7 +21,8 @@ exec files.
 
 Usage
 -----
-   unzip filename[.zip]
+   unz filename[.zip]           ;pascal language version
+   unzip filename[.zip]         ;C language version
 
 
 Revision history
@@ -51,6 +52,11 @@ Revision history
    I'm spending my time on the C version now and don't plan to do any
    further work on the pascal.  If you're using the pascal version
    please contact me.
+
+9-9-89
+   Addition of new "un-implode" logic to handle new compression format
+   included with PKZ101.
+
 
 
 LICENSE
@@ -82,9 +88,10 @@ CLAIM BY ANY OTHER PARTY.
 
 If you have any questions, bugs, or suggestions, please contact me at:
 
-                           The Tool Shop BBS
-                       (602) 264-3969 (HST 9600)
-                       (602) 279-2673 (HAYES 9600)
+                  The Tool Shop BBS
+                  (602) 279-2673 (FREE LINE, USR 2400)
+                  (602) 264-3969 (HST 9600)
+                  (602) 270-0239 (HAYES 9600)
 
 The latest version is always available for downloading.
 

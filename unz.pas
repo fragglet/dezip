@@ -32,13 +32,11 @@ Uses
    Dos, Mdosio;
 
 const
-   version = 'UnZip:  Zipfile Extract v1.1á of 03-06-89;  (C) 1989 S.H.Smith';
+   version = 'UnZ:  Zipfile Extract v2.0 (PAS) of 09-09-89;  (C) 1989 S.H.Smith';
 
 
 
 (*
- * ProZip2.int - ZIP file interface library      (2-15-89 shs)
- *
  * Data declarations for the archive text-view functions.
  *
  *)
@@ -121,6 +119,8 @@ var
    csize:       longint;
    cusize:      longint;
    cmethod:     integer;
+   cflags:      word;
+
    ctime:       word;
    cdate:       word;
    inbuf:       array[1..uinbufsize] of byte;
@@ -141,7 +141,7 @@ var
  *)
 
 var
-   outbuf:      array[0..4096] of byte; {for rle look-back}
+   outbuf:      array[0..8192] of byte; {8192 or more for rle look-back}
    outpos:      longint;                {absolute position in outfile}
    outcnt:      integer;
    outfd:       dos_handle;
@@ -175,6 +175,7 @@ var
    suffix_of:  hsize_array_byte;
    stack:      hsize_array_byte;
    stackp:     integer;
+
 
 
 
@@ -709,9 +710,355 @@ end;
 
 
 
+(* ------------------------------------------------------------- *)
 (*
- * ProZip2.int - ZIP file interface library      (2-15-89 shs)
+ * Imploding
+ * ---------
  *
+ * The Imploding algorithm is actually a combination of two distinct
+ * algorithms.  The first algorithm compresses repeated byte sequences
+ * using a sliding dictionary.  The second algorithm is used to compress
+ * the encoding of the sliding dictionary ouput, using multiple
+ * Shannon-Fano trees.
+ *
+ *)
+
+const
+   maxSF = 256;
+
+type
+   sf_entry = record
+                 Code:       word;
+                 Value:      byte;
+                 BitLength:  byte;
+              end;
+
+   sf_tree = record  {a shannon-fano tree}
+      entry:         array[0..maxSF] of sf_entry;
+      entries:       integer;
+      MaxLength:     integer;
+   end;
+
+   sf_treep = ^sf_tree;
+
+var
+   lit_tree:               sf_tree;
+   length_tree:            sf_tree;
+   distance_tree:          sf_tree;
+   lit_tree_present:       boolean;
+   eightK_dictionary:      boolean;
+   minimum_match_length:   integer;
+   dict_bits:              integer;
+
+
+procedure SortLengths(var tree: sf_tree);
+   {Sort the Bit Lengths in ascending order, while retaining the order
+    of the original lengths stored in the file}
+var
+   x:       integer;
+   gap:     integer;
+   t:       sf_entry;
+   noswaps: boolean;
+   a,b:     integer;
+
+begin
+   gap := tree.entries div 2;
+
+   repeat
+      repeat
+         noswaps := true;
+         for x := 0 to (tree.entries-1)-gap do
+         begin
+            a := tree.entry[x].BitLength;
+            b := tree.entry[x+gap].BitLength;
+            if (a > b) or
+               ((a = b) and (tree.entry[x].Value > tree.entry[x+gap].Value)) then
+            begin
+               t := tree.entry[x];
+               tree.entry[x] := tree.entry[x+gap];
+               tree.entry[x+gap] := t;
+               noswaps := false;
+            end;
+         end;
+      until noswaps;
+
+      gap := gap div 2;
+   until gap < 1;
+end;
+
+
+(* ----------------------------------------------------------- *)
+procedure ReadLengths(var tree: sf_tree);
+var
+   treeBytes:  integer;
+   i:          integer;
+   num,len:    integer;
+
+begin
+   {get number of bytes in compressed tree}
+   ReadBits(8,treeBytes);
+   inc(treeBytes);
+   i := 0;
+
+   begin
+      tree.MaxLength := 0;
+
+      {High 4 bits: Number of values at this bit length + 1. (1 - 16)
+       Low  4 bits: Bit Length needed to represent value + 1. (1 - 16)}
+      while treeBytes > 0 do
+      begin
+         ReadBits(4,len);  inc(len);
+         ReadBits(4,num);  inc(num);
+
+         while num > 0 do
+         begin
+            if len > tree.MaxLength then
+               tree.MaxLength := len;
+            tree.entry[i].BitLength := len;
+            tree.entry[i].Value := i;
+            inc(i);
+            dec(num);
+         end;
+
+         dec(treeBytes);
+      end;
+   end;
+end;
+
+
+(* ----------------------------------------------------------- *)
+procedure GenerateTrees(var tree: sf_tree);
+   {Generate the Shannon-Fano trees}
+var
+   Code:          word;
+   CodeIncrement: integer;
+   LastBitLength: integer;
+   i:             integer;
+
+begin
+   Code := 0;
+   CodeIncrement := 0;
+   LastBitLength := 0;
+
+   i := tree.entries - 1;   {either 255 or 63}
+   while i >= 0 do
+   begin
+      inc(Code,CodeIncrement);
+      if tree.entry[i].BitLength <> LastBitLength then
+      begin
+         LastBitLength := tree.entry[i].BitLength;
+         CodeIncrement := 1 shl (16 - LastBitLength);
+      end;
+
+      tree.entry[i].Code := Code;
+      dec(i);
+   end;
+end;
+
+
+(* ----------------------------------------------------------- *)
+procedure ReverseBits(var tree: sf_tree);
+   {Reverse the order of all the bits in the above ShannonCode[]
+    vector, so that the most significant bit becomes the least
+    significant bit. For example, the value 0x1234 (hex) would become
+    0x2C48 (hex).}
+var
+   i:    integer;
+   mask: word;
+   revb: word;
+   v:    word;
+   o:    word;
+   b:    integer;
+
+begin
+   for i := 0 to tree.entries-1 do
+   begin
+      {get original code}
+      o := tree.entry[i].Code;
+
+      {reverse each bit}
+      mask := $0001;
+      revb := $8000;
+      v := 0;
+      for b := 0 to 15 do
+      begin
+         {if bit set in mask, then substitute reversed bit}
+         if (o and mask) <> 0 then
+            v := v or revb;
+
+         {advance to next bit}
+         revb := revb shr 1;
+         mask := mask shl 1;
+      end;
+
+      {store reversed bits}
+      tree.entry[i].Code := v;
+   end;
+end;
+
+
+(* ----------------------------------------------------------- *)
+procedure LoadTree(var tree: sf_tree;
+                   treesize: integer);
+   {allocate and load a shannon-fano tree from the compressed file}
+begin
+   tree.entries := treesize;
+   ReadLengths(tree);
+   SortLengths(tree);
+   GenerateTrees(tree);
+   ReverseBits(tree);
+end;
+
+
+(* ----------------------------------------------------------- *)
+procedure LoadTrees;
+begin
+   eightK_dictionary := (cflags and $02) <> 0; {bit 1}
+   lit_tree_present := (cflags and $04) <> 0; {bit 2}
+
+   if eightK_dictionary then
+      dict_bits := 7
+   else
+      dict_bits := 6;
+
+   if lit_tree_present then
+   begin
+      minimum_match_length := 3;
+      LoadTree(lit_tree,256);
+   end
+   else
+      minimum_match_length := 2;
+
+   LoadTree(length_tree,64);
+   LoadTree(distance_tree,64);
+end;
+
+
+(* ----------------------------------------------------------- *)
+procedure ReadTree(var tree: sf_tree;
+                   var dest: integer);
+   {read next byte using a shannon-fano tree}
+var
+   bits: integer;
+   cv:   word;
+   b:    integer;
+   cur:  integer;
+
+begin
+   bits := 0;
+   cv := 0;
+   cur := 0;
+   dest := -1; {in case of error}
+
+   while true do
+   begin
+      ReadBits(1,b);
+      cv := cv or (b shl bits);
+      inc(bits);
+
+      (* this is a very poor way of decoding shannon-fano.  two quicker
+      methods come to mind:
+         a) arrange the tree as a huffman-style binary tree with
+            a "leaf" indicator at each node,
+      and
+         b) take advantage of the fact that s-f codes are at most 8
+            bits long and alias unused codes for all bits following
+            the "leaf" bit.
+      *)
+
+      while tree.entry[cur].BitLength < bits do
+      begin
+         inc(cur);
+         if cur >= tree.entries then
+            exit;
+      end;
+
+      while tree.entry[cur].BitLength = bits do
+      begin
+         if tree.entry[cur].Code = cv then
+         begin
+            dest := tree.entry[cur].Value;
+            exit;
+         end;
+
+         inc(cur);
+         if cur >= tree.entries then
+            exit;
+      end;
+   end;
+end;
+
+
+(* ----------------------------------------------------------- *)
+procedure unImplode;
+   {expand imploded data}
+
+var
+   lout:       integer;
+   op:         longint;
+   Length:     integer;
+   Distance:   integer;
+   i:          integer;
+
+begin
+   LoadTrees;
+
+   while (not zipeof) and (outpos < cusize) do
+   begin
+      ReadBits(1,lout);
+
+      if lout <> 0 then    {encoded data is literal data}
+      begin
+         if lit_tree_present then
+            ReadTree(lit_tree,lout)   {use Literal Shannon-Fano tree}
+         else
+            ReadBits(8,lout);
+
+         OutByte(lout);
+      end
+      else
+
+      begin          {encoded data is sliding dictionary match}
+         readBits(dict_bits,lout);
+         Distance := lout;
+
+         ReadTree(distance_tree,lout);
+         Distance := Distance or (lout shl dict_bits);
+         {using the Distance Shannon-Fano tree, read and decode the
+            upper 6 bits of the Distance value}
+
+         ReadTree(length_tree,Length);
+         {using the Length Shannon-Fano tree, read and decode the Length value}
+
+         inc(Length,Minimum_Match_Length);
+         if Length = (63 + Minimum_Match_Length) then
+         begin
+            ReadBits(8,lout);
+            inc(Length,lout);
+         end;
+
+         {move backwards Distance+1 bytes in the output stream, and copy
+          Length characters from this position to the output stream.
+          (if this position is before the start of the output stream,
+          then assume that all the data before the start of the output
+          stream is filled with zeros)}
+
+         op := outpos - Distance - 1;
+         for i := 1 to Length do
+         begin
+            if op < 0 then
+               OutByte(0)
+            else
+               OutByte(outbuf[op mod sizeof(outbuf)]);
+            inc(op);
+         end;
+      end;
+   end;
+end;
+
+
+
+(*
  * This procedure displays the text contents of a specified archive
  * file.  The filename must be fully specified and verified.
  *
@@ -758,6 +1105,11 @@ begin
                UnReduce;
             end;
 
+      6:    begin
+               write(' Explode: ',filename,' ...');
+               unImplode;
+            end;
+
       else  write('Unknown compression method.');
    end;
 
@@ -784,6 +1136,7 @@ begin
    csize := rec.compressed_size;
    cusize := rec.uncompressed_size;
    cmethod := rec.compression_method;
+   cflags := rec.general_purpose_bit_flag;
    ctime := rec.last_mod_file_time;
    cdate := rec.last_mod_file_date;
    extract_member;
@@ -877,12 +1230,26 @@ end;
  *)
 
 begin
-   writeln;
-   writeln(version);
-   writeln('Courtesy of:  S.H.Smith  and  The Tool Shop BBS,  (602) 279-2673.');
-   writeln;
    if paramcount <> 1 then
    begin
+      writeln;
+      writeln(version);
+      writeln('Courtesy of:  S.H.Smith  and  The Tool Shop BBS,  (602) 279-2673.');
+      writeln;
+      writeln('You may copy and distribute this program freely, provided that:');
+      writeln('    1)   No fee is charged for such copying and distribution, and');
+      writeln('    2)   It is distributed ONLY in its original, unmodified state.');
+      writeln('If you wish to distribute a modified version of this program, you MUST');
+      writeln('include the source code.');
+      writeln;
+      writeln('If you modify this program, I would appreciate a copy of the  new source');
+      writeln('code.   I am holding the copyright on the source code, so please don''t');
+      writeln('delete my name from the program files or from the documentation.');
+      writeln('IN NO EVENT WILL I BE LIABLE TO YOU FOR ANY DAMAGES, INCLUDING ANY LOST');
+      writeln('PROFITS, LOST SAVINGS OR OTHER INCIDENTAL OR CONSEQUENTIAL DAMAGES');
+      writeln('ARISING OUT OF YOUR USE OR INABILITY TO USE THE PROGRAM, OR FOR ANY');
+      writeln('CLAIM BY ANY OTHER PARTY.');
+      writeln;
       writeln('Usage:  UnZip FILE[.zip]');
       halt;
    end;
