@@ -182,7 +182,7 @@ static void LoadFollowers()
 
     for (x = 255; x >= 0; x--) {
         READBIT(6, Slen[x]);
-        for (i = 0; i < Slen[x]; i++) {
+        for (i = 0; (byte) i < Slen[x]; i++) {
             READBIT(8, followers[x][i]);
         }
     }

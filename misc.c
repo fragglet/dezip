@@ -3,25 +3,18 @@
   misc.c
 
   This file contains a number of useful but not particularly closely related
-  functions; their main claim to fame is that they don't change much, so
-  this file should rarely need to be recompiled.  The CRC-32 stuff is from
-  crc32.c; do_string() is from nunzip.c; a_to_e() is from ascebc.c; makeword/
-  makelong() are from unzip.c; and memset() and memcpy() are from zmemset.c
-  and zmemcpy.c, respectively.  Lumped together here to cut down on the size
-  of unzip.c and the number of associated files floating around.
+  functions; their main claim to fame is that they don't change much, so this
+  file should rarely need to be recompiled.  The CRC-32 stuff is from crc32.c;
+  do_string() is from nunzip.c; makeword() and makelong() are from unzip.c;
+  memset() and memcpy() are from zmemset.c and zmemcpy.c, respectively; and
+  dos_to_unix_time() is from set_file_time_and_close() in file_io.c.  ebcdic[],
+  check_for_newer(), dateformat(), and return_VMS() are new.  Things lumped
+  together here to cut down on the size of unzip.c and the number of associ-
+  ated files floating around.
 
   ---------------------------------------------------------------------------
 
-  Contributions by C. Mascott, Allan Bjorklund, Bill Davidsen, Bo Kullmar,
-  Warner Losh, Greg Roelofs, Larry Jones, Mark Edwards, Antoine Verheijen,
-  and probably many others.
-
-  ---------------------------------------------------------------------------
-
-  Copyright, applying to UpdateCRC() and crc_32_tab[]:
-
-     COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or code
-     or tables extracted from it, as desired without restriction.
+  Copyrights:  see accompanying file "COPYING" in UnZip source distribution.
 
   ---------------------------------------------------------------------------*/
 
@@ -29,6 +22,8 @@
 #include "unzip.h"
 
 
+
+#ifndef ZIPINFO   /* no need to calculate CRCs */
 
 /**************************/
 /*  Function UpdateCRC()  */
@@ -142,6 +137,8 @@ register int len;
     crc32val = crcval;
 }
 
+#endif /* !ZIPINFO */
+
 
 
 
@@ -166,8 +163,8 @@ int option;
     dergoing any necessary or unnecessary character conversions; and FILENAME,
     wherein the string is put into the filename[] array after undergoing ap-
     propriate conversions (including case-conversion, if that is indicated:
-    see the global variable lcflag).  The latter option should be OK, since
-    filename is now dimensioned at FILENAME_MAX (1024).
+    see the global variable pInfo->lcflag).  The latter option should be OK,
+    since filename is now dimensioned at 1025, but we check anyway.
 
     The string, by the way, is assumed to start at the current file-pointer
     position; its length is given by len.  So start off by checking length
@@ -215,7 +212,7 @@ int option;
 
     /*
      * Second case:  read string into filename[] array.  The filename should
-     * never ever be longer than FILNAMSIZ (1024), but for now we'll check,
+     * never ever be longer than FILNAMSIZ-1 (1024), but for now we'll check,
      * just to be sure.
      */
 
@@ -233,8 +230,10 @@ int option;
 
         A_TO_N(filename);       /* translate string to native */
 
-        if (lcflag)
-            TOLOWER(filename, filename);        /* replace with lowercase fn. */
+#ifndef ZIPINFO
+        if (pInfo->lcflag)
+            TOLOWER(filename, filename);  /* replace with lowercase filename */
+#endif
 
         if (!extra_len)         /* we're done here */
             break;
@@ -257,11 +256,247 @@ int option;
         LSEEK(cur_zipfile_bufstart + (inptr-inbuf) + len)
         break;
 
-    }                           /* end switch (option) */
+    /*
+     * Fourth case:  assume we're at the start of an "extra field"; malloc
+     * storage for it and read data into the allocated space.
+     */
 
-    return (error);
+    case EXTRA_FIELD:
+        if (extra_field != NULL)
+            free(extra_field);
+        if ((extra_field = (byte *)malloc(len)) == NULL) {
+            fprintf(stderr,
+              "warning:  extra field too long (%d).  Ignoring...\n", len);
+            LSEEK(cur_zipfile_bufstart + (inptr-inbuf) + len)
+        } else
+            if (readbuf((char *)extra_field, len) <= 0)
+                return 51;      /* 51:  unexpected EOF */
+        break;
+
+    }                           /* end switch (option) */
+    return error;
 
 }                               /* end function do_string() */
+
+
+
+
+
+#ifndef ZIPINFO
+#ifndef VMS
+
+/*********************************/
+/*  Function dos_to_unix_time()  */
+/*********************************/
+
+time_t dos_to_unix_time(ddate, dtime)
+unsigned ddate, dtime;
+{
+    static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    int yr, mo, dy, hh, mm, ss, leap;
+    long m_time, days=0;
+#if !defined(MACOS) && !defined(MSC)
+#if defined(BSD) || defined(MTS)
+    static struct timeb tbp;
+#else /* !(BSD || MTS) */
+    extern long timezone;    /* declared in <time.h> for MSC (& Borland?) */
+#endif /* ?(BSD || MTS) */
+#endif /* !MACOS && !MSC (may need to change to DOS_OS2) */
+
+#   define YRBASE  1970
+
+    /* dissect date */
+    yr = ((ddate >> 9) & 0x7f) + (1980 - YRBASE);
+    mo = ((ddate >> 5) & 0x0f) - 1;
+    dy = (ddate & 0x1f) - 1;
+
+    /* dissect time */
+    hh = (dtime >> 11) & 0x1f;
+    mm = (dtime >> 5) & 0x3f;
+    ss = (dtime & 0x1f) * 2;
+
+    /* leap = # of leap years from BASE up to but not including current year */
+    leap = ((yr + YRBASE - 1) / 4);   /* leap year base factor */
+
+    /* How many days from BASE to this year? (& add expired days this year) */
+    days = (yr * 365) + (leap - 492) + yday[mo];
+
+    /* if year is a leap year and month is after February, add another day */
+    if ((mo > 1) && ((yr+YRBASE)%4 == 0) && ((yr+YRBASE) != 2100))
+        ++days;                 /* OK through 2199 */
+
+    /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
+    m_time = ((long)(days + dy) * 86400) + ((long) hh * 3600) + (mm * 60) + ss;
+      /* - 1;   MS-DOS times always rounded up to nearest even second */
+
+#if !defined(MACOS) && !defined(EMX32)
+#if defined(BSD) || defined(MTS)
+    ftime(&tbp);
+    m_time += tbp.timezone * 60L;
+#else /* !(BSD || MTS) */
+    tzset();                    /* set `timezone' */
+    m_time += timezone;         /* account for timezone differences */
+#endif /* ?(BSD || MTS) */
+#endif /* !MACOS && !EMX32 */
+
+    if (localtime((time_t *)&m_time)->tm_isdst)
+        m_time -= 60L * 60L;    /* adjust for daylight savings time */
+
+    return m_time;
+
+} /* end function dos_to_unix_time() */
+
+#endif /* !VMS */
+
+
+
+
+
+/********************************/
+/*  Function check_for_newer()  */  /* could make this into a macro for Unix */
+/********************************/
+
+int check_for_newer(filename)   /* return 1 if existing file newer or equal; */
+char *filename;                 /*  0 if older; -1 if doesn't exist yet */
+{
+#ifdef VMS
+    int dy, mo, yr, hh, mm, ss, dy2, mo2, yr2, hh2, mm2, ss2;
+    float sec;
+    char mon[4];
+    static char actimbuf[24], modtimbuf[24];
+    static char *month[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                            "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+    struct VMStimbuf {
+        char *actime;           /* VMS revision date, ASCII format */
+        char *modtime;          /* VMS creation date, ASCII format */
+    } ascii_times={actimbuf,modtimbuf};
+
+
+    if (stat(filename, &statbuf))
+        return -1;
+
+    if (VMSmunch(filename, GET_TIMES, &ascii_times) != RMS$_NMF)
+        return 0;   /* exists but can't get the time:  assume older */
+
+    sscanf(modtimbuf, "%2d-%3s-%04d %02d:%02d:%05f", &dy, mon,
+      &yr, &hh, &mm, &sec);
+
+    yr2 = ((lrec.last_mod_file_date >> 9) & 0x7f) + 1980;
+    if (yr > yr2)
+        return 1;
+    else if (yr < yr2)
+        return 0;
+
+    for (mo = 0;  mo < 11;  ++mo)
+        if (!strcmp(mon, month[mo]))
+            break;
+    mo2 = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
+    if (mo > mo2)
+        return 1;
+    else if (mo < mo2)
+        return 0;
+
+    dy2 = (lrec.last_mod_file_date & 0x1f);
+    if (dy > dy2)
+        return 1;
+    else if (dy < dy2)
+        return 0;
+
+    hh2 = (lrec.last_mod_file_time >> 11) & 0x1f;
+    if (hh > hh2)
+        return 1;
+    else if (hh < hh2)
+        return 0;
+
+    mm2 = (lrec.last_mod_file_time >> 5) & 0x3f;
+    if (mm > mm2)
+        return 1;
+    else if (mm < mm2)
+        return 0;
+
+    /* round to nearest 2 secs--may become 60, but doesn't matter for compare */
+    ss = (int)(sec + 1.) & -2;
+    ss2 = (lrec.last_mod_file_time & 0x1f) * 2;
+    if (ss >= ss2)
+        return 1;
+
+    return 0;
+
+#else /* !VMS */        /* round up filetime to nearest 2 secs --v  */
+    return stat(filename, &statbuf)?  -1 :
+      ( ((statbuf.st_mtime & 1)? statbuf.st_mtime+1 : statbuf.st_mtime) >=
+      dos_to_unix_time(lrec.last_mod_file_date, lrec.last_mod_file_time) );
+#endif /* ?VMS */
+
+} /* end function check_for_newer() */
+
+
+
+
+
+/***************************/
+/*  Function dateformat()  */
+/***************************/
+
+int dateformat()
+{
+
+/*-----------------------------------------------------------------------------
+  For those operating systems which support it, this function returns a value
+  which tells how national convention says that numeric dates are displayed.
+
+  Return values are DF_YMD, DF_DMY and DF_MDY.  The meanings should be fairly
+  obvious.
+ -----------------------------------------------------------------------------*/
+
+#ifdef OS2
+    COUNTRYINFO    ctryi;
+    COUNTRYCODE    ctryc;
+#ifdef __32BIT__
+    ULONG          cbCountryInfo;
+#else
+    USHORT         cbCountryInfo;
+#endif
+
+
+    ctryc.country = ctryc.codepage = 0;
+    if (DosGetCtryInfo(sizeof ctryi, &ctryc, &ctryi, &cbCountryInfo) != NO_ERROR)
+        return DF_MDY;
+    else
+        switch (ctryi.fsDateFmt) {
+            case 0 /* DATEFMT_MM_DD_YY */ :
+                return DF_MDY;
+            case 1 /* DATEFMT_DD_MM_YY */ :
+                return DF_DMY;
+            case 2 /* DATEFMT_YY_MM_DD */ :
+                return DF_YMD;
+        }
+#else /* !OS2 */
+#ifdef MSDOS
+    unsigned short int CountryInfo[18];
+    union REGS regs;
+    struct SREGS sregs;
+
+
+    regs.x.ax = 0x3800;
+    regs.x.dx = FP_OFF(CountryInfo);
+    sregs.ds  = FP_SEG(CountryInfo);
+    int86x(0x21, &regs, &regs, &sregs);
+    switch(CountryInfo[0]) {
+        case 0:
+            return DF_MDY;
+        case 1:
+            return DF_DMY;
+        case 2:
+            return DF_YMD;
+    }
+#endif /* !MSDOS */
+#endif /* ?OS2 */
+
+    return DF_MDY;   /* default for Unix, VMS, etc. */
+}                               /* end function dateformat() */
+
+#endif /* !ZIPINFO */
 
 
 
@@ -299,8 +534,6 @@ unsigned char ebcdic[] =
 
 
 
-
-#ifdef NOTINT16
 
 /*************************/
 /*  Function makeword()  */
@@ -340,8 +573,6 @@ byte *sig;
         + ((ULONG) sig[0]);
 }
 
-#endif                          /* !NOTINT16 */
-
 
 
 
@@ -355,13 +586,13 @@ byte *sig;
 void return_VMS(zip_error)
 int zip_error;
 {
+#ifdef RETURN_CODES
 /*---------------------------------------------------------------------------
     Do our own, explicit processing of error codes and print message, since
     VMS misinterprets return codes as rather obnoxious system errors ("access
     violation," for example).
   ---------------------------------------------------------------------------*/
 
-#ifndef NO_RETURN_CODES         /* can compile without messages if want */
     switch (zip_error) {
 
     case 0:
@@ -409,7 +640,7 @@ extract/view/etc.]\n");
                 zip_error);
         break;
     }
-#endif                          /* NO_RETURN_CODES */
+#endif                          /* RETURN_CODES */
 
     exit(0);                    /* everything okey-dokey as far as VMS concerned */
 }
@@ -422,9 +653,9 @@ extract/view/etc.]\n");
 
 #ifdef ZMEM                     /* memset, memcpy for systems without them */
 
-/************************/
-/*  Function zmemset()  */
-/************************/
+/***********************/
+/*  Function memset()  */
+/***********************/
 
 char *memset(buf, init, len)
 register char *buf, init;       /* buffer loc and initializer */
@@ -442,9 +673,9 @@ register unsigned int len;      /* length of the buffer */
 
 
 
-/************************/
-/*  Function zmemcpy()  */
-/************************/
+/***********************/
+/*  Function memcpy()  */
+/***********************/
 
 char *memcpy(dst, src, len)
 register char *dst, *src;

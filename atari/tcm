@@ -1,2 +1,0 @@
-setenv PATH=e:\tc,$PATH
-make -r -f makefile.st $*

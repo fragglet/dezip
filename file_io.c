@@ -3,36 +3,85 @@
   file_io.c
 
   This file contains routines for doing direct input/output, file-related
-  sorts of things.
+  sorts of things.  Most of the system-specific code for unzip is contained
+  here, including the non-echoing password code for decryption (bottom).
 
   ---------------------------------------------------------------------------*/
 
 
+#define const
 #include "unzip.h"
 
 
 /************************************/
-/*  File_IO Includes, Defines, etc. */
+/*  File_IO Local Prototypes, etc.  */
 /************************************/
 
-#ifdef VMS
-#include <rms.h>                /* RMS prototypes, error codes, etc. */
-#include <ssdef.h>              /* system services error codes */
-#include <descrip.h>            /* "descriptor" format stuff */
+#ifndef DOS_OS2
+   static int dos2unix __((unsigned char *buf, int len));
+   int CR_flag = 0;      /* when last char of buffer == CR (for dos2unix()) */
 #endif
 
-static int WriteBuffer __((int fd, unsigned char *buf, int len));
-static int dos2unix __((unsigned char *buf, int len));
+#ifdef OS2
+   extern int   longname;          /* set in mapname.c */
+   extern char  longfilename[];
+#endif
 
-int CR_flag = 0;        /* when last char of buffer == CR (for dos2unix()) */
+#ifdef CRYPT
+   typedef char  voidp;
+#  if defined(DOS_OS2) || defined(VMS)
+#    define MSVMS
+#    ifdef DOS_OS2
+#      include <conio.h>
+#    else /* !DOS_OS2 */
+#      define getch() getc(stderr)
+#      define OFF 0   /* for echo control */
+#      define ON 1
+#      include <descrip.h>
+#      include <iodef.h>
+#      include <ttdef.h>
+#      ifndef SS$_NORMAL
+#        define SS$_NORMAL 1   /* only thing we need from <ssdef.h> */
+#      endif
+#    endif /* ?DOS_OS2 */
+#  else /* !(DOS_OS2 || VMS) */
+#    ifdef TERMIO	/* Amdahl, Cray, all SysV? */
+#      ifdef CONVEX
+#        include <sys/termios.h>
+#	 include <sgtty.h>
+#      else /* !CONVEX */
+#        include <sys/termio.h>
+#        define sgttyb termio
+#        define sg_flags c_lflag
+#      endif /* ?CONVEX */
+       int ioctl OF((int, int, voidp *));
+#      define GTTY(f,s) ioctl(f,TCGETA,(voidp *)s)
+#      define STTY(f,s) ioctl(f,TCSETAW,(voidp *)s)
+#    else /* !TERMIO */
+#      ifndef MINIX
+#	 include <sys/ioctl.h>
+#      endif /* !MINIX */
+#      include <sgtty.h>
+       int gtty OF((int, struct sgttyb *));
+       int stty OF((int, struct sgttyb *));
+#      define GTTY gtty
+#      define STTY stty
+#    endif /* ?TERMIO */
+     int isatty OF((int));
+     char *ttyname OF((int));
+     int open OF((char *, int, ...));
+     int close OF((int));
+     int read OF((int, voidp *, int));
+#  endif /* ?(DOS_OS2 || VMS) */
+#endif /* CRYPT */
 
 
 
 
 
-/*******************************/
-/*  Function open_input_file() */
-/*******************************/
+/******************************/
+/* Function open_input_file() */
+/******************************/
 
 int open_input_file()
 {                               /* return non-0 if open failed */
@@ -41,10 +90,10 @@ int open_input_file()
      *  translation, which would corrupt the bitstreams
      */
 
-#ifndef UNIX
-    zipfd = open(zipfn, O_RDONLY | O_BINARY);
-#else
+#ifdef UNIX
     zipfd = open(zipfn, O_RDONLY);
+#else
+    zipfd = open(zipfn, O_RDONLY | O_BINARY);
 #endif
     if (zipfd < 1) {
         fprintf(stderr, "error:  can't open zipfile [ %s ]\n", zipfn);
@@ -57,9 +106,9 @@ int open_input_file()
 
 
 
-/************************/
-/*  Function readbuf()  */
-/************************/
+/**********************/
+/* Function readbuf() */
+/**********************/
 
 int readbuf(buf, size)
 char *buf;
@@ -71,7 +120,7 @@ register unsigned size;
     n = size;
     while (size) {
         if (incnt == 0) {
-            if ((incnt = read(zipfd, inbuf, INBUFSIZ)) <= 0)
+            if ((incnt = read(zipfd, (char *)inbuf, INBUFSIZ)) <= 0)
                 return (n-size);
             /* buffer ALWAYS starts on a block boundary:  */
             cur_zipfile_bufstart += INBUFSIZ;
@@ -91,266 +140,142 @@ register unsigned size;
 
 
 
-#ifdef VMS
+#ifndef VMS   /* for VMS use code in vms.c (old VMS code below is retained
+               * in case of problems...will be removed in a later release) */
 
-/**********************************/
-/*  Function create_output_file() */
-/**********************************/
-
-int create_output_file()
-{                               /* return non-0 if sys$create failed */
-    /*
-     * VMS VERSION (generic version is below)
-     *
-     * Create the output file and set its date/time using VMS Record Management
-     * Services From Hell.  Then reopen for appending with normal Unix/C-type
-     * I/O functions.  This is the EASY way to set the file date/time under VMS.
-     */
-    int ierr, yr, mo, dy, hh, mm, ss;
-    char timbuf[24];            /* length = first entry in "stupid" + 1 */
-    struct FAB fileblk;
-    struct XABDAT dattim;
-    static char *month[] =
-    {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-     "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-/*  fixed-length string descriptor (why not just a pointer to timbuf? sigh.) */
-    struct dsc$descriptor stupid =
-    {23, DSC$K_DTYPE_T, DSC$K_CLASS_S, timbuf};
-
-
-
-/*---------------------------------------------------------------------------
-    First initialize the necessary RMS and date/time variables.  "FAB" stands
-    for "file attribute block," "XAB" for "extended attribute block."  Files
-    under VMS are usually in "variable-length records" format with "carriage-
-    return carriage control" (at least for text files).  Unfortunately, some-
-    where along the line extra "carriage returns" (i.e., line feed characters)
-    get stuck in files which are opened in the variable format.  This may be
-    a VMS problem, an RMS problem, or a Unix/C I/O problem, but every 8192
-    characters of text file is followed by a spurious LF, and more often than
-    that for binary files.  So we use the stream-LF format instead (which is
-    what the Unix/C I/O routines do by default).  EDT complains about such
-    files but goes ahead and edits them; TPU (Adam, Eve) and vi don't seem
-    to care at all.
-  ---------------------------------------------------------------------------*/
-
-    yr = ((lrec.last_mod_file_date >> 9) & 0x7f) + 1980; /* dissect date */
-    mo = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
-    dy = (lrec.last_mod_file_date & 0x1f);
-    hh = (lrec.last_mod_file_time >> 11) & 0x1f;        /* dissect time */
-    mm = (lrec.last_mod_file_time >> 5) & 0x3f;
-    ss = (lrec.last_mod_file_time & 0x1f) * 2;
-
-    fileblk = cc$rms_fab;               /* fill FAB with default values */
-    fileblk.fab$l_fna = filename;       /* l_fna, b_fns are the only re- */
-    fileblk.fab$b_fns = strlen(filename); /*  quired user-supplied fields */
-    fileblk.fab$b_rfm = FAB$C_STMLF;    /* stream-LF record format */
-    fileblk.fab$b_rat = FAB$M_CR;       /* carriage-return carriage ctrl */
-    /*                      ^^^^ *NOT* V_CR!!!     */
-    fileblk.fab$l_xab = &dattim;        /* chain XAB to FAB */
-    dattim = cc$rms_xabdat;             /* fill XAB with default values */
-
-    CR_flag = 0;                /* Hack to get CR at end of buffer working
-                                   (dos2unix) */
-
-/*---------------------------------------------------------------------------
-    Next convert date into an ASCII string, then use a VMS service to con-
-    vert the string into internal time format.  Obviously this is a bit of a
-    kludge, but I have absolutely NO intention of figuring out how to convert
-    MS-DOS time into tenths of microseconds elapsed since freaking 17 Novem-
-    ber 1858!!  Particularly since DEC doesn't even have a native 64-bit data
-    type.  Bleah.
-  ---------------------------------------------------------------------------*/
-
-    sprintf(timbuf, "%02d-%3s-%04d %02d:%02d:%02d.00", dy, month[mo], yr,
-            hh, mm, ss);
-
-/*  "xab$q_cdt" is the XAB field which holds the file's creation date/time */
-    sys$bintim(&stupid, &dattim.xab$q_cdt);
-
-/*---------------------------------------------------------------------------
-    Next create the file under RMS.  If sys$create chokes with an error of
-    RMS$_SYN (syntax error), it's probably because a Unix-style directory was
-    specified, so try to create the file again using the regular creat() func-
-    tion (date/time won't be set properly in this case, obviously).
-  ---------------------------------------------------------------------------*/
-
-    if ((ierr = sys$create(&fileblk)) != RMS$_NORMAL)
-        if (ierr == RMS$_SYN) { /* try Unix/C create:  0 = default perms */
-            outfd = creat(filename, 0, "rfm=stmlf", "rat=cr");
-            if (outfd < 1) {
-                fprintf(stderr, "Can't create output file:  %s\n", filename);
-                return (1);
-            } else {
-                return (0);
-            }
-        } else {                /* probably access violation */
-            fprintf(stderr, "Can't create output file:  %s\n", filename);
-            return (1);
-        }
-
-/*---------------------------------------------------------------------------
-    Finally, close the file under RMS and reopen with Unix/C open() function.
-  ---------------------------------------------------------------------------*/
-
-    sys$close(&fileblk);
-    outfd = open(filename, O_RDWR);
-
-    return (0);
-}
-
-
-
-
-
-#else                           /* !VMS */
-
-/**********************************/
-/*  Function create_output_file() */
-/**********************************/
+/*********************************/
+/* Function create_output_file() */
+/*********************************/
 
 int create_output_file()
 {                               /* return non-0 if creat failed */
-    /*
-     * GENERIC VERSION (special VMS version is above)
-     *
-     * Create the output file with default permissions.
-     */
-    extern int do_all;
-    char answerbuf[10];
-    UWORD holder;
 
 
+/*---------------------------------------------------------------------------
+    Create the output file with appropriate permissions.  If we've gotten to
+    this point and the file still exists, we have permission to blow it away.
+  ---------------------------------------------------------------------------*/
 
-    CR_flag = 0;                /* Hack to get CR at end of buffer working. */
-
-    /*
-     * check if the file exists, unless do_all
-     */
-    if (!do_all) {
-        outfd = open(filename, 0);
-        if (outfd >= 0) {       /* first close it, before you forget! */
-            close(outfd);
-
-            /* ask the user before blowing it away */
-            fprintf(stderr, "replace %s, y-yes, n-no, a-all: ", filename);
-            fgets(answerbuf, 9, stdin);
-
-            switch (answerbuf[0]) {
-            case 'y':
-            case 'Y':
-                break;
-            case 'a':
-            case 'A':
-                do_all = 1;
-                break;
-            case 'n':
-            case 'N':
-            default:
-                while (ReadByte(&holder));
-                return 1;       /* it's done! */
-            }
-        }
-    }
-#ifndef UNIX
-    outfd = creat(filename, (S_IWRITE | S_IREAD) & f_attr);
-#else
-    {
-      int mask;
-      mask = umask(0);
-      outfd = creat(filename, 0777 & f_attr);
-      umask(mask);
-    }
+#ifndef DOS_OS2
+    CR_flag = 0;   /* hack to get CR at end of buffer working */
 #endif
 
+#if defined(UNIX) && !defined(AMIGA)
+    {
+        int mask;
+
+#ifndef VMS
+        if (!stat(filename, &statbuf) && (unlink(filename) < 0)) {
+            fprintf(stderr, "\n%s:  cannot delete old copy\n", filename);
+            return 1;
+        }
+#  define EXTRA_ARGS
+#else /* VMS */
+#  define EXTRA_ARGS   ,"rfm=stmlf","rat=cr"
+#endif /* ?VMS */
+
+        mask = umask(0);   /* now know we own it */
+        outfd = creat(filename, 0777 & pInfo->unix_attr  EXTRA_ARGS);
+        umask(mask);                                            /* VMS, Unix */
+    }
+#else /* !UNIX || AMIGA */  /* file permissions set after file closed */
+#if defined(MACOS) && defined(MPW) && !defined(MCH_MACINTOSH)
+    outfd = creat(filename);                         /* Mac MPW C compiler */
+#else /* !(Macintosh MPW 3.2 C) */
+    outfd = creat(filename, S_IWRITE | S_IREAD);     /* DOS, OS2, Mac, Amiga */
+#endif /* ?(Macintosh MPW 3.2 C) */
+#endif /* ?(UNIX && !AMIGA) */
+
     if (outfd < 1) {
-        fprintf(stderr, "Can't create output: %s\n", filename);
+        fprintf(stderr, "\n%s:  cannot create\n", filename);
         return 1;
     }
-    /*
-     * close the newly created file and reopen it in BINARY mode to
-     * disable all CR/LF translations
-     */
+
+/*---------------------------------------------------------------------------
+    If newly created file is in text mode and should be binary (to disable
+    automatic CR/LF translations), either close it and reopen as binary or
+    else change the mode to binary (DOS, OS/2).  If it is already binary and
+    should be text, change the mode to text (Mac).
+  ---------------------------------------------------------------------------*/
+
 #ifndef UNIX
 #ifdef THINK_C
     /*
      * THINKC's stdio routines have the horrible habit of
-     * making any file you open look like generic files
-     * this code tells the OS that it's a text file
+     * making any file you open look like generic files.
+     * This code tells the OS that it's a text file.
      */
     if (aflag) {
         fileParam pb;
         OSErr err;
 
         CtoPstr(filename);
-        pb.ioNamePtr = filename;
+        pb.ioNamePtr = (StringPtr)filename;
         pb.ioVRefNum = 0;
         pb.ioFVersNum = 0;
         pb.ioFDirIndex = 0;
         err = PBGetFInfo(&pb,0);
         if (err == noErr) {
-            pb.ioFlFndrInfo.fdCreator = '????';
+            pb.ioFlFndrInfo.fdCreator = '\?\?\?\?';
             pb.ioFlFndrInfo.fdType = 'TEXT';
             err = PBSetFInfo(&pb, 0);
         }
         PtoCstr(filename);
     }
-#endif
+#endif /* THINK_C */
+
     if (!aflag) {
+#ifdef DOS_OS2
+        if (setmode(outfd, O_BINARY) == -1) {
+#else /* !DOS_OS2 */
         close(outfd);
-        outfd = open(filename, O_RDWR | O_BINARY);
+        if ((outfd = open(filename, O_RDWR | O_BINARY)) < 1) {
+#endif /* ?DOS_OS2 */
+            fprintf(stderr, "Can't make output file binary:  %s\n", filename);
+            return 1;
+        }
     }
-#endif
+#endif /* !UNIX */
+
     return 0;
 }
 
-#endif                          /* !VMS */
+#endif /* !VMS */
 
 
 
 
 
-/*****************************/
-/*  Function FillBitBuffer() */
-/*****************************/
+/****************************/
+/* Function FillBitBuffer() */
+/****************************/
 
-int FillBitBuffer(bits)
-register int bits;
+int FillBitBuffer()
 {
     /*
-     * Get the bits that are left and read the next UWORD.  This
-     * function is only used by the READBIT macro (which is used
-     * by all of the uncompression routines).
+     * Fill bitbuf, which is 32 bits.  This function is only used by the
+     * READBIT and PEEKBIT macros (which are used by all of the uncompression
+     * routines).
      */
-    register int result = bitbuf;
     UWORD temp;
-    int sbits = bits_left;
 
-
-    bits -= bits_left;
-
-    /* read next UWORD of input */
-    bits_left = ReadByte(&bitbuf);
-    bits_left += ReadByte(&temp);
-
-    bitbuf |= (temp << 8);
-    if (bits_left == 0)
-        zipeof = 1;
-
-    /* get the remaining bits */
-    result = result | (int) ((bitbuf & mask_bits[bits]) << sbits);
-    bitbuf >>= bits;
-    bits_left -= bits;
-    return result;
+    zipeof = 1;
+    while (bits_left < 25 && ReadByte(&temp) == 8)
+    {
+      bitbuf |= (ULONG)temp << bits_left;
+      bits_left += 8;
+      zipeof = 0;
+    }
+    return 0;
 }
 
 
 
 
 
-/************************/
-/*  Function ReadByte() */
-/************************/
+/***********************/
+/* Function ReadByte() */
+/***********************/
 
 int ReadByte(x)
 UWORD *x;
@@ -364,11 +289,21 @@ UWORD *x;
         return 0;
 
     if (incnt == 0) {
-        if ((incnt = read(zipfd, inbuf, INBUFSIZ)) <= 0)
+        if ((incnt = read(zipfd, (char *)inbuf, INBUFSIZ)) <= 0)
             return 0;
         /* buffer ALWAYS starts on a block boundary:  */
         cur_zipfile_bufstart += INBUFSIZ;
         inptr = inbuf;
+#ifdef CRYPT
+        if (pInfo->encrypted) {
+            byte *p;
+            int n, t;
+
+	    for (n = incnt > csize + 1 ? (int)csize + 1 : incnt, p = inptr;
+                 n--; p++)
+                *p = DECRYPT(*p);
+        }
+#endif /* CRYPT */
     }
     *x = *inptr++;
     --incnt;
@@ -377,93 +312,95 @@ UWORD *x;
 
 
 
-#ifdef FLUSH_AND_WRITE
-/***************************/
-/*  Function FlushOutput() */
-/***************************/
+
+
+#ifndef VMS   /* for VMS use code in vms.c */
+
+/**************************/
+/* Function FlushOutput() */
+/**************************/
 
 int FlushOutput()
-{                               /* return PK-type error code */
-    /* flush contents of output buffer */
+{
     /*
-     * This combined version doesn't work, and I sure can't see why not...
-     * probably something stupid, but how much can you screw up in 6 lines???
-     * [optimization problem??]
+     * flush contents of output buffer; return PK-type error code
      */
+#ifndef DOS_OS2
+#   define CTRLZ  26
+    int saved_ctrlZ = FALSE;
+#endif /* !DOS_OS2 */
     int len;
 
+
+    if (disk_full) {
+        outpos += outcnt;   /* fake emptied buffer */
+        outcnt = 0;
+        outptr = outbuf;
+        return 50;          /* ignore rest of this file */
+    }
 
     if (outcnt) {
         UpdateCRC(outbuf, outcnt);
 
         if (!tflag) {
-            if (aflag)
+#ifndef DOS_OS2
+            if (aflag) {
+                if (outbuf[outcnt-1] == CTRLZ) {
+                    --outcnt;
+                    saved_ctrlZ = TRUE;
+                }
                 len = dos2unix(outbuf, outcnt);
-            if (write(outfd, outout, len) != len) {
-                fprintf(stderr, "Fatal write error.\n");
-                return (50);    /* 50:  disk full */
-            }
+            } else
+#endif /* !DOS_OS2 */
+                len = outcnt;
+            if (write(outfd, (char *)outout, len) != len)
+#ifdef DOS_OS2
+                if (!cflag)           /* ^Z treated as EOF, removed with -c */
+#else /* !DOS_OS2 */
+#ifdef MINIX
+                if (errno == EFBIG)
+                    if (write(fd, outout, len/2) != len/2  ||
+                        write(fd, outout+len/2, len/2) != len/2)
+#endif /* MINIX */
+#endif /* ?DOS_OS2 */
+                {
+                    /* GRR: add test for force_flag when has its own switch */
+                    fprintf(stderr,
+                      "\n%s:  write error (disk full?).  Continue? (y/n/^C) ",
+                      filename);
+                    FFLUSH   /* for Amiga and Mac MPW */
+                    fgets(answerbuf, 9, stdin);
+                    if (*answerbuf == 'y')   /* stop writing to this file */
+                        disk_full = 1;       /*  (outfd bad?), but new OK */
+                    else
+                        disk_full = 2;       /* no:  exit program */
+                    return 50;    /* 50:  disk full */
+                }
         }
         outpos += outcnt;
         outcnt = 0;
         outptr = outbuf;
-    }
-    return (0);                 /* 0:  no error */
-}
-
-#else                           /* separate flush and write routines */
-/***************************/
-/*  Function FlushOutput() */
-/***************************/
-
-int FlushOutput()
-{                               /* return PK-type error code */
-    /* flush contents of output buffer */
-    if (outcnt) {
-        UpdateCRC(outbuf, outcnt);
-
-        if (!tflag && WriteBuffer(outfd, outbuf, outcnt))
-            return (50);        /* 50:  disk full */
-
-        outpos += outcnt;
-        outcnt = 0;
-        outptr = outbuf;
-    }
-    return (0);                 /* 0:  no error */
-}
-
-/***************************/
-/*  Function WriteBuffer() */
-/***************************/
-
-static int WriteBuffer(fd, buf, len)    /* return 0 if successful, 1 if not */
-int fd;
-unsigned char *buf;
-int len;
-{
-    if (aflag)
-        len = dos2unix(buf, len);
-    if (write(fd, outout, len) != len) {
-#ifdef DOS_OS2
-        if (!cflag) {           /* ^Z treated as EOF, removed with -c */
-#endif
-            fprintf(stderr, "Fatal write error.\n");
-            return (1);         /* FAILED */
-#ifdef DOS_OS2
+#ifndef DOS_OS2
+        if (saved_ctrlZ) {
+            *outptr++ = CTRLZ;
+            ++outcnt;
         }
-#endif
+#endif /* !DOS_OS2 */
     }
-    return (0);
+    return (0);                 /* 0:  no error */
 }
 
-#endif
+#endif /* !VMS */
 
 
 
 
-/************************/
-/*  Function dos2unix() */
-/************************/
+
+#ifndef DOS_OS2   /* GRR:  rewrite this for generic text conversions */
+
+/***********************/
+/* Function dos2unix() */
+/***********************/
 
 static int dos2unix(buf, len)
 unsigned char *buf;
@@ -517,30 +454,30 @@ int len;
     return new_len;
 }
 
+#endif /* !DOS_OS2 */
+
 
 
 
 
 #ifdef DOS_OS2
 
-/***************************************/
-/*  Function set_file_time_and_close() */
-/***************************************/
+/**************************************/
+/* Function set_file_time_and_close() */
+/**************************************/
 
 void set_file_time_and_close()
  /*
-  * MS-DOS AND OS/2 VERSION (Mac, Unix versions are below)
+  * MS-DOS AND OS/2 VERSION (Mac, Unix/VMS versions are below)
   *
   * Set the output file date/time stamp according to information from the
-  * zipfile directory record for this member, then close the file.  This
-  * is optional and can be deleted if your compiler does not easily support
-  * setftime().
+  * zipfile directory record for this member, then close the file and set
+  * its permissions (archive, hidden, read-only, system).  Aside from closing
+  * the file, this routine is optional (but most compilers support it).
   */
 {
 /*---------------------------------------------------------------------------
-    Allocate local variables needed by OS/2 and Turbo C.  [OK, OK, so it's
-    a bogus comment...but this routine was getting way too cluttered and
-    needed some visual separators.  Bleah.]
+    Allocate local variables needed by OS/2 and Turbo C.
   ---------------------------------------------------------------------------*/
 
 #ifdef OS2              /* (assuming only MSC or MSC-compatible compilers
@@ -572,14 +509,14 @@ void set_file_time_and_close()
 #endif                          /* __TURBOC__ */
 #endif                          /* !OS2 */
 
-    /*
-     * Do not attempt to set the time stamp on standard output
-     */
+/*---------------------------------------------------------------------------
+     Do not attempt to set the time stamp on standard output.
+  ---------------------------------------------------------------------------*/
+
     if (cflag) {
         close(outfd);
         return;
     }
-
 
 /*---------------------------------------------------------------------------
     Copy and/or convert time and date variables, if necessary; then set the
@@ -587,58 +524,59 @@ void set_file_time_and_close()
   ---------------------------------------------------------------------------*/
 
 #ifdef OS2
-
     DosQFileInfo(outfd, 1, &fs, sizeof(fs));
     ud.zdate = lrec.last_mod_file_date;
-    fs.fdateLastWrite = ud.fd;
     ut.ztime = lrec.last_mod_file_time;
+    fs.fdateLastWrite = ud.fd;
     fs.ftimeLastWrite = ut.ft;
-    DosSetFileInfo(outfd, 1, &fs, sizeof(fs));
-
-#else                           /* !OS2 */
+    fs.attrFile = pInfo->dos_attr; /* hidden, system, archive, read-only */
+    DosSetFileInfo(outfd, 1, (PBYTE) &fs, sizeof(fs));
+#else /* !OS2 */
 #ifdef __TURBOC__
-
     td.zt.ztime = lrec.last_mod_file_time;
     td.zt.zdate = lrec.last_mod_file_date;
     setftime(outfd, &td.ft);
-
-#else                           /* !__TURBOC__:  MSC MS-DOS */
-
+#else /* !__TURBOC__ */
     _dos_setftime(outfd, lrec.last_mod_file_date, lrec.last_mod_file_time);
-
-#endif                          /* !__TURBOC__ */
-#endif                          /* !OS2 */
+#endif /* ?__TURBOC__ */
+#endif /* ?OS2 */
 
 /*---------------------------------------------------------------------------
     And finally we can close the file...at least everybody agrees on how to
-    do *this*.  I think...
+    do *this*.  I think...  Oh yeah, also change the mode according to the
+    stored file attributes, since we didn't do that when we opened the dude.
   ---------------------------------------------------------------------------*/
 
     close(outfd);
-}
+
+#ifdef OS2
+    if (longname)
+        SetLongNameEA(filename, longfilename);
+#else /* !OS2 */
+#ifdef __TURBOC__
+    if (_chmod(filename, 1, pInfo->dos_attr) != pInfo->dos_attr)
+        fprintf(stderr, "\nwarning:  file attributes may not be correct\n");
+#else /* !__TURBOC__ */
+    _dos_setfileattr(filename, pInfo->dos_attr);
+#endif /* ?__TURBOC__ */
+#endif /* ?OS2 */
+
+} /* end function set_file_time_and_close() (DOS, OS/2) */
 
 
 
 
 
-#else                           /* !DOS_OS2 ... */
-#ifndef VMS                     /* && !VMS (already done) ... */
-#ifndef MTS                     /* && !MTS (can't do):  Mac or UNIX */
-#ifdef MACOS                    /* Mac first */
+#else                           /* !DOS_OS2 */
+#ifdef MACOS                    /* Mac */
 
-/***************************************/
-/*  Function set_file_time_and_close() */
-/***************************************/
+/**************************************/
+/* Function set_file_time_and_close() */
+/**************************************/
 
 void set_file_time_and_close()
  /*
   * MAC VERSION
-  *
-  * First close the output file, then set its date/time stamp according
-  * to information from the zipfile directory record for this file.  [So
-  * technically this should be called "close_file_and_set_time()", but
-  * this way we can use the same prototype for either case, without extra
-  * #ifdefs.  So there.]
   */
 {
     long m_time;
@@ -646,8 +584,7 @@ void set_file_time_and_close()
     ParamBlockRec pbr;
     OSErr err;
 
-    if (outfd != 1)
-    {
+    if (outfd != 1) {
         close(outfd);
 
         /*
@@ -661,30 +598,29 @@ void set_file_time_and_close()
          *                                     J. Lee
          */
 
-        dtr.year = (((lrec.last_mod_file_date >> 9) & 0x7f) + 1980); /* dissect date */
+        dtr.year = (((lrec.last_mod_file_date >> 9) & 0x7f) + 1980);
         dtr.month = ((lrec.last_mod_file_date >> 5) & 0x0f);
         dtr.day = (lrec.last_mod_file_date & 0x1f);
 
-        dtr.hour = ((lrec.last_mod_file_time >> 11) & 0x1f);      /* dissect time */
+        dtr.hour = ((lrec.last_mod_file_time >> 11) & 0x1f);
         dtr.minute = ((lrec.last_mod_file_time >> 5) & 0x3f);
         dtr.second = ((lrec.last_mod_file_time & 0x1f) * 2);
-        Date2Secs(&dtr, &m_time);
+
+        Date2Secs(&dtr, (unsigned long *)&m_time);
         CtoPstr(filename);
-        pbr.fileParam.ioNamePtr = filename;
-        pbr.fileParam.ioVRefNum = pbr.fileParam.ioFVersNum = pbr.fileParam.ioFDirIndex = 0;
+        pbr.fileParam.ioNamePtr = (StringPtr)filename;
+        pbr.fileParam.ioVRefNum = pbr.fileParam.ioFVersNum =
+          pbr.fileParam.ioFDirIndex = 0;
         err = PBGetFInfo(&pbr, 0L);
         pbr.fileParam.ioFlMdDat = pbr.fileParam.ioFlCrDat = m_time;
-        if (err == noErr) {
+        if (err == noErr)
             err = PBSetFInfo(&pbr, 0L);
-        }
-        if (err != noErr) {
-            printf("Error, can't set the time for %s\n",filename);
-        }
+        if (err != noErr)
+            printf("error:  can't set the time for %s\n", filename);
 
         /* set read-only perms if needed */
-        if (err != noErr && f_attr != 0) {
-            err = SetFLock(filename, 0);
-        }
+        if (err != noErr && pInfo->unix_attr != 0)
+            err = SetFLock((ConstStr255Param)filename, 0);
         PtoCstr(filename);
     }
 }
@@ -693,40 +629,66 @@ void set_file_time_and_close()
 
 
 
-#else                           /* !MACOS:  only one left is UNIX */
+#else                                /* !MACOS... */
+#if !defined(MTS) && !defined(VMS)   /* && !MTS (can't do) && !VMS: only one
+                                      * left is UNIX (for VMS use code in
+                                      * vms.c--old VMS code below is retained
+                                      * in case of problems and will be removed
+                                      * in a later release) */
 
-/***************************************/
-/*  Function set_file_time_and_close() */
-/***************************************/
+/**************************************/
+/* Function set_file_time_and_close() */
+/**************************************/
 
 void set_file_time_and_close()
  /*
-  * UNIX VERSION (MS-DOS & OS/2, Mac versions are above)
-  *
-  * First close the output file, then set its date/time stamp according
-  * to information from the zipfile directory record for this file.  [So
-  * technically this should be called "close_file_and_set_time()", but
-  * this way we can use the same prototype for either case, without extra
-  * #ifdefs.  So there.]
+  * UNIX AND VMS VERSION (MS-DOS & OS/2, Mac versions are above)
   */
 {
+    static short yday[]={0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     long m_time;
-    int yr, mo, dy, hh, mm, ss, leap, days = 0;
+    int yr, mo, dy, hh, mm, ss, leap, days=0;
+#ifdef VMS
+#   define YRBASE  0
+    char timbuf[24];
+    static char *month[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                            "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+    struct VMStimbuf {
+        char *actime;           /* VMS revision date, ASCII format */
+        char *modtime;          /* VMS creation date, ASCII format */
+    } ascii_times;
+#else /* !VMS */
     struct utimbuf {
-      time_t atime;             /* New access time */
-      time_t mtime;             /* New modification time */
+        time_t actime;          /* new access time */
+        time_t modtime;         /* new modification time */
     } tp;
+#ifdef AMIGA
+#   define YRBASE  1978         /* in AmigaDos, counting begins 01-Jan-1978 */
+    struct DateStamp myadate;
+/*  extern char *_TZ;   no longer used? */
+#else /* !AMIGA */
+#   define YRBASE  1970
 #ifdef BSD
     static struct timeb tbp;
-#else
+#else /* !BSD */
     extern long timezone;
-#endif
+#endif /* ?BSD */
+#endif /* ?AMIGA */
+#endif /* ?VMS */
 
 
-    close(outfd);
-
+    /*
+     * Close the file *before* setting its time under Unix, AmigaDos and VMS.
+     */
+#ifdef AMIGA
     if (cflag)                  /* can't set time on stdout */
         return;
+    close(outfd);
+#else /* !AMIGA */
+    close(outfd);
+    if (cflag)                  /* can't set time on stdout */
+        return;
+#endif /* ?AMIGA */
 
     /*
      * These date conversions look a little weird, so I'll explain.
@@ -744,73 +706,297 @@ void set_file_time_and_close()
      *                                     C. Seaman
      */
 
-    yr = (((lrec.last_mod_file_date >> 9) & 0x7f) + 10); /* dissect date */
-    mo = ((lrec.last_mod_file_date >> 5) & 0x0f);
-    dy = ((lrec.last_mod_file_date & 0x1f) - 1);
+    /* dissect date */
+    yr = ((lrec.last_mod_file_date >> 9) & 0x7f) + (1980 - YRBASE);
+    mo = ((lrec.last_mod_file_date >> 5) & 0x0f) - 1;
+    dy = (lrec.last_mod_file_date & 0x1f) - 1;
 
-    hh = ((lrec.last_mod_file_time >> 11) & 0x1f);      /* dissect time */
-    mm = ((lrec.last_mod_file_time >> 5) & 0x3f);
-    ss = ((lrec.last_mod_file_time & 0x1f) * 2);
+    /* dissect time */
+    hh = (lrec.last_mod_file_time >> 11) & 0x1f;
+    mm = (lrec.last_mod_file_time >> 5) & 0x3f;
+    ss = (lrec.last_mod_file_time & 0x1f) * 2;
 
-    /* leap = # of leap years from 1970 up to but not including
-       the current year */
+#ifdef VMS
+    sprintf(timbuf, "%02d-%3s-%04d %02d:%02d:%02d.00", dy+1, month[mo],
+      yr, hh, mm, ss);
 
-    leap = ((yr + 1969) / 4);   /* Leap year base factor */
+    ascii_times.actime = timbuf;
+    ascii_times.modtime = timbuf;
 
-    /* How many days from 1970 to this year? */
-    days = (yr * 365) + (leap - 492);
+    if ((mm = VMSmunch(filename, SET_TIMES, &ascii_times)) != RMS$_NMF)
+        fprintf(stderr, "error %d:  can't set the time for %s\n", mm, filename);
 
-    switch (mo) {               /* calculate expired days this year */
-    case 12:
-        days += 30;
-    case 11:
-        days += 31;
-    case 10:
-        days += 30;
-    case 9:
-        days += 31;
-    case 8:
-        days += 31;
-    case 7:
-        days += 30;
-    case 6:
-        days += 31;
-    case 5:
-        days += 30;
-    case 4:
-        days += 31;
-    case 3:
-        days += 28;             /* account for leap years (2000 IS one) */
-        if (((yr + 1970) % 4 == 0) && (yr + 1970) != 2100)  /* OK thru 2199 */
-            ++days;
-    case 2:
-        days += 31;
-    }
+#else /* !VMS */
+    /* leap = # of leap years from BASE up to but not including current year */
+    leap = ((yr + YRBASE - 1) / 4);   /* leap year base factor */
 
-    /* convert date & time to seconds relative to 00:00:00, 01/01/1970 */
+    /* How many days from BASE to this year? (& add expired days this year) */
+    days = (yr * 365) + (leap - 492) + yday[mo];
+
+    /* if year is a leap year and month is after February, add another day */
+    if ((mo > 1) && ((yr+YRBASE)%4 == 0) && ((yr+YRBASE) != 2100))
+        ++days;                 /* OK through 2199 */
+
+#ifdef AMIGA
+/*  _TZ = getenv("TZ"); does Amiga not have TZ and tzset() after all? */
+    myadate.ds_Days   =   days+dy-2;   /* off by one? */
+    myadate.ds_Minute =   hh*60+mm;
+    myadate.ds_Tick   =   ss*TICKS_PER_SECOND;
+
+    if (!(SetFileDate(filename, &myadate)))
+        fprintf(stderr, "error:  can't set the time for %s\n", filename);
+
+#else /* !AMIGA */
+    /* convert date & time to seconds relative to 00:00:00, 01/01/YRBASE */
     m_time = ((days + dy) * 86400) + (hh * 3600) + (mm * 60) + ss;
 
 #ifdef BSD
-   ftime(&tbp);
-   m_time += tbp.timezone * 60L;
-#else                                   /* !BSD */
-    tzset();                            /* Set `timezone'. */
-    m_time += timezone;                 /* account for timezone differences */
-#endif
+    ftime(&tbp);
+    m_time += tbp.timezone * 60L;
+#else /* !BSD */
+    tzset();                    /* set `timezone' */
+    m_time += timezone;         /* account for timezone differences */
+#endif /* ?BSD */
 
     if (localtime(&m_time)->tm_isdst)
-        m_time -= 60L * 60L;            /* Adjust for daylight savings time */
+        m_time -= 60L * 60L;    /* adjust for daylight savings time */
+
+    tp.actime = m_time;         /* set access time */
+    tp.modtime = m_time;        /* set modification time */
 
     /* set the time stamp on the file */
-    
-    tp.mtime = m_time;                  /* Set modification time */
-    tp.atime = m_time;                  /* Set access time */
-
     if (utime(filename, &tp))
-        fprintf(stderr, "Error, can't set the time for %s\n",filename);
+        fprintf(stderr, "error:  can't set the time for %s\n", filename);
+#endif /* ?AMIGA */
+#endif /* ?VMS */
 }
 
+#endif                          /* !MTS && !VMS */
 #endif                          /* ?MACOS */
-#endif                          /* ?MTS */
-#endif                          /* ?VMS */
 #endif                          /* ?DOS_OS2 */
+
+
+
+
+
+/*******************************/
+/*  Non-echoing password code  */
+/*******************************/
+
+#ifdef EMX32
+#  undef DOS_OS2
+#  undef MSVMS
+#endif
+
+#ifdef CRYPT
+#ifndef DOS_OS2
+#ifdef VMS
+
+int echo(opt)
+    int opt;
+{
+/*---------------------------------------------------------------------------
+    Based on VMSmunch.c, which in turn was based on Joe Meadows' file.c code.
+  ---------------------------------------------------------------------------
+     * For VMS v5.x:
+     *   IO$_SENSEMODE/SETMODE info:  Programming, Vol. 7A, System Programming,
+     *     I/O User's: Part I, sec. 8.4.1.1, 8.4.3, 8.4.5, 8.6
+     *   sys$assign(), sys$qio() info:  Programming, Vol. 4B, System Services,
+     *     System Services Reference Manual, pp. sys-23, sys-379
+     *   fixed-length descriptor info:  Programming, Vol. 3, System Services,
+     *     Intro to System Routines, sec. 2.9.2
+     * GRR, 15 Aug 91
+  ---------------------------------------------------------------------------*/
+    static struct dsc$descriptor_s DevDesc =
+        {9, DSC$K_DTYPE_T, DSC$K_CLASS_S, "SYS$INPUT"};
+     /* {dsc$w_length, dsc$b_dtype, dsc$b_class, dsc$a_pointer}; */
+    static short           DevChan, iosb[4];
+    static long            i, status;
+    static unsigned long   oldmode[2], newmode[2];   /* each = 8 bytes */
+  
+
+/*---------------------------------------------------------------------------
+    Assign a channel to standard input.
+  ---------------------------------------------------------------------------*/
+
+    status = sys$assign(&DevDesc, &DevChan, 0, 0);
+#ifdef DEBUG
+    printf("echo:  sys$assign returns status = %ld\n", status);
+#endif /* DEBUG */
+    if (!(status & 1)) return(status);
+
+/*---------------------------------------------------------------------------
+    Use sys$qio and the IO$_SENSEMODE function to determine the current tty
+    status (for password reading, could use IO$_READVBLK function instead,
+    but echo on/off will be more general).
+  ---------------------------------------------------------------------------*/
+
+    status = sys$qio(0, DevChan, IO$_SENSEMODE, &iosb, 0, 0,
+                     oldmode, 8, 0, 0, 0, 0);
+#ifdef DEBUG
+    printf("echo:  sys$qio(IO$_SENSEMODE) returns status = %ld\n", status);
+    printf("echo:  sys$qio(IO$_SENSEMODE) returns iosb status = %d\n", 
+      iosb[0]);
+#endif /* DEBUG */
+    if (!(status & 1)) return(status);
+    status = iosb[0];
+    if (!(status & 1)) return(status);
+
+/*---------------------------------------------------------------------------
+    Copy old mode into new-mode buffer, then modify to be either NOECHO or
+    ECHO (depending on function argument opt).
+  ---------------------------------------------------------------------------*/
+
+    newmode[0] = oldmode[0];
+    newmode[1] = oldmode[1];
+    if (opt == OFF)
+        newmode[1] |= TT$M_NOECHO;                      /* set NOECHO bit */
+    else
+        newmode[1] &= ~((unsigned long) TT$M_NOECHO);   /* clear NOECHO bit */
+#ifdef DEBUG
+    printf("echo:  current terminal status = %lx\n", oldmode[1]);
+    printf("echo:  current echo status = %s\n",
+      (oldmode[1] & TT$M_NOECHO)? "noecho" : "echo");
+    printf("echo:  new terminal status = %lx\n", newmode[1]);
+    printf("echo:  new echo status = %s\n",
+      (newmode[1] & TT$M_NOECHO)? "noecho" : "echo");
+#endif /* DEBUG */
+
+/*---------------------------------------------------------------------------
+    Use the IO$_SETMODE function to change the tty status.
+  ---------------------------------------------------------------------------*/
+
+    status = sys$qio(0, DevChan, IO$_SETMODE, &iosb, 0, 0,
+                     newmode, 8, 0, 0, 0, 0);
+#ifdef DEBUG
+    printf("echo:  sys$qio(IO$_SETMODE) returns status = %ld\n", status);
+    printf("echo:  sys$qio(IO$_SETMODE) returns iosb status = %d\n", iosb[0]);
+#endif /* DEBUG */
+    if (!(status & 1)) return(status);
+    status = iosb[0];
+    if (!(status & 1)) return(status);
+
+/*---------------------------------------------------------------------------
+    Deassign the sys$input channel by way of clean-up, then exit happily.
+  ---------------------------------------------------------------------------*/
+
+    status = sys$dassgn(DevChan);
+#ifdef DEBUG
+    printf("echo:  sys$dassgn returns status = %ld\n\n", status);
+#endif /* DEBUG */
+    if (!(status & 1)) return(status);
+
+    return SS$_NORMAL;   /* we be happy */
+
+} /* end function echo() */
+
+
+
+
+
+#else /* !VMS */
+
+static int echofd = -1;	/* file descriptor whose echo is off */
+
+void echoff(f)
+int f;			/* file descriptor to turn echo off on */
+/* Turn echo off for file descriptor f.  Assumes that f is a tty device. */
+{
+  struct sgttyb sg;	/* tty device structure */
+
+  echofd = f;
+  GTTY(f, &sg);					/* get settings */
+  sg.sg_flags &= ~ECHO;				/* turn echo off */
+  STTY(f, &sg);
+}
+
+
+
+void echon()
+/* Turn echo back on for file descriptor echofd. */
+{
+  struct sgttyb sg;	/* tty device structure */
+
+  if (echofd != -1)
+  {
+    GTTY(echofd, &sg);				/* get settings */
+    sg.sg_flags |= ECHO;			/* turn echo on */
+    STTY(echofd, &sg);
+    echofd = -1;
+  }
+}
+
+#endif /* ?VMS */
+#endif /* !DOS_OS2 */
+
+
+
+
+
+char *getp(m, p, n)
+char *m;		/* prompt for password */
+char *p;		/* return value: line input */
+int n;			/* bytes available in p[] */
+/* Get a password of length n-1 or less into *p using the prompt *m.
+   The entered password is not echoed.  Return p on success, NULL on
+   failure (can't get controlling tty). */
+{
+  char c;		/* one-byte buffer for read() to use */
+  int i;		/* number of characters input */
+  char *w;		/* warning on retry */
+
+#ifndef DOS_OS2
+#ifdef VMS
+  echo(OFF);                                    /* turn echo off */
+#else /* !VMS */
+  int f;		/* file decsriptor for tty device */
+
+  /* Turn off echo on tty */
+  if (!isatty(2))
+    return NULL;				/* error if not tty */
+  if ((f = open(ttyname(2), 0, 0)) == -1)
+    return NULL;
+  echoff(f);					/* turn echo off */
+#endif /* ?VMS */
+#endif /* !DOS_OS2 */
+
+  /* Get password */
+  w = "";
+  do {
+#ifdef VMS   /* bug:  VMS adds '\n' to NULL fputs (apparently) */
+    if (*w)
+#endif /* VMS */
+    fputs(w, stderr);				/* warning if back again */
+    fputs(m, stderr);				/* prompt */
+    fflush(stderr);
+    i = 0;
+    do {					/* read line, keeping n */
+#ifdef MSVMS
+      if ((c = (char)getch()) == '\r')
+        c = '\n';
+#else /* !MSVMS */
+      read(f, &c, 1);
+#endif /* ?MSVMS */
+      if (i < n)
+	p[i++] = c;
+    } while (c != '\n');
+    putc('\n', stderr);  fflush(stderr);
+    w = "(line too long--try again)\n";
+  } while (p[i-1] != '\n');
+  p[i-1] = 0;					/* terminate at newline */
+
+#ifndef DOS_OS2
+#ifdef VMS
+  echo(ON);                                     /* turn echo back on */
+#else /* !VMS */
+  /* Turn echo back on */
+  echon();					/* turn echo back on */
+  close(f);
+#endif /* ?VMS */
+#endif /* !DOS_OS2 */
+
+  /* Return pointer to password */
+  return p;
+}
+
+#endif /* CRYPT */

@@ -1,0 +1,39 @@
+Contents of the MSDOS sub-archive for UnZip 4.2 and later:
+
+  Contents          this file
+  makefile          makefile for Turbo C, Borland C++, and old Microsoft C
+  makefile.cr       ditto, for decryption version of UnZip (need crypt.c)
+  tcc/tcconfig.tc   Turbo C general configuration file (binary)
+  tcc/unzip.prj     Turbo C project file for UnZip
+  tcc/unzip_cr.prj  Turbo C project file for UnZip + decryption (need crypt.c)
+  tcc/zipinfo.prj   outline for Turbo C project file for ZipInfo
+  tcc/makeship.bat  batch file to make Ship with Turbo C
+  bcc/tcconfig.tc   BC++ general configuration file (binary)
+  bcc/unz42_bc.dif  patch to avoid BC++ compilation warning
+  bcc/unzip.dsk     BC++ context file for UnZip (binary)
+  bcc/unzip.mak     BC++ makefile for UnZip
+  bcc/unzip.prj     BC++ project file for UnZip (binary)
+  bcc/unzip_cr.dsk  BC++ context file for UnZip/decryption (binary; need crypt)
+  bcc/unzip_cr.mak  BC++ makefile for UnZip + decryption (need crypt.c)
+  bcc/unzip_cr.prj  BC++ project file for UnZip/decryption (binary; need crypt)
+  bcc/zipinfo.dsk   BC++ context file for ZipInfo (binary)
+  bcc/zipinfo.mak   BC++ makefile for ZipInfo
+  bcc/zipinfo.prj   BC++ project file for ZipInfo (binary)
+  bcc/makeship.bat  batch file to make Ship with Borland C++
+
+Note:  despite the similarity in names to the corresponding Turbo C files,
+the Borland C++ files apparently are NOT compatible with the older compilers
+(although they seem to be compatible with Turbo C++).  Such was the claim of
+one of our testers, at least.  So the old TC makefiles are also included.  I 
+have tried to update them appropriately, but I don't know for sure that they 
+work.  The ZipInfo project file needs to specify that misc.c be compiled with
+-DZIPINFO (it might work as it stands, but the executable will be unnecessarily
+large).
+
+Note also:  for MSC 6.0 or later, use the msc_dos, zi_dos and ship_dos (or
+msc_os2, zi_os2 and ship_os2) targets in the main Unix Makefile--with NMAKE,
+not MAKE.  The msc_dos target is very close to the DOS 128-character command-
+line limit--124 characters, if -DCRYPT and -FPi87 are among the CFLAGS--but
+it should work.  If it's too long, remove the -nologo from CFLAGS (and, option-
+ally, the /nol from LDFLAGS).  The compile will be slightly "noisier," but no
+harm is done.

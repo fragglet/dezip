@@ -1,0 +1,19 @@
+Contents of the MAC sub-archive for UnZip 4.2 and later:
+
+  Contents           this file
+  macfile.c          Macintosh filesystem code
+  macstat.c          Macintosh stat() emulation
+  macstat.h          header file for stat() emulation
+  unzip.make.aztec   makefile for Aztec C (binary)
+  unzip.make.mpw     makefile for Mac Programmer's Workbench (binary)
+
+No makefiles or project files were provided for the original Think C port,
+but the two makefiles provided by Antoine Verheijen for Aztec C and MPW C
+should be helpful anyway.  If someone comes up with a Think C makefile,
+please send it in to zip-bugs for inclusion.  Mucho thanks.
+
+The makefiles are marked "binary" because they contain a few special
+characters (which look a lot like D's and 6's under Unix).  They're
+basically readable, but e-mailing them without protection is likely
+to strip the high bit off these characters, rendering the makefiles
+less than useful.  Be forewarned...

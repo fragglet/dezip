@@ -6,33 +6,13 @@
   expression), returning TRUE if a match is found or FALSE if not.  This
   version is specifically for use with unzip.c:  it leaves the case (upper,
   lower, or mixed) of the string alone, but converts any uppercase characters
-  in the pattern to lowercase if indicated by the global variable lcflag
+  in the pattern to lowercase if indicated by the global var pInfo->lcflag
   (which is to say, string is assumed to have been converted to lowercase
   already, if such was necessary).
 
   --------------------------------------------------------------------------
 
-  Revision history:
-
-     Original Author:  Thom Henderson
-     Original System V port:  Mike Stump
-
-     03/22/87  C. Seaman      enhancements, bug fixes, cleanup
-     11/13/89  C. Mascott     adapted for use with unzip
-     01/25/90  J. Cowan       made case-insensitive (only for smart toupper())
-     03/17/90  D. Kirschbaum  prototypes, other tweaks for Turbo C
-     05/18/90  M. O'Carroll   DOS and OS/2 family version
-     09/20/90  G. Roelofs     modified for lcflag, moved stuff to header file
-
-  --------------------------------------------------------------------------
-
-  Copyright, originally from arcmatch.c, version 1.1 (?):
-
-     * ARC - Archive utility - ARCMATCH
-     *
-     * Version 2.17, created on 12/17/85) at 20:32:18
-     *
-     * (C) COPYRIGHT 1985 by System Enhancement Associates; ALL RIGHTS RESERVED
+  Copyrights:  see accompanying file "COPYING" in UnZip source distribution.
 
   --------------------------------------------------------------------------*/
 
@@ -59,7 +39,6 @@
 /*  Match Typedefs  */
 /********************/
 
-typedef short int INT;
 typedef short int BOOLEAN;
 
 
@@ -110,7 +89,8 @@ char *pattern;
     case BACK_SLASH:
         pattern++;
     default:
-        if (*string == ((lcflag && isupper(*pattern)) ? tolower(*pattern) : *pattern)) {
+        if (*string == ((pInfo->lcflag && isupper(*pattern))?
+            tolower(*pattern) : *pattern)) {
             string++;
             pattern++;
             ismatch = match(string, pattern);
@@ -201,7 +181,7 @@ char **patp;
 {
     register char ch;
     register char chsum;
-    register INT count;
+    register int count;
 
     ch = *(*patp)++;
     if (ch == '\\') {

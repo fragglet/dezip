@@ -1,0 +1,28 @@
+Contents of the VMS sub-archive for UnZip 4.2 and later:
+
+  Contents                   this file
+  VMS.notes                  general VMS info about installing and using UnZip
+  unzip.rnh                  UnZip manual page, RUNOFF format
+  vms.c                      VMS file attributes code (for extracted files)
+  VMSmunch.c                 more file attributes code (for zipfile, mainly)
+  VMSmunch.h                 VMSmunch macros
+  fatdef.h                   attributes macros
+  fchdef.h                   attributes macros
+  fjndef.h                   attributes macros
+  make_unzip_gcc.com         command file to compile UnZip and ZipInfo w/ GNU C
+  make_unzip_vaxc.com        command file to compile UnZip and ZipInfo w/ VAX C
+  descrip.mms                MMS makefile for UnZip and ZipInfo
+  vmsshare.opt               options file used in descrip.mms
+  crypt/make_unzip_gcc.com   command file for decryption version and GNU C
+  crypt/make_unzip_vaxc.com  command file for decryption version and VAX C
+  crypt/descrip.mms          MMS makefile for decryption version
+  bilf/bilf.c                BILF source code
+  bilf/bilf.exe              BILF executable
+  bilf/make_bilf.com         command file to compile BILF
+
+BILF may be required for older zipfiles or for those created under other
+operating systems.  Instructions are in the source code.
+
+The non-decryption version of UnZip compiles fine with VMS GCC, although
+you may get a lot of warnings (especially for vms.c).  Ignore them; GCC
+is hyper-picky.

@@ -1,7 +1,5 @@
 #ifdef THINK_C
 #define MACOS
-#include    <FileMgr.h>
-#include    <HFS.h>
 #include    <pascal.h>
 #endif
 #ifdef MPW
@@ -9,7 +7,6 @@
 #include    <Files.h>
 #include    <Errors.h>
 #define FSFCBLen    (*(short *)0x3F6)
-#define hFileInfo   hfileInfo
 #define CtoPstr c2pstr
 #define PtoCstr p2cstr
 #endif
@@ -52,7 +49,7 @@ struct stat *buf;
         Str255 st;
 
         wdpb.ioCompletion = 0;
-        wdpb.ioNamePtr = temp;
+        wdpb.ioNamePtr = (StringPtr)temp;
         err = PBHGetVol(&wdpb, 0);
         if (err == noErr)
         {

@@ -1,0 +1,151 @@
+diff -cb unzip/ship.c unzip-2/ship.c
+*** unzip/ship.c	Wed Jan 29 15:17:28 1992
+--- unzip-2/ship.c	Wed Mar 11 23:02:22 1992
+***************
+*** 26,31 ****
+--- 26,36 ----
+  #  endif /* MAILX */
+  #endif /* sgi */
+  
++ #ifdef __IBMC__		/* IBM C Set/2 (32-bit) for OS/2 2.0 */
++ #  define MSDOS
++ #  define mktemp tmpnam
++ #endif /* __IBMC__ */
++ 
+  #ifdef VMS
+  #  define TMPNAME "_SXXXXXX."
+  #  define MAILCMD "mail %s /subj=\"%s %s%s\" \"%s\""
+***************
+*** 43,50 ****
+--- 48,59 ----
+  #  endif /* ?MAILX */
+  #  ifdef MSDOS
+  #    define PATHCUT '\\'
++ #    define RBMODE "rb"
++ #    define WBMODE "wb"
+  #  else /* !MSDOS */
+  #    define PATHCUT '/'
++ #    define RBMODE "r"
++ #    define WBMODE "w"
+  #  endif /* ?MSDOS */
+  #endif /* ?VMS */
+  
+***************
+*** 257,272 ****
+  #endif /* ?MSDOS */
+  
+  
+- /* Define MSVMS if either MSDOS or VMS defined */
+- #ifdef MSDOS
+- #  define MSVMS
+- #else /* !MSDOS */
+- #  ifdef VMS
+- #    define MSVMS
+- #  endif /* VMS */
+- #endif /* ?MSDOS */
+- 
+- 
+  /* Define void, voidp, and extent (size_t) */
+  #include <stdio.h>
+  #ifdef MODERN
+--- 266,271 ----
+***************
+*** 317,334 ****
+  #endif /* ?MODERN */
+  
+  
+- /* Fine tuning */
+- #ifndef MSDOS
+- #   define BSZ 8192   /* Buffer size for files */
+- #else /* !MSDOS */
+- #   define BSZ 4096   /* Keep precious NEAR space */
+-     /* BSZ can't be 8192 even for compact model because of 64K limitation
+-      * in im_lmat.c. If you run out of memory when processing a large number
+-      * files, use the compact model and reduce BSZ to 2048 here and in
+-      * im_lm.asm.
+-      */
+- #endif /* ?MSDOS */
+- 
+  /* end of tailor.h */
+  
+  #ifdef MODERN
+--- 316,321 ----
+***************
+*** 390,396 ****
+  char mpspc[9];          /* prealloced space for prefix */
+  char *mprefix = mpspc;  /* identification for this mailing */
+  char *mdest;            /* mail destination */
+! char mname[10];         /* temporary file name if mailing */
+  ulg ccnt;               /* count of bytes read or written */
+  int noisy = 1;          /* false to inhibit informational messages */
+  
+--- 377,383 ----
+  char mpspc[9];          /* prealloced space for prefix */
+  char *mprefix = mpspc;  /* identification for this mailing */
+  char *mdest;            /* mail destination */
+! char mname[64];         /* temporary file name if mailing */
+  ulg ccnt;               /* count of bytes read or written */
+  int noisy = 1;          /* false to inhibit informational messages */
+  
+***************
+*** 544,554 ****
+  {
+    cfile *c;             /* allocated cfile structure */
+  
+- #ifdef MSDOS
+-   /* Set file mode to binary for MSDOS systems */
+-   setmode(fileno(f), O_BINARY);
+- #endif /* MSDOS */
+- 
+    /* Allocate and fill structure */
+    if ((c = (cfile *)malloc(sizeof(cfile))) != NULL)
+    {
+--- 531,536 ----
+***************
+*** 1039,1045 ****
+            err(SE_OVER, r);
+          }
+  #endif /* !VMS */
+!         else if ((f = fopen(r, "w")) == NULL)
+            err(SE_FULL, r);
+          if ((c = chook(f)) == NULL)
+            err(SE_MEM, "");
+--- 1021,1027 ----
+            err(SE_OVER, r);
+          }
+  #endif /* !VMS */
+!         else if ((f = fopen(r, WBMODE)) == NULL)
+            err(SE_FULL, r);
+          if ((c = chook(f)) == NULL)
+            err(SE_MEM, "");
+***************
+*** 1149,1154 ****
+--- 1131,1141 ----
+    /* No subject prefix yet */
+    *mprefix = 0;
+  
++ #ifdef MSDOS
++   if ( argc == 1 && isatty(0) )
++     help();
++ #endif
++ 
+    /* See if help requested */
+    if (argc > 1 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-?") == 0))
+      help();
+***************
+*** 1249,1255 ****
+          else                            /* arg is file to ship */
+          {
+            s = 0;
+!           if ((f = fopen(argv[r], "r")) == NULL)
+              err(SE_FIND, argv[r]);
+            if (mail && !*mprefix)
+            {
+--- 1236,1242 ----
+          else                            /* arg is file to ship */
+          {
+            s = 0;
+!           if ((f = fopen(argv[r], RBMODE)) == NULL)
+              err(SE_FIND, argv[r]);
+            if (mail && !*mprefix)
+            {

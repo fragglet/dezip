@@ -1,0 +1,18 @@
+*** misc.old	Tue Mar 03 17:50:24 1992
+--- misc.c	Sat Mar 07 17:57:12 1992
+***************
+*** 21,26 ****
+--- 21,33 ----
+  
+  #include "unzip.h"
+  
++ #ifdef __TURBOC__
++ /* v4.2 dpk  For some reason Borland C++'s TIME.H defines tzset()
++  * only if not STD_C!  Weird .. but rather than have the warning
++  * spoiling an otherwise perfect compile ...
++  */
++ void tzset(void);
++ #endif
+  
+  
+  #ifndef ZIPINFO   /* no need to calculate CRCs */

@@ -7,6 +7,10 @@
   sliding dictionary.  The second algorithm is used to compress the encoding
   of the sliding dictionary ouput, using multiple Shannon-Fano trees.
 
+  ---------------------------------------------------------------------------
+
+  Copyrights:  see accompanying file "COPYING" in UnZip source distribution.
+
   ---------------------------------------------------------------------------*/
 
 
