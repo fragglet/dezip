@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.5 and later                             Derek Fawcus
-# Version:  MetaWare High C with PAMAKE                        13 Feb 2001
+# Makefile for UnZip 5.53 and later                            Derek Fawcus
+# Version:  MetaWare High C with PAMAKE                        30 Dec 2005
 
 #
 ###########################################################################
@@ -120,7 +120,7 @@ crc_i86.obj: flexos/crc_i86.a86
 #  The objects to build from
 #
 
-UNZIP_OBJS =	unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj \
+UNZIP_OBJS =	unzip.obj crc32.obj crypt.obj envargs.obj \
 		explode.obj extract.obj fileio.obj globals.obj inflate.obj \
 		list.obj match.obj process.obj ttyio.obj unreduce.obj \
 		unshrink.obj zipinfo.obj flexos.obj $(ASMOBJS)
@@ -133,7 +133,7 @@ $(PORT_LIB),
 $(HC_LIB)
 <
 
-UNZIPSFX_OBJS =	unzip.obs crc32.obs crctab.obs crypt.obs extract.obs \
+UNZIPSFX_OBJS =	unzip.obs crc32.obs crypt.obs extract.obs \
 		fileio.obs globals.obs inflate.obs match.obs process.obs \
 		ttyio.obs flexos.obs $(ASMOBJS)
 
@@ -164,37 +164,36 @@ unreduce.obj:	unreduce.c $(UNZIP_H)
 unshrink.obj:	unshrink.c $(UNZIP_H)
 unzip.obj:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.obj:	zipinfo.c $(UNZIP_H)
-process.obj:	process.c $(UNZIP_H)
+process.obj:	process.c $(UNZIP_H) crc32.h
 list.obj:	list.c $(UNZIP_H)
 match.obj:	match.c $(UNZIP_H)
-fileio.obj:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileio.obj:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 envargs.obj:	envargs.c $(UNZIP_H)
 explode.obj:	explode.c $(UNZIP_H)
-extract.obj:	extract.c $(UNZIP_H) crypt.h
-crctab.obj:	crctab.c $(UNZIP_H) zip.h
+extract.obj:	extract.c $(UNZIP_H) crc32.h crypt.h
+crc32.obj:	crc32.c $(UNZIP_H) zip.h crc32.h
 
 flexos.obj:	flexos/flexos.c $(UNZIP_H)
-crc32.obj:	crc32.c $(UNZIP_H) zip.h
-crypt.obj:	crypt.c $(UNZIP_H) crypt.h ttyio.h zip.h
+crc32.obj:	crc32.c $(UNZIP_H) zip.h crc32.h
+crypt.obj:	crypt.c $(UNZIP_H) crc32.h crypt.h ttyio.h zip.h
 globals.obj:	globals.c $(UNZIP_H)
 inflate.obj:	inflate.c inflate.h $(UNZIP_H)
 ttyio.obj:	ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h
 
-funzip.obj:	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
-crc32.obf:	crc32.c $(UNZIP_H) zip.h
+funzip.obj:	funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
+crc32.obf:	crc32.c $(UNZIP_H) zip.h crc32.h
 crypt.obf:	crypt.c $(UNZIP_H) crypt.h ttyio.h zip.h
 globals.obf:	globals.c $(UNZIP_H)
 inflate.obf:	inflate.c inflate.h $(UNZIP_H) crypt.h
 ttyio.obf:	ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h
 
 flexos.obs:	flexos/flexos.c $(UNZIP_H)
-crc32.obs:	crc32.c $(UNZIP_H) zip.h
-crctab.obs:	crctab.c $(UNZIP_H) zip.h
-extract.obs:	extract.c $(UNZIP_H) crypt.h
-fileio.obs:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+crc32.obs:	crc32.c $(UNZIP_H) zip.h crc32.h
+extract.obs:	extract.c $(UNZIP_H) crc32.h crypt.h
+fileio.obs:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 globals.obs:	globals.c $(UNZIP_H)
 inflate.obs:	inflate.c inflate.h $(UNZIP_H) crypt.h
 match.obs:	match.c $(UNZIP_H)
-process.obs:	process.c $(UNZIP_H)
+process.obs:	process.c $(UNZIP_H) crc32.h
 ttyio.obs:	ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h
 unzip.obs:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h

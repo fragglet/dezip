@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2007 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -112,13 +112,13 @@ const short HFS_fileSystem = 0;
 
 extern char *GetUnZipInfoVersions(void);
 
-static OSErr SetFinderInfo(FSSpec *spec, MACINFO *mi);
+static OSErr SetFinderInfo(__GPRO__ int SetTime, FSSpec *spec, MACINFO *mi);
 static Boolean GetExtraFieldData(short *MacZipMode, MACINFO *mi);
 static uch *scanMacOSexfield(uch *ef_ptr, unsigned ef_len,
                              short *MacZipMode);
 static Boolean isMacOSexfield(unsigned id, unsigned size, short *MacZipMode);
 static void PrintMacExtraInfo(MACINFO *mi);
-static OSErr SetFileTime(void);
+static OSErr SetFileTime(__GPRO);
 static void DecodeMac3ExtraField(ZCONST uch *buff, MACINFO *mi);
 static void DecodeJLEEextraField(ZCONST uch *buff, MACINFO *mi);
 static void DecodeZPITextraField(ZCONST uch *buff, MACINFO *mi);
@@ -801,13 +801,17 @@ void close_outfile(__G)
     /* finally set FinderInfo */
     if  (MacZipMode >= JohnnyLee_EF)
         {
-        err = SetFinderInfo(&CurrentFile, &newExtraField);
+        /* skip restoring time stamps on user's request */
+        err = SetFinderInfo(__G__ (uO.D_flag <= 1),
+                            &CurrentFile, &newExtraField);
         printerr("close_outfile SetFinderInfo ", err, err,
                  __LINE__, __FILE__, G.filename);
         }
     else  /* unknown extra field, set at least file time/dates */
         {
-        err = SetFileTime();
+        /* skip restoring time stamps on user's request */
+        if (uO.D_flag <= 1)
+            err = SetFileTime(__G);
         }
 
 #ifndef SwitchZIPITefSupportOff
@@ -845,7 +849,8 @@ void close_outfile(__G)
 /* Function SetFileTime() */
 /****************************/
 
-static OSErr SetFileTime(void)
+static OSErr SetFileTime(__G)
+    __GDEF
 {
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
@@ -1037,7 +1042,8 @@ int macmkdir(char *path)
         /* finally set FinderInfo */
         if  (MacZipMode >= JohnnyLee_EF)
             {
-            err_rc = SetFinderInfo(&CurrentFile, &newExtraField);
+            err_rc = SetFinderInfo(__G__ (uO.D_flag <= 0),
+                                   &CurrentFile, &newExtraField);
             printerr("macmkdir SetFinderInfo ", err_rc, err_rc,
                       __LINE__, __FILE__, CompletePath2);
             }
@@ -1313,7 +1319,7 @@ if (MacZipMode == TomBrownZipIt1_EF)
 /* Function SetFinderInfo() */
 /****************************/
 
-static OSErr SetFinderInfo(FSSpec *spec, MACINFO *mi)
+static OSErr SetFinderInfo(__GPRO__ int SetTime, FSSpec *spec, MACINFO *mi)
 {
     OSErr err;
     CInfoPBRec      fpb;
@@ -1329,7 +1335,8 @@ static OSErr SetFinderInfo(FSSpec *spec, MACINFO *mi)
 
     if  ((MacZipMode == JohnnyLee_EF) || (MacZipMode == NewZipMode_EF))
     {
-        if (!UseUT_ExtraField)  {
+        /* skip restoring time stamps on user's request */
+        if (SetTime && !UseUT_ExtraField) {
             fpb.hFileInfo.ioFlCrDat = mi->fpb.hFileInfo.ioFlCrDat;
             fpb.hFileInfo.ioFlMdDat = mi->fpb.hFileInfo.ioFlMdDat;
         }
@@ -1345,7 +1352,8 @@ static OSErr SetFinderInfo(FSSpec *spec, MACINFO *mi)
         fpb.hFileInfo.ioFVersNum  = mi->fpb.hFileInfo.ioFVersNum;
         fpb.hFileInfo.ioACUser    = mi->fpb.hFileInfo.ioACUser;
 
-        if (!UseUT_ExtraField) {
+        /* skip restoring time stamps on user's request */
+        if (SetTime && !UseUT_ExtraField) {
             fpb.hFileInfo.ioFlBkDat = mi->fpb.hFileInfo.ioFlBkDat;
 #ifdef USE_EF_UT_TIME
             if (!(mi->flags & EB_M3_FL_NOUTC))

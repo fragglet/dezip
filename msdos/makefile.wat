@@ -1,5 +1,5 @@
 # WMAKE makefile for 16 bit MSDOS or 32 bit DOS extender (PMODE/W or DOS/4GW)
-# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 23 Jan 02.
+# using Watcom C/C++ v11.0+, by Paul Kienitz, last revised 16 Feb 2008.
 # Makes UnZip.exe, fUnZip.exe, and UnZipSFX.exe.
 #
 # Invoke from UnZip source dir with "WMAKE -F MSDOS\MAKEFILE.WAT [targets]".
@@ -10,8 +10,11 @@
 #   PMODE/W is recommended over DOS/4GW for best performance.
 # To build with debug info use "WMAKE DEBUG=1 ..."
 # To build with no assembly modules use "WMAKE NOASM=1 ..."
-# To support unshrinking use "WMAKE LAWSUIT=1 ..."
+# To omit unshrinking support use "WMAKE NO_LZW=1 ..."
 # To support unreducing, get the real unreduce.c and go "WMAKE OFFEND_RMS=1 ..."
+# To include support for bzip2 decompression (only for 32-bit), get the bzip2
+#  source distribution into the bzip2/ subfolder and start compilation
+#  with "WMAKE PM=1 USEBZ2=1 ..."
 #
 # Other options to be fed to the compiler can be specified in an environment
 # variable called LOCAL_UNZIP.
@@ -49,9 +52,9 @@ OBDIR = ob16d
 !endif
 O = $(OBDIR)\   # comment here so backslash won't continue the line
 
-!ifdef LAWSUIT
-cvars = $+$(cvars)$- -DUSE_UNSHRINK
-avars = $+$(avars)$- -DUSE_UNSHRINK
+!ifdef NO_LZW
+cvars = $+$(cvars)$- -DLZW_CLEAN
+avars = $+$(avars)$- -DLZW_CLEAN
 # "$+$(foo)$-" means expand foo as it has been defined up to now; normally,
 # this Make defers inner expansion until the outer macro is expanded.
 !endif
@@ -60,40 +63,62 @@ cvars = $+$(cvars)$- -DUSE_SMITH_CODE
 avars = $+$(avars)$- -DUSE_SMITH_CODE
 !endif
 
+IZ_BZIP2 = bzip2
+!ifdef USEBZ2
+!ifdef PM
+cvars = $+$(cvars)$- -DUSE_BZIP2 -I$(IZ_BZIP2)
+bz2errob = $(O)ubz2err.obj
+bz2errox = $(O)ubz2err.obj
+BZIPLIB = $(IZ_BZIP2)/$(OBDIR)/bz2.lib
+BZ2LNKLIB = lib {$(BZIPLIB)}
+!else
+bz2errob =
+bz2errox =
+BZIPLIB =
+BZ2LNKLIB =
+!endif
+!else
+bz2errob =
+bz2errox =
+BZIPLIB =
+BZ2LNKLIB =
+!endif
+
 # The assembly hot-spot code in crc_i[3]86.asm is optional.  This section
 # controls its usage.
 
 !ifdef NOASM
-crcob = $(O)crc32.obj
-crcof = $(O)crc32f.obj
-crcox = $(O)crc32.obx
+crcaob =
+crcaof =
+crcaox =
 !else   # !NOASM
 cvars = $+$(cvars)$- -DASM_CRC
 !  ifdef PM
-crcob = $(O)crc_i386.obj
-crcof = $(O)crc_i38f.obj
-crcox = $(O)crc_i386.obx
+crcaob = $(O)crc_i386.obj
+crcaof = $(O)crc_i38f.obj
+crcaox = $(O)crc_i386.obx
 crc_s = win32\crc_i386.asm   # requires that the win32 directory be present
 !  else
-crcob = $(O)crc_i86.obj
-crcof = $(O)crc_i8f.obj
-crcox = $(O)crc_i86.obx
+crcaob = $(O)crc_i86.obj
+crcaof = $(O)crc_i8f.obj
+crcaox = $(O)crc_i86.obx
 crc_s = msdos\crc_i86.asm
 !  endif
 !endif
 
-# Our object files: OBJA/OBJB is for UnZip, OBJX for UnZipSFX, OBJF for fUnZip:
+# Our object files: OBJ[A-C] is for UnZip, OBJX for UnZipSFX, OBJF for fUnZip:
 
-OBJA1 = $(O)unzip.obj $(crcob) $(O)crctab.obj $(O)crypt.obj $(O)envargs.obj
+OBJA1 = $(O)unzip.obj $(O)crc32.obj $(crcaob) $(O)crypt.obj $(O)envargs.obj
 OBJA  = $(OBJA1) $(O)explode.obj $(O)extract.obj $(O)fileio.obj $(O)globals.obj
-OBJB2 = $(O)inflate.obj $(O)list.obj $(O)match.obj $(O)process.obj $(O)ttyio.obj
-OBJB  = $(OBJB2) $(O)unreduce.obj $(O)unshrink.obj $(O)zipinfo.obj $(O)msdos.obj
+OBJB2 = $(O)inflate.obj $(O)list.obj $(O)match.obj $(O)process.obj
+OBJB  = $(OBJB2) $(O)ttyio.obj $(bz2errob) $(O)unreduce.obj
+OBJC  = $(O)unshrink.obj $(O)zipinfo.obj $(O)msdos.obj
 
-OBJX2 = $(O)unzip.obx $(crcox) $(O)crctab.obx $(O)crypt.obx $(O)extract.obx
+OBJX2 = $(O)unzip.obx $(O)crc32.obx $(crcaox) $(O)crypt.obx $(O)extract.obx
 OBJX1 = $(OBJX2) $(O)fileio.obx $(O)globals.obx $(O)inflate.obx $(O)match.obx
-OBJX  = $(OBJX1) $(O)process.obx $(O)ttyio.obx $(O)msdos.obx
+OBJX  = $(OBJX1) $(O)process.obx $(bz2errox) $(O)ttyio.obx $(O)msdos.obx
 
-OBJF1  = $(O)funzip.obj $(crcof) $(O)cryptf.obj $(O)globalsf.obj
+OBJF1  = $(O)funzip.obj $(O)crc32f.obj $(crcaof) $(O)cryptf.obj $(O)globalsf.obj
 OBJF  = $(OBJF1) $(O)inflatef.obj $(O)ttyiof.obj $(O)msdosf.obj
 
 # Common header files included by all C sources:
@@ -180,15 +205,17 @@ u:   UnZip.exe     .SYMBOLIC
 f:   fUnZip.exe    .SYMBOLIC
 x:   UnZipSFX.exe  .SYMBOLIC
 
-UnZip.exe:	$(OBDIR) $(OBJA) $(OBJB)
+UnZip.exe:	$(OBDIR) $(OBJA) $(OBJB) $(OBJC) $(BZIPLIB)
 	set WLK_VA=file {$(OBJA)}
 	set WLK_VB=file {$(OBJB)}
-	$(link) $(lflags) $(ldebug) name $@ @WLK_VA @WLK_VB
+        set WLK_VC=file {$(OBJC)} $(BZ2LNKLIB)
+	$(link) $(lflags) $(ldebug) name $@ @WLK_VA @WLK_VB @WLK_VC
 	set WLK_VA=
 	set WLK_VB=
-# We use WLK_VA/WLK_VB to keep the size of each command under 256 chars.
+        set WLK_VC=
+# We use WLK_VA/WLK_VB/WLK_VC to keep the size of each command below 256 chars.
 
-UnZipSFX.exe:	$(OBDIR) $(OBJX)
+UnZipSFX.exe:	$(OBDIR) $(OBJX) $(BZIPLIB)
 	set WLK_VX=file {$(OBJX)}
 	$(link) $(lflags) $(ldebug) name $@ @WLK_VX
 	set WLK_VX=
@@ -203,19 +230,19 @@ fUnZip.exe:	$(OBDIR) $(OBJF)
 
 #       for UnZip ...
 
-$(O)crc32.obj:    crc32.c $(UNZIP_H) zip.h
-$(O)crctab.obj:   crctab.c $(UNZIP_H) zip.h
-$(O)crypt.obj:    crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+$(O)crc32.obj:    crc32.c $(UNZIP_H) zip.h crc32.h
+$(O)crypt.obj:    crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 $(O)envargs.obj:  envargs.c $(UNZIP_H)
 $(O)explode.obj:  explode.c $(UNZIP_H)
-$(O)extract.obj:  extract.c $(UNZIP_H) crypt.h
-$(O)fileio.obj:   fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+$(O)extract.obj:  extract.c $(UNZIP_H) crc32.h crypt.h
+$(O)fileio.obj:   fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 $(O)globals.obj:  globals.c $(UNZIP_H)
 $(O)inflate.obj:  inflate.c inflate.h $(UNZIP_H)
 $(O)list.obj:     list.c $(UNZIP_H)
 $(O)match.obj:    match.c $(UNZIP_H)
-$(O)process.obj:  process.c $(UNZIP_H)
+$(O)process.obj:  process.c $(UNZIP_H) crc32.h
 $(O)ttyio.obj:    ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+$(O)ubz2err.obj:  ubz2err.c $(UNZIP_H)
 $(O)unreduce.obj: unreduce.c $(UNZIP_H)
 $(O)unshrink.obj: unshrink.c $(UNZIP_H)
 $(O)unzip.obj:    unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
@@ -223,16 +250,16 @@ $(O)zipinfo.obj:  zipinfo.c $(UNZIP_H)
 
 #       for UnZipSFX ...
 
-$(O)crc32.obx:    crc32.c $(UNZIP_H) zip.h
-$(O)crctab.obx:   crctab.c $(UNZIP_H) zip.h
-$(O)crypt.obx:    crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
-$(O)extract.obx:  extract.c $(UNZIP_H) crypt.h
-$(O)fileio.obx:   fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+$(O)crc32.obx:    crc32.c $(UNZIP_H) zip.h crc32.h
+$(O)crypt.obx:    crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
+$(O)extract.obx:  extract.c $(UNZIP_H) crc32.h crypt.h
+$(O)fileio.obx:   fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 $(O)globals.obx:  globals.c $(UNZIP_H)
 $(O)inflate.obx:  inflate.c inflate.h $(UNZIP_H)
 $(O)match.obx:    match.c $(UNZIP_H)
-$(O)process.obx:  process.c $(UNZIP_H)
+$(O)process.obx:  process.c $(UNZIP_H) crc32.h
 $(O)ttyio.obx:    ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+$(O)ubz2err.obx:  ubz2err.c $(UNZIP_H)
 $(O)unzip.obx:    unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 
 # Special case object files:
@@ -244,25 +271,25 @@ $(O)msdos.obx:    msdos\msdos.c $(UNZIP_H)
 	$(cc) $(cdebux) $(cflagx) $(cvars) -DSFX msdos\msdos.c -fo=$@
 
 !ifndef NOASM
-$(crcob):         $(crc_s)
+$(crcaob):        $(crc_s)
 	$(asm) $(aflags) $(avars) $(crc_s) -fo=$@
 
-$(crcof):         $(crc_s)
+$(crcaof):        $(crc_s)
 	$(asm) $(aflagf) $(avars) $(crc_s) -fo=$@
 
-$(crcox):         $(crc_s)
+$(crcaox):        $(crc_s)
 	$(asm) $(aflagx) $(avars) $(crc_s) -fo=$@
 !endif
 
 # Variant object files for fUnZip, using $(cflagf):
 
-$(O)funzip.obj:   funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+$(O)funzip.obj:   funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
 	$(cc) $(cdebux) $(cflagf) $(cvars) funzip.c -fo=$@
 
-$(O)crc32f.obj:   crc32.c $(UNZIP_H) zip.h
+$(O)crc32f.obj:   crc32.c $(UNZIP_H) zip.h crc32.h
 	$(cc) $(cdebux) $(cflagf) $(cvars) -DFUNZIP crc32.c -fo=$@
 
-$(O)cryptf.obj:   crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+$(O)cryptf.obj:   crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(cc) $(cdebux) $(cflagf) $(cvars) -DFUNZIP crypt.c -fo=$@
 
 $(O)globalsf.obj: globals.c $(UNZIP_H)
@@ -277,13 +304,23 @@ $(O)ttyiof.obj:   ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 $(O)msdosf.obj:    msdos\msdos.c $(UNZIP_H)
 	$(cc) $(cdebux) $(cflagf) $(cvars) -DFUNZIP msdos\msdos.c -fo=$@
 
+# The bzip2 (de)compression library for BZIP2 support:
+$(IZ_BZIP2)/$(OBDIR)/bz2.lib : .ALWAYS .RECHECK
+	$(MAKE) -h -f $(IZ_BZIP2)/makbz2iz.wat CC=$(cc) AR=lib386 &
+	CFLSYS="$(cdebug) $(cflags)" &
+	BZROOTDIR=$(IZ_BZIP2) BZOBDIR=$(IZ_BZIP2)/$(OBDIR)
+
 # Creation of subdirectory for intermediate files
 $(OBDIR):
 	-mkdir $@
 
 # Unwanted file removal:
 
-clean:     .SYMBOLIC
+clean_bz2_lib: .SYMBOLIC
+	$(MAKE) -h -f $(IZ_BZIP2)/makbz2iz.wat &
+	BZROOTDIR=$(IZ_BZIP2) BZOBDIR=$(IZ_BZIP2)\$(OBDIR) clean
+
+clean:     clean_bz2_lib  .SYMBOLIC
 	del $(O)*.ob?
 
 cleaner:   clean  .SYMBOLIC

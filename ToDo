@@ -1,45 +1,101 @@
 ================================
-For UnZip 6.0/6.1/who knows:
+For UnZip 6.1/who knows:
 ================================
 
-   o implement handling of file sizes beyond the 32-bit limit of
-     2GByte (resp. 4GByte), using the new 64-bit extra field extensions
-     as defined by PKWARE (this will not get implemented for the present
-     16-bit ports - plain DOS and OS/2 1.x)
+   o add extraction support for other compression algorithms used by new
+     PKZIP, WinZIP, 7-Zip versions
+     - LZMA, compression type 14 (most important, because of its efficiency)
+     - PPMd, compression type 98 (maybe, less important)
+     - WavPacked, compression type 97 (maybe, less important)
 
-        top of the list for 6.0!
-        UnZip 6.0 is now under development, first betas for Win32 and Unix
-        are available
+       LZMA is first-level priority for 6.1, other formats may be taken
+       into consideration
+
+   o add support for reading AES encrypted archives
+     - WinZIP format (priority 1)
+     - PKZip format (priority 2)
+
+        top level item for 6.1
 
    o add multi-part zipfile handling
 
-        major feature for 6.0!
+        major feature for 6.x!
 
-        could happen for 6.0 - 10/8/2004 EG
+        could happen for 6.1
 
    o better support for multilingual uses and different codepages;
      support unicode (UTF-8 coded) filenames and comment texts
 
         a requested feature getting more and more important,
-        maybe in 6.1
+        - partially done for the Windows port in 6.0
+          (support restricted for chars of the current system codepage)
+        - partially done (beta state) for Unix
+          (requires native codepage to be UTF-8)
+
+   o complete support for UTF-8 coded entry names (and comments)
+     - add new "win32_wide" port to extend unicode support on Windows
+       beyond the restrictions of the current (ANSI) system codepage
+     - revise/extend the WinDLL interface to allow passing of "wide"
+       string argument data
+     - add simple built-in character translation between UTF-8 and the
+       old (ISO-8851-1 / IBM850) code pages to allow old systems without
+       standard UTF-8 support to read UTF-8 encoded archives.
+     - extend the built-in translation tables to support other language
+       regions besides "Western_Latin1" (e.g. Russian-kyrillic, Japanese,
+       Chinese)
+     - streamline the multilingual codepage and UTF-8 support for the UNIX
+       port (standard codepage translation facility?, like WideChar<->AnsiCP
+       translation functions under MS Windows)
+
+        should happen for 6.1
+        (there is internal alpha-state code for better "wide" support on
+        Windows available at the time of the 6.0 release)
+
+   o revise the "extended charcodes" handling in decryption password to
+     support UTF-8 encoding on Unicode-aware systems where the "native"
+     character coding is NOT UTF-8 (e.g. Windows).
+
+   o revise the command line interface for more compatibility with Zip'
+     command parser
+     - implement the versatile command parser from Zip 3.0.
+     - add "long option" definitions for all existing options; revise
+       the UnZip user manual to document the long-option alternatives.
+     - add support for reading the "process these entries" and the "skip
+       these entries" pattern lists from a file (or from separate files ?).
+     - add a (long) option to switch off UnZip's internal pattern matching
+       on filename arguments.
+
+        probably in 6.1,
+        (first prototype of the revised command parser was available at the
+        time of the 6.0 release)
+
+   o add command line options for miscellaneous features requested by users
+     and/or development team members:
+     - display the Info-ZIP software license
+     - more fine-tuning for file attributes set/restored at extraction, like:
+       set/clear archive attribute on DOS/OS2/WIN32;
+       apply/skip standard or user-defined umask filter on UNIX (& Unix-alike)
+     - additional time-stamp related processing filters
+     - more listing display modifications
+     - overriding the default date-time display style
+     - ...
+
+     All these options are of minor importance and/or would collide with
+     existing "one-character" options.  The current UnZip maintainer does not
+     want to reserve any of the few not-yet-occupied short option characters.
+     for one of these features.   So, any implementation effort for items
+     of this feature wish-list has to be delayed until the "long option"
+     support of the revised command line parser becomes available.
+
+       some option may get implemented in 6.1
+
+   o support for
+     and/or development team members:
 
    o add new low-level, binary API; rewrite "normal" (command-line) UnZip
      to use it
 
         maybe soon (maybe 6.1)
-
-   o use (simple!) configure script in combination with Unix Makefile
-
-        very soon (6.0 or 6.1)
-
-        may be needed in 6.0 to autodetect large file support - 10/8/2004 EG
-
-   o add precautions against extracting files outside the tree below
-     the current directory resp. the specified extraction folder.
-     (automatically remove absolute path specs from zip entries; emit
-      warnings when traversing outside the extraction tree...)
-
-        done as of version 5.51
 
    o MSDOS/WIN32/others: detection of "reserved" names (= names of character
      devices, or system extensions that look like a characters device driver)
@@ -128,15 +184,6 @@ Requested features:
 
    o miscellaneous little stuff:  whenever
      --------------------------
-
- - add support for setting directory time stamps to win32 port. This requires
-   a solution similar to the UNIX SET_DIR_ATTRIB optional code; maybe, it could
-   be combined with the delayed restoring of directory ACLs. Unfortunately,
-   the simple version used in the OS/2 case (setting dir time stamp just after
-   creating the directory) does not work, because WinNT updates directory
-   change times whenever the directory content gets modified (addition,
-   deletion, rename, file change), at least for NTFS file systems.
-   (SPC, 2000-11-16)
 
  - change DOS -f/-u stuff to use DOS API for getting filetimes, not stat()
 

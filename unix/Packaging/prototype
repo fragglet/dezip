@@ -9,7 +9,8 @@ s none $PKG/bin/zipinfo=unzip
 d none $PKG/doc 0755 root bin
 f none $PKG/doc/ZipPorts=proginfo/ZipPorts 0644 root bin
 f none $PKG/doc/CONTRIBS=proginfo/CONTRIBS 0644 root bin
-f none $PKG/doc/COPYING=COPYING 0644 root bin
+f none $PKG/doc/COPYING.OLD=COPYING.OLD 0644 root bin
+f none $PKG/doc/LICENSE=LICENSE 0644 root bin
 f none $PKG/doc/README=README 0644 root bin
 f none $PKG/doc/WHERE=WHERE 0644 root bin
 f none $PKG/doc/INSTALL=INSTALL 0644 root bin

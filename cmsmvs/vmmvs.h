@@ -1,7 +1,7 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
-  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  See the accompanying file LICENSE, version 2007-Mar-04 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
@@ -52,7 +52,6 @@
                   /* Kludge until we know how to open a non-echo tty channel */
 
 #define EBCDIC
-#define __EBCDIC 2              /* treat EBCDIC as binary! */
 /* In the context of Info-ZIP, a portable "text" mode file implies the use of
    an ASCII-compatible (ISO 8859-1, or other extended ASCII) code page. */
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -57,11 +57,6 @@
                                       modify [ax cx dx bx]
 #    endif /* !USE_ZLIB */
 #  endif /* ?__386__ */
-
-#  ifndef EPIPE
-#    define EPIPE -1
-#  endif
-#  define PIPE_ERROR (errno == EPIPE)
 #endif /* __WATCOMC__ */
 
 #ifdef __EMX__
@@ -147,6 +142,19 @@
 #  endif
 #endif
 
+/* 32-bit MSDOS supports the 32-bit optimized CRC-32 C code */
+#ifdef IZ_CRC_BE_OPTIMIZ
+# undef IZ_CRC_BE_OPTIMIZ
+#endif
+#ifdef __32BIT__
+# if !defined(IZ_CRC_LE_OPTIMIZ) && !defined(NO_CRC_OPTIMIZ)
+#  define IZ_CRC_LE_OPTIMIZ
+# endif
+#else /* __16BIT__ does not support optimized C crc32 code */
+# ifdef IZ_CRC_LE_OPTIMIZ
+#  undef IZ_CRC_LE_OPTIMIZ
+# endif
+#endif
 
 /* another stat()/fopen() bug with some 16-bit compilers on Novell drives;
  * very dangerous (silently overwrites executables in other directories)
@@ -292,6 +300,9 @@
 #  ifndef CRTL_CP_IS_OEM
 #    define CRTL_CP_IS_OEM
 #  endif
+#endif
+#ifndef NEED_ISO_OEM_INIT
+#  define NEED_ISO_OEM_INIT
 #endif
 
 /* SCREENLINES macros for 16-bit and djgpp compilers */

@@ -12,7 +12,6 @@
 #OUTPUT Building [lib]
 #APPEND bin CLEAR
 add^list CRC32O
-add^list CRCTABO
 add^list CRYPTO
 add^list DEFLATEO
 add^list FILEIOO
@@ -135,7 +134,6 @@ add^list ZIPUPO
 #OUTPUT Building [lib]
 #APPEND bin CLEAR
 add^list CRC32O
-add^list CRCTABO
 add^list CRYPTO
 add^list ENVARGSO
 add^list EXPLODEO
@@ -219,7 +217,6 @@ add^list ZIPINFOO
 #OUTPUT Building [lib]
 #APPEND bin CLEAR
 add^list CRC32O
-add^list CRCTABX
 add^list EXTRACTX
 add^list FILEIOX
 add^list GLOBALSX

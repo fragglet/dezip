@@ -138,10 +138,6 @@ SOURCE=..\..\..\win32\crc_i386.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\crctab.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\crypt.c
 # End Source File
 # Begin Source File
@@ -182,6 +178,10 @@ SOURCE=..\..\..\process.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\ubz2err.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\unreduce.c
 # End Source File
 # Begin Source File
@@ -195,6 +195,10 @@ SOURCE=..\..\..\windll\unziplib.def
 # Begin Source File
 
 SOURCE=..\..\..\win32\win32.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\win32\win32i64.c
 # End Source File
 # Begin Source File
 

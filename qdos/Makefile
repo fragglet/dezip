@@ -1,22 +1,22 @@
-# Makefile for UnZip 5.5+ using QDOS/xtc68 and GNU make
+# Makefile for UnZip 5.53+ using QDOS/xtc68 and GNU make
 #
 #      This makefile is a makefile for the xtc68 cross-compiler on Linux;
 #      conversion to a native c68 makefile should be trivial. This builds
 #      native QDOS binaries.
 #
-# Last modified:  13 Feb 01
+# Last modified:  25 Dec 06
 
 include /etc/ql.mak
 CFLAGS = -O -I. -I./qdos/
 
 OBJS = unzip.o process.o crypt.o envargs.o explode.o \
          unshrink.o extract.o zipinfo.o inflate.o match.o unreduce.o \
-         ttyio.o fileio.o list.o globals.o crctab.o qdos.o config.o crc32.o
+         ubz2err.o ttyio.o fileio.o list.o globals.o qdos.o config.o crc32.o
 
-FOBJS = funzip.o ttyio.o crypt.fo inflate.fo globals.fo config.o crc32.o qdos.fo
+FOBJS = funzip.o ttyio.o crypt.fo inflate.fo globals.fo config.o crc32.fo qdos.fo
 
 XOBJS = unzip.xo process.xo crypt.xo extract.xo fileio.xo \
-        ttyio.xo inflate.xo match.xo globals.xo crctab.xo \
+        ttyio.xo inflate.xo match.xo globals.xo ubz2err.xo \
         qdos.xo config.o crc32.xo
 
 all : unzip unzipsfx funzip makesfx callstub
@@ -72,13 +72,17 @@ cleaner : clean
 $(OBJS) $(XOBJS) $(FOBJS) : unzip.h unzpriv.h globals.h \
                              qdos/izqdos.h
 
-crc32.o crc32.xo crctab.o crctab.xo : zip.h
+crc32.o crc32.fo crc32.xo : zip.h
 crypt.o crypt.fo crypt.xo ttyio.o ttyio.fo ttyio.xo : zip.h
 
 inflate.o inflate.fo inflate.xo : inflate.h
 
 fileio.o fileio.xo : ebcdic.h
-funzip.o : tables.h
+
+funzip.o : crc32.h
+crc32.o crc32.fo crc32.xo crypt.o crypt.fo crypt.xo : crc32.h
+fileio.o fileio.xo extract.o extract.xo process.o process.xo : crc32.h
+
 
 crypt.o crypt.fo crypt.xo ttyio.o ttyio.fo ttyio.xo : crypt.h
 unzip.o unzip.xo funzip.o : crypt.h

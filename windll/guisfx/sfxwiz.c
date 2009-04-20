@@ -1,11 +1,23 @@
 /*
-  Copyright (c) 1990-2000 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2009 Info-ZIP.  All rights reserved.
 
-  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  See the accompanying file LICENSE, version 2009-Jan-02 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
+
+/* Tell Microsoft Visual C++ 2005 (and newer) to leave us alone
+ * and let us use standard C functions the way we're supposed to.
+ * (These preprocessor symbols must appear before the first system
+ *  header include.)
+ */
+#if defined(_MSC_VER) && (_MSC_VER >= 1400)
+#  ifndef _CRT_SECURE_NO_WARNINGS
+#    define _CRT_SECURE_NO_WARNINGS
+#  endif
+#endif
+
 #include <windows.h>
 #include <stdio.h>
 #ifdef WIN32
@@ -54,11 +66,23 @@ HWND hWnd;
 
 int WINAPI password(LPSTR p, int n, LPCSTR m, LPCSTR name);
 int WINAPI DisplayBuf(TCHAR far *buf, unsigned long size);
-int WINAPI GetReplaceDlgRetVal(TCHAR *filename);
+int WINAPI GetReplaceDlgRetVal(LPSTR filename, unsigned fnbufsiz);
+#ifdef Z_UINT8_DEFINED
+void WINAPI ReceiveDllMessage(z_uint8 ucsize, z_uint8 csiz,
+    unsigned cfactor, unsigned mo, unsigned dy, unsigned yr, unsigned hh,
+    unsigned mm, TCHAR c, LPCSTR filename, LPCSTR methbuf, unsigned long crc,
+    TCHAR fCrypt);
+#else
 void WINAPI ReceiveDllMessage(unsigned long ucsize, unsigned long csiz,
-   unsigned cfactor, unsigned mo, unsigned dy, unsigned yr, unsigned hh,
-   unsigned mm, TCHAR c, LPSTR filename, LPSTR methbuf, unsigned long crc,
-   TCHAR fCrypt);
+    unsigned cfactor, unsigned mo, unsigned dy, unsigned yr, unsigned hh,
+    unsigned mm, TCHAR c, LPCSTR filename, LPCSTR methbuf, unsigned long crc,
+    TCHAR fCrypt);
+#endif
+void WINAPI ReceiveDllMessage_NO_INT64(unsigned long ucsize_low,
+    unsigned long ucsize_high, unsigned long csiz_low, unsigned long csiz_high,
+    unsigned cfactor, unsigned mo, unsigned dy, unsigned yr, unsigned hh,
+    unsigned mm, TCHAR c, LPCSTR filename, LPCSTR methbuf, unsigned long crc,
+    TCHAR fCrypt);
 
 char szAppName[_MAX_PATH];
 char szTarget[_MAX_PATH];
@@ -441,7 +465,10 @@ if ((buf[0] != '\n') && (buf[0] != '\r'))
 return (unsigned int) size;
 }
 
-int WINAPI GetReplaceDlgRetVal(TCHAR *filename)
+#ifdef __BORLANDC__
+#pragma argsused
+#endif
+int WINAPI GetReplaceDlgRetVal(LPSTR filename, unsigned fnbufsiz)
 {
 #ifndef WIN32
 FARPROC lpfnprocReplace;
@@ -450,11 +477,11 @@ int ReplaceDlgRetVal;   /* replace dialog return value */
 
 #ifdef WIN32
 ReplaceDlgRetVal = DialogBoxParam(hInst, "Replace",
-   hWnd, (DLGPROC)ReplaceProc, (DWORD)(LPSTR)filename);
+   hWnd, (DLGPROC)ReplaceProc, (DWORD)filename);
 #else
 lpfnprocReplace = MakeProcInstance(ReplaceProc, hInst);
 ReplaceDlgRetVal = DialogBoxParam(hInst, "Replace",
-   hWnd, lpfnprocReplace, (DWORD)(LPSTR)filename);
+   hWnd, lpfnprocReplace, (DWORD)filename);
 FreeProcInstance(lpfnprocReplace);
 #endif
 return ReplaceDlgRetVal;
@@ -463,9 +490,25 @@ return ReplaceDlgRetVal;
 #ifdef __BORLANDC__
 #pragma argsused
 #endif
+#ifdef Z_UINT8_DEFINED
+void WINAPI ReceiveDllMessage(z_uint8 ucsize, z_uint8 csiz,
+    unsigned cfactor, unsigned mo, unsigned dy, unsigned yr, unsigned hh,
+    unsigned mm, TCHAR c, LPCSTR filename, LPCSTR methbuf, unsigned long crc,
+    TCHAR fCrypt)
+{
+}
+#else
 void WINAPI ReceiveDllMessage(unsigned long ucsize, unsigned long csiz,
+    unsigned cfactor, unsigned mo, unsigned dy, unsigned yr, unsigned hh,
+    unsigned mm, TCHAR c, LPCSTR filename, LPCSTR methbuf, unsigned long crc,
+    TCHAR fCrypt)
+{
+}
+#endif
+void WINAPI ReceiveDllMessage_NO_INT64(unsigned long ucsize_low,
+   unsigned long ucsize_high, unsigned long csiz_low, unsigned long csiz_high,
    unsigned cfactor, unsigned mo, unsigned dy, unsigned yr, unsigned hh,
-   unsigned mm, TCHAR c, LPSTR filename, LPSTR methbuf, unsigned long crc,
+   unsigned mm, TCHAR c, LPCSTR filename, LPCSTR methbuf, unsigned long crc,
    TCHAR fCrypt)
 {
 }
@@ -508,6 +551,7 @@ lpUserFunctions->print = DisplayBuf;
 lpUserFunctions->sound = NULL;
 lpUserFunctions->replace = GetReplaceDlgRetVal;
 lpUserFunctions->SendApplicationMessage = ReceiveDllMessage;
+lpUserFunctions->SendApplicationMessage_i32 = ReceiveDllMessage_NO_INT64;
 lpUserFunctions->ServCallBk = NULL;
 
 

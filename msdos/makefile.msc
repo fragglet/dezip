@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.5 and later                      Greg Roelofs and others
-# Version:  Microsoft C (5.x and later)                               20 Oct 03
+# Makefile for UnZip 5.53 and later                     Greg Roelofs and others
+# Version:  Microsoft C (5.x and later)                               29 Dec 05
 #------------------------------------------------------------------------------
 
 # Users of MSC 6/7 and NMAKE can use the Unix Makefile (target msc_dos),
@@ -78,13 +78,13 @@ LDFLAGS2_UN = $(LDFLAGS2);
 LDFLAGS2_FU = $(LDFLAGS2);
 LDFLAGS2_SX = $(LDFLAGS2);
 
-OBJS1 = unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj explode.obj
+OBJS1 = unzip.obj crc32.obj crypt.obj envargs.obj explode.obj
 OBJS2 = extract.obj fileio.obj globals.obj inflate.obj list.obj match.obj
 OBJS3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj
 OBJS4 = msdos.obj $(ASMOBJS)
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $(OBJS4)
 
-OBJX1 = unzipsfx.obj crc32x.obj crctabx.obj cryptx.obj extractx.obj fileiox.obj
+OBJX1 = unzipsfx.obj crc32x.obj cryptx.obj extractx.obj fileiox.obj
 OBJX2 = globalsx.obj inflatex.obj matchx.obj processx.obj ttyiox.obj
 OBJX3 = msdosx.obj $(ASMOBJX)
 OBJX = $(OBJX1) $(OBJX2) $(OBJX3)
@@ -119,42 +119,37 @@ crc_i86_.obj:   msdos/crc_i86.asm
 crc_i86x.obj:   msdos/crc_i86.asm
 	$(AS) $(ASFLAGS) -D$(ASSXMODEL) msdos/crc_i86.asm, $@;
 
-crc32.obj:      crc32.c $(UNZIP_H) zip.h
+crc32.obj:      crc32.c $(UNZIP_H) zip.h crc32.h
 
-crc32_.obj:     crc32.c $(UNZIP_H) zip.h
+crc32_.obj:     crc32.c $(UNZIP_H) zip.h crc32.h
 	$(CC) -c $(CFLAGS_FU) -Focrc32_.obj crc32.c
 
-crc32x.obj:     crc32.c $(UNZIP_H) zip.h
+crc32x.obj:     crc32.c $(UNZIP_H) zip.h crc32.h
 	$(CC) -c $(CFLAGS_SX) -Focrc32x.obj crc32.c
 
-crctab.obj:     crctab.c $(UNZIP_H) zip.h
+crypt.obj:      crypt.c $(UNZIP_H) crypt.h crc32.h ttyio.h zip.h
 
-crctabx.obj:    crctab.c $(UNZIP_H) zip.h
-	$(CC) -c $(CFLAGS_SX) -Focrctabx.obj crctab.c
-
-crypt.obj:      crypt.c $(UNZIP_H) crypt.h ttyio.h zip.h
-
-crypt_.obj:     crypt.c $(UNZIP_H) crypt.h ttyio.h zip.h
+crypt_.obj:     crypt.c $(UNZIP_H) crypt.h crc32.h ttyio.h zip.h
 	$(CC) -c $(CFLAGS_FU) -Focrypt_.obj crypt.c
 
-cryptx.obj:     crypt.c $(UNZIP_H) crypt.h ttyio.h zip.h
+cryptx.obj:     crypt.c $(UNZIP_H) crypt.h crc32.h ttyio.h zip.h
 	$(CC) -c $(CFLAGS_SX) -Focryptx.obj crypt.c
 
 envargs.obj:    envargs.c $(UNZIP_H)
 
 explode.obj:    explode.c $(UNZIP_H)
 
-extract.obj:    extract.c $(UNZIP_H) crypt.h
+extract.obj:    extract.c $(UNZIP_H) crc32.h crypt.h
 
-extractx.obj:   extract.c $(UNZIP_H) crypt.h
+extractx.obj:   extract.c $(UNZIP_H) crc32.h crypt.h
 	$(CC) -c $(CFLAGS_SX) -Foextractx.obj extract.c
 
-fileio.obj:     fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileio.obj:     fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 
-fileiox.obj:    fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileiox.obj:    fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 	$(CC) -c $(CFLAGS_SX) -Fofileiox.obj fileio.c
 
-funzip.obj:     funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+funzip.obj:     funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
 	$(CC) -c $(CFLAGS_FU) funzip.c
 
 globals.obj:    globals.c $(UNZIP_H)
@@ -189,9 +184,9 @@ msdos_.obj:     msdos/msdos.c $(UNZIP_H)
 msdosx.obj:     msdos/msdos.c $(UNZIP_H)
 	$(CC) -c $(CFLAGS_SX) -Fomsdosx.obj msdos/msdos.c
 
-process.obj:    process.c $(UNZIP_H)
+process.obj:    process.c $(UNZIP_H) crc32.h
 
-processx.obj:   process.c $(UNZIP_H)
+processx.obj:   process.c $(UNZIP_H) crc32.h
 	$(CC) -c $(CFLAGS_SX) -Foprocessx.obj process.c
 
 ttyio.obj:      ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h

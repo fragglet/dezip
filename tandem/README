@@ -11,7 +11,7 @@ Recent changes:
                  New DOIT macro for extracting files from archive
                  Fix in2ex to expand full vol/subvol depending on '-j' flag
 17/08/98  5.33f   Set USE_EF_UT_TIME to allow for timezone changes
-18/08/98  5.33f   Use define LICENSED to buld object able to update timestamps
+18/08/98  5.33f   Use define LICENSED to build object able to update timestamps
 19/08/98  5.33f   Add -X flag support (restore file owner id) via unzip.c/h
                  new chown function in tandem.c.
                  Modified close_outfile to make the chown the last step.

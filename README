@@ -1,10 +1,10 @@
-This is the README file for the 28 February 2005 public release of the
+This is the README file for the 20 April 2009 public release of the
 Info-ZIP group's portable UnZip zipfile-extraction program (and related
 utilities).
 
-unzip552.zip       portable UnZip, version 5.52, source code distribution
-unzip552.tar.Z     same as above, but compress'd tar format
-unzip552.tar.gz    same as above, but gzip'd tar format
+unzip60.zip       portable UnZip, version 6.0, source code distribution
+unzip60.tar.Z     same as above, but compress'd tar format
+unzip60.tar.gz    same as above, but gzip'd tar format
 
 __________________________________________________________________________
 
@@ -53,6 +53,54 @@ vms/descrip.mms.
 
 CHANGES AND NEW FEATURES
 ------------------------
+UnZip 6.0 finally supports nowadays "large" files of sizes > 2 GiB!
+This is the first release containing support for the PKWARE Zip64
+enhancements.
+Major changes are:
+   - Support PKWARE ZIP64 extensions, allowing Zip archives and Zip archive
+     entries larger than 4 GiBytes and more than 65536 entries within a single
+     Zip archive. This support is currently only available for Unix,
+     OpenVMS and Win32/Win64.
+   - Support for bzip2 compression method.
+   - Support for UTF-8 encoded entry names, both through PKWARE's "General
+     Purpose Flags Bit 11" indicator and Info-ZIP's new "up" unicode path
+     extra field.  (Currently, on Windows the UTF-8 handling is limited to
+     the character subset contained in the configured non-unicode "system
+     code page".)
+   - Added "wrong implementation used" warning to error messages of the MSDOS
+     port when used under Win32, in an attempt to reduce false bug reports.
+   - Fixed "Time of Creation/Time of Use" vulnerability when setting attributes
+     of extracted files, for Unix and Unix-like ports.
+   - Fixed memory leak when processing invalid deflated data.
+   - Fixed long-standing bug in unshrink (partial_clear), added boundary checks
+     against invalid compressed data.
+   - On Unix, keep inherited SGID attribute bit for extracted directories
+     unless restoration of owner/group id or SUID/SGID/Tacky attributes was
+     requested.
+   - On Unix, allow extracted filenames to contain embedded control characters
+     when explicitly requested by specifying the new command line option "-^".
+   - On Unix, support restoration of symbolic link attributes.
+   - On Unix, support restoration of 32-bit UID/GID data using the new "ux"
+     IZUNIX3 extra field introduced with Zip 3.0.
+   - Support for ODS5 extended filename syntax on new OpenVMS systems.
+   - Support symbolic links zipped up on VMS.
+   - On VMS (only 8.x or better), support symbolic link creation.
+   - On VMS, support option to create converted text files in Stream_LF format.
+   - New -D option to suppress restoration of timestamps for extracted
+     directory entries (on those ports that support setting of directory
+     timestamps).  By specifying "-DD", this new option also allows to suppress
+     timestamp restoration for ALL extracted files on all UnZip ports which
+     support restoration of timestamps.
+     On VMS, the default behaviour is now to skip restoration of directory
+     timestamps; here, "--D" restores ALL timestamps, "-D" restores none.
+   - On OS/2, Win32, and Unix, the (previously optional) feature UNIXBACKUP
+     to allow saving backup copies of overwritten files on extraction is now
+     enabled by default.
+
+For the UnZip 6.0 release, we want to give special credit to Myles Bennet,
+who started the job of supporting ZIP64 extensions and Large-File (> 2GiB)
+and provided a first (alpha-state) port.
+
 The 5.52 maintenance release fixes a few minor problems found in the 5.51
 release, closes some more security holes, adds a new AtheOS port, and
 contains a Win32 extra-field code cleanup that was not finished earlier.
@@ -171,8 +219,9 @@ features:
    - updated Solaris/SVR4 package facility
 
 What is (still!) not added is multi-part archive support (a.k.a. "diskette
-spanning") and a unified and more powerful DLL interface.  These are the
-two highest priorities for the 6.x releases.  Work on the former is almost
+spanning", though we really mean archive splitting and not the old diskette
+spanning) and a unified and more powerful DLL interface.  These are the two
+highest priorities for the 6.x releases.  Work on the former is almost
 certain to have commenced by the time you read this.  This time we mean it!
 You betcha. :-)
 
@@ -180,11 +229,6 @@ Although the DLLs are still basically a mess, the Windows DLLs (16- and 32-
 bit) now have some documentation and a small example application.  Note that
 they should now be compatible with C/C++, Visual BASIC and Delphi.  Weirder
 languages (FoxBase, etc.) are probably Right Out.
-
-Finally, note that support for unshrinking has now been turned OFF by default,
-although the source code is still available (as with unreducing).  This was
-done for legal reasons, not technical ones, and no, we're not any happier
-about it than you are. :-(  See the COPYING file for details.
 
 
 INTERNET RESOURCES
@@ -195,7 +239,7 @@ and contains the most up-to-date information about coming releases,
 links to binaries, and common problems.
 (See http://www.info-zip.org/pub/infozip/FAQ.html for the latter.)
 Files may also be retrieved via ftp://ftp.info-zip.org/pub/infozip/ .
-Thanks to LEO (Munich, Germany) for hosting our primary site.
+Thanks to LEO (Munich, Germany) for previously hosting our primary site.
 
 
 DISTRIBUTION
@@ -203,13 +247,16 @@ DISTRIBUTION
 If you have a question regarding redistribution of Info-ZIP software, either
 as is, as packaging for a commercial product, or as an integral part of a
 commercial product, please read the Frequently Asked Questions (FAQ) section
-of the included COPYING file.
+of the included COPYING file.  All Info-ZIP releases are now covered by
+the Info-ZIP license.  See the file LICENSE.  The most current license
+should be available at http://www.info-zip.org/license.html and
+ftp://ftp.info-zip.org/pub/infozip/license.html.
 
 Insofar as C compilers are rare on some platforms and the authors only have
 direct access to a subset of the supported systems, others may wish to pro-
 vide ready-to-run executables for new systems.  In general there is no prob-
 lem with this; we require only that such distributions include this README
-file, the WHERE file, the COPYING file (contains copyright/redistribution
+file, the WHERE file, the LICENSE file (contains copyright/redistribution
 information), and the appropriate documentation files (unzip.txt and/or
 unzip.1 for UnZip, etc.).  If the local system provides a way to make self-
 extracting archives in which both the executables and text files can be
@@ -222,13 +269,16 @@ use on the target system (for example, Zoo or LHa), that may also be used.
 
 BUGS AND NEW PORTS:  CONTACTING INFO-ZIP
 ----------------------------------------
-All bug reports and patches (context diffs only, please!) should go to
-Zip-Bugs@lists.wku.edu, which is the e-mail address for the Info-ZIP
-authors.  (Note that a few rare systems require the Zip-Bugs part to be
-capitalized as shown; most systems work OK with lowercase "zip-bugs,"
-however.)  DO NOT MAIL US LARGE BINARIES--EVER.  If you need to send us
-a problem archive that happens to be large (> 20K), contact us first for
-instructions.
+All bug reports and patches (context diffs only, please!) should be
+submitted either through the new Info-ZIP Discussion Forum at
+http://www.info-zip.org/board/board.pl or through the Info-ZIP SourceForge
+site at http://sourceforge.net/projects/infozip/.  The forum allows file
+attachments while SourceForge provides a place to post patches.  The old
+Zip-Bugs@lists.wku.edu e-mail address for the Info-ZIP authors was
+discontinued after heavy continuous spam, as was the QuickTopic discussion
+forum.  The above methods are public, but we also can be reached directly
+using the web reply page at http://www.info-zip.org/zip-bug.html.  If you
+need to send us files privately, contact us first for instructions.
 
 "Dumb questions" that aren't adequately answered in the documentation
 should also be directed to Zip-Bugs rather than to a global forum such
@@ -236,16 +286,17 @@ as Usenet.  (Kindly make certain that your question *isn't* answered by
 the documentation, however--a great deal of effort has gone into making
 it clear and complete.)
 
-Suggestions for new features can be discussed on Info-ZIP@lists.wku.edu,
-a mailing list for Info-ZIP beta testers and interested parties; you need
-to subscribe first, however (see below).  We make no promises to act on all
-suggestions or even all patches, but if it is something that is manifestly
-useful, sending the required patches to Zip-Bugs directly (as per the
-instructions in the ZipPorts file) is likely to produce a quicker response
-than asking us to do it--the authors are always ridiculously short on time.
-(Please do NOT send patches or encoded zipfiles to the Info-ZIP list.
-Please DO read the ZipPorts file before sending any large patch.  It would
-be difficult to over-emphasize this point...)
+Suggestions for new features can be discussed on the new Discussion Forum.
+A new mailing list for Info-ZIP beta testers and interested parties may
+be created someday, but for now any issues found in the betas should use
+the forum.  We make no promises to act on all suggestions or even all
+patches, but if it is something that is manifestly useful, sending the
+required patches to Zip-Bugs directly (as per the instructions in the
+ZipPorts file) is likely to produce a quicker response than asking us to
+do it--the authors are always ridiculously short on time.  (Please do
+NOT send patches or encoded zipfiles to the Info-ZIP list.  Please DO
+read the ZipPorts file before sending any large patch.  It would be
+difficult to over-emphasize this point...)
 
 If you are considering a port, not only should you read the ZipPorts file,
 but also please check in with Zip-Bugs BEFORE getting started, since the
@@ -274,7 +325,15 @@ a move to a new site; we hope to have them restored shortly.  In the
 interim ...)  Feel free to use our bug-reporting web page for bug reports
 and to ask questions not answered on the FAQ page above:
 
-	http://www.info-zip.org/zip-bug.html
+        http://www.info-zip.org/zip-bug.html
+
+For now the best option is to monitor and contribute to the various threads
+on the new discussion forum site at:
+
+      http://www.info-zip.org/board/board.pl
+
+The second best way to contribute is through the various features at
+SourceForge, such as the bug posting areas.
 
 There is also a closed mailing list for internal discussions of our core
 development team. This list is now kept secret to prevent us from being
@@ -285,4 +344,4 @@ flooded with spam messages.
    guy, with inspiration from David Kirschbaum, was Author of this text.
 
 -- Christian Spieler (shorthand: SPC), current UnZip maintenance coordinator,
-   applied the most recent changes.
+   applied the most recent changes, with Ed Gordon providing a few additions.

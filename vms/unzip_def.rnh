@@ -49,6 +49,11 @@
 .!              Added description for new -: traverse dirs option.
 .!      02-008          Christian Spieler       29-JAN-2005 01:50
 .!              Added description for the -T "set archive timestamp" option.
+.!      02-009          Christian Spieler       04-MAR-2007 14:37
+.!              Added description for the -S "Stream-LF text files" option;
+.!              updated the documentation of the VMS exit codes.
+.!      02-010          S. Schweda, C. Spieler  28-Dec-2007 21:28
+.!              Added description for the -D "timestamp restoration" option.
 .!
 .noflags
 .lm4 .rm72
@@ -70,7 +75,7 @@ Archive member extraction is implied by the absence of the -c, -p, -t, -l, -v or
 specify a subset of the archive members.
 Format:
 .sk;.lm+1;.literal
-UNZIP [-cfhlptTuvxz[ajnoqCLMVX]] file[.zip] [list] [-x xlist] [-d out_dir]
+UNZIP [-cfhlptTuvxz[ajnoqCDLMSVXY:2]] file[.zip] [list] [-x xlist] [-d out_dir]
 .end literal;.lm-1
 .!------------------------------------------------------------------------------
 .indent -4
@@ -138,27 +143,32 @@ options and modifiers can be provided:
  MODIFIERS
    -a   extract text files in standard VMS text file format
    -aa  extract all files as text
-   -b   auto-extract only binary files in VMS fixed 512-byte record format
-   -bb  extract all files as binary in VMS fixed 512-byte record format
+   -b   auto-extract only binary files in fixed 512-byte record format
+   -bb  extract all files as binary in fixed 512-byte record format
    -j   junk paths (don't recreate archive's directory structure)
-   -n   never overwrite existing files; don't prompt
-   -o   OK to overwrite files without prompting
+   -n   never overwrite or make a new version of an existing file
+   -o   always make a new version (-oo: overwrite orig) existing file
    -q   perform operations quietly (-qq => even quieter)
    -C   match filenames case-insensitively
+   -D   do not restore any timestamps (--D restore them even for dirs)
    -L   convert filenames to lowercase if created under DOS, VMS, etc.
    -M   feed screen output through built-in "more" pager
-   -P<password> supply decryption password on the command line (insecure!)
+   -P<password> supply decryption password on the cmd line (insecure!)
+   -S   use Stream_LF record format to extract text files (with -a[a])
    -V   retain (VMS) file version numbers
-   -X   restore owner/protection info (may require privileges)
-   -:   allow "../" path components that traverse across extract dir root
+   -X   restore owner/ACL protection info (may require privileges)
+   -Y   treat ".nnn" suffix as version number ("a.b.3" -> "a.b;3")
+   -:   allow "../" path components to traverse across top extract dir
+   -2   force creation of ODS2-compatible file names
 .end literal;.sk
-Note that uppercase options (-C, -L, -M, -P, -T, -V and -X) must be
-specified in quotes. For example:
+Note that uppercase options (-C, -D, -L, -M, -P, -S, -T, -V, -X, -Y, and
+-Z) must be specified in quotes (unless SET PROC/PARSE=EXTEND is set).
+For example:
 .sk;.literal
     unzip "-VX" -a zipfile
 .end literal;.sk
 When extracting to SYS$OUTPUT (-c or -p options) redirected to a file,
-you may want to override the default text file converion by specifying
+you may want to override the default text file conversion by specifying
 the -b option. A single "-b" option switches to "binary piping" mode
 for Zip entries marked as non-text, only. To force "binary piping" mode
 even for Zip file entries marked as text, the "-bb" option should be used.
@@ -172,93 +182,81 @@ And, in combination, "text" recognition takes precedence; this means
 that -bba (-bb -a) has the same effect as -ba (-b -a), and -aa overrides
 binary conversion for ALL files.
 .sk
+The conversion option -S is only effective when used together with
+-a or -aa. When specified, "text" files are written in Stream-LF record
+format instead of the VMS default of Variable-Length record format.
+(When no conversion options are specified, all non-VMS entries are always
+written as Stream-LF files.)
+.sk
 Please note that using the "-P<password>" option is higly insecure, the
 plaintext password may be seen by others. For this reason (and because of
 lack of space), the "-P<password>" option is not advertised on UnZip's
 online help screen.
 .!------------------------------------------------------------------------------
 .indent -4
-2 Exit_Codes
+2 Exit_Status
 .br
-On VMS, UnZip's UNIX style exit values are mapped into proper
-VMS status codes:
-.sk;.literal
-   1                               (success)  normal exit,
-   (0x7fff0000 + 16*UnZip_errnum)  -W- warnings
-   (0x7fff0002 + 16*UnZip_errnum)  -E- normal errors
-   (0x7fff0004 + 16*UnZip_errnum)  -F- fatal errors
-.end literal;.sk
-The UnZip error level (or exit code) approximates the exit
-codes defined by PKWARE and takes on the following values:
-.sk;.literal
-  VMS       UnZip    Type of error
-  severity  errcode
-    -         0      normal; no errors or warnings detected.
+On VMS, UnZip's UNIX-style exit values are mapped into VMS-style status
+codes with facility code 1954 = %x7A2, and with the inhibit-message
+(%x10000000) and facility-specific (%x00008000) bits set:
+.sk
+.literal
+   %x17A28001                        normal exit
+   %x17A28000 + 16*UnZip_error_code  warnings
+   %x17A28002 + 16*UnZip_error_code  normal errors
+   %x17A28004 + 16*UnZip_error_code  fatal errors
+.end literal
+.sk
+Note that multiplying the UNIX-style UnZip error code by 16 places it
+conveniently in the hexadecimal representation of the VMS exit code,
+"__" in %x17A28__s, where "s" is the severity code.  For example, a
+missing archive might cause UnZip error code 9, which would be
+transformed into the VMS exit status %X17A28092.
+.sk
+The UnZip VMS exit codes include severity values which approximate those
+defined by PKWARE, as shown in the following table:
+.literal
 
-    W         1      one or more warning errors were encountered,
-                     but processing completed  successfully  any-
-                     way.   This  includes  zipfiles where one or
-                     more files was skipped  due  to  unsupported
-                     compression  method  or  encryption  with an
-                     unknown password.
-
-    E         2      a generic error in the  zipfile  format  was
-                     detected.   Processing  may  have  completed
-                     successfully anyway;  some  broken  zipfiles
-                     created by other archivers have simple work-
-                     arounds.
-
-    F         3      a severe error in  the  zipfile  format  was
-                     detected.   Processing probably failed imme-
-                     diately.
-
-    F         4      unzip was unable to allocate memory for  one
-                     or  more  buffers during program initializa-
-                     tion.
-
-    F         5      unzip  was  unable  to  allocate  memory  or
-                     unable  to  obtain a tty to read the decryp-
-                     tion password(s).
-
-    F         6      unzip was unable to allocate  memory  during
-                     decompression to disk.
-
-    F         7      unzip  was  unable to allocate memory during
-                     in-memory decompression.
-
-    F         8      [currently not used]
-
-    E         9      the specified zipfiles were not found.
-
-    E         10     invalid options were specified on  the  com-
-                     mand line.
-
-    E         11     no matching files were found.
-
-    F         50     the disk is (or was) full during extraction.
-
-    F         51     the end of the ZIP archive  was  encountered
-                     prematurely.
-
-    E         80     the user aborted unzip prematurely with con-
-                     trol-C (or similar)
-
-    E         81     no files were found due to unsupported  com-
-                     pression  methods or unsupported decryption.
-                     (If even one additional file is successfully
-                     processed, however, the exit status is 1.)
-
-    E         82     no  files  were  found due to bad decryption
-                     password(s).  This is also the  exit  status
-                     if  no files were found due to a combination
-                     of unsupported  compression  and  bad  pass-
-                     words.   As in the previous case, however, a
-                     single successful file  will  result  in  an
-                     exit status of 1 instead.)
-.end literal;.sk
-In addition, there is a compilation option to expand upon this behavior:
-An executable compiled with the option RETURN_CODES defined displays
-a human-readable explanation of what the error status means.
+    VMS     UnZip err
+  severity    code     Error description
+ ----------+---------+----------------------------------------------
+  Success       0      Normal.  No errors or warnings detected.
+  Warning       1      One or more warnings  were  encountered, but
+                       processing  completed  successfully  anyway.
+                       This  includes  archives  where  one or more
+                       (but not all)  files were skipped because of
+                       unsupported compress or encrypt methods,  or
+                       bad passwords.
+  Error         2      Error in the archive format.  Processing may
+                       have completed  successfully  anyway.   Some
+                       defects in archives (made by other programs)
+                       can be repaired transparently.
+  Fatal         3      Severe error in the archive format. Process-
+                       ing probably failed immediately.
+  Fatal         4      Memory allocation failed in program initial-
+                       ization.
+  Fatal         5      Memory  allocation  failed  in password pro-
+                       cessing.
+  Fatal         6      Memory allocation failed while decompressing
+                       to disk.
+  Fatal         7      Memory allocation failed while decompressing
+                       in memory.
+  Fatal         8      Memory  allocation  failed    (reserved  for
+                       future use).
+  Error         9      Specified archive files were not found.
+  Error        10      Invalid command-line options or parameters.
+  Error        11      No files matched selection criteria.
+  Fatal        50      Disk full.
+  Fatal        51      Unexpected  end-of-file  while  reading  the
+                       archive.
+  Error        80      User interrupt (Ctrl/C).
+  Error        81      No files were processed,  because  of unsup-
+                       ported compress or encrypt methods.
+  Error        82      No  files  were  processed,  because  of bad
+                       password(s).
+  Fatal        83      Large-file archive could not be processed by
+                       this small-file program.
+.end literal
 .!------------------------------------------------------------------------------
 .indent -4
 2 Logical_Names

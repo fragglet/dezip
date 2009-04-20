@@ -49,7 +49,6 @@
 //              _stricmp
 //              _strupr
 //              strrchr                 (non-_MBCS only)
-//              localtime
 //              isupper
 //              stat
 //              localtime

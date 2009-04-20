@@ -1,7 +1,7 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2009 Info-ZIP.  All rights reserved.
 
-  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  See the accompanying file LICENSE, version 2009-Jan-02 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
@@ -77,6 +77,7 @@
 //              iswild
 //              conv_to_rule
 //              GetPlatformLocalTimezone
+//              wide_to_local_string
 //
 //
 // Date      Name          History
@@ -87,6 +88,10 @@
 // 12/01/02  Chr. Spieler  Updated interface for UnZip 5.50
 // 02/23/05  Chr. Spieler  Modified and optimized utimeToFileTime() to support
 //                         the NO_W32TIMES_IZFIX compilation option
+// 11/01/09  Chr. Spieler  Added wide_to_local_string() conversion function
+//                         from win32.c, which is currently needed for the
+//                         new UTF-8 names support (until we manage to port
+//                         the complete UnZip code to native wide-char support).
 //
 //*****************************************************************************
 
@@ -195,12 +200,18 @@ int UZ_EXP UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag);
 int UZ_EXP UzpInput2(zvoid *pG, uch *buffer, int *size, int flag);
 int UZ_EXP CheckForAbort2(zvoid *pG, int fnflag, ZCONST char *zfn,
                           ZCONST char *efn, ZCONST zvoid *details);
-int WINAPI UzpReplace(LPSTR szFile);
+int WINAPI UzpReplace(LPSTR szFile, unsigned nbufsiz);
 void WINAPI UzpSound(void);
-void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, unsigned ratio,
+#ifdef Z_UINT8_DEFINED
+void WINAPI SendAppMsg(z_uint8 uzSize, z_uint8 uzCompressedSize,
+#else
+void WINAPI SendAppMsg(ulg uzSize, ulg uzCompressedSize,
+#endif
+                       unsigned ratio,
                        unsigned month, unsigned day, unsigned year,
                        unsigned hour, unsigned minute, char uppercase,
-                       LPSTR szPath, LPSTR szMethod, ulg dwCRC, char chCrypt);
+                       LPCSTR szPath, LPCSTR szMethod, ulg dwCRC,
+                       char chCrypt);
 
 } // extern "C"
 
@@ -448,6 +459,7 @@ static Uz_Globs* InitGlobals(LPCSTR szZipFile)
    pG->lpUserFunctions->replace                = UzpReplace;
    pG->lpUserFunctions->sound                  = UzpSound;
    pG->lpUserFunctions->SendApplicationMessage = SendAppMsg;
+   pG->lpUserFunctions->SendApplicationMessage_i32 = NULL;
 
 #if CRYPT
    pG->decr_passwd = UzpPassword;
@@ -553,7 +565,7 @@ static unsigned __stdcall ExtractOrTestFilesThread(void *lpv)
    }
 
    // Invalidate our file offset to show that we are starting a new operation.
-   g_pExtractInfo->dwFileOffset = 0xFFFFFFFF;
+   g_pExtractInfo->uzFileOffset = ~(zusz_t)0;
 
    // We wrap some exception handling around the entire Info-ZIP engine to be
    // safe.  Since we are running on a device with tight memory configurations,
@@ -607,11 +619,11 @@ static unsigned __stdcall ExtractOrTestFilesThread(void *lpv)
 static void SetCurrentFile(__GPRO)
 {
    // Reset all our counters as we about to process a new file.
-   g_pExtractInfo->dwFileOffset = (DWORD)G.pInfo->offset;
+   g_pExtractInfo->uzFileOffset = (zusz_t)G.pInfo->offset;
    g_pExtractInfo->dwFile++;
-   g_pExtractInfo->dwBytesWrittenThisFile = 0;
-   g_pExtractInfo->dwBytesWrittenPreviousFiles += g_pExtractInfo->dwBytesTotalThisFile;
-   g_pExtractInfo->dwBytesTotalThisFile = G.lrec.ucsize;
+   g_pExtractInfo->uzBytesWrittenThisFile = 0;
+   g_pExtractInfo->uzBytesWrittenPreviousFiles += g_pExtractInfo->uzBytesTotalThisFile;
+   g_pExtractInfo->uzBytesTotalThisFile = G.lrec.ucsize;
    g_pExtractInfo->szFile = G.filename;
    g_pExtractInfo->fNewLineOfText = TRUE;
 
@@ -696,7 +708,7 @@ int UZ_EXP UzpMessagePrnt2(zvoid *pG, uch *buffer, ulg size, int flag)
    // When extracting, mapname() will get called for every file which in turn
    // will call SetCurrentFile().  For testing though, mapname() never gets
    // called so we need to be on the lookout for a new file.
-   if (g_pExtractInfo->dwFileOffset != (DWORD)((Uz_Globs*)pG)->pInfo->offset) {
+   if (g_pExtractInfo->uzFileOffset != (zusz_t)((Uz_Globs*)pG)->pInfo->offset) {
       SetCurrentFile((Uz_Globs*)pG);
    }
 
@@ -794,7 +806,7 @@ int UZ_EXP UzpPassword(zvoid *pG, int *pcRetry, char *szPassword, int nSize,
    return SendMessage(g_hWndMain, WM_PRIVATE, MSG_PROMPT_FOR_PASSWORD, (LPARAM)&di);
 
 #else
-   return -2;
+   return IZ_PW_CANCELALL;
 #endif
 }
 
@@ -838,9 +850,12 @@ int UZ_EXP CheckForAbort2(zvoid *pG, int fnflag, ZCONST char *zfn,
 }
 
 //******************************************************************************
-int WINAPI UzpReplace(LPSTR szFile) {
+int WINAPI UzpReplace(LPSTR szFile, unsigned nbufsiz) {
    // Pass control to our GUI thread which will prompt the user to overwrite.
-   return SendMessage(g_hWndMain, WM_PRIVATE, MSG_PROMPT_TO_REPLACE, (LPARAM)szFile);
+   // The nbufsiz parameter is not needed here, because this program does not
+   // (yet?) contain support for renaming the extraction target.
+   return SendMessage(g_hWndMain, WM_PRIVATE, MSG_PROMPT_TO_REPLACE,
+                      (LPARAM)szFile);
 }
 
 //******************************************************************************
@@ -850,10 +865,16 @@ void WINAPI UzpSound(void) {
 
 //******************************************************************************
 // Called from LIST.C
-void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, unsigned ratio,
+#ifdef Z_UINT8_DEFINED
+void WINAPI SendAppMsg(z_uint8 uzSize, z_uint8 uzCompressedSize,
+#else
+void WINAPI SendAppMsg(ulg uzSize, ulg uzCompressedSize,
+#endif
+                       unsigned ratio,
                        unsigned month, unsigned day, unsigned year,
                        unsigned hour, unsigned minute, char uppercase,
-                       LPSTR szPath, LPSTR szMethod, ulg dwCRC, char chCrypt)
+                       LPCSTR szPath, LPCSTR szMethod, ulg dwCRC,
+                       char chCrypt)
 {
    // If we are out of memory, then just bail since we will only make things worse.
    if (g_fOutOfMemory) {
@@ -865,7 +886,8 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, unsigned ratio,
 
    // Allocate a FILE_NODE large enough to hold this file.
    int length = strlen(szPath) + strlen(szMethod);
-   g_pFileLast = (FILE_NODE*)new BYTE[sizeof(FILE_NODE) + (sizeof(CHAR) * length)];
+   g_pFileLast = (FILE_NODE*)new BYTE[sizeof(FILE_NODE) +
+                                      (sizeof(CHAR) * length)];
 
    // Bail out if we failed to allocate the node.
    if (!g_pFileLast) {
@@ -879,8 +901,8 @@ void WINAPI SendAppMsg(ulg dwSize, ulg dwCompressedSize, unsigned ratio,
    }
 
    // Fill in our node.
-   g_pFileLast->dwSize           = dwSize;
-   g_pFileLast->dwCompressedSize = dwCompressedSize;
+   g_pFileLast->uzSize           = (zusz_t)uzSize;
+   g_pFileLast->uzCompressedSize = (zusz_t)uzCompressedSize;
    g_pFileLast->dwCRC            = dwCRC;
    g_pFileLast->szComment        = NULL;
    g_pFileLast->szType           = NULL;
@@ -935,7 +957,7 @@ int win_fprintf(zvoid *pG, FILE *file, unsigned int dwCount, char far *buffer)
 #endif
 
       // Update our bytes written count.
-      g_pExtractInfo->dwBytesWrittenThisFile += dwBytesWritten;
+      g_pExtractInfo->uzBytesWrittenThisFile += dwBytesWritten;
 
       // Pass control to our GUI thread to do a partial update our progress dialog.
       SendMessage(g_hWndMain, WM_PRIVATE, MSG_UPDATE_PROGRESS_PARTIAL,
@@ -966,12 +988,13 @@ int win_fprintf(zvoid *pG, FILE *file, unsigned int dwCount, char far *buffer)
 
    // Check to see if we are expecting a compressed file comment string.
    if (g_pFileLast) {
+      char *p1, *p2;
 
       // Calcalute the size of the buffer we will need to store this comment.
       // We are going to convert all ASC values 0 - 31 (except tab, new line,
       // and CR) to ^char.
       int size = 1;
-      for (char *p2, *p1 = buffer; *p1; INCSTR(p1)) {
+      for (p1 = buffer; *p1; INCSTR(p1)) {
          size += ((*p1 >= 32) || (*p1 == '\t') ||
                   (*p1 == '\r') || (*p1 == '\n')) ? CLEN(p1) : 2;
       }
@@ -1243,7 +1266,7 @@ static BOOL IsOldFileSystem(char *szPath) {
 }
 
 //******************************************************************************
-int SetFileSize(FILE *file, ulg filesize)
+int SetFileSize(FILE *file, zusz_t filesize)
 {
 #if (defined(_WIN32_WCE) || defined(__RSXNT__))
     // For native Windows CE, it is not known whether the API supports
@@ -1257,6 +1280,9 @@ int SetFileSize(FILE *file, ulg filesize)
       rommel@ars.de
      */
     HANDLE os_fh;
+#ifdef Z_UINT8_DEFINED
+    LARGE_INTEGER fsbuf;
+#endif
 
     /* Win9x supports FAT file system, only; presetting file size does
        not help to prevent fragmentation. */
@@ -1270,7 +1296,13 @@ int SetFileSize(FILE *file, ulg filesize)
      */
     os_fh = (HANDLE)_get_osfhandle(fileno(file));
     /* move file pointer behind the last byte of the expected file size */
+#ifdef Z_UINT8_DEFINED
+    fsbuf.QuadPart = filesize;
+    if ((SetFilePointer(os_fh, fsbuf.LowPart, &fsbuf.HighPart, FILE_BEGIN)
+         == 0xFFFFFFFF) && GetLastError() != NO_ERROR)
+#else
     if (SetFilePointer(os_fh, filesize, 0, FILE_BEGIN) == 0xFFFFFFFF)
+#endif
         return -1;
     /* extend/truncate file to the current position */
     if (SetEndOfFile(os_fh) == 0)
@@ -1285,57 +1317,60 @@ void close_outfile(__GPRO)
 {
    HANDLE hFile;
 
-   // Get the 3 time stamps for the file.
-   FILETIME ftCreated, ftAccessed, ftModified;
-   int timeFlags = GetFileTimes(__G__ &ftCreated, &ftAccessed, &ftModified);
-
    TCHAR szFile[_MAX_PATH];
    MBSTOTSTR(szFile, G.filename, countof(szFile));
 
+   /* skip restoring time stamps on user's request */
+   if (uO.D_flag <= 1) {
+      // Get the 3 time stamps for the file.
+      FILETIME ftCreated, ftAccessed, ftModified;
+      int timeFlags = GetFileTimes(__G__ &ftCreated, &ftAccessed, &ftModified);
+
 #if (defined(_WIN32_WCE) && (_WIN32_WCE < 211))
 
-   // Cast the outfile to a HANDLE (since that is really what it is), and
-   // flush the file.  We need to flush, because any unsaved data that is
-   // written to the file during CloseHandle() will step on the work done
-   // by SetFileTime().
-   hFile = (HANDLE)G.outfile;
-   FlushFileBuffers(hFile);
+      // Cast the outfile to a HANDLE (since that is really what it is), and
+      // flush the file.  We need to flush, because any unsaved data that is
+      // written to the file during CloseHandle() will step on the work done
+      // by SetFileTime().
+      hFile = (HANDLE)G.outfile;
+      FlushFileBuffers(hFile);
 
 #else
 
-   // Close the file and then re-open it using the Win32 CreateFile() call.
-   // SetFileTime() requires a Win32 file HANDLE created with GENERIC_WRITE
-   // access.
-   fclose(G.outfile);
-   hFile = CreateFile(szFile, GENERIC_WRITE, FILE_SHARE_WRITE, NULL,
-                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+      // Close the file and then re-open it using the Win32 CreateFile() call.
+      // SetFileTime() requires a Win32 file HANDLE created with GENERIC_WRITE
+      // access.
+      fclose(G.outfile);
+      hFile = CreateFile(szFile, GENERIC_WRITE, FILE_SHARE_WRITE, NULL,
+                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 #endif
 
-   // Set the file's date and time.
-   if (hFile != INVALID_HANDLE_VALUE) {
+      // Set the file's date and time.
+      if (hFile != INVALID_HANDLE_VALUE) {
 
-      // Make sure we retrieved some valid time stamp(s)
-      if (timeFlags) {
+         // Make sure we retrieved some valid time stamp(s)
+         if (timeFlags) {
 
-         // Set the various date and time fields.
-         if (!SetFileTime(hFile,
-                 (timeFlags & EB_UT_FL_CTIME) ? &ftCreated  : NULL,
-                 (timeFlags & EB_UT_FL_ATIME) ? &ftAccessed : NULL,
-                 (timeFlags & EB_UT_FL_MTIME) ? &ftModified : NULL))
-         {
-            DebugOut(TEXT("SetFileTime() failed [%u]"), GetLastError());
+            // Set the various date and time fields.
+            if (!SetFileTime(hFile,
+                    (timeFlags & EB_UT_FL_CTIME) ? &ftCreated  : NULL,
+                    (timeFlags & EB_UT_FL_ATIME) ? &ftAccessed : NULL,
+                    (timeFlags & EB_UT_FL_MTIME) ? &ftModified : NULL))
+            {
+               DebugOut(TEXT("SetFileTime() failed [%u]"), GetLastError());
+            }
+
+         } else {
+            DebugOut(TEXT("GetFileTimes() failed"));
          }
 
+         // Close out file.
+         CloseHandle(hFile);
+
       } else {
-         DebugOut(TEXT("GetFileTimes() failed"));
+         DebugOut(TEXT("CreateFile() failed [%u]"), GetLastError());
       }
-
-      // Close out file.
-      CloseHandle(hFile);
-
-   } else {
-      DebugOut(TEXT("CreateFile() failed [%u]"), GetLastError());
    }
 
    // If the file was successfully written, then set the attributes.
@@ -1521,7 +1556,7 @@ int mapname(__GPRO__ int renamed)
           // Check for a directory wack.
           case '/':
             *pOut = '\0';
-            // Skip dir traversals unless they are explicitely allowed.
+            // Skip dir traversals unless they are explicitly allowed.
             if (strcmp(pPathComp, ".") == 0) {
                 // don't bother appending "./" to the path
                 *pPathComp = '\0';
@@ -1701,7 +1736,7 @@ int checkdir(__GPRO__ char *pathcomp, int flag) {
 
         // Add trailing path separator
         G.rootpath[G.rootlen++] = '\\';
-        G.rootpath[G.rootlen] = '0';
+        G.rootpath[G.rootlen] = '\0';
         break;
      }
 
@@ -1760,3 +1795,79 @@ int getch_win32(void)
 }
 #endif /* !WINDLL */
 #endif // !POCKET_UNZIP
+
+#if (defined(UNICODE_SUPPORT))
+/* convert wide character string to multi-byte character string */
+char *wide_to_local_string(ZCONST zwchar *wide_string,
+                           int escape_all)
+{
+  int i;
+  wchar_t wc;
+  int bytes_char;
+  int default_used;
+  int wsize = 0;
+  int max_bytes = 9;
+  char buf[9];
+  char *buffer = NULL;
+  char *local_string = NULL;
+
+  for (wsize = 0; wide_string[wsize]; wsize++) ;
+
+  if (max_bytes < MB_CUR_MAX)
+    max_bytes = MB_CUR_MAX;
+
+  if ((buffer = (char *)malloc(wsize * max_bytes + 1)) == NULL) {
+    return NULL;
+  }
+
+  /* convert it */
+  buffer[0] = '\0';
+  for (i = 0; i < wsize; i++) {
+    if (sizeof(wchar_t) < 4 && wide_string[i] > 0xFFFF) {
+      /* wchar_t probably 2 bytes */
+      /* could do surrogates if state_dependent and wctomb can do */
+      wc = zwchar_to_wchar_t_default_char;
+    } else {
+      wc = (wchar_t)wide_string[i];
+    }
+    /* The C-RTL under WinCE does not support the generic C-style
+     * Wide-to-MultiByte conversion functions (like wctomb() et. al.).
+     * Therefore, we have to fall back to the underlying WinCE-API call to
+     * get WCHAR-to-ANSI translation done.
+     */
+    bytes_char = WideCharToMultiByte(
+                          CP_ACP, WC_COMPOSITECHECK,
+                          &wc, 1,
+                          (LPSTR)buf, sizeof(buf),
+                          NULL, &default_used);
+    if (default_used)
+      bytes_char = -1;
+    if (escape_all) {
+      if (bytes_char == 1 && (uch)buf[0] <= 0x7f) {
+        /* ASCII */
+        strncat(buffer, buf, 1);
+      } else {
+        /* use escape for wide character */
+        char *escape_string = wide_to_escape_string(wide_string[i]);
+        strcat(buffer, escape_string);
+        free(escape_string);
+      }
+    } else if (bytes_char > 0) {
+      /* multi-byte char */
+      strncat(buffer, buf, bytes_char);
+    } else {
+      /* no MB for this wide */
+      /* use escape for wide character */
+      char *escape_string = wide_to_escape_string(wide_string[i]);
+      strcat(buffer, escape_string);
+      free(escape_string);
+    }
+  }
+  if ((local_string = (char *)realloc(buffer, strlen(buffer) + 1)) == NULL) {
+    free(buffer);
+    return NULL;
+  }
+
+  return local_string;
+}
+#endif /* UNICODE_SUPPORT */

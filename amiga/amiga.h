@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -27,6 +27,16 @@
 #else
    int mkdir(const char *_name);
 #endif
+
+/* we only have dinky old-sk00l 32 bit filesystems */
+#ifdef LARGE_FILE_SUPPORT
+#  undef LARGE_FILE_SUPPORT
+#endif
+
+typedef long        zoff_t;
+#define ZOFF_T_DEFINED
+typedef struct stat z_stat;
+#define Z_STAT_DEFINED
 
 #ifdef AZTEC_C                       /* Manx Aztec C, 5.0 or newer only */
 #  include <clib/dos_protos.h>
@@ -65,6 +75,9 @@
 
 
 #ifdef __SASC
+/* NOTE: SAS/C COMPILATION HAS BEEN UNSUPPORTED THROUGH MANY UNZIP VERSIONS. */
+/* (Which is too bad, because it would probably perform better than Aztec.)  */
+
 /* includes */
 #  include <sys/types.h>
 #  include <sys/dir.h>

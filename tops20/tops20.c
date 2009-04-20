@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2004 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2007 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -100,74 +100,79 @@ void close_outfile(__G)
     struct tm *t;
 
 
-    if (G.extra_field &&
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
+
+        if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
-        G.tz_is_valid &&
+            G.tz_is_valid &&
 #endif
-        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_dos_date, &z_utime, NULL)
-         & EB_UT_FL_MTIME))
-        t = localtime(&(z_utime.mtime));
-    else
-        t = (struct tm *)NULL;
+            (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                              G.lrec.last_mod_dos_date, &z_utime, NULL)
+             & EB_UT_FL_MTIME))
+            t = localtime(&(z_utime.mtime));
+        else
+            t = (struct tm *)NULL;
 
-    if (t != (struct tm *)NULL)
-    {
-        yr = t->tm_year + 1900;
-        mo = t->tm_mon;
-        dy = t->tm_mday;
-        hh = t->tm_hour;
-        mm = t->tm_min;
-        ss = t->tm_sec;
-    }
-    else
-    {
-        /* dissect the date */
-        yr = ((G.lrec.last_mod_dos_date >> 9) & 0x7f) + 1980;
-        mo = ((G.lrec.last_mod_dos_date >> 5) & 0x0f) - 1;
-        dy = (G.lrec.last_mod_dos_date & 0x1f);
+        if (t != (struct tm *)NULL)
+        {
+            yr = t->tm_year + 1900;
+            mo = t->tm_mon;
+            dy = t->tm_mday;
+            hh = t->tm_hour;
+            mm = t->tm_min;
+            ss = t->tm_sec;
+        }
+        else
+        {
+            /* dissect the date */
+            yr = ((G.lrec.last_mod_dos_date >> 9) & 0x7f) + 1980;
+            mo = ((G.lrec.last_mod_dos_date >> 5) & 0x0f) - 1;
+            dy = (G.lrec.last_mod_dos_date & 0x1f);
 
-        /* dissect the time */
-        hh = (G.lrec.last_mod_dos_time >> 11) & 0x1f;
-        mm = (G.lrec.last_mod_dos_time >> 5) & 0x3f;
-        ss = (G.lrec.last_mod_dos_time & 0x1f) * 2;
-    }
+            /* dissect the time */
+            hh = (G.lrec.last_mod_dos_time >> 11) & 0x1f;
+            mm = (G.lrec.last_mod_dos_time >> 5) & 0x3f;
+            ss = (G.lrec.last_mod_dos_time & 0x1f) * 2;
+        }
 #else /* !USE_EF_UT_TIME */
 
-    /* dissect the date */
-    yr = ((G.lrec.last_mod_dos_datetime >> 25) & 0x7f) + (1980 - YRBASE);
-    mo = (G.lrec.last_mod_dos_datetime >> 21) & 0x0f;
-    dy = (G.lrec.last_mod_dos_datetime >> 16) & 0x1f;
+        /* dissect the date */
+        yr = ((G.lrec.last_mod_dos_datetime >> 25) & 0x7f) + (1980 - YRBASE);
+        mo = (G.lrec.last_mod_dos_datetime >> 21) & 0x0f;
+        dy = (G.lrec.last_mod_dos_datetime >> 16) & 0x1f;
 
-    /* dissect the time */
-    hh = (G.lrec.last_mod_dos_datetime >> 11) & 0x1f;
-    mm = (G.lrec.last_mod_dos_datetime >> 5) & 0x3f;
-    ss = (G.lrec.last_mod_dos_datetime << 1) & 0x1f;
+        /* dissect the time */
+        hh = (G.lrec.last_mod_dos_datetime >> 11) & 0x1f;
+        mm = (G.lrec.last_mod_dos_datetime >> 5) & 0x3f;
+        ss = (G.lrec.last_mod_dos_datetime << 1) & 0x1f;
 #endif /* ?USE_EF_UT_TIME */
 
-    sprintf(temp, "%02d/%02d/%02d %02d:%02d:%02d", mo, dy, yr, hh, mm, ss);
+        sprintf(temp, "%02d/%02d/%02d %02d:%02d:%02d", mo, dy, yr, hh, mm, ss);
 
-    ablock[1] = (int)(temp - 1);
-    ablock[2] = 0;
-    if (!jsys(IDTIM, ablock)) {
-        Info(slide, 1, ((char *)slide, "error:  IDTIM failure for %s\n",
-          G.filename));
-        fclose(G.outfile);
-        return;
-    }
+        ablock[1] = (int)(temp - 1);
+        ablock[2] = 0;
+        if (!jsys(IDTIM, ablock)) {
+            Info(slide, 1, ((char *)slide, "error:  IDTIM failure for %s\n",
+              G.filename));
+            fclose(G.outfile);
+            return;
+        }
 
-    tad = ablock[2];
-    tblock[0] = tad;
-    tblock[1] = tad;
-    tblock[2] = -1;
+        tad = ablock[2];
+        tblock[0] = tad;
+        tblock[1] = tad;
+        tblock[2] = -1;
 
-    ablock[1] = fcntl(fileno(G.outfile), F_GETSYSFD, 0);
-                                                /* _uffd[outfd]->uf_ch */
-    ablock[2] = (int) tblock;
-    ablock[3] = 3;
-    if (!jsys(SFTAD, ablock))
-        Info(slide, 1,((char *)slide, "error:  cannot set the time for %s\n",
-          G.filename));
+        ablock[1] = fcntl(fileno(G.outfile), F_GETSYSFD, 0);
+                                                    /* _uffd[outfd]->uf_ch */
+        ablock[2] = (int) tblock;
+        ablock[3] = 3;
+        if (!jsys(SFTAD, ablock))
+            Info(slide, 1,((char *)slide,
+              "error:  cannot set the time for %s\n", G.filename));
+
+    } /* if (uO.D_flag <= 1) */
 
     fclose(G.outfile);
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -223,7 +223,7 @@ static nsk_file_attrs *ef_scan_for_tandem(ef_buf, ef_len)
 /* Function open_outfile() */
 /***************************/
 
-int open_outfile(__G)         /* return 1 if fail */
+int open_outfile(__G)           /* return 1 if fail */
     __GDEF
 {
     int fdesc;
@@ -880,7 +880,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         iztimes t3;             /* mtime, atime, ctime */
         ztimbuf t2;             /* modtime, actime */
     } zt;
-    ush z_uidgid[2];
+    ulg z_uidgid[2];
     unsigned eb_izux_flg;
     nsk_file_attrs *znsk_attr;
     short err;
@@ -968,13 +968,18 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     Not sure how (yet) or whether it's a good idea to set the last open time
   ---------------------------------------------------------------------------*/
 
-    if (utime(G.filename, &(zt.t2)))
-        if (uO.qflag)
-            Info(slide, 0x201, ((char *)slide,
-              "warning:  cannot set times for %s\n", FnFilter1(G.filename)));
-        else
-            Info(slide, 0x201, ((char *)slide,
-              " (warning) cannot set times"));
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
+        /* set the file's access and modification times */
+        if (utime(G.filename, &(zt.t2)))
+            if (uO.qflag)
+                Info(slide, 0x201, ((char *)slide,
+                  "warning:  cannot set times for %s\n",
+                  FnFilter1(G.filename)));
+            else
+                Info(slide, 0x201, ((char *)slide,
+                  " (warning) cannot set times"));
+    }
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
@@ -998,11 +1003,11 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         {
             if (uO.qflag)
                 Info(slide, 0x201, ((char *)slide,
-                  "warning:  cannot set UID %d and/or GID %d for %s\n",
+                  "warning:  cannot set UID %lu and/or GID %lu for %s\n",
                   z_uidgid[0], z_uidgid[1], FnFilter1(G.filename)));
             else
                 Info(slide, 0x201, ((char *)slide,
-                  " (warning) cannot set UID %d and/or GID %d",
+                  " (warning) cannot set UID %lu and/or GID %lu",
                   z_uidgid[0], z_uidgid[1]));
         }
     }

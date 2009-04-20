@@ -6,7 +6,6 @@ GLOBALS:
 TEXT:
    unzip c
    crc32 c
-   crctab c
    crypt c
    envargs c
    explode c

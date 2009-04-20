@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2007 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -885,26 +885,31 @@ void close_outfile(__G)
     iztimes z_utime;
 #endif
 
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field &&
+        if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
-        G.tz_is_valid &&
+            G.tz_is_valid &&
 #endif
-        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
-         & EB_UT_FL_MTIME))
-    {
-        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          z_utime.mtime));
-        m_time = z_utime.mtime;
-    } else
+            (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                              G.lrec.last_mod_dos_datetime, &z_utime, NULL)
+             & EB_UT_FL_MTIME))
+        {
+            TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+              z_utime.mtime));
+            m_time = z_utime.mtime;
+        } else
 #endif /* USE_EF_UT_TIME */
-        m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+            m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+    }
 
-    /* set the file's modification time */
+    /* set the file's time-stamp and attributes */
     SWI_OS_File_5(G.filename, NULL, &loadaddr, NULL, NULL, &attr);
 
-    uxtime2acornftime(&execaddr, &loadaddr, m_time);
+    if (uO.D_flag <= 1)
+        /* set the file's modification time */
+        uxtime2acornftime(&execaddr, &loadaddr, m_time);
 
     loadaddr = (loadaddr & 0xfff000ffU) |
                ((G.pInfo->file_attr&0xfff00000) >> 12);

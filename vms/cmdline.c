@@ -1,13 +1,22 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
-  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  See the accompanying file LICENSE, version 2007-Mar-04 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
+
+/* 2004-12-13 SMS.
+ * Disabled the module name macro to accommodate old GNU C which didn't
+ * obey the directive, and thus confused MMS/MMK where the object
+ * library dependencies need to have the correct module name.
+ */
+#if 0
 #define module_name VMS_UNZIP_CMDLINE
-#define module_ident "02-009"
+#define module_ident "02-013"
+#endif /* 0 */
+
 /*
 **
 **  Facility:   UNZIP
@@ -24,6 +33,15 @@
 **
 **  Modified by:
 **
+**      02-013          S. Schweda, C. Spieler  29-Dec-2007 03:34
+**              Extended /RESTORE qualifier to support timestamp restoration
+**              options.
+**      02-012          Steven Schweda          07-Jul-2006 19:04
+**              Added /TEXT=STMLF qualifier option.
+**      02-011          Christian Spieler       21-Apr-2005 01:23
+**              Added /FULL=DIAGNOSTICS option modifier.
+**      02-010          Steven Schweda          14-FEB-2005 20:04
+**              Added /DOT_VERSION (-Y) and /ODS2 (-2) qualifiers.
 **      02-009          Steven Schweda          28-JAN-2005 16:16
 **              Added /TIMESTAMP (-T) qualifier.
 **      02-008          Christian Spieler       08-DEC-2001 23:44
@@ -64,18 +82,46 @@
 **
 */
 
+/*    Stand-alone test procedure:
+ *
+ * cc /define = TEST=1 [.vms]cmdline.c /include = [] /object = [.vms]
+ * set command /object = [.vms]unz_cli.obj [.vms]unz_cli.cld
+ * link /executable = [] [.vms]cmdline.obj, [.vms]unz_cli.obj
+ * EXEC*UTE == "$SYS$DISK:[]'"
+ * exec cmdline [ /qualifiers ...] [parameters ...]
+ */
+
 
+
+/* 2004-12-13 SMS.
+ * Disabled the module name macro to accommodate old GNU C which didn't
+ * obey the directive, and thus confused MMS/MMK where the object
+ * library dependencies need to have the correct module name.
+ */
+#if 0
 #if defined(__DECC) || defined(__GNUC__)
 #pragma module module_name module_ident
 #else
 #module module_name module_ident
 #endif
+#endif /* 0 */
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #ifndef TEST
 #  include "unzvers.h"  /* for VMSCLI_usage() */
 #endif /* !TEST */
+
+/* Workaround for broken header files of older DECC distributions
+ * that are incompatible with the /NAMES=AS_IS qualifier. */
+/* - lib$routines.h definitions: */
+#define lib$establish LIB$ESTABLISH
+#define lib$get_foreign LIB$GET_FOREIGN
+#define lib$get_input LIB$GET_INPUT
+#define lib$sig_to_ret LIB$SIG_TO_RET
+/* - str$routines.h definitions: */
+#define str$concat STR$CONCAT
+#define str$find_first_substring STR$FIND_FIRST_SUBSTRING
 
 #include <ssdef.h>
 #include <descrip.h>
@@ -126,6 +172,7 @@ $DESCRIPTOR(cli_text,           "TEXT");                /* -a[a] */
 $DESCRIPTOR(cli_text_auto,      "TEXT.AUTO");           /* -a */
 $DESCRIPTOR(cli_text_all,       "TEXT.ALL");            /* -aa */
 $DESCRIPTOR(cli_text_none,      "TEXT.NONE");           /* ---a */
+$DESCRIPTOR(cli_text_stmlf,     "TEXT.STMLF");          /* -S */
 $DESCRIPTOR(cli_binary,         "BINARY");              /* -b[b] */
 $DESCRIPTOR(cli_binary_auto,    "BINARY.AUTO");         /* -b */
 $DESCRIPTOR(cli_binary_all,     "BINARY.ALL");          /* -bb */
@@ -140,6 +187,11 @@ $DESCRIPTOR(cli_lowercase,      "LOWERCASE");           /* -L */
 $DESCRIPTOR(cli_list,           "LIST");                /* -l */
 $DESCRIPTOR(cli_brief,          "BRIEF");               /* -l */
 $DESCRIPTOR(cli_full,           "FULL");                /* -v */
+$DESCRIPTOR(cli_full_diags,     "FULL.DIAGNOSTICS");    /* -vv */
+$DESCRIPTOR(cli_existing,       "EXISTING");            /* -o, -oo, -n */
+$DESCRIPTOR(cli_exist_newver,   "EXISTING.NEW_VERSION"); /* -o */
+$DESCRIPTOR(cli_exist_over,     "EXISTING.OVERWRITE");  /* -oo */
+$DESCRIPTOR(cli_exist_noext,    "EXISTING.NOEXTRACT");  /* -n */
 $DESCRIPTOR(cli_overwrite,      "OVERWRITE");           /* -o, -n */
 $DESCRIPTOR(cli_quiet,          "QUIET");               /* -q */
 $DESCRIPTOR(cli_super_quiet,    "QUIET.SUPER");         /* -qq */
@@ -151,8 +203,14 @@ $DESCRIPTOR(cli_uppercase,      "UPPERCASE");           /* -U */
 $DESCRIPTOR(cli_update,         "UPDATE");              /* -u */
 $DESCRIPTOR(cli_version,        "VERSION");             /* -V */
 $DESCRIPTOR(cli_restore,        "RESTORE");             /* -X */
+$DESCRIPTOR(cli_restore_own,    "RESTORE.OWNER_PROT");  /* -X */
+$DESCRIPTOR(cli_restore_date,   "RESTORE.DATE");        /* -DD */
+$DESCRIPTOR(cli_restore_date_all, "RESTORE.DATE.ALL");  /* --D */
+$DESCRIPTOR(cli_restore_date_files, "RESTORE.DATE.FILES"); /* -D */
+$DESCRIPTOR(cli_dot_version,    "DOT_VERSION");         /* -Y */
 $DESCRIPTOR(cli_comment,        "COMMENT");             /* -z */
 $DESCRIPTOR(cli_exclude,        "EXCLUDE");             /* -x */
+$DESCRIPTOR(cli_ods2,           "ODS2");                /* -2 */
 $DESCRIPTOR(cli_traverse,       "TRAVERSE_DIRS");       /* -: */
 
 $DESCRIPTOR(cli_information,    "ZIPINFO");             /* -Z */
@@ -175,6 +233,9 @@ $DESCRIPTOR(unzip_command,      "unzip ");
 
 static int show_VMSCLI_usage;
 
+#ifndef vms_unzip_cld
+#  define vms_unzip_cld VMS_UNZIP_CLD
+#endif
 #if defined(__DECC) || defined(__GNUC__)
 extern void *vms_unzip_cld;
 #else
@@ -183,6 +244,15 @@ globalref void *vms_unzip_cld;
 
 /* extern unsigned long LIB$GET_INPUT(void), LIB$SIG_TO_RET(void); */
 
+#ifndef cli$dcl_parse
+#  define cli$dcl_parse CLI$DCL_PARSE
+#endif
+#ifndef cli$present
+#  define cli$present CLI$PRESENT
+#endif
+#ifndef cli$get_value
+#  define cli$get_value CLI$GET_VALUE
+#endif
 extern unsigned long cli$dcl_parse ();
 extern unsigned long cli$present ();
 extern unsigned long cli$get_value ();
@@ -240,6 +310,7 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
     unsigned long cmdl_len;             /* used size of buffer */
     char *ptr;
     int  x, len, zipinfo, exclude_list;
+    int restore_date;
 
     int new_argc;
     char **new_argv;
@@ -333,216 +404,294 @@ vms_unzip_cmdline (int *argc_p, char ***argv_p)
     else {
 
 #if 0
-    /*
-    **  Extract files?
-    */
-    status = cli$present(&cli_extract);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'x';
+        /*
+        **  Extract files?
+        */
+        status = cli$present(&cli_extract);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'x';
 #endif
 
-    /*
-    **  Write binary files in VMS binary (fixed-length, 512-byte records,
-    **  record attributes: none) format
-    **  (auto-convert, or force to convert all files)
-    */
-    status = cli$present(&cli_binary);
-    if (status != CLI$_ABSENT) {
-        *ptr++ = '-';
-        *ptr++ = '-';
-        *ptr++ = 'b';
-        if ((status & 1) &&
-            !((status = cli$present(&cli_binary_none)) & 1)) {
+        /*
+        **  Write binary files in VMS binary (fixed-length, 512-byte records,
+        **  record attributes: none) format
+        **  (auto-convert, or force to convert all files)
+        */
+        status = cli$present(&cli_binary);
+        if (status != CLI$_ABSENT) {
+            *ptr++ = '-';
+            *ptr++ = '-';
             *ptr++ = 'b';
-            if ((status = cli$present(&cli_binary_all)) & 1)
+            if ((status & 1) &&
+                !((status = cli$present(&cli_binary_none)) & 1)) {
                 *ptr++ = 'b';
+                if ((status = cli$present(&cli_binary_all)) & 1)
+                    *ptr++ = 'b';
+            }
         }
-    }
 
-    /*
-    **  Convert files as text (CR LF -> LF, etc.)
-    **  (auto-convert, or force to convert all files)
-    */
-    status = cli$present(&cli_text);
-    if (status != CLI$_ABSENT) {
-        *ptr++ = '-';
-        *ptr++ = '-';
-        *ptr++ = 'a';
-        if ((status & 1) &&
-            !((status = cli$present(&cli_text_none)) & 1)) {
+        /*
+        **  Convert files as text (CR LF -> LF, etc.)
+        **  (auto-convert, or force to convert all files)
+        */
+        status = cli$present(&cli_text);
+        if (status != CLI$_ABSENT) {
+            *ptr++ = '-';
+            *ptr++ = '-';
             *ptr++ = 'a';
-            if ((status = cli$present(&cli_text_all)) & 1)
+            if ((status & 1) &&
+                !((status = cli$present(&cli_text_none)) & 1)) {
                 *ptr++ = 'a';
+                if ((status = cli$present(&cli_text_all)) & 1)
+                    *ptr++ = 'a';
+                if ((status = cli$present(&cli_text_stmlf)) & 1)
+                    *ptr++ = 'S';
+            }
         }
-    }
 
-    /*
-    **  Extract files to screen?
-    */
-    status = cli$present(&cli_screen);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'c';
+        /*
+        **  Extract files to screen?
+        */
+        status = cli$present(&cli_screen);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'c';
 
-    /*
-    **  Re-create directory structure?  (default)
-    */
-    status = cli$present(&cli_directory);
-    if (status == CLI$_PRESENT) {
-        status = cli$get_value(&cli_directory, &output_directory);
-    }
+        /*
+        **  Re-create directory structure?  (default)
+        */
+        status = cli$present(&cli_directory);
+        if (status == CLI$_PRESENT) {
+            status = cli$get_value(&cli_directory, &output_directory);
+        }
 
-    /*
-    **  Freshen existing files, create none
-    */
-    status = cli$present(&cli_freshen);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'f';
+        /*
+        **  Restore directory date-times.
+        */
+        restore_date = 0;
+        status = cli$present(&cli_restore_date);
+        if (status != CLI$_ABSENT) {
+            /* Emit "----D" to reset the timestamp restore state "D_flag"
+            ** consistently to 0 (independent of optional environment
+            ** option settings).
+            */
+            *ptr++ = '-';
+            *ptr++ = '-';
+            *ptr++ = '-';
+            *ptr++ = 'D';
+            if (status == CLI$_NEGATED) {
+                /* /RESTORE=NODATE */
+                restore_date = 2;
+            } else {
+                status = cli$present(&cli_restore_date_all);
+                if (status == CLI$_PRESENT) {
+                    /* /RESTORE=(DATE=ALL) */
+                    restore_date = 0;
+                } else {
+                    /* /RESTORE=(DATE=FILES) (default) */
+                    restore_date = 1;
+                }
+            }
+            /* Emit the required number of (positive) "D" characters. */
+            while (restore_date > 0) {
+                *ptr++ = 'D';
+                restore_date--;
+            }
+        }
 
-    /*
-    **  Show the help.
-    */
-    status = cli$present(&cli_help);
-    if (status & 1)
-        *ptr++ = 'h';
+        /*
+        **  Freshen existing files, create none
+        */
+        status = cli$present(&cli_freshen);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'f';
 
-    /*
-    **  Junk stored directory names on unzip
-    */
-    status = cli$present(&cli_junk);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'j';
+        /*
+        **  Show the help.
+        */
+        status = cli$present(&cli_help);
+        if (status & 1)
+            *ptr++ = 'h';
 
-    /*
-    **  List contents (/BRIEF or /FULL (default))
-    */
-    status = cli$present(&cli_list);
-    if (status & 1) {
-        if (cli$present(&cli_full) & 1)
-           *ptr++ = 'v';
-        else
-           *ptr++ = 'l';
-    }
+        /*
+        **  Junk stored directory names on unzip
+        */
+        status = cli$present(&cli_junk);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'j';
 
-    /*
-    **  Overwrite files?
-    */
-    status = cli$present(&cli_overwrite);
-    if (status == CLI$_NEGATED)
-        *ptr++ = 'n';
-    else if (status != CLI$_ABSENT)
-        *ptr++ = 'o';
+        /*
+        **  List contents (/BRIEF (default) or /FULL)
+        */
+        status = cli$present(&cli_list);
+        if (status & 1) {
+            if (cli$present(&cli_full) & 1) {
+               *ptr++ = 'v';
+               if (cli$present(&cli_full_diags) & 1)
+                   *ptr++ = 'v';
+            } else
+               *ptr++ = 'l';
+        }
 
-    /*
-    **  Decryption password from command line?
-    */
-    status = cli$present(&cli_password);
-    if (status == CLI$_PRESENT) {
-        status = cli$get_value(&cli_password, &password_arg);
-    }
+        /*
+        **  Existing files: new version, overwrite, no extract?
+        */
+        status = cli$present(&cli_exist_newver);
+        if (status == CLI$_PRESENT) {
+            *ptr++ = 'o';
+        }
+        status = cli$present(&cli_exist_over);
+        if (status == CLI$_PRESENT) {
+            *ptr++ = 'o';
+            *ptr++ = 'o';
+        }
+        status = cli$present(&cli_exist_noext);
+        if (status == CLI$_PRESENT) {
+            *ptr++ = 'n';
+        }
 
-    /*
-    **  Pipe files to SYS$OUTPUT with no informationals?
-    */
-    status = cli$present(&cli_pipe);
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'p';
+        /*
+        **  Overwrite files (deprecated) ?
+        */
+        status = cli$present(&cli_overwrite);
+        if (status == CLI$_NEGATED)
+            *ptr++ = 'n';
+        else if (status != CLI$_ABSENT)
+            *ptr++ = 'o';
 
-    /*
-    **  Quiet
-    */
-    status = cli$present(&cli_quiet);
-    if (status & 1) {
-        *ptr++ = 'q';
-        if ((status = cli$present(&cli_super_quiet)) & 1)
+        /*
+        **  Decryption password from command line?
+        */
+        status = cli$present(&cli_password);
+        if (status == CLI$_PRESENT) {
+            status = cli$get_value(&cli_password, &password_arg);
+        }
+
+        /*
+        **  Pipe files to SYS$OUTPUT with no informationals?
+        */
+        status = cli$present(&cli_pipe);
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'p';
+
+        /*
+        **  Quiet
+        */
+        status = cli$present(&cli_quiet);
+        if (status & 1) {
             *ptr++ = 'q';
-    }
+            if ((status = cli$present(&cli_super_quiet)) & 1)
+                *ptr++ = 'q';
+        }
 
-    /*
-    **  Test archive integrity
-    */
-    status = cli$present(&cli_test);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 't';
+        /*
+        **  Test archive integrity
+        */
+        status = cli$present(&cli_test);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 't';
 
-    /*
-    **  Set archive timestamp according to its newest file.
-    */
-    status = cli$present(&cli_timestamp);
-    if (status & 1)
-        *ptr++ = 'T';
+        /*
+        **  Set archive timestamp according to its newest file.
+        */
+        status = cli$present(&cli_timestamp);
+        if (status & 1)
+            *ptr++ = 'T';
 
-    /*
-    **  Traverse directories (don't skip "../" path components)
-    */
-    status = cli$present(&cli_traverse);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = ':';
+        /*
+        **  Extract "foo.ext.###" as "foo.ext;###" (treat .### as version number)
+        */
+        status = cli$present(&cli_dot_version);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'Y';
 
-    /*
-    **  Make (some) names lowercase
-    */
-    status = cli$present(&cli_lowercase);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'L';
+        /*
+        **  Force conversion of extracted file names to old ODS2 conventions
+        */
+        status = cli$present(&cli_ods2);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = '2';
 
-    /*
-    **  Uppercase (don't convert to lower)
-    */
-    status = cli$present(&cli_uppercase);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'U';
+        /*
+        **  Traverse directories (don't skip "../" path components)
+        */
+        status = cli$present(&cli_traverse);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = ':';
 
-    /*
-    **  Update (extract only new and newer files)
-    */
-    status = cli$present(&cli_update);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'u';
+        /*
+        **  Make (some) names lowercase
+        */
+        status = cli$present(&cli_lowercase);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'L';
 
-    /*
-    **  Version (retain VMS/DEC-20 file versions)
-    */
-    status = cli$present(&cli_version);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'V';
+        /*
+        **  Uppercase (don't convert to lower)
+        */
+        status = cli$present(&cli_uppercase);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'U';
 
-    /*
-    **  Restore owner/protection info
-    */
-    status = cli$present(&cli_restore);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'X';
+        /*
+        **  Update (extract only new and newer files)
+        */
+        status = cli$present(&cli_update);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'u';
 
-    /*
-    **  Display only the archive comment
-    */
-    status = cli$present(&cli_comment);
-    if (status == CLI$_NEGATED)
-        *ptr++ = '-';
-    if (status != CLI$_ABSENT)
-        *ptr++ = 'z';
+        /*
+        **  Version (retain VMS/DEC-20 file versions)
+        */
+        status = cli$present(&cli_version);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'V';
+
+        /*
+        **  Restore owner/protection info
+        */
+        status = cli$present(&cli_restore_own);
+        if (status != CLI$_ABSENT) {
+            if (status == CLI$_NEGATED) {
+                *ptr++ = '-';
+            } else if ((status = cli$present(&cli_restore))
+                       == CLI$_NEGATED) {
+                *ptr++ = '-';
+            }
+            *ptr++ = 'X';
+        }
+
+        /*
+        **  Display only the archive comment
+        */
+        status = cli$present(&cli_comment);
+        if (status == CLI$_NEGATED)
+            *ptr++ = '-';
+        if (status != CLI$_ABSENT)
+            *ptr++ = 'z';
 
     }   /* ZipInfo check way up there.... */
 
@@ -853,7 +1002,7 @@ int VMSCLI_usage(__GPRO__ int error)    /* returns PK-type error code */
 Valid main options are /TEST, /FRESHEN, /UPDATE, /PIPE, /SCREEN, /COMMENT%s.\n",
       SFXOPT_EXDIR));
     Info(slide, flag, ((char *)slide, "\
-Modifying options are /TEXT, /BINARY, /JUNK, /[NO]OVERWRITE, /QUIET,\n\
+Modifying options are /TEXT, /BINARY, /JUNK, /EXISTING, /QUIET,\n\
                       /CASE_INSENSITIVE, /LOWERCASE, %s/VERSION, /RESTORE.\n",
       SFXOPT1));
 #ifdef BETA
@@ -955,17 +1104,23 @@ Major options include (type unzip -h for Unix style flags):\n\
    /[NO]COMMENT, /DIRECTORY=directory-spec, /EXCLUDE=(file-spec1,etc.)\n\n\
 Modifiers include:\n\
    /BRIEF, /FULL, /[NO]TEXT[=NONE|AUTO|ALL], /[NO]BINARY[=NONE|AUTO|ALL],\n\
-   /[NO]OVERWRITE, /[NO]JUNK, /QUIET, /QUIET[=SUPER], /[NO]PAGE,\n\
-   /[NO]CASE_INSENSITIVE, /[NO]LOWERCASE, /[NO]VERSION, /[NO]RESTORE\n\n"));
+   /EXISTING={NEW_VERSION|OVERWRITE|NOEXTRACT}, /[NO]JUNK, /QUIET,\n\
+   /QUIET[=SUPER], /[NO]PAGE, /[NO]CASE_INSENSITIVE, /[NO]LOWERCASE,\n\
+   /[NO]VERSION, /RESTORE[=([NO]OWNER_PROT[,NODATE|DATE={ALL|FILES}])]\n\n"));
 
         Info(slide, flag, ((char *)slide, "\
-Examples (see unzip.txt or \"HELP UNZIP\" for more info):\n   \
-unzip edit1 /EXCL=joe.jou /CASE_INSENSITIVE    => extract all files except\n   \
-   joe.jou (or JOE.JOU, or any combination of case) from zipfile edit1.zip\n   \
-unzip zip201 \"Makefile.VMS\" vms/*.[ch]         => extract VMS Makefile and\n\
-      *.c and *.h files; must quote uppercase names if /CASE_INSENS not used\n\
-   unzip foo /DIR=tmp:[.test] /JUNK /TEXT /OVER   => extract all files to temp.\
-\n      directory without paths, auto-converting text files and overwriting\
+Examples (see unzip.txt or \"HELP UNZIP\" for more info):\n\
+   unzip edit1 /EXCL=joe.jou /CASE_INSENSITIVE    => Extract all files except\
+\n\
+      joe.jou (or JOE.JOU, or any combination of case) from zipfile edit1.zip.\
+\n  \
+ unzip zip201 \"Makefile.VMS\" vms/*.[ch]         => extract VMS Makefile and\
+\n\
+      *.c and *.h files; must quote uppercase names if /CASE_INSENS not used.\
+\n\
+   unzip foo /DIR=tmp:[.test] /JUNK /TEXT /EXIS=NEW  => extract all files to\
+\n\
+      tmp. dir., flatten hierarchy, auto-conv. text files, create new versions.\
 \n"));
 
     } /* end if (zipinfo_mode) */

@@ -1,7 +1,7 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2009 Info-ZIP.  All rights reserved.
 
-  See the accompanying file LICENSE, version 2000-Apr-09 or later
+  See the accompanying file LICENSE, version 2009-Jan-02 or later
   (the contents of which are also included in unzip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
@@ -50,29 +50,22 @@ int WINAPI WinMain( HINSTANCE hInstance,
      */
     while(argPtr != NULL)
     {
-        /* Look for the first non blank character */
-        while((memcmp(argPtr,&Blank,sizeof(TCHAR)) == 0) &&
+        /* Look for the first non-blank character */
+        while((memcmp(argPtr, &Blank, sizeof(TCHAR)) == 0) &&
               (argPtr < endOfCmdLine))
         {
             argPtr++;
         }
 
         /* Check for quote enclosed strings for extended file names. */
-        if (argPtr[0] == '"')
-        {
-            /* Clear the enclosing quote */
-            memset(argPtr,'\0',sizeof(TCHAR));
-
-            argPtr++;
+        if (argPtr[0] == _T('"') &&
             /* Look for closing quote */
-            closingQuote = _tcschr(argPtr + 1,_T('"'));
-            if (closingQuote != NULL)
-            {
-                closingQuote++;
-                /* Clear the enclosing quote */
-                memset(closingQuote,'\0',sizeof(TCHAR));
-                nextParam = closingQuote++;
-            }
+            (closingQuote = _tcschr(argPtr + 1, _T('"'))) != NULL)
+        {
+            /* Clear the enclosing quotes */
+            *argPtr++ = _T('\0');
+            *closingQuote = _T('\0');
+            nextParam = closingQuote + 1;
         }
         else
         {
@@ -84,13 +77,12 @@ int WINAPI WinMain( HINSTANCE hInstance,
         argc++;
 
         /* Look for the next blank */
-        argPtr = _tcschr(nextParam,_T(' '));
+        argPtr = _tcschr(nextParam, _T(' '));
         if (argPtr != NULL)
         {
-            /* Terminate the perameter. */
-            memset(argPtr,'\0',sizeof(TCHAR));
-            /* Point after the blank to the keyword */
-            argPtr++;
+            /* Terminate the parameter and
+               point after the blank to the keyword */
+            *argPtr++ = _T('\0');
         }
     }
     /* Add one to the arg count for null terminator. */

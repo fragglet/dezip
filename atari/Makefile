@@ -1,6 +1,6 @@
 #==============================================================================
 # Makefile for UnZip, UnZipSFX and fUnZip:  Atari           ("real" makes only)
-# Version:  5.5                                                13 February 2001
+# Version:  5.53                                               25 December 2006
 #==============================================================================
 
 
@@ -54,14 +54,14 @@ M = atari
 SHELL = /bin/sh
 
 # object files
-OBJS1 = unzip$O crc32$O crctab$O crypt$O envargs$O explode$O
+OBJS1 = unzip$O crc32$O crypt$O envargs$O explode$O
 OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
-OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
+OBJS3 = process$O ttyio$O ubz2err$O unreduce$O unshrink$O zipinfo$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS) api$O
-OBJX = unzipsfx$O crc32$O crctab_$O crypt_$O extract_$O fileio_$O \
-	globals_$O inflate_$O match_$O process_$O ttyio_$O $M_$O
+OBJX = unzipsfx$O crc32$O crypt_$O extract_$O fileio_$O \
+	globals_$O inflate_$O match_$O process_$O ttyio_$O ubz2err_$O $M_$O
 LOBJX = $(OBJX)
 OBJF = funzip$O crc32$O cryptf$O globalsf$O inflatef$O ttyiof$O
 #OBJS_OS2 = $(OBJS1:.o=.obj) $(OBJS2:.o=.obj) os2.obj
@@ -125,98 +125,102 @@ funzip$E:	$(OBJF)
 	$(LD) $(FL) $(OBJF) $(FL2)
 
 
-crc32$O:	crc32.c $(UNZIP_H) zip.h
-crctab$O:	crctab.c $(UNZIP_H) zip.h
-crypt$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+crc32$O:	crc32.c $(UNZIP_H) zip.h crc32.h
+crypt$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 envargs$O:	envargs.c $(UNZIP_H)
 explode$O:	explode.c $(UNZIP_H)
-extract$O:	extract.c $(UNZIP_H) crypt.h
-fileio$O:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
-funzip$O:	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+extract$O:	extract.c $(UNZIP_H) crc32.h crypt.h
+fileio$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
+funzip$O:	funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
 globals$O:	globals.c $(UNZIP_H)
 inflate$O:	inflate.c inflate.h $(UNZIP_H)
 list$O:		list.c $(UNZIP_H)
 match$O:	match.c $(UNZIP_H)
-process$O:	process.c $(UNZIP_H)
+process$O:	process.c $(UNZIP_H) crc32.h
 ttyio$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+ubz2err$O:	ubz2err.c $(UNZIP_H)
 unreduce$O:	unreduce.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
 unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo$O:	zipinfo.c $(UNZIP_H)
 
-crctab_$O:	crctab.c $(UNZIP_H) zip.h			# unzipsfx only
-	$(CP) crctab.c crctab_.c
-	$(CC) -c $(CF) -DSFX crctab_.c
-	$(RM) crctab_.c
-
-crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
+# unzipsfx only
+crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(CP) crypt.c crypt_.c
 	$(CC) -c $(CF) -DSFX crypt_.c
 	$(RM) crypt_.c
 
-extract_$O:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
+extract_$O:	extract.c $(UNZIP_H) crc32.h crypt.h
 	$(CP) extract.c extract_.c
 	$(CC) -c $(CF) -DSFX extract_.c
 	$(RM) extract_.c
 
-fileio_$O:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx only
+fileio_$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 	$(CP) fileio.c fileio_.c
 	$(CC) -c $(CF) -DSFX fileio_.c
 	$(RM) fileio_.c
 
-globals_$O:	globals.c $(UNZIP_H)				# unzipsfx only
+globals_$O:	globals.c $(UNZIP_H)
 	$(CP) globals.c globals_.c
 	$(CC) -c $(CF) -DSFX globals_.c
 	$(RM) globals_.c
 
-inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx only
+inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h
 	$(CP) inflate.c inflate_.c
 	$(CC) -c $(CF) -DSFX inflate_.c
 	$(RM) inflate_.c
 
-process_$O:	process.c $(UNZIP_H)				# unzipsfx only
-	$(CP) process.c process_.c
-	$(CC) -c $(CF) -DSFX process_.c
-	$(RM) process_.c
-
-match_$O:	match.c $(UNZIP_H)				# unzipsfx only
+match_$O:	match.c $(UNZIP_H)
 	$(CP) match.c match_.c
 	$(CC) -c $(CF) -DSFX match_.c
 	$(RM) match_.c
 
-ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
+process_$O:	process.c $(UNZIP_H) crc32.h
+	$(CP) process.c process_.c
+	$(CC) -c $(CF) -DSFX process_.c
+	$(RM) process_.c
+
+ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CP) ttyio.c ttyio_.c
 	$(CC) -c $(CF) -DSFX ttyio_.c
 	$(RM) ttyio_.c
 
-unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
+ubz2err$O:	ubz2err.c $(UNZIP_H)
+	$(CP) ubz2err.c ubz2err_.c
+	$(CC) -c $(CF) -DSFX ubz2err_.c
+	$(RM) ubz2err_.c
+
+unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CP) unzip.c unzipsfx.c
 	$(CC) -c $(CF) -DSFX unzipsfx.c
 	$(RM) unzipsfx.c
 
 
-cryptf$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+# funzip only
+cryptf$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(CP) crypt.c cryptf.c
 	$(CC) -c $(CF) -DFUNZIP cryptf.c
 	$(RM) cryptf.c
 
-globalsf$O:	globals.c $(UNZIP_H)				# funzip only
+globalsf$O:	globals.c $(UNZIP_H)
 	$(CP) globals.c globalsf.c
 	$(CC) -c $(CF) -DFUNZIP globalsf.c
 	$(RM) globalsf.c
 
-inflatef$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
+inflatef$O:	inflate.c inflate.h $(UNZIP_H) crypt.h
 	$(CP) inflate.c inflatef.c
 	$(CC) -c $(CF) -DFUNZIP inflatef.c
 	$(RM) inflatef.c
 
-ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CP) ttyio.c ttyiof.c
 	$(CC) -c $(CF) -DFUNZIP ttyiof.c
 	$(RM) ttyiof.c
 
+
+# system-specific code
 atari$O:	atari/atari.c $(UNZIP_H)
-	$(CC) -c $(CF) -DSFX atari/atari.c
+	$(CC) -c $(CF) atari/atari.c
 
 atari_$O:	atari/atari.c $(UNZIP_H)
 	$(CP) atari/atari.c atari_.c

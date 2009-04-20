@@ -20,6 +20,24 @@ Begin VB.Form VBUnzFrm
    ScaleHeight     =   4785
    ScaleWidth      =   9375
    StartUpPosition =   1  'Fenstermitte
+   Begin VB.CheckBox checkOverwriteAll 
+      Alignment       =   1  'Rechts ausgerichtet
+      Caption         =   "Overwrite all?"
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   255
+      Left            =   240
+      TabIndex        =   5
+      Top             =   1320
+      Width           =   4425
+   End
    Begin VB.TextBox txtZipFName 
       BeginProperty Font 
          Name            =   "Courier New"
@@ -32,8 +50,8 @@ Begin VB.Form VBUnzFrm
       EndProperty
       Height          =   375
       Left            =   4440
-      TabIndex        =   5
-      Top             =   240
+      TabIndex        =   1
+      Top             =   120
       Width           =   4335
    End
    Begin VB.TextBox txtExtractRoot 
@@ -49,14 +67,14 @@ Begin VB.Form VBUnzFrm
       Height          =   375
       Left            =   4440
       TabIndex        =   4
-      Top             =   960
+      Top             =   720
       Width           =   4335
    End
    Begin VB.CommandButton cmdStartUnz 
       Caption         =   "Start"
       Height          =   495
       Left            =   240
-      TabIndex        =   3
+      TabIndex        =   6
       Top             =   1800
       Width           =   3255
    End
@@ -75,15 +93,17 @@ Begin VB.Form VBUnzFrm
       Locked          =   -1  'True
       MultiLine       =   -1  'True
       ScrollBars      =   3  'Beides
-      TabIndex        =   2
+      TabIndex        =   8
+      TabStop         =   0   'False
       Top             =   2520
       Width           =   8895
    End
    Begin VB.CommandButton cmdQuitVBUnz 
+      Cancel          =   -1  'True
       Caption         =   "Quit"
       Height          =   495
       Left            =   6240
-      TabIndex        =   1
+      TabIndex        =   7
       Top             =   1800
       Width           =   2895
    End
@@ -100,8 +120,8 @@ Begin VB.Form VBUnzFrm
       EndProperty
       Height          =   375
       Left            =   8760
-      TabIndex        =   0
-      Top             =   240
+      TabIndex        =   2
+      Top             =   120
       Width           =   375
    End
    Begin MSComDlg.CommonDialog CommonDialog1 
@@ -124,8 +144,8 @@ Begin VB.Form VBUnzFrm
       EndProperty
       Height          =   255
       Left            =   240
-      TabIndex        =   7
-      Top             =   240
+      TabIndex        =   0
+      Top             =   120
       Width           =   3855
    End
    Begin VB.Label Label2 
@@ -141,8 +161,8 @@ Begin VB.Form VBUnzFrm
       EndProperty
       Height          =   255
       Left            =   240
-      TabIndex        =   6
-      Top             =   960
+      TabIndex        =   3
+      Top             =   720
       Width           =   3855
    End
 End
@@ -196,6 +216,16 @@ Option Explicit
 '-- Modified May 11, 2003
 '-- by Christian Spieler
 '-- (use late binding for referencing the common dialog)
+'-- Modified December 30, 2008
+'-- by Ed Gordon
+'-- (add Overwrite_All checkbox and resizing of txtMsgOut
+'-- output box)
+'-- Modified January 03, 2009
+'-- by Christian Spieler
+'-- (fixed tab navigation sequence, changed passing of
+'-- "overwrite-all" setting to use existing option flags,
+'-- cleared all msg buffer at start of every DLL call,
+'-- removed code that is not supported by VB5)
 '--
 '---------------------------------------------------------------
 
@@ -210,15 +240,15 @@ Private Sub cmdStartUnz_Click()
     
     '-- Init Global Message Variables
     uZipInfo = ""
+    uZipMessage = ""
     uZipNumber = 0   ' Holds The Number Of Zip Files
     
     '-- Select UNZIP32.DLL Options - Change As Required!
-    uPromptOverWrite = 1  ' 1 = Prompt To Overwrite
-    uOverWriteFiles = 0   ' 1 = Always Overwrite Files
+    ' 1 = Always Overwrite Files
+    uOverWriteFiles = Me.checkOverwriteAll.Value
+    ' 1 = Prompt To Overwrite
+    uPromptOverWrite = IIf(uOverWriteFiles = 0, 1, 0)
     uDisplayComment = 0   ' 1 = Display comment ONLY!!!
-    
-    '-- Change The Next Line To Do The Actual Unzip!
-    uExtractList = 1       ' 1 = List Contents Of Zip 0 = Extract
     uHonorDirectories = 1  ' 1 = Honour Zip Directories
     
     '-- Select Filenames If Required
@@ -240,8 +270,11 @@ Private Sub cmdStartUnz_Click()
     '-- These Should Point To Your Directory
     uZipFileName = txtZipFName.Text
     uExtractDir = txtExtractRoot.Text
-    If uExtractDir <> "" Then uExtractList = 0 ' unzip if dir specified
-    
+    If Len(uExtractDir) <> 0 Then
+      uExtractList = 0  ' 0 = Extract if dir specified
+    Else
+      uExtractList = 1  ' 1 = List Contents Of Zip
+    End If
     
     '-- Let's Go And Unzip Them!
     Call VBUnZip32
@@ -249,11 +282,13 @@ Private Sub cmdStartUnz_Click()
     '-- Tell The User What Happened
     If Len(uZipMessage) > 0 Then
         MsgTmp = uZipMessage
+        uZipMessage = ""
     End If
     
     '-- Display Zip File Information.
     If Len(uZipInfo) > 0 Then
         MsgTmp = MsgTmp & vbNewLine & "uZipInfo is:" & vbNewLine & uZipInfo
+        uZipInfo = ""
     End If
     
     '-- Display The Number Of Extracted Files!
@@ -283,6 +318,20 @@ Private Sub Form_Load()
     txtExtractRoot.Text = vbNullString
     Me.Show
     
+End Sub
+
+Private Sub Form_Resize()
+    Dim Wid As Single
+    Dim Hei As Single
+    
+    Wid = Me.Width - 600 ' 9495 - 8895
+    If Wid < 2000 Then Wid = 2000
+    txtMsgOut.Width = Wid
+    
+    Hei = Me.Height - 3120 ' 5295 - 2175
+    If Hei < 1000 Then Hei = 1000
+    txtMsgOut.Height = Hei
+
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)

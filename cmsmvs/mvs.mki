@@ -56,7 +56,7 @@ LDFLAGS=
 # Files
 
 # object (TEXT) files
-OBJECTS= $(BLD_P)unzip$(O) $(BLD_P)crc32$(O) $(BLD_P)crctab$(O) \
+OBJECTS= $(BLD_P)unzip$(O) $(BLD_P)crc32$(O) \
    $(BLD_P)crypt$(O)    $(BLD_P)envargs$(O)  $(BLD_P)explode$(O) \
    $(BLD_P)extract$(O)  $(BLD_P)fileio$(O)   $(BLD_P)globals$(O) \
    $(BLD_P)inflate$(O)  $(BLD_P)process$(O)  $(BLD_P)list$(O) \
@@ -65,7 +65,7 @@ OBJECTS= $(BLD_P)unzip$(O) $(BLD_P)crc32$(O) $(BLD_P)crctab$(O) \
 
 # Header files
 HFILES= $(SRC_P)consts.h $(SRC_P)crypt.h $(SRC_P)ebcdic.h \
-    $(SRC_P)globals.h $(SRC_P)inflate.h $(SRC_P)tables.h \
+    $(SRC_P)globals.h $(SRC_P)inflate.h \
     $(SRC_P)ttyio.h $(SRC_P)unzip.h $(SRC_P)unzpriv.h \
     $(SRC_P)unzvers.h $(SRC_P)zip.h $(CMSMVS_P)vmmvs.h \
     $(CMSMVS_P)vmstat.h
@@ -95,9 +95,6 @@ $(BLD_P)apihelp$(O):    $(SRC_P)apihelp.c       $(HFILES)
 
 $(BLD_P)crc32$(O):      $(SRC_P)crc32.c         $(HFILES)
 	$(CC) -c -o $% $(CFLAGS) $(SRC_P)crc32.c
-
-$(BLD_P)crctab$(O):     $(SRC_P)crctab.c        $(HFILES)
-	$(CC) -c -o $% $(CFLAGS) $(SRC_P)crctab.c
 
 $(BLD_P)crypt$(O):      $(SRC_P)crypt.c         $(HFILES)
 	$(CC) -c -o $% $(CFLAGS) $(SRC_P)crypt.c

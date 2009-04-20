@@ -1,7 +1,7 @@
 # Makefile for UnZip(SFX) and fUnZip for Borland C++ 2.x-4.x and Turbo C++ 1.0
-# Version: 5.5 and later         Alvin Koh, Jim Knoble, Christian Spieler, etc.
+# Version: 5.53 and later        Alvin Koh, Jim Knoble, Christian Spieler, etc.
 #
-# Last revised:  04 Mar 01
+# Last revised:  29 Dec 05
 #
 # To compile with Turbo C++ 1.0, set the macro CC_REV to 1 at the command line
 # (make -fmsdos/makefile.bc -DCC_REV=1).
@@ -103,14 +103,14 @@ SXFLAGS = -m$(SXMODEL) $(CFLAGS)
 
 # list macros
 
-OBJU1 = unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj explode.obj
+OBJU1 = unzip.obj crc32.obj crypt.obj envargs.obj explode.obj
 OBJU2 = extract.obj fileio.obj globals.obj inflate.obj list.obj match.obj
 OBJU3 = process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj
 OBJUS = msdos.obj $(ASMOBJS)
 OBJU  = $(OBJU1) $(OBJU2) $(OBJU3) $(OBJUS)
 OBJF  = funzip.obj crc32f.obj cryptf.obj globalsf.obj inflatef.obj \
 	ttyiof.obj msdosf.obj $(ASMOBJF)
-OBJX1 = unzipsfx.obj crc32x.obj crctabx.obj cryptx.obj extractx.obj fileiox.obj
+OBJX1 = unzipsfx.obj crc32x.obj cryptx.obj extractx.obj fileiox.obj
 OBJX2 = globalsx.obj inflatex.obj matchx.obj processx.obj ttyiox.obj
 OBJXS = msdosx.obj $(ASMOBJX)
 OBJX  = $(OBJX1) $(OBJX2) $(OBJXS)
@@ -148,18 +148,17 @@ clean:
 
 # individual file dependencies
 
-crc32.obj:      crc32.c $(UNZIP_H) zip.h
-crctab.obj:     crctab.c $(UNZIP_H) zip.h
-crypt.obj:      crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+crc32.obj:      crc32.c $(UNZIP_H) zip.h crc32.h
+crypt.obj:      crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 envargs.obj:    envargs.c $(UNZIP_H)
 explode.obj:    explode.c $(UNZIP_H)
-extract.obj:    extract.c $(UNZIP_H) crypt.h
-fileio.obj:     fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+extract.obj:    extract.c $(UNZIP_H) crc32.h crypt.h
+fileio.obj:     fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 globals.obj:    globals.c $(UNZIP_H)
 inflate.obj:    inflate.c inflate.h $(UNZIP_H)
 list.obj:       list.c $(UNZIP_H)
 match.obj:      match.c $(UNZIP_H)
-process.obj:    process.c $(UNZIP_H)
+process.obj:    process.c $(UNZIP_H) crc32.h
 ttyio.obj:      ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 unreduce.obj:   unreduce.c $(UNZIP_H)
 unshrink.obj:   unshrink.c $(UNZIP_H)
@@ -178,13 +177,13 @@ crc_i86x.obj:   msdos/crc_i86.asm
 msdos.obj:      msdos/msdos.c $(UNZIP_H)
 	$(CC) -c $(UNFLAGS) msdos/msdos.c
 
-funzip.obj:     funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+funzip.obj:     funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
 	$(CC) -c $(FUFLAGS) funzip.c
 
-crc32f.obj:     crc32.c $(UNZIP_H) zip.h
+crc32f.obj:     crc32.c $(UNZIP_H) zip.h crc32.h
 	$(CC) -c $(FUFLAGS) -DFUNZIP -ocrc32f.obj crc32.c
 
-cryptf.obj:     crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+cryptf.obj:     crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(CC) -c $(FUFLAGS) -DFUNZIP -ocryptf.obj crypt.c
 
 globalsf.obj:   globals.c $(UNZIP_H)
@@ -202,19 +201,16 @@ msdosf.obj:     msdos/msdos.c $(UNZIP_H)
 unzipsfx.obj:   unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) -c $(SXFLAGS) -DSFX -ounzipsfx.obj unzip.c
 
-crc32x.obj:     crc32.c $(UNZIP_H) zip.h
+crc32x.obj:     crc32.c $(UNZIP_H) zip.h crc32.h
 	$(CC) -c $(SXFLAGS) -DSFX -ocrc32x.obj crc32.c
 
-crctabx.obj:    crctab.c $(UNZIP_H) zip.h
-	$(CC) -c $(SXFLAGS) -DSFX -ocrctabx.obj crctab.c
-
-cryptx.obj:     crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+cryptx.obj:     crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(CC) -c $(SXFLAGS) -DSFX -ocryptx.obj crypt.c
 
-extractx.obj:   extract.c $(UNZIP_H) crypt.h
+extractx.obj:   extract.c $(UNZIP_H) crc32.h crypt.h
 	$(CC) -c $(SXFLAGS) -DSFX -oextractx.obj extract.c
 
-fileiox.obj:    fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileiox.obj:    fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 	$(CC) -c $(SXFLAGS) -DSFX -ofileiox.obj fileio.c
 
 globalsx.obj:   globals.c $(UNZIP_H)
@@ -226,7 +222,7 @@ inflatex.obj:   inflate.c inflate.h $(UNZIP_H)
 matchx.obj:     match.c $(UNZIP_H)
 	$(CC) -c $(SXFLAGS) -DSFX -omatchx.obj match.c
 
-processx.obj:   process.c $(UNZIP_H)
+processx.obj:   process.c $(UNZIP_H) crc32.h
 	$(CC) -c $(SXFLAGS) -DSFX -oprocessx.obj process.c
 
 ttyiox.obj:     ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h

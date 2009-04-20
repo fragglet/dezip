@@ -56,13 +56,13 @@ typedef enum _OVERWRITE_MODE {
 } OVERWRITE_MODE, *LPOVERWRITE_MODE;
 
 typedef struct _EXTRACT_INFO {
-   BOOL            fExtract;      // TRUE for extract, FALSE for test
+   zusz_t          uzByteCount;   // Total bytes to extract/test
    DWORD           dwFileCount;   // Number of files to extract/test.
-   DWORD           dwByteCount;   // Total bytes to extract/test
    LPSTR          *szFileList;    // ARGV list of files, NULL for all files.
-   BOOL            fRestorePaths; // TRUE to restore paths, FALSE to junk them.
-   OVERWRITE_MODE  overwriteMode; // How to handle file overwrites.
    LPSTR           szMappedPath;  // Used to store mapped name. May be NULL.
+   OVERWRITE_MODE  overwriteMode; // How to handle file overwrites.
+   BOOL            fExtract;      // TRUE for extract, FALSE for test
+   BOOL            fRestorePaths; // TRUE to restore paths, FALSE to junk them.
    BOOL            fAbort;        // Set during operation by UI to abort.
    int             result;        // Result code from extraction/test.
 
@@ -75,11 +75,11 @@ typedef struct _EXTRACT_INFO {
    HWND            hWndBytesProcessed;
 
    // Values used to keep track of our progress.
-   DWORD           dwFileOffset;
+   zusz_t          uzBytesTotalThisFile;
+   zusz_t          uzBytesWrittenThisFile;
+   zusz_t          uzBytesWrittenPreviousFiles;
+   zusz_t          uzFileOffset;
    DWORD           dwFile;
-   DWORD           dwBytesTotalThisFile;
-   DWORD           dwBytesWrittenThisFile;
-   DWORD           dwBytesWrittenPreviousFiles;
    LPCSTR          szFile;
    BOOL            fNewLineOfText;
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -55,11 +55,6 @@
                                       modify [ax cx dx bx]
 #    endif /* !USE_ZLIB */
 #  endif /* ?__386__ */
-
-#  ifndef EPIPE
-#    define EPIPE -1
-#  endif
-#  define PIPE_ERROR (errno == EPIPE)
 #endif /* __WATCOMC__ */
 
 #ifdef __EMX__

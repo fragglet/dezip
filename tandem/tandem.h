@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2002 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2006 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -20,7 +20,7 @@
 #define NO_MKTEMP
 
 /* TANDEM supplies proper UTC vs. local time conversion, so enable Info-ZIP's
-   UT e.f. support unless explicitely suppressed by a compilation option. */
+   UT e.f. support unless explicitly suppressed by a compilation option. */
 #if (!defined(USE_EF_UT_TIME) && !defined(NO_EF_UT_TIME))
 #  define USE_EF_UT_TIME
 #endif

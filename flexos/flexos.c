@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2007 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -820,52 +820,56 @@ void close_outfile(__G)
         return;
     }
 
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
+
 /*---------------------------------------------------------------------------
     Copy and/or convert time and date variables, if necessary; then fill in
     the file time/date.
   ---------------------------------------------------------------------------*/
 
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field &&
+        if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
-        G.tz_is_valid &&
+            G.tz_is_valid &&
 #endif
-        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-         G.lrec.last_mod_dos_datetime, &z_utime, NULL) & EB_UT_FL_MTIME))
-    {
-        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          z_utime.mtime));
-        t = localtime(&(z_utime.mtime));
-    } else
-        t = (struct tm *)NULL;
-    if (t != (struct tm *)NULL) {
-        if (t->tm_year < 80) {
-            df.df_modyear = 1980;
-            df.df_modmonth = 1;
-            df.df_modday = 1;
-            df.df_modhr = 0;
-            df.df_modmin = 0;
-            df.df_modsec = 0;
-        } else {
-            df.df_modyear = t->tm_year + 1900;
-            df.df_modmonth = t->tm_mon + 1;
-            df.df_modday = t->tm_mday;
-            df.df_modhr = t->tm_hour;
-            df.df_modmin = t->tm_min;
-            df.df_modsec = t->tm_sec;
-        }
-    } else
+            (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+             G.lrec.last_mod_dos_datetime, &z_utime, NULL) & EB_UT_FL_MTIME))
+        {
+            TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+              z_utime.mtime));
+            t = localtime(&(z_utime.mtime));
+        } else
+            t = (struct tm *)NULL;
+        if (t != (struct tm *)NULL) {
+            if (t->tm_year < 80) {
+                df.df_modyear = 1980;
+                df.df_modmonth = 1;
+                df.df_modday = 1;
+                df.df_modhr = 0;
+                df.df_modmin = 0;
+                df.df_modsec = 0;
+            } else {
+                df.df_modyear = t->tm_year + 1900;
+                df.df_modmonth = t->tm_mon + 1;
+                df.df_modday = t->tm_mday;
+                df.df_modhr = t->tm_hour;
+                df.df_modmin = t->tm_min;
+                df.df_modsec = t->tm_sec;
+            }
+        } else
 #endif /* ?USE_EF_UX_TIME */
-    {
-        zt._t.ztime = (ush)(G.lrec.last_mod_dos_datetime) & 0xffff;
-        zt._d.zdate = (ush)(G.lrec.last_mod_dos_datetime >> 16);
+        {
+            zt._t.ztime = (ush)(G.lrec.last_mod_dos_datetime) & 0xffff;
+            zt._d.zdate = (ush)(G.lrec.last_mod_dos_datetime >> 16);
 
-        df.df_modyear = 1980 + zt._d._df.zd_yr;
-        df.df_modmonth = zt._d._df.zd_mo;
-        df.df_modday = zt._d._df.zd_dy;
-        df.df_modhr = zt._t._tf.zt_hr;
-        df.df_modmin = zt._t._tf.zt_mi;
-        df.df_modsec = zt._t._tf.zt_se << 1;
+            df.df_modyear = 1980 + zt._d._df.zd_yr;
+            df.df_modmonth = zt._d._df.zd_mo;
+            df.df_modday = zt._d._df.zd_dy;
+            df.df_modhr = zt._t._tf.zt_hr;
+            df.df_modmin = zt._t._tf.zt_mi;
+            df.df_modsec = zt._t._tf.zt_se << 1;
+        }
     }
 
 /*---------------------------------------------------------------------------
@@ -883,7 +887,7 @@ void close_outfile(__G)
           "warning:  cannot set info for %s\n", FnFilter1(G.filename)));
 
     s_close(0, fnum);
-}
+} /* end function close_outfile() */
 
 #ifndef SFX
 

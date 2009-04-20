@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -172,7 +172,11 @@ char *do_wild(__G__ wildspec)
 int mapattr(__G)
     __GDEF
 {
+    int r;
     ulg tmp = G.crec.external_file_attributes;
+
+    G.pInfo->file_attr = 0;
+    /* initialized to 0 for check in "default" branch below... */
 
     switch (G.pInfo->hostnum) {
         case AMIGA_:
@@ -194,29 +198,27 @@ int mapattr(__G)
         case BEOS_:
         case QDOS_:
         case TANDEM_:
+            r = FALSE;
             G.pInfo->file_attr = (unsigned)(tmp >> 16);
-            if (G.pInfo->file_attr != 0 || !G.extra_field) {
-                return 0;
-            } else {
+            if (G.pInfo->file_attr == 0 && G.extra_field) {
                 /* Some (non-Info-ZIP) implementations of Zip for Unix and
-                   VMS (and probably others ??) leave 0 in the upper 16-bit
-                   part of the external_file_attributes field. Instead, they
-                   store file permission attributes in some extra field.
-                   As a work-around, we search for the presence of one of
-                   these extra fields and fall back to the MSDOS compatible
-                   part of external_file_attributes if one of the known
-                   e.f. types has been detected.
-                   Later, we might implement extraction of the permission
-                   bits from the VMS extra field. But for now, the work-around
-                   should be sufficient to provide "readable" extracted files.
-                   (For ASI Unix e.f., an experimental remap of the e.f.
-                   mode value IS already provided!)
+                 * VMS (and probably others ??) leave 0 in the upper 16-bit
+                 * part of the external_file_attributes field. Instead, they
+                 * store file permission attributes in some extra field.
+                 * As a work-around, we search for the presence of one of
+                 * these extra fields and fall back to the MSDOS compatible
+                 * part of external_file_attributes if one of the known
+                 * e.f. types has been detected.
+                 * Later, we might implement extraction of the permission
+                 * bits from the VMS extra field. But for now, the work-around
+                 * should be sufficient to provide "readable" extracted files.
+                 * (For ASI Unix e.f., an experimental remap of the e.f.
+                 * mode value IS already provided!)
                  */
                 ush ebID;
                 unsigned ebLen;
                 uch *ef = G.extra_field;
                 unsigned ef_len = G.crec.extra_field_length;
-                int r = FALSE;
 
                 while (!r && ef_len >= EB_HEADSIZE) {
                     ebID = makeword(ef);
@@ -243,8 +245,17 @@ int mapattr(__G)
                     ef_len -= (ebLen + EB_HEADSIZE);
                     ef += (ebLen + EB_HEADSIZE);
                 }
-                if (!r)
-                    return 0;
+            }
+            if (!r) {
+#ifdef SYMLINKS
+                /* Check if the file is a (POSIX-compatible) symbolic link.
+                 * We restrict symlink support to those "made-by" hosts that
+                 * are known to support symbolic links.
+                 */
+                G.pInfo->symlink = S_ISLNK(G.pInfo->file_attr) &&
+                                   SYMLINK_HOST(G.pInfo->hostnum);
+#endif
+                return 0;
             }
             /* fall through! */
         /* all remaining cases:  expand MSDOS read-only bit into write perms */
@@ -273,11 +284,19 @@ int mapattr(__G)
             }
             /* read-only bit --> write perms; subdir bit --> dir exec bit */
             tmp = !(tmp & 1) << 1  |  (tmp & 0x10) >> 4;
-            if ((G.pInfo->file_attr & 0700) == (unsigned)(0400 | tmp<<6))
+            if ((G.pInfo->file_attr & 0700) == (unsigned)(0400 | tmp<<6)) {
                 /* keep previous G.pInfo->file_attr setting, when its "owner"
                  * part appears to be consistent with DOS attribute flags!
                  */
+#ifdef SYMLINKS
+                /* Entries "made by FS_FAT_" could have been zipped on a
+                 * system that supports POSIX-style symbolic links.
+                 */
+                G.pInfo->symlink = S_ISLNK(G.pInfo->file_attr) &&
+                                   (G.pInfo->hostnum == FS_FAT_);
+#endif
                 return 0;
+            }
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
             break;
     } /* end switch (host-OS-created-by) */
@@ -442,6 +461,15 @@ int mapname(__G__ renamed)
         if (*pp == '\0')          /* only digits between ';' and end:  nuke */
             *lastsemi = '\0';
     }
+
+    /* On UNIX (and compatible systems), "." and ".." are reserved for
+     * directory navigation and cannot be used as regular file names.
+     * These reserved one-dot and two-dot names are mapped to "_" and "__".
+     */
+    if (strcmp(pathcomp, ".") == 0)
+        *pathcomp = '_';
+    else if (strcmp(pathcomp, "..") == 0)
+        strcpy(pathcomp, "__");
 
 #ifdef ACORN_FTYPE_NFS
     /* translate Acorn filetype information if asked to do so */
@@ -775,8 +803,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 #endif
     ztimbuf tp;
 
-    fclose(G.outfile);
-
 /*---------------------------------------------------------------------------
     If symbolic links are supported, allocate storage for a symlink control
     structure, put the uncompressed "data" and other required info in it, and
@@ -793,15 +819,21 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
      *      link fails?
      */
     if (G.symlnk) {
-        unsigned ucsize = (unsigned)G.lrec.ucsize;
-        extent slnk_entrysize = sizeof(slinkentry) + ucsize +
-                                strlen(G.filename);
+        extent ucsize = (extent)G.lrec.ucsize;
+        /* size of the symlink entry is the sum of
+         *  (struct size (includes 1st '\0') + 1 additional trailing '\0'),
+         *  system specific attribute data size (might be 0),
+         *  and the lengths of name and link target.
+         */
+        extent slnk_entrysize = (sizeof(slinkentry) + 1) +
+                                ucsize + strlen(G.filename);
         slinkentry *slnk_entry;
 
-        if ((unsigned)slnk_entrysize < ucsize) {
+        if (slnk_entrysize < ucsize) {
             Info(slide, 0x201, ((char *)slide,
               "warning:  symbolic link (%s) failed: mem alloc overflow\n",
               FnFilter1(G.filename)));
+            fclose(G.outfile);
             return;
         }
 
@@ -809,6 +841,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
             Info(slide, 0x201, ((char *)slide,
               "warning:  symbolic link (%s) failed: no mem\n",
               FnFilter1(G.filename)));
+            fclose(G.outfile);
             return;
         }
         slnk_entry->next = NULL;
@@ -818,11 +851,10 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         slnk_entry->fname = slnk_entry->target + ucsize + 1;
         strcpy(slnk_entry->fname, G.filename);
 
-        /* reopen the "link data" file for reading */
-        G.outfile = fopen(G.filename, FOPR);
+        /* move back to the start of the file to re-read the "link data" */
+        rewind(G.outfile);
 
-        if (!G.outfile ||
-            fread(slnk_entry->target, 1, ucsize, G.outfile) != (int)ucsize)
+        if (fread(slnk_entry->target, 1, ucsize, G.outfile) != ucsize)
         {
             Info(slide, 0x201, ((char *)slide,
               "warning:  symbolic link (%s) failed\n",
@@ -845,6 +877,8 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         return;
     }
 
+    fclose(G.outfile);
+
 /*---------------------------------------------------------------------------
     Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
     time:  adjust base year from 1980 to 1970, do usual conversions from
@@ -852,41 +886,50 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     light savings time differences.
   ---------------------------------------------------------------------------*/
 
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
 #ifdef USE_EF_UT_TIME
-    eb_izux_flg = (G.extra_field
+        eb_izux_flg = (G.extra_field
 #ifdef IZ_CHECK_TZ
-                   && G.tz_is_valid
+                       && G.tz_is_valid
 #endif
-                   ? ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length,
-                       0, G.lrec.last_mod_dos_datetime, &zt, NULL)
-                   : 0);
-    if (eb_izux_flg & EB_UT_FL_MTIME) {
-        tp.modtime = zt.mtime;
-        TTrace((stderr, "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
-          tp.modtime));
-    } else {
-        tp.modtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
-    }
-    if (eb_izux_flg & EB_UT_FL_ATIME) {
-        tp.actime = zt.atime;
-        TTrace((stderr, "close_outfile:  Unix e.f. access time = %ld\n",
-          tp.actime));
-    } else {
-        tp.actime = tp.modtime;
+                       ? ef_scan_for_izux(G.extra_field,
+                           G.lrec.extra_field_length, 0,
+                           G.lrec.last_mod_dos_datetime, &zt, NULL)
+                       : 0);
+        if (eb_izux_flg & EB_UT_FL_MTIME) {
+            tp.modtime = zt.mtime;
+            TTrace((stderr,
+              "\nclose_outfile:  Unix e.f. modif. time = %ld\n",
+              tp.modtime));
+        } else {
+            tp.modtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+        }
+        if (eb_izux_flg & EB_UT_FL_ATIME) {
+            tp.actime = zt.atime;
+            TTrace((stderr,
+              "close_outfile:  Unix e.f. access time = %ld\n",
+              tp.actime));
+        } else {
+            tp.actime = tp.modtime;
+            TTrace((stderr,
+              "\nclose_outfile:  modification/access times = %ld\n",
+              tp.modtime));
+        }
+#else /* !USE_EF_UT_TIME */
+        tp.actime = tp.modtime
+          = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+
         TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
           tp.modtime));
-    }
-#else /* !USE_EF_UT_TIME */
-    tp.actime = tp.modtime = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
-
-    TTrace((stderr, "\nclose_outfile:  modification/access times = %ld\n",
-      tp.modtime));
 #endif /* ?USE_EF_UT_TIME */
 
-    /* set the file's access and modification times */
-    if (utime(G.filename, &tp))
-        Info(slide, 0x201, ((char *)slide,
-          "warning:  cannot set the time for %s\n", FnFilter1(G.filename)));
+        /* set the file's access and modification times */
+        if (utime(G.filename, &tp))
+            Info(slide, 0x201, ((char *)slide,
+              "warning:  cannot set the time for %s\n",
+              FnFilter1(G.filename)));
+    }
 
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
@@ -895,7 +938,7 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 
 #ifndef NO_CHMOD
     if (chmod(G.filename, 0xffff & G.pInfo->file_attr))
-            perror("chmod (file attributes) error");
+        perror("chmod (file attributes) error");
 #endif
 
 } /* end function close_outfile() */

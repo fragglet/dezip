@@ -72,7 +72,6 @@ E:\BC45\LIB\cwl.lib
 
 Dep_EcbWIZbUNZIPbWINDLLbGUISFXbBINbunzsfx16dlib = \
    unzsfx16.def\
-   E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\crctab.obj\
    E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\crypt.obj\
    E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\explode.obj\
    E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\extract.obj\
@@ -88,8 +87,7 @@ Dep_EcbWIZbUNZIPbWINDLLbGUISFXbBINbunzsfx16dlib = \
 
 E:\WIZ\UNZIP\WINDLL\GUISFX\BIN\unzsfx16.lib : $(Dep_EcbWIZbUNZIPbWINDLLbGUISFXbBINbunzsfx16dlib)
   $(TLIB) $< $(IDE_BFLAGS) $(BEAT_EcbWIZbUNZIPbWINDLLbGUISFXbBINbunzsfx16dlib) @&&|
- -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\crctab.obj &
--+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\crypt.obj &
+ -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\crypt.obj &
 -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\explode.obj &
 -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\extract.obj &
 -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\fileio.obj &
@@ -101,11 +99,6 @@ E:\WIZ\UNZIP\WINDLL\GUISFX\BIN\unzsfx16.lib : $(Dep_EcbWIZbUNZIPbWINDLLbGUISFXbB
 -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\api.obj &
 -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\msdos.obj &
 -+E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\windll.obj
-|
-
-E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\crctab.obj :  ..\..\crctab.c
-  $(BCC)   -P- -c @&&|
- $(CEAT_EcbWIZbUNZIPbWINDLLbGUISFXbBINbunzsfx16dlib) $(CNIEAT_EcbWIZbUNZIPbWINDLLbGUISFXbBINbunzsfx16dlib) -o$@ ..\..\crctab.c
 |
 
 E:\WIZ\UNZIP\WINDLL\GUISFX\OBJ\crypt.obj :  ..\..\crypt.c

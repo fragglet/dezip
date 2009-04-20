@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -25,6 +25,7 @@
              volumelabel()                  (non-djgpp, non-emx)
              close_outfile()
              stamp_file()                   (TIMESTAMP only)
+             prepare_ISO_OEM_translat()
              dateformat()
              version()
              zcalloc()                      (16-bit, only)
@@ -41,6 +42,7 @@
              _is_executable()               (djgpp 2.x)
              __crt0_glob_function()         (djgpp 2.x)
              __crt0_load_environment_file() (djgpp 2.x)
+             dos_getcodepage()              (all, ASM system call)
              screensize()                   (emx, Watcom 32-bit)
              int86x_realmode()              (Watcom 32-bit)
              stat_bandaid()                 (Watcom)
@@ -64,6 +66,10 @@ static void maskDOSdevice(__GPRO__ char *pathcomp, char *last_dot);
 static int isfloppy OF((int nDrive));
 static int z_dos_chmod OF((__GPRO__ ZCONST char *fname, int attributes));
 static int volumelabel OF((ZCONST char *newlabel));
+#if (!defined(SFX) && !defined(WINDLL))
+   static int is_running_on_windows OF((void));
+#endif
+static int getdoscodepage OF((void));
 
 static int created_dir;        /* used by mapname(), checkdir() */
 static int renamed_fullpath;   /* ditto */
@@ -102,6 +108,11 @@ static ZCONST char Far PathTooLongTrunc[] =
 #endif
 static ZCONST char Far AttribsMayBeWrong[] =
   "\nwarning:  file attributes may not be correct\n";
+#if (!defined(SFX) && !defined(WINDLL))
+   static ZCONST char Far WarnUsedOnWindows[] =
+     "\n%s warning: You are using the MSDOS version on Windows.\n"
+     "Please try the native Windows version before reporting any problems.\n";
+#endif
 
 
 
@@ -117,7 +128,11 @@ static ZCONST char Far AttribsMayBeWrong[] =
 #  define F_intdosx(ir,or,sr) int86x_realmode(0x21, ir, or, sr)
 #  define XXX__MK_FP_IS_BROKEN
 #else
-#  define WREGS(v,r) (v.x.r)
+#  if (defined(__DJGPP__) && (__DJGPP__ >= 2))
+#   define WREGS(v,r) (v.w.r)
+#  else
+#   define WREGS(v,r) (v.x.r)
+#  endif
 #  define F_intdosx(ir,or,sr) intdosx(ir, or, sr)
 #endif
 
@@ -1499,78 +1514,83 @@ void close_outfile(__G)
   * the file, this routine is optional (but most compilers support it).
   */
 {
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
 #ifdef USE_EF_UT_TIME
-    dos_fdatetime dos_dt;
-    iztimes z_utime;
-    struct tm *t;
+        dos_fdatetime dos_dt;
+        iztimes z_utime;
+        struct tm *t;
 #endif /* USE_EF_UT_TIME */
 
 
 /*---------------------------------------------------------------------------
-    Copy and/or convert time and date variables, if necessary; then set the
-    file time/date.  WEIRD BORLAND "BUG":  if output is buffered, and if run
-    under at least some versions of DOS (e.g., 6.0), and if files are smaller
-    than DOS physical block size (i.e., 512 bytes) (?), then files MAY NOT
-    get timestamped correctly--apparently setftime() occurs before any data
-    are written to the file, and when file is closed and buffers are flushed,
-    timestamp is overwritten with current time.  Even with a 32K buffer, this
-    does not seem to occur with larger files.  UnZip output is now unbuffered,
-    but if it were not, could still avoid problem by adding "fflush(outfile)"
-    just before setftime() call.  Weird, huh?
+        Copy and/or convert time and date variables, if necessary; then set
+        the file time/date.  WEIRD BORLAND "BUG":  if output is buffered,
+        and if run under at least some versions of DOS (e.g., 6.0), and if
+        files are smaller than DOS physical block size (i.e., 512 bytes) (?),
+        then files MAY NOT get timestamped correctly--apparently setftime()
+        occurs before any data are written to the file, and when file is
+        closed and buffers are flushed, timestamp is overwritten with
+        current time.  Even with a 32K buffer, this does not seem to occur
+        with larger files.  UnZip output is now unbuffered, but if it were
+        not, could still avoid problem by adding "fflush(outfile)" just
+        before setftime() call.  Weird, huh?
   ---------------------------------------------------------------------------*/
 
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field &&
+        if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
-        G.tz_is_valid &&
+            G.tz_is_valid &&
 #endif
-        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
-         & EB_UT_FL_MTIME))
-    {
-        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          z_utime.mtime));
-        /* round up (down if "up" overflows) to even seconds */
-        if (z_utime.mtime & 1)
-            z_utime.mtime = (z_utime.mtime + 1 > z_utime.mtime) ?
-                             z_utime.mtime + 1 : z_utime.mtime - 1;
-        TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
-        t = localtime(&(z_utime.mtime));
-    } else
-        t = (struct tm *)NULL;
-    if (t != (struct tm *)NULL) {
-        if (t->tm_year < 80) {
-            dos_dt.z_dtf.zt_se = 0;
-            dos_dt.z_dtf.zt_mi = 0;
-            dos_dt.z_dtf.zt_hr = 0;
-            dos_dt.z_dtf.zd_dy = 1;
-            dos_dt.z_dtf.zd_mo = 1;
-            dos_dt.z_dtf.zd_yr = 0;
+            (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                              G.lrec.last_mod_dos_datetime, &z_utime, NULL)
+             & EB_UT_FL_MTIME))
+        {
+            TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+              z_utime.mtime));
+            /* round up (down if "up" overflows) to even seconds */
+            if (z_utime.mtime & 1)
+                z_utime.mtime = (z_utime.mtime + 1 > z_utime.mtime) ?
+                                 z_utime.mtime + 1 : z_utime.mtime - 1;
+            TIMET_TO_NATIVE(z_utime.mtime) /* NOP unless MSC 7 or Macintosh */
+            t = localtime(&(z_utime.mtime));
+        } else
+            t = (struct tm *)NULL;
+        if (t != (struct tm *)NULL) {
+            if (t->tm_year < 80) {
+                dos_dt.z_dtf.zt_se = 0;
+                dos_dt.z_dtf.zt_mi = 0;
+                dos_dt.z_dtf.zt_hr = 0;
+                dos_dt.z_dtf.zd_dy = 1;
+                dos_dt.z_dtf.zd_mo = 1;
+                dos_dt.z_dtf.zd_yr = 0;
+            } else {
+                dos_dt.z_dtf.zt_se = t->tm_sec >> 1;
+                dos_dt.z_dtf.zt_mi = t->tm_min;
+                dos_dt.z_dtf.zt_hr = t->tm_hour;
+                dos_dt.z_dtf.zd_dy = t->tm_mday;
+                dos_dt.z_dtf.zd_mo = t->tm_mon + 1;
+                dos_dt.z_dtf.zd_yr = t->tm_year - 80;
+            }
         } else {
-            dos_dt.z_dtf.zt_se = t->tm_sec >> 1;
-            dos_dt.z_dtf.zt_mi = t->tm_min;
-            dos_dt.z_dtf.zt_hr = t->tm_hour;
-            dos_dt.z_dtf.zd_dy = t->tm_mday;
-            dos_dt.z_dtf.zd_mo = t->tm_mon + 1;
-            dos_dt.z_dtf.zd_yr = t->tm_year - 80;
+            dos_dt.z_dostime = G.lrec.last_mod_dos_datetime;
         }
-    } else {
-        dos_dt.z_dostime = G.lrec.last_mod_dos_datetime;
-    }
 # ifdef __TURBOC__
-    setftime(fileno(G.outfile), &dos_dt.ft);
+        setftime(fileno(G.outfile), &dos_dt.ft);
 # else
-    _dos_setftime(fileno(G.outfile), dos_dt.zft.zdate, dos_dt.zft.ztime);
+        _dos_setftime(fileno(G.outfile), dos_dt.zft.zdate, dos_dt.zft.ztime);
 # endif
 #else /* !USE_EF_UT_TIME */
 # ifdef __TURBOC__
-    setftime(fileno(G.outfile),
-             (struct ftime *)(&(G.lrec.last_mod_dos_datetime)));
+        setftime(fileno(G.outfile),
+                 (struct ftime *)(&(G.lrec.last_mod_dos_datetime)));
 # else
-    _dos_setftime(fileno(G.outfile), (ush)(G.lrec.last_mod_dos_datetime >> 16),
-                                     (ush)(G.lrec.last_mod_dos_datetime));
+        _dos_setftime(fileno(G.outfile),
+                      (ush)(G.lrec.last_mod_dos_datetime >> 16),
+                      (ush)(G.lrec.last_mod_dos_datetime));
 # endif
 #endif /* ?USE_EF_UT_TIME */
+    }
 
 /*---------------------------------------------------------------------------
     And finally we can close the file...at least everybody agrees on how to
@@ -1641,6 +1661,46 @@ int stamp_file(fname, modtime)
 } /* end function stamp_file() */
 
 #endif /* TIMESTAMP */
+
+
+
+
+void prepare_ISO_OEM_translat(__G)
+   __GDEF
+{
+    switch (getdoscodepage()) {
+    case 437:
+    case 850:
+    case 858:
+#ifdef IZ_ISO2OEM_ARRAY
+        iso2oem = iso2oem_850;
+#endif
+#ifdef IZ_OEM2ISO_ARRAY
+        oem2iso = oem2iso_850;
+#endif
+
+    case 932:   /* Japanese */
+    case 949:   /* Korean */
+    case 936:   /* Chinese, simple */
+    case 950:   /* Chinese, traditional */
+    case 874:   /* Thai */
+    case 1258:  /* Vietnamese */
+#ifdef IZ_ISO2OEM_ARRAY
+        iso2oem = NULL;
+#endif
+#ifdef IZ_OEM2ISO_ARRAY
+        oem2iso = NULL;
+#endif
+
+    default:
+#ifdef IZ_ISO2OEM_ARRAY
+       iso2oem = NULL;
+#endif
+#ifdef IZ_OEM2ISO_ARRAY
+       oem2iso = NULL;
+#endif
+    }
+} /* end function prepare_ISO_OEM_translat() */
 
 
 
@@ -1723,7 +1783,7 @@ int dateformat()
         case 2:
             return DF_YMD;
     }
-#endif /* !WINDLL && !WATCOMC_386 */
+#endif /* !WINDLL */
 
     return DF_MDY;   /* default for systems without locale info */
 
@@ -1733,6 +1793,52 @@ int dateformat()
 
 
 #ifndef WINDLL
+
+/**************************************/
+/*  Function is_running_on_windows()  */
+/**************************************/
+
+static int is_running_on_windows(void)
+{
+    char *var = getenv("OS");
+
+    /* if the OS env.var says 'Windows_NT' then */
+    /* we're likely running on a variant of WinNT */
+    if ((var != NULL) && (strcmp("Windows_NT", var) == 0))
+        return TRUE;
+
+    /* if the windir env.var is non-null then */
+    /* we're likely running on a variant of Win9x */
+    /* DOS mode of Win9x doesn't define windir, only winbootdir */
+    /* NT's command.com can't see lowercase env. vars */
+    var = getenv("windir");
+    if ((var != NULL) && (var[0] != '\0'))
+        return TRUE;
+
+    return FALSE;
+}
+
+
+/**********************************/
+/*  Function check_for_windows()  */
+/**********************************/
+
+void check_for_windows(ZCONST char *app)
+{
+#ifdef SMALL_MEM
+    char msg_str[160];          /* enough space for two 79-char-lines  */
+
+    (void)zfstrcpy(msg_buf, WarnUsedOnWindows)
+#else
+#   define msg_str WarnUsedOnWindows
+#endif
+    /* Print a warning for users running under Windows */
+    /* to reduce bug reports due to running DOS version */
+    /* under Windows, when Windows version usually works correctly */
+    if (is_running_on_windows())
+        printf(msg_str, app);
+} /* end function check_for_windows() */
+
 
 /************************/
 /*  Function version()  */
@@ -2171,6 +2277,29 @@ void __crt0_load_environment_file(char *_app_name)
 
 #endif /* __DJGPP__ >= 2 */
 #endif /* __GO32__ || __EMX__ */
+
+
+
+static int getdoscodepage(void)
+{
+    union REGS regs;
+
+    WREGS(regs,ax) = 0x6601;
+#ifdef __EMX__
+    _int86(0x21, &regs, &regs);
+    if (WREGS(regs,flags) & 1)
+#else
+    intdos(&regs, &regs);
+    if (WREGS(regs,cflag))
+#endif
+    {
+        Trace((stderr,
+          "error in DOS function 0x66 (AX = 0x%04x): default to 850...\n",
+          (unsigned int)(WREGS(regs,ax))));
+        return 858;
+    } else
+        return WREGS(regs,bx);
+}
 
 
 

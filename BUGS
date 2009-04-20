@@ -14,9 +14,9 @@ Bogus bugs (not our fault!):
  options will print a help screen, at the top of which is the UnZip
  version number and release date; and executing "unzip -v" without any
  zipfile or other options will give information about what compiler was
- used, the target operating system, any special UnZip options, and the 
+ used, the target operating system, any special UnZip options, and the
  date of compilation--only for version 5.11 and later, though!  (Also,
- under Unix C shell and some Bourne shells, "which unzip" will print 
+ under Unix C shell and some Bourne shells, "which unzip" will print
  the path of the unzip you're actually using.  Under OS/2 and MS-DOS,
  whch21gr.zip [on Simtel mirror sites] will do the same thing; in addi-
  tion, "which -a unzip" will show *all* copies of "unzip" in your path.)
@@ -32,6 +32,8 @@ Bugs (real and/or imagined):
     find end-of-central-dir signature at end of central dir" (harmless) or
     may not be able to seek to member files [James Lemley 970107, Iris Spaniol
     970206, ...]
+
+      Fixed with Zip64 support in UnZip 6.0
 
  - fix overwrite behavior:  hidden/system problems?; etc.
  - 32-bit DOS UnZip still unable to set volume labels?
@@ -73,7 +75,7 @@ Bugs (real and/or imagined):
       unreduce.c:    while (((outpos + outcnt) < ucsize) && (!zipeof)) {
     [James Birdsall, Mark, bottom of BUGS.long]
  - OS/2:  directory EAs not restored if directory exists [Kai Uwe, KG27515@uark]
-    (subsequent note:  no way to determine which EAs are newer ==> cannot 
+    (subsequent note:  no way to determine which EAs are newer ==> cannot
     restore without user input)
     (update: as of UnZip 5.30, option -o forces restoring of directory EAs)
  - MS-DOS:  Borland executables don't allow other than 80-column, 25/43/50-line

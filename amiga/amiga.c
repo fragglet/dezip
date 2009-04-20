@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2007 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -711,41 +711,44 @@ void close_outfile(__G)
 
     fclose(G.outfile);
 
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field &&
+        if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
-        G.tz_is_valid &&
+            G.tz_is_valid &&
 #endif
-        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
-         & EB_UT_FL_MTIME))
-    {
-        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-                         z_utime.mtime));
-        m_time = z_utime.mtime;
-    } else {
+            (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                              G.lrec.last_mod_dos_datetime, &z_utime, NULL)
+             & EB_UT_FL_MTIME))
+        {
+            TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+                             z_utime.mtime));
+            m_time = z_utime.mtime;
+        } else {
+            /* Convert DOS time to time_t format */
+            m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
+        }
+#else /* !USE_EF_UT_TIME */
         /* Convert DOS time to time_t format */
         m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
-    }
-#else /* !USE_EF_UT_TIME */
-    /* Convert DOS time to time_t format */
-    m_time = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
 #endif /* ?USE_EF_UT_TIME */
 
 #ifdef DEBUG
-    Info(slide, 1, ((char *)slide, "\nclose_outfile(): m_time=%s\n",
-                         ctime(&m_time)));
+        Info(slide, 1, ((char *)slide, "\nclose_outfile(): m_time=%s\n",
+             ctime(&m_time)));
 #endif
 
-    if (!FileDate(G.filename, &m_time))
-        Info(slide, 1, ((char *)slide,
-             "warning:  cannot set the time for %s\n", G.filename));
+        if (!FileDate(G.filename, &m_time))
+            Info(slide, 1, ((char *)slide,
+                 "warning:  cannot set the time for %s\n", G.filename));
+    }
 
-  /* set file perms after closing (not done at creation)--see mapattr() */
+    /* set file perms after closing (not done at creation)--see mapattr() */
 
     chmod(G.filename, G.pInfo->file_attr);
 
-  /* give it a filenote from the zipfile comment, if appropriate */
+    /* give it a filenote from the zipfile comment, if appropriate */
 
     if (uO.N_flag && G.filenotes[G.filenote_slot]) {
         SetComment(G.filename, G.filenotes[G.filenote_slot]);

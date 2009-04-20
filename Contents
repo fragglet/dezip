@@ -1,4 +1,4 @@
-Contents of the UnZip 5.52 source archive.  The OS-specific subdirectories
+Contents of the UnZip 6.00 source archive.  The OS-specific subdirectories
 at the end contain their own Contents listings:
 
   Contents      this file
@@ -7,8 +7,7 @@ at the end contain their own Contents listings:
   COPYING.OLD   historic copyrights and distribution policy (obsolete)
   INSTALL       how to compile and install UnZip and related utilities
   WHERE         where Zip/UnZip and encryption/decryption support can be found
-  History.550   new features and fixes of the last major release
-  History.551   new features and fixes in this maintenance release
+  History.600   new features and fixes of the last major release
   ToDo          rough priority list of new features to be added in next release
   BUGS          known bugs, problems, and (possible) other features to be added
   unzip.txt     UnZip manual page, human-readable format
@@ -22,8 +21,8 @@ at the end contain their own Contents listings:
   apihelp.c     API help text for DLL versions (currently OS/2 only)
   consts.h      global, initialized variables that never change (required)
   crc32.c       code for calculation 32bit CRC of a string buffer (required*)
-  crc_i386.S    fast assembler replacement for crc32.c (Intel 386 and newer)
-  crctab.c      supplies polynomial table for CRC calculation
+  crc32.h       declarations for the crc-32 code (required*)
+  crc_i386.S    fast assembler replacement for crc32() (Intel 386 and newer)
   crypt.c       de-/encryption routines (required*)
   crypt.h       de-/encryption header file (required*)
   ebcdic.h      static lookup table for ASCII <-> EBCDIC translation (required)
@@ -40,11 +39,11 @@ at the end contain their own Contents listings:
   list.c        UnZip listing routines, non-ZipInfo mode (required)
   match.c       pattern-matching code for filename wildcards (required)
   process.c     zipfile headers code (required)
-  tables.h      static lookup tables used in fileio.c and funzip.c (required*)
   timezone.c    timezone and timestamp functions (required)
   timezone.h    header file for interface to "internal" tz functions (required)
   ttyio.c       code for handling nonecho tty input: password, pager (required)
   ttyio.h       header file for nonecho tty input: password, pager (required)
+  ubz2err.c     callback handler for fatal bzip2 errors (bzip2 support only)
   unreduce.c    code for unreducing (required)
   unshrink.c    code for unshrinking (required)
   unzip.c       UnZip main(), usage and options code (required)
@@ -65,7 +64,7 @@ at the end contain their own Contents listings:
   human68k/     support files for compiling under X68000/Human68K
   macos/        support files for compiling under Macintosh OS
   msdos/        support files for compiling under MS-DOS
-  novell/       support files for compiling for Novell Netware NLM
+  netware/      support files for compiling for Novell Netware NLM
   os2/          support files for compiling under OS/2 (includes DLL stuff)
   qdos/         support files for compiling under SMS/QDOS
   tandem/       support files for compiling under Tandem NSK
@@ -76,6 +75,7 @@ at the end contain their own Contents listings:
   win32/        support files for compiling under Windows 9x and Windows NT
   wince/        support files for compiling under Windows CE (GUI version)
   windll/       support files for compiling Windows 3.x/9x/NT DLLs
+  bzip2/        subfolder for source of externally supplied bzip2 extension
   man/          nroff man-page sources for the main user documentation
   proginfo/     programming docs, additional technical info, contributor list
 

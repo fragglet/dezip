@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2001 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2006 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -546,26 +546,24 @@ void UserStop(void)
 
     if ( WaitNextEvent( everyEvent, &theEvent, 0, nil )) {
 
-            switch (theEvent.what) {
+        switch (theEvent.what) {
 
         case mouseDown:
-        domousedown( &theEvent );
-        break;
+            domousedown( &theEvent );
+            break;
 
-            case autoKey:
-            case keyDown:
-        {
-                if ((theEvent.modifiers & cmdKey) &&
-                    ((theEvent.message & charCodeMask) == '.'))
-                    {
-                    printf("\n\n <- User Canceled -> \n");
-                    exit(1);  /* setjmp() must be already called  */
-                    }
-                return;
-                }
+        case autoKey:
+        case keyDown:
+            if ((theEvent.modifiers & cmdKey) &&
+                ((theEvent.message & charCodeMask) == '.'))
+            {
+                printf("\n\n <- User Canceled -> \n");
+                exit(1);  /* setjmp() must be already called  */
+            }
+            return;
 
-            } /*   switch (theEvent.what)   */
-        }  /*   if ( WaitNextEvent(...  */
+        } /*   switch (theEvent.what)   */
+    }  /*   if ( WaitNextEvent(...  */
 }
 
 

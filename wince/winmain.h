@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2003 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -114,8 +114,8 @@ typedef struct _FILE_TYPE_NODE {
 } FILE_TYPE_NODE, *LPFILE_TYPE_NODE;
 
 typedef struct _FILE_NODE {
-   DWORD           dwSize;
-   DWORD           dwCompressedSize;
+   zusz_t          uzSize;
+   zusz_t          uzCompressedSize;
    DWORD           dwModified;
    DWORD           dwAttributes;
    DWORD           dwCRC;

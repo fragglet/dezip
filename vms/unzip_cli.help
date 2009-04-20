@@ -34,8 +34,8 @@
 .!              Added /[NO]CASE_INSENSITIVE to ZipInfo mode;
 .!              documented the new /PASSWORD="decryption_key" option.
 .!      02-007          Christian Spieler       22-JUL-1997 22:37
-.!              Formatting changes (prevent line wraps); added "Exit_Codes"
-.!              subtopic (no version number change).
+.!              Formatting changes (prevent line wraps);
+.!              added "Exit_Codes" subtopic (no version number change).
 .!      02-007          Christian Spieler       28-APR-2000 03:22
 .!              Changed references to plaintext UnZip documentation file
 .!              into UNZIP.TXT (no version number change).
@@ -50,6 +50,17 @@
 .!              Added /TIMESTAMP (-T) qualifier.
 .!      02-010          Christian Spieler       29-Jan-2005 01:50
 .!              Completed description of -T qualifier (also for UNIX style).
+.!      02-011          Steven Schweda          14-FEB-2005 20:04
+.!              Added /DOT_VERSION (-Y) and /ODS2 (-2) qualifiers.
+.!      02-012          Steven Schweda          07-JUL-2006 01:30
+.!              Added /TEXT = STMLF (-s) qualifier.
+.!      02-012          Christian Spieler       04-Mar-2007 14:39
+.!              Changed -s qualifier into -S;
+.!              updated documentation of UnZip's exit codes.
+.!      03-002          S. Schweda, C. Spieler  09-Jan-2008 03:35
+.!              Added documentation of extended /RESTORE=(...) qualifier.
+.!      03-003          S. Schweda, C. Spieler  13-Sep-2008 20:00
+.!              Added /EXISTING qualifier.
 .!
 <INIT>
 <MAIN>
@@ -191,6 +202,16 @@ Display the archive comment.
 Specifies the output directory where all the extracted files are to be
 placed.
 <QUALIFIER>
+/DOT_VERSION
+
+/DOT_VERSION
+<NEXT>
+/NODOT_VERSION (default)
+
+Causes UnZip to treat archived file name endings of ".nnn" (where "nnn"
+is a decimal number) as if they were VMS version numbers (";nnn").  (The
+default is to treat them as file types.)  Example: "a.b.3" -> "a.b;3".
+<QUALIFIER>
 /EXCLUDE
 
 /EXCLUDE=(file[,...])
@@ -198,7 +219,38 @@ placed.
 A comma-separated list of files to exclude when extracting files.
 If multiple files are specified, the list should be included in
 parentheses.
+<QUALIFIER>
+/EXISTING
 
+/EXISTING = keyword
+
+Valid keywords (exactly one must be specified) are:
+<LITERAL>
+|  NEW_VERSION   Create a new version of an existing file.
+|  OVERWRITE     Overwrite the same version of an existing file.
+|                (But only if the archive member name includes a
+|                version number.)
+|  NOEXTRACT     Do not extract.  An existing file is not affected.
+<LARETIL>
+
+When UnZip would extract an archive member, but the destination file
+already exists, UnZip will, by default, ask the user what to do.
+/EXISTING lets the user specify on the command line what to do in this
+situation, eliminating the interactive question(s).
+
+NOEXTRACT will always stop UnZip from extracting an archive member if
+the destination file already exists.
+
+If an archive member name does not include a VMS version number, or if
+UnZip is run with /NOVERSION (the default, causing it to ignore version
+numbers), then either NEW_VERSION or OVERWRITE will cause UnZip to
+create a new version of the existing file.
+
+If an archive member name does include a VMS version number, and if
+UnZip is run with /VERSION, then NEW_VERSION will cause UnZip to create
+a new version of the existing file, and OVERWRITE will cause UnZip to
+overwrite the existing file which has the version specified by the
+archive member name.
 <QUALIFIER>
 /FRESHEN
 
@@ -249,19 +301,34 @@ specify the amount of information displayed.  The default is /BRIEF.
 Convert filenames from all-uppercase operating systems to lowercase.  This
 option has no effect under VMS.
 <QUALIFIER>
+/ODS2
+
+/ODS2
+<NEXT>
+/NOODS2 (default)
+
+Causes UnZip to convert archived file names to ODS2-compatible file
+names (substituting "_" for any invalid characters), regardless of the
+type of the destination file system.
+
+The default is to use ODS5-compatible file names when the destination
+file system is ODS5, and to convert the names to ODS2-compatible names
+when the destination file system is ODS2.
+
+Beginning in UnZip 6.0, ODS2-compatible names are explicitly set to
+upper case.
+<QUALIFIER>
 /OVERWRITE
 
 /OVERWRITE
 <NEXT>
 /NOOVERWRITE
 
-The qualifier /OVERWRITE forces overwriting of existing files when extracting.
-The negation /NOOVERWRITE results in never overwriting an existing file.
-The default action is to prompt for desired action when about to
-overwrite an existing file.
+See /EXISTING.
 
-For VMS, "overwriting" results in the creation of a new version of the file,
-unless version numbers are stored in the archive and /VERSION is specified.
+/OVERWRITE is equivalent to /EXISTING = NEW_VERSION.
+<NEXT>
+/NOOVERWRITE is equivalent to /EXISTING = NOEXTRACT.
 <QUALIFIER>
 /PAGE
 
@@ -295,11 +362,31 @@ operations even more quiet.
 <QUALIFIER>
 /RESTORE
 
-/RESTORE
-<NEXT>
-/NORESTORE
+/RESTORE[=(KEYWORD, ...)]
 
-Restore file owner and protection settings.
+Selects restoration options for some meta-data.
+The optional keywords recognized are:
+<LITERAL>
+|  OWNER_PROT    Restore file owner and ACL protection settings.
+|  NOOWNER_PROT  Do not restore file owner and ACL protection settings.
+|  NODATE        Do not restore any timestamps.
+|  DATE=ALL      Restore timestamps for all extracted entries, files
+|                and directories.
+|  DATE=FILES    Restore timestamps for extracted files.  (default)
+<LARETIL>
+
+By default, VMS UnZip restores the original date-time attributes for files,
+but not for directories.  This agrees with the behavior of VMS BACKUP
+(and UnZip versions before 5.52 where the capability to restore directory
+timestamps was added).
+
+For compatibility with UnZip versions before 6.0 (5.53), the following
+obsolete short forms are still accepted:
+<LITERAL>
+| Obsolete form:        Modern form:
+| /RESTORE              /RESTORE = OWNER_PROT
+| /NORESTORE            /RESTORE = NOOWNER_PROT
+<LARETIL>
 <QUALIFIER>
 /SCREEN
 
@@ -319,7 +406,7 @@ Test archive files.
 <QUALIFIER>
 /TEXT
 
-/TEXT[=KEYWORD]
+/TEXT[=(KEYWORD, ...)]
 <NEXT>
 /NOTEXT (default)
 
@@ -330,6 +417,8 @@ The optional keywords recognized are:
 |           than "binary") in standard VMS text file format. (default)
 |  ALL      Extracts all files in standard VMS text file format.
 |  NONE     Same as /NOTEXT.
+|  STMLF    Use Stream_LF record format for text files (instead of the
+|           default variable-length record format).
 <LARETIL>
 
 A similar functionality is available for binary files, see qualifier /BINARY.
@@ -384,89 +473,67 @@ Originally based on a program by Samuel H. Smith.
 VMS on-line help ported from UNZIP.TXT by Hunter Goatley.
 
 <TOPIC>
-Exit_Codes
+Exit_Status
 
-On VMS, UnZip's UNIX style exit values are mapped into proper
-VMS status codes:
+On VMS, UnZip's UNIX-style exit values are mapped into VMS-style status
+codes with facility code 1954 = %x7A2, and with the inhibit-message
+(%x10000000) and facility-specific (%x00008000) bits set:
 <LITERAL>
-|   1                               (success)  normal exit,
-|   (0x7fff0000 + 16*UnZip_errnum)  -W- warnings
-|   (0x7fff0002 + 16*UnZip_errnum)  -E- normal errors
-|   (0x7fff0004 + 16*UnZip_errnum)  -F- fatal errors
+|   %x17A28001                        normal exit
+|   %x17A28000 + 16*UnZip_error_code  warnings
+|   %x17A28002 + 16*UnZip_error_code  normal errors
+|   %x17A28004 + 16*UnZip_error_code  fatal errors
 <LARETIL>
 
-The UnZip error level (or exit code) approximates the exit
-codes defined by PKWARE and takes on the following values:
-<LITERAL>
-|  VMS       UnZip    Type of error
-|  severity  errcode
-|    -         0      normal; no errors or warnings detected.
-|
-|    W         1      one or more warning errors were encountered,
-|                     but processing completed  successfully  any-
-|                     way.   This  includes  zipfiles where one or
-|                     more files was skipped  due  to  unsupported
-|                     compression  method  or  encryption  with an
-|                     unknown password.
-|
-|    E         2      a generic error in the  zipfile  format  was
-|                     detected.   Processing  may  have  completed
-|                     successfully anyway;  some  broken  zipfiles
-|                     created by other archivers have simple work-
-|                     arounds.
-|
-|    F         3      a severe error in  the  zipfile  format  was
-|                     detected.   Processing probably failed imme-
-|                     diately.
-|
-|    F         4      unzip was unable to allocate memory for  one
-|                     or  more  buffers during program initializa-
-|                     tion.
-|
-|    F         5      unzip  was  unable  to  allocate  memory  or
-|                     unable  to  obtain a tty to read the decryp-
-|                     tion password(s).
-|
-|    F         6      unzip was unable to allocate  memory  during
-|                     decompression to disk.
-|
-|    F         7      unzip  was  unable to allocate memory during
-|                     in-memory decompression.
-|
-|    F         8      [currently not used]
-|
-|    E         9      the specified zipfiles were not found.
-|
-|    E         10     invalid options were specified on  the  com-
-|                     mand line.
-|
-|    E         11     no matching files were found.
-|
-|    F         50     the disk is (or was) full during extraction.
-|
-|    F         51     the end of the ZIP archive  was  encountered
-|                     prematurely.
-|
-|    E         80     the user aborted unzip prematurely with con-
-|                     trol-C (or similar)
-|
-|    E         81     no files were found due to unsupported  com-
-|                     pression  methods or unsupported decryption.
-|                     (If even one additional file is successfully
-|                     processed, however, the exit status is 1.)
-|
-|    E         82     no  files  were  found due to bad decryption
-|                     password(s).  This is also the  exit  status
-|                     if  no files were found due to a combination
-|                     of unsupported  compression  and  bad  pass-
-|                     words.   As in the previous case, however, a
-|                     single successful file  will  result  in  an
-|                     exit status of 1 instead.)
-<LARETIL>
+Note that multiplying the UNIX-style UnZip error code by 16 places it
+conveniently in the hexadecimal representation of the VMS exit code,
+"__" in %x17A28__s, where "s" is the severity code.  For example, a
+missing archive might cause UnZip error code 9, which would be
+transformed into the VMS exit status %X17A28092.
 
-In addition, there is a compilation option to expand upon this behavior:
-An executable compiled with the option RETURN_CODES defined displays
-a human-readable explanation of what the error status means.
+The UnZip VMS exit codes include severity values which approximate those
+defined by PKWARE, as shown in the following table:
+<LITERAL>
+|    VMS     UnZip err
+|  severity    code     Error description
+| ----------+---------+----------------------------------------------
+|  Success       0      Normal.  No errors or warnings detected.
+|  Warning       1      One or more warnings  were  encountered, but
+|                       processing  completed  successfully  anyway.
+|                       This  includes  archives  where  one or more
+|                       (but not all)  files were skipped because of
+|                       unsupported compress or encrypt methods,  or
+|                       bad passwords.
+|  Error         2      Error in the archive format.  Processing may
+|                       have completed  successfully  anyway.   Some
+|                       defects in archives (made by other programs)
+|                       can be repaired transparently.
+|  Fatal         3      Severe error in the archive format. Process-
+|                       ing probably failed immediately.
+|  Fatal         4      Memory allocation failed in program initial-
+|                       ization.
+|  Fatal         5      Memory  allocation  failed  in password pro-
+|                       cessing.
+|  Fatal         6      Memory allocation failed while decompressing
+|                       to disk.
+|  Fatal         7      Memory allocation failed while decompressing
+|                       in memory.
+|  Fatal         8      Memory  allocation  failed    (reserved  for
+|                       future use).
+|  Error         9      Specified archive files were not found.
+|  Error        10      Invalid command-line options or parameters.
+|  Error        11      No files matched selection criteria.
+|  Fatal        50      Disk full.
+|  Fatal        51      Unexpected  end-of-file  while  reading  the
+|                       archive.
+|  Error        80      User interrupt (Ctrl/C).
+|  Error        81      No files were processed,  because  of unsup-
+|                       ported compress or encrypt methods.
+|  Error        82      No  files  were  processed,  because  of bad
+|                       password(s).
+|  Fatal        83      Large-file archive could not be processed by
+|                       this small-file program.
+<LARETIL>
 
 <TOPIC>
 UNIX_Options
@@ -488,25 +555,30 @@ options and modifiers can be provided:
 |  -z   display only the archive comment
 |
 |MODIFIERS
-|  -a   auto-extract only text files in standard VMS text file format
+|  -a   extract text files in standard VMS text file format
 |  -aa  extract all files as text
-|  -b   auto-extract only binary files in VMS fixed 512 bytes records
-|  -bb  extract all files as binary VMS fixed 512 byte record files
+|  -b   auto-extract only binary files in fixed 512-byte record format
+|  -bb  extract all files as binary in fixed 512-byte record format
 |  -j   junk paths (don't recreate archive's directory structure)
-|  -n   never overwrite existing files; don't prompt
-|  -o   OK to overwrite files without prompting
+|  -n   never overwrite or make a new version of an existing file
+|  -o   always make a new version (-oo: overwrite orig) existing file
 |  -q   perform operations quietly (-qq => even quieter)
 |  -C   match filenames case-insensitively
-|  -L   convert filenames to lowercase if created on MSDOS, VMS, etc.
-|  -P<pwd>  supply decryption password on the command line (insecure!)
-|  -M   page output through built-in "more" function
+|  -D   do not restore any timestamps (--D restore them even for dirs)
+|  -L   convert filenames to lowercase if created under DOS, VMS, etc.
+|  -M   feed screen output through built-in "more" pager
+|  -P<password> supply decryption password on the cmd line (insecure!)
+|  -S   use Stream_LF record format to extract text files (with -a[a])
 |  -V   retain (VMS) file version numbers
-|  -X   restore owner/protection info (may require privileges)
-|  -:   allow "../" path components that traverse across extract dir root
+|  -X   restore owner/ACL protection info (may require privileges)
+|  -Y   treat ".nnn" suffix as version number ("a.b.3" -> "a.b;3")
+|  -:   allow "../" path components to traverse across top extract dir
+|  -2   force creation of ODS2-compatible file names
 <LARETIL>
 
-Note that uppercase options such as -C, -L, -M, -P, -T, -V, -X and -Z
-must be specified in quotes.  For example:
+Note that uppercase options such as -C, -D, -L, -M, -P, -S, -T, -V, -X, -Y,
+and -Z must be specified in quotes (unless SET PROC/PARSE=EXTEND is set).
+For example:
 
 <LITERAL>
 |  $ unzip "-VX" -a zipfile

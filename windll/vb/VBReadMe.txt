@@ -7,6 +7,10 @@ The code assumes that the unzip32.dll binary is available somewhere on the
 execution path. The easiest way to satisfy this rule is to keep a copy of
 unzip32.dll in the directory where the VB executable is stored, but if
 it's in the command path it should be found.
+NOTE: Whenever a VB program is run from the VB6 IDE, the "path of the VB
+executable" is the path where the IDE program file "VB6.EXE" is stored,
+NOT the storage directory of the VB project file (= result of the App.Path
+property accessed from within the VB program).
 
 The example code has been edited last with Visual Basic 6, but should be
 compatible with VB 5. To maintain compatibility with VB5 after having modified

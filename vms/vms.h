@@ -1,7 +1,7 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2009 Info-ZIP.  All rights reserved.
 
-  See the accompanying file LICENSE, version 2005-Feb-10 or later
+  See the accompanying file LICENSE, version 2009-Jan-02 or later
   (the contents of which are also included in zip.h) for terms of use.
   If, for some reason, all these files are missing, the Info-ZIP license
   also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
@@ -21,8 +21,31 @@
 #include <descrip.h>
 #endif
 #ifndef __STARLET_LOADED
+/* Workaround for broken header files of older DECC distributions
+ * that are incompatible with the /NAMES=AS_IS qualifier. */
+#define sys$assign SYS$ASSIGN
+#define sys$bintim SYS$BINTIM
+#define sys$close SYS$CLOSE
+#define sys$connect SYS$CONNECT
+#define sys$create SYS$CREATE
+#define sys$dassgn SYS$DASSGN
+#define sys$extend SYS$EXTEND
+#define sys$getjpiw SYS$GETJPIW
+#define sys$numtim SYS$NUMTIM
+#define sys$open SYS$OPEN
+#define sys$parse SYS$PARSE
+#define sys$put SYS$PUT
+#define sys$qio SYS$QIO
+#define sys$qiow SYS$QIOW
+#define sys$read SYS$READ
+#define sys$rewind SYS$REWIND
+#define sys$search SYS$SEARCH
+#define sys$setdfprot SYS$SETDFPROT
+#define sys$synch SYS$SYNCH
+#define sys$wait SYS$WAIT
+#define sys$write SYS$WRITE
 #include <starlet.h>
-#endif
+#endif /* ndef __STARLET_LOADED */
 #ifndef __SYIDEF_LOADED
 #include <syidef.h>
 #endif
@@ -60,13 +83,101 @@
 #  define FIB$W_FID     fib$w_fid
 #  define FIB$L_ACCTL   fib$l_acctl
 #  define FIB$W_EXCTL   fib$w_exctl
+#  define FIB$W_NMCTL   fib$w_nmctl
 #else
 #  define FIB$W_DID     fib$r_did_overlay.fib$w_did
 #  define FIB$W_FID     fib$r_fid_overlay.fib$w_fid
 #  define FIB$L_ACCTL   fib$r_acctl_overlay.fib$l_acctl
 #  define FIB$W_EXCTL   fib$r_exctl_overlay.fib$w_exctl
+#  define FIB$W_NMCTL   fib$r_nmctl_overlay.fib$w_nmctl
 #endif
 #undef variant_union
+
+
+/* 2005-02-10 SMS.  Copied NAM[L] macros here from Zip. */
+
+/* Define macros for use with either NAM or NAML. */
+
+#ifdef NAML$C_MAXRSS            /* NAML is available (ODS5 support...) */
+
+#  ifndef NAM_MAXRSS            /* May have been defined before. */
+#    define NAM_MAXRSS NAML$C_MAXRSS
+#  endif
+
+#  define NAM_STRUCT NAML
+
+#  define FAB_OR_NAML(fab, nam) (nam)
+#  define FAB_OR_NAML_DNA naml$l_long_defname
+#  define FAB_OR_NAML_DNS naml$l_long_defname_size
+#  define FAB_OR_NAML_FNA naml$l_long_filename
+#  define FAB_OR_NAML_FNS naml$l_long_filename_size
+
+#  define CC_RMS_NAM cc$rms_naml
+#  define FAB_NAM fab$l_naml
+
+#  define NAM_ESA naml$l_long_expand
+#  define NAM_ESL naml$l_long_expand_size
+#  define NAM_ESS naml$l_long_expand_alloc
+#  define NAM_RSA naml$l_long_result
+#  define NAM_RSL naml$l_long_result_size
+#  define NAM_RSS naml$l_long_result_alloc
+#  define NAM_DID naml$w_did
+#  define NAM_DVI naml$t_dvi
+#  define NAM_FID naml$w_fid
+#  define NAM_FNB naml$l_fnb
+#  define NAM_NOP naml$b_nop
+#  define NAM_M_SYNCHK NAML$M_SYNCHK
+#  define NAM_B_DEV naml$l_long_dev_size
+#  define NAM_L_DEV naml$l_long_dev
+#  define NAM_B_DIR naml$l_long_dir_size
+#  define NAM_L_DIR naml$l_long_dir
+#  define NAM_B_NAME naml$l_long_name_size
+#  define NAM_L_NAME naml$l_long_name
+#  define NAM_B_TYPE naml$l_long_type_size
+#  define NAM_L_TYPE naml$l_long_type
+#  define NAM_B_VER naml$l_long_ver_size
+#  define NAM_L_VER naml$l_long_ver
+
+#else /* !NAML$C_MAXRSS */      /* NAML is not available.  Use NAM. */
+
+#  ifndef NAM_MAXRSS            /* May have been defined before. */
+#    define NAM_MAXRSS NAM$C_MAXRSS
+#  endif
+
+#  define NAM_STRUCT NAM
+
+#  define FAB_OR_NAML(fab, nam) (fab)
+#  define FAB_OR_NAML_DNA fab$l_dna
+#  define FAB_OR_NAML_DNS fab$b_dns
+#  define FAB_OR_NAML_FNA fab$l_fna
+#  define FAB_OR_NAML_FNS fab$b_fns
+
+#  define CC_RMS_NAM cc$rms_nam
+#  define FAB_NAM fab$l_nam
+#  define NAM_ESA nam$l_esa
+#  define NAM_ESL nam$b_esl
+#  define NAM_ESS nam$b_ess
+#  define NAM_RSA nam$l_rsa
+#  define NAM_RSL nam$b_rsl
+#  define NAM_RSS nam$b_rss
+#  define NAM_DID nam$w_did
+#  define NAM_DVI nam$t_dvi
+#  define NAM_FID nam$w_fid
+#  define NAM_FNB nam$l_fnb
+#  define NAM_NOP nam$b_nop
+#  define NAM_M_SYNCHK NAM$M_SYNCHK
+#  define NAM_B_DEV nam$b_dev
+#  define NAM_L_DEV nam$l_dev
+#  define NAM_B_DIR nam$b_dir
+#  define NAM_L_DIR nam$l_dir
+#  define NAM_B_NAME nam$b_name
+#  define NAM_L_NAME nam$l_name
+#  define NAM_B_TYPE nam$b_type
+#  define NAM_L_TYPE nam$l_type
+#  define NAM_B_VER nam$b_ver
+#  define NAM_L_VER nam$l_ver
+
+#endif /* ?NAML$C_MAXRSS */
 
 
 struct EB_header    /* Common header of extra block */
@@ -190,7 +301,7 @@ struct iosb
  *  to unaligned fields in the PK_info structure representing the
  *  extra field layout.  When compiled for Alpha AXP, this results in
  *  some performance (and code size) penalty.  It is not allowed to
- *  apply structure padding, since this is explicitely forbidden in
+ *  apply structure padding, since this is explicitly forbidden in
  *  the specification (APPNOTE.TXT) for the PK VMS extra field.
  */
 typedef struct PK_info

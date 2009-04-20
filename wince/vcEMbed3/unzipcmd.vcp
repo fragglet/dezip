@@ -390,6 +390,7 @@ SOURCE=..\..\crc32.c
 !IF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Release"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -408,7 +409,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -423,6 +424,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Debug"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -441,7 +443,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -456,6 +458,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Release"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -474,7 +477,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -489,6 +492,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -507,7 +511,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -522,6 +526,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Release"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -540,7 +545,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -555,6 +560,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Debug"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -573,7 +579,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -588,6 +594,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Release"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -606,7 +613,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -621,6 +628,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Debug"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -639,7 +647,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -654,6 +662,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Release"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -672,7 +681,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -687,6 +696,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Debug"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -705,344 +715,7 @@ NODEP_CPP_CRC32=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\crctab.c
-
-!IF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Release"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Debug"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Release"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Debug"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Release"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Debug"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Release"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Debug"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Release"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\tandem.h"\
-	"..\..\theos\thscfg.h"\
-	"..\..\unix\unxcfg.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Debug"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\unzvers.h"\
-	"..\..\windll\structs.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wcecfg.h"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\flexos\flxcfg.h"\
-	"..\..\maccfg.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1064,6 +737,7 @@ SOURCE=..\..\crypt.c
 !IF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Release"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1084,7 +758,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1099,6 +773,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Debug"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1119,7 +794,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1134,6 +809,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Release"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1154,7 +830,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1169,6 +845,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1189,7 +866,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1204,6 +881,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Release"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1224,7 +902,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1239,6 +917,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Debug"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1259,7 +938,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1274,6 +953,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Release"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1294,7 +974,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1309,6 +989,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Debug"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1329,7 +1010,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1344,6 +1025,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Release"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1364,7 +1046,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1379,6 +1061,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Debug"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -1399,7 +1082,7 @@ NODEP_CPP_CRYPT=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1438,7 +1121,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1470,7 +1153,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1502,7 +1185,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1534,7 +1217,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1566,7 +1249,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1598,7 +1281,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1630,7 +1313,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1662,7 +1345,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1694,7 +1377,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1726,7 +1409,7 @@ NODEP_CPP_EXPLO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1748,6 +1431,7 @@ SOURCE=..\..\extract.c
 !IF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Release"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1769,7 +1453,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1784,6 +1468,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Debug"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1805,7 +1490,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1820,6 +1505,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Release"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1841,7 +1527,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1856,6 +1542,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1877,7 +1564,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1892,6 +1579,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Release"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1913,7 +1601,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1928,6 +1616,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Debug"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1949,7 +1638,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -1964,6 +1653,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Release"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1985,7 +1675,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2000,6 +1690,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Debug"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -2021,7 +1712,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2036,6 +1727,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Release"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -2057,7 +1749,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2072,6 +1764,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Debug"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -2093,7 +1786,7 @@ NODEP_CPP_EXTRA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2115,6 +1808,7 @@ SOURCE=..\..\fileio.c
 !IF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Release"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2138,7 +1832,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2154,6 +1848,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Debug"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2177,7 +1872,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2193,6 +1888,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Release"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2216,7 +1912,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2232,6 +1928,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2255,7 +1952,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2271,6 +1968,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Release"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2294,7 +1992,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2310,6 +2008,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Debug"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2333,7 +2032,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2349,6 +2048,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Release"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2372,7 +2072,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2388,6 +2088,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Debug"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2411,7 +2112,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2427,6 +2128,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Release"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2450,7 +2152,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2466,6 +2168,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Debug"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -2489,7 +2192,7 @@ NODEP_CPP_FILEI=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2529,7 +2232,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2561,7 +2264,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2593,7 +2296,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2625,7 +2328,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2657,7 +2360,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2689,7 +2392,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2721,7 +2424,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2753,7 +2456,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2785,7 +2488,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2817,7 +2520,7 @@ NODEP_CPP_GLOBA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2858,7 +2561,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2892,7 +2595,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2926,7 +2629,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2960,7 +2663,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -2994,7 +2697,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3028,7 +2731,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3062,7 +2765,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3096,7 +2799,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3130,7 +2833,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3164,7 +2867,7 @@ NODEP_CPP_INFLA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3206,7 +2909,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3241,7 +2944,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3276,7 +2979,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3311,7 +3014,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3346,7 +3049,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3381,7 +3084,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3416,7 +3119,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3451,7 +3154,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3486,7 +3189,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3521,7 +3224,7 @@ NODEP_CPP_INTRF=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3563,7 +3266,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3598,7 +3301,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3633,7 +3336,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3668,7 +3371,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3703,7 +3406,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3738,7 +3441,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3773,7 +3476,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3808,7 +3511,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3843,7 +3546,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3878,7 +3581,7 @@ NODEP_CPP_LIST_=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3917,7 +3620,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3949,7 +3652,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -3981,7 +3684,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4013,7 +3716,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4045,7 +3748,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4077,7 +3780,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4109,7 +3812,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4141,7 +3844,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4173,7 +3876,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4205,7 +3908,7 @@ NODEP_CPP_MATCH=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4227,6 +3930,7 @@ SOURCE=..\..\process.c
 !IF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Release"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4247,7 +3951,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4262,6 +3966,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Debug"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4282,7 +3987,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4297,6 +4002,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Release"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4317,7 +4023,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4332,6 +4038,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4352,7 +4059,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4367,6 +4074,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Release"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4387,7 +4095,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4402,6 +4110,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Debug"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4422,7 +4131,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4437,6 +4146,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Release"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4457,7 +4167,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4472,6 +4182,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Debug"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4492,7 +4203,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4507,6 +4218,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Release"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4527,7 +4239,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4542,6 +4254,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Debug"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -4562,7 +4275,7 @@ NODEP_CPP_PROCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4604,7 +4317,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4639,7 +4352,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4674,7 +4387,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4709,7 +4422,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4744,7 +4457,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4779,7 +4492,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4814,7 +4527,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4849,7 +4562,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4884,7 +4597,7 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4919,7 +4632,364 @@ NODEP_CPP_TTYIO=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\ubz2err.c
+
+!IF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Release"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE x86em) Debug"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Release"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE MIPS) Debug"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Release"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH4) Debug"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Release"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE SH3) Debug"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Release"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\tandem.h"\
+	"..\..\theos\thscfg.h"\
+	"..\..\unix\unxcfg.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "unzipcmd - Win32 (WCE ARM) Debug"
+
+DEP_CPP_UBZ2ERR_=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\..\unzvers.h"\
+	"..\..\windll\decs.h"\
+	"..\..\windll\structs.h"\
+	"..\..\windll\windll.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wcecfg.h"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR_=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\flexos\flxcfg.h"\
+	"..\..\maccfg.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4958,7 +5028,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -4990,7 +5060,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5022,7 +5092,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5054,7 +5124,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5086,7 +5156,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5118,7 +5188,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5150,7 +5220,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5182,7 +5252,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5214,7 +5284,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5246,7 +5316,7 @@ NODEP_CPP_UNRED=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5285,7 +5355,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5317,7 +5387,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5349,7 +5419,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5381,7 +5451,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5413,7 +5483,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5445,7 +5515,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5477,7 +5547,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5509,7 +5579,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5541,7 +5611,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5573,7 +5643,7 @@ NODEP_CPP_UNSHR=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5614,7 +5684,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5648,7 +5718,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5682,7 +5752,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5716,7 +5786,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5750,7 +5820,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5784,7 +5854,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5818,7 +5888,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5852,7 +5922,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5886,7 +5956,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5920,7 +5990,7 @@ NODEP_CPP_UNZIP=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5959,7 +6029,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -5991,7 +6061,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6023,7 +6093,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6055,7 +6125,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6087,7 +6157,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6119,7 +6189,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6151,7 +6221,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6183,7 +6253,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6215,7 +6285,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6247,7 +6317,7 @@ NODEP_CPP_WCEMA=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6287,7 +6357,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6320,7 +6390,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6353,7 +6423,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6386,7 +6456,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6419,7 +6489,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6452,7 +6522,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6485,7 +6555,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6518,7 +6588,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6551,7 +6621,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6584,7 +6654,7 @@ NODEP_CPP_WINCE=\
 	"..\..\flexos\flxcfg.h"\
 	"..\..\maccfg.h"\
 	"..\..\msdos\doscfg.h"\
-	"..\..\novell\nlmcfg.h"\
+	"..\..\netware\nlmcfg.h"\
 	"..\..\os2\os2cfg.h"\
 	"..\..\os2\os2data.h"\
 	"..\..\qdos\izqdos.h"\
@@ -6609,6 +6679,10 @@ SOURCE=..\..\consts.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\crc32.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\crypt.h
 # End Source File
 # Begin Source File
@@ -6622,10 +6696,6 @@ SOURCE=..\..\inflate.h
 # Begin Source File
 
 SOURCE=..\intrface.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\tables.h
 # End Source File
 # Begin Source File
 

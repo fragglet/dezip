@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "SFXWiz"=.\sfx\SFXWiz32.dsp - Package Owner=<4>
+Project: "SFXWiz"=".\sfx\SFXWiz32.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -18,7 +18,22 @@ Package=<4>
 
 ###############################################################################
 
-Project: "unz32dll"=.\dll\unz32dll.dsp - Package Owner=<4>
+Project: "c_dll_ex"=".\exampl\c_dll_ex.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name unz32dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "unz32dll"=".\dll\unz32dll.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -30,7 +45,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "unz32lib"=.\lib\unz32lib.dsp - Package Owner=<4>
+Project: "unz32lib"=".\lib\unz32lib.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -42,7 +57,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "unzsfx32"=.\sfx\unzsfx32.dsp - Package Owner=<4>
+Project: "unzsfx32"=".\sfx\unzsfx32.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

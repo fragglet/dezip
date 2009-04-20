@@ -130,7 +130,7 @@ subdirectory as well as the following files in the Info-ZIP root:
      api.c        crypt.h      globals.c    process.c    unzip.h
      consts.h     ebcdic.h     globals.h    ttyio.c      unzpriv.h
      crc32.c      explode.c    inflate.c    ttyio.h      unzvers.h
-     crctab.c     extract.c    inflate.h    unreduce.c   zip.h
+     crc32.h      extract.c    inflate.h    unreduce.c   zip.h
      crypt.c      fileio.c     list.c       unshrink.c
 
 _______________________________________________________________________________
@@ -182,7 +182,6 @@ and linking together the following source modules:
     wince/wcemain.c             main entry point
     unzip.c                     unzip command line interface
     crc32.c                     CRC-32 calculation
-    crctab.c                    lookup table for CRC-32
     crypt.c                     decryption support
     extract.c                   general archive extraction handling
     fileio.c                    internal I/O helper routines
@@ -208,9 +207,9 @@ These source modules depend on the following header files:
     wince/wince.h               WinCE C(++) library roundups
 
     consts.h                    global constant data
+    crc32.h                     CRC-32 calculation interface
     crypt.h                     decryption interface
     ebcdic.h                    ASCII <--> EBCDIC translation
-    tables.h                    codepage translation tables
     ttyio.h                     console I/O interface
     unzvers.h                   version/release information
     wince/intrface.h            public entities in wince/intrface.cpp

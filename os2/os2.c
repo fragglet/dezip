@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2007 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in zip.h) for terms of use.
@@ -494,19 +494,21 @@ static void SetPathAttrTimes(__GPRO__ int flags, int dir)
       return;
   }
 
-  /* set date/time stamps */
-  gotTimes = getOS2filetimes(__G__ &Mod_dt, &Acc_dt, &Cre_dt);
-  if (gotTimes & EB_UT_FL_MTIME) {
-    fs.fdateLastWrite = ((F_DATE_TIME *)&Mod_dt)->_fdt.fd;
-    fs.ftimeLastWrite = ((F_DATE_TIME *)&Mod_dt)->_fdt.ft;
-  }
-  if (gotTimes & EB_UT_FL_ATIME) {
-    fs.fdateLastAccess = ((F_DATE_TIME *)&Acc_dt)->_fdt.fd;
-    fs.ftimeLastAccess = ((F_DATE_TIME *)&Acc_dt)->_fdt.ft;
-  }
-  if (gotTimes & EB_UT_FL_CTIME) {
-    fs.fdateCreation = ((F_DATE_TIME *)&Cre_dt)->_fdt.fd;
-    fs.ftimeCreation = ((F_DATE_TIME *)&Cre_dt)->_fdt.ft;
+  if (uO.D_flag <= (dir ? 1 : 0)) {
+    /* set date/time stamps */
+    gotTimes = getOS2filetimes(__G__ &Mod_dt, &Acc_dt, &Cre_dt);
+    if (gotTimes & EB_UT_FL_MTIME) {
+      fs.fdateLastWrite = ((F_DATE_TIME *)&Mod_dt)->_fdt.fd;
+      fs.ftimeLastWrite = ((F_DATE_TIME *)&Mod_dt)->_fdt.ft;
+    }
+    if (gotTimes & EB_UT_FL_ATIME) {
+      fs.fdateLastAccess = ((F_DATE_TIME *)&Acc_dt)->_fdt.fd;
+      fs.ftimeLastAccess = ((F_DATE_TIME *)&Acc_dt)->_fdt.ft;
+    }
+    if (gotTimes & EB_UT_FL_CTIME) {
+      fs.fdateCreation = ((F_DATE_TIME *)&Cre_dt)->_fdt.fd;
+      fs.ftimeCreation = ((F_DATE_TIME *)&Cre_dt)->_fdt.ft;
+    }
   }
 
   if ( flags != -1 )
@@ -1591,14 +1593,21 @@ int checkdir(__G__ pathcomp, flag)
         int error = MPN_OK;
 
         Trace((stderr, "appending filename [%s]\n", FnFilter1(pathcomp)));
-        while ((*G.os2.endHPFS = *p++) != '\0') {    /* copy to HPFS filename */
+        /* The buildpathHPFS buffer has been allocated large enough to
+         * hold the complete combined name, so there is no need to check
+         * for OS filename size limit overflow within the copy loop.
+         */
+        while ((*G.os2.endHPFS = *p++) != '\0') {   /* copy to HPFS filename */
             ++G.os2.endHPFS;
-            if ((G.os2.endHPFS-G.os2.buildpathHPFS) >= FILNAMSIZ) {
-                *--G.os2.endHPFS = '\0';
-                Info(slide, 1, ((char *)slide, LoadFarString(PathTooLongTrunc),
-                  FnFilter1(G.filename), FnFilter2(G.os2.buildpathHPFS)));
-                error = MPN_INF_TRUNC;  /* filename truncated */
-            }
+        }
+        /* Now, check for OS filename size overflow.  When detected, the
+         * mapped HPFS name is truncated and a warning message is shown.
+         */
+        if ((G.os2.endHPFS-G.os2.buildpathHPFS) >= FILNAMSIZ) {
+            G.os2.buildpathHPFS[FILNAMSIZ-1] = '\0';
+            Info(slide, 1, ((char *)slide, LoadFarString(PathTooLongTrunc),
+              FnFilter1(G.filename), FnFilter2(G.os2.buildpathHPFS)));
+            error = MPN_INF_TRUNC;  /* filename truncated */
         }
 
 /* GRR:  how can longnameEA ever be set before this point???  we don't want
@@ -1606,10 +1615,15 @@ int checkdir(__G__ pathcomp, flag)
  *
  * if (!G.os2.longnameEA && ((G.os2.longnameEA = !IsFileNameValid(name)) != 0))
  */
+        /* The buildpathFAT buffer has the same allocated size as the
+         * buildpathHPFS buffer, so there is no need for an overflow check
+         * within the following copy loop, either.
+         */
         if (G.pInfo->vollabel || IsFileNameValid(G.os2.buildpathHPFS)) {
             G.os2.longnameEA = FALSE;
+            /* copy to FAT filename, too */
             p = pathcomp;
-            while ((*G.os2.endFAT = *p++) != '\0')   /* copy to FAT filename, too */
+            while ((*G.os2.endFAT = *p++) != '\0')
                 ++G.os2.endFAT;
         } else {
             G.os2.longnameEA = TRUE;
@@ -1623,8 +1637,19 @@ int checkdir(__G__ pathcomp, flag)
                 error = MPN_INF_TRUNC;
             } else           /* used and freed in close_outfile() */
                 strcpy(G.os2.lastpathcomp, pathcomp);
-            map2fat(pathcomp, &G.os2.endFAT);  /* map, put in FAT fn, update endFAT */
+            /* map, put in FAT fn, update endFAT */
+            map2fat(pathcomp, &G.os2.endFAT);
         }
+
+        /* Check that the FAT path does not exceed the FILNAMSIZ limit, and
+         * truncate when neccessary.
+         * Note that truncation can only happen when the HPFS path (which is
+         * never shorter than the FAT path) has been already truncated.
+         * So, emission of the warning message and setting the error code
+         * has already happened.
+         */
+        if ((G.os2.endFAT-G.os2.buildpathFAT) >= FILNAMSIZ)
+            G.os2.buildpathFAT[FILNAMSIZ-1] = '\0';
         Trace((stderr, "buildpathHPFS: %s\nbuildpathFAT:  %s\n",
           FnFilter1(G.os2.buildpathHPFS), FnFilter2(G.os2.buildpathFAT)));
 

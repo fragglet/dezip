@@ -14,6 +14,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Bob Babcock            DOS volume-label code (FCBs)
   Charles Bailey         VMS_SEVERITY fix; VMSWILD () extension
   Audrey Beck            "WHERE" file info for AOL OS/2 forum
+  Myles Bennet           Initial start of Zip64 and Large-File handling
   Mike Bernardi          Unix makefile entry; CIX uploads
   James Birdsall         extract.c/makefile/NT stuff, etc.; awesome beta tester
   Allan Bjorklund        in misc.c
@@ -122,6 +123,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Peter Kunath           DLL bugfixes, MSVC __asm support
   Russell Lang           OS/2 DLL calling-convention bugfix
   Michael Lawler         Borland version() info; process.c string fix; DOS fixes
+  Rudolf Lechleitner     inflate memory leak fix
   Johnny Lee             Macintosh port; Win3.1 port; far strings; fixes; etc.
   Alexander Lehmann      makefile.tc bugfix; MS-DOS mapname() bugfix
   Marty Leisner          Unix perms fix for non-Unix dirs; man pages fonts; etc.
@@ -145,6 +147,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Rafal Maszkowski       Convex unzip.h fixes; Unix makefile entry
   Jim Mathies            signal handler installing bugfix
   Eberhard Mattes        handler() bugfix; docs update
+  Adrian Maull           .NET C# example projects for Zip and UnZip dll
   Peter Mauzey           Unix makefile entry
   Scott Maxwell          version.h; massive reentrancy fixes; OS/2 DLL port
   Bob Maynard            16-bit OS/2 pathname bugfix
@@ -207,6 +210,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Chris Seaman           Unix time stuff
   Richard Seay           MS-DOS Quick C makefile
   Peter Seebach          fUnZip int main() bugfix
+  Matthew Seitz          keep inherited SGID attrib for created dirs on Unix
   Gisbert Selke          Unix makefile entry
   Alex Sergejew          fileio.c, stat(), Makefile fixes; Down Under jokes :-)
   Jim Seymour            Borland OS/2 fixes
@@ -252,6 +256,7 @@ ZIP digest *should* now be listed here, but oversights are entirely possible.
   Mark Wright            original Netware 3.11 NLM port
   Randy Wright           Unix makefile entry
   Meiwei Wu              open() return bugfix
+  Steve Youngs           win32 timestamp conversion bugfix
   Clay Zahrobsky         .zip/wildcard bugfix
   Eli Zaretskii          improvements to DOS-mode VFAT support; djgpp 2.x fixes
   Martin P.J. Zinser     VMS .hlp file for unzipsfx; MAKESFX.COM command file

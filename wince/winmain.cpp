@@ -216,7 +216,7 @@ void EnableAllMenuItems(UINT uMenuItem, BOOL fEnabled);
 void CheckAllMenuItems(UINT uMenuItem, BOOL fChecked);
 void CenterWindow(HWND hWnd);
 void AddTextToEdit(LPCSTR szText);
-LPTSTR FormatValue(LPTSTR szValue, DWORD dwValue);
+LPTSTR FormatValue(LPTSTR szValue, zusz_t uzValue);
 LPTSTR BuildAttributesString(LPTSTR szBuffer, DWORD dwAttributes);
 LPCSTR BuildTypeString(FILE_NODE *pFile, LPSTR szType);
 LPCSTR GetFileFromPath(LPCSTR szPath);
@@ -1145,7 +1145,7 @@ void OnActionView() {
    ZeroMemory(&ei, sizeof(ei));
    ei.fExtract      = TRUE;
    ei.dwFileCount   = 1;
-   ei.dwByteCount   = pfn->dwSize;
+   ei.uzByteCount   = pfn->uzSize;
    ei.szFileList    = argv;
    ei.fRestorePaths = FALSE;
    ei.overwriteMode = OM_PROMPT;
@@ -1339,7 +1339,7 @@ void OnGetDispInfo(LV_DISPINFO *plvdi) {
          return;
 
       case 1: // Size
-         FormatValue(plvdi->item.pszText, pFile->dwSize);
+         FormatValue(plvdi->item.pszText, pFile->uzSize);
          return;
 
       case 2: // Type
@@ -1363,11 +1363,11 @@ void OnGetDispInfo(LV_DISPINFO *plvdi) {
          return;
 
       case 5: // Compressed
-         FormatValue(plvdi->item.pszText, pFile->dwCompressedSize);
+         FormatValue(plvdi->item.pszText, pFile->uzCompressedSize);
          return;
 
       case 6: // Ratio
-         int factor; factor = ratio(pFile->dwSize, pFile->dwCompressedSize);
+         int factor; factor = ratio(pFile->uzSize, pFile->uzCompressedSize);
          _stprintf(plvdi->item.pszText, TEXT("%d.%d%%"), factor / 10,
                    ((factor < 0) ? -factor : factor) % 10);
          return;
@@ -1464,8 +1464,8 @@ int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM sortColumn) {
    switch (sortColumn) {
 
       case 1: // Size - Smallest to Largest
-         if (pFile1->dwSize != pFile2->dwSize) {
-            result = ((pFile1->dwSize < pFile2->dwSize) ? -1 : 1);
+         if (pFile1->uzSize != pFile2->uzSize) {
+            result = ((pFile1->uzSize < pFile2->uzSize) ? -1 : 1);
          }
          break;
 
@@ -1497,15 +1497,15 @@ int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM sortColumn) {
          break;
 
       case 5: // Compressed Size - Smallest to Largest
-         if (pFile1->dwCompressedSize != pFile2->dwCompressedSize) {
-            result = ((pFile1->dwCompressedSize < pFile2->dwCompressedSize) ? -1 : 1);
+         if (pFile1->uzCompressedSize != pFile2->uzCompressedSize) {
+            result = ((pFile1->uzCompressedSize < pFile2->uzCompressedSize) ? -1 : 1);
          }
          break;
 
       case 6: // Ratio - Smallest to Largest
          int factor1, factor2;
-         factor1 = ratio(pFile1->dwSize, pFile1->dwCompressedSize);
-         factor2 = ratio(pFile2->dwSize, pFile2->dwCompressedSize);
+         factor1 = ratio(pFile1->uzSize, pFile1->uzCompressedSize);
+         factor2 = ratio(pFile2->uzSize, pFile2->uzCompressedSize);
          result = factor1 - factor2;
          break;
 
@@ -1928,16 +1928,37 @@ void AddTextToEdit(LPCSTR szText) {
 }
 
 //******************************************************************************
-LPTSTR FormatValue(LPTSTR szValue, DWORD dwValue) {
-   DWORD dw = 0, dwGroup[4] = { 0, 0, 0, 0 };
-   while (dwValue) {
-      dwGroup[dw++] = dwValue % 1000;
-      dwValue /= 1000;
+LPTSTR FormatValue(LPTSTR szValue, zusz_t uzValue) {
+#ifdef ZIP64_SUPPORT
+    DWORD dw = 0, dwGroup[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+#else
+    DWORD dw = 0, dwGroup[4] = { 0, 0, 0, 0 };
+#endif
+   while (uzValue) {
+      dwGroup[dw++] = (DWORD)(uzValue % 1000);
+      uzValue /= 1000;
    }
    switch (dw) {
       case 2:  _stprintf(szValue, TEXT("%u,%03u"), dwGroup[1], dwGroup[0]); break;
       case 3:  _stprintf(szValue, TEXT("%u,%03u,%03u"), dwGroup[2], dwGroup[1], dwGroup[0]); break;
       case 4:  _stprintf(szValue, TEXT("%u,%03u,%03u,%03u"), dwGroup[3], dwGroup[2], dwGroup[1], dwGroup[0]); break;
+#ifdef ZIP64_SUPPORT
+      case 5:
+          _stprintf(szValue, TEXT("%u,%03u,%03u,%03u,%03u"),
+                    dwGroup[4], dwGroup[3], dwGroup[2], dwGroup[1], dwGroup[0]);
+          break;
+      case 6:
+          _stprintf(szValue, TEXT("%u,%03u,%03u,%03u,%03u,%03u"), dwGroup[5],
+                    dwGroup[4], dwGroup[3], dwGroup[2], dwGroup[1], dwGroup[0]);
+          break;
+      case 7:
+          _stprintf(szValue, TEXT("%u,%03u,%03u,%03u,%03u,%03u,%03u"), dwGroup[6], dwGroup[5],
+                    dwGroup[4], dwGroup[3], dwGroup[2], dwGroup[1], dwGroup[0]);
+          break;
+      case 8:
+          _stprintf(szValue, TEXT("%u,%03u,%03u,%03u,%03u,%03u,%03u,%03u"), dwGroup[7], dwGroup[6], dwGroup[5],
+                    dwGroup[4], dwGroup[3], dwGroup[2], dwGroup[1], dwGroup[0]);
+#endif
       default: _stprintf(szValue, TEXT("%u"), dwGroup[0]);
    }
    return szValue;
@@ -2619,7 +2640,7 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
          int    directory = -1, readOnly = -1, archive = -1, hidden = -1;
          int    system = -1, encrypted = -1;
          int    year = -1, month = -1, day = -1, hour = -1, minute = -1, pm = -1;
-         DWORD  dwSize = 0, dwCompressedSize = 0;
+         zusz_t uzSize = 0, uzCompressedSize = 0;
          LPCSTR szPath = NULL, szMethod = NULL, szComment = NULL;
          DWORD  dwCRC = 0, dwCount = 0, dwCommentCount = 0;
          TCHAR  szBuffer[MAX_PATH];
@@ -2659,8 +2680,8 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
             dwCRC = pFile->dwCRC;
 
             // Add the size and compressed size to our accumulative sizes.
-            dwSize += pFile->dwSize;
-            dwCompressedSize += pFile->dwCompressedSize;
+            uzSize += pFile->uzSize;
+            uzCompressedSize += pFile->uzCompressedSize;
 
             // Merge in our compression method.
             LPCSTR szCurMethod = pFile->szPathAndMethod + strlen(pFile->szPathAndMethod) + 1;
@@ -2703,17 +2724,17 @@ BOOL CALLBACK DlgProcProperties(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
          }
 
          // Set the Size tally text.
-         FormatValue(szBuffer, dwSize);
+         FormatValue(szBuffer, uzSize);
          _tcscat(szBuffer, (dwCount > 1) ? TEXT(" bytes total") : TEXT(" bytes"));
          SetDlgItemText(hDlg, IDC_FILE_SIZE, szBuffer);
 
          // Set the Compressed Size tally text.
-         FormatValue(szBuffer, dwCompressedSize);
+         FormatValue(szBuffer, uzCompressedSize);
          _tcscat(szBuffer, (dwCount > 1) ? TEXT(" bytes total") : TEXT(" bytes"));
          SetDlgItemText(hDlg, IDC_COMPRESSED_SIZE, szBuffer);
 
          // Set the Compression Factor text.
-         int factor = ratio(dwSize, dwCompressedSize);
+         int factor = ratio(uzSize, uzCompressedSize);
          _stprintf(szBuffer, TEXT("%d.%d%%"), factor / 10,
                    ((factor < 0) ? -factor : factor) % 10);
          SetDlgItemText(hDlg, IDC_COMPRESSON_FACTOR, szBuffer);
@@ -2859,7 +2880,7 @@ void ExtractOrTestFiles(BOOL fExtract) {
    }
 
    ei.dwFileCount = 0;
-   ei.dwByteCount = 0;
+   ei.uzByteCount = 0;
 
    LV_ITEM lvi;
    ZeroMemory(&lvi, sizeof(lvi));
@@ -2874,7 +2895,7 @@ void ExtractOrTestFiles(BOOL fExtract) {
          ei.szFileList[ei.dwFileCount] = ((FILE_NODE*)lvi.lParam)->szPathAndMethod;
       }
       ei.dwFileCount++;
-      ei.dwByteCount += ((FILE_NODE*)lvi.lParam)->dwSize;
+      ei.uzByteCount += ((FILE_NODE*)lvi.lParam)->uzSize;
    }
    if (ei.szFileList) {
       ei.szFileList[ei.dwFileCount] = NULL;
@@ -2918,7 +2939,7 @@ BOOL CALLBACK DlgProcExtractOrTest(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 
          // Set the state of all the controls.
          SetDlgItemText(hDlg, IDC_FILE_COUNT, FormatValue(szPath, pei->dwFileCount));
-         SetDlgItemText(hDlg, IDC_BYTE_COUNT, FormatValue(szPath, pei->dwByteCount));
+         SetDlgItemText(hDlg, IDC_BYTE_COUNT, FormatValue(szPath, pei->uzByteCount));
          CheckDlgButton(hDlg, IDC_RESTORE_PATHS, pei->fRestorePaths);
          CheckDlgButton(hDlg, IDC_OVERWRITE_PROMPT, pei->overwriteMode == OM_PROMPT);
          CheckDlgButton(hDlg, IDC_OVERWRITE_NEWER,  pei->overwriteMode == OM_NEWER);
@@ -3283,7 +3304,7 @@ BOOL CALLBACK DlgProcExtractProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
          SetDlgItemText(hDlg, IDC_FILES_TOTAL,
                         FormatValue(szBuffer, pei->dwFileCount));
          SetDlgItemText(hDlg, IDC_BYTES_TOTAL,
-                        FormatValue(szBuffer, pei->dwByteCount));
+                        FormatValue(szBuffer, pei->uzByteCount));
 
          // Launch our Extract/Test thread and wait for WM_PRIVATE
          DoExtractOrTestFiles(g_szZipFile, pei);
@@ -3304,7 +3325,7 @@ BOOL CALLBACK DlgProcExtractProgress(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
             SetDlgItemText(hDlg, IDC_FILES_PROCESSED,
                            FormatValue(szBuffer, pei->dwFileCount));
             SetDlgItemText(hDlg, IDC_BYTES_PROCESSED,
-                           FormatValue(szBuffer, pei->dwByteCount));
+                           FormatValue(szBuffer, pei->uzByteCount));
          }
 
          // Update our status text.
@@ -3420,10 +3441,10 @@ void UpdateProgress(EXTRACT_INFO *pei, BOOL fFull) {
    TCHAR szBuffer[_MAX_PATH + 32];
 
    // Compute our file progress bar position.
-   if (pei->dwBytesTotalThisFile) {
+   if (pei->uzBytesTotalThisFile) {
       dwFile = (DWORD)(((DWORDLONG)PROGRESS_MAX *
-                        (DWORDLONG)pei->dwBytesWrittenThisFile) /
-                        (DWORDLONG)pei->dwBytesTotalThisFile);
+                        (DWORDLONG)pei->uzBytesWrittenThisFile) /
+                        (DWORDLONG)pei->uzBytesTotalThisFile);
    } else {
       dwFile = PROGRESS_MAX;
    }
@@ -3438,10 +3459,10 @@ void UpdateProgress(EXTRACT_INFO *pei, BOOL fFull) {
 
    // Compute our total progress bar position.
    dwTotal = (DWORD)(((DWORDLONG)PROGRESS_MAX *
-                      (DWORDLONG)(pei->dwBytesWrittenPreviousFiles +
-                                  pei->dwBytesWrittenThisFile +
+                      (DWORDLONG)(pei->uzBytesWrittenPreviousFiles +
+                                  pei->uzBytesWrittenThisFile +
                                   pei->dwFile)) /
-                      (DWORDLONG)(pei->dwByteCount +
+                      (DWORDLONG)(pei->uzByteCount +
                                   pei->dwFileCount));
    dwPercentage = dwTotal / (PROGRESS_MAX / 100);
 
@@ -3455,8 +3476,8 @@ void UpdateProgress(EXTRACT_INFO *pei, BOOL fFull) {
    // Set our current file and byte process counts.
    FormatValue(szBuffer, pei->dwFile - 1);
    SetWindowText(pei->hWndFilesProcessed, szBuffer);
-   FormatValue(szBuffer, pei->dwBytesWrittenPreviousFiles +
-               pei->dwBytesWrittenThisFile);
+   FormatValue(szBuffer, pei->uzBytesWrittenPreviousFiles +
+               pei->uzBytesWrittenThisFile);
    SetWindowText(pei->hWndBytesProcessed, szBuffer);
 
 

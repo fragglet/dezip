@@ -443,6 +443,7 @@ SOURCE=..\..\crc32.c
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Release"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -469,6 +470,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -495,6 +497,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Release"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -521,6 +524,7 @@ NODEP_CPP_CRC32=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Debug"
 
 DEP_CPP_CRC32=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -549,122 +553,7 @@ NODEP_CPP_CRC32=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\crctab.c
-
-!IF  "$(CFG)" == "punzip - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "punzip - Win32 Debug"
-
-!ELSEIF  "$(CFG)" == "punzip - Win32 ANSI Release"
-
-!ELSEIF  "$(CFG)" == "punzip - Win32 ANSI Debug"
-
-!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Release"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\macdir.h"\
-	"..\..\macstat.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Debug"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\macdir.h"\
-	"..\..\macstat.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Release"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\macdir.h"\
-	"..\..\macstat.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Debug"
-
-DEP_CPP_CRCTA=\
-	"..\..\globals.h"\
-	"..\..\unzip.h"\
-	"..\..\unzpriv.h"\
-	"..\..\zip.h"\
-	"..\punzip.h"\
-	"..\punzip.rcv"\
-	"..\wince.h"\
-	
-NODEP_CPP_CRCTA=\
-	"..\..\acorn\riscos.h"\
-	"..\..\amiga\amiga.h"\
-	"..\..\aosvs\aosvs.h"\
-	"..\..\macdir.h"\
-	"..\..\macstat.h"\
-	"..\..\msdos\doscfg.h"\
-	"..\..\os2\os2cfg.h"\
-	"..\..\os2\os2data.h"\
-	"..\..\qdos\izqdos.h"\
-	"..\..\vmmvs.h"\
-	"..\..\win32\w32cfg.h"\
-	"..\..\zlib.h"\
-	
-
-!ENDIF 
-
+SOURCE=..\..\crc32.h
 # End Source File
 # Begin Source File
 
@@ -681,6 +570,7 @@ SOURCE=..\..\crypt.c
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Release"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -709,6 +599,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -737,6 +628,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Release"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -765,6 +657,7 @@ NODEP_CPP_CRYPT=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Debug"
 
 DEP_CPP_CRYPT=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\ttyio.h"\
@@ -931,6 +824,7 @@ SOURCE=..\..\extract.c
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Release"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -959,6 +853,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -987,6 +882,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Release"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1015,6 +911,7 @@ NODEP_CPP_EXTRA=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Debug"
 
 DEP_CPP_EXTRA=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
@@ -1058,6 +955,7 @@ SOURCE=..\..\fileio.c
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Release"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -1086,6 +984,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -1114,6 +1013,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Release"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -1142,6 +1042,7 @@ NODEP_CPP_FILEI=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Debug"
 
 DEP_CPP_FILEI=\
+	"..\..\crc32.h"\
 	"..\..\crypt.h"\
 	"..\..\ebcdic.h"\
 	"..\..\globals.h"\
@@ -1554,6 +1455,7 @@ SOURCE=..\..\process.c
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Release"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -1581,6 +1483,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Debug"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -1608,6 +1511,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Release"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -1635,6 +1539,7 @@ NODEP_CPP_PROCE=\
 !ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Debug"
 
 DEP_CPP_PROCE=\
+	"..\..\crc32.h"\
 	"..\..\globals.h"\
 	"..\..\unzip.h"\
 	"..\..\unzpriv.h"\
@@ -1792,6 +1697,125 @@ NODEP_CPP_TTYIO=\
 # Begin Source File
 
 SOURCE=..\..\ttyio.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\ubz2err.c
+
+!IF  "$(CFG)" == "punzip - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "punzip - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "punzip - Win32 ANSI Release"
+
+!ELSEIF  "$(CFG)" == "punzip - Win32 ANSI Debug"
+
+!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Release"
+
+DEP_CPP_UBZ2ERR=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\macdir.h"\
+	"..\..\macstat.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE MIPS) Debug"
+
+DEP_CPP_UBZ2ERR=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\macdir.h"\
+	"..\..\macstat.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Release"
+
+DEP_CPP_UBZ2ERR=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\macdir.h"\
+	"..\..\macstat.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ELSEIF  "$(CFG)" == "punzip - Win32 (WCE SH) Debug"
+
+DEP_CPP_UBZ2ERR=\
+	"..\..\globals.h"\
+	"..\..\unzip.h"\
+	"..\..\unzpriv.h"\
+	"..\intrface.h"\
+	"..\punzip.h"\
+	"..\punzip.rcv"\
+	"..\wince.h"\
+	
+NODEP_CPP_UBZ2ERR=\
+	"..\..\acorn\riscos.h"\
+	"..\..\amiga\amiga.h"\
+	"..\..\aosvs\aosvs.h"\
+	"..\..\macdir.h"\
+	"..\..\macstat.h"\
+	"..\..\msdos\doscfg.h"\
+	"..\..\os2\os2cfg.h"\
+	"..\..\os2\os2data.h"\
+	"..\..\qdos\izqdos.h"\
+	"..\..\vmmvs.h"\
+	"..\..\win32\w32cfg.h"\
+	"..\..\zlib.h"\
+	
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

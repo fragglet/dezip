@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# Makefile for UnZip 5.5 and later                             Jean-loup Gailly
-# Version:  Turbo C (edit and use makefile.bc for Turbo C++)          04 Mar 01
+# Makefile for UnZip 5.53 and later                            Jean-loup Gailly
+# Version:  Turbo C (edit and use makefile.bc for Turbo C++)          29 Dec 05
 #------------------------------------------------------------------------------
 
 #    GNU make doesn't like the return value from "rem"
@@ -55,12 +55,12 @@ FLDFLAGS = -m$(FUMODEL)
 
 LDFLAGS2 =
 
-OBJS = unzip.obj crc32.obj crctab.obj crypt.obj envargs.obj explode.obj \
+OBJS = unzip.obj crc32.obj crypt.obj envargs.obj explode.obj \
 	extract.obj fileio.obj globals.obj inflate.obj list.obj match.obj \
 	process.obj ttyio.obj unreduce.obj unshrink.obj zipinfo.obj \
 	msdos.obj $(ASMOBJS)
 
-OBJX = unzipsfx.obj crc32x.obj crctabx.obj cryptx.obj extractx.obj \
+OBJX = unzipsfx.obj crc32x.obj cryptx.obj extractx.obj \
 	fileiox.obj globalsx.obj inflatex.obj matchx.obj processx.obj \
 	ttyiox.obj \
 	msdosx.obj $(ASMOBJS)
@@ -94,30 +94,28 @@ crc_i86.obj:    msdos/crc_i86.asm
 crc_i86_.obj:   msdos/crc_i86.asm
 	$(AS) $(ASFLAGS) -D$(ASFUMODEL) msdos\crc_i86.asm, $*.obj ;
 
-crc32.obj:      crc32.c $(UNZIP_H) zip.h
+crc32.obj:      crc32.c $(UNZIP_H) zip.h crc32.h
 
-crc32_.obj:     crc32.c $(UNZIP_H) zip.h
+crc32_.obj:     crc32.c $(UNZIP_H) zip.h crc32.h
 	$(CC) -c $(FCFLAGS) -DFUNZIP -ocrc32_.obj crc32.c
 
-crctab.obj:     crctab.c $(UNZIP_H) zip.h
+crypt.obj:      crypt.c $(UNZIP_H) crypt.h crc32.h ttyio.h zip.h
 
-crypt.obj:      crypt.c $(UNZIP_H) crypt.h ttyio.h zip.h
-
-crypt_.obj:     crypt.c $(UNZIP_H) crypt.h ttyio.h zip.h
+crypt_.obj:     crypt.c $(UNZIP_H) crypt.h crc32.h ttyio.h zip.h
 	$(CC) -c $(FCFLAGS) -DFUNZIP -ocrypt_.obj crypt.c
 
 envargs.obj:    envargs.c $(UNZIP_H)
 
 explode.obj:    explode.c $(UNZIP_H)
 
-extract.obj:    extract.c $(UNZIP_H) crypt.h
+extract.obj:    extract.c $(UNZIP_H) crc32.h crypt.h
 
-extractx.obj:   extract.c $(UNZIP_H) crypt.h
+extractx.obj:   extract.c $(UNZIP_H) crc32.h crypt.h
 	$(CC) -c $(UCFLAGS) -DSFX -oextractx.obj extract.c
 
-fileio.obj:     fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
+fileio.obj:     fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 
-funzip.obj:     funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+funzip.obj:     funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
 	$(CC) -c $(FCFLAGS) funzip.c
 
 globals.obj:    globals.c $(UNZIP_H)
@@ -143,9 +141,9 @@ msdos_.obj:     msdos/msdos.c $(UNZIP_H)
 msdosx.obj:     msdos/msdos.c $(UNZIP_H)
 	$(CC) -c $(UCFLAGS) -DSFX -omsdos_.obj msdos/msdos.c
 
-process.obj:    process.c $(UNZIP_H)
+process.obj:    process.c $(UNZIP_H) crc32.h
 
-processx.obj:   process.c $(UNZIP_H)
+processx.obj:   process.c $(UNZIP_H) crc32.h
 	$(CC) -c $(UCFLAGS) -DSFX -oprocess_.obj process.c
 
 ttyio.obj:      ttyio.c $(UNZIP_H) crypt.h ttyio.h zip.h

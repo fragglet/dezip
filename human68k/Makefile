@@ -1,9 +1,9 @@
-# Makefile for UnZip 5.50 and later:  Human68k with gcc        NIIMI Satoshi
+# Makefile for UnZip 5.53 and later:  Human68k with gcc        NIIMI Satoshi
 #
 # The original Makefile maybe works fine, but X680x0 is too slow
 # to process it.  So I split out needed part.
 #
-# Last revised:  27 Feb 01
+# Last revised:  25 Dec 06
 #
 # 1999/09/23: Modified by Shimazaki Ryo.
 
@@ -29,12 +29,13 @@ XC = -DSFX
 FC = -DFUNZIP
 
 # object files
-OBJS = unzip.o crc_68.o crctab.o crypt.o envargs.o explode.o extract.o \
+OBJS = unzip.o crc32.o crc_68.o crypt.o envargs.o explode.o extract.o \
 	fileio.o globals.o inflate.o flate.o list.o match.o process.o \
-	ttyio.o unreduce.o unshrink.o zipinfo.o human68k.o
-OBJX = unzipsfx.o crc_68.o crctab_.o crypt_.o extract_.o fileio_.o globals_.o \
-	inflate_.o flate_.o match_.o process_.o ttyio_.o human68k_.o
-OBJF = funzip.o crc_68.o cryptf.o globalsf.o inflatef.o flatef.o ttyiof.o
+	ttyio.o ubz2err.o unreduce.o unshrink.o zipinfo.o human68k.o
+OBJX = unzipsfx.o crc32_.o crc_68.o crypt_.o extract_.o fileio_.o globals_.o \
+	inflate_.o flate_.o match_.o process_.o ttyio_.o ubz2err_.o human68k_.o
+OBJF = funzip.o crc32f.o crc_68.o cryptf.o globalsf.o inflatef.o flatef.o \
+	ttyiof.o
 
 UNZIP_H = unzip.h unzpriv.h globals.h
 
@@ -66,66 +67,75 @@ unzipsfx.x: $(OBJX)
 funzip.x: $(OBJF)
 	$(CC) $(LDFLAGS) -o $@ $(OBJF) $(LIBS)
 
-#crc32.o:	crc32.c $(UNZIP_H) zip.h
-crctab.o:	crctab.c $(UNZIP_H) zip.h
+crc32.o:	crc32.c $(UNZIP_H) zip.h crc32.h
 crypt.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 envargs.o:	envargs.c $(UNZIP_H)
 explode.o:	explode.c $(UNZIP_H)
-extract.o:	extract.c $(UNZIP_H) crypt.h
-fileio.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
-funzip.o:	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+extract.o:	extract.c $(UNZIP_H) crc32.h crypt.h
+fileio.o:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
+funzip.o:	funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.hh
 globals.o:	globals.c $(UNZIP_H)
 inflate.o:	inflate.c inflate.h $(UNZIP_H)
 list.o:		list.c $(UNZIP_H)
 match.o:	match.c $(UNZIP_H)
-process.o:	process.c $(UNZIP_H)
+process.o:	process.c $(UNZIP_H) crc32.h
 ttyio.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+ubz2err.o:	ubz2err.c $(UNZIP_H)
 unreduce.o:	unreduce.c $(UNZIP_H)
 unshrink.o:	unshrink.c $(UNZIP_H)
 unzip.o:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 zipinfo.o:	zipinfo.c $(UNZIP_H)
 
-crctab_.o:	crctab.c $(UNZIP_H) zip.h			# unzipsfx
+
+# unzipsfx
+crc32_.o:	crc32.c $(UNZIP_H) zip.h crc32.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-crypt_.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx
+crypt_.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-extract_.o:	extract.c $(UNZIP_H) crypt.h			# unzipsfx
+extract_.o:	extract.c $(UNZIP_H) crc32.h crypt.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-fileio_.o:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx
+fileio_.o:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-globals_.o:	globals.c $(UNZIP_H)				# unzipsfx
+globals_.o:	globals.c $(UNZIP_H)
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-inflate_.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx
+inflate_.o:	inflate.c inflate.h $(UNZIP_H) crypt.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-process_.o:	process.c $(UNZIP_H)				# unzipsfx
+match_.o:	match.c $(UNZIP_H)
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-match_.o:	match.c $(UNZIP_H)				# unzipsfx
+process_.o:	process.c $(UNZIP_H) crc32.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-ttyio_.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx
+ttyio_.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
-unzipsfx.o:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx
+ubz2err_.o:	ubz2err.c $(UNZIP_H)
+	$(CC) $(CFLAGS) $(XC) -c $< -o $@
+
+unzipsfx.o:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CC) $(CFLAGS) $(XC) -c $< -o $@
 
 
-cryptf.o:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip
+# funzip
+crc32f.o:	crc32.c $(UNZIP_H) zip.h crc32.h
 	$(CC) $(CFLAGS) $(FC) -c $< -o $@
 
-globalsf.o:	globals.c $(UNZIP_H)				# funzip
+cryptf.o:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(CC) $(CFLAGS) $(FC) -c $< -o $@
 
-inflatef.o:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip
+globalsf.o:	globals.c $(UNZIP_H)
 	$(CC) $(CFLAGS) $(FC) -c $< -o $@
 
-ttyiof.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip
+inflatef.o:	inflate.c inflate.h $(UNZIP_H) crypt.h
+	$(CC) $(CFLAGS) $(FC) -c $< -o $@
+
+ttyiof.o:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CC) $(CFLAGS) $(FC) -c $< -o $@
 
 

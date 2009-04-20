@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 1990-2005 Info-ZIP.  All rights reserved.
+  Copyright (c) 1990-2007 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
   (the contents of which are also included in unzip.h) for terms of use.
@@ -800,55 +800,58 @@ typedef union {
 void close_outfile(__G)
     __GDEF
 {
+    /* skip restoring time stamps on user's request */
+    if (uO.D_flag <= 1) {
 #ifdef USE_EF_UT_TIME
-    dos_fdatetime dos_dt;
-    iztimes z_utime;
-    struct tm *t;
+        dos_fdatetime dos_dt;
+        iztimes z_utime;
+        struct tm *t;
 #endif /* USE_EF_UT_TIME */
 
 
 #ifdef USE_EF_UT_TIME
-    if (G.extra_field &&
+        if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
-        G.tz_is_valid &&
+            G.tz_is_valid &&
 #endif
-        (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                          G.lrec.last_mod_dos_datetime, &z_utime, NULL)
-         & EB_UT_FL_MTIME))
-    {
-        TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
-          z_utime.mtime));
-        /* round up (down if "up" overflows) to even seconds */
-        if (z_utime.mtime & 1)
-            z_utime.mtime = (z_utime.mtime + 1 > z_utime.mtime) ?
-                             z_utime.mtime + 1 : z_utime.mtime - 1;
-        TIMET_TO_NATIVE(z_utime.mtime)   /* NOP unless MSC 7.0 or Macintosh */
-        t = localtime(&(z_utime.mtime));
-    } else
-        t = (struct tm *)NULL;
-    if (t != (struct tm *)NULL) {
-        if (t->tm_year < 80) {
-            dos_dt.z_dtf.zt_se = 0;
-            dos_dt.z_dtf.zt_mi = 0;
-            dos_dt.z_dtf.zt_hr = 0;
-            dos_dt.z_dtf.zd_dy = 1;
-            dos_dt.z_dtf.zd_mo = 1;
-            dos_dt.z_dtf.zd_yr = 0;
+            (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                              G.lrec.last_mod_dos_datetime, &z_utime, NULL)
+             & EB_UT_FL_MTIME))
+        {
+            TTrace((stderr, "close_outfile:  Unix e.f. modif. time = %ld\n",
+              z_utime.mtime));
+            /* round up (down if "up" overflows) to even seconds */
+            if (z_utime.mtime & 1)
+                z_utime.mtime = (z_utime.mtime + 1 > z_utime.mtime) ?
+                                 z_utime.mtime + 1 : z_utime.mtime - 1;
+            TIMET_TO_NATIVE(z_utime.mtime) /* NOP unless MSC 7 or Macintosh */
+            t = localtime(&(z_utime.mtime));
+        } else
+            t = (struct tm *)NULL;
+        if (t != (struct tm *)NULL) {
+            if (t->tm_year < 80) {
+                dos_dt.z_dtf.zt_se = 0;
+                dos_dt.z_dtf.zt_mi = 0;
+                dos_dt.z_dtf.zt_hr = 0;
+                dos_dt.z_dtf.zd_dy = 1;
+                dos_dt.z_dtf.zd_mo = 1;
+                dos_dt.z_dtf.zd_yr = 0;
+            } else {
+                dos_dt.z_dtf.zt_se = t->tm_sec >> 1;
+                dos_dt.z_dtf.zt_mi = t->tm_min;
+                dos_dt.z_dtf.zt_hr = t->tm_hour;
+                dos_dt.z_dtf.zd_dy = t->tm_mday;
+                dos_dt.z_dtf.zd_mo = t->tm_mon + 1;
+                dos_dt.z_dtf.zd_yr = t->tm_year - 80;
+            }
         } else {
-            dos_dt.z_dtf.zt_se = t->tm_sec >> 1;
-            dos_dt.z_dtf.zt_mi = t->tm_min;
-            dos_dt.z_dtf.zt_hr = t->tm_hour;
-            dos_dt.z_dtf.zd_dy = t->tm_mday;
-            dos_dt.z_dtf.zd_mo = t->tm_mon + 1;
-            dos_dt.z_dtf.zd_yr = t->tm_year - 80;
+            dos_dt.z_dostime = G.lrec.last_mod_dos_datetime;
         }
-    } else {
-        dos_dt.z_dostime = G.lrec.last_mod_dos_datetime;
-    }
-    _dos_filedate(fileno(G.outfile), dos_dt.z_dostime);
+        _dos_filedate(fileno(G.outfile), dos_dt.z_dostime);
 #else /* !USE_EF_UT_TIME */
-    _dos_filedate(fileno(G.outfile), G.lrec.last_mod_dos_datetime);
+        _dos_filedate(fileno(G.outfile), G.lrec.last_mod_dos_datetime);
 #endif /* ?USE_EF_UT_TIME */
+    }
 
     fclose(G.outfile);
 

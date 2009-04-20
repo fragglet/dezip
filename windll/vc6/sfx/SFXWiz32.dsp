@@ -158,6 +158,10 @@ SOURCE=..\..\..\windll\guisfx\sfxwiz.rc
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=..\..\..\windll\guisfx\dialog.h
+# End Source File
 # End Group
 # Begin Group "Resource Files"
 

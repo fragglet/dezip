@@ -98,8 +98,8 @@ c) Using the Command line (Menu: File->Command Line):
            Macintosh HD:somewhere:my_folder_to_archive:*
 
    Note: At the end of the path there must be a filename or
-         a wild card !
-   (see Footnotes: 1 wild card, 2 Mac path names)
+         a wildcard !
+   (see Footnotes: 1 wildcard, 2 Mac path names)
 
    So the command line should look like (one line!):
 
@@ -529,9 +529,9 @@ the file system. Thanks to Jim Luther. (see morefiles.doc)
 ---------------------------------------------------------------------------
 Footnotes:
 
-1. wild card:
-    The '*' is a wild card and means 'all files'
-    Just in case you don't know wild cards:
+1. wildcard:
+    The '*' is a wildcard and means 'all files'
+    Just in case you don't know wildcards:
     '*' is a place holder for any character.
     e.g.:
     "this*" matches with "this_file" or  "this_textfile" but it

@@ -1,9 +1,9 @@
 ######################################################################
 #
 # Makefile for Info-ZIP's unzip, unzipsfx, and funzip on AtheOS
-# Version 5.52
+# Version 5.53
 #
-# Copyright (C) 1998-2001 Info-ZIP
+# Copyright (C) 1998-2006 Info-ZIP
 #                    Chris Herborth (chrish@qnx.com)
 # Copyright (C) 2004 Nikolaev Ruslan (nruslan@hotbox.ru)
 #
@@ -38,15 +38,15 @@ OSDEP_H = atheos/athcfg.h
 # define
 
 # object files
-OBJS1 = unzip$O crc_i386$O crctab$O crypt$O envargs$O explode$O
+OBJS1 = unzip$O crc32$O crc_i386$O crypt$O envargs$O explode$O
 OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
-OBJS3 = process$O ttyio$O unreduce$O unshrink$O zipinfo$O
+OBJS3 = process$O ttyio$O ubz2err$O unreduce$O unshrink$O zipinfo$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS) api$O
-OBJX = unzipsfx$O crc_i386$O crctab_$O crypt_$O extract_$O fileio_$O globals_$O inflate_$O match_$O process_$O ttyio_$O $M_$O
+OBJX = unzipsfx$O crc32_$O crc_i386$O crypt_$O extract_$O fileio_$O globals_$O inflate_$O match_$O process_$O ttyio_$O ubz2err_$O $M_$O
 LOBJX = $(OBJX)
-OBJF = funzip$O crc_i386$O cryptf$O globalsf$O inflatef$O ttyiof$O
+OBJF = funzip$O crc32f$O crc_i386$O cryptf$O globalsf$O inflatef$O ttyiof$O
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H)
 
 # installation
@@ -124,19 +124,20 @@ funzip$E:	$(OBJF)
 zipinfo$E:	unzip$E
 	$(LN) unzip$E zipinfo$E
 
-crctab$O:	crctab.c $(UNZIP_H) zip.h
-crypt$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h
+crc32$O:	crc32.c $(UNZIP_H) zip.h crc32.h
+crypt$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 envargs$O:	envargs.c $(UNZIP_H)
 explode$O:	explode.c $(UNZIP_H)
-extract$O:	extract.c $(UNZIP_H) crypt.h
-fileio$O:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h
-funzip$O:	funzip.c $(UNZIP_H) crypt.h ttyio.h tables.h
+extract$O:	extract.c $(UNZIP_H) crc32.h crypt.h
+fileio$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
+funzip$O:	funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
 globals$O:	globals.c $(UNZIP_H)
 inflate$O:	inflate.c inflate.h $(UNZIP_H)
 list$O:		list.c $(UNZIP_H)
 match$O:	match.c $(UNZIP_H)
-process$O:	process.c $(UNZIP_H)
+process$O:	process.c $(UNZIP_H) crc32.h
 ttyio$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+ubz2err$O:	ubz2err.c $(UNZIP_H)
 unreduce$O:	unreduce.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
 unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
@@ -147,77 +148,90 @@ crc_i386$O:	crc_i386.S
 	$(AS) -o $@ crc_i386s.s
 	$(RM) crc_i386s.s
 
-unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h	# unzipsfx only
+# unzipsfx only
+unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 	$(CP) unzip.c unzipsfx.c
 	$(CC) -c $(CF) -DSFX unzipsfx.c
 	$(RM) unzipsfx.c
 
-match_$O:	match.c		# unzipsfx only
-	$(CP) match.c match_.c
-	$(CC) -c $(CF) -DSFX match_.c
-	$(RM) match_.c
+crc32_$O:	crc32.c $(UNZIP_H) zip.h crc32.h
+	$(CP) crc32.c crc32_.c
+	$(CC) -c $(CF) -DSFX crc32_.c
+	$(RM) crc32_.c
 
-crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
+crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(CP) crypt.c crypt_.c
 	$(CC) -c $(CF) -DSFX crypt_.c
 	$(RM) crypt_.c
 
-crctab_$O:	crctab.c $(UNZIP_H) zip.h			# unzipsfx only
-	$(CP) crctab.c crctab_.c
-	$(CC) -c $(CF) -DSFX crctab_.c
-	$(RM) crctab_.c
-
-fileio_$O:	fileio.c $(UNZIP_H) crypt.h ttyio.h ebcdic.h	# unzipsfx only
-	$(CP) fileio.c fileio_.c
-	$(CC) -c $(CF) -DSFX fileio_.c
-	$(RM) fileio_.c
-
-extract_$O:	extract.c $(UNZIP_H) crypt.h			# unzipsfx only
+extract_$O:	extract.c $(UNZIP_H) crc32.h crypt.h
 	$(CP) extract.c extract_.c
 	$(CC) -c $(CF) -DSFX extract_.c
 	$(RM) extract_.c
 
-globals_$O:	globals.c $(UNZIP_H)				# unzipsfx only
+fileio_$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
+	$(CP) fileio.c fileio_.c
+	$(CC) -c $(CF) -DSFX fileio_.c
+	$(RM) fileio_.c
+
+globals_$O:	globals.c $(UNZIP_H)
 	$(CP) globals.c globals_.c
 	$(CC) -c $(CF) -DSFX globals_.c
 	$(RM) globals_.c
 
-inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# unzipsfx only
+inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h
 	$(CP) inflate.c inflate_.c
 	$(CC) -c $(CF) -DSFX inflate_.c
 	$(RM) inflate_.c
 
-process_$O:	process.c $(UNZIP_H)				# unzipsfx only
+match_$O:	match.c
+	$(CP) match.c match_.c
+	$(CC) -c $(CF) -DSFX match_.c
+	$(RM) match_.c
+
+process_$O:	process.c $(UNZIP_H) crc32.h
 	$(CP) process.c process_.c
 	$(CC) -c $(CF) -DSFX process_.c
 	$(RM) process_.c
 
-ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# unzipsfx only
+ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CP) ttyio.c ttyio_.c
 	$(CC) -c $(CF) -DSFX ttyio_.c
 	$(RM) ttyio_.c
 
-cryptf$O:	crypt.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+ubz2err$O:	ubz2err.c $(UNZIP_H)
+	$(CP) ubz2err.c ubz2err_.c
+	$(CC) -c $(CF) -DSFX ubz2err_.c
+	$(RM) ubz2err_.c
+
+# funzip only
+crc32f$O:	crc32.c $(UNZIP_H) zip.h crc32.h
+	$(CP) crc32.c crc32f.c
+	$(CC) -c $(CF) -DFUNZIP crc32f.c
+	$(RM) crc32f.c
+
+cryptf$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
 	$(CP) crypt.c cryptf.c
 	$(CC) -c $(CF) -DFUNZIP cryptf.c
 	$(RM) cryptf.c
 
-globalsf$O:	globals.c $(UNZIP_H)				# funzip only
+globalsf$O:	globals.c $(UNZIP_H)
 	$(CP) globals.c globalsf.c
 	$(CC) -c $(CF) -DFUNZIP globalsf.c
 	$(RM) globalsf.c
 
-inflatef$O:	inflate.c inflate.h $(UNZIP_H) crypt.h		# funzip only
+inflatef$O:	inflate.c inflate.h $(UNZIP_H) crypt.h
 	$(CP) inflate.c inflatef.c
 	$(CC) -c $(CF) -DFUNZIP inflatef.c
 	$(RM) inflatef.c
 
-ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h	# funzip only
+ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 	$(CP) ttyio.c ttyiof.c
 	$(CC) -c $(CF) -DFUNZIP ttyiof.c
 	$(RM) ttyiof.c
 
-atheos$O:	atheos/atheos.c $(UNZIP_H) unzvers.h atheos/atheos.h	# AtheOS only
+# AtheOS specific code
+atheos$O:	atheos/atheos.c $(UNZIP_H) unzvers.h atheos/atheos.h
 	$(CC) -c $(CF) atheos/atheos.c
 
 # version() not used by unzipsfx, so no unzvers.h dependency

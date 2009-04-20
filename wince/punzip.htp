@@ -380,13 +380,13 @@ passwords are not remembered after the operation completes.</p>
 <hr>
 <h3>About Pocket UnZip</h3>
 
-<p>Thank you for using Version 1.1 of Pocket UnZip for Windows
+<p>Thank you for using Version 2.0 of Pocket UnZip for Windows
 CE.</p>
 
 <p>Pocket UnZip was developed by Steve P. Miller. Although I'd
 like to take full credit, I could not have done it without the
 public decompression source code provided by the Info-ZIP group.
-Pocket UnZip uses version 5.5 of Info-ZIP's core decompression
+Pocket UnZip uses version 6.0 of Info-ZIP's core decompression
 code. Many thanks go to Greg Roelofs and all the fine folks at
 Info-ZIP.</p>
 
@@ -400,13 +400,13 @@ look at the terms and conditions listed in the accompaning
 Info-ZIP LICENSE file.</p>
 
 <p>For the latest news, binaries, source code, and more
-information about the Info-ZIP group, visit 
+information about the Info-ZIP group, visit
 <strong>ftp://ftp.info-zip.org/pub/infozip/</strong>.</p>
 
 <p>For more information about me, or to check out some of my
 other applications (mostly Windows 95 / NT / CE), stop by my
 personal web page at <strong>http://pobox.com/~stevemil/</strong>.</p>
 
-<p>Copyright © 1997-2005 Info-Zip. All Rights Reserved.</p>
+<p>Copyright © 1997-2009 Info-Zip. All Rights Reserved.</p>
 </body>
 </html>
