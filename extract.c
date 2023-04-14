@@ -2228,6 +2228,7 @@ static int test_compr_eb(__G__ eb, eb_size, compr_offset, test_uc_ebdata)
     ulg eb_ucsize;
     uch *eb_ucptr;
     int r;
+    ush eb_compr_method;
 
     if (compr_offset < 4)                /* field is not compressed: */
         return PK_OK;                    /* do nothing and signal OK */
@@ -2243,6 +2244,15 @@ static int test_compr_eb(__G__ eb, eb_size, compr_offset, test_uc_ebdata)
      ((eb_ucsize = makelong( eb+ (EB_HEADSIZE+ EB_UCSIZE_P))) == 0L) ||
      ((eb_ucsize > 0L) && (eb_size <= (compr_offset + EB_CMPRHEADLEN))))
         return IZ_EF_TRUNC;             /* no/bad compressed data! */
+
+    /* 2015-02-10 Mancha(?), Michal Zalewski, Tomas Hoger, SMS.
+     * For STORE method, compressed and uncompressed sizes must agree.
+     * http://www.info-zip.org/phpBB3/viewtopic.php?f=7&t=450
+     */
+    eb_compr_method = makeword( eb + (EB_HEADSIZE + compr_offset));
+    if ((eb_compr_method == STORED) &&
+     (eb_size != compr_offset + EB_CMPRHEADLEN + eb_ucsize))
+        return PK_ERR;
 
     if (
 #ifdef INT_16BIT
