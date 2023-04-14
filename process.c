@@ -2914,9 +2914,12 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
             break;
 
           case EF_IZUNIX2:
-            if (have_new_type_eb == 0) {
-                flags &= ~0x0ff;        /* ignore any previous IZUNIX field */
+            if (have_new_type_eb == 0) {        /* (< 1) */
                 have_new_type_eb = 1;
+            }
+            if (have_new_type_eb <= 1) {
+                /* Ignore any prior (EF_IZUNIX/EF_PKUNIX) UID/GID. */
+                flags &= 0x0ff;
             }
 #ifdef IZ_HAVE_UXUIDGID
             if (have_new_type_eb > 1)
@@ -2933,6 +2936,8 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
             /* new 3rd generation Unix ef */
             have_new_type_eb = 2;
 
+            /* Ignore any prior EF_IZUNIX/EF_PKUNIX/EF_IZUNIX2 UID/GID. */
+            flags &= 0x0ff;
         /*
           Version       1 byte      version of this extra field, currently 1
           UIDSize       1 byte      Size of UID field
@@ -2952,8 +2957,6 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
 
                 uid_size = *((EB_HEADSIZE + 1) + ef_buf);
                 gid_size = *((EB_HEADSIZE + uid_size + 2) + ef_buf);
-
-                flags &= ~0x0ff;      /* ignore any previous UNIX field */
 
                 if ( read_ux3_value((EB_HEADSIZE + 2) + ef_buf,
                                     uid_size, &z_uidgid[0])
