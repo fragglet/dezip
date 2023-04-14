@@ -2114,7 +2114,7 @@ static int zi_short(__G)   /* return PK-type error code */
             else
                 attribs[9] = (xattr & UNX_ISVTX)? 'T' : '-';  /* T==undefined */
 
-            sprintf(&attribs[12], "%u.%u", hostver/10, hostver%10);
+            sprintf(&attribs[11], "%2u.%u", hostver/10, hostver%10);
             break;
 
     } /* end switch (hostnum: external attributes format) */
