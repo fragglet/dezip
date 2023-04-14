@@ -34,7 +34,7 @@
 .in -4n
 ..
 .\" =========================================================================
-.TH ZIPINFO 1L "20 April 2009 (v3.0)" "Info-ZIP"
+.TH ZIPINFO 1 "20 April 2009 (v3.0)" "Info-ZIP"
 .SH NAME
 zipinfo \- list detailed information about a ZIP archive
 .PD
@@ -272,7 +272,7 @@ format:
 Note that because of limitations in the MS-DOS format used to store file
 times, the seconds field is always rounded to the nearest even second.
 For Unix files this is expected to change in the next major releases of
-\fIzip\fP(1L) and \fIunzip\fP.
+\fIzip\fP(1) and \fIunzip\fP.
 .PP
 In addition to individual file information, a default zipfile listing
 also includes header and trailer lines:
@@ -361,7 +361,7 @@ of the Unix command \fInice\fP(1).
 As suggested above, the default variable names are ZIPINFO_OPTS for VMS
 (where the symbol used to install \fIzipinfo\fP as a foreign command
 would otherwise be confused with the environment variable), and ZIPINFO
-for all other operating systems.  For compatibility with \fIzip\fP(1L),
+for all other operating systems.  For compatibility with \fIzip\fP(1),
 ZIPINFOOPT is also accepted (don't ask).  If both ZIPINFO and ZIPINFOOPT
 are defined, however, ZIPINFO takes precedence.  \fIunzip\fP's diagnostic
 option (\fB\-v\fP with no zipfile name) can be used to check the values
@@ -496,8 +496,8 @@ be simplified.  (This is not to say that it will be.)
 .PP
 .\" =========================================================================
 .SH "SEE ALSO"
-\fIls\fP(1), \fIfunzip\fP(1L), \fIunzip\fP(1L), \fIunzipsfx\fP(1L),
-\fIzip\fP(1L), \fIzipcloak\fP(1L), \fIzipnote\fP(1L), \fIzipsplit\fP(1L)
+\fIls\fP(1), \fIfunzip\fP(1), \fIunzip\fP(1), \fIunzipsfx\fP(1),
+\fIzip\fP(1), \fIzipcloak\fP(1), \fIzipnote\fP(1), \fIzipsplit\fP(1)
 .PD
 .\" =========================================================================
 .SH URL

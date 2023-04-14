@@ -20,7 +20,7 @@
 .in -4n
 ..
 .\" =========================================================================
-.TH UNZIP 1L "20 April 2009 (v6.0)" "Info-ZIP"
+.TH UNZIP 1 "20 April 2009 (v6.0)" "Info-ZIP"
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
@@ -34,7 +34,7 @@ unzip \- list, test and extract compressed files in a ZIP archive
 \fIunzip\fP will list, test, or extract files from a ZIP archive, commonly
 found on MS-DOS systems.  The default behavior (with no options) is to extract
 into the current directory (and subdirectories below it) all files from the
-specified ZIP archive.  A companion program, \fIzip\fP(1L), creates ZIP
+specified ZIP archive.  A companion program, \fIzip\fP(1), creates ZIP
 archives; both programs are compatible with archives created by PKWARE's
 \fIPKZIP\fP and \fIPKUNZIP\fP for MS-DOS, but in many cases the program
 options or default behaviors differ.
@@ -105,8 +105,8 @@ only a reminder of the basic \fIunzip\fP syntax rather than an exhaustive
 list of all possible flags.  The exhaustive list follows:
 .TP
 .B \-Z
-\fIzipinfo\fP(1L) mode.  If the first option on the command line is \fB\-Z\fP,
-the remaining options are taken to be \fIzipinfo\fP(1L) options.  See the
+\fIzipinfo\fP(1) mode.  If the first option on the command line is \fB\-Z\fP,
+the remaining options are taken to be \fIzipinfo\fP(1) options.  See the
 appropriate manual page for a description of these options.
 .TP
 .B \-A
@@ -178,7 +178,7 @@ encrypted entries from the compressed size numbers.  Therefore,
 compressed size and compression ratio figures are independent of the entry's
 encryption status and show the correct compression performance.  (The complete
 size of the encrypted compressed data stream for zipfile entries is reported
-by the more verbose \fIzipinfo\fP(1L) reports, see the separate manual.)
+by the more verbose \fIzipinfo\fP(1) reports, see the separate manual.)
 When no zipfile is specified (that is, the complete command is simply
 ``\fCunzip \-v\fR''), a diagnostic screen is printed.  In addition to
 the normal header with release date and version, \fIunzip\fP lists the
@@ -379,8 +379,8 @@ file, skip extraction of all existing files, or rename the current file.
 .TP
 .B \-N
 [Amiga] extract file comments as Amiga filenotes.  File comments are created
-with the \-c option of \fIzip\fP(1L), or with the \-N option of the Amiga port
-of \fIzip\fP(1L), which stores filenotes as comments.
+with the \-c option of \fIzip\fP(1), or with the \-N option of the Amiga port
+of \fIzip\fP(1), which stores filenotes as comments.
 .TP
 .B \-o
 overwrite existing files without prompting.  This is a dangerous option, so
@@ -598,7 +598,7 @@ Unix \fInice\fP(1).
 As suggested by the examples above, the default variable names are UNZIP_OPTS
 for VMS (where the symbol used to install \fIunzip\fP as a foreign command
 would otherwise be confused with the environment variable), and UNZIP
-for all other operating systems.  For compatibility with \fIzip\fP(1L),
+for all other operating systems.  For compatibility with \fIzip\fP(1),
 UNZIPOPT is also accepted (don't ask).  If both UNZIP and UNZIPOPT
 are defined, however, UNZIP takes precedence.  \fIunzip\fP's diagnostic
 option (\fB\-v\fP with no zipfile name) can be used to check the values
@@ -648,8 +648,8 @@ prompt for another password, and so on until all files are extracted.  If
 a password is not known, entering a null password (that is, just a carriage
 return or ``Enter'') is taken as a signal to skip all further prompting.
 Only unencrypted files in the archive(s) will thereafter be extracted.  (In
-fact, that's not quite true; older versions of \fIzip\fP(1L) and
-\fIzipcloak\fP(1L) allowed null passwords, so \fIunzip\fP checks each encrypted
+fact, that's not quite true; older versions of \fIzip\fP(1) and
+\fIzipcloak\fP(1) allowed null passwords, so \fIunzip\fP checks each encrypted
 file to see if the null password works.  This may result in ``false positives''
 and extraction errors, as noted above.)
 .PP
@@ -943,8 +943,8 @@ deleted.
 .PD
 .\" =========================================================================
 .SH "SEE ALSO"
-\fIfunzip\fP(1L), \fIzip\fP(1L), \fIzipcloak\fP(1L), \fIzipgrep\fP(1L),
-\fIzipinfo\fP(1L), \fIzipnote\fP(1L), \fIzipsplit\fP(1L)
+\fIfunzip\fP(1), \fIzip\fP(1), \fIzipcloak\fP(1), \fIzipgrep\fP(1),
+\fIzipinfo\fP(1), \fIzipnote\fP(1), \fIzipsplit\fP(1)
 .PD
 .\" =========================================================================
 .SH URL

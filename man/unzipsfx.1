@@ -20,7 +20,7 @@
 .in -4n
 ..
 .\" =========================================================================
-.TH UNZIPSFX 1L "20 April 2009 (v6.0)" "Info-ZIP"
+.TH UNZIPSFX 1 "20 April 2009 (v6.0)" "Info-ZIP"
 .SH NAME
 unzipsfx \- self-extracting stub for prepending to ZIP archives
 .PD
@@ -30,7 +30,7 @@ unzipsfx \- self-extracting stub for prepending to ZIP archives
 .PD
 .\" =========================================================================
 .SH DESCRIPTION
-\fIunzipsfx\fP is a modified version of \fIunzip\fP(1L) designed to be
+\fIunzipsfx\fP is a modified version of \fIunzip\fP(1) designed to be
 prepended to existing ZIP archives in order to form self-extracting archives.
 Instead of taking its first non-flag argument to be the zipfile(s) to be
 extracted, \fIunzipsfx\fP seeks itself under the name by which it was invoked
@@ -109,7 +109,7 @@ literal subdirectory ``\fB~\fP'' of the current directory.
 .PD
 .\" =========================================================================
 .SH OPTIONS
-\fIunzipsfx\fP supports the following \fIunzip\fP(1L) options:  \fB\-c\fP
+\fIunzipsfx\fP supports the following \fIunzip\fP(1) options:  \fB\-c\fP
 and \fB\-p\fP (extract to standard output/screen), \fB\-f\fP and \fB\-u\fP
 (freshen and update existing files upon extraction), \fB\-t\fP (test
 archive) and \fB\-z\fP (print archive comment).  All normal listing options
@@ -118,11 +118,11 @@ option (\fB\-t\fP) may be used as a ``poor man's'' listing.  Alternatively,
 those creating self-extracting archives may wish to include a short listing
 in the zipfile comment.
 .PP
-See \fIunzip\fP(1L) for a more complete description of these options.
+See \fIunzip\fP(1) for a more complete description of these options.
 .PD
 .\" =========================================================================
 .SH MODIFIERS
-\fIunzipsfx\fP currently supports all \fIunzip\fP(1L) modifiers:  \fB\-a\fP
+\fIunzipsfx\fP currently supports all \fIunzip\fP(1) modifiers:  \fB\-a\fP
 (convert text files), \fB\-n\fP (never overwrite), \fB\-o\fP (overwrite
 without prompting), \fB\-q\fP (operate quietly), \fB\-C\fP (match names
 case-insensitively), \fB\-L\fP (convert uppercase-OS names to lowercase),
@@ -137,18 +137,18 @@ files have the appropriate format for the local OS.  EBCDIC conversion will
 of course continue to be supported since the zipfile format implies ASCII
 storage of text files.)
 .PP
-See \fIunzip\fP(1L) for a more complete description of these modifiers.
+See \fIunzip\fP(1) for a more complete description of these modifiers.
 .PD
 .\" =========================================================================
 .SH "ENVIRONMENT OPTIONS"
-\fIunzipsfx\fP uses the same environment variables as \fIunzip\fP(1L) does,
+\fIunzipsfx\fP uses the same environment variables as \fIunzip\fP(1) does,
 although this is likely to be an issue only for the person creating and
-testing the self-extracting archive.  See \fIunzip\fP(1L) for details.
+testing the self-extracting archive.  See \fIunzip\fP(1) for details.
 .PD
 .\" =========================================================================
 .SH DECRYPTION
-Decryption is supported exactly as in \fIunzip\fP(1L); that is, interactively
-with a non-echoing prompt for the password(s).  See \fIunzip\fP(1L) for
+Decryption is supported exactly as in \fIunzip\fP(1); that is, interactively
+with a non-echoing prompt for the password(s).  See \fIunzip\fP(1) for
 details.  Once again, note that if the archive has no encrypted files there
 is no reason to use a version of \fIunzipsfx\fP with decryption support;
 that only adds to the size of the archive.
@@ -286,7 +286,7 @@ available that provide the full path name, so the archive may be invoked
 from anywhere in the user's path.  The situation is not known for AmigaDOS,
 Atari TOS, MacOS, etc.
 .PP
-As noted above, a number of the normal \fIunzip\fP(1L) functions have
+As noted above, a number of the normal \fIunzip\fP(1) functions have
 been removed in order to make \fIunzipsfx\fP smaller:  usage and diagnostic
 info, listing functions and extraction to other directories.  Also, only
 stored and deflated files are supported.  The latter limitation is mainly
@@ -303,17 +303,17 @@ does not work.  (For technically oriented users, the attached archive is
 defined as a ``debug hunk.'')  There may be compatibility problems between
 the ROM levels of older Amigas and newer ones.
 .PP
-All current bugs in \fIunzip\fP(1L) exist in \fIunzipsfx\fP as well.
+All current bugs in \fIunzip\fP(1) exist in \fIunzipsfx\fP as well.
 .PD
 .\" =========================================================================
 .SH DIAGNOSTICS
 \fIunzipsfx\fP's exit status (error level) is identical to that of
-\fIunzip\fP(1L); see the corresponding man page.
+\fIunzip\fP(1); see the corresponding man page.
 .PD
 .\" =========================================================================
 .SH "SEE ALSO"
-\fIfunzip\fP(1L), \fIunzip\fP(1L), \fIzip\fP(1L), \fIzipcloak\fP(1L),
-\fIzipgrep\fP(1L), \fIzipinfo\fP(1L), \fIzipnote\fP(1L), \fIzipsplit\fP(1L)
+\fIfunzip\fP(1), \fIunzip\fP(1), \fIzip\fP(1), \fIzipcloak\fP(1),
+\fIzipgrep\fP(1), \fIzipinfo\fP(1), \fIzipnote\fP(1), \fIzipsplit\fP(1)
 .PD
 .PD
 .\" =========================================================================
@@ -330,7 +330,7 @@ or
 .\" =========================================================================
 .SH AUTHORS
 Greg Roelofs was responsible for the basic modifications to UnZip necessary
-to create UnZipSFX.  See \fIunzip\fP(1L) for the current list of Zip-Bugs
+to create UnZipSFX.  See \fIunzip\fP(1) for the current list of Zip-Bugs
 authors, or the file CONTRIBS in the UnZip source distribution for the
 full list of Info-ZIP contributors.
 .PD
