@@ -637,6 +637,13 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
     }
 #endif
 
+    /* Free the cover span list and the cover structure. */
+    if (G.cover != NULL) {
+        free(*(G.cover));
+        free(G.cover);
+        G.cover = NULL;
+    }
+
 } /* end function free_G_buffers() */
 
 
@@ -1913,6 +1920,8 @@ int getZip64Data(__G__ ef_buf, ef_len)
 #define Z64FLGS 0xffff
 #define Z64FLGL 0xffffffff
 
+    G.zip64 = FALSE;
+
     if (ef_len == 0 || ef_buf == NULL)
         return PK_COOL;
 
@@ -2084,6 +2093,8 @@ int getUnicodeData(__G__ ef_buf, ef_len)
                     (ZCONST char *)(offset + ef_buf), ULen);
             G.unipath_filename[ULen] = '\0';
           }
+
+          G.zip64 = TRUE;
         }
 
         /* Skip this extra field block */
