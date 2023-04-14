@@ -1705,7 +1705,7 @@ void version(__G)
 #endif /* Sun */
 #endif /* SGI */
 
-#ifdef __DATE__
+#if 0
       " on ", __DATE__
 #else
       "", ""
