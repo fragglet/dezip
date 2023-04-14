@@ -2904,7 +2904,7 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
 #ifdef IZ_HAVE_UXUIDGID
             if (eb_len >= EB_UX3_MINLEN
                 && z_uidgid != NULL
-                && (*((EB_HEADSIZE + 0) + ef_buf) == 1)
+                && (*((EB_HEADSIZE + 0) + ef_buf) == 1))
                     /* only know about version 1 */
             {
                 uch uid_size;
@@ -2916,10 +2916,10 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
                 flags &= ~0x0ff;      /* ignore any previous UNIX field */
 
                 if ( read_ux3_value((EB_HEADSIZE + 2) + ef_buf,
-                                    uid_size, z_uidgid[0])
+                                    uid_size, &z_uidgid[0])
                     &&
                      read_ux3_value((EB_HEADSIZE + uid_size + 3) + ef_buf,
-                                    gid_size, z_uidgid[1]) )
+                                    gid_size, &z_uidgid[1]) )
                 {
                     flags |= EB_UX2_VALID;   /* signal success */
                 }
