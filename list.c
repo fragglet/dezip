@@ -97,7 +97,7 @@ int list_files(__G)    /* return PK-type error code */
 {
     int do_this_file=FALSE, cfactor, error, error_in_archive=PK_COOL;
 #ifndef WINDLL
-    char sgn, cfactorstr[10];
+    char sgn, cfactorstr[12];
     int longhdr=(uO.vflag>1);
 #endif
     int date_format;
