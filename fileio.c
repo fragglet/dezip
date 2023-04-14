@@ -1582,6 +1582,10 @@ int UZ_EXP UzpPassword (pG, rcnt, pwbuf, size, zfn, efn)
     int r = IZ_PW_ENTERED;
     char *m;
     char *prompt;
+    char *zfnf;
+    char *efnf;
+    size_t zfnfl;
+    int isOverflow;
 
 #ifndef REENTRANT
     /* tell picky compilers to shut up about "unused variable" warnings */
@@ -1590,7 +1594,15 @@ int UZ_EXP UzpPassword (pG, rcnt, pwbuf, size, zfn, efn)
 
     if (*rcnt == 0) {           /* First call for current entry */
         *rcnt = 2;
-        if ((prompt = (char *)malloc(2*FILNAMSIZ + 15)) != (char *)NULL) {
+        zfnf = FnFilter1(zfn);
+        efnf = FnFilter2(efn);
+        zfnfl = strlen(zfnf);
+        isOverflow = TRUE;
+        if (2*FILNAMSIZ >= zfnfl && (2*FILNAMSIZ - zfnfl) >= strlen(efnf))
+        {
+		isOverflow = FALSE;
+        }
+        if ((isOverflow == FALSE) && ((prompt = (char *)malloc(2*FILNAMSIZ + 15)) != (char *)NULL)) {
             sprintf(prompt, LoadFarString(PasswPrompt),
                     FnFilter1(zfn), FnFilter2(efn));
             m = prompt;
