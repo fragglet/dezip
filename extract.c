@@ -3052,7 +3052,7 @@ __GDEF
 #endif
 
     G.inptr = (uch *)bstrm.next_in;
-    G.incnt = (G.inbuf + INBUFSIZ) - G.inptr;  /* reset for other routines */
+    G.incnt -= G.inptr - G.inbuf;       /* reset for other routines */
 
 uzbunzip_cleanup_exit:
     err = BZ2_bzDecompressEnd(&bstrm);
