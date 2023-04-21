@@ -281,13 +281,8 @@ static int recmatch(p, s, ic __WDL)
         return 0;
 
     /* just a character--compare it */
-#ifdef QDOS
-    return QMatch(Case((uch)c), Case(*s)) ?
-           recmatch(p, s + CLEN(s), ic __WDL) : 0;
-#else
     return Case((uch)c) == Case(*s) ?
            recmatch(p, s + CLEN(s), ic __WDL) : 0;
-#endif
 
 } /* end function recmatch() */
 
@@ -345,11 +340,7 @@ int iswild(p)        /* originally only used for stat()-bug workaround in */
         else if (*p == '?' || *p == '*' || *p == '[')
 #endif /* ?VMS */
 #endif /* ?THEOS */
-#ifdef QDOS
-            return (int)p;
-#else
             return TRUE;
-#endif
 
     return FALSE;
 

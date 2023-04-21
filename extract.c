@@ -1531,9 +1531,6 @@ startover:
                 continue;   /* go on to next file */
             }
 
-#ifdef QDOS
-            QFilename(__G__ G.filename);
-#endif
             switch (check_for_newer(__G__ G.filename)) {
                 case DOES_NOT_EXIST:
 #ifdef NOVELL_BUG_FAILSAFE
@@ -2689,19 +2686,6 @@ char *fnfilter(raw, space, size)   /* convert name to safely printable form */
         if (size > 0 && s >= slim && se == NULL) {
             se = s;
         }
-#ifdef QDOS
-        if (qlflag & 2) {
-            if (*r == '/' || *r == '.') {
-                if (se != NULL && (s > (space + (size-3)))) {
-                    have_overflow = TRUE;
-                    break;
-                }
-                ++r;
-                *s++ = '_';
-                continue;
-            }
-        } else
-#endif
 #ifdef HAVE_WORKING_ISPRINT
 # ifndef UZ_FNFILTER_REPLACECHAR
     /* A convenient choice for the replacement of unprintable char codes is

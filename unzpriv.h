@@ -236,29 +236,6 @@
     QDOS section
   ---------------------------------------------------------------------------*/
 
-#ifdef QDOS
-#  define DIRENT
-#  include <fcntl.h>
-#  include <unistd.h>
-#  include <sys/stat.h>
-#  include <time.h>
-#  include "qdos/izqdos.h"
-#  ifndef DATE_FORMAT
-#    define DATE_FORMAT DF_MDY
-#  endif
-#  define lenEOL        1
-#  define PutNativeEOL  *q++ = native(LF);
-#  define DIR_END       '_'
-#  define RETURN        QReturn
-#  undef PATH_MAX
-#  define PATH_MAX      36
-#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
-#    define TIMESTAMP
-#  endif
-#  define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
-#  define SCREENWIDTH 80
-#endif
-
 /*---------------------------------------------------------------------------
     Tandem NSK section:
   ---------------------------------------------------------------------------*/
@@ -640,15 +617,9 @@
 #  define zfstrcmp(s1, s2)          strcmp((s1), (s2))
 #  define zfmalloc                  malloc
 #  define zffree(x)                 free(x)
-#  ifdef QDOS
-#    define LoadFarString(x)        Qstrfix(x)   /* fix up _ for '.' */
-#    define LoadFarStringSmall(x)   Qstrfix(x)
-#    define LoadFarStringSmall2(x)  Qstrfix(x)
-#  else
 #    define LoadFarString(x)        (char *)(x)
 #    define LoadFarStringSmall(x)   (char *)(x)
 #    define LoadFarStringSmall2(x)  (char *)(x)
-#  endif
 #    define OUTBUFSIZ (lenEOL*WSIZE) /* more efficient text conversion */
 #    define TRANSBUFSIZ (lenEOL*OUTBUFSIZ)
        typedef int  shrint;          /* for efficiency/speed, we hope... */
@@ -1118,17 +1089,12 @@
 #endif
 #define DOSTIME_2038_01_18 ((ulg)0x74320000L)
 
-#ifdef QDOS
-#  define ZSUFX         "_zip"
-#  define ALT_ZSUFX     ".zip"
-#else
 #  ifdef RISCOS
 #    define ZSUFX       "/zip"
 #  else
 #    define ZSUFX       ".zip"
 #  endif
 #  define ALT_ZSUFX     ".ZIP"   /* Unix-only so far (only case-sensitive fs) */
-#endif
 
 #define CENTRAL_HDR_SIG   "\001\002"   /* the infamous "PK" signature bytes, */
 #define LOCAL_HDR_SIG     "\003\004"   /*  w/o "PK" (so unzip executable not */
@@ -1966,13 +1932,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 /*---------------------------------------------------------------------------
     QDOS-only functions:
   ---------------------------------------------------------------------------*/
-
-#ifdef QDOS
-   int    QMatch              (uch, uch);
-   void   QFilename           (__GPRO__ char *);
-   char  *Qstrfix             (char *);
-   int    QReturn             (int zip_error);
-#endif
 
 /*---------------------------------------------------------------------------
     TOPS20-only functions:

@@ -247,9 +247,6 @@ int open_input_file(__G)    /* return 1 if open failed */
 int open_outfile(__G)           /* return 1 if fail */
     __GDEF
 {
-#ifdef QDOS
-    QFilename(__G__ G.filename);
-#endif
 #ifdef SYMLINKS
     if (SSTAT(G.filename, &G.statbuf) == 0 ||
         lstat(G.filename, &G.statbuf) == 0)

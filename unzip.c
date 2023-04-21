@@ -1373,11 +1373,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.qflag;
                     break;
-#ifdef QDOS
-                case ('Q'):   /* QDOS flags */
-                    qlflag ^= strtol(s, &s, 10);
-                    break;    /* we XOR this as we can config qlflags */
-#endif
 #ifdef TANDEM
                 case ('r'):    /* remove file extensions */
                     if (negative)
