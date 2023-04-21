@@ -696,11 +696,7 @@ uzinflate_cleanup_exit:
 
 /* Function prototypes */
 #ifndef OF
-#  ifdef __STDC__
 #    define OF(a) a
-#  else
-#    define OF(a) ()
-#  endif
 #endif /* !OF */
 int inflate_codes OF((__GPRO__ struct huft *tl, struct huft *td,
                       unsigned bl, unsigned bd));

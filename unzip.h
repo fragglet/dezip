@@ -132,8 +132,6 @@ freely, subject to the above disclaimer and the following restrictions:
  * or Macintosh, or Sequent, or Atari, or IBM RS/6000, or Silicon Graphics,
  * or Convex?, or AtheOS, or BeOS.
  */
-#if (defined(__STDC__) || defined(MSDOS) || defined(OS2) || defined(WIN32))
-#endif
 #if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
 #endif
 #if (defined(MACOS) || defined(ATARI_ST) || defined(RISCOS) || defined(THEOS))
