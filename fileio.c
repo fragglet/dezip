@@ -368,17 +368,6 @@ int open_outfile(__G)           /* return 1 if fail */
     }
     free(tfilnam);
 #else /* !TOPS20 */
-#ifdef MTS
-    if (uO.aflag)
-        G.outfile = zfopen(G.filename, FOPWT);
-    else
-        G.outfile = zfopen(G.filename, FOPW);
-    if (G.outfile == (FILE *)NULL) {
-        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
-          FnFilter1(G.filename), strerror(errno)));
-        return 1;
-    }
-#else /* !MTS */
 #ifdef DEBUG
     Info(slide, 1, ((char *)slide,
       "open_outfile:  doing fopen(%s) for reading\n", FnFilter1(G.filename)));
@@ -422,7 +411,6 @@ int open_outfile(__G)           /* return 1 if fail */
     }
     Trace((stderr, "open_outfile:  fopen(%s) for writing succeeded\n",
       FnFilter1(G.filename)));
-#endif /* !MTS */
 #endif /* !TOPS20 */
 
 #ifdef OS2_W32

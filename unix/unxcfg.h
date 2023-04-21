@@ -145,17 +145,11 @@ typedef struct stat z_stat;
 #define SCREENLWRAP     1
 #define USE_EF_UT_TIME
 #  define SET_SYMLINK_ATTRIBS
-#ifdef MTS
-#  ifdef SET_DIR_ATTRIB
-#    undef SET_DIR_ATTRIB
-#  endif
-#else /* !MTS */
 #  define SET_DIR_ATTRIB
 #  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))   /* GRR 970513 */
 #    define TIMESTAMP
 #  endif
 #  define RESTORE_UIDGID
-#endif /* ?MTS */
 
 /* Static variables that we have to add to Uz_Globs: */
 #define SYSTEM_SPECIFIC_GLOBALS \
