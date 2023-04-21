@@ -276,18 +276,6 @@ int open_outfile(__G)           /* return 1 if fail */
 #ifdef QDOS
     QFilename(__G__ G.filename);
 #endif
-#ifdef BORLAND_STAT_BUG
-    /* Borland 5.0's stat() barfs if the filename has no extension and the
-     * file doesn't exist. */
-    if (access(G.filename, 0) == -1) {
-        FILE *tmp = fopen(G.filename, "wb+");
-
-        /* file doesn't exist, so create a dummy file to keep stat() from
-         * failing (will be over-written anyway) */
-        fputc('0', tmp);  /* just to have something in the file */
-        fclose(tmp);
-    }
-#endif /* BORLAND_STAT_BUG */
 #ifdef SYMLINKS
     if (SSTAT(G.filename, &G.statbuf) == 0 ||
         lstat(G.filename, &G.statbuf) == 0)
