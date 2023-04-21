@@ -1042,28 +1042,6 @@
 #  define extract_or_test_member    xtr_or_tst_member
 #endif
 
-#ifdef REALLY_SHORT_SYMS            /* TOPS-20 linker:  first 6 chars */
-#  define process_cdir_file_hdr     XXpcdfh
-#  define process_local_file_hdr    XXplfh
-#  define extract_or_test_files     XXxotf  /* necessary? */
-#  define extract_or_test_member    XXxotm  /* necessary? */
-#  define check_for_newer           XXcfn
-#  define overwrite_all             XXoa
-#  define process_all_files         XXpaf
-#  define extra_field               XXef
-#  define explode_lit8              XXel8
-#  define explode_lit4              XXel4
-#  define explode_nolit8            XXnl8
-#  define explode_nolit4            XXnl4
-#  define cpdist8                   XXcpdist8
-#  define inflate_codes             XXic
-#  define inflate_stored            XXis
-#  define inflate_fixed             XXif
-#  define inflate_dynamic           XXid
-#  define inflate_block             XXib
-#  define maxcodemax                XXmax
-#endif
-
 #ifndef S_TIME_T_MAX            /* max value of signed (>= 32-bit) time_t */
 #  define S_TIME_T_MAX  ((time_t)(ulg)0x7fffffffL)
 #endif
