@@ -54,11 +54,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#ifdef NO_OFF_T
-  typedef long zoff_t;
-#else
   typedef off_t zoff_t;
-#endif
 #define ZOFF_T_DEFINED
 typedef struct stat z_stat;
 #define Z_STAT_DEFINED
