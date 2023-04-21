@@ -224,9 +224,6 @@ typedef size_t extent;
 #ifndef EXIT
 #define EXIT exit
 #endif
-#ifndef USAGE
-#define USAGE(ret) usage((ret)) /* used in unzip.c, zipinfo.c */
-#endif
 #ifndef STRNICMP
 #ifdef NO_STRNICMP
 #define STRNICMP zstrnicmp
