@@ -1267,16 +1267,6 @@
 #endif
 #define MASK_ZUCN16             ((zucn_t)0xFFFF)
 
-#ifdef NO_UID_GID
-#  ifdef UID_USHORT
-     typedef unsigned short  uid_t;    /* TI SysV.3 */
-     typedef unsigned short  gid_t;
-#  else
-     typedef unsigned int    uid_t;    /* SCO Xenix */
-     typedef unsigned int    gid_t;
-#  endif
-#endif
-
    typedef struct utimbuf ztimbuf;
 
 typedef struct iztimes {
