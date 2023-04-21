@@ -146,10 +146,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  define UZ_EXP
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*---------------------------------------------------------------------------
     Public typedefs.
   ---------------------------------------------------------------------------*/
@@ -379,10 +375,6 @@ void     UZ_EXP UzpMorePause     OF((zvoid *pG, ZCONST char *prompt, int flag));
 int      UZ_EXP UzpPassword      OF((zvoid *pG, int *rcnt, char *pwbuf,
                                      int size, ZCONST char *zfn,
                                      ZCONST char *efn));
-
-#ifdef __cplusplus
-}
-#endif
 
 
 /*---------------------------------------------------------------------------
