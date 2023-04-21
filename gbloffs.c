@@ -14,9 +14,7 @@
 #include "unzip.h"
 #include "crypt.h"
 
-#ifndef REENTRANT
   Uz_Globs G;
-#endif
 
 static int asm_setflag(const char *flagname);
 static int ccp_setflag(const char *flagname);
@@ -36,9 +34,6 @@ int main(argc, argv)
     int argc;
     char **argv;
 {
-#ifdef REENTRANT
-    Uz_Globs *pG = NULL;
-#endif
     struct huft *t = NULL;
     static const char asm_offsdef[] = "%-15s EQU     %lu\n";
     static const char ccp_offsdef[] = "#define %-15s %lu\n";
@@ -76,9 +71,6 @@ int main(argc, argv)
     printf(out_format, "CRYPT", (ulg)CRYPT);
 #ifdef SFX
     (*set_flag)("SFX");
-#endif
-#ifdef REENTRANT
-    (*set_flag)("REENTRANT");
 #endif
     (*set_flag)("USE_DEFLATE64");
 

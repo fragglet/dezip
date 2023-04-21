@@ -73,23 +73,10 @@
 /* Local type declarations */
 /***************************/
 
-#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
-typedef struct _sign_info
-    {
-        struct _sign_info *previous;
-        void (*sighandler)(int);
-        int sigtype;
-    } savsigs_info;
-#endif
-
 /*******************/
 /* Local Functions */
 /*******************/
 
-#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
-static int setsignalhandler OF((__GPRO__ savsigs_info **p_savedhandler_chain,
-                                int signal_type, void (*newhandler)(int)));
-#endif
 #ifndef SFX
 static void  help_extended      OF((__GPRO));
 static void  show_version_info  OF((__GPRO));
@@ -115,11 +102,6 @@ static void  show_version_info  OF((__GPRO));
   static ZCONST char Far CmdLineParamTooLong[] =
     "error:  command line parameter #%d exceeds internal size limit\n";
 #endif /* !SFX */
-
-#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
-  static ZCONST char Far CantSaveSigHandler[] =
-    "error:  cannot save signal handler settings\n";
-#endif
 
 #if (!defined(SFX) || defined(SFX_EXDIR))
    static ZCONST char Far NotExtracting[] =
@@ -217,9 +199,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far No_More[] = "NO_MORE";
 #  ifdef NO_ZIPINFO
      static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
-#  endif
-#  ifdef REENTRANT
-     static ZCONST char Far Reentrant[] = "REENTRANT";
 #  endif
 #  ifdef REGARGS
      static ZCONST char Far RegArgs[] = "REGARGS";
@@ -388,16 +367,8 @@ int unzip(__G__ argc, argv)
     int i;
 #endif
     int retcode, error=FALSE;
-#ifdef REENTRANT
-    savsigs_info *oldsighandlers = NULL;
-#   define SET_SIGHANDLER(sigtype, newsighandler) \
-      if ((retcode = setsignalhandler(__G__ &oldsighandlers, (sigtype), \
-                                      (newsighandler))) > PK_WARN) \
-          goto cleanup_and_exit
-#else
 #   define SET_SIGHANDLER(sigtype, newsighandler) \
       signal((sigtype), (newsighandler))
-#endif
 
     /* initialize international char support to the current environment */
     SETLOCALE(LC_CTYPE, "");
@@ -767,16 +738,6 @@ int unzip(__G__ argc, argv)
     retcode = process_zipfiles(__G);
 
 cleanup_and_exit:
-#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
-    /* restore all signal handlers back to their state at function entry */
-    while (oldsighandlers != NULL) {
-        savsigs_info *thissigsav = oldsighandlers;
-
-        signal(thissigsav->sigtype, thissigsav->sighandler);
-        oldsighandlers = thissigsav->previous;
-        free(thissigsav);
-    }
-#endif
 #if (defined(MALLOC_WORK) && !defined(REENTRANT))
     if (G.area.Slide != (uch *)NULL) {
         free(G.area.Slide);
@@ -786,44 +747,6 @@ cleanup_and_exit:
     return(retcode);
 
 } /* end main()/unzip() */
-
-
-
-
-
-#if (defined(REENTRANT) && !defined(NO_EXCEPT_SIGNALS))
-/*******************************/
-/* Function setsignalhandler() */
-/*******************************/
-
-static int setsignalhandler(__G__ p_savedhandler_chain, signal_type,
-                            newhandler)
-    __GDEF
-    savsigs_info **p_savedhandler_chain;
-    int signal_type;
-    void (*newhandler)(int);
-{
-    savsigs_info *savsig;
-
-    savsig = malloc(sizeof(savsigs_info));
-    if (savsig == NULL) {
-        /* error message and break */
-        Info(slide, 0x401, ((char *)slide, LoadFarString(CantSaveSigHandler)));
-        return PK_MEM;
-    }
-    savsig->sigtype = signal_type;
-    savsig->sighandler = signal(SIGINT, newhandler);
-    if (savsig->sighandler == SIG_ERR) {
-        free(savsig);
-    } else {
-        savsig->previous = *p_savedhandler_chain;
-        *p_savedhandler_chain = savsig;
-    }
-    return PK_OK;
-
-} /* end function setsignalhandler() */
-
-#endif /* REENTRANT && !NO_EXCEPT_SIGNALS */
 
 
 
@@ -1648,11 +1571,6 @@ static void show_version_info(__G)
 #ifdef NO_ZIPINFO
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_ZipInfo)));
-        ++numopts;
-#endif
-#ifdef REENTRANT
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Reentrant)));
         ++numopts;
 #endif
 #ifdef REGARGS

@@ -1146,10 +1146,8 @@ int UZ_EXP UzpPassword (pG, rcnt, pwbuf, size, zfn, efn)
     size_t zfnfl;
     int isOverflow;
 
-#ifndef REENTRANT
     /* tell picky compilers to shut up about "unused variable" warnings */
     pG = pG;
-#endif
 
     if (*rcnt == 0) {           /* First call for current entry */
         *rcnt = 2;
