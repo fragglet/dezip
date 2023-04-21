@@ -696,10 +696,10 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
     fflush(stderr);
     if (flag & 1) {
         do {
-            c = (uch) FGETCH(0);
+            c = (uch) zgetch(0);
         } while (c != '\r' && c != '\n' && c != ' ' && c != 'q' && c != 'Q');
     } else
-        c = (uch) FGETCH(0);
+        c = (uch) zgetch(0);
 
     /* newline was not echoed, so cover up prompt line */
     fprintf(stderr, LoadFarString(HidePrompt));

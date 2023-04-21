@@ -54,11 +54,8 @@ void Echon(void);
 #endif
 
 /* this stuff is used by MORE and also now by the ctrl-S code; fileio.c only */
-#ifndef FGETCH
 /* default for all systems where no getch()-like function is available */
 int zgetch(int f);
-#define FGETCH(f) zgetch(f)
-#endif
 
 char *getp(const char *m, char *p, int n);
 
