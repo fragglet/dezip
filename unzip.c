@@ -87,114 +87,113 @@ static void show_version_info OF((__GPRO));
 
 /* constant local variables: */
 
-static ZCONST char Far EnvUnZip[] = ENV_UNZIP;
-static ZCONST char Far EnvUnZip2[] = ENV_UNZIP2;
-static ZCONST char Far EnvZipInfo[] = ENV_ZIPINFO;
-static ZCONST char Far EnvZipInfo2[] = ENV_ZIPINFO2;
-static ZCONST char Far NoMemEnvArguments[] =
+static const char Far EnvUnZip[] = ENV_UNZIP;
+static const char Far EnvUnZip2[] = ENV_UNZIP2;
+static const char Far EnvZipInfo[] = ENV_ZIPINFO;
+static const char Far EnvZipInfo2[] = ENV_ZIPINFO2;
+static const char Far NoMemEnvArguments[] =
     "envargs:  cannot get memory for arguments";
-static ZCONST char Far CmdLineParamTooLong[] =
+static const char Far CmdLineParamTooLong[] =
     "error:  command line parameter #%d exceeds internal size limit\n";
 
-static ZCONST char Far NotExtracting[] =
+static const char Far NotExtracting[] =
     "caution:  not extracting; -d ignored\n";
-static ZCONST char Far MustGiveExdir[] =
+static const char Far MustGiveExdir[] =
     "error:  must specify directory to which to extract with -d option\n";
-static ZCONST char Far OnlyOneExdir[] =
+static const char Far OnlyOneExdir[] =
     "error:  -d option used more than once (only one exdir allowed)\n";
 
-static ZCONST char Far MustGivePasswd[] =
+static const char Far MustGivePasswd[] =
     "error:  must give decryption password with -P option\n";
 
-static ZCONST char Far Zfirst[] = "error:  -Z must be first option for ZipInfo "
-                                  "mode (check UNZIP variable?)\n";
-static ZCONST char Far InvalidOptionsMsg[] = "error:\
+static const char Far Zfirst[] = "error:  -Z must be first option for ZipInfo "
+                                 "mode (check UNZIP variable?)\n";
+static const char Far InvalidOptionsMsg[] = "error:\
   -fn or any combination of -c, -l, -p, -t, -u and -v options invalid\n";
-static ZCONST char Far IgnoreOOptionMsg[] =
+static const char Far IgnoreOOptionMsg[] =
     "caution:  both -n and -o specified; ignoring -o\n";
 
 /* usage() strings */
-static ZCONST char Far Example3[] = "ReadMe";
-static ZCONST char Far Example2[] = " \
+static const char Far Example3[] = "ReadMe";
+static const char Far Example2[] = " \
  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
 
 /* local1[]:  command options */
-static ZCONST char Far local1[] = "  -T  timestamp archive to latest";
+static const char Far local1[] = "  -T  timestamp archive to latest";
 
 /* local2[] and local3[]:  modifier options */
-static ZCONST char Far local2[] = " -X  restore UID/GID info";
-static ZCONST char Far local3[] = "\
+static const char Far local2[] = " -X  restore UID/GID info";
+static const char Far local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
 
-static ZCONST char Far CompileOptions[] =
-    "UnZip special compilation options:\n";
-static ZCONST char Far CompileOptFormat[] = "        %s\n";
-static ZCONST char Far EnvOptions[] =
+static const char Far CompileOptions[] = "UnZip special compilation options:\n";
+static const char Far CompileOptFormat[] = "        %s\n";
+static const char Far EnvOptions[] =
     "\nUnZip and ZipInfo environment options:\n";
-static ZCONST char Far EnvOptFormat[] = "%16s:  %.1024s\n";
-static ZCONST char Far None[] = "[none]";
-static ZCONST char Far Copyright_Clean[] =
+static const char Far EnvOptFormat[] = "%16s:  %.1024s\n";
+static const char Far None[] = "[none]";
+static const char Far Copyright_Clean[] =
     "COPYRIGHT_CLEAN (PKZIP 0.9x unreducing method not supported)";
 #ifdef DEBUG
-static ZCONST char Far UDebug[] = "DEBUG";
+static const char Far UDebug[] = "DEBUG";
 #endif
 #ifdef DEBUG_TIME
-static ZCONST char Far DebugTime[] = "DEBUG_TIME";
+static const char Far DebugTime[] = "DEBUG_TIME";
 #endif
-static ZCONST char Far No_More[] = "NO_MORE";
-static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
-static ZCONST char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
-static ZCONST char Far SymLinkSupport[] =
+static const char Far No_More[] = "NO_MORE";
+static const char Far No_ZipInfo[] = "NO_ZIPINFO";
+static const char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
+static const char Far SymLinkSupport[] =
     "SYMLINKS (symbolic links supported, if RTL and file system permit)";
-static ZCONST char Far TimeStamp[] = "TIMESTAMP";
-static ZCONST char Far Use_EF_UT_time[] = "USE_EF_UT_TIME";
-static ZCONST char Far Use_Unshrink[] =
+static const char Far TimeStamp[] = "TIMESTAMP";
+static const char Far Use_EF_UT_time[] = "USE_EF_UT_TIME";
+static const char Far Use_Unshrink[] =
     "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
-static ZCONST char Far Use_Deflate64[] =
+static const char Far Use_Deflate64[] =
     "USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)";
 /* direct native UTF-8 check AND charset transform via wchar_t */
-static ZCONST char Far Use_Unicode[] =
+static const char Far Use_Unicode[] =
     "UNICODE_SUPPORT [wide-chars, char coding: %s] (handle UTF-8 paths)";
-static ZCONST char Far SysChUTF8[] = "UTF-8";
-static ZCONST char Far SysChOther[] = "other";
+static const char Far SysChUTF8[] = "UTF-8";
+static const char Far SysChOther[] = "other";
 #ifdef _MBCS
-static ZCONST char Far Have_MBCS_Support[] =
+static const char Far Have_MBCS_Support[] =
     "MBCS-support (multibyte character support, MB_CUR_MAX = %u)";
 #endif
-static ZCONST char Far Use_MultiVol[] =
+static const char Far Use_MultiVol[] =
     "MULT_VOLUME (multi-volume archives supported)";
 #ifdef LARGE_FILE_SUPPORT
-static ZCONST char Far Use_LFS[] =
+static const char Far Use_LFS[] =
     "LARGE_FILE_SUPPORT (large files over 2 GiB supported)";
 #endif
-static ZCONST char Far Use_Zip64[] =
+static const char Far Use_Zip64[] =
     "ZIP64_SUPPORT (archives using Zip64 for large files supported)";
-static ZCONST char Far UseBZip2[] =
+static const char Far UseBZip2[] =
     "USE_BZIP2 (PKZIP 4.6+, using bzip2 lib version %s)";
-static ZCONST char Far Decryption[] =
+static const char Far Decryption[] =
     "        [decryption, version %d.%d%s of %s]\n";
-static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
+static const char Far CryptDate[] = CR_VERSION_DATE;
 
-static ZCONST char Far UnzipUsageLine1[] = "\
+static const char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Debian. Original by Info-ZIP.\
 \n\n";
 #define UnzipUsageLine1v UnzipUsageLine1
 
-static ZCONST char Far UnzipUsageLine2v[] = "\
+static const char Far UnzipUsageLine2v[] = "\
 Latest sources and executables are at ftp://ftp.info-zip.org/pub/infozip/ ;\
 \nsee ftp://ftp.info-zip.org/pub/infozip/UnZip.html for other sites.\
 \n\n";
 
-static ZCONST char Far UnzipUsageLine2[] = "\
+static const char Far UnzipUsageLine2[] = "\
 Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
  Default action is to extract files in list, except those in xlist, to exdir;\n\
   file[.zip] may be a wildcard.  %s\n";
 
 #define ZIPINFO_MODE_OPTION ""
-static ZCONST char Far ZipInfoMode[] =
+static const char Far ZipInfoMode[] =
     "(ZipInfo mode is disabled in this version.)";
 
-static ZCONST char Far UnzipUsageLine3[] = "\n\
+static const char Far UnzipUsageLine3[] = "\n\
   -p  extract files to pipe, no messages     -l  list files (short format)\n\
   -f  freshen existing files, create none    -t  test compressed archive data\n\
   -u  update files, create if necessary      -z  display archive comment only\n\
@@ -209,7 +208,7 @@ static ZCONST char Far UnzipUsageLine3[] = "\n\
  * Likely, other advanced options should be moved to an extended help page and
  * the option to list that page put here.  [E. Gordon, 2008-3-16]
  */
-static ZCONST char Far UnzipUsageLine4[] = "\
+static const char Far UnzipUsageLine4[] = "\
 modifiers:\n\
   -n  never overwrite existing files         -q  quiet mode (-qq => quieter)\n\
   -o  overwrite files WITHOUT prompting      -a  auto-convert any text files\n\
@@ -218,7 +217,7 @@ modifiers:\n\
   -C  match filenames case-insensitively     -L  make (some) names \
 lowercase\n %-42s  -V  retain VMS version numbers\n%s";
 
-static ZCONST char Far UnzipUsageLine5[] = "\
+static const char Far UnzipUsageLine5[] = "\
 See \"unzip -hh\" or unzip.txt for more help.  Examples:\n\
   unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
 %s\
@@ -970,7 +969,7 @@ static void help_extended(__G) __GDEF
     extent i; /* counter for help array */
 
     /* help array */
-    static ZCONST char *text[] = {
+    static const char *text[] = {
         "",
         "Extended Help for UnZip",
         "",

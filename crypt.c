@@ -41,8 +41,8 @@
 #define GLOBAL(g) G.g
 
 /* char *key = (char *)NULL; moved to globals.h */
-local int testp OF((__GPRO__ ZCONST uch * h));
-local int testkey OF((__GPRO__ ZCONST uch * h, ZCONST char *key));
+local int testp OF((__GPRO__ const uch *h));
+local int testkey OF((__GPRO__ const uch *h, const char *key));
 
 #ifndef Trace
 #ifdef CRYPT_DEBUG
@@ -88,7 +88,7 @@ int update_keys(__G__ c) __GDEF int c; /* byte of plain text */
  * Initialize the encryption keys and the random header according to
  * the given password.
  */
-void init_keys(__G__ passwd) __GDEF ZCONST
+void init_keys(__G__ passwd) __GDEF const
     char *passwd; /* password string with which to modify keys */
 {
     GLOBAL(keys[0]) = 305419896L;
@@ -114,7 +114,7 @@ void init_keys(__G__ passwd) __GDEF ZCONST
  * Get the password and set up keys for current zipfile member.
  * Return PK_ class error.
  */
-int decrypt(__G__ passwrd) __GDEF ZCONST char *passwrd;
+int decrypt(__G__ passwrd) __GDEF const char *passwrd;
 {
     ush b;
     int n, r;
@@ -195,7 +195,7 @@ int decrypt(__G__ passwrd) __GDEF ZCONST char *passwrd;
 /***********************************************************************
  * Test the password.  Return -1 if bad, 0 if OK.
  */
-local int testp(__G__ h) __GDEF ZCONST uch *h;
+local int testp(__G__ h) __GDEF const uch *h;
 {
     int r;
     char *key_translated;
@@ -249,8 +249,8 @@ local int testp(__G__ h) __GDEF ZCONST uch *h;
 
 local int testkey(__G__ h, key)
 __GDEF
-ZCONST uch *h;    /* decrypted header */
-ZCONST char *key; /* decryption password to test */
+const uch *h;    /* decrypted header */
+const char *key; /* decryption password to test */
 {
     ush b;
 #ifdef ZIP10

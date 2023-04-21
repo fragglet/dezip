@@ -29,10 +29,6 @@
 #define __GPRO__
 #endif
 
-#ifndef ZCONST /* UnZip only (until have configure script like Zip) */
-#define ZCONST const
-#endif
-
 /* Function prototypes */
 
 /* The following systems supply a `non-echo' character input function "getch()"
@@ -72,6 +68,6 @@ int zgetch OF((__GPRO__ int f));
 #define FGETCH(f) zgetch(__G__ f)
 #endif
 
-char *getp OF((__GPRO__ ZCONST char *m, char *p, int n));
+char *getp OF((__GPRO__ const char *m, char *p, int n));
 
 #endif /* !__ttyio_h */

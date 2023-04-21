@@ -33,14 +33,14 @@
 
 #define ISspace(c) isspace((unsigned) c)
 
-static int count_args OF((ZCONST char *) );
+static int count_args OF((const char *) );
 
 /* envargs() returns PK-style error code */
 
 int envargs(Pargc, Pargv, envstr, envstr2)
 int *Pargc;
 char ***Pargv;
-ZCONST char *envstr, *envstr2;
+const char *envstr, *envstr2;
 {
     char *envptr;    /* value returned by getenv */
     char *bufptr;    /* copy of env info */
@@ -123,8 +123,7 @@ ZCONST char *envstr, *envstr2;
     return PK_OK;
 }
 
-static int count_args(s)
-ZCONST char *s;
+static int count_args(s) const char *s;
 {
     int count = 0;
     char ch;

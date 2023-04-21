@@ -32,7 +32,7 @@ char end_central64_sig[4] = {0, 0, 0x06, 0x06};
 char end_centloc64_sig[4] = {0, 0, 0x06, 0x07};
 /* extern char extd_local_sig[4] = {0, 0, 0x07, 0x08};  NOT USED YET */
 
-ZCONST char *fnames[2] = {"*", NULL}; /* default filenames vector */
+const char *fnames[2] = {"*", NULL}; /* default filenames vector */
 
 Uz_Globs G;
 

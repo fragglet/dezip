@@ -131,9 +131,9 @@ error : This Info - ZIP tool requires zcrypt 2.7 or later.
                                                     char *
                                                     getp(__G__ m, p, n)
 __GDEF
-ZCONST char *m; /* prompt for password */
-char *p;        /* return value: line input */
-int n;          /* bytes available in p[] */
+const char *m; /* prompt for password */
+char *p;       /* return value: line input */
+int n;         /* bytes available in p[] */
 {
     char c;  /* one-byte buffer for read() to use */
     int i;   /* number of characters input */

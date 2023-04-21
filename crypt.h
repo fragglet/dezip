@@ -76,8 +76,8 @@
 
 int decrypt_byte OF((__GPRO));
 int update_keys OF((__GPRO__ int c));
-void init_keys OF((__GPRO__ ZCONST char *passwd));
+void init_keys OF((__GPRO__ const char *passwd));
 
-int decrypt OF((__GPRO__ ZCONST char *passwrd));
+int decrypt OF((__GPRO__ const char *passwrd));
 
 #endif /* !__crypt_h */

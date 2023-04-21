@@ -395,22 +395,22 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 #define ___TMP_PTR     ___tmp_ptr
 #ifndef CLEN
 #define NEED_UZMBCLEN
-#define CLEN(ptr) (int) uzmbclen((ZCONST unsigned char *) (ptr))
+#define CLEN(ptr) (int) uzmbclen((const unsigned char *) (ptr))
 #endif
 #ifndef PREINCSTR
 #define PREINCSTR(ptr) (ptr += CLEN(ptr))
 #endif
 #define POSTINCSTR(ptr) \
     (___TMP_PTR = (char *) (ptr), PREINCSTR(ptr), ___TMP_PTR)
-char *plastchar OF((ZCONST char *ptr, extent len));
+char *plastchar OF((const char *ptr, extent len));
 #define lastchar(ptr, len) ((int) (unsigned) *plastchar(ptr, len))
 #ifndef MBSCHR
 #define NEED_UZMBSCHR
-#define MBSCHR(str, c) (char *) uzmbschr((ZCONST unsigned char *) (str), c)
+#define MBSCHR(str, c) (char *) uzmbschr((const unsigned char *) (str), c)
 #endif
 #ifndef MBSRCHR
 #define NEED_UZMBSRCHR
-#define MBSRCHR(str, c) (char *) uzmbsrchr((ZCONST unsigned char *) (str), c)
+#define MBSRCHR(str, c) (char *) uzmbsrchr((const unsigned char *) (str), c)
 #endif
 #ifndef SETLOCALE
 #define SETLOCALE(category, locale) setlocale(category, locale)
@@ -573,10 +573,11 @@ char *plastchar OF((ZCONST char *ptr, extent len));
 #define MPN_ERR_SKIP    (3 << 8)  /* error - entry skipped */
 #define MPN_ERR_TOOLONG (4 << 8)  /* error - path too long */
 #define MPN_NOMEM       (10 << 8) /* error - out of memory, file skipped */
-#define MPN_CREATED_DIR (16 << 8) /* directory created: set time & permission \
-                                   */
-#define MPN_VOL_LABEL (17 << 8)   /* volume label, but can't set on hard disk */
-#define MPN_INVALID   (99 << 8)   /* internal logic error, should never reach */
+#define MPN_CREATED_DIR                                                     \
+    (16 << 8)                   /* directory created: set time & permission \
+                                 */
+#define MPN_VOL_LABEL (17 << 8) /* volume label, but can't set on hard disk */
+#define MPN_INVALID   (99 << 8) /* internal logic error, should never reach */
 /* mask for internal mapname&checkdir return codes */
 #define MPN_MASK 0x7F00
 /* error code for extracting/testing extra field blocks */
@@ -1119,9 +1120,9 @@ void free_G_buffers OF((__GPRO));
 /* static int    process_central_comment OF((__GPRO)); */
 int process_cdir_file_hdr OF((__GPRO));
 int process_local_file_hdr OF((__GPRO));
-int getZip64Data OF((__GPRO__ ZCONST uch * ef_buf, unsigned ef_len));
-int getUnicodeData OF((__GPRO__ ZCONST uch * ef_buf, unsigned ef_len));
-unsigned ef_scan_for_izux OF((ZCONST uch * ef_buf, unsigned ef_len, int ef_is_c,
+int getZip64Data OF((__GPRO__ const uch *ef_buf, unsigned ef_len));
+int getUnicodeData OF((__GPRO__ const uch *ef_buf, unsigned ef_len));
+unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
                               ulg dos_mdatetime, iztimes *z_utim,
                               ulg *z_uidgid));
 
@@ -1156,28 +1157,28 @@ void handler OF((int signal));
 time_t dos_to_unix_time OF((ulg dos_datetime));
 int check_for_newer OF((__GPRO__ char *filename)); /* os2,vmcms,vms */
 int do_string OF((__GPRO__ unsigned int length, int option));
-ush makeword OF((ZCONST uch * b));
-ulg makelong OF((ZCONST uch * sig));
-zusz_t makeint64 OF((ZCONST uch * sig));
-char *fzofft OF((__GPRO__ zoff_t val, ZCONST char *pre, ZCONST char *post));
+ush makeword OF((const uch *b));
+ulg makelong OF((const uch *sig));
+zusz_t makeint64 OF((const uch *sig));
+char *fzofft OF((__GPRO__ zoff_t val, const char *pre, const char *post));
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
-char *str2iso OF((char *dst, ZCONST char *src));
+char *str2iso OF((char *dst, const char *src));
 #endif
 #if (!defined(STR_TO_OEM) || defined(NEED_STR2OEM))
-char *str2oem OF((char *dst, ZCONST char *src));
+char *str2oem OF((char *dst, const char *src));
 #endif
 #ifdef NO_STRNICMP
-int zstrnicmp OF((register ZCONST char *s1, register ZCONST char *s2,
+int zstrnicmp OF((register const char *s1, register const char *s2,
                   register unsigned n));
 #endif
 #ifdef NEED_UZMBCLEN
-extent uzmbclen OF((ZCONST unsigned char *ptr));
+extent uzmbclen OF((const unsigned char *ptr));
 #endif
 #ifdef NEED_UZMBSCHR
-unsigned char *uzmbschr OF((ZCONST unsigned char *str, unsigned int c));
+unsigned char *uzmbschr OF((const unsigned char *str, unsigned int c));
 #endif
 #ifdef NEED_UZMBSRCHR
-unsigned char *uzmbsrchr OF((ZCONST unsigned char *str, unsigned int c));
+unsigned char *uzmbsrchr OF((const unsigned char *str, unsigned int c));
 #endif
 
 /*---------------------------------------------------------------------------
@@ -1191,10 +1192,10 @@ int extract_or_test_files OF((__GPRO));
 /* static int   test_OS2         OF((__GPRO__ uch *eb, unsigned eb_size)); */
 /* static int   test_NT          OF((__GPRO__ uch *eb, unsigned eb_size)); */
 unsigned find_compr_idx OF((unsigned compr_methodnum));
-int memextract OF((__GPRO__ uch * tgt, ulg tgtsize, ZCONST uch *src,
+int memextract OF((__GPRO__ uch * tgt, ulg tgtsize, const uch *src,
                    ulg srcsize));
-int memflush OF((__GPRO__ ZCONST uch * rawbuf, ulg size));
-char *fnfilter OF((ZCONST char *raw, uch *space, extent size));
+int memflush OF((__GPRO__ const uch *rawbuf, ulg size));
+char *fnfilter OF((const char *raw, uch *space, extent size));
 
 /*---------------------------------------------------------------------------
     Decompression functions:
@@ -1202,8 +1203,8 @@ char *fnfilter OF((ZCONST char *raw, uch *space, extent size));
 
 int explode OF((__GPRO));            /* explode.c */
 int huft_free OF((struct huft * t)); /* inflate.c */
-int huft_build OF((__GPRO__ ZCONST unsigned *b, unsigned n, unsigned s,
-                   ZCONST ush *d, ZCONST uch *e, struct huft **t, unsigned *m));
+int huft_build OF((__GPRO__ const unsigned *b, unsigned n, unsigned s,
+                   const ush *d, const uch *e, struct huft **t, unsigned *m));
 int inflate OF((__GPRO__ int is_defl64)); /* inflate.c */
 int inflate_free OF((__GPRO));            /* inflate.c */
 int unshrink OF((__GPRO));                /* unshrink.c */
@@ -1249,13 +1250,13 @@ void bz_internal_error OF((int bzerrcode)); /* ubz2err.c */
 
 Uz_Globs *globalsCtor OF((void) ); /* globals.c */
 
-int envargs OF((int *Pargc, char ***Pargv, ZCONST char *envstr,
-                ZCONST char *envstr2));
+int envargs OF((int *Pargc, char ***Pargv, const char *envstr,
+                const char *envstr2));
 /* envargs.c */
 void mksargs OF((int *argcp, char ***argvp)); /* envargs.c */
 
-int match OF((ZCONST char *s, ZCONST char *p, int ic __WDLPRO)); /* match.c */
-int iswild OF((ZCONST char *p));                                 /* match.c */
+int match OF((const char *s, const char *p, int ic __WDLPRO)); /* match.c */
+int iswild OF((const char *p));                                /* match.c */
 
 /* declarations of public CRC-32 functions have been moved into crc32.h
    (free_crc_table(), get_crc_table(), crc32())                      crc32.c */
@@ -1266,13 +1267,13 @@ void version OF((__GPRO));                                     /* local */
 int mapattr OF((__GPRO));                                      /* local */
 int mapname OF((__GPRO__ int renamed));                        /* local */
 int checkdir OF((__GPRO__ char *pathcomp, int flag));          /* local */
-char *do_wild OF((__GPRO__ ZCONST char *wildzipfn));           /* local */
+char *do_wild OF((__GPRO__ const char *wildzipfn));            /* local */
 char *GetLoadPath OF((__GPRO));                                /* local */
 void close_outfile OF((__GPRO));                               /* local */
 int set_symlnk_attribs OF((__GPRO__ slinkentry * slnk_entry)); /* local */
 int defer_dir_attribs OF((__GPRO__ direntry * *pd));           /* local */
 int set_direc_attribs OF((__GPRO__ direntry * d));             /* local */
-int stamp_file OF((ZCONST char *fname, time_t modtime));       /* local */
+int stamp_file OF((const char *fname, time_t modtime));        /* local */
 
 /************/
 /*  Macros  */
@@ -1633,28 +1634,28 @@ int stamp_file OF((ZCONST char *fname, time_t modtime));       /* local */
 /*  Global constants  */
 /**********************/
 
-extern ZCONST unsigned near mask_bits[17];
-extern ZCONST char *fnames[2];
+extern const unsigned near mask_bits[17];
+extern const char *fnames[2];
 
 #ifdef IZ_ISO2OEM_ARRAY
-extern ZCONST uch Far *iso2oem;
-extern ZCONST uch Far iso2oem_850[];
+extern const uch Far *iso2oem;
+extern const uch Far iso2oem_850[];
 #endif
 #ifdef IZ_OEM2ISO_ARRAY
-extern ZCONST uch Far *oem2iso;
-extern ZCONST uch Far oem2iso_850[];
+extern const uch Far *oem2iso;
+extern const uch Far oem2iso_850[];
 #endif
 
-extern ZCONST char Far VersionDate[];
-extern ZCONST char Far CentSigMsg[];
-extern ZCONST char Far EndSigMsg[];
-extern ZCONST char Far SeekMsg[];
-extern ZCONST char Far FilenameNotMatched[];
-extern ZCONST char Far ExclFilenameNotMatched[];
-extern ZCONST char Far ReportMsg[];
+extern const char Far VersionDate[];
+extern const char Far CentSigMsg[];
+extern const char Far EndSigMsg[];
+extern const char Far SeekMsg[];
+extern const char Far FilenameNotMatched[];
+extern const char Far ExclFilenameNotMatched[];
+extern const char Far ReportMsg[];
 
-extern ZCONST char Far Zipnfo[];
-extern ZCONST char Far CompiledWith[];
+extern const char Far Zipnfo[];
+extern const char Far CompiledWith[];
 
 /***********************************/
 /*  Global (shared?) RTL variables */
@@ -1678,21 +1679,21 @@ typedef unsigned long zwchar;
 
 #if 0  /* currently unused */
   /* check if string is all ASCII */
-  int is_ascii_string OF((ZCONST char *mbstring));
+  int is_ascii_string OF((const char *mbstring));
 #endif /* unused */
 
 /* convert UTF-8 string to multi-byte string */
-char *utf8_to_local_string OF((ZCONST char *utf8_string, int escape_all));
+char *utf8_to_local_string OF((const char *utf8_string, int escape_all));
 
 /* convert UTF-8 string to wide string */
-zwchar *utf8_to_wide_string OF((ZCONST char *utf8_string));
+zwchar *utf8_to_wide_string OF((const char *utf8_string));
 
 /* convert wide string to multi-byte string */
-char *wide_to_local_string OF((ZCONST zwchar * wide_string, int escape_all));
+char *wide_to_local_string OF((const zwchar *wide_string, int escape_all));
 
 #if 0  /* currently unused */
   /* convert local string to multi-byte display string */
-  char *local_to_display_string OF((ZCONST char *local_string));
+  char *local_to_display_string OF((const char *local_string));
 #endif /* unused */
 
 /* convert wide character to escape string */
@@ -1703,16 +1704,16 @@ char *wide_to_escape_string OF((unsigned long) );
 
 #if 0  /* currently unused */
   /* convert escape string to wide character */
-  unsigned long escape_string_to_wide OF((ZCONST char *escape_string));
+  unsigned long escape_string_to_wide OF((const char *escape_string));
 
   /* convert local to UTF-8 */
-  char *local_to_utf8_string OF ((ZCONST char *local_string));
+  char *local_to_utf8_string OF ((const char *local_string));
 
   /* convert local to wide string */
-  zwchar *local_to_wide_string OF ((ZCONST char *local_string));
+  zwchar *local_to_wide_string OF ((const char *local_string));
 
   /* convert wide string to UTF-8 */
-  char *wide_to_utf8_string OF((ZCONST zwchar *wide_string));
+  char *wide_to_utf8_string OF((const zwchar *wide_string));
 #endif /* unused */
 
 #endif /* !__unzpriv_h */

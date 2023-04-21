@@ -111,39 +111,37 @@ static int disk_error OF((__GPRO));
 /* Strings used in fileio.c */
 /****************************/
 
-static ZCONST char Far CannotOpenZipfile[] =
+static const char Far CannotOpenZipfile[] =
     "error:  cannot open zipfile [ %s ]\n        %s\n";
 
-static ZCONST char Far CannotDeleteOldFile[] =
+static const char Far CannotDeleteOldFile[] =
     "error:  cannot delete old %s\n        %s\n";
-static ZCONST char Far CannotCreateFile[] =
+static const char Far CannotCreateFile[] =
     "error:  cannot create %s\n        %s\n";
 
-static ZCONST char Far ReadError[] = "error:  zipfile read error\n";
-static ZCONST char Far FilenameTooLongTrunc[] =
+static const char Far ReadError[] = "error:  zipfile read error\n";
+static const char Far FilenameTooLongTrunc[] =
     "warning:  filename too long--truncating.\n";
-static ZCONST char Far UFilenameCorrupt[] =
-    "error: Unicode filename corrupt.\n";
-static ZCONST char Far UFilenameTooLongTrunc[] =
+static const char Far UFilenameCorrupt[] = "error: Unicode filename corrupt.\n";
+static const char Far UFilenameTooLongTrunc[] =
     "warning:  Converted Unicode filename too long--truncating.\n";
-static ZCONST char Far ExtraFieldTooLong[] =
+static const char Far ExtraFieldTooLong[] =
     "warning:  extra field too long (%d).  Ignoring...\n";
-static ZCONST char Far ExtraFieldCorrupt[] =
+static const char Far ExtraFieldCorrupt[] =
     "warning:  extra field (type: 0x%04x) corrupt.  Continuing...\n";
 
-static ZCONST char Far DiskFullQuery[] =
+static const char Far DiskFullQuery[] =
     "%s:  write error (disk full?).  Continue? (y/n/^C) ";
-static ZCONST char Far ZipfileCorrupt[] =
+static const char Far ZipfileCorrupt[] =
     "error:  zipfile probably corrupt (%s)\n";
-static ZCONST char Far FileIsSymLink[] =
-    "%s exists and is a symbolic link%s.\n";
-static ZCONST char Far QuitPrompt[] =
+static const char Far FileIsSymLink[] = "%s exists and is a symbolic link%s.\n";
+static const char Far QuitPrompt[] =
     "--- Press `Q' to quit, or any other key to continue ---";
-static ZCONST char Far HidePrompt[] = /* "\r                       \r"; */
+static const char Far HidePrompt[] = /* "\r                       \r"; */
     "\r                                                         \r";
-static ZCONST char Far PasswPrompt[] = "[%s] %s password: ";
-static ZCONST char Far PasswPrompt2[] = "Enter password: ";
-static ZCONST char Far PasswRetry[] = "password incorrect--reenter: ";
+static const char Far PasswPrompt[] = "[%s] %s password: ";
+static const char Far PasswPrompt2[] = "Enter password: ";
+static const char Far PasswRetry[] = "password incorrect--reenter: ";
 
 /******************************/
 /* Function open_input_file() */
@@ -688,9 +686,9 @@ int flag;  /* flag bits (bit 0: no echo) */
 /***************************/
 
 void UZ_EXP UzpMorePause(pG, prompt, flag)
-zvoid *pG;           /* globals struct:  always passed */
-ZCONST char *prompt; /* "--More--" prompt */
-int flag;            /* 0 = any char OK; 1 = accept only '\n', ' ', q */
+zvoid *pG;          /* globals struct:  always passed */
+const char *prompt; /* "--More--" prompt */
+int flag;           /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 {
     uch c;
 
@@ -729,12 +727,12 @@ int flag;            /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 /**************************/
 
 int UZ_EXP UzpPassword(pG, rcnt, pwbuf, size, zfn, efn)
-zvoid *pG;        /* pointer to UnZip's internal global vars */
-int *rcnt;        /* retry counter */
-char *pwbuf;      /* buffer for password */
-int size;         /* size of password buffer */
-ZCONST char *zfn; /* name of zip archive */
-ZCONST char *efn; /* name of archive entry being processed */
+zvoid *pG;       /* pointer to UnZip's internal global vars */
+int *rcnt;       /* retry counter */
+char *pwbuf;     /* buffer for password */
+int size;        /* size of password buffer */
+const char *zfn; /* name of zip archive */
+const char *efn; /* name of archive entry being processed */
 {
     int r = IZ_PW_ENTERED;
     char *m;
@@ -841,7 +839,7 @@ ulg dosdatetime;
 {
     time_t m_time;
 
-    ZCONST time_t now = time(NULL);
+    const time_t now = time(NULL);
     struct tm *tm;
 #define YRBASE 1900
 
@@ -1239,8 +1237,7 @@ int option;
 /* Function makeword() */
 /***********************/
 
-ush makeword(b)
-ZCONST uch *b;
+ush makeword(b) const uch *b;
 {
     /*
      * Convert Intel style 'short' integer to non-Intel non-16-bit
@@ -1253,8 +1250,7 @@ ZCONST uch *b;
 /* Function makelong() */
 /***********************/
 
-ulg makelong(sig)
-ZCONST uch *sig;
+ulg makelong(sig) const uch *sig;
 {
     /*
      * Convert intel style 'long' variable to non-Intel non-16-bit
@@ -1268,8 +1264,7 @@ ZCONST uch *sig;
 /* Function makeint64() */
 /************************/
 
-zusz_t makeint64(sig)
-ZCONST uch *sig;
+zusz_t makeint64(sig) const uch *sig;
 {
 #ifdef LARGE_FILE_SUPPORT
     /*
@@ -1300,8 +1295,8 @@ ZCONST uch *sig;
 char *fzofft(__G__ val, pre, post)
 __GDEF
 zoff_t val;
-ZCONST char *pre;
-ZCONST char *post;
+const char *pre;
+const char *post;
 {
     /* Storage cylinder. (now in globals.h) */
     /*static char fzofft_buf[FZOFFT_NUM][FZOFFT_LEN];*/
@@ -1348,8 +1343,8 @@ ZCONST char *post;
 /**********************/
 
 char *str2iso(dst, src)
-char *dst;                 /* destination buffer */
-register ZCONST char *src; /* source string */
+char *dst;                /* destination buffer */
+register const char *src; /* source string */
 {
 #ifdef INTERN_TO_ISO
     INTERN_TO_ISO(src, dst);
@@ -1373,8 +1368,8 @@ register ZCONST char *src; /* source string */
 /**********************/
 
 char *str2oem(dst, src)
-char *dst;                 /* destination buffer */
-register ZCONST char *src; /* source string */
+char *dst;                /* destination buffer */
+register const char *src; /* source string */
 {
 #ifdef INTERN_TO_OEM
     INTERN_TO_OEM(src, dst);
@@ -1399,7 +1394,7 @@ register ZCONST char *src; /* source string */
 /************************/
 
 int zstrnicmp(s1, s2, n)
-register ZCONST char *s1, *s2;
+register const char *s1, *s2;
 register unsigned n;
 {
     for (; n > 0; --n, ++s1, ++s2) {
@@ -1427,12 +1422,11 @@ register unsigned n;
 /* Function plastchar() */
 /************************/
 
-char *plastchar(ptr, len)
-ZCONST char *ptr;
+char *plastchar(ptr, len) const char *ptr;
 extent len;
 {
     unsigned clen;
-    ZCONST char *oldptr = ptr;
+    const char *oldptr = ptr;
     while (*ptr != '\0' && len > 0) {
         oldptr = ptr;
         clen = CLEN(ptr);
@@ -1447,12 +1441,11 @@ extent len;
 /* Function uzmbclen() */
 /***********************/
 
-extent uzmbclen(ptr)
-ZCONST unsigned char *ptr;
+extent uzmbclen(ptr) const unsigned char *ptr;
 {
     int mbl;
 
-    mbl = mblen((ZCONST char *) ptr, MB_CUR_MAX);
+    mbl = mblen((const char *) ptr, MB_CUR_MAX);
     /* For use in code scanning through MBCS strings, we need a strictly
        positive "MB char bytes count".  For our scanning purpose, it is not
        not relevant whether the MB character is valid or not. And, the NUL
@@ -1468,8 +1461,7 @@ ZCONST unsigned char *ptr;
 /* Function uzmbschr() */
 /***********************/
 
-unsigned char *uzmbschr(str, c)
-ZCONST unsigned char *str;
+unsigned char *uzmbschr(str, c) const unsigned char *str;
 unsigned int c;
 {
     while (*str != '\0') {
@@ -1487,8 +1479,7 @@ unsigned int c;
 /* Function uzmbsrchr() */
 /************************/
 
-unsigned char *uzmbsrchr(str, c)
-ZCONST unsigned char *str;
+unsigned char *uzmbsrchr(str, c) const unsigned char *str;
 unsigned int c;
 {
     unsigned char *match = NULL;

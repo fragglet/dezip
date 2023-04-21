@@ -103,12 +103,7 @@ freely, subject to the above disclaimer and the following restrictions:
 #define OF(a) a
 
 /* enable the "const" keyword only if MODERN and if not otherwise instructed */
-#if (!defined(ZCONST) && (defined(USE_CONST) || !defined(NO_CONST)))
-#define ZCONST const
-#endif
-
-#ifndef ZCONST
-#define ZCONST
+#if (!defined(const) && (defined(USE_CONST) || !defined(NO_CONST)))
 #endif
 
 /* Tell Microsoft Visual C++ 2005 (and newer) to leave us alone
@@ -148,11 +143,11 @@ typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
 /* InputFn is not yet used and is likely to change: */
 typedef int(UZ_EXP MsgFn)(zvoid *pG, uch *buf, ulg size, int flag);
 typedef int(UZ_EXP InputFn)(zvoid *pG, uch *buf, int *size, int flag);
-typedef void(UZ_EXP PauseFn)(zvoid *pG, ZCONST char *prompt, int flag);
+typedef void(UZ_EXP PauseFn)(zvoid *pG, const char *prompt, int flag);
 typedef int(UZ_EXP PasswdFn)(zvoid *pG, int *rcnt, char *pwbuf, int size,
-                             ZCONST char *zfn, ZCONST char *efn);
-typedef int(UZ_EXP StatCBFn)(zvoid *pG, int fnflag, ZCONST char *zfn,
-                             ZCONST char *efn, ZCONST zvoid *details);
+                             const char *zfn, const char *efn);
+typedef int(UZ_EXP StatCBFn)(zvoid *pG, int fnflag, const char *zfn,
+                             const char *efn, const zvoid *details);
 typedef void(UZ_EXP UsrIniFn)(void);
 
 typedef struct _UzpBuffer { /* rxstr */
@@ -229,16 +224,16 @@ typedef struct _ver {
 } _version_type;
 
 typedef struct _UzpVer {
-    ulg structlen;             /* length of the struct being passed */
-    ulg flag;                  /* bit 0: is_beta   bit 1: uses_zlib */
-    ZCONST char *betalevel;    /* e.g. "g BETA" or "" */
-    ZCONST char *date;         /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
-    ZCONST char *zlib_version; /* e.g. "1.2.3" or NULL */
-    _version_type unzip;       /* current UnZip version */
-    _version_type zipinfo;     /* current ZipInfo version */
-    _version_type os2dll;      /* OS2DLL version (retained for compatibility */
-    _version_type windll;      /* WinDLL version (retained for compatibility */
-    _version_type dllapimin;   /* last incompatible change of library API */
+    ulg structlen;            /* length of the struct being passed */
+    ulg flag;                 /* bit 0: is_beta   bit 1: uses_zlib */
+    const char *betalevel;    /* e.g. "g BETA" or "" */
+    const char *date;         /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
+    const char *zlib_version; /* e.g. "1.2.3" or NULL */
+    _version_type unzip;      /* current UnZip version */
+    _version_type zipinfo;    /* current ZipInfo version */
+    _version_type os2dll;     /* OS2DLL version (retained for compatibility */
+    _version_type windll;     /* WinDLL version (retained for compatibility */
+    _version_type dllapimin;  /* last incompatible change of library API */
 } UzpVer;
 
 /* for Visual BASIC access to Windows DLLs: */
@@ -332,7 +327,7 @@ typedef struct _Uzp_cdir_Rec {
 
 int UZ_EXP UzpMain OF((int argc, char **argv));
 int UZ_EXP UzpAltMain OF((int argc, char **argv, UzpInit *init));
-ZCONST UzpVer *UZ_EXP UzpVersion OF((void) );
+const UzpVer *UZ_EXP UzpVersion OF((void) );
 void UZ_EXP UzpFreeMemBuffer OF((UzpBuffer * retstr));
 int UZ_EXP UzpUnzipToMemory OF((char *zip, char *file, UzpOpts *optflgs,
                                 UzpCB *UsrFunc, UzpBuffer *retstr));
@@ -347,9 +342,9 @@ int UZ_EXP UzpValidate OF((char *archive, int AllCodes));
 int UZ_EXP UzpMessagePrnt OF((zvoid * pG, uch *buf, ulg size, int flag));
 int UZ_EXP UzpMessageNull OF((zvoid * pG, uch *buf, ulg size, int flag));
 int UZ_EXP UzpInput OF((zvoid * pG, uch *buf, int *size, int flag));
-void UZ_EXP UzpMorePause OF((zvoid * pG, ZCONST char *prompt, int flag));
+void UZ_EXP UzpMorePause OF((zvoid * pG, const char *prompt, int flag));
 int UZ_EXP UzpPassword OF((zvoid * pG, int *rcnt, char *pwbuf, int size,
-                           ZCONST char *zfn, ZCONST char *efn));
+                           const char *zfn, const char *efn));
 
 /*---------------------------------------------------------------------------
     Remaining private stuff for UnZip compilation.

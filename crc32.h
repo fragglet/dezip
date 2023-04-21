@@ -21,12 +21,9 @@
 #ifndef OF
 #define OF(a) a
 #endif
-#ifndef ZCONST
-#define ZCONST const
-#endif
 
-ZCONST ulg near *get_crc_table OF((void) );
-ulg crc32 OF((ulg crc, ZCONST uch *buf, extent len));
+const ulg near *get_crc_table OF((void) );
+ulg crc32 OF((ulg crc, const uch *buf, extent len));
 
 #ifndef CRC_32_TAB
 #define CRC_32_TAB crc_32_tab

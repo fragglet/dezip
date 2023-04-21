@@ -58,25 +58,25 @@ static unsigned filtattr OF((__GPRO__ unsigned perms));
 /*****************************/
 
 /* messages of code for setting file/directory attributes */
-static ZCONST char CannotSetItemUidGid[] =
+static const char CannotSetItemUidGid[] =
     "warning:  cannot set UID %lu and/or GID %lu for %s\n          %s\n";
-static ZCONST char CannotSetUidGid[] =
+static const char CannotSetUidGid[] =
     " (warning) cannot set UID %lu and/or GID %lu\n          %s";
-static ZCONST char CannotSetItemTimestamps[] =
+static const char CannotSetItemTimestamps[] =
     "warning:  cannot set modif./access times for %s\n          %s\n";
-static ZCONST char CannotSetTimestamps[] =
+static const char CannotSetTimestamps[] =
     " (warning) cannot set modif./access times\n          %s";
 
 /**********************/
 /* Function do_wild() */ /* for porting: dir separator; match(ignore_case) */
 /**********************/
 
-char *do_wild(__G__ wildspec) __GDEF ZCONST
+char *do_wild(__G__ wildspec) __GDEF const
     char *wildspec; /* only used first time on a given dir */
 {
     /* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in unxcfg.h:
         static DIR *wild_dir = (DIR *)NULL;
-        static ZCONST char *wildname;
+        static const char *wildname;
         static char *dirname, matchname[FILNAMSIZ];
         static int notfirstcall=FALSE, have_dirname, dirnamelen;
     */
@@ -98,7 +98,7 @@ char *do_wild(__G__ wildspec) __GDEF ZCONST
         }
 
         /* break the wildspec into a directory part and a wildcard filename */
-        if ((G.wildname = (ZCONST char *) strrchr(wildspec, '/')) == NULL) {
+        if ((G.wildname = (const char *) strrchr(wildspec, '/')) == NULL) {
             G.dirname = ".";
             G.dirnamelen = 1;
             G.have_dirname = FALSE;
@@ -991,7 +991,7 @@ int set_symlnk_attribs(__G__ slnk_entry) __GDEF slinkentry *slnk_entry;
 } /* end function set_symlnk_attribs() */
 
 /* messages of code for setting directory attributes */
-static ZCONST char DirlistChmodFailed[] =
+static const char DirlistChmodFailed[] =
     "warning:  cannot set permissions for %s\n          %s\n";
 
 int defer_dir_attribs(__G__ pd) __GDEF direntry **pd;
@@ -1054,8 +1054,7 @@ int set_direc_attribs(__G__ d) __GDEF direntry *d;
 /*  Function stamp_file()  */
 /***************************/
 
-int stamp_file(fname, modtime)
-ZCONST char *fname;
+int stamp_file(fname, modtime) const char *fname;
 time_t modtime;
 {
     ztimbuf tp;

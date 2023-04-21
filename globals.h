@@ -170,7 +170,7 @@ typedef struct Globals {
     min_info *pInfo;
     union work area; /* see unzpriv.h for definition of work */
 
-    ZCONST ulg near *crc_32_tab;
+    const ulg near *crc_32_tab;
     ulg crc32val; /* CRC shift reg. (was static in funzip) */
 
     uch *inbuf; /* input buffer (any size is OK) */
@@ -248,9 +248,9 @@ typedef struct Globals {
     struct huft *fixed_tl32;         /* inflate static */
     struct huft *fixed_td32;         /* inflate static */
     unsigned fixed_bl32, fixed_bd32; /* inflate static */
-    ZCONST ush *cplens;              /* inflate static */
-    ZCONST uch *cplext;              /* inflate static */
-    ZCONST uch *cpdext;              /* inflate static */
+    const ush *cplens;               /* inflate static */
+    const uch *cplext;               /* inflate static */
+    const uch *cpdext;               /* inflate static */
     unsigned wp; /* inflate static: current position in slide */
     ulg bb;      /* inflate static: bit buffer */
     unsigned bk; /* inflate static: bits count in bit buffer */
