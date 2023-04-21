@@ -1308,13 +1308,6 @@ void version(__G)
 #if defined(uts) || defined(UTS)
       " (Amdahl UTS)",
 #else
-#ifdef NeXT
-#  ifdef mc68000
-      " (NeXTStep/black)",
-#  else
-      " (NeXTStep for Intel)",
-#  endif
-#else              /* the next dozen or so are somewhat order-dependent */
 #ifdef pyr
       " (Pyramid)",
 #else
@@ -1340,7 +1333,6 @@ void version(__G)
 #endif /* QNX 4 */
 #endif /* DEC */
 #endif /* Pyramid */
-#endif /* NeXT */
 #endif /* Amdahl */
 #endif /* OSF/1 */
 #endif /* Sun */
