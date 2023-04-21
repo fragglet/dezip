@@ -65,14 +65,12 @@
 #include "ttyio.h"
 
 /* setup of codepage conversion for decryption passwords */
-#if CRYPT
 #  if (defined(CRYP_USES_ISO2OEM) && !defined(IZ_ISO2OEM_ARRAY))
 #    define IZ_ISO2OEM_ARRAY            /* pull in iso2oem[] table */
 #  endif
 #  if (defined(CRYP_USES_OEM2ISO) && !defined(IZ_OEM2ISO_ARRAY))
 #    define IZ_OEM2ISO_ARRAY            /* pull in oem2iso[] table */
 #  endif
-#endif
 #include "ebcdic.h"   /* definition/initialization of ebcdic[] */
 
 
@@ -160,11 +158,9 @@ static ZCONST char Far ExtraFieldCorrupt[] =
      "--- Press `Q' to quit, or any other key to continue ---";
    static ZCONST char Far HidePrompt[] = /* "\r                       \r"; */
      "\r                                                         \r";
-#  if CRYPT
        static ZCONST char Far PasswPrompt[] = "[%s] %s password: ";
      static ZCONST char Far PasswPrompt2[] = "Enter password: ";
      static ZCONST char Far PasswRetry[] = "password incorrect--reenter: ";
-#  endif /* CRYPT */
 
 
 
@@ -481,7 +477,6 @@ int readbyte(__G)   /* refill inbuf and return a byte if available, else EOF */
         defer_leftover_input(__G);           /* decrements G.csize */
     }
 
-#if CRYPT
     if (G.pInfo->encrypted) {
         uch *p;
         int n;
@@ -493,7 +488,6 @@ int readbyte(__G)   /* refill inbuf and return a byte if available, else EOF */
         for (n = G.incnt, p = G.inptr;  n--;  p++)
             zdecode(*p);
     }
-#endif /* CRYPT */
 
     --G.incnt;
     return *G.inptr++;
@@ -518,7 +512,6 @@ int fillinbuf(__G) /* like readbyte() except returns number of bytes in inbuf */
     G.inptr = G.inbuf;
     defer_leftover_input(__G);           /* decrements G.csize */
 
-#if CRYPT
     if (G.pInfo->encrypted) {
         uch *p;
         int n;
@@ -526,7 +519,6 @@ int fillinbuf(__G) /* like readbyte() except returns number of bytes in inbuf */
         for (n = G.incnt, p = G.inptr;  n--;  p++)
             zdecode(*p);
     }
-#endif /* CRYPT */
 
     return G.incnt;
 
@@ -1239,7 +1231,6 @@ int UZ_EXP UzpPassword (pG, rcnt, pwbuf, size, zfn, efn)
     ZCONST char *zfn;  /* name of zip archive */
     ZCONST char *efn;  /* name of archive entry being processed */
 {
-#if CRYPT
     int r = IZ_PW_ENTERED;
     char *m;
     char *prompt;
@@ -1286,13 +1277,6 @@ int UZ_EXP UzpPassword (pG, rcnt, pwbuf, size, zfn, efn)
         r = IZ_PW_CANCELALL;
     }
     return r;
-
-#else /* !CRYPT */
-    /* tell picky compilers to shut up about "unused variable" warnings */
-    pG = pG; rcnt = rcnt; pwbuf = pwbuf; size = size; zfn = zfn; efn = efn;
-
-    return IZ_PW_ERROR;  /* internal error; function should never get called */
-#endif /* ?CRYPT */
 
 } /* end function UzpPassword() */
 
@@ -1967,8 +1951,6 @@ char *fzofft(__G__ val, pre, post)
 
 
 
-#if CRYPT
-
 #ifdef NEED_STR2ISO
 /**********************/
 /* Function str2iso() */
@@ -2019,8 +2001,6 @@ char *str2oem(dst, src)
     return dst;
 }
 #endif /* NEED_STR2OEM */
-
-#endif /* CRYPT */
 
 
 

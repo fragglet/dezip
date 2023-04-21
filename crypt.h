@@ -25,9 +25,7 @@
 #ifndef __crypt_h   /* don't include more than once */
 #define __crypt_h
 
-#ifdef CRYPT
 #  undef CRYPT
-#endif
 /*
    Logic of selecting "full crypt" code:
    a) default behaviour:
@@ -53,7 +51,6 @@
 #endif /* ?USE_CRYPT */
 #endif /* ?NO_CRYPT */
 
-#if CRYPT
 /* full version */
 
 #define CR_MAJORVER        2
@@ -123,13 +120,4 @@ void init_keys OF((__GPRO__ ZCONST char *passwd));
    (encrypted? update_keys(__G__ getc(G.in)^decrypt_byte(__G)) : getc(G.in))
 #endif /* FUNZIP */
 
-#else /* !CRYPT */
-/* dummy version */
-
-#define zencode
-#define zdecode
-
-#define zfwrite  fwrite
-
-#endif /* ?CRYPT */
 #endif /* !__crypt_h */

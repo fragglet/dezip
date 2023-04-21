@@ -29,7 +29,6 @@
 #include "zip.h"
 #include "crypt.h"
 
-#if (CRYPT || (defined(UNZIP) && !defined(FUNZIP)))
 /* Non-echo console/keyboard input is needed for (en/de)cryption's password
  * entry, and for UnZip(SFX)'s MORE and Pause features.
  * (The corresponding #endif is found at the end of this module.)
@@ -292,8 +291,6 @@ int zgetch(__G__ f)
 #endif /* UNZIP && !FUNZIP */
 
 
-#if CRYPT                       /* getp() is only used with full encryption */
-
 /*
  * Simple compile-time check for source compatibility between
  * zcrypt and ttyio:
@@ -361,5 +358,3 @@ char *getp(__G__ m, p, n)
 
 
 
-#endif /* CRYPT */
-#endif /* CRYPT || (UNZIP && !FUNZIP) */

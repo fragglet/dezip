@@ -219,7 +219,6 @@ static ZCONST char Far ZeroFilesTested[] =
    static ZCONST char Far VMSFormatQuery[] =
      "\n%s:  stored in VMS format.  Extract anyway? (y/n) ";
 
-#if CRYPT
    static ZCONST char Far SkipCannotGetPasswd[] =
      "   skipping: %-22s  unable to get password\n";
    static ZCONST char Far SkipIncorrectPasswd[] =
@@ -228,10 +227,6 @@ static ZCONST char Far ZeroFilesTested[] =
      "%lu file%s skipped because of incorrect password.\n";
    static ZCONST char Far MaybeBadPasswd[] =
      "    (may instead be incorrect password)\n";
-#else
-   static ZCONST char Far SkipEncrypted[] =
-     "   skipping: %-22s  encrypted (not supported)\n";
-#endif
 
 static ZCONST char Far NoErrInCompData[] =
   "No errors detected in compressed data of %s.\n";
@@ -519,9 +514,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
 
     G.pInfo = G.info;
 
-#if CRYPT
     G.newzip = TRUE;
-#endif
 #ifndef SFX
     G.reported_backslash = FALSE;
 #endif
@@ -881,11 +874,9 @@ int extract_or_test_files(__G)    /* return PK-type error code */
             if (num_skipped > 0L)
                 Info(slide, 0, ((char *)slide, LoadFarString(FilesSkipped),
                   num_skipped, (num_skipped==1L)? "":"s"));
-#if CRYPT
             if (num_bad_pwd > 0L)
                 Info(slide, 0, ((char *)slide, LoadFarString(FilesSkipBadPasswd)
                   , num_bad_pwd, (num_bad_pwd==1L)? "":"s"));
-#endif /* CRYPT */
         }
     }
 
@@ -898,16 +889,12 @@ int extract_or_test_files(__G)    /* return PK-type error code */
         else
             error_in_archive = PK_FIND;  /* no files found at all */
     }
-#if CRYPT
     else if ((filnum == num_bad_pwd) && error_in_archive <= PK_WARN)
         error_in_archive = IZ_BADPWD;    /* bad passwd => all files skipped */
-#endif
     else if ((num_skipped > 0L) && error_in_archive <= PK_WARN)
         error_in_archive = IZ_UNSUP;     /* was PK_WARN; Jean-loup complained */
-#if CRYPT
     else if ((num_bad_pwd > 0L) && !error_in_archive)
         error_in_archive = PK_WARN;
-#endif
 
     return error_in_archive;
 
@@ -1052,14 +1039,6 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
         }
         return 0;
     }
-#if (!CRYPT)
-    if (G.pInfo->encrypted) {
-        if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
-            Info(slide, 0x401, ((char *)slide, LoadFarString(SkipEncrypted),
-              FnFilter1(G.filename)));
-        return 0;
-    }
-#endif /* !CRYPT */
 
 #ifndef SFX
     /* store a copy of the central header filename for later comparison */
@@ -1356,7 +1335,6 @@ static int extract_or_test_entrylist(__G__ numchunk,
             }
         }
 
-#if CRYPT
         if (G.pInfo->encrypted &&
             (error = decrypt(__G__ uO.pwdarg)) != PK_COOL) {
             if (error == PK_WARN) {
@@ -1374,7 +1352,6 @@ static int extract_or_test_entrylist(__G__ numchunk,
             }
             continue;   /* go on to next file */
         }
-#endif /* CRYPT */
 
         /*
          * just about to extract file:  if extracting to disk, check if
@@ -1881,10 +1858,8 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
               FnFilter1(G.filename)));
         Info(slide, 0x401, ((char *)slide, LoadFarString(BadCRC), G.crc32val,
           G.lrec.crc32));
-#if CRYPT
         if (G.pInfo->encrypted)
             Info(slide, 0x401, ((char *)slide, LoadFarString(MaybeBadPasswd)));
-#endif
         error = PK_ERR;
     } else if (uO.tflag) {
 #ifndef SFX

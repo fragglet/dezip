@@ -192,7 +192,6 @@ __GDEF
     return 0;
   G.inptr = G.inbuf;
 
-#if CRYPT
   if (encrypted) {
     uch *p;
     int n;
@@ -200,7 +199,6 @@ __GDEF
     for (n = G.incnt, p = G.inptr;  n--;  p++)
       zdecode(*p);
   }
-#endif /* CRYPT */
 
   return G.incnt;
 
@@ -240,19 +238,14 @@ char **argv;
   uch h[LOCHDR];                /* first local header (GZPHDR < LOCHDR) */
   int g = 0;                    /* true if gzip format */
   unsigned method = 0;          /* initialized here to shut up gcc warning */
-#if CRYPT
   char *s = " [-password]";
   char *p;                      /* password */
-#else /* !CRYPT */
-  char *s = "";
-#endif /* ?CRYPT */
   CONSTRUCTGLOBALS();
 
   /* skip executable name */
   argc--;
   argv++;
 
-#if CRYPT
   /* get the command line password, if any */
   p = (char *)NULL;
   if (argc && **argv == '-')
@@ -260,7 +253,6 @@ char **argv;
     argc--;
     p = 1 + *argv++;
   }
-#endif /* CRYPT */
 
 #ifdef MALLOC_WORK
   /* The following expression is a cooked-down simplyfication of the
@@ -356,7 +348,6 @@ char **argv;
 
   /* if entry encrypted, decrypt and validate encryption header */
   if (encrypted)
-#if CRYPT
     {
       ush i, e;
 
@@ -375,9 +366,6 @@ char **argv;
       if (e != (ush)(h[LOCFLG] & EXTFLG ? h[LOCTIM + 1] : h[LOCCRC + 3]))
         err(3, "incorrect password for first entry");
     }
-#else /* !CRYPT */
-    err(3, "cannot decrypt entry (need to recompile with full crypt.c)");
-#endif /* ?CRYPT */
 
   /* prepare output buffer and crc */
   G.outptr = slide;
@@ -408,20 +396,14 @@ char **argv;
     register ulg n;
 
     n = LG(h + LOCLEN);
-#if CRYPT
     if (n != LG(h + LOCSIZ) - (encrypted ? RAND_HEAD_LEN : 0)) {
-#else
-    if (n != LG(h + LOCSIZ)) {
-#endif
       Info(slide, 1, ((char *)slide, "len %ld, siz %ld\n", n, LG(h + LOCSIZ)));
       err(4, "invalid compressed data--length mismatch");
     }
     while (n--) {
       ush c = getc(G.in);
-#if CRYPT
       if (encrypted)
         zdecode(c);
-#endif
       *G.outptr++ = (uch)c;
       if (++G.outcnt == WSIZE)    /* do FlushOutput() */
       {

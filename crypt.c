@@ -34,8 +34,6 @@
 #include "crypt.h"
 #include "ttyio.h"
 
-#if CRYPT
-
 #ifndef FALSE
 #  define FALSE 0
 #endif
@@ -653,9 +651,3 @@ local int testkey(__G__ h, key)
 
 #endif /* UNZIP && !FUNZIP */
 
-#else /* !CRYPT */
-
-/* something "externally visible" to shut up compiler/linker warnings */
-int zcr_dummy;
-
-#endif /* ?CRYPT */

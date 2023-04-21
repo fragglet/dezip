@@ -130,10 +130,8 @@ static void  show_version_info  OF((__GPRO));
      "error:  -d option used more than once (only one exdir allowed)\n";
 #endif
 
-#if CRYPT
    static ZCONST char Far MustGivePasswd[] =
      "error:  must give decryption password with -P option\n";
-#endif
 
 #ifndef SFX
    static ZCONST char Far Zfirst[] =
@@ -306,14 +304,12 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef WILD_STOP_AT_DIR
      static ZCONST char Far WildStopAtDir[] = "WILD_STOP_AT_DIR";
 #  endif
-#  if CRYPT
 #    ifdef PASSWD_FROM_STDIN
        static ZCONST char Far PasswdStdin[] = "PASSWD_FROM_STDIN";
 #    endif
      static ZCONST char Far Decryption[] =
        "        [decryption, version %d.%d%s of %s]\n";
      static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
-#  endif
 
    static ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Debian. Original by Info-ZIP.\
@@ -1056,7 +1052,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.qflag += 999;
                     }
                     break;
-#if CRYPT
                 /* GRR:  yes, this is highly insecure, but dozens of people
                  * have pestered us for this, so here we go... */
                 case ('P'):
@@ -1100,7 +1095,6 @@ int uz_opts(__G__ pargc, pargv)
                                 ;
                     }
                     break;
-#endif /* CRYPT */
                 case ('q'):    /* quiet:  fewer comments/messages */
                     if (negative) {
                         uO.qflag = MAX(uO.qflag-negative,0);
@@ -1814,7 +1808,6 @@ static void show_version_info(__G)
           LoadFarStringSmall(WildStopAtDir)));
         ++numopts;
 #endif
-#if CRYPT
 # ifdef PASSWD_FROM_STDIN
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(PasswdStdin)));
@@ -1823,7 +1816,6 @@ static void show_version_info(__G)
           CR_MAJORVER, CR_MINORVER, CR_BETA_VER,
           LoadFarStringSmall(CryptDate)));
         ++numopts;
-#endif /* CRYPT */
         if (numopts == 0)
             Info(slide, 0, ((char *)slide,
               LoadFarString(CompileOptFormat),
