@@ -1046,32 +1046,6 @@ int unzip(__G__ argc, argv)
     maining options and file specifications.
   ---------------------------------------------------------------------------*/
 
-#ifdef DOS_FLX_H68_NLM_OS2_W32
-    /* convert MSDOS-style 'backward slash' directory separators to Unix-style
-     * 'forward slashes' for user's convenience (include zipfile name itself)
-     */
-#ifdef SFX
-    for (G.pfnames = argv, i = argc;  i > 0;  --i) {
-#else
-    /* argc does not include the zipfile specification */
-    for (G.pfnames = argv, i = argc+1;  i > 0;  --i) {
-#endif
-#ifdef __human68k__
-        extern char *_toslash(char *);
-        _toslash(*G.pfnames);
-#else /* !__human68k__ */
-        char *q = *G.pfnames;
-
-        while (*q != '\0') {
-            if (*q == '\\')
-                *q = '/';
-            INCSTR(q);
-        }
-#endif /* ?__human68k__ */
-        ++G.pfnames;
-    }
-#endif /* DOS_FLX_H68_NLM_OS2_W32 */
-
 #ifndef SFX
     G.wildzipfn = *argv++;
 #endif

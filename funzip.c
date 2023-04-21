@@ -323,14 +323,6 @@ char **argv;
 #endif
   }
 
-#ifdef DOS_FLX_H68_NLM_OS2_W32
-#if (defined(__HIGHC__) && !defined(FLEXOS))
-  setmode(stdout, _BINARY);
-#else
-  setmode(1, O_BINARY);
-#endif
-#endif /* DOS_FLX_H68_NLM_OS2_W32 */
-
 #ifdef RISCOS
   out = stdout;
 #else
