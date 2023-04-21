@@ -38,9 +38,6 @@
 #    define DOS_OS2_W32
 #endif
 
-#if (defined(__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
-#endif
-
 #if (defined(VM_CMS) || defined(MVS))
 #    define CMS_MVS
 #endif

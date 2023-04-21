@@ -1423,7 +1423,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.ddotflag;
                     break;
-#ifdef UNIX
                 case ('^'):    /* allow control chars in filenames */
                     if (negative) {
                         uO.cflxflag = MAX(uO.cflxflag-negative,0);
@@ -1431,7 +1430,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.cflxflag;
                     break;
-#endif /* UNIX */
                 default:
                     error = TRUE;
                     break;
@@ -1544,9 +1542,7 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 #    define LOCAL "X.\n\
 (Must quote upper-case options, like \"-V\", unless SET PROC/PARSE=EXTEND.)"
 #  endif
-#  ifdef UNIX
 #    define LOCAL "X"
-#  endif
    /* Default for all other systems: */
 #  ifndef LOCAL
 #    define LOCAL ""

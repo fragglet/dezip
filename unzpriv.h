@@ -83,9 +83,7 @@
  * that add the B_flag to the UzpOpts structure, see unzip.h.)
  */
 #if (!defined(NO_UNIXBACKUP) && !defined(UNIXBACKUP))
-#  if defined(UNIX) || defined(OS2) || defined(WIN32)
 #    define UNIXBACKUP
-#  endif
 #endif
 
 #if (!defined(DYNAMIC_CRC_TABLE) && !defined(FUNZIP))
@@ -212,9 +210,7 @@
     Unix section:
   ---------------------------------------------------------------------------*/
 
-#ifdef UNIX
 #  include "unix/unxcfg.h"
-#endif /* UNIX */
 
 /*---------------------------------------------------------------------------
     VM/CMS and MVS section:
@@ -327,9 +323,7 @@
 #  define T20_VMS
 #endif
 
-#if (defined(ATH_BEO) || defined(UNIX))
 #  define ATH_BEO_UNX
-#endif
 
 #  define ATH_BEO_THS_UNX
 
@@ -707,9 +701,7 @@
 #  define S_IEXEC   S_IXUSR
 #endif
 
-#if (defined(UNIX) && defined(S_IFLNK) && !defined(MTS))
 #  define SYMLINKS
-#endif /* UNIX && S_IFLNK && !MTS */
 
 #ifndef IS_VOLID
 #  define IS_VOLID(m)  ((m) & 0x08)
@@ -737,8 +729,6 @@
 
 /* ---------------------------- */
 
-# if defined(UNIX) || defined(VMS)
-
     /* 64-bit stat functions */
 #   define zstat stat
 #   define zfstat fstat
@@ -753,8 +743,6 @@
     /* 64-bit fopen */
 #   define zfopen fopen
 #   define zfdopen fdopen
-
-# endif /* UNIX || VMS */
 
 /* ---------------------------- */
 
@@ -838,12 +826,10 @@
 # define zfopen fopen
 # define zfdopen fdopen
 
-# if defined(UNIX) || defined(VMS) || defined(WIN32)
     /* For these systems, implement "64bit file vs. 32bit prog" check  */
 #   ifndef DO_SAFECHECK_2GB
 #     define DO_SAFECHECK_2GB
 #   endif
-# endif
 
 #endif
 
@@ -1830,11 +1816,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #  define MTrace(x)  Trace(x)
 #endif
 
-#if (defined(UNIX) || defined(T20_VMS)) /* generally old systems */
 #  define ToLower(x)   ((char)(isupper((int)x)? tolower((int)x) : x))
-#else
-#  define ToLower      tolower          /* assumed "smart"; used in match() */
-#endif
 
 #ifdef USE_STRM_INPUT
    /* ``Replace'' the unbuffered UNIX style I/O function with similar

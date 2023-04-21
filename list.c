@@ -290,11 +290,9 @@ int list_files(__G)    /* return PK-type error code */
             }
 
 #if 0       /* GRR/Euro:  add this? */
-#if defined(DOS_FLX_NLM_OS2_W32) || defined(THEOS) || defined(UNIX)
             for (p = G.filename;  *p;  ++p)
                 if (!isprint(*p))
                     *p = '?';  /* change non-printable chars to '?' */
-#endif /* DOS_FLX_NLM_OS2_W32 || THEOS || UNIX */
 #endif /* 0 */
 
 #ifdef WINDLL

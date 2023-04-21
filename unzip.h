@@ -83,9 +83,6 @@ freely, subject to the above disclaimer and the following restrictions:
   ---------------------------------------------------------------------------*/
 
 #if (defined(unix) || defined(_unix) || defined(__unix) || defined(__unix__))
-#  ifndef UNIX
-#    define UNIX
-#  endif
 #endif /* unix || _unix || __unix || __unix__ */
 
 #if (defined(VM_CMS) || defined(MVS))
@@ -262,13 +259,7 @@ typedef struct _UzpOpts {
 #ifdef VMS
     int bflag;          /* -b: force fixed record format for binary files */
 #endif
-#if defined(UNIX) || defined(OS2) || defined(WIN32)
     int B_flag;         /* -B: back up existing files by renaming to *~##### */
-#else
-#ifdef UNIXBACKUP
-    int B_flag;         /* -B: back up existing files by renaming to *~##### */
-#endif
-#endif
     int cflag;          /* -c: output to stdout */
     int C_flag;         /* -C: match filenames case-insensitively */
     int D_flag;         /* -D: don't restore directory (-DD: any) timestamps */
@@ -278,9 +269,7 @@ typedef struct _UzpOpts {
 #endif
     int hflag;          /* -h: header line (zipinfo) */
     int jflag;          /* -j: junk pathnames (unzip) */
-#if (defined(__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
     int K_flag;         /* -K: keep setuid/setgid/tacky permissions */
-#endif
     int lflag;          /* -12slmv: listing format (zipinfo) */
     int L_flag;         /* -L: convert filenames from some OSes to lowercase */
     int overwrite_none; /* -n: never overwrite files (no prompting) */
@@ -300,19 +289,11 @@ typedef struct _UzpOpts {
     int tflag;          /* -t: test (unzip) or totals line (zipinfo) */
     int T_flag;         /* -T: timestamps (unzip) or dec. time fmt (zipinfo) */
     int uflag;          /* -u: "update" (extract only newer/brand-new files) */
-#if defined(UNIX) || defined(VMS) || defined(WIN32)
     int U_flag;         /* -U: escape non-ASCII, -UU No Unicode paths */
-#endif
     int vflag;          /* -v: (verbosely) list directory */
     int V_flag;         /* -V: don't strip VMS version numbers */
     int W_flag;         /* -W: wildcard '*' won't match '/' dir separator */
-#if (defined (__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
-#else
-#if (defined(OS2) || defined(VMS) || defined(WIN32))
-    int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
-#endif
-#endif
 #ifdef VMS
     int Y_flag;         /* -Y: treat ".nnn" as ";nnn" version */
 #endif
@@ -321,9 +302,7 @@ typedef struct _UzpOpts {
     int ods2_flag;      /* -2: force names to conform to ODS2 */
 #endif
     int ddotflag;       /* -:: don't skip over "../" path elements */
-#ifdef UNIX
     int cflxflag;       /* -^: allow control chars in extracted filenames */
-#endif
 #endif /* !FUNZIP */
 } UzpOpts;
 
