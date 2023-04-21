@@ -927,8 +927,6 @@ static ZCONST unsigned lbits = 9;
 static ZCONST unsigned dbits = 6;
 
 
-#ifndef ASM_INFLATECODES
-
 int inflate_codes(__G__ tl, td, bl, bd)
      __GDEF
 struct huft *tl, *td;   /* literal/length and distance decoder tables */
@@ -1062,8 +1060,6 @@ cleanup_and_exit:
   /* done */
   return retval;
 }
-
-#endif /* ASM_INFLATECODES */
 
 
 

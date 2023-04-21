@@ -372,9 +372,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef ASM_CRC
      static ZCONST char Far AsmCRC[] = "ASM_CRC";
 #  endif
-#  ifdef ASM_INFLATECODES
-     static ZCONST char Far AsmInflateCodes[] = "ASM_INFLATECODES";
-#  endif
 #  ifdef CHECK_VERSIONS
      static ZCONST char Far Check_Versions[] = "CHECK_VERSIONS";
 #  endif
@@ -2338,11 +2335,6 @@ static void show_version_info(__G)
 #ifdef ASM_CRC
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(AsmCRC)));
-        ++numopts;
-#endif
-#ifdef ASM_INFLATECODES
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(AsmInflateCodes)));
         ++numopts;
 #endif
 #ifdef CHECK_VERSIONS
