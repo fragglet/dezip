@@ -19,7 +19,6 @@
 
   ---------------------------------------------------------------------------*/
 
-#define UNZIP_INTERNAL
 #include "unzip.h"
 
 static int fn_is_dir(void);

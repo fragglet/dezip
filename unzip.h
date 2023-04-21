@@ -345,8 +345,6 @@ int UzpPassword OF((void *pG, int *rcnt, char *pwbuf, int size, const char *zfn,
     Remaining private stuff for UnZip compilation.
   ---------------------------------------------------------------------------*/
 
-#ifdef UNZIP_INTERNAL
 #include "unzpriv.h"
-#endif
 
 #endif /* !__unzip_h */

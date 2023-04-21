@@ -19,7 +19,6 @@
 
   ---------------------------------------------------------------------------*/
 
-#define UNZIP_INTERNAL
 #include "unzip.h"
 
 /* initialization of sigs is completed at runtime so unzip(sfx) executable

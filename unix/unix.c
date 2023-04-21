@@ -26,7 +26,6 @@
 
   ---------------------------------------------------------------------------*/
 
-#define UNZIP_INTERNAL
 #include "unzip.h"
 
 #define DIRENT

@@ -18,5 +18,4 @@
   ---------------------------------------------------------------------------*/
 
 #define __UNREDUCE_C /* identifies this source module */
-#define UNZIP_INTERNAL
-#include "unzip.h" /* defines COPYRIGHT_CLEAN by default */
+#include "unzip.h"   /* defines COPYRIGHT_CLEAN by default */

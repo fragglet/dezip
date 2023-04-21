@@ -14,7 +14,6 @@
 #ifndef __zip_h /* don't include more than once */
 #define __zip_h
 
-#define UNZIP_INTERNAL
 #include "unzip.h"
 
 #define local static

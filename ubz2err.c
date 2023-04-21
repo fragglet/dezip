@@ -24,7 +24,6 @@
   ---------------------------------------------------------------------------*/
 
 #define __UBZ2ERR_C /* identifies this source module */
-#define UNZIP_INTERNAL
 #include "unzip.h"
 
 /**********************************/

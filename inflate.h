@@ -31,5 +31,4 @@
                                     split unzip.h
  */
 
-#define UNZIP_INTERNAL
 #include "unzip.h" /* provides slide[], typedefs and macros */
