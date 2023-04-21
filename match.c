@@ -75,8 +75,6 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-#ifndef THEOS   /* the Theos port defines its own variant of match() */
-
 #if 0  /* this is not useful until it matches Amiga names insensitively */
 #endif /* 0 */
 
@@ -320,8 +318,6 @@ static int namecmp(s1, s2)
     }
 } /* end function namecmp() */
 
-#endif /* !THEOS */
-
 
 
 
@@ -331,15 +327,11 @@ int iswild(p)        /* originally only used for stat()-bug workaround in */
     for (; *p; INCSTR(p))
         if (*p == '\\' && *(p+1))
             ++p;
-#ifdef THEOS
-        else if (*p == '?' || *p == '*' || *p=='#'|| *p == '@')
-#else /* !THEOS */
 #ifdef VMS
         else if (*p == '%' || *p == '*')
 #else /* !VMS */
         else if (*p == '?' || *p == '*' || *p == '[')
 #endif /* ?VMS */
-#endif /* ?THEOS */
             return TRUE;
 
     return FALSE;

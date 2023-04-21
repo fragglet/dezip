@@ -210,10 +210,6 @@
     THEOS section:
   ---------------------------------------------------------------------------*/
 
-#ifdef THEOS
-#  include "theos/thscfg.h"
-#endif
-
 /*---------------------------------------------------------------------------
     TOPS-20 section:
   ---------------------------------------------------------------------------*/
@@ -1877,12 +1873,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #endif
 
 #ifdef DEBUG
-#  if (defined(THEOS) && defined(NO_BOGUS_SPC))
-#    define NO_DEBUG_IN_MACROS
-#    define Trace(x)   _fprintf x
-#  else
 #    define Trace(x)   fprintf x
-#  endif
 #else
 #  define Trace(x)
 #endif

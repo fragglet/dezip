@@ -687,18 +687,6 @@ int unzip(__G__ argc, argv)
     Theos initialization code.
   ---------------------------------------------------------------------------*/
 
-#ifdef THEOS
-    /* The easiest way found to force creation of libraries when selected
-     * members are to be unzipped. Explicitly add libraries names to the
-     * arguments list before the first member of the library.
-     */
-    if (! _setargv(&argc, &argv)) {
-        Info(slide, 0x401, ((char *)slide, "cannot process argv\n"));
-        retcode = PK_MEM;
-        goto cleanup_and_exit;
-    }
-#endif
-
 /*---------------------------------------------------------------------------
     Sanity checks.  Commentary by Otis B. Driftwood and Fiorello:
 
@@ -819,13 +807,8 @@ int unzip(__G__ argc, argv)
     }
     ++p;
 
-#ifdef THEOS
-    if (strncmp(p, "ZIPINFO.",8) == 0 || strstr(p, ".ZIPINFO:") != NULL ||
-        strncmp(p, "II.",3) == 0 || strstr(p, ".II:") != NULL ||
-#else
     if (STRNICMP(p, LoadFarStringSmall(Zipnfo), 7) == 0 ||
         STRNICMP(p, "ii", 2) == 0 ||
-#endif
         (argc > 1 && strncmp(argv[1], "-Z", 2) == 0))
     {
         uO.zipinfo_mode = TRUE;

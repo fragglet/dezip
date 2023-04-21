@@ -1284,9 +1284,6 @@ void UZ_EXP UzpMorePause(pG, prompt, flag)
         do {
             c = (uch)FGETCH(0);
         } while (
-#ifdef THEOS
-                 c != 17 &&     /* standard QUIT key */
-#endif
                  c != '\r' && c != '\n' && c != ' ' && c != 'q' && c != 'Q');
     } else
         c = (uch)FGETCH(0);
@@ -1296,9 +1293,6 @@ void UZ_EXP UzpMorePause(pG, prompt, flag)
     fflush(stderr);
 
     if (
-#ifdef THEOS
-        (c == 17) ||            /* standard QUIT key */
-#endif
         (ToLower(c) == 'q')) {
         DESTROYGLOBALS();
         EXIT(PK_COOL);

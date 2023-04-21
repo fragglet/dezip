@@ -642,9 +642,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     if (SSTAT(G.zipfn, &G.statbuf) ||
-#ifdef THEOS
-        (error = S_ISLIB(G.statbuf.st_mode)) != 0 ||
-#endif
         (error = S_ISDIR(G.statbuf.st_mode)) != 0)
     {
 #ifndef SFX

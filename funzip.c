@@ -159,15 +159,9 @@
 #define GZPCOS 7                /* offset of operating system compressed on */
 #define GZPHDR 8                /* length of minimal gzip header */
 
-#ifdef THEOS
-/* Macros cause stack overflow in compiler */
-ush SH(uch* p) { return ((ush)(uch)((p)[0]) | ((ush)(uch)((p)[1]) << 8)); }
-ulg LG(uch* p) { return ((ulg)(SH(p)) | ((ulg)(SH((p)+2)) << 16)); }
-#else /* !THEOS */
 /* Macros for getting two-byte and four-byte header values */
 #define SH(p) ((ush)(uch)((p)[0]) | ((ush)(uch)((p)[1]) << 8))
 #define LG(p) ((ulg)(SH(p)) | ((ulg)(SH((p)+2)) << 16))
-#endif /* ?THEOS */
 
 /* Function prototypes */
 static void err OF((int, char *));

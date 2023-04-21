@@ -130,8 +130,6 @@ freely, subject to the above disclaimer and the following restrictions:
  */
 #if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
 #endif
-#if (defined(MACOS) || defined(ATARI_ST) || defined(RISCOS) || defined(THEOS))
-#endif
 /* Sequent running Dynix/ptx:  non-modern compiler */
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
 
@@ -315,12 +313,8 @@ typedef struct _UzpOpts {
 #if (defined (__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
 #else
-#if (defined(TANDEM) || defined(THEOS))
-    int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
-#else
 #if (defined(OS2) || defined(VMS) || defined(WIN32))
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
-#endif
 #endif
 #endif
 #ifdef VMS

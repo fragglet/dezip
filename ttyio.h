@@ -63,11 +63,6 @@
  * since THEOS C RTL also contains a working non-echo getch() function,
  * the echo toggles are not needed.
  */
-#ifdef THEOS
-#  define echoff(f)
-#  define echon()
-#  define HAVE_WORKING_GETCH
-#endif
 
 /* VMS has a single echo() function in ttyio.c to toggle terminal
  * input echo on and off.
