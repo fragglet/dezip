@@ -1463,9 +1463,6 @@ void version(__G)
 #  endif
 #  endif
 #else
-#ifdef gould
-      " (Gould)",
-#else
 #ifdef MTS
       " (MTS)",
 #else
@@ -1483,7 +1480,6 @@ void version(__G)
 #endif /* QNX Neutrino */
 #endif /* QNX 4 */
 #endif /* MTS */
-#endif /* Gould */
 #endif /* DEC */
 #endif /* Pyramid */
 #endif /* 386 */
