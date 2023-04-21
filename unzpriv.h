@@ -886,15 +886,7 @@
 #define ENV_UNZIP2        "UNZIPOPT"     /* alternate names, for zip compat. */
 #define ENV_ZIPINFO2      "ZIPINFOOPT"
 
-#if (!defined(QQ) && !defined(NOQQ))
-#  define QQ
-#endif
-
-#ifdef QQ                         /* Newtware version:  no file */
 #  define QCOND     (!uO.qflag)   /*  comments with -vq or -vqq */
-#else                             /* Bill Davidsen version:  no way to */
-#  define QCOND     (longhdr)     /*  kill file comments when listing */
-#endif
 
 #  define QCOND2    (!uO.qflag)
 
