@@ -1329,15 +1329,6 @@ void version(__G)
 #if defined(__SUNPRO_C)
       "Sun C ", (sprintf(cc_versbuf, "version %x", __SUNPRO_C), cc_versbuf),
 #else
-#if (defined(__HP_cc))
-      "HP C ",
-      (((__HP_cc% 100) == 0) ?
-      (sprintf(cc_versbuf, "version A.%02d.%02d",
-      (__HP_cc/ 10000), ((__HP_cc% 10000)/ 100))) :
-      (sprintf(cc_versbuf, "version A.%02d.%02d.%02d",
-      (__HP_cc/ 10000), ((__HP_cc% 10000)/ 100), (__HP_cc% 100))),
-      cc_versbuf),
-#else
 #ifdef __IBMC__
       "IBM C ",
       (sprintf(cc_versbuf, "version %d.%d.%d",
@@ -1356,7 +1347,6 @@ void version(__G)
       IZ_CC_NAME, "",
 #endif /* ?__VERSION__ */
 #endif /* ?__IBMC__ */
-#endif /* ?__HP_cc */
 #endif /* ?__SUNPRO_C */
 #endif /* ?__GNUC__ */
 
