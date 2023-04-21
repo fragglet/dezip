@@ -127,7 +127,7 @@ char *do_wild(wildspec) const
                        FnFilter1(file->d_name)));
                 if (file->d_name[0] == '.' && G.wildname[0] != '.')
                     continue; /* Unix:  '*' and '?' do not match leading dot */
-                if (match(file->d_name, G.wildname, 0 WISEP) && /*0=case sens.*/
+                if (match(file->d_name, G.wildname, 0) && /*0=case sens.*/
                     /* skip "." and ".." directory entries */
                     strcmp(file->d_name, ".") && strcmp(file->d_name, "..")) {
                     Trace((stderr, "do_wild:  match() succeeds\n"));
@@ -170,7 +170,7 @@ char *do_wild(wildspec) const
                FnFilter1(file->d_name)));
         if (file->d_name[0] == '.' && G.wildname[0] != '.')
             continue; /* Unix:  '*' and '?' do not match leading dot */
-        if (match(file->d_name, G.wildname, 0 WISEP)) { /* 0 == case sens. */
+        if (match(file->d_name, G.wildname, 0)) { /* 0 == case sens. */
             Trace((stderr, "do_wild:  match() succeeds\n"));
             if (G.have_dirname) {
                 /* strcpy(G.matchname, G.dirname); */

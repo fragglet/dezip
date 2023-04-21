@@ -173,14 +173,14 @@ int list_files() /* return PK-type error code */
             else { /* check if this entry matches an `include' argument */
                 do_this_file = FALSE;
                 for (i = 0; i < G.filespecs; i++)
-                    if (match(G.filename, G.pfnames[i], uO.C_flag WISEP)) {
+                    if (match(G.filename, G.pfnames[i], uO.C_flag)) {
                         do_this_file = TRUE;
                         break; /* found match, so stop looping */
                     }
             }
             if (do_this_file) { /* check if this is an excluded file */
                 for (i = 0; i < G.xfilespecs; i++)
-                    if (match(G.filename, G.pxnames[i], uO.C_flag WISEP)) {
+                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
                         do_this_file = FALSE; /* ^-- ignore case in match */
                         break;
                     }
@@ -440,14 +440,14 @@ ulg *nmember;
             else { /* check if this entry matches an `include' argument */
                 do_this_file = FALSE;
                 for (i = 0; i < G.filespecs; i++)
-                    if (match(G.filename, G.pfnames[i], uO.C_flag WISEP)) {
+                    if (match(G.filename, G.pfnames[i], uO.C_flag)) {
                         do_this_file = TRUE;
                         break; /* found match, so stop looping */
                     }
             }
             if (do_this_file) { /* check if this is an excluded file */
                 for (i = 0; i < G.xfilespecs; i++)
-                    if (match(G.filename, G.pxnames[i], uO.C_flag WISEP)) {
+                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
                         do_this_file = FALSE; /* ^-- ignore case in match */
                         break;
                     }

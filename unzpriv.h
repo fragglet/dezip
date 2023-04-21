@@ -787,7 +787,6 @@ char *plastchar(const char *ptr, extent len);
 #define QCOND2 (!uO.qflag)
 
 #define __WDL
-#define WISEP
 
 /**************/
 /*  Typedefs  */
