@@ -40,14 +40,7 @@
 #  define PUTC putc
 #endif
 
-#ifdef ZIP
-#  ifdef GLOBAL          /* used in Amiga system headers, maybe others too */
-#    undef GLOBAL
-#  endif
-#  define GLOBAL(g) g
-#else
 #  define GLOBAL(g) G.g
-#endif
 
    /* include system support for switching of console echo */
 #      include <termios.h>
@@ -59,10 +52,6 @@
 
 
 /* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
-
-#ifdef ZIP                      /* moved to globals.h for UnZip */
-   static int echofd=(-1);      /* file descriptor whose echo is off */
-#endif
 
 /*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.

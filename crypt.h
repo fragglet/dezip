@@ -59,12 +59,6 @@
  * the Zip and UnZip versions of the crypt core functions have to be named
  * differently.
  */
-#ifdef ZIP
-#    define decrypt_byte   zp_decrypt_byte
-#  define  update_keys     zp_update_keys
-#  define  init_keys       zp_init_keys
-#else /* !ZIP */
-#endif /* ?ZIP */
 
 #define IZ_PWLEN  80    /* input buffer size for reading encryption key */
 #ifndef PWLEN           /* for compatibility with previous zcrypt release... */
@@ -83,17 +77,6 @@
 int  decrypt_byte OF((__GPRO));
 int  update_keys OF((__GPRO__ int c));
 void init_keys OF((__GPRO__ ZCONST char *passwd));
-
-#ifdef ZIP
-   void crypthead OF((ZCONST char *, ulg, FILE *));
-#  ifdef UTIL
-     int zipcloak OF((struct zlist far *, FILE *, FILE *, ZCONST char *));
-     int zipbare OF((struct zlist far *, FILE *, FILE *, ZCONST char *));
-#  else
-     unsigned zfwrite OF((zvoid *, extent, extent, FILE *));
-     extern char *key;
-#  endif
-#endif /* ZIP */
 
    int  decrypt OF((__GPRO__ ZCONST char *passwrd));
 
