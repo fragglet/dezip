@@ -1424,9 +1424,6 @@ void version(__G)
 #  endif
 #  endif
 #else
-#if defined(i686) || defined(__i686) || defined(__i686__)
-      " (Intel 686)",
-#else
 #ifdef pyr
       " (Pyramid)",
 #else
@@ -1460,7 +1457,6 @@ void version(__G)
 #endif /* MTS */
 #endif /* DEC */
 #endif /* Pyramid */
-#endif /* 686 */
 #endif /* FreeBSD */
 #endif /* SCO Xenix */
 #endif /* SCO Unix */
