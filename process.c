@@ -2422,19 +2422,6 @@ char *local_to_display_string(local_string)
 
   strcpy(display_string, local_string);
 
-#ifdef EBCDIC
-  {
-    char *ebc;
-
-    if ((ebc = malloc(strlen(display_string) + 1)) ==  NULL) {
-      return NULL;
-    }
-    strtoebc(ebc, display_string);
-    free(display_string);
-    display_string = ebc;
-  }
-#endif
-
   return display_string;
 }
 #endif /* unused */

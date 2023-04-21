@@ -120,10 +120,6 @@
 #include "crypt.h"
 #include "ttyio.h"
 
-#ifdef EBCDIC
-#  undef EBCDIC                 /* don't need ebcdic[] */
-#endif
-
 #ifndef USE_ZLIB  /* zlib's function is called inflate(), too */
 #  define UZinflate inflate
 #endif

@@ -102,11 +102,7 @@ typedef struct stat z_stat;
 #  define DATE_FORMAT DF_MDY    /* GRR:  customize with locale.h somehow? */
 #endif
 #define lenEOL          1
-#ifdef EBCDIC
-#  define PutNativeEOL  *q++ = '\n';
-#else
 #  define PutNativeEOL  *q++ = native(LF);
-#endif
 #define SCREENSIZE(ttrows, ttcols)  screensize(ttrows, ttcols)
 #define SCREENWIDTH     80
 #define SCREENLWRAP     1
