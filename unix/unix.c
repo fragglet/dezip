@@ -1544,9 +1544,6 @@ void version(__G)
 #ifdef __osf__
       " (DEC OSF/1)",
 #else
-#ifdef _AIX
-      " (IBM AIX)",
-#else
 #if defined(CRAY) || defined(cray)
 #  ifdef _UNICOS
       (sprintf(os_namebuf, " (Cray UNICOS release %d)", _UNICOS), os_namebuf),
@@ -1691,7 +1688,6 @@ void version(__G)
 #endif /* NeXT */
 #endif /* Amdahl */
 #endif /* Cray */
-#endif /* AIX */
 #endif /* OSF/1 */
 #endif /* HP-UX */
 #endif /* Sun */

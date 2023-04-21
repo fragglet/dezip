@@ -146,10 +146,6 @@
 #  define NO_UID_GID         /* no uid_t/gid_t */
 #endif
 
-#if (defined(_AIX) && !defined(_ALL_SOURCE))
-#  define _ALL_SOURCE
-#endif
-
 #if defined(apollo)          /* defines __STDC__ */
 #    define NO_STDLIB_H
 #endif
