@@ -1403,10 +1403,8 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
    int    inflate_free           OF((__GPRO));                  /* inflate.c */
 #endif /* ?USE_ZLIB */
 #if (!defined(SFX) && !defined(FUNZIP))
-#ifndef LZW_CLEAN
    int    unshrink               OF((__GPRO));                 /* unshrink.c */
 /* static void  partial_clear    OF((__GPRO));                  * unshrink.c */
-#endif /* !LZW_CLEAN */
 #endif /* !SFX && !FUNZIP */
    int    UZbunzip2              OF((__GPRO));                  /* extract.c */
    void   bz_internal_error      OF((int bzerrcode));           /* ubz2err.c */

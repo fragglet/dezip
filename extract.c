@@ -244,9 +244,7 @@ static ZCONST char Far Inflate[] = "inflate";
 
 #ifndef SFX
    static ZCONST char Far Explode[] = "explode";
-#ifndef LZW_CLEAN
    static ZCONST char Far Unshrink[] = "unshrink";
-#endif
 #endif
 
 #if (!defined(DELETE_IF_FULL) || !defined(HAVE_UNLINK))
@@ -939,11 +937,7 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
 #else
 #    define UNKN_RED (G.crec.compression_method >= REDUCED1 && \
                       G.crec.compression_method <= REDUCED4)
-#  ifdef LZW_CLEAN  /* no shrunk files */
-#    define UNKN_SHR (G.crec.compression_method == SHRUNK)
-#  else
 #    define UNKN_SHR  FALSE  /* unshrinking not unknown */
-#  endif
 #    define UNKN_COMPR (UNKN_RED || UNKN_SHR || \
      G.crec.compression_method==TOKENIZED || \
      (G.crec.compression_method>ENHDEFLATED && UNKN_BZ2 && UNKN_LZMA \
@@ -1648,7 +1642,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
             break;
 
 #ifndef SFX
-#ifndef LZW_CLEAN
         case SHRUNK:
             if (!uO.tflag && QCOND2) {
                 Info(slide, 0, ((char *)slide, LoadFarString(ExtractMsg),
@@ -1675,7 +1668,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
                 error = r;
             }
             break;
-#endif /* !LZW_CLEAN */
 
         case IMPLODED:
             if (!uO.tflag && QCOND2) {

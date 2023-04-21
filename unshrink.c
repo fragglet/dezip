@@ -70,8 +70,6 @@
 #include "unzip.h"
 
 
-#ifndef LZW_CLEAN
-
 static void  partial_clear  OF((__GPRO__ int lastcodeused));
 
 #ifdef DEBUG
@@ -311,4 +309,3 @@ static void partial_clear(__G__ lastcodeused)
     return;
 }
 
-#endif /* !LZW_CLEAN */

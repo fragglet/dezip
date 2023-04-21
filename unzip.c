@@ -224,10 +224,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef DEBUG_TIME
      static ZCONST char Far DebugTime[] = "DEBUG_TIME";
 #  endif
-#  ifdef LZW_CLEAN
-     static ZCONST char Far LZW_Clean[] =
-     "LZW_CLEAN (PKZIP/Zip 1.x unshrinking method not supported)";
-#  endif
 #  ifndef MORE
      static ZCONST char Far No_More[] = "NO_MORE";
 #  endif
@@ -252,10 +248,8 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far UnixBackup[] = "UNIXBACKUP";
 #  endif
      static ZCONST char Far Use_EF_UT_time[] = "USE_EF_UT_TIME";
-#  ifndef LZW_CLEAN
      static ZCONST char Far Use_Unshrink[] =
      "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
-#  endif
      static ZCONST char Far Use_Deflate64[] =
      "USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)";
 #  ifdef UNICODE_SUPPORT
@@ -1686,11 +1680,6 @@ static void show_version_info(__G)
           LoadFarStringSmall(DebugTime)));
         ++numopts;
 #endif
-#ifdef LZW_CLEAN
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(LZW_Clean)));
-        ++numopts;
-#endif
 #ifndef MORE
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_More)));
@@ -1732,11 +1721,9 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_EF_UT_time)));
         ++numopts;
-#ifndef LZW_CLEAN
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Unshrink)));
         ++numopts;
-#endif
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Deflate64)));
         ++numopts;
