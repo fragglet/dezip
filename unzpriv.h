@@ -1086,9 +1086,9 @@ typedef struct _APIDocStruct {
   ---------------------------------------------------------------------------*/
 
 int MAIN(int argc, char **argv);
-int unzip(__GPRO__ int argc, char **argv);
-int uz_opts(__GPRO__ int *pargc, char ***pargv);
-int usage(__GPRO__ int error);
+int unzip(int argc, char **argv);
+int uz_opts(int *pargc, char ***pargv);
+int usage(int error);
 
 /*---------------------------------------------------------------------------
     Functions in process.c (main driver routines):
@@ -1096,13 +1096,13 @@ int usage(__GPRO__ int error);
 
 int process_zipfiles(void);
 void free_G_buffers(void);
-/* static int    do_seekable(__GPRO__ int lastchance); */
-/* static int    find_ecrec(__GPRO__ long searchlen); */
+/* static int    do_seekable(int lastchance); */
+/* static int    find_ecrec(long searchlen); */
 /* static int    process_central_comment(void); */
 int process_cdir_file_hdr(void);
 int process_local_file_hdr(void);
-int getZip64Data(__GPRO__ const uch *ef_buf, unsigned ef_len);
-int getUnicodeData(__GPRO__ const uch *ef_buf, unsigned ef_len);
+int getZip64Data(const uch *ef_buf, unsigned ef_len);
+int getUnicodeData(const uch *ef_buf, unsigned ef_len);
 unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
                               ulg dos_mdatetime, iztimes *z_utim,
                               ulg *z_uidgid));
@@ -1116,7 +1116,7 @@ unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
   ---------------------------------------------------------------------------*/
 
 int list_files(void);
-int get_time_stamp(__GPRO__ time_t *last_modtime, ulg *nmember);
+int get_time_stamp(time_t *last_modtime, ulg *nmember);
 int ratio(zusz_t uc, zusz_t c);
 void fnprint(void);
 
@@ -1128,20 +1128,20 @@ int open_input_file(void);
 int open_outfile(void); /* also vms.c */
 void undefer_input(void);
 void defer_leftover_input(void);
-unsigned readbuf(__GPRO__ char *buf, register unsigned len);
+unsigned readbuf(char *buf, register unsigned len);
 int readbyte(void);
 int fillinbuf(void);
-int seek_zipf(__GPRO__ zoff_t abs_offset);
-int flush(__GPRO__ uch *buf, ulg size, int unshrink);
+int seek_zipf(zoff_t abs_offset);
+int flush(uch *buf, ulg size, int unshrink);
 /* static int  disk_error(void); */
 void handler(int signal);
 time_t dos_to_unix_time(ulg dos_datetime);
-int check_for_newer(__GPRO__ char *filename); /* os2,vmcms,vms */
-int do_string(__GPRO__ unsigned int length, int option);
+int check_for_newer(char *filename); /* os2,vmcms,vms */
+int do_string(unsigned int length, int option);
 ush makeword(const uch *b);
 ulg makelong(const uch *sig);
 zusz_t makeint64(const uch *sig);
-char *fzofft(__GPRO__ zoff_t val, const char *pre, const char *post);
+char *fzofft(zoff_t val, const char *pre, const char *post);
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
 char *str2iso(char *dst, const char *src);
 #endif
@@ -1169,13 +1169,12 @@ unsigned char *uzmbsrchr(const unsigned char *str, unsigned int c);
 int extract_or_test_files(void);
 /* static int   store_info(void); */
 /* static int   extract_or_test_member(void); */
-/* static int   TestExtraField(__GPRO__ uch *ef, unsigned ef_len); */
-/* static int   test_OS2(__GPRO__ uch *eb, unsigned eb_size); */
-/* static int   test_NT(__GPRO__ uch *eb, unsigned eb_size); */
+/* static int   TestExtraField(uch *ef, unsigned ef_len); */
+/* static int   test_OS2(uch *eb, unsigned eb_size); */
+/* static int   test_NT(uch *eb, unsigned eb_size); */
 unsigned find_compr_idx(unsigned compr_methodnum);
-int memextract OF((__GPRO__ uch * tgt, ulg tgtsize, const uch *src,
-                   ulg srcsize));
-int memflush(__GPRO__ const uch *rawbuf, ulg size);
+int memextract OF((uch * tgt, ulg tgtsize, const uch *src, ulg srcsize));
+int memflush(const uch *rawbuf, ulg size);
 char *fnfilter(const char *raw, uch *space, extent size);
 
 /*---------------------------------------------------------------------------
@@ -1184,11 +1183,11 @@ char *fnfilter(const char *raw, uch *space, extent size);
 
 int explode(void);             /* explode.c */
 int huft_free(struct huft *t); /* inflate.c */
-int huft_build OF((__GPRO__ const unsigned *b, unsigned n, unsigned s,
-                   const ush *d, const uch *e, struct huft **t, unsigned *m));
-int inflate(__GPRO__ int is_defl64); /* inflate.c */
-int inflate_free(void);              /* inflate.c */
-int unshrink(void);                  /* unshrink.c */
+int huft_build OF((const unsigned *b, unsigned n, unsigned s, const ush *d,
+                   const uch *e, struct huft **t, unsigned *m));
+int inflate(int is_defl64); /* inflate.c */
+int inflate_free(void);     /* inflate.c */
+int unshrink(void);         /* unshrink.c */
 /* static void  partial_clear(void);                  * unshrink.c */
 int UZbunzip2(void);                   /* extract.c */
 void bz_internal_error(int bzerrcode); /* ubz2err.c */
@@ -1242,19 +1241,19 @@ int iswild(const char *p);                                /* match.c */
 /* declarations of public CRC-32 functions have been moved into crc32.h
    (free_crc_table(), get_crc_table(), crc32())                      crc32.c */
 
-int dateformat(void);                                    /* local */
-char dateseparator(void);                                /* local */
-void version(void);                                      /* local */
-int mapattr(void);                                       /* local */
-int mapname(__GPRO__ int renamed);                       /* local */
-int checkdir(__GPRO__ char *pathcomp, int flag);         /* local */
-char *do_wild(__GPRO__ const char *wildzipfn);           /* local */
-char *GetLoadPath(void);                                 /* local */
-void close_outfile(void);                                /* local */
-int set_symlnk_attribs(__GPRO__ slinkentry *slnk_entry); /* local */
-int defer_dir_attribs(__GPRO__ direntry **pd);           /* local */
-int set_direc_attribs(__GPRO__ direntry *d);             /* local */
-int stamp_file(const char *fname, time_t modtime);       /* local */
+int dateformat(void);                              /* local */
+char dateseparator(void);                          /* local */
+void version(void);                                /* local */
+int mapattr(void);                                 /* local */
+int mapname(int renamed);                          /* local */
+int checkdir(char *pathcomp, int flag);            /* local */
+char *do_wild(const char *wildzipfn);              /* local */
+char *GetLoadPath(void);                           /* local */
+void close_outfile(void);                          /* local */
+int set_symlnk_attribs(slinkentry *slnk_entry);    /* local */
+int defer_dir_attribs(direntry **pd);              /* local */
+int set_direc_attribs(direntry *d);                /* local */
+int stamp_file(const char *fname, time_t modtime); /* local */
 
 /************/
 /*  Macros  */

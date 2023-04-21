@@ -315,12 +315,12 @@
 #ifndef OF
 #define OF(a) a
 #endif /* !OF */
-int inflate_codes OF((__GPRO__ struct huft * tl, struct huft *td, unsigned bl,
+int inflate_codes OF((struct huft * tl, struct huft *td, unsigned bl,
                       unsigned bd));
 static int inflate_stored(void);
 static int inflate_fixed(void);
 static int inflate_dynamic(void);
-static int inflate_block(__GPRO__ int *e);
+static int inflate_block(int *e);
 
 /* The inflate algorithm uses a sliding 32K byte window on the uncompressed
    stream to find repeated byte strings.  This is implemented here as a

@@ -50,7 +50,7 @@ typedef struct uxdirattr {  /* struct for holding unix style directory */
 /* static int created_dir;      */ /* used in mapname(), checkdir() */
 /* static int renamed_fullpath; */ /* ditto */
 
-static unsigned filtattr(__GPRO__ unsigned perms);
+static unsigned filtattr(unsigned perms);
 
 /*****************************/
 /* Strings used multiple     */
@@ -787,7 +787,7 @@ int flag;
 
 } /* end function checkdir() */
 
-static int get_extattribs(__GPRO__ iztimes *pzt, ulg z_uidgid[2]);
+static int get_extattribs(iztimes *pzt, ulg z_uidgid[2]);
 
 static int get_extattribs(pzt, z_uidgid)
 iztimes *pzt;

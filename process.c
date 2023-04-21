@@ -33,11 +33,11 @@
 #include "unzip.h"
 #include "crc32.h"
 
-static int do_seekable(__GPRO__ int lastchance);
+static int do_seekable(int lastchance);
 static zoff_t file_size(int fh);
-static int rec_find(__GPRO__ zoff_t, char *, int);
-static int find_ecrec64(__GPRO__ zoff_t searchlen);
-static int find_ecrec(__GPRO__ zoff_t searchlen);
+static int rec_find(zoff_t, char *, int);
+static int find_ecrec64(zoff_t searchlen);
+static int find_ecrec(zoff_t searchlen);
 static int process_zip_cmmnt(void);
 static int get_cdir_ent(void);
 static int read_ux3_value OF((const uch *dbuf, unsigned uidgid_sz,

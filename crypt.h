@@ -47,8 +47,6 @@
 #define CR_VERSION_DATE "05 Jan 2007" /* last public release date */
 #define CR_RELEASE
 
-#define __GPRO__
-
 /* To allow combining of Zip and UnZip static libraries in a single binary,
  * the Zip and UnZip versions of the crypt core functions have to be named
  * differently.
@@ -69,9 +67,9 @@
 #define zdecode(c) update_keys(c ^= decrypt_byte())
 
 int decrypt_byte(void);
-int update_keys(__GPRO__ int c);
-void init_keys(__GPRO__ const char *passwd);
+int update_keys(int c);
+void init_keys(const char *passwd);
 
-int decrypt(__GPRO__ const char *passwrd);
+int decrypt(const char *passwrd);
 
 #endif /* !__crypt_h */
