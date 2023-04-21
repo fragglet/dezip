@@ -1921,11 +1921,7 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 /* int    flush               OF((__GPRO__ uch *rawbuf, unsigned size,
                                   int final_flag));   * (see fileio.c) vms.c */
    char  *vms_msg_text        OF((void));                           /* vms.c */
-#ifdef RETURN_CODES
-   void   return_VMS          OF((__GPRO__ int zip_error));         /* vms.c */
-#else
    void   return_VMS          OF((int zip_error));                  /* vms.c */
-#endif
 #ifdef VMSCLI
    ulg    vms_unzip_cmdline   OF((int *, char ***));            /* cmdline.c */
    int    VMSCLI_usage        OF((__GPRO__ int error));         /* cmdline.c */

@@ -317,9 +317,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef REGARGS
      static ZCONST char Far RegArgs[] = "REGARGS";
 #  endif
-#  ifdef RETURN_CODES
-     static ZCONST char Far Return_Codes[] = "RETURN_CODES";
-#  endif
 #  ifdef SET_DIR_ATTRIB
      static ZCONST char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
 #  endif
@@ -2089,11 +2086,6 @@ static void show_version_info(__G)
 #ifdef REGARGS
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(RegArgs)));
-        ++numopts;
-#endif
-#ifdef RETURN_CODES
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Return_Codes)));
         ++numopts;
 #endif
 #ifdef SET_DIR_ATTRIB
