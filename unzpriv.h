@@ -278,11 +278,7 @@
 #  define DIR_END       '/'     /* last char before program name or filename */
 #endif
 #ifndef DATE_FORMAT
-# ifdef DATEFMT_ISO_DEFAULT
 #  define DATE_FORMAT   DF_YMD  /* defaults to invariant ISO-style */
-# else
-#  define DATE_FORMAT   DF_MDY  /* defaults to US convention */
-# endif
 #endif
 #ifndef DATE_SEPCHAR
 #  define DATE_SEPCHAR  '-'
