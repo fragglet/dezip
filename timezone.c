@@ -40,9 +40,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#ifndef IZTZ_GETLOCALETZINFO
 #  define IZTZ_GETLOCALETZINFO(ptzstruct, pgenrulefunct) (FALSE)
-#endif
 
 int real_timezone_is_set = FALSE;       /* set by tzset() */
 
