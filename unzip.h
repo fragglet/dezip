@@ -97,10 +97,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  endif
 #endif
 
-#if ((defined(__convex__) || defined(__convexc__)) && !defined(CONVEX))
-#  define CONVEX
-#endif
-
 #if (defined(unix) || defined(_unix) || defined(__unix) || defined(__unix__))
 #  ifndef UNIX
 #    define UNIX

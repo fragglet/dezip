@@ -1620,9 +1620,6 @@ void version(__G)
 #ifdef MTS
       " (MTS)",
 #else
-#ifdef __convexc__
-      " (Convex)",
-#else
 #ifdef __QNX__
       " (QNX 4)",
 #else
@@ -1636,7 +1633,6 @@ void version(__G)
 #endif /* Lynx */
 #endif /* QNX Neutrino */
 #endif /* QNX 4 */
-#endif /* Convex */
 #endif /* MTS */
 #endif /* Gould */
 #endif /* DEC */
