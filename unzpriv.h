@@ -214,34 +214,6 @@
     TOPS-20 section:
   ---------------------------------------------------------------------------*/
 
-#ifdef TOPS20
-#  include <sys/types.h>        /* off_t, time_t, dev_t, ... */
-#  include <sys/stat.h>
-#  include <sys/param.h>
-#  include <sys/time.h>
-#  include <sys/timeb.h>
-#  include <sys/file.h>
-#  include <timex.h>
-#  include <monsym.h>           /* get amazing monsym() macro */
-   extern int open(), close(), read();
-   extern int stat(), unlink(), jsys(), fcntl();
-   extern long lseek(), dup(), creat();
-#  define strchr    index       /* GRR: necessary? */
-#  define strrchr   rindex
-#  define REALLY_SHORT_SYMS
-#  define NO_MKDIR
-#  ifndef HAVE_STRNICMP
-#    define NO_STRNICMP           /* probably not provided by TOPS20 C RTL  */
-#  endif
-#  define DIR_BEG       '<'
-#  define DIR_END       '>'
-#  define DIR_EXT       ".directory"
-#  ifndef DATE_FORMAT
-#    define DATE_FORMAT DF_MDY
-#  endif
-#  define EXE_EXTENSION ".exe"  /* just a guess... */
-#endif /* TOPS20 */
-
 /*---------------------------------------------------------------------------
     Unix section:
   ---------------------------------------------------------------------------*/
@@ -587,10 +559,6 @@
 #  define FOPW  "w","ctx=stm","rfm=fix","mrs=512"
 #  define FOPWR "w+","ctx=stm","rfm=fix","mrs=512"
 #endif /* VMS */
-
-#ifdef TOPS20          /* TOPS-20 MODERN?  You kidding? */
-#  define FOPW "w8"
-#endif /* TOPS20 */
 
 /* Defaults when nothing special has been defined previously. */
 #  ifndef FOPR
@@ -1762,13 +1730,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 /*---------------------------------------------------------------------------
     TOPS20-only functions:
   ---------------------------------------------------------------------------*/
-
-#ifdef TOPS20
-   int    upper               OF((char *s));                     /* tops20.c */
-   int    enquote             OF((char *s));                     /* tops20.c */
-   int    dequote             OF((char *s));                     /* tops20.c */
-   int    fnlegal             OF(()); /* error if prototyped? */ /* tops20.c */
-#endif
 
 /*---------------------------------------------------------------------------
     VM/CMS- and MVS-only functions:

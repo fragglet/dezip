@@ -331,22 +331,6 @@ int open_outfile(__G)           /* return 1 if fail */
               FnFilter1(G.filename)));
         }
     }
-#ifdef TOPS20
-    char *tfilnam;
-
-    if ((tfilnam = (char *)malloc(2*strlen(G.filename)+1)) == (char *)NULL)
-        return 1;
-    strcpy(tfilnam, G.filename);
-    upper(tfilnam);
-    enquote(tfilnam);
-    if ((G.outfile = fopen(tfilnam, FOPW)) == (FILE *)NULL) {
-        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
-          tfilnam, strerror(errno)));
-        free(tfilnam);
-        return 1;
-    }
-    free(tfilnam);
-#else /* !TOPS20 */
 #ifdef DEBUG
     Info(slide, 1, ((char *)slide,
       "open_outfile:  doing fopen(%s) for reading\n", FnFilter1(G.filename)));
@@ -390,7 +374,6 @@ int open_outfile(__G)           /* return 1 if fail */
     }
     Trace((stderr, "open_outfile:  fopen(%s) for writing succeeded\n",
       FnFilter1(G.filename)));
-#endif /* !TOPS20 */
 
     return 0;
 
