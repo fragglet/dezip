@@ -143,10 +143,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  define MSDOS
 #endif /* __POWERC */
 
-#if (defined(__MSDOS__) && !defined(MSDOS))   /* just to make sure */
-#  define MSDOS
-#endif
-
 /* RSXNTDJ (at least up to v1.3) compiles for WIN32 (RSXNT) using a derivate
    of the EMX environment, but defines MSDOS and __GO32__. ARG !!! */
 
