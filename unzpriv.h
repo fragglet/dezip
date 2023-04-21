@@ -250,12 +250,6 @@
     AOS/VS section (somewhat similar to Unix, apparently):
   ---------------------------------------------------------------------------*/
 
-#ifdef AOS_VS
-#  ifdef __FILEIO_C
-#    include "aosvs/aosvs.h"
-#  endif
-#endif
-
 /*---------------------------------------------------------------------------
     Atari ST section:
   ---------------------------------------------------------------------------*/
@@ -650,14 +644,12 @@
 #  endif
    typedef size_t extent;
 #else /* !MODERN */
-#  ifndef AOS_VS         /* mostly modern? */
      Z_OFF_T lseek();
 #    ifdef VAXC          /* not fully modern, but has stdlib.h and void */
 #      include <stdlib.h>
 #    else
        char *malloc();
 #    endif /* ?VAXC */
-#  endif /* !AOS_VS */
    typedef unsigned int extent;
 #endif /* ?MODERN */
 

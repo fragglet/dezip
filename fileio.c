@@ -1870,26 +1870,6 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
 #ifdef USE_EF_UT_TIME
     iztimes z_utime;
 #endif
-#ifdef AOS_VS
-    long    dyy, dmm, ddd, dhh, dmin, dss;
-
-
-    dyy = (lrec.last_mod_dos_datetime >> 25) + 1980;
-    dmm = (lrec.last_mod_dos_datetime >> 21) & 0x0f;
-    ddd = (lrec.last_mod_dos_datetime >> 16) & 0x1f;
-    dhh = (lrec.last_mod_dos_datetime >> 11) & 0x1f;
-    dmin = (lrec.last_mod_dos_datetime >> 5) & 0x3f;
-    dss = (lrec.last_mod_dos_datetime & 0x1f) * 2;
-
-    /* under AOS/VS, file times can only be set at creation time,
-     * with the info in a special DG format.  Make sure we can create
-     * it here - we delete it later & re-create it, whether or not
-     * it exists now.
-     */
-    if (!zvs_create(filename, (((ulg)dgdate(dmm, ddd, dyy)) << 16) |
-        (dhh*1800L + dmin*30L + dss/2L), -1L, -1L, (char *) -1, -1, -1, -1))
-        return DOES_NOT_EXIST;
-#endif /* AOS_VS */
 
     Trace((stderr, "check_for_newer:  doing stat(%s)\n", FnFilter1(filename)));
     if (SSTAT(filename, &G.statbuf)) {

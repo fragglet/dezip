@@ -391,11 +391,9 @@ extern "C" {
 #ifdef MODERN
    typedef void zvoid;
 #else /* !MODERN */
-#  ifndef AOS_VS         /* mostly modern? */
 #    ifndef VAXC         /* not fully modern, but has knows 'void' */
 #      define void int
 #    endif /* !VAXC */
-#  endif /* !AOS_VS */
    typedef char zvoid;
 #endif /* ?MODERN */
 typedef unsigned char   uch;    /* code assumes unsigned bytes; these type-  */
