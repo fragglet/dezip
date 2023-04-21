@@ -63,10 +63,6 @@ typedef struct stat z_stat;
 
 #ifndef NO_PARAM_H
 #  include <sys/param.h>    /* conflict with <sys/types.h>, some systems? */
-#  ifdef TEMP_BSD
-#    undef TEMP_BSD
-#      define BSD
-#  endif
 #endif /* !NO_PARAM_H */
 
 #  include <time.h>
