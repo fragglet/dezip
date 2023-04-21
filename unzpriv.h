@@ -218,9 +218,6 @@ typedef size_t extent;
 #ifndef CLOSE_INFILE
 #define CLOSE_INFILE() close(G.zipfd)
 #endif
-#ifndef RETURN
-#define RETURN return /* only used in main() */
-#endif
 #ifndef STRNICMP
 #ifdef NO_STRNICMP
 #define STRNICMP zstrnicmp

@@ -233,7 +233,7 @@ char *argv[];
     CONSTRUCTGLOBALS();
     r = unzip(argc, argv);
     DESTROYGLOBALS();
-    RETURN(r);
+    return (r);
 }
 
 /*******************************/
