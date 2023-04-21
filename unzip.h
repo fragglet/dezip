@@ -131,14 +131,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #if 0
 #endif /* 0 */
 
-#if (defined(WINDLL) || defined(USE_UNZIP_LIB))
-#  ifndef EXPENTRY
-#    define UZ_EXP WINAPI
-#  else
-#    define UZ_EXP EXPENTRY
-#  endif
-#endif
-
 #ifndef UZ_EXP
 #  define UZ_EXP
 #endif
