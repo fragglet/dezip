@@ -939,11 +939,7 @@ static int get_extattribs(__G__ pzt, z_uidgid)
 
     /* if -X option was specified and we have UID/GID info, restore it */
     have_uidgid_flg =
-#ifdef RESTORE_UIDGID
             (uO.X_flag && (eb_izux_flg & EB_UX2_VALID));
-#else
-            0;
-#endif
     return have_uidgid_flg;
 }
 
