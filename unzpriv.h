@@ -1458,9 +1458,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #ifdef TIMESTAMP
    int   stamp_file      OF((ZCONST char *fname, time_t modtime));  /* local */
 #endif
-#ifdef NEED_ISO_OEM_INIT
-   void  prepare_ISO_OEM_translat   OF((__GPRO));                   /* local */
-#endif
 
 
 

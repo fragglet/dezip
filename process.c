@@ -236,9 +236,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
 
 /* Initialize UnZip's built-in pseudo hard-coded "ISO <--> OEM" translation,
    depending on the detected codepage setup.  */
-#ifdef NEED_ISO_OEM_INIT
-    prepare_ISO_OEM_translat(__G);
-#endif
 
 /*---------------------------------------------------------------------------
     Initialize the internal flag holding the mode of processing "overwrite
