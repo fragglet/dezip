@@ -293,11 +293,7 @@
 #  define UINT_D64 unsigned
 #endif
 
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-#  define wsize G._wsize    /* wsize is a variable */
-#else
 #  define wsize WSIZE       /* wsize is a constant */
-#endif
 
 
 #ifndef NEXTBYTE        /* default is to simply get a byte from stdin */
@@ -412,13 +408,6 @@ int UZinflate(__G__ is_defl64)
     int retval = 0;     /* return code: 0 = "no error" */
     int err=Z_OK;
 #if USE_ZLIB_INFLATCB
-
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-    if (G.redirect_slide)
-        wsize = G.redirect_size, redirSlide = G.redirect_buffer;
-    else
-        wsize = WSIZE, redirSlide = slide;
-#endif
 
     if (!G.inflInit) {
         /* local buffer for efficiency */
@@ -560,13 +549,6 @@ int UZinflate(__G__ is_defl64)
 
 #else /* !USE_ZLIB_INFLATCB */
     int repeated_buf_err;
-
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-    if (G.redirect_slide)
-        wsize = G.redirect_size, redirSlide = G.redirect_buffer;
-    else
-        wsize = WSIZE, redirSlide = slide;
-#endif
 
     G.dstrm.next_out = redirSlide;
     G.dstrm.avail_out = wsize;
@@ -998,15 +980,6 @@ unsigned bl, bd;        /* number of bits decoded by tl[] and td[] */
 
         /* do the copy */
         do {
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-          if (G.redirect_slide) {
-            /* &= w/ wsize unnecessary & wrong if redirect */
-            if ((UINT_D64)d >= wsize)
-              return 1;         /* invalid compressed data */
-            e = (unsigned)(wsize - (d > (unsigned)w ? (UINT_D64)d : w));
-          }
-          else
-#endif
             e = (unsigned)(wsize -
                            ((d &= (unsigned)(wsize-1)) > (unsigned)w ?
                             (UINT_D64)d : w));
@@ -1439,13 +1412,6 @@ int inflate(__G__ is_defl64)
   int r;                /* result code */
 #ifdef DEBUG
   unsigned h = 0;       /* maximum struct huft's malloc'ed */
-#endif
-
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-  if (G.redirect_slide)
-    wsize = G.redirect_size, redirSlide = G.redirect_buffer;
-  else
-    wsize = WSIZE, redirSlide = slide;   /* how they're #defined if !DLL */
 #endif
 
   /* initialize window, bit buffer */

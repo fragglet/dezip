@@ -860,16 +860,8 @@ int extract_or_test_files(__G)    /* return PK-type error code */
     if (fn_matched) {
         if (reached_end) for (i = 0;  i < G.filespecs;  ++i)
             if (!fn_matched[i]) {
-#ifdef DLL
-                if (!G.redirect_data && !G.redirect_text)
-                    Info(slide, 0x401, ((char *)slide,
-                      LoadFarString(FilenameNotMatched), G.pfnames[i]));
-                else
-                    setFileNotFound(__G);
-#else
                 Info(slide, 1, ((char *)slide,
                   LoadFarString(FilenameNotMatched), G.pfnames[i]));
-#endif
                 if (error_in_archive <= PK_WARN)
                     error_in_archive = PK_FIND;   /* some files not found */
             }
@@ -1459,11 +1451,7 @@ static int extract_or_test_entrylist(__G__ numchunk,
          * loop because we don't store the possibly renamed filename[] in
          * info[])
          */
-#ifdef DLL
-        if (!uO.tflag && !uO.cflag && !G.redirect_data)
-#else
         if (!uO.tflag && !uO.cflag)
-#endif
         {
             renamed = FALSE;   /* user hasn't renamed output file yet */
 
@@ -1722,13 +1710,6 @@ reprompt:
             }
         } /* end if (extracting to disk) */
 
-#ifdef DLL
-        if ((G.statreportcb != NULL) &&
-            (*G.statreportcb)(__G__ UZ_ST_START_EXTRACT, G.zipfn,
-                              G.filename, NULL)) {
-            return IZ_CTRLC;        /* cancel operation by user request */
-        }
-#endif
 #ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
         UserStop();
 #endif
@@ -1736,21 +1717,10 @@ reprompt:
         if ((error = extract_or_test_member(__G)) != PK_COOL) {
             if (error > error_in_archive)
                 error_in_archive = error;       /* ...and keep going */
-#ifdef DLL
-            if (G.disk_full > 1 || error_in_archive == IZ_CTRLC) {
-#else
             if (G.disk_full > 1) {
-#endif
                 return error_in_archive;        /* (unless disk full) */
             }
         }
-#ifdef DLL
-        if ((G.statreportcb != NULL) &&
-            (*G.statreportcb)(__G__ UZ_ST_FINISH_MEMBER, G.zipfn,
-                              G.filename, (zvoid *)&G.lrec.ucsize)) {
-            return IZ_CTRLC;        /* cancel operation by user request */
-        }
-#endif
         error = cover_add((cover_t *)G.cover, request,
                           G.cur_zipfile_bufstart + (G.inptr - G.inbuf));
         if (error < 0) {
@@ -1777,11 +1747,7 @@ reprompt:
 
 
 /* wsize is used in extract_or_test_member() and UZbunzip2() */
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-#  define wsize G._wsize    /* wsize is a variable */
-#else
 #  define wsize WSIZE       /* wsize is a constant */
-#endif
 
 /***************************************/
 /*  Function extract_or_test_member()  */
@@ -1817,11 +1783,7 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
             Info(slide, 0, ((char *)slide, LoadFarString(ExtractMsg), "test",
               FnFilter1(G.filename), "", ""));
     } else {
-#ifdef DLL
-        if (uO.cflag && !G.redirect_data)
-#else
         if (uO.cflag)
-#endif
         {
 #if (defined(OS2) && defined(__IBMC__) && (__IBMC__ >= 200))
             G.outfile = freopen("", "wb", stdout);   /* VAC++ ignores setmode */
@@ -1884,13 +1846,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
                   "" : (G.lrec.ucsize == 0L? nul : (G.pInfo->textfile? txt :
                   bin)), uO.cflag? NEWLINE : ""));
             }
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-            if (G.redirect_slide) {
-                wsize = G.redirect_size; redirSlide = G.redirect_buffer;
-            } else {
-                wsize = WSIZE; redirSlide = slide;
-            }
-#endif
             G.outptr = redirSlide;
             G.outcnt = 0L;
             while ((b = NEXTBYTE) != EOF) {
@@ -2095,17 +2050,8 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
     if (!uO.tflag)           /* don't close NULL file */
         close_outfile(__G);
 #else
-#ifdef DLL
-    if (!uO.tflag && (!uO.cflag || G.redirect_data)) {
-        if (G.redirect_data)
-            FINISH_REDIRECT();
-        else
-            close_outfile(__G);
-    }
-#else
     if (!uO.tflag && !uO.cflag)   /* don't close NULL file or stdout */
         close_outfile(__G);
-#endif
 #endif /* VMS */
 
             /* GRR: CONVERT close_outfile() TO NON-VOID:  CHECK FOR ERRORS! */
@@ -2929,13 +2875,6 @@ __GDEF
         Trace((stderr, "UZbunzip2() got empty input\n"));
         return 2;
     }
-
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-    if (G.redirect_slide)
-        wsize = G.redirect_size, redirSlide = G.redirect_buffer;
-    else
-        wsize = WSIZE, redirSlide = slide;
-#endif
 
     bstrm.next_out = (char *)redirSlide;
     bstrm.avail_out = wsize;

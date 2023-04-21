@@ -39,9 +39,6 @@
 #  ifdef REENTRANT
 #    undef REENTRANT
 #  endif
-#  ifdef DLL
-#    undef DLL
-#  endif
 #  ifdef SFX            /* fUnZip is NOT the sfx stub! */
 #    undef SFX
 #  endif
@@ -91,10 +88,6 @@
 #  if defined(UNIX) || defined(OS2) || defined(WIN32)
 #    define UNIXBACKUP
 #  endif
-#endif
-
-#if (defined(DLL) && !defined(REENTRANT))
-#  define REENTRANT
 #endif
 
 #if (!defined(DYNAMIC_CRC_TABLE) && !defined(FUNZIP))
@@ -210,20 +203,6 @@
 /*---------------------------------------------------------------------------
     API (DLL) section:
   ---------------------------------------------------------------------------*/
-
-#ifdef DLL
-#  define MAIN   UZ_EXP UzpMain   /* was UzpUnzip */
-#  ifdef OS2DLL
-#    undef Info
-#    define REDIRECTC(c)             varputchar(__G__ c)
-#    define REDIRECTPRINT(buf,size)  varmessage(__G__ buf, size)
-#    define FINISH_REDIRECT()        finish_REXX_redirect(__G)
-#  else
-#    define REDIRECTC(c)
-#    define REDIRECTPRINT(buf,size)  0
-#    define FINISH_REDIRECT()        close_redirect(__G)
-#  endif
-#endif
 
 /*---------------------------------------------------------------------------
     Acorn RISCOS section:
@@ -1929,11 +1908,7 @@ typedef struct VMStimbuf {
 
 #define slide  G.area.Slide
 
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-#  define redirSlide G.redirect_sldptr
-#else
 #  define redirSlide G.area.Slide
-#endif
 
 /*---------------------------------------------------------------------------
     Zipfile layout declarations.  If these headers ever change, make sure the
@@ -2302,26 +2277,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 /*---------------------------------------------------------------------------
     Internal API functions (only included in DLL versions):
   ---------------------------------------------------------------------------*/
-
-#ifdef DLL
-   void     setFileNotFound       OF((__GPRO));                     /* api.c */
-   int      unzipToMemory         OF((__GPRO__ char *zip, char *file,
-                                      UzpBuffer *retstr));          /* api.c */
-   int      redirect_outfile      OF((__GPRO));                     /* api.c */
-   int      writeToMemory         OF((__GPRO__ ZCONST uch *rawbuf,
-                                      extent size));                /* api.c */
-   int      close_redirect        OF((__GPRO));                     /* api.c */
-   /* this obsolescent entry point kept for compatibility: */
-   int      UzpUnzip              OF((int argc, char **argv));/* use UzpMain */
-#ifdef OS2DLL
-   int      varmessage            OF((__GPRO__ ZCONST uch *buf, ulg size));
-   int      varputchar            OF((__GPRO__ int c));         /* rexxapi.c */
-   int      finish_REXX_redirect  OF((__GPRO));                 /* rexxapi.c */
-#endif
-#ifdef API_DOC
-   void     APIhelp               OF((__GPRO__ int argc, char **argv));
-#endif                                                          /* apihelp.c */
-#endif /* DLL */
 
 /*---------------------------------------------------------------------------
     MSDOS-only functions:

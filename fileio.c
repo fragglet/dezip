@@ -265,10 +265,6 @@ int open_input_file(__G)    /* return 1 if open failed */
 int open_outfile(__G)           /* return 1 if fail */
     __GDEF
 {
-#ifdef DLL
-    if (G.redirect_data)
-        return (redirect_outfile(__G) == FALSE);
-#endif
 #ifdef QDOS
     QFilename(__G__ G.filename);
 #endif
@@ -778,12 +774,6 @@ int flush(__G__ rawbuf, size, unshrink)
 
     G.crc32val = crc32(G.crc32val, rawbuf, (extent)size);
 
-#ifdef DLL
-    if ((G.statreportcb != NULL) &&
-        (*G.statreportcb)(__G__ UZ_ST_IN_PROGRESS, G.zipfn, G.filename, NULL))
-        return IZ_CTRLC;        /* cancel operation by user request */
-#endif
-
     if (uO.tflag || size == 0L)  /* testing or nothing to write:  all done */
         return PK_OK;
 
@@ -807,15 +797,6 @@ int flush(__G__ rawbuf, size, unshrink)
          * at least MSC 5.1 has a lousy implementation of fwrite() (as does
          * DEC Ultrix cc), write() is used anyway.
          */
-#ifdef DLL
-        if (G.redirect_data) {
-#ifdef NO_SLIDE_REDIR
-            if (writeToMemory(__G__ rawbuf, (extent)size)) return PK_ERR;
-#else
-            writeToMemory(__G__ rawbuf, (extent)size);
-#endif
-        } else
-#endif
         if (!uO.cflag && WriteError(rawbuf, size, G.outfile))
             return disk_error(__G);
         else if (uO.cflag && (*G.message)((zvoid *)&G, rawbuf, size, 0))
@@ -895,12 +876,6 @@ int flush(__G__ rawbuf, size, unshrink)
                                 remaining -= outroom;
                                 for (;outroom > 0; p++, outroom--)
                                     *q++ = native(*p);
-#ifdef DLL
-                                if (G.redirect_data) {
-                                    if (writeToMemory(__G__ transbuf,
-                                          (extent)(q-transbuf))) return PK_ERR;
-                                } else
-#endif
                                 if (!uO.cflag && WriteError(transbuf,
                                     (extent)(q-transbuf), G.outfile))
                                     return disk_error(__G);
@@ -919,12 +894,6 @@ int flush(__G__ rawbuf, size, unshrink)
                     /* 3: ready to PutNativeEOL */
                     case 3:
                         if (q > transbuf+(extent)transbufsiz-lenEOL) {
-#ifdef DLL
-                            if (G.redirect_data) {
-                                if (writeToMemory(__G__ transbuf,
-                                      (extent)(q-transbuf))) return PK_ERR;
-                            } else
-#endif
                             if (!uO.cflag &&
                                 WriteError(transbuf, (extent)(q-transbuf),
                                   G.outfile))
@@ -1005,12 +974,6 @@ int flush(__G__ rawbuf, size, unshrink)
         Trace((stderr, "p - rawbuf = %u   q-transbuf = %u   size = %lu\n",
           (unsigned)(p-rawbuf), (unsigned)(q-transbuf), size));
         if (q > transbuf) {
-#ifdef DLL
-            if (G.redirect_data) {
-                if (writeToMemory(__G__ transbuf, (extent)(q-transbuf)))
-                    return PK_ERR;
-            } else
-#endif
             if (!uO.cflag && WriteError(transbuf, (extent)(q-transbuf),
                 G.outfile))
                 return disk_error(__G);
@@ -1222,10 +1185,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     of this one.
   ---------------------------------------------------------------------------*/
 
-#if (defined(OS2) && defined(DLL))
-    if (MSG_NO_DLL2(flag))  /* if OS/2 DLL bit is set, do NOT print this msg */
-        return 0;
-#endif
 #ifdef WINDLL
     if (MSG_NO_WDLL(flag))
         return 0;
@@ -1240,11 +1199,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
         return 0;
 #endif
  */
-#ifdef DLL                 /* don't display message if data is redirected */
-    if (((Uz_Globs *)pG)->redirect_data &&
-        !((Uz_Globs *)pG)->redirect_text)
-        return 0;
-#endif
 
     if (MSG_STDERR(flag) && !((Uz_Globs *)pG)->UzO.tflag)
         outfp = (FILE *)stderr;
@@ -1401,28 +1355,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     return 0;
 
 } /* end function UzpMessagePrnt() */
-
-
-
-
-
-#ifdef DLL
-
-/*****************************/
-/* Function UzpMessageNull() */  /* convenience routine for no output at all */
-/*****************************/
-
-int UZ_EXP UzpMessageNull(pG, buf, size, flag)
-    zvoid *pG;    /* globals struct:  always passed */
-    uch *buf;     /* preformatted string to be printed */
-    ulg size;     /* length of string (may include nulls) */
-    int flag;     /* flag bits */
-{
-    return 0;
-
-} /* end function UzpMessageNull() */
-
-#endif /* DLL */
 
 
 

@@ -121,15 +121,11 @@
 #  define WSIZE 0x8000  /* window size--must be a power of two, and */
 #endif                  /* at least 8K for zip's implode method */
 
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-#  define wszimpl (unsigned)(G._wsize)
-#else
 #  if defined(USE_DEFLATE64) && defined(INT_16BIT)
 #    define wszimpl (unsigned)(WSIZE>>1)
 #  else /* !(USE_DEFLATE64 && INT_16BIT) */
 #    define wszimpl WSIZE
 #  endif /* !(USE_DEFLATE64 && INT_16BIT) */
-#endif
 
 /* routines here */
 static int get_tree OF((__GPRO__ unsigned *l, unsigned n));
@@ -315,14 +311,6 @@ unsigned bdl;                   /* number of distance low bits */
       /* do the copy */
       s = (s > (zusz_t)n ? s - (zusz_t)n : 0);
       do {
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-        if (G.redirect_slide) {
-          /* &= w/ wszimpl not needed and wrong if redirect */
-          if (d >= wszimpl)
-            return 1;
-          e = wszimpl - (d > w ? d : w);
-        } else
-#endif
           e = wszimpl - ((d &= wszimpl-1) > w ? d : w);
         if (e > n) e = n;
         n -= e;
@@ -433,14 +421,6 @@ unsigned bdl;           /* number of distance low bits */
       /* do the copy */
       s = (s > (zusz_t)n ? s - (zusz_t)n : 0);
       do {
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-        if (G.redirect_slide) {
-          /* &= w/ wszimpl not needed and wrong if redirect */
-          if (d >= wszimpl)
-            return 1;
-          e = wszimpl - (d > w ? d : w);
-        } else
-#endif
           e = wszimpl - ((d &= wszimpl-1) > w ? d : w);
         if (e > n) e = n;
         n -= e;
@@ -506,23 +486,6 @@ int explode(__G)
   unsigned bd;          /* bits for td */
   unsigned bdl;         /* number of uncoded lower distance bits */
   unsigned l[256];      /* bit lengths for codes */
-
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-  if (G.redirect_slide)
-    /* For 16-bit systems, it has already been checked at DLL entrance that
-     * the buffer size in G.redirect_size does not exceed unsigned range.
-     */
-    G._wsize = G.redirect_size, redirSlide = G.redirect_buffer;
-  else
-#if defined(USE_DEFLATE64) && defined(INT_16BIT)
-    /* For systems using 16-bit ints, reduce the used buffer size below
-     * the limit of "unsigned int" numbers range.
-     */
-    G._wsize = WSIZE>>1, redirSlide = slide;
-#else /* !(USE_DEFLATE64 && INT_16BIT) */
-    G._wsize = WSIZE, redirSlide = slide;
-#endif /* !(USE_DEFLATE64 && INT_16BIT) */
-#endif /* DLL && !NO_SLIDE_REDIR */
 
   /* Tune base table sizes.  Note: I thought that to truly optimize speed,
      I would have to select different bl, bd, and bb values for different

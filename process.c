@@ -966,17 +966,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
         Trace((stderr, "about to extract/list files (error = %d)\n",
           error_in_archive));
 
-#ifdef DLL
-        /* G.fValidate is used only to look at an archive to see if
-           it appears to be a valid archive.  There is no interest
-           in what the archive contains, nor in validating that the
-           entries in the archive are in good condition.  This is
-           currently used only in the Windows DLLs for purposes of
-           checking archives within an archive to determine whether
-           or not to display the inner archives.
-         */
-        if (!G.fValidate)
-#endif
         {
 #ifndef NO_ZIPINFO
             if (uO.zipinfo_mode)

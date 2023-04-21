@@ -77,9 +77,6 @@ int main(argc, argv)
 #endif
     printf(out_format, "redirslide", (ulg)&redirSlide - (ulg)&G);
     printf(out_format, "SIZEOF_slide", (ulg)sizeof(redirSlide));
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-    printf(out_format, "_wsize", (ulg)&G._wsize - (ulg)&G);
-#endif /* DLL && !NO_SLIDE_REDIR */
     printf(out_format, "CRYPT", (ulg)CRYPT);
 #ifdef FUNZIP
     (*set_flag)("FUNZIP");
@@ -89,12 +86,6 @@ int main(argc, argv)
 #endif
 #ifdef REENTRANT
     (*set_flag)("REENTRANT");
-#endif
-#ifdef DLL
-    (*set_flag)("DLL");
-# ifdef NO_SLIDE_REDIR
-    (*set_flag)("NO_SLIDE_REDIR");
-# endif
 #endif
 #ifdef USE_DEFLATE64
     (*set_flag)("USE_DEFLATE64");

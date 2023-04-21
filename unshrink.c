@@ -107,15 +107,7 @@ int unshrink(__G)
     shrint code, oldcode, curcode;
     shrint lastfreecode;
     unsigned int outbufsiz;
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-    /* Normally realbuf and outbuf will be the same.  However, if the data
-     * are redirected to a large memory buffer, realbuf will point to the
-     * new location while outbuf will remain pointing to the malloc'd
-     * memory buffer. */
-    uch *realbuf = G.outbuf;
-#else
 #   define realbuf G.outbuf
-#endif
 
 
 /*---------------------------------------------------------------------------
@@ -141,17 +133,7 @@ int unshrink(__G)
     for (code = BOGUSCODE+1;  code < HSIZE;  ++code)
         parent[code] = FREE_CODE;
 
-#if (defined(DLL) && !defined(NO_SLIDE_REDIR))
-    if (G.redirect_slide) { /* use normal outbuf unless we're a DLL routine */
-        realbuf = G.redirect_buffer;
-        outbufsiz = (unsigned)G.redirect_size;
-    } else
-#endif
-#ifdef DLL
-    if (G.pInfo->textmode && !G.redirect_data)
-#else
     if (G.pInfo->textmode)
-#endif
         outbufsiz = RAWBUFSIZ;
     else
         outbufsiz = OUTBUFSIZ;

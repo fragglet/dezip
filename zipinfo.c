@@ -875,15 +875,6 @@ int zipinfo(__G)   /* return PK-type error code */
                 tot_csize -= 12;   /* don't count encryption header */
             ++members;
 
-#ifdef DLL
-            if ((G.statreportcb != NULL) &&
-                (*G.statreportcb)(__G__ UZ_ST_FINISH_MEMBER, G.zipfn,
-                                  G.filename, (zvoid *)&G.crec.ucsize)) {
-                /* cancel operation by user request */
-                error_in_archive = IZ_CTRLC;
-                break;
-            }
-#endif
 #ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
             UserStop();
 #endif

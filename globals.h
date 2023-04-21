@@ -152,9 +152,6 @@
 /*************/
 
 typedef struct Globals {
-#ifdef DLL
-    zvoid *callerglobs; /* pointer to structure of pass-through global vars */
-#endif
 
     /* command options of general use */
     UzpOpts UzO;        /* command options of general use */
@@ -189,30 +186,6 @@ typedef struct Globals {
     zoff_t   expect_ecrec_offset;
     zoff_t   csize;       /* used by decompr. (NEXTBYTE): must be signed */
     zoff_t   used_csize;  /* used by extract_or_test_member(), explode() */
-
-#ifdef DLL
-     int fValidate;       /* true if only validating an archive */
-     int filenotfound;
-     int redirect_data;   /* redirect data to memory buffer */
-     int redirect_text;   /* redirect text output to buffer */
-# ifndef NO_SLIDE_REDIR
-     int redirect_slide;  /* redirect decompression area to mem buffer */
-#  if (defined(USE_DEFLATE64) && defined(INT_16BIT))
-     ulg _wsize;          /* size of sliding window exceeds "unsigned" range */
-#  else
-     unsigned _wsize;     /* sliding window size can be hold in unsigned */
-#  endif
-# endif
-     ulg redirect_size;            /* size of redirected output buffer */
-     uch *redirect_buffer;         /* pointer to head of allocated buffer */
-     uch *redirect_pointer;        /* pointer past end of written data */
-# ifndef NO_SLIDE_REDIR
-     uch *redirect_sldptr;         /* head of decompression slide buffer */
-# endif
-# ifdef OS2DLL
-     cbList(processExternally);    /* call-back list */
-# endif
-#endif /* DLL */
 
     char **pfnames;
     char **pxnames;

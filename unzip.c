@@ -353,9 +353,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef DEBUG_TIME
      static ZCONST char Far DebugTime[] = "DEBUG_TIME";
 #  endif
-#  ifdef DLL
-     static ZCONST char Far Dll[] = "DLL";
-#  endif
 #  ifdef DOSWILD
      static ZCONST char Far DosWild[] = "DOSWILD";
 #  endif
@@ -1304,12 +1301,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.aflag;
                     break;
-#if (defined(DLL) && defined(API_DOC))
-                case ('A'):    /* extended help for API */
-                    APIhelp(__G__ argc, argv);
-                    *pargc = -1;  /* signal to exit successfully */
-                    return 0;
-#endif
                 case ('b'):
                     if (negative) {
 #if (defined(TANDEM) || defined(VMS))
@@ -1345,10 +1336,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.cflag = TRUE;
 #ifdef NATIVE
                         uO.aflag = 2;   /* so you can read it on the screen */
-#endif
-#ifdef DLL
-                        if (G.redirect_text)
-                            G.redirect_data = 2;
 #endif
                     }
                     break;
@@ -2289,11 +2276,6 @@ static void show_version_info(__G)
 #ifdef DEBUG_TIME
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(DebugTime)));
-        ++numopts;
-#endif
-#ifdef DLL
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Dll)));
         ++numopts;
 #endif
 #ifdef DOSWILD
