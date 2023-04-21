@@ -501,12 +501,6 @@ void tzset()
             old_TZstring = NULL;
         }
     }
-#ifdef IZTZ_SETLOCALTZINFO
-    /* Some SAS/C library functions, e.g. stat(), call library       */
-    /* __tzset() themselves. So envvar TZ *must* exist in order to   */
-    /* to get the right offset from GMT.  XXX  TRY HARD to fix this! */
-    set_TZ(timezone, daylight);
-#endif /* IZTZ_SETLOCALTZINFO */
 }
 
 /* XXX  Does this also help SAS/C library work? */
