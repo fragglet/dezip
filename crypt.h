@@ -83,10 +83,6 @@
 #    define DOS_OS2_W32
 #endif
 
-#if defined(DOS_OS2_W32) || defined(__human68k__)
-#    define DOS_H68_OS2_W32
-#endif
-
 #if defined(VM_CMS) || defined(MVS)
 #    define CMS_MVS
 #endif
