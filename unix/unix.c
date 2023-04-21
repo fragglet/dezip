@@ -1430,9 +1430,6 @@ void version(__G)
 #if defined(i586) || defined(__i586) || defined(__i586__)
       " (Intel 586)",
 #else
-#if defined(i486) || defined(__i486) || defined(__i486__)
-      " (Intel 486)",
-#else
 #ifdef pyr
       " (Pyramid)",
 #else
@@ -1466,7 +1463,6 @@ void version(__G)
 #endif /* MTS */
 #endif /* DEC */
 #endif /* Pyramid */
-#endif /* 486 */
 #endif /* 586 */
 #endif /* 686 */
 #endif /* FreeBSD */
