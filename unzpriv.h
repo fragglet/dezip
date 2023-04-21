@@ -788,7 +788,6 @@ char *plastchar(const char *ptr, extent len);
 
 #define __WDLPRO
 #define __WDL
-#define __WDLDEF
 #define WISEP
 
 /**************/

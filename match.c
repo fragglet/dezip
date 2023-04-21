@@ -105,7 +105,6 @@ static int namecmp(const char *s1, const char *s2);
 
 int match(string, pattern, ignore_case __WDL) const char *string, *pattern;
 int ignore_case;
-__WDLDEF
 {
     return recmatch((uch *) pattern, (uch *) string, ignore_case __WDL) == 1;
 }
@@ -113,7 +112,7 @@ __WDLDEF
 static int recmatch(p, s, ic __WDL) const uch *p; /* sh pattern to match */
 const uch *s; /* string to which to match it */
 int ic;       /* true for case insensitivity */
-__WDLDEF      /* directory sepchar for WildStopAtDir mode, or 0 */
+/* directory sepchar for WildStopAtDir mode, or 0 */
 /* Recursively compare the sh pattern p with the string s and return 1 if
  * they match, and 0 or 2 if they don't or if there is a syntax error in the
  * pattern.  This routine recurses on itself no more deeply than the number
