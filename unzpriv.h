@@ -33,15 +33,6 @@
 #endif
 
 /* fUnZip should never need to be reentrant */
-#ifdef FUNZIP
-#  ifdef REENTRANT
-#    undef REENTRANT
-#  endif
-#  ifdef SFX            /* fUnZip is NOT the sfx stub! */
-#    undef SFX
-#  endif
-#    undef USE_BZIP2
-#endif
 
 #if (defined(USE_ZLIB) && !defined(HAVE_ZL_INFLAT64) && !defined(NO_DEFLATE64))
    /* zlib does not (yet?) provide Deflate64(tm) support */
@@ -74,9 +65,7 @@
 #    define UNIXBACKUP
 #endif
 
-#if (!defined(DYNAMIC_CRC_TABLE) && !defined(FUNZIP))
 #  define DYNAMIC_CRC_TABLE
-#endif
 
 /*---------------------------------------------------------------------------
     OS-dependent configuration for UnZip internals
@@ -1349,11 +1338,7 @@ unsigned readbuf              OF((__GPRO__ char *buf, register unsigned len));
 int      readbyte             OF((__GPRO));
 int      fillinbuf            OF((__GPRO));
 int      seek_zipf            OF((__GPRO__ zoff_t abs_offset));
-#ifdef FUNZIP
-   int   flush                OF((__GPRO__ ulg size));  /* actually funzip.c */
-#else
    int   flush                OF((__GPRO__ uch *buf, ulg size, int unshrink));
-#endif
 /* static int  disk_error     OF((__GPRO)); */
 void     handler              OF((int signal));
 time_t   dos_to_unix_time     OF((ulg dos_datetime));
@@ -1568,13 +1553,8 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  *             (flag)&1? stderr : stdout) < 0)
  */
 #ifndef Info   /* may already have been defined for redirection */
-#  ifdef FUNZIP
-#    define Info(buf,flag,sprf_arg) \
-     fputs((char *)(sprintf sprf_arg, (buf)), (flag)&1? stderr : stdout)
-#  else
 #      define Info(buf,flag,sprf_arg) \
        (*G.message)((zvoid *)&G, (uch *)(buf), (ulg)sprintf sprf_arg, (flag))
-#  endif
 #endif /* !Info */
 
 /*  This wrapper macro around fzofft() is just defined to "hide" the
@@ -1594,9 +1574,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
         fnfilter((fname), slide + (extent)((WSIZE>>1) + (WSIZE>>2)),\
                  (extent)(WSIZE>>2))
 
-#ifndef FUNZIP   /* used only in inflate.c */
 #  define MESSAGE(str,len,flag)  (*G.message)((zvoid *)&G,(str),(len),(flag))
-#endif
 
 #if 0            /* Optimization: use the (const) result of crc32(0L,NULL,0) */
 #  define CRCVAL_INITIAL  crc32(0L, NULL, 0)
@@ -1635,14 +1613,9 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
  */
 
 
-#ifdef FUNZIP
-#  define FLUSH(w)  flush(__G__ (ulg)(w))
-#  define NEXTBYTE  getc(G.in)   /* redefined in crypt.h if full version */
-#else
 #  define FLUSH(w)  ((G.mem_mode) ? memflush(__G__ redirSlide,(ulg)(w)) \
                                   : flush(__G__ redirSlide,(ulg)(w),0))
 #  define NEXTBYTE  (G.incnt-- > 0 ? (int)(*G.inptr++) : readbyte(__G))
-#endif
 
 
 #define READBITS(nbits,zdest) {if(nbits>G.bits_left) {int temp; G.zipeof=1;\

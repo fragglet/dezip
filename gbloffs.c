@@ -67,20 +67,13 @@ int main(argc, argv)
     printf(out_format, "bb", (ulg)&G.bb - (ulg)&G);
     printf(out_format, "bk", (ulg)&G.bk - (ulg)&G);
     printf(out_format, "wp", (ulg)&G.wp - (ulg)&G);
-#ifdef FUNZIP
-    printf(out_format, "in", (ulg)&G.in - (ulg)&G);
-#else
     printf(out_format, "incnt", (ulg)&G.incnt - (ulg)&G);
     printf(out_format, "inptr", (ulg)&G.inptr - (ulg)&G);
     printf(out_format, "csize", (ulg)&G.csize - (ulg)&G);
     printf(out_format, "mem_mode", (ulg)&G.mem_mode - (ulg)&G);
-#endif
     printf(out_format, "redirslide", (ulg)&redirSlide - (ulg)&G);
     printf(out_format, "SIZEOF_slide", (ulg)sizeof(redirSlide));
     printf(out_format, "CRYPT", (ulg)CRYPT);
-#ifdef FUNZIP
-    (*set_flag)("FUNZIP");
-#endif
 #ifdef SFX
     (*set_flag)("SFX");
 #endif

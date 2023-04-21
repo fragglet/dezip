@@ -88,10 +88,8 @@
 
 #ifdef UNZIP
    /* char *key = (char *)NULL; moved to globals.h */
-#  ifndef FUNZIP
      local int testp OF((__GPRO__ ZCONST uch *h));
      local int testkey OF((__GPRO__ ZCONST uch *h, ZCONST char *key));
-#  endif
 #endif /* UNZIP */
 
 #ifndef UNZIP             /* moved to globals.h for UnZip */

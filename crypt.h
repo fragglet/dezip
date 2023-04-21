@@ -99,13 +99,4 @@ void init_keys OF((__GPRO__ ZCONST char *passwd));
    int  decrypt OF((__GPRO__ ZCONST char *passwrd));
 #endif
 
-#ifdef FUNZIP
-   extern int encrypted;
-#  ifdef NEXTBYTE
-#    undef NEXTBYTE
-#  endif
-#  define NEXTBYTE \
-   (encrypted? update_keys(__G__ getc(G.in)^decrypt_byte(__G)) : getc(G.in))
-#endif /* FUNZIP */
-
 #endif /* !__crypt_h */

@@ -2573,12 +2573,8 @@ __GDEF
             Trace((stderr, "oops!  (BZ2_bzDecompressInit() err = %d)\n", err));
     }
 
-#ifdef FUNZIP
-    while (err != BZ_STREAM_END) {
-#else /* !FUNZIP */
     while (G.csize > 0) {
         Trace((stderr, "first loop:  G.csize = %ld\n", G.csize));
-#endif /* ?FUNZIP */
         while (bstrm.avail_out > 0) {
             err = BZ2_bzDecompress(&bstrm);
 
@@ -2589,11 +2585,7 @@ __GDEF
             } else if (err != BZ_OK && err != BZ_STREAM_END)
                 Trace((stderr, "oops!  (bzip(first loop) err = %d)\n", err));
 
-#ifdef FUNZIP
-            if (err == BZ_STREAM_END)    /* "END-of-entry-condition" ? */
-#else /* !FUNZIP */
             if (G.csize <= 0L)          /* "END-of-entry-condition" ? */
-#endif /* ?FUNZIP */
                 break;
 
             if (bstrm.avail_in == 0) {

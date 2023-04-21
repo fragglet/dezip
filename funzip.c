@@ -111,9 +111,7 @@
 
  */
 
-#ifndef FUNZIP
 #  define FUNZIP
-#endif
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #include "crc32.h"

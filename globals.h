@@ -154,7 +154,6 @@ typedef struct Globals {
     /* command options of general use */
     UzpOpts UzO;        /* command options of general use */
 
-#ifndef FUNZIP
     /* command options specific to the high level command line interface */
 #ifdef MORE
     int M_flag;         /* -M: built-in "more" function */
@@ -188,7 +187,6 @@ typedef struct Globals {
     char answerbuf[10];
     min_info info[DIR_BLKSIZ];
     min_info *pInfo;
-#endif /* !FUNZIP */
     union work area;                /* see unzpriv.h for definition of work */
 
 #if (!defined(USE_ZLIB) || defined(USE_OWN_CRCTAB))
@@ -198,14 +196,10 @@ typedef struct Globals {
 #endif
     ulg       crc32val;             /* CRC shift reg. (was static in funzip) */
 
-#ifdef FUNZIP
-    FILE      *in;                  /* file descriptor of compressed stream */
-#endif
     uch       *inbuf;               /* input buffer (any size is OK) */
     uch       *inptr;               /* pointer into input buffer */
     int       incnt;
 
-#ifndef FUNZIP
     ulg       bitbuf;
     int       bits_left;            /* unreduce and unshrink only */
     int       zipeof;
@@ -253,10 +247,8 @@ typedef struct Globals {
     uch      *realbuf;
 
     uch      *outbuf2;             /*  process_zipfiles() (never changes); */
-#endif /* !FUNZIP */
     uch      *outptr;
     ulg      outcnt;               /* number of chars stored in outbuf */
-#ifndef FUNZIP
     char     filename[FILNAMSIZ];  /* also used by NT for temporary SFX path */
 #ifdef UNICODE_SUPPORT
     char     *filename_full;       /* the full path so Unicode checks work */
@@ -274,7 +266,6 @@ typedef struct Globals {
 
     char *key;         /* crypt static: decryption password or NULL */
     int nopwd;         /* crypt static */
-#endif /* !FUNZIP */
     z_uint4 keys[3];   /* crypt static: keys defining pseudo-random sequence */
 
     int echofd;        /* ttyio static: file descriptor whose echo is off */
@@ -302,7 +293,6 @@ typedef struct Globals {
     unsigned bk;              /* inflate static: bits count in bit buffer */
 #endif /* ?USE_ZLIB */
 
-#ifndef FUNZIP
     /* cylindric buffer space for formatting zoff_t values (fileio static) */
     char fzofft_buf[FZOFFT_NUM][FZOFFT_LEN];
     int fzofft_index;
@@ -325,7 +315,6 @@ typedef struct Globals {
 #if (defined(SFX) && defined(CHEAP_SFX_AUTORUN))
     char autorun_command[FILNAMSIZ];
 #endif
-#endif /* !FUNZIP */
 
 #ifdef SYSTEM_SPECIFIC_GLOBALS
     SYSTEM_SPECIFIC_GLOBALS

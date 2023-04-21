@@ -368,12 +368,8 @@ static int zlib_outCB(pG, outbuf, outcnt)
     unsigned char FAR *outbuf;
     unsigned outcnt;
 {
-#ifdef FUNZIP
-    return flush(__G__ (ulg)(outcnt));
-#else
     return ((G.mem_mode) ? memflush(__G__ outbuf, (ulg)(outcnt))
                          : flush(__G__ outbuf, (ulg)(outcnt), 0));
-#endif
 }
 #endif /* USE_ZLIB_INFLATCB */
 
@@ -582,12 +578,8 @@ int UZinflate(__G__ is_defl64)
         G.inflInit = 1;
     }
 
-#ifdef FUNZIP
-    while (err != Z_STREAM_END) {
-#else /* !FUNZIP */
     while (G.csize > 0) {
         Trace((stderr, "first loop:  G.csize = %ld\n", G.csize));
-#endif /* ?FUNZIP */
         while (G.dstrm.avail_out > 0) {
             err = inflate(&G.dstrm, Z_PARTIAL_FLUSH);
 
@@ -598,11 +590,7 @@ int UZinflate(__G__ is_defl64)
             } else if (err != Z_OK && err != Z_STREAM_END)
                 Trace((stderr, "oops!  (inflate(first loop) err = %d)\n", err));
 
-#ifdef FUNZIP
-            if (err == Z_STREAM_END)    /* "END-of-entry-condition" ? */
-#else /* !FUNZIP */
             if (G.csize <= 0L)          /* "END-of-entry-condition" ? */
-#endif /* ?FUNZIP */
                 break;
 
             if (G.dstrm.avail_in == 0) {
@@ -636,14 +624,9 @@ int UZinflate(__G__ is_defl64)
         } else if (err == Z_MEM_ERROR) {
             retval = 3; goto uzinflate_cleanup_exit;
         } else if (err == Z_BUF_ERROR) {                /* DEBUG */
-#ifdef FUNZIP
-            Trace((stderr,
-                   "zlib inflate() did not detect stream end\n"));
-#else
             Trace((stderr,
                    "zlib inflate() did not detect stream end (%s, %s)\n",
                    G.zipfn, G.filename));
-#endif
             if ((!repeated_buf_err) && (G.dstrm.avail_in == 0)) {
                 /* when detecting this problem for the first time,
                    try to provide one fake byte beyond "EOF"... */

@@ -204,7 +204,6 @@ typedef struct _UzpCB {
 
 /* the collection of general UnZip option flags and option arguments */
 typedef struct _UzpOpts {
-#ifndef FUNZIP
     char *exdir;        /* pointer to extraction root directory (-d option) */
     char *pwdarg;       /* pointer to command-line password (-P option) */
     int zipinfo_mode;   /* behave like ZipInfo or like normal UnZip? */
@@ -221,9 +220,7 @@ typedef struct _UzpOpts {
     int L_flag;         /* -L: convert filenames from some OSes to lowercase */
     int overwrite_none; /* -n: never overwrite files (no prompting) */
     int overwrite_all;  /* -o: OK to overwrite files without prompting */
-#endif /* !FUNZIP */
     int qflag;          /* -q: produce a lot less output */
-#ifndef FUNZIP
     int tflag;          /* -t: test (unzip) or totals line (zipinfo) */
     int T_flag;         /* -T: timestamps (unzip) or dec. time fmt (zipinfo) */
     int uflag;          /* -u: "update" (extract only newer/brand-new files) */
@@ -235,7 +232,6 @@ typedef struct _UzpOpts {
     int zflag;          /* -z: display the zipfile comment (only, for unzip) */
     int ddotflag;       /* -:: don't skip over "../" path elements */
     int cflxflag;       /* -^: allow control chars in extracted filenames */
-#endif /* !FUNZIP */
 } UzpOpts;
 
 /* intended to be a private struct: */

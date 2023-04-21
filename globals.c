@@ -23,7 +23,6 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-#ifndef FUNZIP
 /* initialization of sigs is completed at runtime so unzip(sfx) executable
  * won't look like a zipfile
  */
@@ -35,7 +34,6 @@ char end_centloc64_sig[4] = {0, 0, 0x06, 0x07};
 /* extern char extd_local_sig[4] = {0, 0, 0x07, 0x08};  NOT USED YET */
 
 ZCONST char *fnames[2] = {"*", NULL};   /* default filenames vector */
-#endif
 
 
 #ifndef REENTRANT
@@ -169,8 +167,6 @@ Uz_Globs *globalsCtor()
 
     memzero(&G, sizeof(Uz_Globs));
 
-#ifndef FUNZIP
-
     uO.lflag=(-1);
     G.wildzipfn = "";
     G.pfnames = (char **)fnames;
@@ -182,7 +178,6 @@ Uz_Globs *globalsCtor()
     G.input = UzpInput;           /* not used by anyone at the moment... */
     G.mpause = UzpMorePause;
     G.decr_passwd = UzpPassword;
-#endif /* !FUNZIP */
 
     G.echofd = -1;
 
