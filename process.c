@@ -47,10 +47,8 @@ static int    find_ecrec64       OF((__GPRO__ zoff_t searchlen));
 static int    find_ecrec         OF((__GPRO__ zoff_t searchlen));
 static int    process_zip_cmmnt  OF((__GPRO));
 static int    get_cdir_ent       OF((__GPRO));
-#ifdef IZ_HAVE_UXUIDGID
 static int    read_ux3_value     OF((ZCONST uch *dbuf, unsigned uidgid_sz,
                                      ulg *p_uidgid));
-#endif /* IZ_HAVE_UXUIDGID */
 
 
 static ZCONST char Far CannotAllocateBuffers[] =
@@ -2528,7 +2526,6 @@ zwchar *utf8_to_wide_string(utf8_string)
 
 
 
-#ifdef IZ_HAVE_UXUIDGID
 static int read_ux3_value(dbuf, uidgid_sz, p_uidgid)
     ZCONST uch *dbuf;   /* buffer a uid or gid value */
     unsigned uidgid_sz; /* size of uid/gid value */
@@ -2556,7 +2553,6 @@ static int read_ux3_value(dbuf, uidgid_sz, p_uidgid)
     }
     return TRUE;
 }
-#endif /* IZ_HAVE_UXUIDGID */
 
 
 /*******************************/
@@ -2771,7 +2767,6 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
                 /* Ignore any prior (EF_IZUNIX/EF_PKUNIX) UID/GID. */
                 flags &= 0x0ff;
             }
-#ifdef IZ_HAVE_UXUIDGID
             if (have_new_type_eb > 1)
                 break;          /* IZUNIX3 overrides IZUNIX2 e.f. block ! */
             if (eb_len == EB_UX2_MINLEN && z_uidgid != NULL) {
@@ -2779,7 +2774,6 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
                 z_uidgid[1] = (ulg)makeword((EB_HEADSIZE+EB_UX2_GID) + ef_buf);
                 flags |= EB_UX2_VALID;   /* signal success */
             }
-#endif
             break;
 
           case EF_IZUNIX3:
@@ -2796,7 +2790,6 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
           GID           Variable    GID for this entry
         */
 
-#ifdef IZ_HAVE_UXUIDGID
             if (eb_len >= EB_UX3_MINLEN
                 && z_uidgid != NULL
                 && (*((EB_HEADSIZE + 0) + ef_buf) == 1))
@@ -2817,7 +2810,6 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
                     flags |= EB_UX2_VALID;   /* signal success */
                 }
             }
-#endif /* IZ_HAVE_UXUIDGID */
             break;
 
           case EF_IZUNIX:
@@ -2905,13 +2897,11 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
                     }
 #endif /* ?TIME_T_TYPE_DOUBLE */
                 }
-#ifdef IZ_HAVE_UXUIDGID
                 if (eb_len >= EB_UX_FULLSIZE && z_uidgid != NULL) {
                     z_uidgid[0] = makeword((EB_HEADSIZE+EB_UX_UID) + ef_buf);
                     z_uidgid[1] = makeword((EB_HEADSIZE+EB_UX_GID) + ef_buf);
                     flags |= EB_UX2_VALID;
                 }
-#endif /* IZ_HAVE_UXUIDGID */
             }
             break;
 
