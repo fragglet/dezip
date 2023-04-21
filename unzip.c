@@ -190,54 +190,6 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 #endif /* ?TIMESTAMP */
 
 /* local2[] and local3[]:  modifier options */
-#ifdef DOS_FLX_H68_OS2_W32
-#ifdef FLEXOS
-   static ZCONST char Far local2[] = "";
-#else
-   static ZCONST char Far local2[] =
-     " -$  label removables (-$$ => fixed disks)";
-#endif
-#ifdef OS2
-#ifdef MORE
-   static ZCONST char Far local3[] = "\
-  -X  restore ACLs if supported              -s  spaces in filenames => '_'\n\
-                                             -M  pipe through \"more\" pager\n";
-#else
-   static ZCONST char Far local3[] = " \
- -X  restore ACLs if supported              -s  spaces in filenames => '_'\n\n";
-#endif /* ?MORE */
-#else /* !OS2 */
-#ifdef WIN32
-#ifdef NTSD_EAS
-#ifdef MORE
-   static ZCONST char Far local3[] = "\
-  -X  restore ACLs (-XX => use privileges)   -s  spaces in filenames => '_'\n\
-                                             -M  pipe through \"more\" pager\n";
-#else
-   static ZCONST char Far local3[] = " \
- -X  restore ACLs (-XX => use privileges)   -s  spaces in filenames => '_'\n\n";
-#endif /* ?MORE */
-#else /* !NTSD_EAS */
-#ifdef MORE
-   static ZCONST char Far local3[] = "\
-  -M  pipe through \"more\" pager            \
-  -s  spaces in filenames => '_'\n\n";
-#else
-   static ZCONST char Far local3[] = " \
-                                            -s  spaces in filenames => '_'\n\n";
-#endif /* ?MORE */
-#endif /* ?NTSD_EAS */
-#else /* !WIN32 */
-#ifdef MORE
-   static ZCONST char Far local3[] = "  -\
-M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
-#else
-   static ZCONST char Far local3[] = "\
-                                             -s  spaces in filenames => '_'\n";
-#endif
-#endif /* ?WIN32 */
-#endif /* ?OS2 || ?WIN32 */
-#else /* !DOS_FLX_OS2_W32 */
 #ifdef VMS
    static ZCONST char Far local2[] = " -X  restore owner/ACL protection info";
 #ifdef MORE
@@ -263,7 +215,6 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
   -K  keep setuid/setgid/tacky permissions\n";
 #endif
 #endif /* ?VMS */
-#endif /* ?DOS_FLX_OS2_W32 */
 #endif /* !SFX */
 
 #ifndef NO_ZIPINFO
