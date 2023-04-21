@@ -124,11 +124,6 @@
 
 /* bad or (occasionally?) missing stddef.h: */
 
-#ifdef realix   /* Modcomp Real/IX, real-time SysV.3 variant */
-#  define SYSV
-#  define NO_UID_GID         /* no uid_t/gid_t */
-#endif
-
 #if (defined(SYSTEM_FIVE) || defined(__SYSTEM_FIVE))
 #  ifndef SYSV
 #    define SYSV
