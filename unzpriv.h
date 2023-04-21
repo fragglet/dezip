@@ -258,10 +258,6 @@
     BeOS section:
   ---------------------------------------------------------------------------*/
 
-#ifdef __BEOS__
-#  include "beos/beocfg.h"
-#endif
-
 /*---------------------------------------------------------------------------
     Human68k/X680x0 section:
   ---------------------------------------------------------------------------*/
@@ -694,10 +690,6 @@
 
 #if (defined(MSDOS) || defined(T20_VMS))
 #  define DOS_T20_VMS
-#endif
-
-#if (defined(__ATHEOS__) || defined(__BEOS__))
-#  define ATH_BEO
 #endif
 
 #if (defined(ATH_BEO) || defined(UNIX))

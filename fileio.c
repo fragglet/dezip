@@ -1796,9 +1796,7 @@ time_t dos_to_unix_time(dosdatetime)
 #else /* !(BSD || MTS || __GO32__) */
     /* tzset was already called at start of process_zipfiles() */
     /* tzset(); */              /* set `timezone' variable */
-#ifndef __BEOS__                /* BeOS DR8 has no timezones... */
     m_time += timezone;         /* seconds WEST of GMT:  add */
-#endif
 #endif /* ?(BSD || MTS || __GO32__) */
 #endif /* ?WIN32 */
     TTrace((stderr, "  m_time after timezone =  %lu\n", (ulg)m_time));

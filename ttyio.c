@@ -50,10 +50,6 @@
 #  define GLOBAL(g) G.g
 #endif
 
-#if (defined(__ATHEOS__) || defined(__BEOS__))  /* why yes, we do */
-#  define HAVE_TERMIOS_H
-#endif
-
 #ifdef _POSIX_VERSION
 #  ifndef USE_POSIX_TERMIOS
 #    define USE_POSIX_TERMIOS  /* use POSIX style termio (termios) */
