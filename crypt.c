@@ -126,16 +126,7 @@
 
 #include "crc32.h"
 
-#ifdef IZ_CRC_BE_OPTIMIZ
-   local z_uint4 near crycrctab[256];
-   local z_uint4 near *cry_crctb_p = NULL;
-   local z_uint4 near *crytab_init OF((__GPRO));
-#  define CRY_CRC_TAB  cry_crctb_p
-#  undef CRC32
-#  define CRC32(c, b, crctab) (crctab[((int)(c) ^ (b)) & 0xff] ^ ((c) >> 8))
-#else
 #  define CRY_CRC_TAB  CRC_32_TAB
-#endif /* ?IZ_CRC_BE_OPTIMIZ */
 
 /***********************************************************************
  * Return the next byte in the pseudo-random sequence
@@ -178,11 +169,6 @@ void init_keys(__G__ passwd)
     __GDEF
     ZCONST char *passwd;        /* password string with which to modify keys */
 {
-#ifdef IZ_CRC_BE_OPTIMIZ
-    if (cry_crctb_p == NULL) {
-        cry_crctb_p = crytab_init(__G);
-    }
-#endif
     GLOBAL(keys[0]) = 305419896L;
     GLOBAL(keys[1]) = 591751049L;
     GLOBAL(keys[2]) = 878082192L;
@@ -202,18 +188,6 @@ void init_keys(__G__ passwd)
  * requires inverting the byte-order of the values in the
  * crypt-crc32-table.
  */
-#ifdef IZ_CRC_BE_OPTIMIZ
-local z_uint4 near *crytab_init(__G)
-    __GDEF
-{
-    int i;
-
-    for (i = 0; i < 256; i++) {
-        crycrctab[i] = REV_BE(CRC_32_TAB[i]);
-    }
-    return crycrctab;
-}
-#endif
 
 
 #ifdef ZIP

@@ -331,9 +331,6 @@
 #endif
 
 #ifdef USE_ZLIB
-#  ifdef IZ_CRC_BE_OPTIMIZ
-#    undef IZ_CRC_BE_OPTIMIZ
-#  endif
 #  ifdef IZ_CRC_LE_OPTIMIZ
 #    undef IZ_CRC_LE_OPTIMIZ
 #  endif
