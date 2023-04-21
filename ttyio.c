@@ -59,12 +59,6 @@
 #ifdef HAVE_TERMIOS_H
 #endif
 
-#if (defined(HAVE_TERMIO_H) || defined(HAVE_SYS_TERMIO_H))
-#  ifndef USE_SYSV_TERMIO
-#    define USE_SYSV_TERMIO
-#  endif
-#endif
-
    /* include system support for switching of console echo */
 #    ifdef HAVE_TERMIOS_H
 #      include <termios.h>
@@ -74,9 +68,6 @@
 #      define STTY(f, s) tcsetattr(f, TCSAFLUSH, (zvoid *) s)
 #    else /* !HAVE_TERMIOS_H */
 #      ifdef USE_SYSV_TERMIO           /* Amdahl, Cray, all SysV? */
-#        ifdef HAVE_TERMIO_H
-#          include <termio.h>
-#        endif
 #        ifdef NEED_PTEM
 #          include <sys/stream.h>
 #          include <sys/ptem.h>
