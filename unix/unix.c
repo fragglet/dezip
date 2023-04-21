@@ -1207,11 +1207,7 @@ void version(__G)
 #endif
       IZ_OS_NAME,
 
-#if defined(uts) || defined(UTS)
-      " (Amdahl UTS)",
-#else
       "",
-#endif /* Amdahl */
 
 #if 0
       " on ", __DATE__
