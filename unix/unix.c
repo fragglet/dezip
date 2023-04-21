@@ -638,7 +638,6 @@ int mapname(__G__ renamed)
                 Info(slide, 0, ((char *)slide, "   creating: %s\n",
                   FnFilter1(G.filename)));
             }
-#ifndef NO_CHMOD
             /* Filter out security-relevant attributes bits. */
             G.pInfo->file_attr = filtattr(__G__ G.pInfo->file_attr);
             /* When extracting non-UNIX directories or when extracting
@@ -659,7 +658,6 @@ int mapname(__G__ renamed)
             /* set approx. dir perms (make sure can still read/write in dir) */
             if (chmod(G.filename, G.pInfo->file_attr | 0700))
                 perror("chmod (directory attributes) error");
-#endif
             /* set dir time (note trailing '/') */
             return (error & ~MPN_MASK) | MPN_CREATED_DIR;
         }
@@ -1261,10 +1259,8 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     zipfile.
   ---------------------------------------------------------------------------*/
 
-#ifndef NO_CHMOD
     if (chmod(G.filename, filtattr(__G__ G.pInfo->file_attr)))
         perror("chmod (file attributes) error");
-#endif
 #endif /* NO_FCHOWN || NO_FCHMOD */
 
 } /* end function close_outfile() */
@@ -1315,10 +1311,8 @@ int set_symlnk_attribs(__G__ slnk_entry)
 
 #ifdef SET_DIR_ATTRIB
 /* messages of code for setting directory attributes */
-#  ifndef NO_CHMOD
   static ZCONST char DirlistChmodFailed[] =
     "warning:  cannot set permissions for %s\n          %s\n";
-#  endif
 
 
 int defer_dir_attribs(__G__ pd)
@@ -1372,14 +1366,12 @@ int set_direc_attribs(__G__ d)
                 errval = PK_WARN;
         }
     }
-#ifndef NO_CHMOD
     if (chmod(d->fn, UxAtt(d)->perms)) {
         Info(slide, 0x201, ((char *)slide, DirlistChmodFailed,
           FnFilter1(d->fn), strerror(errno)));
         if (!errval)
             errval = PK_WARN;
     }
-#endif /* !NO_CHMOD */
     return errval;
 } /* end function set_direc_attribs() */
 
