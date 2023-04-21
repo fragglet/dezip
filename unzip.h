@@ -82,9 +82,6 @@ freely, subject to the above disclaimer and the following restrictions:
     Predefined, machine-specific macros.
   ---------------------------------------------------------------------------*/
 
-#if (defined(unix) || defined(_unix) || defined(__unix) || defined(__unix__))
-#endif /* unix || _unix || __unix || __unix__ */
-
 #if (defined(VM_CMS) || defined(MVS))
 #  define CMS_MVS
 #endif
