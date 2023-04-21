@@ -218,9 +218,6 @@ typedef struct _UzpOpts {
     int C_flag;         /* -C: match filenames case-insensitively */
     int D_flag;         /* -D: don't restore directory (-DD: any) timestamps */
     int fflag;          /* -f: "freshen" (extract only newer files) */
-#if (defined(RISCOS) || defined(ACORN_FTYPE_NFS))
-    int acorn_nfs_ext;  /* -F: RISC OS types & NFS filetype extensions */
-#endif
     int hflag;          /* -h: header line (zipinfo) */
     int jflag;          /* -j: junk pathnames (unzip) */
     int K_flag;         /* -K: keep setuid/setgid/tacky permissions */
