@@ -167,13 +167,8 @@ static ZCONST char Far IgnoreOOptionMsg[] =
    static ZCONST char Far Example2[] =
 "  unzip foo -d RAM:$   => extract all files from foo into RAMDisc\n";
 #else /* !RISCOS */
-#if (defined(OS2) || (defined(DOS_FLX_OS2_W32) && defined(MORE)))
-   static ZCONST char Far Example2[] =
-     "";                /* no room:  too many local3[] items */
-#else /* !OS2 */
    static ZCONST char Far Example2[] = " \
  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
-#endif /* ?OS2 */
 #endif /* ?RISCOS */
 #endif /* ?VMS */
 

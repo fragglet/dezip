@@ -232,32 +232,7 @@ freely, subject to the above disclaimer and the following restrictions:
   ---------------------------------------------------------------------------*/
 
 #if 0
-#if (defined(OS2) && !defined(FUNZIP))
-#  ifdef UNZIP_INTERNAL
-#    define INCL_NOPM
-#    define INCL_DOSNLS
-#    define INCL_DOSPROCESS
-#    define INCL_DOSDEVICES
-#    define INCL_DOSDEVIOCTL
-#    define INCL_DOSERRORS
-#    define INCL_DOSMISC
-#    ifdef OS2DLL
-#      define INCL_REXXSAA
-#      include <rexxsaa.h>
-#    endif
-#  endif /* UNZIP_INTERNAL */
-#  include <os2.h>
-#  define UZ_EXP EXPENTRY
-#endif /* OS2 && !FUNZIP */
 #endif /* 0 */
-
-#if (defined(OS2) && !defined(FUNZIP))
-#  if (defined(__IBMC__) || defined(__WATCOMC__))
-#    define UZ_EXP  _System    /* compiler keyword */
-#  else
-#    define UZ_EXP
-#  endif
-#endif /* OS2 && !FUNZIP */
 
 #if (defined(WINDLL) || defined(USE_UNZIP_LIB))
 #  ifndef EXPENTRY
@@ -554,10 +529,6 @@ int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file, UzpOpts *optflgs,
 int      UZ_EXP UzpGrep            OF((char *archive, char *file,
                                        char *pattern, int cmd, int SkipBin,
                                        UzpCB *UsrFunc));
-#endif
-#ifdef OS2
-int      UZ_EXP UzpFileTree        OF((char *name, cbList(callBack),
-                                       char *cpInclude[], char *cpExclude[]));
 #endif
 
 unsigned UZ_EXP UzpVersion2        OF((UzpVer2 *version));

@@ -1516,7 +1516,6 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 
 
 #if (!defined(VMS) && !defined(CMS_MVS))
-#if (!defined(OS2) || defined(TIMESTAMP))
 
 #if (!defined(HAVE_MKTIME) || defined(WIN32))
 /* also used in amiga/filedate.c and win32/win32.c */
@@ -1564,7 +1563,6 @@ time_t dos_to_unix_time(dosdatetime)
 
 } /* end function dos_to_unix_time() */
 
-#endif /* !OS2 || TIMESTAMP */
 #endif /* !VMS && !CMS_MVS */
 
 

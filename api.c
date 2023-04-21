@@ -35,11 +35,6 @@
   ---------------------------------------------------------------------------*/
 
 
-#ifdef OS2
-#  define  INCL_DOSMEMMGR
-#  include <os2.h>
-#endif
-
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #ifdef WINDLL

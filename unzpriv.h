@@ -231,29 +231,6 @@
 #  endif
 #endif
 
-#if (defined(MSDOS) || defined(OS2) || defined(FLEXOS))
-#  include <sys/types.h>      /* off_t, time_t, dev_t, ... */
-#  include <sys/stat.h>
-#  include <io.h>             /* lseek(), open(), setftime(), dup(), creat() */
-#  include <time.h>           /* localtime() */
-#  include <fcntl.h>          /* O_BINARY for open() w/o CR/LF translation */
-
-#  ifdef OS2                  /* defined for all OS/2 compilers */
-#    include "os2/os2cfg.h"
-#  else
-#      include "msdos/doscfg.h"
-#  endif
-
-#    define DIR_END       '\\'  /* OS uses '\\' as directory separator */
-#    define DIR_END2      '/'   /* also check for '/' (RTL may convert) */
-#  ifdef DATE_FORMAT
-#    undef DATE_FORMAT
-#  endif
-#  define DATE_FORMAT     dateformat()
-#  define lenEOL          2
-#  define PutNativeEOL    {*q++ = native(CR); *q++ = native(LF);}
-#endif /* MSDOS || OS2 || FLEXOS */
-
 /*---------------------------------------------------------------------------
     MTS section (piggybacks UNIX, I think):
   ---------------------------------------------------------------------------*/
@@ -470,10 +447,6 @@
 #endif
 #endif
 #define VMS_UNZIP_VERSION 42   /* if OS-needed-to-extract is VMS:  can do */
-
-#if (defined(MSDOS) || defined(OS2))
-#  define DOS_OS2
-#endif
 
 #if (defined(OS2) || defined(WIN32))
 #  define OS2_W32
@@ -1782,10 +1755,6 @@ typedef struct _APIDocStruct {
 /*  Globals  */
 /*************/
 
-#if (defined(OS2) && !defined(FUNZIP))
-#  include "os2/os2data.h"
-#endif
-
 #include "globals.h"
 
 
@@ -2000,26 +1969,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 /*---------------------------------------------------------------------------
     OS/2-only functions:
   ---------------------------------------------------------------------------*/
-
-#ifdef OS2   /* GetFileTime conflicts with something in Win32 header files */
-#if (defined(REENTRANT) && defined(USETHREADID))
-   ulg   GetThreadId          OF((void));
-#endif
-   int   GetCountryInfo       OF((void));                           /* os2.c */
-   long  GetFileTime          OF((ZCONST char *name));              /* os2.c */
-/* static void  SetPathAttrTimes OF((__GPRO__ int flags, int dir));    os2.c */
-/* static int   SetEAs        OF((__GPRO__ const char *path,
-                                  void *eablock));                     os2.c */
-/* static int   SetACL        OF((__GPRO__ const char *path,
-                                  void *eablock));                     os2.c */
-/* static int   IsFileNameValid OF((const char *name));                os2.c */
-/* static void  map2fat       OF((char *pathcomp, char **pEndFAT));    os2.c */
-/* static int   SetLongNameEA OF((char *name, char *longname));        os2.c */
-/* static void  InitNLS       OF((void));                              os2.c */
-   int   IsUpperNLS           OF((int nChr));                       /* os2.c */
-   int   ToLowerNLS           OF((int nChr));                       /* os2.c */
-   void  DebugMalloc          OF((void));                           /* os2.c */
-#endif
 
 /*---------------------------------------------------------------------------
     QDOS-only functions:
