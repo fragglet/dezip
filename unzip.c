@@ -343,9 +343,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef ASM_CRC
      static ZCONST char Far AsmCRC[] = "ASM_CRC";
 #  endif
-#  ifdef CHECK_VERSIONS
-     static ZCONST char Far Check_Versions[] = "CHECK_VERSIONS";
-#  endif
 #  ifdef COPYRIGHT_CLEAN
      static ZCONST char Far Copyright_Clean[] =
      "COPYRIGHT_CLEAN (PKZIP 0.9x unreducing method not supported)";
@@ -2304,11 +2301,6 @@ static void show_version_info(__G)
 #ifdef ASM_CRC
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(AsmCRC)));
-        ++numopts;
-#endif
-#ifdef CHECK_VERSIONS
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Check_Versions)));
         ++numopts;
 #endif
 #ifdef COPYRIGHT_CLEAN
