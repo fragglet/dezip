@@ -55,9 +55,6 @@
 #  endif
 
 #ifdef UNZIP            /* Zip handles this with the unix/configure script */
-#  if !(defined(BSD4_4) || defined(SYSV) || defined(__convexc__))
-#      define NO_FCNTL_H
-#  endif /* !(BSD4_4 || SYSV || __convexc__) */
 #endif /* UNZIP */
 
 #ifdef HAVE_TERMIOS_H

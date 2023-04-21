@@ -72,13 +72,11 @@ typedef struct stat z_stat;
 #  include <time.h>
    struct tm *gmtime(), *localtime();
 
-#if (defined(BSD4_4) || (defined(SYSV) && defined(MODERN)))
 #  include <unistd.h>           /* this includes utime.h on SGIs */
 #  if (defined(BSD4_4) || defined(linux) || defined(__GLIBC__))
 #    include <utime.h>
 #    define GOT_UTIMBUF
 #  endif
-#endif
 
 #if (defined(V7) || defined(pyr_bsd))
 #  define strchr   index

@@ -30,9 +30,7 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-#  if defined(__convexc__) || defined(SYSV) || defined(CRAY) || defined(BSD4_4)
 #    define DIRENT
-#  endif
 
 #  include <dirent.h>
 

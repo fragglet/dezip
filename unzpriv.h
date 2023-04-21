@@ -125,9 +125,6 @@
 /* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
 
 #if (defined(ultrix) || defined(__ultrix) || defined(bsd4_2))
-#  if (!defined(BSD) && !defined(SYSV))
-#    define BSD
-#  endif
 #endif /* ultrix || __ultrix || bsd4_2 */
 
 /* stat() bug for Borland, VAX C RTL, and Atari ST MiNT on TOS
