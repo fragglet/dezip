@@ -2060,9 +2060,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
    int screenlinewrap    OF((void));                                /* local */
 # endif
 #endif /* MORE && (ATH_BEO_UNX || QDOS || VMS) */
-#ifdef OS2_W32
-   int   SetFileSize     OF((FILE *file, zusz_t filesize));         /* local */
-#endif
    void  close_outfile   OF((__GPRO));                              /* local */
 #ifdef SET_SYMLINK_ATTRIBS
    int  set_symlnk_attribs  OF((__GPRO__ slinkentry *slnk_entry));  /* local */

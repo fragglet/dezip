@@ -409,10 +409,6 @@ int open_outfile(__G)           /* return 1 if fail */
       FnFilter1(G.filename)));
 #endif /* !TOPS20 */
 
-#ifdef OS2_W32
-    /* preallocate the final file size to prevent file fragmentation */
-    SetFileSize(G.outfile, G.lrec.ucsize);
-#endif
     return 0;
 
 } /* end function open_outfile() */
