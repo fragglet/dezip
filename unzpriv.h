@@ -1461,10 +1461,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #ifdef NEED_ISO_OEM_INIT
    void  prepare_ISO_OEM_translat   OF((__GPRO));                   /* local */
 #endif
-#if (defined(MALLOC_WORK) && defined(MY_ZCALLOC))
-   zvoid far *zcalloc    OF((unsigned int, unsigned int));
-   zvoid zcfree          OF((zvoid far *));
-#endif /* MALLOC_WORK && MY_ZCALLOC */
 
 
 
