@@ -226,9 +226,6 @@
 #  ifdef MORE
 #    undef MORE
 #  endif
-#  ifdef OS2_EAS
-#    undef OS2_EAS
-#  endif
 #endif
 
 /*---------------------------------------------------------------------------

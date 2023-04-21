@@ -39,17 +39,10 @@
    static ZCONST char Far CompFactorStr[] = "%c%d%%";
    static ZCONST char Far CompFactor100[] = "100%%";
 
-#ifdef OS2_EAS
-   static ZCONST char Far HeadersS[]  =
-     "  Length     EAs   ACLs     Date    Time    Name";
-   static ZCONST char Far HeadersS1[] =
-     "---------    ---   ----  ---------- -----   ----";
-#else
    static ZCONST char Far HeadersS[]  =
      "  Length      Date    Time    Name";
    static ZCONST char Far HeadersS1[] =
      "---------  ---------- -----   ----";
-#endif
 
    static ZCONST char Far HeadersL[]  =
      " Length   Method    Size  Cmpr    Date    Time   CRC-32   Name";
@@ -65,23 +58,11 @@
    static ZCONST char Far LongFileTrailer[] =
      "--------          -------  ---                       \
      -------\n%s         %s %4s                            %lu file%s\n";
-#ifdef OS2_EAS
-   static ZCONST char Far ShortHdrStats[] =
-     "%s %6lu %6lu  %02u%c%02u%c%02u %02u:%02u  %c";
-   static ZCONST char Far ShortFileTrailer[] =
-     "---------  -----  -----                \
-     -------\n%s %6lu %6lu                     %lu file%s\n";
-   static ZCONST char Far OS2ExtAttrTrailer[] =
-     "%lu file%s %lu bytes of OS/2 extended attributes attached.\n";
-   static ZCONST char Far OS2ACLTrailer[] =
-     "%lu file%s %lu bytes of access control lists attached.\n";
-#else
    static ZCONST char Far ShortHdrStats[] =
      "%s  %02u%c%02u%c%02u %02u:%02u  %c";
    static ZCONST char Far ShortFileTrailer[] =
      "---------                     -------\n%s\
                      %lu file%s\n";
-#endif /* ?OS2_EAS */
 #endif /* !WINDLL */
 
 
@@ -109,10 +90,6 @@ int list_files(__G)    /* return PK-type error code */
     struct tm *t;
     unsigned yr, mo, dy, hh, mm;
     zusz_t csiz, tot_csize=0L, tot_ucsize=0L;
-#ifdef OS2_EAS
-    ulg ea_size, tot_easize=0L, tot_eafiles=0L;
-    ulg acl_size, tot_aclsize=0L, tot_aclfiles=0L;
-#endif
     min_info info;
     char methbuf[8];
     static ZCONST char dtype[]="NXFS";  /* see zi_short() */
@@ -245,27 +222,6 @@ int list_files(__G)    /* return PK-type error code */
 
         if (G.process_all_files || do_this_file) {
 
-#ifdef OS2_EAS
-            {
-                uch *ef_ptr = G.extra_field;
-                int ef_size, ef_len = G.crec.extra_field_length;
-                ea_size = acl_size = 0;
-
-                while (ef_len >= EB_HEADSIZE) {
-                    ef_size = makeword(&ef_ptr[EB_LEN]);
-                    switch (makeword(&ef_ptr[EB_ID])) {
-                        case EF_OS2:
-                            ea_size = makelong(&ef_ptr[EB_HEADSIZE]);
-                            break;
-                        case EF_ACL:
-                            acl_size = makelong(&ef_ptr[EB_HEADSIZE]);
-                            break;
-                    }
-                    ef_ptr += (ef_size + EB_HEADSIZE);
-                    ef_len -= (ef_size + EB_HEADSIZE);
-                }
-            }
-#endif
             if (G.extra_field &&
                 (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
                                   G.crec.last_mod_dos_datetime, &z_utime, NULL)
@@ -383,17 +339,10 @@ int list_files(__G)    /* return PK-type error code */
                   mo, dt_sepchar, dy, dt_sepchar, yr, hh, mm,
                   G.crec.crc32, (G.pInfo->lcflag? '^':' ')));
             else
-#ifdef OS2_EAS
-                Info(slide, 0, ((char *)slide, LoadFarString(ShortHdrStats),
-                  FmZofft(G.crec.ucsize, "9", "u"), ea_size, acl_size,
-                  mo, dt_sepchar, dy, dt_sepchar, yr, hh, mm,
-                  (G.pInfo->lcflag? '^':' ')));
-#else
                 Info(slide, 0, ((char *)slide, LoadFarString(ShortHdrStats),
                   FmZofft(G.crec.ucsize, "9", "u"),
                   mo, dt_sepchar, dy, dt_sepchar, yr, hh, mm,
                   (G.pInfo->lcflag? '^':' ')));
-#endif
             fnprint(__G);
 #endif /* ?WINDLL */
 
@@ -407,16 +356,6 @@ int list_files(__G)    /* return PK-type error code */
             tot_ucsize += G.crec.ucsize;
             tot_csize += csiz;
             ++members;
-#ifdef OS2_EAS
-            if (ea_size) {
-                tot_easize += ea_size;
-                ++tot_eafiles;
-            }
-            if (acl_size) {
-                tot_aclsize += acl_size;
-                ++tot_aclfiles;
-            }
-#endif
         } else {        /* not listing this file */
             SKIP_(G.crec.file_comment_length)
         }
@@ -456,29 +395,10 @@ int list_files(__G)    /* return PK-type error code */
             Info(slide, 0, ((char *)slide, LoadFarString(LongFileTrailer),
               FmZofft(tot_ucsize, "8", "u"), FmZofft(tot_csize, "8", "u"),
               cfactorstr, members, members==1? "":"s"));
-#ifdef OS2_EAS
-            if (tot_easize || tot_aclsize)
-                Info(slide, 0, ((char *)slide, "\n"));
-            if (tot_eafiles && tot_easize)
-                Info(slide, 0, ((char *)slide, LoadFarString(OS2ExtAttrTrailer),
-                  tot_eafiles, tot_eafiles == 1? " has" : "s have a total of",
-                  tot_easize));
-            if (tot_aclfiles && tot_aclsize)
-                Info(slide, 0, ((char *)slide, LoadFarString(OS2ACLTrailer),
-                  tot_aclfiles,
-                  tot_aclfiles == 1 ? " has" : "s have a total of",
-                  tot_aclsize));
-#endif /* OS2_EAS */
         } else
-#ifdef OS2_EAS
-            Info(slide, 0, ((char *)slide, LoadFarString(ShortFileTrailer),
-              FmZofft(tot_ucsize, "9", "u"), tot_easize, tot_aclsize,
-              members, members == 1 ? "" : "s"));
-#else
             Info(slide, 0, ((char *)slide, LoadFarString(ShortFileTrailer),
               FmZofft(tot_ucsize, "9", "u"),
               members, members == 1 ? "" : "s"));
-#endif /* OS2_EAS */
 #endif /* ?WINDLL */
     }
 
