@@ -347,9 +347,6 @@
 /* The LZW patent is expired worldwide since 2004-Jul-07, so USE_UNSHRINK
  * is now enabled by default.  See unshrink.c.
  */
-#if (!defined(LZW_CLEAN) && !defined(USE_UNSHRINK))
-#  define USE_UNSHRINK
-#endif
 
 #ifndef O_BINARY
 #  define O_BINARY  0
