@@ -95,13 +95,8 @@
 #  define WriteError(buf,len,strm) \
    (win_fprintf(pG, strm, (extent)len, (char far *)buf) != (int)(len))
 #else /* !WINDLL */
-#  ifdef USE_FWRITE
-#    define WriteError(buf,len,strm) \
-     ((extent)fwrite((char *)(buf),1,(extent)(len),strm) != (extent)(len))
-#  else
 #    define WriteError(buf,len,strm) \
      ((extent)write(fileno(strm),(char *)(buf),(extent)(len)) != (extent)(len))
-#  endif
 #endif /* ?WINDLL */
 
 /*
@@ -439,15 +434,6 @@ int open_outfile(__G)           /* return 1 if fail */
 #endif /* !MTS */
 #endif /* !TOPS20 */
 
-#ifdef USE_FWRITE
-#ifndef RISCOS
-#ifdef _IOFBF  /* make output fully buffered (works just about like write()) */
-    setvbuf(G.outfile, (char *)slide, _IOFBF, WSIZE);
-#else
-    setbuf(G.outfile, (char *)slide);
-#endif
-#endif /* !RISCOS */
-#endif /* USE_FWRITE */
 #ifdef OS2_W32
     /* preallocate the final file size to prevent file fragmentation */
     SetFileSize(G.outfile, G.lrec.ucsize);
