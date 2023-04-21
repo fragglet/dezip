@@ -708,9 +708,7 @@
 #  define ATH_BEO_UNX
 #endif
 
-#if (defined(ATH_BEO_UNX) || defined(THEOS))
 #  define ATH_BEO_THS_UNX
-#endif
 
 /* clean up with a few defaults */
 #ifndef DIR_END
@@ -751,11 +749,9 @@
 #endif
 
 
-#if (defined(DOS_FLX_NLM_OS2_W32) || defined(ATH_BEO_UNX) || defined(RISCOS))
 #  ifndef HAVE_UNLINK
 #    define HAVE_UNLINK
 #  endif
-#endif
 
 /* OS-specific exceptions to the "ANSI <--> INT_SPRINTF" rule */
 

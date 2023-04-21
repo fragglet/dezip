@@ -337,7 +337,6 @@ void Echon(__G)
 
 #if (defined(UNZIP) && !defined(FUNZIP))
 
-#ifdef ATH_BEO_UNX
 #ifdef MORE
 
 /*
@@ -477,35 +476,6 @@ int zgetch(__G__ f)
 }
 
 
-#else /* !ATH_BEO_UNX */
-#ifndef VMS     /* VMS supplies its own variant of getch() */
-
-
-int zgetch(__G__ f)
-    __GDEF
-    int f;    /* file descriptor from which to read (must be open already) */
-{
-    char c, c2;
-
-/*---------------------------------------------------------------------------
-    Get a character from the given file descriptor without echo; can't fake
-    CBREAK mode (i.e., newline required), but can get rid of all chars up to
-    and including newline.
-  ---------------------------------------------------------------------------*/
-
-    echoff(f);
-    read(f, &c, 1);
-    if (c != '\n')
-        do {
-            read(f, &c2, 1);   /* throw away all other chars up thru newline */
-        } while (c2 != '\n');
-    echon();
-    return (int)c;
-}
-
-#endif /* !VMS */
-#endif /* ?ATH_BEO_UNX */
-
 #endif /* UNZIP && !FUNZIP */
 #endif /* !HAVE_WORKING_GETCH */
 
@@ -589,8 +559,6 @@ char *getp(__G__ m, p, n)
 #else /* !HAVE_WORKING_GETCH */
 
 
-#if (defined(ATH_BEO_UNX) || defined(__MINT__))
-
 #ifndef _PATH_TTY
 #  ifdef __MINT__
 #    define _PATH_TTY ttyname(2)
@@ -645,8 +613,6 @@ char *getp(__G__ m, p, n)
     return p;                   /* return pointer to password */
 
 } /* end function getp() */
-
-#endif /* ATH_BEO_UNX || __MINT__ */
 
 
 

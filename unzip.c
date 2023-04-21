@@ -254,7 +254,6 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
 \n\n";
 #endif
 #else /* !VMS */
-#ifdef ATH_BEO_UNX
    static ZCONST char Far local2[] = " -X  restore UID/GID info";
 #ifdef MORE
    static ZCONST char Far local3[] = "\
@@ -263,34 +262,6 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
    static ZCONST char Far local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
 #endif
-#else /* !ATH_BEO_UNX */
-#ifdef TANDEM
-   static ZCONST char Far local2[] = "\
- -X  restore Tandem User ID                 -r  remove file extensions\n\
-  -b  create 'C' (180) text files          ";
-#ifdef MORE
-   static ZCONST char Far local3[] = " \
-                                            -M  pipe through \"more\" pager\n";
-#else
-   static ZCONST char Far local3[] = "\n";
-#endif
-#else /* !TANDEM */
-#ifdef MACOS
-   static ZCONST char Far local2[] = " -E  show Mac info during extraction";
-   static ZCONST char Far local3[] = " \
- -i  ignore filenames in mac extra info     -J  junk (ignore) Mac extra info\n\
-\n";
-#else /* !MACOS */
-#ifdef MORE
-   static ZCONST char Far local2[] = " -M  pipe through \"more\" pager";
-   static ZCONST char Far local3[] = "\n";
-#else
-   static ZCONST char Far local2[] = "";   /* Atari, Mac, CMS/MVS etc. */
-   static ZCONST char Far local3[] = "";
-#endif
-#endif /* ?MACOS */
-#endif /* ?TANDEM */
-#endif /* ?ATH_BEO_UNX */
 #endif /* ?VMS */
 #endif /* ?DOS_FLX_OS2_W32 */
 #endif /* !SFX */
@@ -1518,7 +1489,6 @@ int uz_opts(__G__ pargc, pargv)
                     }
                     break;
 #endif /* ATH_BEO || MACOS */
-#ifdef ATH_BEO_UNX
                 case ('K'):
                     if (negative) {
                         uO.K_flag = FALSE, negative = 0;
@@ -1526,7 +1496,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.K_flag = TRUE;
                     }
                     break;
-#endif /* ATH_BEO_UNX */
 #ifndef SFX
                 case ('l'):
                     if (negative) {
