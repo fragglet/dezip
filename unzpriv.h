@@ -848,10 +848,6 @@
 #  endif
 #endif /* UNIX && S_IFLNK && !MTS */
 
-#ifndef S_ISDIR
-#    define S_ISDIR(m)  (((m) & S_IFMT) == S_IFDIR)
-#endif
-
 #ifndef IS_VOLID
 #  define IS_VOLID(m)  ((m) & 0x08)
 #endif
