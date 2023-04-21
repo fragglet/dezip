@@ -126,10 +126,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #if 0
 #endif /* 0 */
 
-#ifndef UZ_EXP
-#define UZ_EXP
-#endif
-
 /*---------------------------------------------------------------------------
     Public typedefs.
   ---------------------------------------------------------------------------*/
@@ -140,14 +136,14 @@ typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
 #define _IZ_TYPES_DEFINED
 
 /* InputFn is not yet used and is likely to change: */
-typedef int(UZ_EXP MsgFn)(void *pG, uch *buf, ulg size, int flag);
-typedef int(UZ_EXP InputFn)(void *pG, uch *buf, int *size, int flag);
-typedef void(UZ_EXP PauseFn)(void *pG, const char *prompt, int flag);
-typedef int(UZ_EXP PasswdFn)(void *pG, int *rcnt, char *pwbuf, int size,
-                             const char *zfn, const char *efn);
-typedef int(UZ_EXP StatCBFn)(void *pG, int fnflag, const char *zfn,
-                             const char *efn, const void *details);
-typedef void(UZ_EXP UsrIniFn)(void);
+typedef int(MsgFn)(void *pG, uch *buf, ulg size, int flag);
+typedef int(InputFn)(void *pG, uch *buf, int *size, int flag);
+typedef void(PauseFn)(void *pG, const char *prompt, int flag);
+typedef int(PasswdFn)(void *pG, int *rcnt, char *pwbuf, int size,
+                      const char *zfn, const char *efn);
+typedef int(StatCBFn)(void *pG, int fnflag, const char *zfn, const char *efn,
+                      const void *details);
+typedef void(UsrIniFn)(void);
 
 typedef struct _UzpBuffer { /* rxstr */
     ulg strlength;          /* length of string */
@@ -274,7 +270,7 @@ typedef struct _Uzp_cdir_Rec {
 
 #define UZPINIT_LEN  sizeof(UzpInit)
 #define UZPVER_LEN   sizeof(UzpVer)
-#define cbList(func) int (*UZ_EXP func)(char *filename, Uzp_cdir_Rec *crec)
+#define cbList(func) int (*func)(char *filename, Uzp_cdir_Rec *crec)
 
 /*---------------------------------------------------------------------------
     Return (and exit) values of the public UnZip API functions.
@@ -324,26 +320,26 @@ typedef struct _Uzp_cdir_Rec {
 
 #define UzpMatch match
 
-int UZ_EXP UzpMain(int argc, char **argv);
-int UZ_EXP UzpAltMain(int argc, char **argv, UzpInit *init);
-const UzpVer *UZ_EXP UzpVersion(void);
-void UZ_EXP UzpFreeMemBuffer(UzpBuffer *retstr);
-int UZ_EXP UzpUnzipToMemory OF((char *zip, char *file, UzpOpts *optflgs,
-                                UzpCB *UsrFunc, UzpBuffer *retstr));
-int UZ_EXP UzpGrep OF((char *archive, char *file, char *pattern, int cmd,
-                       int SkipBin, UzpCB *UsrFunc));
+int UzpMain(int argc, char **argv);
+int UzpAltMain(int argc, char **argv, UzpInit *init);
+const UzpVer *UzpVersion(void);
+void UzpFreeMemBuffer(UzpBuffer *retstr);
+int UzpUnzipToMemory OF((char *zip, char *file, UzpOpts *optflgs,
+                         UzpCB *UsrFunc, UzpBuffer *retstr));
+int UzpGrep OF((char *archive, char *file, char *pattern, int cmd, int SkipBin,
+                UzpCB *UsrFunc));
 
-unsigned UZ_EXP UzpVersion2(UzpVer2 *version);
-int UZ_EXP UzpValidate(char *archive, int AllCodes);
+unsigned UzpVersion2(UzpVer2 *version);
+int UzpValidate(char *archive, int AllCodes);
 
 /* default I/O functions (can be swapped out via UzpAltMain() entry point): */
 
-int UZ_EXP UzpMessagePrnt(void *pG, uch *buf, ulg size, int flag);
-int UZ_EXP UzpMessageNull(void *pG, uch *buf, ulg size, int flag);
-int UZ_EXP UzpInput(void *pG, uch *buf, int *size, int flag);
-void UZ_EXP UzpMorePause(void *pG, const char *prompt, int flag);
-int UZ_EXP UzpPassword OF((void *pG, int *rcnt, char *pwbuf, int size,
-                           const char *zfn, const char *efn));
+int UzpMessagePrnt(void *pG, uch *buf, ulg size, int flag);
+int UzpMessageNull(void *pG, uch *buf, ulg size, int flag);
+int UzpInput(void *pG, uch *buf, int *size, int flag);
+void UzpMorePause(void *pG, const char *prompt, int flag);
+int UzpPassword OF((void *pG, int *rcnt, char *pwbuf, int size, const char *zfn,
+                    const char *efn));
 
 /*---------------------------------------------------------------------------
     Remaining private stuff for UnZip compilation.

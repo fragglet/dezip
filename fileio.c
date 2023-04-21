@@ -576,11 +576,11 @@ static int disk_error()
 /* Function UzpMessagePrnt() */
 /*****************************/
 
-int UZ_EXP UzpMessagePrnt(pG, buf, size,
-                          flag) void *pG; /* globals struct:  always passed */
-uch *buf; /* preformatted string to be printed */
-ulg size; /* length of string (may include nulls) */
-int flag; /* flag bits */
+int UzpMessagePrnt(pG, buf, size,
+                   flag) void *pG; /* globals struct:  always passed */
+uch *buf;                          /* preformatted string to be printed */
+ulg size;                          /* length of string (may include nulls) */
+int flag;                          /* flag bits */
 {
     /* IMPORTANT NOTE:
      *    The name of the first parameter of UzpMessagePrnt(), which passes
@@ -658,9 +658,8 @@ int flag; /* flag bits */
 /* Function UzpInput() */ /* GRR:  this is a placeholder for now */
 /***********************/
 
-int UZ_EXP UzpInput(pG, buf, size,
-                    flag) void *pG; /* globals struct:  always passed */
-uch *buf;                           /* preformatted string to be printed */
+int UzpInput(pG, buf, size, flag) void *pG; /* globals struct:  always passed */
+uch *buf;  /* preformatted string to be printed */
 int *size; /* (address of) size of buf and of returned string */
 int flag;  /* flag bits (bit 0: no echo) */
 {
@@ -678,9 +677,9 @@ int flag;  /* flag bits (bit 0: no echo) */
 /* Function UzpMorePause() */
 /***************************/
 
-void UZ_EXP UzpMorePause(pG, prompt,
-                         flag) void *pG; /* globals struct:  always passed */
-const char *prompt;                      /* "--More--" prompt */
+void UzpMorePause(pG, prompt,
+                  flag) void *pG; /* globals struct:  always passed */
+const char *prompt;               /* "--More--" prompt */
 int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 {
     uch c;
@@ -719,8 +718,7 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 /* Function UzpPassword() */
 /**************************/
 
-int UZ_EXP
-    UzpPassword(pG, rcnt, pwbuf, size, zfn,
+int UzpPassword(pG, rcnt, pwbuf, size, zfn,
                 efn) void *pG; /* pointer to UnZip's internal global vars */
 int *rcnt;                     /* retry counter */
 char *pwbuf;                   /* buffer for password */
