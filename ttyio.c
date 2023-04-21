@@ -537,11 +537,7 @@ char *getp(__G__ m, p, n)
 
 
 #ifndef _PATH_TTY
-#  ifdef __MINT__
-#    define _PATH_TTY ttyname(2)
-#  else
 #    define _PATH_TTY "/dev/tty"
-#  endif
 #endif
 
 char *getp(__G__ m, p, n)
