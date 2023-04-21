@@ -23,9 +23,6 @@
 #define __unzpriv_h
 
 /* First thing: Signal all following code that we compile UnZip utilities! */
-#ifndef UNZIP
-#  define UNZIP
-#endif
 
 /* GRR 960204:  MORE defined here in preparation for removal altogether */
 #  define MORE

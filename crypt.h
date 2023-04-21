@@ -95,8 +95,6 @@ void init_keys OF((__GPRO__ ZCONST char *passwd));
 #  endif
 #endif /* ZIP */
 
-#if (defined(UNZIP) && !defined(FUNZIP))
    int  decrypt OF((__GPRO__ ZCONST char *passwrd));
-#endif
 
 #endif /* !__crypt_h */

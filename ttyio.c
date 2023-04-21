@@ -49,18 +49,12 @@
 #  define GLOBAL(g) G.g
 #endif
 
-#ifdef UNZIP            /* Zip handles this with the unix/configure script */
-#endif /* UNZIP */
-
    /* include system support for switching of console echo */
 #      include <termios.h>
 #      define sgttyb termios
 #      define sg_flags c_lflag
 #      define GTTY(f, s) tcgetattr(f, (zvoid *) s)
 #      define STTY(f, s) tcsetattr(f, TCSAFLUSH, (zvoid *) s)
-#      ifndef UNZIP
-#        include <fcntl.h>
-#      endif
 
 
 
@@ -102,9 +96,6 @@ void Echon(__G)
 }
 
 
-#if (defined(UNZIP) && !defined(FUNZIP))
-
-
 /*
  * Get a character from the given file descriptor without echo or newline.
  */
@@ -137,9 +128,6 @@ int zgetch(__G__ f)
 
     return (int)(uch)c;
 }
-
-
-#endif /* UNZIP && !FUNZIP */
 
 
 /*

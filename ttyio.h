@@ -67,13 +67,11 @@
 #endif
 
 /* this stuff is used by MORE and also now by the ctrl-S code; fileio.c only */
-#if (defined(UNZIP) && !defined(FUNZIP))
 #  ifndef FGETCH
      /* default for all systems where no getch()-like function is available */
      int zgetch OF((__GPRO__ int f));
 #    define FGETCH(f)  zgetch(__G__ f)
 #  endif
-#endif /* UNZIP && !FUNZIP */
 
    char *getp OF((__GPRO__ ZCONST char *m, char *p, int n));
 

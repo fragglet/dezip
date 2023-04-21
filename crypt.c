@@ -86,35 +86,9 @@
 #endif /* ?ZIP */
 
 
-#ifdef UNZIP
    /* char *key = (char *)NULL; moved to globals.h */
      local int testp OF((__GPRO__ ZCONST uch *h));
      local int testkey OF((__GPRO__ ZCONST uch *h, ZCONST char *key));
-#endif /* UNZIP */
-
-#ifndef UNZIP             /* moved to globals.h for UnZip */
-#  ifndef Z_UINT4_DEFINED
-#    if (defined(UINT_MAX) && (UINT_MAX == 0xffffffffUL))
-       typedef unsigned int     z_uint4;
-#      define Z_UINT4_DEFINED
-#    else
-#    if (defined(ULONG_MAX) && (ULONG_MAX == 0xffffffffUL))
-       typedef unsigned long    z_uint4;
-#      define Z_UINT4_DEFINED
-#    else
-#    if (defined(USHRT_MAX) && (USHRT_MAX == 0xffffffffUL))
-       typedef unsigned short   z_uint4;
-#      define Z_UINT4_DEFINED
-#    endif
-#    endif
-#    endif
-#  endif /* !Z_UINT4_DEFINED */
-#  ifndef Z_UINT4_DEFINED
-     typedef ulg                z_uint4;
-#    define Z_UINT4_DEFINED
-#  endif
-   local z_uint4 keys[3];       /* keys defining the pseudo-random sequence */
-#endif /* !UNZIP */
 
 #ifndef Trace
 #  ifdef CRYPT_DEBUG
@@ -412,8 +386,6 @@ unsigned zfwrite(buf, item_size, nb, f)
 #endif /* ZIP */
 
 
-#if (defined(UNZIP) && !defined(FUNZIP))
-
 /***********************************************************************
  * Get the password and set up keys for current zipfile member.
  * Return PK_ class error.
@@ -620,6 +592,4 @@ local int testkey(__G__ h, key)
     return 0;       /* OK */
 
 } /* end function testkey() */
-
-#endif /* UNZIP && !FUNZIP */
 
