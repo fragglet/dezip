@@ -210,11 +210,7 @@
 /*************/
 
 #define UNZIP_BZ2VERS   46
-#ifdef ZIP64_SUPPORT
 #  define UNZIP_VERSION   UNZIP_BZ2VERS
-#else
-#  define UNZIP_VERSION   21   /* compatible with PKUNZIP 4.0 */
-#endif
 #define VMS_UNZIP_VERSION 42   /* if OS-needed-to-extract is VMS:  can do */
 
 #  define ATH_BEO_UNX
@@ -840,7 +836,6 @@
 /*  Typedefs  */
 /**************/
 
-#ifdef ZIP64_SUPPORT
 # ifndef Z_UINT8_DEFINED
 #   if (defined(__GNUC__) || defined(__hpux) || defined(__SUNPRO_C))
   typedef unsigned long long    z_uint8;
@@ -849,7 +844,6 @@
 #   endif
 #   define Z_UINT8_DEFINED
 # endif
-#endif
 #ifndef Z_UINT4_DEFINED
 #  if (defined(UINT_MAX) && (UINT_MAX == 0xffffffffUL))
      typedef unsigned int       z_uint4;
@@ -883,7 +877,6 @@
    c) enumeration and counts of zipfile volumes of multivolume archives
       (2 bytes / 4 bytes)
  */
-#ifdef ZIP64_SUPPORT
   typedef  z_uint8              zusz_t;     /* zipentry sizes & offsets */
   typedef  z_uint8              zucn_t;     /* archive entry counts */
   typedef  z_uint4              zuvl_t;     /* multivolume numbers */
@@ -893,12 +886,6 @@
      #define MASK_ZUCN64        (~(zucn_t)0 & (zucn_t)0xffffffffffffffffULL)
    for the 64-bit mask.
  */
-#else
-  typedef  ulg                  zusz_t;     /* zipentry sizes & offsets */
-  typedef  unsigned int         zucn_t;     /* archive entry counts */
-  typedef  unsigned short       zuvl_t;     /* multivolume numbers */
-# define MASK_ZUCN64            (~(zucn_t)0)
-#endif
 #define MASK_ZUCN16             ((zucn_t)0xFFFF)
 
    typedef struct utimbuf ztimbuf;

@@ -23,9 +23,6 @@
 
 /* Automatically set ZIP64_SUPPORT if LFS */
 #ifdef LARGE_FILE_SUPPORT
-# if (!defined(NO_ZIP64_SUPPORT) && !defined(ZIP64_SUPPORT))
-#   define ZIP64_SUPPORT
-# endif
 #endif
 
 /* NO_ZIP64_SUPPORT takes preceedence over ZIP64_SUPPORT */

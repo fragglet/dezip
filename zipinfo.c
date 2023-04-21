@@ -214,14 +214,9 @@ static ZCONST char Far ExtraBytesPreceding[] =
 
 static ZCONST char Far UnknownNo[] = "unknown (%d)";
 
-#ifdef ZIP64_SUPPORT
   static ZCONST char Far LocalHeaderOffset[] =
     "\n  offset of local header from start of archive:   %s\n\
                                                   (%sh) bytes\n";
-#else
-  static ZCONST char Far LocalHeaderOffset[] =
-    "\n  offset of local header from start of archive:   %s (%sh) bytes\n";
-#endif
 static ZCONST char Far HostOS[] =
   "  file system or operating system of origin:      %s\n";
 static ZCONST char Far EncodeSWVer[] =

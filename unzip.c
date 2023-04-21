@@ -199,10 +199,8 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far Use_LFS[] =
      "LARGE_FILE_SUPPORT (large files over 2 GiB supported)";
 #  endif
-#  ifdef ZIP64_SUPPORT
      static ZCONST char Far Use_Zip64[] =
      "ZIP64_SUPPORT (archives using Zip64 for large files supported)";
-#  endif
 #  ifdef USE_ZLIB
      static ZCONST char Far UseZlib[] =
      "USE_ZLIB (compiled with version %s; using version %s)";
@@ -1388,11 +1386,9 @@ static void show_version_info(__G)
           LoadFarStringSmall(Use_LFS)));
         ++numopts;
 #endif
-#ifdef ZIP64_SUPPORT
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Zip64)));
         ++numopts;
-#endif
 #ifdef USE_ZLIB
         sprintf((char *)(slide+256), LoadFarStringSmall(UseZlib),
           ZLIB_VERSION, zlibVersion());
