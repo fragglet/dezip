@@ -99,25 +99,11 @@ static ZCONST char Far CannotAllocateBuffers[] =
      "\nwarning [%s]:  end-of-central-directory record claims this\n\
   is disk %lu but that the central directory starts on disk %lu; this is a\n\
   contradiction.  Attempting to process anyway.\n";
-# ifdef NO_MULTIPART
-   static ZCONST char Far NoMultiDiskArcSupport[] =
-     "\nerror [%s]:  zipfile is part of multi-disk archive\n\
-  (sorry, not yet supported).\n";
-   static ZCONST char Far MaybePakBug[] = "warning [%s]:\
-  zipfile claims to be 2nd disk of a 2-part archive;\n\
-  attempting to process anyway.  If no further errors occur, this archive\n\
-  was probably created by PAK v2.51 or earlier.  This bug was reported to\n\
-  NoGate in March 1991 and was supposed to have been fixed by mid-1991; as\n\
-  of mid-1992 it still hadn't been.  (If further errors do occur, archive\n\
-  was probably created by PKZIP 2.04c or later; UnZip does not yet support\n\
-  multi-part archives.)\n";
-# else
    static ZCONST char Far MaybePakBug[] = "warning [%s]:\
   zipfile claims to be last disk of a multi-part archive;\n\
   attempting to process anyway, assuming all parts have been concatenated\n\
   together in order.  Expect \"errors\" and warnings...true multi-part support\
 \n  doesn't exist yet (coming soon).\n";
-# endif
    static ZCONST char Far ExtraBytesAtStart[] =
      "warning [%s]:  %s extra byte%s at beginning or within zipfile\n\
   (attempting to process anyway)\n";
@@ -664,12 +650,7 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
     archives) or inconsistencies (missing or extra bytes in zipfile).
   ---------------------------------------------------------------------------*/
 
-#ifdef NO_MULTIPART
-    error = !uO.zipinfo_mode && (G.ecrec.number_this_disk == 1) &&
-            (G.ecrec.num_disk_start_cdir == 1);
-#else
     error = !uO.zipinfo_mode && (G.ecrec.number_this_disk != 0);
-#endif
 
 #ifndef SFX
     if (uO.zipinfo_mode &&
@@ -689,13 +670,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
               (ulg)G.ecrec.num_disk_start_cdir));
             error_in_archive = PK_WARN;
         }
-#ifdef NO_MULTIPART   /* concatenation of multiple parts works in some cases */
-    } else if (!uO.zipinfo_mode && !error && G.ecrec.number_this_disk != 0) {
-        Info(slide, 0x401, ((char *)slide, LoadFarString(NoMultiDiskArcSupport),
-          G.zipfn));
-        error_in_archive = PK_FIND;
-        too_weird_to_continue = TRUE;
-#endif
     }
 
     if (!too_weird_to_continue) {  /* (relatively) normal zipfile:  go for it */
