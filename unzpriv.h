@@ -390,13 +390,6 @@
 #  define O_BINARY  0
 #endif
 
-#ifndef PIPE_ERROR
-#  ifndef EPIPE
-#    define EPIPE -1
-#  endif
-#  define PIPE_ERROR (errno == EPIPE)
-#endif
-
 /* File operations--use "b" for binary if allowed or fixed length 512 on VMS */
 
 /* Defaults when nothing special has been defined previously. */
