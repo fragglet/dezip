@@ -1952,9 +1952,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 # endif
 #endif /* MORE && (ATH_BEO_UNX || QDOS || VMS) */
    void  close_outfile   OF((__GPRO));                              /* local */
-#ifdef SET_SYMLINK_ATTRIBS
    int  set_symlnk_attribs  OF((__GPRO__ slinkentry *slnk_entry));  /* local */
-#endif
    int   defer_dir_attribs  OF((__GPRO__ direntry **pd));           /* local */
    int   set_direc_attribs  OF((__GPRO__ direntry *d));             /* local */
 #ifdef TIMESTAMP

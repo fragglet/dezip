@@ -966,12 +966,8 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 #ifdef SYMLINKS
     if (G.symlnk) {
         extent ucsize = (extent)G.lrec.ucsize;
-# ifdef SET_SYMLINK_ATTRIBS
         extent attribsize = sizeof(unsigned) +
                             (have_uidgid_flg ? sizeof(z_uidgid) : 0);
-# else
-        extent attribsize = 0;
-# endif
         /* size of the symlink entry is the sum of
          *  (struct size (includes 1st '\0') + 1 additional trailing '\0'),
          *  system specific attribute data size (might be 0),
@@ -999,12 +995,10 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         slnk_entry->next = NULL;
         slnk_entry->targetlen = ucsize;
         slnk_entry->attriblen = attribsize;
-# ifdef SET_SYMLINK_ATTRIBS
         memcpy(slnk_entry->buf, &(G.pInfo->file_attr),
                sizeof(unsigned));
         if (have_uidgid_flg)
             memcpy(slnk_entry->buf + 4, z_uidgid, sizeof(z_uidgid));
-# endif
         slnk_entry->target = slnk_entry->buf + slnk_entry->attriblen;
         slnk_entry->fname = slnk_entry->target + ucsize + 1;
         strcpy(slnk_entry->fname, G.filename);

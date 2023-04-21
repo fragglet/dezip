@@ -2626,9 +2626,7 @@ static void set_deferred_symlink(__G__ slnk_entry)
     if (symlink(linktarget, linkfname))  /* create the real link */
         perror("symlink error");
     free(linktarget);
-#ifdef SET_SYMLINK_ATTRIBS
     set_symlnk_attribs(__G__ slnk_entry);
-#endif
     return;                             /* can't set time on symlinks */
 
 } /* end function set_deferred_symlink() */
