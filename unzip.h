@@ -82,10 +82,6 @@ freely, subject to the above disclaimer and the following restrictions:
     Predefined, machine-specific macros.
   ---------------------------------------------------------------------------*/
 
-#if ((defined(__WINNT__) || defined(__WINNT)) && !defined(WIN32))
-#  define WIN32
-#endif
-
 /* Borland C does not define __TURBOC__ if compiling for a 32-bit platform */
 
 /* define MSDOS for Turbo C (unless OS/2) and Power C as well as Microsoft C */
