@@ -52,12 +52,6 @@
  * (or an alias) and do not need the echoff() / echon() function pair.
  */
 
-#ifdef NLM
-#  define echoff(f)
-#  define echon()
-#  define HAVE_WORKING_GETCH
-#endif
-
 #ifdef QDOS
 #  define echoff(f)
 #  define echon()

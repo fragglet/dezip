@@ -718,10 +718,6 @@ int unzip(__G__ argc, argv)
     NetWare initialization code.
   ---------------------------------------------------------------------------*/
 
-#ifdef NLM
-    InitUnZipConsole();
-#endif
-
 /*---------------------------------------------------------------------------
     Acorn RISC OS initialization code.
   ---------------------------------------------------------------------------*/
@@ -1660,9 +1656,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 #  endif
 #  ifdef UNIX
 #    define LOCAL "X"
-#  endif
-#  if (defined(FLEXOS) || defined(NLM))
-#    define LOCAL "s"
 #  endif
    /* Default for all other systems: */
 #  ifndef LOCAL

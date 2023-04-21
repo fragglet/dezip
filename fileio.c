@@ -331,10 +331,6 @@ int open_outfile(__G)           /* return 1 if fail */
         } else
 #endif /* UNIXBACKUP */
         {
-#ifdef NLM
-            /* Give the file read/write permission (non-POSIX shortcut) */
-            chmod(G.filename, 0);
-#endif /* NLM */
             if (unlink(G.filename) != 0) {
                 Info(slide, 0x401, ((char *)slide,
                   LoadFarString(CannotDeleteOldFile),

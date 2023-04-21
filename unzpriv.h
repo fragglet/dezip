@@ -262,10 +262,6 @@
     Novell Netware NLM section
   ---------------------------------------------------------------------------*/
 
-#ifdef NLM
-#  include "netware/nlmcfg.h"
-#endif
-
  /*---------------------------------------------------------------------------
     QDOS section
   ---------------------------------------------------------------------------*/
@@ -486,18 +482,6 @@
 #if (defined(DOS_OS2) || defined(WIN32))
 #  define DOS_OS2_W32
 #  define DOS_W32_OS2          /* historical:  don't use */
-#endif
-
-#if (defined(DOS_FLX_OS2) || defined(NLM))
-#  define DOS_FLX_NLM_OS2
-#endif
-
-#if (defined(DOS_FLX_OS2_W32) || defined(NLM))
-#  define DOS_FLX_NLM_OS2_W32
-#endif
-
-#if (defined(DOS_FLX_H68_OS2_W32) || defined(NLM))
-#  define DOS_FLX_H68_NLM_OS2_W32
 #endif
 
 #if (defined(TOPS20) || defined(VMS))
