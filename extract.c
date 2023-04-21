@@ -1869,8 +1869,7 @@ unsigned ef_len;
                     ? IZ_EF_TRUNC
                     : ((ef[EB_HEADSIZE + EB_NTSD_VERSION] > EB_NTSD_MAX_VER)
                            ? (PK_WARN | 0x4000)
-                           : test_compr_eb(ef, ebLen, EB_NTSD_L_LEN,
-                                           TEST_NTSD));
+                           : test_compr_eb(ef, ebLen, EB_NTSD_L_LEN, NULL));
             if (r != PK_OK) {
                 if (uO.qflag)
                     Info(slide, 1,

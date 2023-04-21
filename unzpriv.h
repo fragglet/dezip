@@ -1273,10 +1273,6 @@ int stamp_file(const char *fname, time_t modtime); /* local */
     ((hn) == UNIX_ || (hn) == ATARI_ || (hn) == ATHEOS_ || (hn) == BEOS_ || \
      (hn) == VMS_)
 
-#ifndef TEST_NTSD      /* "NTSD valid?" checking function */
-#define TEST_NTSD NULL /*   ... is not available */
-#endif
-
 #define SKIP_(length)                                         \
     if (length && ((error = do_string(length, SKIP)) != 0)) { \
         error_in_archive = error;                             \
