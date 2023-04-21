@@ -630,7 +630,6 @@ int unzip(__G__ argc, argv)
     int i;
 #endif
     int retcode, error=FALSE;
-#ifndef NO_EXCEPT_SIGNALS
 #ifdef REENTRANT
     savsigs_info *oldsighandlers = NULL;
 #   define SET_SIGHANDLER(sigtype, newsighandler) \
@@ -641,7 +640,6 @@ int unzip(__G__ argc, argv)
 #   define SET_SIGHANDLER(sigtype, newsighandler) \
       signal((sigtype), (newsighandler))
 #endif
-#endif /* NO_EXCEPT_SIGNALS */
 
     /* initialize international char support to the current environment */
     SETLOCALE(LC_CTYPE, "");
@@ -723,7 +721,6 @@ int unzip(__G__ argc, argv)
 /*---------------------------------------------------------------------------
     Set signal handler for restoring echo, warn of zipfile corruption, etc.
   ---------------------------------------------------------------------------*/
-#ifndef NO_EXCEPT_SIGNALS
 #ifdef SIGINT
     SET_SIGHANDLER(SIGINT, handler);
 #endif
@@ -745,7 +742,6 @@ int unzip(__G__ argc, argv)
 #ifdef SIGSEGV
     SET_SIGHANDLER(SIGSEGV, handler);
 #endif
-#endif /* NO_EXCEPT_SIGNALS */
 
 #if (defined(WIN32) && defined(__RSXNT__))
     for (i = 0 ; i < argc; i++) {
