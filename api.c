@@ -217,8 +217,6 @@ int UZ_EXP UzpAltMain(int argc, char *argv[], UzpInit *init)
 
 
 
-#ifndef __16BIT__
-
 void UZ_EXP UzpFreeMemBuffer(UzpBuffer *retstr)
 {
     if (retstr != NULL && retstr->strptr != NULL) {
@@ -323,7 +321,6 @@ int UZ_EXP UzpUnzipToMemory(char *zip, char *file, UzpOpts *optflgs,
     return r;
 }
 #endif /* !WINDLL */
-#endif /* !__16BIT__ */
 
 
 
@@ -455,10 +452,6 @@ int redirect_outfile(__G)
         return FALSE;
 #endif
 
-#ifdef __16BIT__
-    if ((ulg)((extent)G.redirect_size) != G.redirect_size)
-        return FALSE;
-#endif
 #ifdef OS2
     DosAllocMem((void **)&G.redirect_buffer, G.redirect_size+1,
       PAG_READ|PAG_WRITE|PAG_COMMIT);
@@ -517,7 +510,6 @@ int close_redirect(__G)
 
 
 #ifndef SFX
-#ifndef __16BIT__
 #ifndef WINDLL
 
 /* Purpose: Determine if file in archive contains the string szSearch
@@ -624,7 +616,6 @@ int UZ_EXP UzpGrep(char *archive, char *file, char *pattern, int cmd,
     return retcode;
 }
 #endif /* !WINDLL */
-#endif /* !__16BIT__ */
 
 
 

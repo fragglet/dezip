@@ -171,9 +171,6 @@ ulg LG(uch* p) { return ((ulg)(SH(p)) | ((ulg)(SH((p)+2)) << 16)); }
 
 /* Function prototypes */
 static void err OF((int, char *));
-#if (defined(USE_DEFLATE64) && defined(__16BIT__))
-static int partflush OF((uch *rawbuf, unsigned w));
-#endif
 int main OF((int, char **));
 
 /* Globals */
@@ -229,43 +226,6 @@ char *m;
 }
 
 
-#if (defined(USE_DEFLATE64) && defined(__16BIT__))
-
-static int partflush(rawbuf, w)
-uch *rawbuf;     /* start of buffer area to flush */
-extent w;       /* number of bytes to flush */
-{
-  G.crc32val = crc32(G.crc32val, rawbuf, (extent)w);
-  if (fwrite((char *)rawbuf,1,(extent)w,out) != (extent)w && !PIPE_ERROR)
-    err(9, "out of space on stdout");
-  outsiz += w;
-  return 0;
-}
-
-
-int flush(w)    /* used by inflate.c (FLUSH macro) */
-ulg w;          /* number of bytes to flush */
-{
-    uch *rawbuf;
-    int ret;
-
-    /* On 16-bit systems (MSDOS, OS/2 1.x), the standard C library functions
-     * cannot handle writes of 64k blocks at once.  For these systems, the
-     * blocks to flush are split into pieces of 32k or less.
-     */
-    rawbuf = slide;
-    while (w > 0x8000L) {
-        ret = partflush(rawbuf, 0x8000);
-        if (ret != PK_OK)
-            return ret;
-        w -= 0x8000L;
-        rawbuf += (unsigned)0x8000;
-    }
-    return partflush(rawbuf, (extent)w);
-} /* end function flush() */
-
-#else /* !(USE_DEFLATE64 && __16BIT__) */
-
 int flush(w)    /* used by inflate.c (FLUSH macro) */
 ulg w;          /* number of bytes to flush */
 {
@@ -275,8 +235,6 @@ ulg w;          /* number of bytes to flush */
   outsiz += w;
   return 0;
 }
-
-#endif /* ?(USE_DEFLATE64 && __16BIT__) */
 
 
 int main(argc, argv)
@@ -494,11 +452,7 @@ char **argv;
         zdecode(c);
 #endif
       *G.outptr++ = (uch)c;
-#if (defined(USE_DEFLATE64) && defined(__16BIT__))
-      if (++G.outcnt == (WSIZE>>1))     /* do FlushOutput() */
-#else
       if (++G.outcnt == WSIZE)    /* do FlushOutput() */
-#endif
       {
         G.crc32val = crc32(G.crc32val, slide, (extent)G.outcnt);
         if (fwrite((char *)slide, 1,(extent)G.outcnt,out) != (extent)G.outcnt
