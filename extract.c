@@ -2546,36 +2546,6 @@ char *fnfilter(raw, space, size)   /* convert name to safely printable form */
         if (size > 0 && s >= slim && se == NULL) {
             se = s;
         }
-#ifdef HAVE_WORKING_ISPRINT
-# ifndef UZ_FNFILTER_REPLACECHAR
-    /* A convenient choice for the replacement of unprintable char codes is
-     * the "single char wildcard", as this character is quite unlikely to
-     * appear in filenames by itself.  The following default definition
-     * sets the replacement char to a question mark as the most common
-     * "single char wildcard"; this setting should be overridden in the
-     * appropiate system-specific configuration header when needed.
-     */
-#   define UZ_FNFILTER_REPLACECHAR      '?'
-# endif
-        if (!isprint(*r)) {
-            if (*r < 32) {
-                /* ASCII control codes are escaped as "^{letter}". */
-                if (se != NULL && (s > (space + (size-4)))) {
-                    have_overflow = TRUE;
-                    break;
-                }
-                *s++ = '^', *s++ = (uch)(64 + *r++);
-            } else {
-                /* Other unprintable codes are replaced by the
-                 * placeholder character. */
-                if (se != NULL && (s > (space + (size-3)))) {
-                    have_overflow = TRUE;
-                    break;
-                }
-                *s++ = UZ_FNFILTER_REPLACECHAR;
-                INCSTR(r);
-            }
-#else /* !HAVE_WORKING_ISPRINT */
         if (*r < 32) {
             /* ASCII control codes are escaped as "^{letter}". */
             if (se != NULL && (s > (space + (size-4)))) {
@@ -2583,7 +2553,6 @@ char *fnfilter(raw, space, size)   /* convert name to safely printable form */
                 break;
             }
             *s++ = '^', *s++ = (uch)(64 + *r++);
-#endif /* ?HAVE_WORKING_ISPRINT */
         } else {
 #ifdef _MBCS
             unsigned i = CLEN(r);
