@@ -1420,9 +1420,6 @@ void version(__G)
     char cc_versbuf[17];
     int cc_verstyp;
 #else
-#if (defined(CRAY) && defined(_RELEASE))
-    char cc_versbuf[40];
-#endif /* (CRAY && _RELEASE) */
 #endif /* __DECC_VER */
 #endif /* __HP_cc || __IBMC__ */
 #endif /* __SUNPRO_C */
@@ -1471,9 +1468,6 @@ void version(__G)
                (__DECC_VER % 10000000) / 100000, __DECC_VER % 1000),
                cc_versbuf),
 #else
-#if defined(CRAY) && defined(_RELEASE)
-      "cc ", (sprintf(cc_versbuf, "version %d", _RELEASE), cc_versbuf),
-#else
 #ifdef __IBMC__
       "IBM C ",
       (sprintf(cc_versbuf, "version %d.%d.%d",
@@ -1492,7 +1486,6 @@ void version(__G)
       IZ_CC_NAME, "",
 #endif /* ?__VERSION__ */
 #endif /* ?__IBMC__ */
-#endif /* ?(CRAY && _RELEASE) */
 #endif /* ?__DECC_VER */
 #endif /* ?__HP_cc */
 #endif /* ?__SUNPRO_C */

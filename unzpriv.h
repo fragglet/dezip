@@ -1173,10 +1173,6 @@
 # endif
 #endif /* MALLOC_WORK && !MY_ZCALLOC */
 
-#if (defined(CRAY) && defined(ZMEM))
-#  undef ZMEM
-#endif
-
 #ifdef ZMEM
 #  undef ZMEM
 #  define memcmp(b1,b2,len)      bcmp(b2,b1,len)
