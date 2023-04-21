@@ -57,7 +57,7 @@
               and TOPS-20.
 
   Copyrights:  see accompanying file "LICENSE" in UnZip source distribution.
-               (This software is free but NOT IN THE PUBLIC DOMAIN.)
+               (This software is free but NOT IN THE PUBLIC DOmain.)
 
   ---------------------------------------------------------------------------*/
 
@@ -224,7 +224,7 @@ See \"unzip -hh\" or unzip.txt for more help.  Examples:\n\
 /*  main() / UzpMain() stub  */
 /*****************************/
 
-int MAIN(argc, argv) /* return PK-type error code (except under VMS) */
+int main(argc, argv) /* return PK-type error code (except under VMS) */
 int argc;
 char *argv[];
 {

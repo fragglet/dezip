@@ -275,10 +275,6 @@ typedef size_t extent;
 typedef int shrint; /* for efficiency/speed, we hope... */
 #define RAWBUFSIZ OUTBUFSIZ
 
-#ifndef MAIN
-#define MAIN main
-#endif
-
 /* user may have defined both by accident...  NOTIMESTAMP takes precedence */
 
 /* The LZW patent is expired worldwide since 2004-Jul-07, so USE_UNSHRINK
@@ -1033,7 +1029,7 @@ typedef struct _APIDocStruct {
     Functions in unzip.c (initialization routines):
   ---------------------------------------------------------------------------*/
 
-int MAIN(int argc, char **argv);
+int main(int argc, char **argv);
 int unzip(int argc, char **argv);
 int uz_opts(int *pargc, char ***pargv);
 int usage(int error);
