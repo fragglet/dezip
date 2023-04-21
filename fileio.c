@@ -871,25 +871,6 @@ int flush(__G__ rawbuf, size, unshrink)
                 if (*p != CTRLZ)          /* lose all ^Z's */
                     *q++ = native(*p);
 
-#if (defined(SMALL_MEM) || defined(MED_MEM))
-# if (lenEOL == 1)   /* don't check unshrink:  both buffers small but equal */
-                if (!unshrink)
-# endif
-                    /* check for danger of buffer overflow and flush */
-                    if (q > transbuf+(extent)transbufsiz-lenEOL) {
-                        Trace((stderr,
-                          "p - rawbuf = %u   q-transbuf = %u   size = %lu\n",
-                          (unsigned)(p-rawbuf), (unsigned)(q-transbuf), size));
-                        if (!uO.cflag && WriteError(transbuf,
-                            (extent)(q-transbuf), G.outfile))
-                            return disk_error(__G);
-                        else if (uO.cflag && (*G.message)((zvoid *)&G,
-                                 transbuf, (ulg)(q-transbuf), 0))
-                            return PK_OK;
-                        q = transbuf;
-                        continue;
-                    }
-#endif /* SMALL_MEM || MED_MEM */
             }
         }
 
@@ -2371,60 +2352,3 @@ unsigned char *uzmbsrchr(str, c)
 
 
 
-#ifdef SMALL_MEM
-
-/*******************************/
-/*  Function fLoadFarString()  */   /* (and friends...) */
-/*******************************/
-
-char *fLoadFarString(__GPRO__ const char Far *sz)
-{
-    (void)zfstrcpy(G.rgchBigBuffer, sz);
-    return G.rgchBigBuffer;
-}
-
-char *fLoadFarStringSmall(__GPRO__ const char Far *sz)
-{
-    (void)zfstrcpy(G.rgchSmallBuffer, sz);
-    return G.rgchSmallBuffer;
-}
-
-char *fLoadFarStringSmall2(__GPRO__ const char Far *sz)
-{
-    (void)zfstrcpy(G.rgchSmallBuffer2, sz);
-    return G.rgchSmallBuffer2;
-}
-
-
-
-
-/*************************/
-/*  Function zfstrcpy()  */   /* portable clone of _fstrcpy() */
-/*************************/
-
-char Far * Far zfstrcpy(char Far *s1, const char Far *s2)
-{
-    char Far *p = s1;
-
-    while ((*s1++ = *s2++) != '\0');
-    return p;
-}
-
-#if (!(defined(SFX) || defined(FUNZIP)))
-/*************************/
-/*  Function zfstrcmp()  */   /* portable clone of _fstrcmp() */
-/*************************/
-
-int Far zfstrcmp(const char Far *s1, const char Far *s2)
-{
-    int ret;
-
-    while ((ret = (int)(uch)*s1 - (int)(uch)*s2) == 0
-           && *s2 != '\0') {
-        ++s2; ++s1;
-    }
-    return ret;
-}
-#endif /* !(SFX || FUNZIP) */
-
-#endif /* SMALL_MEM */

@@ -251,9 +251,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
     }
     G.hold = G.inbuf + INBUFSIZ;     /* to check for boundary-spanning sigs */
 #ifndef VMS     /* VMS uses its own buffer scheme for textmode flush(). */
-#ifdef SMALL_MEM
-    G.outbuf2 = G.outbuf+RAWBUFSIZ;  /* never changes */
-#endif
 #endif /* !VMS */
 
 #if 0 /* CRC_32_TAB has been NULLified by CONSTRUCTGLOBALS !!!! */

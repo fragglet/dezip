@@ -1295,14 +1295,7 @@ static int extract_or_test_entrylist(__G__ numchunk,
         if (((G.lrec.general_purpose_bit_flag & (1 << 11)) == (1 << 11))
             != (G.pInfo->GPFIsUTF8 != 0)) {
             if (QCOND2) {
-#  ifdef SMALL_MEM
-                char *temp_cfilnam = slide + (7 * (WSIZE>>3));
-
-                zfstrcpy((char Far *)temp_cfilnam, G.pInfo->cfilname);
-#    define  cFile_PrintBuf  temp_cfilnam
-#  else
 #    define  cFile_PrintBuf  G.pInfo->cfilname
-#  endif
                 Info(slide, 0x421, ((char *)slide,
                   LoadFarStringSmall2(GP11FlagsDiffer),
                   *pfilnum, FnFilter1(cFile_PrintBuf), G.pInfo->GPFIsUTF8));
@@ -1346,14 +1339,7 @@ static int extract_or_test_entrylist(__G__ numchunk,
          */
         if (G.pInfo->cfilname != (char Far *)NULL) {
             if (zfstrcmp(G.pInfo->cfilname, G.filename) != 0) {
-#  ifdef SMALL_MEM
-                char *temp_cfilnam = slide + (7 * (WSIZE>>3));
-
-                zfstrcpy((char Far *)temp_cfilnam, G.pInfo->cfilname);
-#    define  cFile_PrintBuf  temp_cfilnam
-#  else
 #    define  cFile_PrintBuf  G.pInfo->cfilname
-#  endif
                 Info(slide, 0x401, ((char *)slide,
                   LoadFarStringSmall2(LvsCFNamMsg),
                   FnFilter2(cFile_PrintBuf), FnFilter1(G.filename)));

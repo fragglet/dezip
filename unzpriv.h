@@ -503,12 +503,7 @@
 #  endif
 #endif
 
-#if (defined(__16BIT__) || defined(MED_MEM) || defined(SMALL_MEM))
-# define DIR_BLKSIZ  64     /* number of directory entries per block
-                             *  (should fit in 4096 bytes, usually) */
-#else
 # define DIR_BLKSIZ 16384   /* use more memory, to reduce long-range seeks */
-#endif
 
 #ifndef WSIZE
 #  ifdef USE_DEFLATE64
@@ -560,11 +555,7 @@
 #endif
 
 #ifndef INBUFSIZ
-#  if (defined(MED_MEM) || defined(SMALL_MEM))
-#    define INBUFSIZ  2048  /* works for MS-DOS small model */
-#  else
 #    define INBUFSIZ  8192  /* larger buffers for real OSes */
-#  endif
 #endif
 
 /* Logic for case of small memory, length of EOL > 1:  if OUTBUFSIZ == 2048,
@@ -574,29 +565,6 @@
  * and normal text.  Hence difference is sufficient for most "average" files.
  * (Argument scales for larger OUTBUFSIZ.)
  */
-#ifdef SMALL_MEM          /* i.e., 16-bit OSes:  MS-DOS, OS/2 1.x, etc. */
-#  define LoadFarString(x)       fLoadFarString(__G__ (x))
-#  define LoadFarStringSmall(x)  fLoadFarStringSmall(__G__ (x))
-#  define LoadFarStringSmall2(x) fLoadFarStringSmall2(__G__ (x))
-#  if !(defined(SFX) || defined(FUNZIP))
-#    if (defined(__TURBOC__))
-#      include <alloc.h>
-#      define zfmalloc(sz)       farmalloc((unsigned long)(sz))
-#      define zffree(x)          farfree(x)
-#    endif
-#  endif /* !(SFX || FUNZIP) */
-#  ifndef Far
-#    define Far far  /* __far only works for MSC 6.00, not 6.0a or Borland */
-#  endif
-#  define OUTBUFSIZ INBUFSIZ
-#  if (lenEOL == 1)
-#    define RAWBUFSIZ (OUTBUFSIZ>>1)
-#  else
-#    define RAWBUFSIZ ((OUTBUFSIZ>>1) - (OUTBUFSIZ>>7))
-#  endif
-#  define TRANSBUFSIZ (OUTBUFSIZ-RAWBUFSIZ)
-   typedef short  shrint;            /* short/int or "shrink int" (unshrink) */
-#else
 #  define zfstrcpy(dest, src)       strcpy((dest), (src))
 #  define zfstrcmp(s1, s2)          strcmp((s1), (s2))
 #  define zfmalloc                  malloc
@@ -608,7 +576,6 @@
 #    define TRANSBUFSIZ (lenEOL*OUTBUFSIZ)
        typedef int  shrint;          /* for efficiency/speed, we hope... */
 #  define RAWBUFSIZ OUTBUFSIZ
-#endif /* ?SMALL_MEM */
 
 #ifndef Far
 #  define Far
@@ -1773,17 +1740,6 @@ char    *fzofft               OF((__GPRO__ zoff_t val,
 #endif
 #ifdef NEED_UZMBSRCHR
    unsigned char *uzmbsrchr OF((ZCONST unsigned char *str, unsigned int c));
-#endif
-#ifdef SMALL_MEM
-   char *fLoadFarString       OF((__GPRO__ const char Far *sz));
-   char *fLoadFarStringSmall  OF((__GPRO__ const char Far *sz));
-   char *fLoadFarStringSmall2 OF((__GPRO__ const char Far *sz));
-   #ifndef zfstrcpy
-     char Far * Far zfstrcpy  OF((char Far *s1, const char Far *s2));
-   #endif
-   #if (!defined(SFX) && !defined(zfstrcmp))
-     int Far zfstrcmp         OF((const char Far *s1, const char Far *s2));
-   #endif
 #endif
 
 

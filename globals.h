@@ -318,12 +318,6 @@ typedef struct Globals {
     char fzofft_buf[FZOFFT_NUM][FZOFFT_LEN];
     int fzofft_index;
 
-#ifdef SMALL_MEM
-    char rgchBigBuffer[512];
-    char rgchSmallBuffer[96];
-    char rgchSmallBuffer2[160];  /* boosted to 160 for local3[] in unzip.c */
-#endif
-
     MsgFn *message;
     InputFn *input;
     PauseFn *mpause;
