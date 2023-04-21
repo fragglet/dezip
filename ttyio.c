@@ -77,9 +77,6 @@
 #        ifdef HAVE_TERMIO_H
 #          include <termio.h>
 #        endif
-#        ifdef HAVE_SYS_TERMIO_H
-#          include <sys/termio.h>
-#        endif
 #        ifdef NEED_PTEM
 #          include <sys/stream.h>
 #          include <sys/ptem.h>
