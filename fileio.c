@@ -1701,7 +1701,6 @@ time_t dos_to_unix_time(dosdatetime)
     TIME_ZONE_INFORMATION tzinfo;
     DWORD res;
 #else /* ! WIN32 */
-#ifndef BSD4_4   /* GRR:  change to !defined(MODERN) ? */
 #if (defined(BSD) || defined(MTS) || defined(__GO32__))
     struct timeb tbp;
 #else /* !(BSD || MTS || __GO32__) */
@@ -1709,7 +1708,6 @@ time_t dos_to_unix_time(dosdatetime)
     extern time_t timezone;
 #endif
 #endif /* ?(BSD || MTS || __GO32__) */
-#endif /* !BSD4_4 */
 #endif /* ?WIN32 */
 #endif /* !MACOS && !RISCOS && !QDOS && !TANDEM */
 #endif /* ?TOPS20 */
@@ -1769,18 +1767,8 @@ time_t dos_to_unix_time(dosdatetime)
     m_time += 60*(tzinfo.Bias);
 #else /* !WIN32 */
 #if (defined(BSD) || defined(MTS) || defined(__GO32__))
-#ifdef BSD4_4
-    if ( (dosdatetime >= DOSTIME_2038_01_18) &&
-         (m_time < (time_t)0x70000000L) )
-        m_time = U_TIME_T_MAX;  /* saturate in case of (unsigned) overflow */
-    if (m_time < (time_t)0L)    /* a converted DOS time cannot be negative */
-        m_time = S_TIME_T_MAX;  /*  -> saturate at max signed time_t value */
-    if ((tm = localtime(&m_time)) != (struct tm *)NULL)
-        m_time -= tm->tm_gmtoff;                /* sec. EAST of GMT: subtr. */
-#else /* !(BSD4_4 */
     ftime(&tbp);                                /* get `timezone' */
     m_time += tbp.timezone * 60L;               /* seconds WEST of GMT:  add */
-#endif /* ?(BSD4_4 || __EMX__) */
 #else /* !(BSD || MTS || __GO32__) */
     /* tzset was already called at start of process_zipfiles() */
     /* tzset(); */              /* set `timezone' variable */
@@ -1793,7 +1781,6 @@ time_t dos_to_unix_time(dosdatetime)
     Adjust for local daylight savings (summer) time.
   ---------------------------------------------------------------------------*/
 
-#ifndef BSD4_4  /* (DST already added to tm_gmtoff, so skip tm_isdst) */
     if ( (dosdatetime >= DOSTIME_2038_01_18) &&
          (m_time < (time_t)0x70000000L) )
         m_time = U_TIME_T_MAX;  /* saturate in case of (unsigned) overflow */
@@ -1810,7 +1797,6 @@ time_t dos_to_unix_time(dosdatetime)
 #endif
     NATIVE_TO_TIMET(m_time)     /* NOP unless MSC 7.0 or Macintosh */
     TTrace((stderr, "  m_time after DST =       %lu\n", (ulg)m_time));
-#endif /* !BSD4_4 */
 #ifdef WIN32
     }
 #endif
