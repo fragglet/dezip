@@ -828,17 +828,10 @@
 
 #  define QCOND2    (!uO.qflag)
 
-#ifdef WILD_STOP_AT_DIR
-#  define __WDLPRO  , int sepc
-#  define __WDL     , sepc
-#  define __WDLDEF  int sepc;
-#  define WISEP     , (uO.W_flag ? '/' : '\0')
-#else
 #  define __WDLPRO
 #  define __WDL
 #  define __WDLDEF
 #  define WISEP
-#endif
 
 
 

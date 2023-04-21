@@ -522,14 +522,6 @@ int zi_opts(__G__ pargc, pargv)
                     else
                         uO.lflag = 10;
                     break;
-#ifdef WILD_STOP_AT_DIR
-                case ('W'):    /* Wildcard interpretation (stop at '/'?) */
-                    if (negative)
-                        uO.W_flag = FALSE, negative = 0;
-                    else
-                        uO.W_flag = TRUE;
-                    break;
-#endif /* WILD_STOP_AT_DIR */
                 case 'z':      /* print zipfile comment */
                     if (negative)
                         uO.zflag = negative = 0;

@@ -93,11 +93,7 @@
 #  define END_RANGE  ']'
 
 #if 0                /* GRR:  add this to unzip.h someday... */
-#ifdef WILD_STOP_AT_DIR
-#define match(s,p,ic,sc) (recmatch((ZCONST uch *)p,(ZCONST uch *)s,ic,sc) == 1)
-#else
 #define match(s,p,ic)    (recmatch((ZCONST uch *)p,(ZCONST uch *)s,ic) == 1)
-#endif
 int recmatch OF((ZCONST uch *pattern, ZCONST uch *string,
                  int ignore_case __WDLPRO));
 #endif /* 0 */
@@ -140,36 +136,10 @@ static int recmatch(p, s, ic __WDL)
 
     /* '?' (or '%') matches any character (but not an empty string). */
     if (c == WILDCHAR)
-#ifdef WILD_STOP_AT_DIR
-        /* If uO.W_flag is non-zero, it won't match '/' */
-        return (*s && (!sepc || *s != (uch)sepc))
-               ? recmatch(p, s + CLEN(s), ic, sepc) : 0;
-#else
         return *s ? recmatch(p, s + CLEN(s), ic) : 0;
-#endif
 
     /* '*' matches any number of characters, including zero */
     if (c == '*') {
-#ifdef WILD_STOP_AT_DIR
-        if (sepc) {
-          /* check for single "*" or double "**" */
-          if (*p != '*') {
-            /* single "*": this doesn't match the dirsep character */
-            for (; *s && *s != (uch)sepc; INCSTR(s))
-                if ((c = recmatch(p, s, ic, sepc)) != 0)
-                    return (int)c;
-            /* end of pattern: matched if at end of string, else continue */
-            if (*p == '\0')
-                return (*s == 0);
-            /* continue to match if at sepc in pattern, else give up */
-            return (*p == (uch)sepc || (*p == '\\' && p[1] == (uch)sepc))
-                   ? recmatch(p, s, ic, sepc) : 2;
-          }
-          /* "**": this matches slashes */
-          ++p;        /* move p behind the second '*' */
-          /* and continue with the non-W_flag code variant */
-        }
-#endif /* WILD_STOP_AT_DIR */
         if (*p == 0)
             return 1;
         if (isshexp((ZCONST char *)p) == NULL) {
