@@ -1415,11 +1415,7 @@ void version(__G)
 #ifdef __QNXNTO__
       " (QNX Neutrino)",
 #else
-#ifdef Lynx
-      " (LynxOS)",
-#else
       "",
-#endif /* Lynx */
 #endif /* QNX Neutrino */
 #endif /* QNX 4 */
 #endif /* MTS */
