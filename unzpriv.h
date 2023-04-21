@@ -371,9 +371,7 @@
 #include <signal.h>      /* used in unzip.c, fileio.c */
 
 
-#  ifndef NO_STDDEF_H
 #    include <stddef.h>
-#  endif
 #  ifndef NO_STDLIB_H
 #    include <stdlib.h>  /* standard library prototypes, malloc(), etc. */
 #  endif
