@@ -40,11 +40,6 @@
 #if defined(_AIX) || defined(__mpexl)
 #  define DIRENT
 #endif
-#ifdef COHERENT
-#  if defined(_I386) || (defined(__COHERENT__) && (__COHERENT__ >= 0x420))
-#    define DIRENT
-#  endif
-#endif
 
 #ifdef _POSIX_VERSION
 #  ifndef DIRENT

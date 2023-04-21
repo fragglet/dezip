@@ -63,19 +63,7 @@
 typedef struct stat z_stat;
 #define Z_STAT_DEFINED
 
-#ifndef COHERENT
 #  include <fcntl.h>            /* O_BINARY for open() w/o CR/LF translation */
-#else /* COHERENT */
-#  ifdef _I386
-#    include <fcntl.h>          /* Coherent 4.0.x, Mark Williams C */
-#  else
-#    include <sys/fcntl.h>      /* Coherent 3.10, Mark Williams C */
-#  endif
-#  define SHORT_SYMS
-#  ifndef __COHERENT__          /* Coherent 4.2 has tzset() */
-#    define tzset  settz
-#  endif
-#endif /* ?COHERENT */
 
 #ifndef NO_PARAM_H
 #  ifdef NGROUPS_MAX
