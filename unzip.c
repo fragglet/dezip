@@ -257,10 +257,8 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far Have_MBCS_Support[] =
      "MBCS-support (multibyte character support, MB_CUR_MAX = %u)";
 #  endif
-#  ifdef MULT_VOLUME
      static ZCONST char Far Use_MultiVol[] =
      "MULT_VOLUME (multi-volume archives supported)";
-#  endif
 #  ifdef LARGE_FILE_SUPPORT
      static ZCONST char Far Use_LFS[] =
      "LARGE_FILE_SUPPORT (large files over 2 GiB supported)";
@@ -1711,11 +1709,9 @@ static void show_version_info(__G)
           (char *)(slide+256)));
         ++numopts;
 #endif
-#ifdef MULT_VOLUME
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_MultiVol)));
         ++numopts;
-#endif
 #ifdef LARGE_FILE_SUPPORT
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_LFS)));
