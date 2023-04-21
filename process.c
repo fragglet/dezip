@@ -549,10 +549,6 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
     unsigned i;
 #endif
 
-#ifdef SYSTEM_SPECIFIC_DTOR
-    SYSTEM_SPECIFIC_DTOR(__G);
-#endif
-
     inflate_free(__G);
     checkdir(__G__ (char *)NULL, END);
 

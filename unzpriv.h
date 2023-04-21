@@ -1891,9 +1891,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
    zvoid far *zcalloc    OF((unsigned int, unsigned int));
    zvoid zcfree          OF((zvoid far *));
 #endif /* MALLOC_WORK && MY_ZCALLOC */
-#ifdef SYSTEM_SPECIFIC_DTOR
-   void  SYSTEM_SPECIFIC_DTOR   OF((__GPRO));                       /* local */
-#endif
 
 
 
