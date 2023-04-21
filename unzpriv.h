@@ -1162,16 +1162,6 @@ unsigned ef_scan_for_izux        OF((ZCONST uch *ef_buf, unsigned ef_len,
     Functions in zipinfo.c (`zipinfo-style' listing routines):
   ---------------------------------------------------------------------------*/
 
-#ifndef NO_ZIPINFO
-   int   zi_opts                 OF((__GPRO__ int *pargc, char ***pargv));
-void     zi_end_central          OF((__GPRO));
-int      zipinfo                 OF((__GPRO));
-/* static int      zi_long       OF((__GPRO__ zusz_t *pEndprev)); */
-/* static int      zi_short      OF((__GPRO)); */
-/* static char    *zi_time       OF((__GPRO__ ZCONST ulg *datetimez,
-                                     ZCONST time_t *modtimez, char *d_t_str));*/
-#endif /* !NO_ZIPINFO */
-
 /*---------------------------------------------------------------------------
     Functions in list.c (generic zipfile-listing routines):
   ---------------------------------------------------------------------------*/

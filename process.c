@@ -124,20 +124,6 @@ static ZCONST char Far Cent64EndSigSearchOff[] =
      "Updated time stamp for %s.\n";
 static ZCONST char Far ZipfileCommTrunc1[] =
   "\ncaution:  zipfile comment truncated\n";
-#ifndef NO_ZIPINFO
-   static ZCONST char Far NoZipfileComment[] =
-     "There is no zipfile comment.\n";
-   static ZCONST char Far ZipfileCommentDesc[] =
-     "The zipfile comment is %u bytes long and contains the following text:\n";
-   static ZCONST char Far ZipfileCommBegin[] =
-     "======================== zipfile comment begins\
- ==========================\n";
-   static ZCONST char Far ZipfileCommEnd[] =
-     "========================= zipfile comment ends\
- ===========================\n";
-   static ZCONST char Far ZipfileCommTrunc2[] =
-     "\n  The zipfile comment is truncated.\n";
-#endif /* !NO_ZIPINFO */
    static ZCONST char Far UnicodeVersionError[] =
      "\nwarning:  Unicode Path version > 1\n";
    static ZCONST char Far UnicodeMismatchError[] =
@@ -506,16 +492,10 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
     if ( (!uO.zipinfo_mode && !uO.qflag
           && !uO.T_flag
          )
-#  ifndef NO_ZIPINFO
-         || (uO.zipinfo_mode && uO.hflag)
-#  endif
        )
         Info(slide, 0, ((char *)slide, LoadFarString(LogInitline), G.zipfn));
 
     if ( (error_in_archive = find_ecrec(__G__
-#ifndef NO_ZIPINFO
-                                        uO.zipinfo_mode ? G.ziplen :
-#endif
                                         MIN(G.ziplen, 66000L)))
          > PK_WARN )
     {
@@ -659,11 +639,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
           error_in_archive));
 
         {
-#ifndef NO_ZIPINFO
-            if (uO.zipinfo_mode)
-                error = zipinfo(__G);                 /* ZIPINFO 'EM */
-            else
-#endif
             if (uO.T_flag)
                 error = get_time_stamp(__G__ &uxstamp, &nmember);
             else
@@ -1178,15 +1153,6 @@ static int find_ecrec(__G__ searchlen)          /* return PK-class error */
     G.expect_ecrec_offset = G.ecrec.offset_start_central_directory +
                             G.ecrec.size_central_directory;
 
-#ifndef NO_ZIPINFO
-    if (uO.zipinfo_mode) {
-        /* In ZipInfo mode, additional info about the data found in the
-           end-of-central-directory areas is printed out.
-         */
-        zi_end_central(__G);
-    }
-#endif
-
     return error_in_archive;
 
 } /* end function find_ecrec() */
@@ -1209,46 +1175,9 @@ static int process_zip_cmmnt(__G)       /* return PK-type error code */
     Get the zipfile comment (up to 64KB long), if any, and print it out.
   ---------------------------------------------------------------------------*/
 
-#ifndef NO_ZIPINFO
-    /* ZipInfo, verbose format */
-    if (uO.zipinfo_mode && uO.lflag > 9) {
-        /*-------------------------------------------------------------------
-            Get the zipfile comment, if any, and print it out.
-            (Comment may be up to 64KB long.  May the fleas of a thousand
-            camels infest the arm-pits of anyone who actually takes advantage
-            of this fact.)
-          -------------------------------------------------------------------*/
-
-        if (!G.ecrec.zipfile_comment_length)
-            Info(slide, 0, ((char *)slide, LoadFarString(NoZipfileComment)));
-        else {
-            Info(slide, 0, ((char *)slide, LoadFarString(ZipfileCommentDesc),
-              G.ecrec.zipfile_comment_length));
-            Info(slide, 0, ((char *)slide, LoadFarString(ZipfileCommBegin)));
-            if (do_string(__G__ G.ecrec.zipfile_comment_length, DISPLAY))
-                error = PK_WARN;
-            Info(slide, 0, ((char *)slide, LoadFarString(ZipfileCommEnd)));
-            if (error)
-                Info(slide, 0, ((char *)slide,
-                  LoadFarString(ZipfileCommTrunc2)));
-        } /* endif (comment exists) */
-
-    /* ZipInfo, non-verbose mode:  print zipfile comment only if requested */
-    } else if (G.ecrec.zipfile_comment_length &&
-               (uO.zflag > 0) && uO.zipinfo_mode) {
-        if (do_string(__G__ G.ecrec.zipfile_comment_length, DISPLAY)) {
-            Info(slide, 0x401, ((char *)slide,
-              LoadFarString(ZipfileCommTrunc1)));
-            error = PK_WARN;
-        }
-    } else
-#endif /* !NO_ZIPINFO */
     if ( G.ecrec.zipfile_comment_length &&
          (uO.zflag > 0
           || (uO.zflag == 0
-# ifndef NO_ZIPINFO
-              && !uO.zipinfo_mode
-# endif
               && !uO.T_flag
               && !uO.qflag)
          ) )

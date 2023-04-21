@@ -130,32 +130,6 @@ static ZCONST char Far IgnoreOOptionMsg[] =
    static ZCONST char Far local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
 
-#ifndef NO_ZIPINFO
-   static ZCONST char Far ZipInfoExample[] = "*, ?, [] (e.g., \"[a-j]*.zip\")";
-
-static ZCONST char Far ZipInfoUsageLine1[] = "\
-ZipInfo %d.%d%d%s of %s, by Greg Roelofs and the Info-ZIP group.\n\
-\n\
-List name, date/time, attribute, size, compression method, etc., about files\n\
-in list (excluding those in xlist) contained in the specified .zip archive(s).\
-\n\"file[.zip]\" may be a wildcard name containing %s.\n\n\
-   usage:  zipinfo [-12smlvChMtTz] file[.zip] [list...] [-x xlist...]\n\
-      or:  unzip %s-Z%s [-12smlvChMtTz] file[.zip] [list...] [-x xlist...]\n";
-
-static ZCONST char Far ZipInfoUsageLine2[] = "\nmain\
- listing-format options:             -s  short Unix \"ls -l\" format (def.)\n\
-  -1  filenames ONLY, one per line       -m  medium Unix \"ls -l\" format\n\
-  -2  just filenames but allow -h/-t/-z  -l  long Unix \"ls -l\" format\n\
-                                         -v  verbose, multi-page format\n";
-
-static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
-  -h  print header line       -t  print totals for listed files or for all\n\
-  -z  print zipfile comment   -T  print file times in sortable decimal format\
-\n  -C  be case-insensitive   %s\
-  -x  exclude filenames that follow from listing\n";
-   static ZCONST char Far ZipInfoUsageLine4[] = "";
-#endif /* !NO_ZIPINFO */
-
    static ZCONST char Far CompileOptions[] =
      "UnZip special compilation options:\n";
    static ZCONST char Far CompileOptFormat[] = "        %s\n";
@@ -172,9 +146,7 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far DebugTime[] = "DEBUG_TIME";
 #  endif
      static ZCONST char Far No_More[] = "NO_MORE";
-#  ifdef NO_ZIPINFO
      static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
-#  endif
      static ZCONST char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
      static ZCONST char Far SymLinkSupport[] =
      "SYMLINKS (symbolic links supported, if RTL and file system permit)";
@@ -226,15 +198,9 @@ Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
  Default action is to extract files in list, except those in xlist, to exdir;\n\
   file[.zip] may be a wildcard.  %s\n";
 
-#ifdef NO_ZIPINFO
 #  define ZIPINFO_MODE_OPTION  ""
    static ZCONST char Far ZipInfoMode[] =
      "(ZipInfo mode is disabled in this version.)";
-#else
-#  define ZIPINFO_MODE_OPTION  "[-Z] "
-   static ZCONST char Far ZipInfoMode[] =
-     "-Z => ZipInfo mode (\"unzip -Z\" for usage).";
-#endif /* ?NO_ZIPINFO */
 
 static ZCONST char Far UnzipUsageLine3[] = "\n\
   -p  extract files to pipe, no messages     -l  list files (short format)\n\
@@ -298,9 +264,6 @@ int unzip(__G__ argc, argv)
     int argc;
     char *argv[];
 {
-#ifndef NO_ZIPINFO
-    char *p;
-#endif
     int i;
     int retcode, error=FALSE;
 #   define SET_SIGHANDLER(sigtype, newsighandler) \
@@ -480,27 +443,6 @@ int unzip(__G__ argc, argv)
 
     G.noargs = (argc == 1);   /* no options, no zipfile, no anything */
 
-#ifndef NO_ZIPINFO
-    for (p = argv[0] + strlen(argv[0]); p >= argv[0]; --p) {
-        if (*p == DIR_END
-#ifdef DIR_END2
-            || *p == DIR_END2
-#endif
-           )
-            break;
-    }
-    ++p;
-
-    if (STRNICMP(p, LoadFarStringSmall(Zipnfo), 7) == 0 ||
-        STRNICMP(p, "ii", 2) == 0 ||
-        (argc > 1 && strncmp(argv[1], "-Z", 2) == 0))
-    {
-        uO.zipinfo_mode = TRUE;
-        if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvZipInfo),
-                             LoadFarStringSmall2(EnvZipInfo2))) != PK_OK)
-            perror(LoadFarString(NoMemEnvArguments));
-    } else
-#endif /* !NO_ZIPINFO */
     {
         uO.zipinfo_mode = FALSE;
         if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvUnZip),
@@ -524,11 +466,6 @@ int unzip(__G__ argc, argv)
                goto cleanup_and_exit;
            }
         }
-#ifndef NO_ZIPINFO
-        if (uO.zipinfo_mode)
-            error = zi_opts(__G__ &argc, &argv);
-        else
-#endif /* !NO_ZIPINFO */
             error = uz_opts(__G__ &argc, &argv);
     }
 
@@ -1020,18 +957,6 @@ int usage(__G__ error)   /* return PK-type error code */
 
     if (uO.zipinfo_mode) {
 
-#ifndef NO_ZIPINFO
-
-        Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine1),
-          ZI_MAJORVER, ZI_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
-          LoadFarStringSmall(VersionDate),
-          LoadFarStringSmall2(ZipInfoExample), QUOTS,QUOTS));
-        Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine2)));
-        Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine3),
-          LoadFarStringSmall(ZipInfoUsageLine4)));
-
-#endif /* !NO_ZIPINFO */
-
     } else {   /* UnZip mode */
 
         Info(slide, flag, ((char *)slide, LoadFarString(UnzipUsageLine1),
@@ -1343,11 +1268,9 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_More)));
         ++numopts;
-#ifdef NO_ZIPINFO
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_ZipInfo)));
         ++numopts;
-#endif
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(SetDirAttrib)));
         ++numopts;
