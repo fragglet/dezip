@@ -286,10 +286,6 @@ typedef size_t extent;
  * and normal text.  Hence difference is sufficient for most "average" files.
  * (Argument scales for larger OUTBUFSIZ.)
  */
-#define zfstrcpy(dest, src)    strcpy((dest), (src))
-#define zfstrcmp(s1, s2)       strcmp((s1), (s2))
-#define zfmalloc               malloc
-#define zffree(x)              free(x)
 #define LoadFarString(x)       (char *) (x)
 #define LoadFarStringSmall(x)  (char *) (x)
 #define LoadFarStringSmall2(x) (char *) (x)

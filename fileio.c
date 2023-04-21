@@ -51,8 +51,8 @@
              fLoadFarString()         (SMALL_MEM only)
              fLoadFarStringSmall()    (SMALL_MEM only)
              fLoadFarStringSmall2()   (SMALL_MEM only)
-             zfstrcpy()               (SMALL_MEM only)
-             zfstrcmp()               (SMALL_MEM && !(SFX || FUNZIP) only)
+             strcpy()               (SMALL_MEM only)
+             strcmp()               (SMALL_MEM && !(SFX || FUNZIP) only)
 
   ---------------------------------------------------------------------------*/
 
