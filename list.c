@@ -105,10 +105,8 @@ int list_files(__G)    /* return PK-type error code */
     ulg members=0L;
     zusz_t j;
     unsigned methnum;
-#ifdef USE_EF_UT_TIME
     iztimes z_utime;
     struct tm *t;
-#endif
     unsigned yr, mo, dy, hh, mm;
     zusz_t csiz, tot_csize=0L, tot_ucsize=0L;
 #ifdef OS2_EAS
@@ -277,7 +275,6 @@ int list_files(__G)    /* return PK-type error code */
                 }
             }
 #endif
-#ifdef USE_EF_UT_TIME
             if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
                 G.tz_is_valid &&
@@ -297,7 +294,6 @@ int list_files(__G)    /* return PK-type error code */
                 hh = (unsigned)(t->tm_hour);
                 mm = (unsigned)(t->tm_min);
             } else
-#endif /* USE_EF_UT_TIME */
             {
                 yr = ((((unsigned)(G.crec.last_mod_dos_datetime >> 25) & 0x7f)
                        + 1980));
@@ -569,9 +565,7 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
 {
     int do_this_file=FALSE, error, error_in_archive=PK_COOL;
     ulg j;
-#ifdef USE_EF_UT_TIME
     iztimes z_utime;
-#endif
     min_info info;
 
 
@@ -655,7 +649,6 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
          * Zip and PKZIP.
          */
         if ((G.process_all_files || do_this_file) && !fn_is_dir(__G)) {
-#ifdef USE_EF_UT_TIME
             if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
                 G.tz_is_valid &&
@@ -667,7 +660,6 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
                 if (*last_modtime < z_utime.mtime)
                     *last_modtime = z_utime.mtime;
             } else
-#endif /* USE_EF_UT_TIME */
             {
                 time_t modtime = dos_to_unix_time(G.crec.last_mod_dos_datetime);
 

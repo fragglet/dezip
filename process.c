@@ -2715,8 +2715,6 @@ zwchar *utf8_to_wide_string(utf8_string)
 
 
 
-#ifdef USE_EF_UT_TIME
-
 #ifdef IZ_HAVE_UXUIDGID
 static int read_ux3_value(dbuf, uidgid_sz, p_uidgid)
     ZCONST uch *dbuf;   /* buffer a uid or gid value */
@@ -3115,8 +3113,6 @@ unsigned ef_scan_for_izux(ef_buf, ef_len, ef_is_c, dos_mdatetime,
 
     return flags;
 }
-
-#endif /* USE_EF_UT_TIME */
 
 
 #if (defined(RISCOS) || defined(ACORN_FTYPE_NFS))

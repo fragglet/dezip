@@ -335,9 +335,6 @@
 #  define DATE_FORMAT     dateformat()
 #  define lenEOL          2
 #  define PutNativeEOL    {*q++ = native(CR); *q++ = native(LF);}
-#  if (!defined(NO_EF_UT_TIME) && !defined(USE_EF_UT_TIME))
-#    define USE_EF_UT_TIME
-#  endif
 #endif /* MSDOS || OS2 || FLEXOS */
 
 /*---------------------------------------------------------------------------

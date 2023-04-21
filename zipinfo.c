@@ -251,14 +251,12 @@ static ZCONST char Far ExtendedLocalHdr[] =
   "  extended local header:                          %s\n";
 static ZCONST char Far FileModDate[] =
   "  file last modified on (DOS date/time):          %s\n";
-#ifdef USE_EF_UT_TIME
   static ZCONST char Far UT_FileModDate[] =
     "  file last modified on (UT extra field modtime): %s %s\n";
   static ZCONST char Far LocalTime[] = "local";
 #ifndef NO_GMTIME
   static ZCONST char Far GMTime[] = "UTC";
 #endif
-#endif /* USE_EF_UT_TIME */
 static ZCONST char Far CRC32Value[] =
   "  32-bit CRC value (hex):                         %.8lx\n";
 static ZCONST char Far CompressedFileSize[] =
@@ -427,9 +425,7 @@ static ZCONST char Far BogusFmt[] = "%03d";
 static ZCONST char Far shtYMDHMTime[] = "%02u-%s-%02u %02u:%02u";
 static ZCONST char Far lngYMDHMSTime[] = "%u %s %u %02u:%02u:%02u";
 static ZCONST char Far DecimalTime[] = "%04u%02u%02u.%02u%02u%02u";
-#ifdef USE_EF_UT_TIME
   static ZCONST char Far lngYMDHMSTimeError[] = "???? ??? ?? ??:??:??";
-#endif
 
 
 
@@ -974,9 +970,7 @@ static int zi_long(__G__ pEndprev, error_in_archive)
     zusz_t *pEndprev;                /* for zi_long() check of extra bytes */
     int error_in_archive;            /* may signal premature return */
 {
-#ifdef USE_EF_UT_TIME
     iztimes z_utime;
-#endif
     int  error;
     unsigned  hostnum, hostver, extnum, extver, methid, methnum, xattr;
     char workspace[12], attribs[22];
@@ -1099,7 +1093,6 @@ static int zi_long(__G__ pEndprev, error_in_archive)
 
     zi_time(__G__ &G.crec.last_mod_dos_datetime, NULL, d_t_buf);
     Info(slide, 0, ((char *)slide, LoadFarString(FileModDate), d_t_buf));
-#ifdef USE_EF_UT_TIME
     if (G.extra_field &&
 #ifdef IZ_CHECK_TZ
         G.tz_is_valid &&
@@ -1120,7 +1113,6 @@ static int zi_long(__G__ pEndprev, error_in_archive)
           d_t_buf, LoadFarStringSmall(GMTime)));
 #endif /* !NO_GMTIME */
     }
-#endif /* USE_EF_UT_TIME */
 
     Info(slide, 0, ((char *)slide, LoadFarString(CRC32Value), G.crec.crc32));
     Info(slide, 0, ((char *)slide, LoadFarString(CompressedFileSize),
@@ -1841,10 +1833,8 @@ ef_default_display:
 static int zi_short(__G)   /* return PK-type error code */
     __GDEF
 {
-#ifdef USE_EF_UT_TIME
     iztimes     z_utime;
     time_t      *z_modtim;
-#endif
     int         k, error, error_in_archive=PK_COOL;
     unsigned    hostnum, hostver, methid, methnum, xattr;
     char        *p, workspace[12], attribs[16];
@@ -2136,7 +2126,6 @@ static int zi_short(__G)   /* return PK-type error code */
      * content is no longer needed.
      */
 #   define d_t_buf attribs
-#ifdef USE_EF_UT_TIME
     z_modtim = G.extra_field &&
 #ifdef IZ_CHECK_TZ
                G.tz_is_valid &&
@@ -2147,9 +2136,6 @@ static int zi_short(__G)   /* return PK-type error code */
               ? &z_utime.mtime : NULL;
     TIMET_TO_NATIVE(z_utime.mtime)     /* NOP unless MSC 7.0 or Macintosh */
     d_t_buf[0] = (char)0;              /* signal "show local time" */
-#else
-#   define z_modtim NULL
-#endif
     Info(slide, 0, ((char *)slide, " %s %s ", methbuf,
       zi_time(__G__ &G.crec.last_mod_dos_datetime, z_modtim, d_t_buf)));
     fnprint(__G);
@@ -2221,9 +2207,7 @@ static char *zi_time(__G__ datetimez, modtimez, d_t_str)
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };
-#ifdef USE_EF_UT_TIME
     struct tm *t;
-#endif
 
 
 
@@ -2234,7 +2218,6 @@ static char *zi_time(__G__ datetimez, modtimez, d_t_str)
     to local time or not, depending on value of first character in d_t_str[].
   ---------------------------------------------------------------------------*/
 
-#ifdef USE_EF_UT_TIME
     if (modtimez != NULL) {
 #ifndef NO_GMTIME
         /* check for our secret message from above... */
@@ -2258,7 +2241,6 @@ static char *zi_time(__G__ datetimez, modtimez, d_t_str)
         mm = (unsigned)(t->tm_min);
         ss = (unsigned)(t->tm_sec);
     } else
-#endif /* USE_EF_UT_TIME */
     {
         yr = ((unsigned)(*datetimez >> 25) & 0x7f) + 80;
         mo = ((unsigned)(*datetimez >> 21) & 0x0f);

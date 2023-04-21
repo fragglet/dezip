@@ -355,9 +355,7 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef UNIXBACKUP
      static ZCONST char Far UnixBackup[] = "UNIXBACKUP";
 #  endif
-#  ifdef USE_EF_UT_TIME
      static ZCONST char Far Use_EF_UT_time[] = "USE_EF_UT_TIME";
-#  endif
 #  ifndef LZW_CLEAN
      static ZCONST char Far Use_Unshrink[] =
      "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
@@ -2263,11 +2261,9 @@ static void show_version_info(__G)
           LoadFarStringSmall(UnixBackup)));
         ++numopts;
 #endif
-#ifdef USE_EF_UT_TIME
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_EF_UT_time)));
         ++numopts;
-#endif
 #ifndef COPYRIGHT_CLEAN
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Smith_Code)));

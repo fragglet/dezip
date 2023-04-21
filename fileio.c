@@ -1742,9 +1742,7 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
     char *filename;                  /*  exist yet */
 {
     time_t existing, archive;
-#ifdef USE_EF_UT_TIME
     iztimes z_utime;
-#endif
 
     Trace((stderr, "check_for_newer:  doing stat(%s)\n", FnFilter1(filename)));
     if (SSTAT(filename, &G.statbuf)) {
@@ -1784,7 +1782,6 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
 
     NATIVE_TO_TIMET(G.statbuf.st_mtime)   /* NOP unless MSC 7.0 or Macintosh */
 
-#ifdef USE_EF_UT_TIME
     /* The `Unix extra field mtime' should be used for comparison with the
      * time stamp of the existing file >>>ONLY<<< when the EF info is also
      * used to set the modification time of the extracted file.
@@ -1809,15 +1806,6 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
                    G.statbuf.st_mtime + 1 : G.statbuf.st_mtime;
         archive  = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
-#else /* !USE_EF_UT_TIME */
-    /* round up existing filetime to nearest 2 seconds for comparison,
-     * but saturate in case of arithmetic overflow
-     */
-    existing = ((G.statbuf.st_mtime & 1) &&
-                (G.statbuf.st_mtime + 1 > G.statbuf.st_mtime)) ?
-               G.statbuf.st_mtime + 1 : G.statbuf.st_mtime;
-    archive  = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
-#endif /* ?USE_EF_UT_TIME */
 
     TTrace((stderr, "check_for_newer:  existing %lu, archive %lu, e-a %ld\n",
       (ulg)existing, (ulg)archive, (long)(existing-archive)));
