@@ -37,11 +37,7 @@
       - never full crypt code
    NO_CRYPT takes precedence over USE_CRYPT
  */
-#if defined(NO_CRYPT)
-#  define CRYPT  0  /* dummy version */
-#else
 #  define CRYPT  1  /* full version */
-#endif /* ?NO_CRYPT */
 
 /* full version */
 
