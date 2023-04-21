@@ -95,27 +95,27 @@ static int Cdecl dircomp(const void *a, const void *b);
 /*  Strings used in extract.c  */
 /*******************************/
 
-static const char Far VersionMsg[] =
+static const char VersionMsg[] =
     "   skipping: %-22s  need %s compat. v%u.%u (can do v%u.%u)\n";
-static const char Far ComprMsgNum[] =
+static const char ComprMsgNum[] =
     "   skipping: %-22s  unsupported compression method %u\n";
-static const char Far ComprMsgName[] =
+static const char ComprMsgName[] =
     "   skipping: %-22s  `%s' method not supported\n";
-static const char Far CmprNone[] = "store";
-static const char Far CmprShrink[] = "shrink";
-static const char Far CmprReduce[] = "reduce";
-static const char Far CmprImplode[] = "implode";
-static const char Far CmprTokenize[] = "tokenize";
-static const char Far CmprDeflate[] = "deflate";
-static const char Far CmprDeflat64[] = "deflate64";
-static const char Far CmprDCLImplode[] = "DCL implode";
-static const char Far CmprBzip[] = "bzip2";
-static const char Far CmprLZMA[] = "LZMA";
-static const char Far CmprIBMTerse[] = "IBM/Terse";
-static const char Far CmprIBMLZ77[] = "IBM LZ77";
-static const char Far CmprWavPack[] = "WavPack";
-static const char Far CmprPPMd[] = "PPMd";
-static const char Far *ComprNames[NUM_METHODS] = {
+static const char CmprNone[] = "store";
+static const char CmprShrink[] = "shrink";
+static const char CmprReduce[] = "reduce";
+static const char CmprImplode[] = "implode";
+static const char CmprTokenize[] = "tokenize";
+static const char CmprDeflate[] = "deflate";
+static const char CmprDeflat64[] = "deflate64";
+static const char CmprDCLImplode[] = "DCL implode";
+static const char CmprBzip[] = "bzip2";
+static const char CmprLZMA[] = "LZMA";
+static const char CmprIBMTerse[] = "IBM/Terse";
+static const char CmprIBMLZ77[] = "IBM LZ77";
+static const char CmprWavPack[] = "WavPack";
+static const char CmprPPMd[] = "PPMd";
+static const char *ComprNames[NUM_METHODS] = {
     CmprNone,       CmprShrink,  CmprReduce,   CmprReduce,   CmprReduce,
     CmprReduce,     CmprImplode, CmprTokenize, CmprDeflate,  CmprDeflat64,
     CmprDCLImplode, CmprBzip,    CmprLZMA,     CmprIBMTerse, CmprIBMLZ77,
@@ -124,133 +124,122 @@ static const unsigned ComprIDs[NUM_METHODS] = {
     STORED,   SHRUNK,    REDUCED1,  REDUCED2,    REDUCED3,    REDUCED4,
     IMPLODED, TOKENIZED, DEFLATED,  ENHDEFLATED, DCLIMPLODED, BZIPPED,
     LZMAED,   IBMTERSED, IBMLZ77ED, WAVPACKED,   PPMDED};
-static const char Far FilNamMsg[] = "%s:  bad filename length (%s)\n";
-static const char Far WarnNoMemCFName[] =
+static const char FilNamMsg[] = "%s:  bad filename length (%s)\n";
+static const char WarnNoMemCFName[] =
     "%s:  warning, no memory for comparison with local header\n";
-static const char Far LvsCFNamMsg[] =
-    "%s:  mismatching \"local\" filename (%s),\n\
+static const char LvsCFNamMsg[] = "%s:  mismatching \"local\" filename (%s),\n\
          continuing with \"central\" filename version\n";
-static const char Far GP11FlagsDiffer[] = "file #%lu (%s):\n\
+static const char GP11FlagsDiffer[] = "file #%lu (%s):\n\
          mismatch between local and central GPF bit 11 (\"UTF-8\"),\n\
          continuing with central flag (IsUTF8 = %d)\n";
-static const char Far WrnStorUCSizCSizDiff[] =
+static const char WrnStorUCSizCSizDiff[] =
     "%s:  ucsize %s <> csize %s for STORED entry\n\
          continuing with \"compressed\" size value\n";
-static const char Far ExtFieldMsg[] = "%s:  bad extra field length (%s)\n";
-static const char Far OffsetMsg[] =
-    "file #%lu:  bad zipfile offset (%s):  %ld\n";
-static const char Far ExtractMsg[] = "%8sing: %-22s  %s%s";
-static const char Far LengthMsg[] =
+static const char ExtFieldMsg[] = "%s:  bad extra field length (%s)\n";
+static const char OffsetMsg[] = "file #%lu:  bad zipfile offset (%s):  %ld\n";
+static const char ExtractMsg[] = "%8sing: %-22s  %s%s";
+static const char LengthMsg[] =
     "%s  %s:  %s bytes required to uncompress to %s bytes;\n    %s\
       supposed to require %s bytes%s%s%s\n";
 
-static const char Far BadFileCommLength[] = "%s:  bad file comment length\n";
-static const char Far LocalHdrSig[] = "local header sig";
-static const char Far BadLocalHdr[] = "file #%lu:  bad local header\n";
-static const char Far AttemptRecompensate[] =
-    "  (attempting to re-compensate)\n";
-static const char Far BackslashPathSep[] =
+static const char BadFileCommLength[] = "%s:  bad file comment length\n";
+static const char LocalHdrSig[] = "local header sig";
+static const char BadLocalHdr[] = "file #%lu:  bad local header\n";
+static const char AttemptRecompensate[] = "  (attempting to re-compensate)\n";
+static const char BackslashPathSep[] =
     "warning:  %s appears to use backslashes as path separators\n";
-static const char Far AbsolutePathWarning[] =
+static const char AbsolutePathWarning[] =
     "warning:  stripped absolute path spec from %s\n";
-static const char Far SkipVolumeLabel[] =
-    "   skipping: %-22s  %svolume label\n";
+static const char SkipVolumeLabel[] = "   skipping: %-22s  %svolume label\n";
 
-static const char Far DirlistEntryNoMem[] =
+static const char DirlistEntryNoMem[] =
     "warning:  cannot alloc memory for dir times/permissions/UID/GID\n";
-static const char Far DirlistSortNoMem[] =
+static const char DirlistSortNoMem[] =
     "warning:  cannot alloc memory to sort dir times/perms/etc.\n";
-static const char Far DirlistSetAttrFailed[] =
+static const char DirlistSetAttrFailed[] =
     "warning:  set times/attribs failed for %s\n";
-static const char Far DirlistFailAttrSum[] =
+static const char DirlistFailAttrSum[] =
     "     failed setting times/attribs for %lu dir entries";
 
-static const char Far SymLnkWarnNoMem[] =
+static const char SymLnkWarnNoMem[] =
     "warning:  deferred symlink (%s) failed:\n\
           out of memory\n";
-static const char Far SymLnkWarnInvalid[] =
+static const char SymLnkWarnInvalid[] =
     "warning:  deferred symlink (%s) failed:\n\
           invalid placeholder file\n";
-static const char Far SymLnkDeferred[] = "finishing deferred symbolic links:\n";
-static const char Far SymLnkFinish[] = "  %-22s -> %s\n";
+static const char SymLnkDeferred[] = "finishing deferred symbolic links:\n";
+static const char SymLnkFinish[] = "  %-22s -> %s\n";
 
-static const char Far ReplaceQuery[] =
+static const char ReplaceQuery[] =
     "replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ";
-static const char Far AssumeNone[] =
+static const char AssumeNone[] =
     " NULL\n(EOF or read error, treating as \"[N]one\" ...)\n";
-static const char Far NewNameQuery[] = "new name: ";
-static const char Far InvalidResponse[] = "error:  invalid response [%s]\n";
+static const char NewNameQuery[] = "new name: ";
+static const char InvalidResponse[] = "error:  invalid response [%s]\n";
 
-static const char Far ErrorInArchive[] =
+static const char ErrorInArchive[] =
     "At least one %serror was detected in %s.\n";
-static const char Far ZeroFilesTested[] =
-    "Caution:  zero files tested in %s.\n";
+static const char ZeroFilesTested[] = "Caution:  zero files tested in %s.\n";
 
-static const char Far VMSFormatQuery[] =
+static const char VMSFormatQuery[] =
     "\n%s:  stored in VMS format.  Extract anyway? (y/n) ";
 
-static const char Far SkipCannotGetPasswd[] =
+static const char SkipCannotGetPasswd[] =
     "   skipping: %-22s  unable to get password\n";
-static const char Far SkipIncorrectPasswd[] =
+static const char SkipIncorrectPasswd[] =
     "   skipping: %-22s  incorrect password\n";
-static const char Far FilesSkipBadPasswd[] =
+static const char FilesSkipBadPasswd[] =
     "%lu file%s skipped because of incorrect password.\n";
-static const char Far MaybeBadPasswd[] =
+static const char MaybeBadPasswd[] =
     "    (may instead be incorrect password)\n";
 
-static const char Far NoErrInCompData[] =
+static const char NoErrInCompData[] =
     "No errors detected in compressed data of %s.\n";
-static const char Far NoErrInTestedFiles[] =
+static const char NoErrInTestedFiles[] =
     "No errors detected in %s for the %lu file%s tested.\n";
-static const char Far FilesSkipped[] =
+static const char FilesSkipped[] =
     "%lu file%s skipped because of unsupported compression or encoding.\n";
 
-static const char Far ErrUnzipFile[] = "  error:  %s%s %s\n";
-static const char Far ErrUnzipNoFile[] = "\n  error:  %s%s\n";
-static const char Far NotEnoughMem[] = "not enough memory to ";
-static const char Far InvalidComprData[] = "invalid compressed data to ";
-static const char Far Inflate[] = "inflate";
-static const char Far BUnzip[] = "bunzip";
+static const char ErrUnzipFile[] = "  error:  %s%s %s\n";
+static const char ErrUnzipNoFile[] = "\n  error:  %s%s\n";
+static const char NotEnoughMem[] = "not enough memory to ";
+static const char InvalidComprData[] = "invalid compressed data to ";
+static const char Inflate[] = "inflate";
+static const char BUnzip[] = "bunzip";
 
-static const char Far Explode[] = "explode";
-static const char Far Unshrink[] = "unshrink";
+static const char Explode[] = "explode";
+static const char Unshrink[] = "unshrink";
 
 #if (!defined(DELETE_IF_FULL) || !defined(HAVE_UNLINK))
-static const char Far FileTruncated[] = "warning:  %s is probably truncated\n";
+static const char FileTruncated[] = "warning:  %s is probably truncated\n";
 #endif
 
-static const char Far FileUnknownCompMethod[] =
-    "%s:  unknown compression method\n";
-static const char Far BadCRC[] = " bad CRC %08lx  (should be %08lx)\n";
+static const char FileUnknownCompMethod[] = "%s:  unknown compression method\n";
+static const char BadCRC[] = " bad CRC %08lx  (should be %08lx)\n";
 
 /* TruncEAs[] also used in OS/2 mapname(), close_outfile() */
-char const Far TruncEAs[] = " compressed EA data missing (%d bytes)%s";
-char const Far TruncNTSD[] =
-    " compressed WinNT security data missing (%d bytes)%s";
+char const TruncEAs[] = " compressed EA data missing (%d bytes)%s";
+char const TruncNTSD[] = " compressed WinNT security data missing (%d bytes)%s";
 
-static const char Far InconsistEFlength[] = "bad extra-field entry:\n \
+static const char InconsistEFlength[] = "bad extra-field entry:\n \
      EF block length (%u bytes) exceeds remaining EF data (%u bytes)\n";
-static const char Far TooSmallEBlength[] = "bad extra-field entry:\n \
+static const char TooSmallEBlength[] = "bad extra-field entry:\n \
      EF block length (%u bytes) invalid (< %d)\n";
-static const char Far InvalidComprDataEAs[] =
-    " invalid compressed data for EAs\n";
-static const char Far UnsuppNTSDVersEAs[] =
-    " unsupported NTSD EAs version %d\n";
-static const char Far BadCRC_EAs[] = " bad CRC for extended attributes\n";
-static const char Far UnknComprMethodEAs[] =
+static const char InvalidComprDataEAs[] = " invalid compressed data for EAs\n";
+static const char UnsuppNTSDVersEAs[] = " unsupported NTSD EAs version %d\n";
+static const char BadCRC_EAs[] = " bad CRC for extended attributes\n";
+static const char UnknComprMethodEAs[] =
     " unknown compression method for EAs (%u)\n";
-static const char Far NotEnoughMemEAs[] =
-    " out of memory while inflating EAs\n";
-static const char Far UnknErrorEAs[] =
-    " unknown error on extended attributes\n";
+static const char NotEnoughMemEAs[] = " out of memory while inflating EAs\n";
+static const char UnknErrorEAs[] = " unknown error on extended attributes\n";
 
-static const char Far UnsupportedExtraField[] =
+static const char UnsupportedExtraField[] =
     "\nerror:  unsupported extra-field compression type (%u)--skipping\n";
-static const char Far BadExtraFieldCRC[] =
+static const char BadExtraFieldCRC[] =
     "error [%s]:  bad extra-field CRC %08lx (should be %08lx)\n";
-static const char Far NotEnoughMemCover[] =
+static const char NotEnoughMemCover[] =
     "error: not enough memory for bomb detection\n";
-static const char Far OverlappedComponents[] =
+static const char OverlappedComponents[] =
     "error: invalid zip file with overlapped components (possible zip bomb)\n";
 
 /* A growable list of spans. */
@@ -1178,7 +1167,7 @@ int error_in_archive;
          * extra field, so that a UTF-8 entry name e.f. block has already
          * been processed.
          */
-        if (G.pInfo->cfilname != (char Far *) NULL) {
+        if (G.pInfo->cfilname != (char *) NULL) {
             if (strcmp(G.pInfo->cfilname, G.filename) != 0) {
 #define cFile_PrintBuf G.pInfo->cfilname
                 Info(slide, 0x401,
@@ -1190,7 +1179,7 @@ int error_in_archive;
                     error_in_archive = PK_WARN;
             }
             free(G.pInfo->cfilname);
-            G.pInfo->cfilname = (char Far *) NULL;
+            G.pInfo->cfilname = (char *) NULL;
         }
         /* Size consistency checks must come after reading in the local extra
          * field, so that any Zip64 extension local e.f. block has already

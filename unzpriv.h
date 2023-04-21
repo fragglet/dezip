@@ -294,10 +294,6 @@ typedef size_t extent;
 typedef int shrint; /* for efficiency/speed, we hope... */
 #define RAWBUFSIZ OUTBUFSIZ
 
-#ifndef Far
-#define Far
-#endif
-
 #ifndef MAIN
 #define MAIN main
 #endif
@@ -868,7 +864,7 @@ typedef struct min_info {
     unsigned symlink   : 1; /* file is a symbolic link */
     unsigned HasUxAtt  : 1; /* crec ext_file_attr has Unix style mode bits */
     unsigned GPFIsUTF8 : 1; /* crec gen_purpose_flag UTF-8 bit 11 is set */
-    char Far *cfilname;     /* central header version of filename */
+    char *cfilname;         /* central header version of filename */
 } min_info;
 
 typedef struct VMStimbuf {
@@ -1598,24 +1594,24 @@ extern const unsigned near mask_bits[17];
 extern const char *fnames[2];
 
 #ifdef IZ_ISO2OEM_ARRAY
-extern const uch Far *iso2oem;
-extern const uch Far iso2oem_850[];
+extern const uch *iso2oem;
+extern const uch iso2oem_850[];
 #endif
 #ifdef IZ_OEM2ISO_ARRAY
-extern const uch Far *oem2iso;
-extern const uch Far oem2iso_850[];
+extern const uch *oem2iso;
+extern const uch oem2iso_850[];
 #endif
 
-extern const char Far VersionDate[];
-extern const char Far CentSigMsg[];
-extern const char Far EndSigMsg[];
-extern const char Far SeekMsg[];
-extern const char Far FilenameNotMatched[];
-extern const char Far ExclFilenameNotMatched[];
-extern const char Far ReportMsg[];
+extern const char VersionDate[];
+extern const char CentSigMsg[];
+extern const char EndSigMsg[];
+extern const char SeekMsg[];
+extern const char FilenameNotMatched[];
+extern const char ExclFilenameNotMatched[];
+extern const char ReportMsg[];
 
-extern const char Far Zipnfo[];
-extern const char Far CompiledWith[];
+extern const char Zipnfo[];
+extern const char CompiledWith[];
 
 /***********************************/
 /*  Global (shared?) RTL variables */

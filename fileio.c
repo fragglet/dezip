@@ -111,37 +111,35 @@ static int disk_error(void);
 /* Strings used in fileio.c */
 /****************************/
 
-static const char Far CannotOpenZipfile[] =
+static const char CannotOpenZipfile[] =
     "error:  cannot open zipfile [ %s ]\n        %s\n";
 
-static const char Far CannotDeleteOldFile[] =
+static const char CannotDeleteOldFile[] =
     "error:  cannot delete old %s\n        %s\n";
-static const char Far CannotCreateFile[] =
-    "error:  cannot create %s\n        %s\n";
+static const char CannotCreateFile[] = "error:  cannot create %s\n        %s\n";
 
-static const char Far ReadError[] = "error:  zipfile read error\n";
-static const char Far FilenameTooLongTrunc[] =
+static const char ReadError[] = "error:  zipfile read error\n";
+static const char FilenameTooLongTrunc[] =
     "warning:  filename too long--truncating.\n";
-static const char Far UFilenameCorrupt[] = "error: Unicode filename corrupt.\n";
-static const char Far UFilenameTooLongTrunc[] =
+static const char UFilenameCorrupt[] = "error: Unicode filename corrupt.\n";
+static const char UFilenameTooLongTrunc[] =
     "warning:  Converted Unicode filename too long--truncating.\n";
-static const char Far ExtraFieldTooLong[] =
+static const char ExtraFieldTooLong[] =
     "warning:  extra field too long (%d).  Ignoring...\n";
-static const char Far ExtraFieldCorrupt[] =
+static const char ExtraFieldCorrupt[] =
     "warning:  extra field (type: 0x%04x) corrupt.  Continuing...\n";
 
-static const char Far DiskFullQuery[] =
+static const char DiskFullQuery[] =
     "%s:  write error (disk full?).  Continue? (y/n/^C) ";
-static const char Far ZipfileCorrupt[] =
-    "error:  zipfile probably corrupt (%s)\n";
-static const char Far FileIsSymLink[] = "%s exists and is a symbolic link%s.\n";
-static const char Far QuitPrompt[] =
+static const char ZipfileCorrupt[] = "error:  zipfile probably corrupt (%s)\n";
+static const char FileIsSymLink[] = "%s exists and is a symbolic link%s.\n";
+static const char QuitPrompt[] =
     "--- Press `Q' to quit, or any other key to continue ---";
-static const char Far HidePrompt[] = /* "\r                       \r"; */
+static const char HidePrompt[] = /* "\r                       \r"; */
     "\r                                                         \r";
-static const char Far PasswPrompt[] = "[%s] %s password: ";
-static const char Far PasswPrompt2[] = "Enter password: ";
-static const char Far PasswRetry[] = "password incorrect--reenter: ";
+static const char PasswPrompt[] = "[%s] %s password: ";
+static const char PasswPrompt2[] = "Enter password: ";
+static const char PasswRetry[] = "password incorrect--reenter: ";
 
 /******************************/
 /* Function open_input_file() */

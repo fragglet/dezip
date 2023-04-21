@@ -43,88 +43,84 @@ static int get_cdir_ent(void);
 static int read_ux3_value OF((const uch *dbuf, unsigned uidgid_sz,
                               ulg *p_uidgid));
 
-static const char Far CannotAllocateBuffers[] =
+static const char CannotAllocateBuffers[] =
     "error:  cannot allocate unzip buffers\n";
 
 /* process_zipfiles() strings */
-static const char Far FilesProcessOK[] =
-    "%d archive%s successfully processed.\n";
-static const char Far ArchiveWarning[] =
+static const char FilesProcessOK[] = "%d archive%s successfully processed.\n";
+static const char ArchiveWarning[] =
     "%d archive%s had warnings but no fatal errors.\n";
-static const char Far ArchiveFatalError[] = "%d archive%s had fatal errors.\n";
-static const char Far FileHadNoZipfileDir[] =
+static const char ArchiveFatalError[] = "%d archive%s had fatal errors.\n";
+static const char FileHadNoZipfileDir[] =
     "%d file%s had no zipfile directory.\n";
-static const char Far ZipfileWasDir[] = "1 \"zipfile\" was a directory.\n";
-static const char Far ManyZipfilesWereDir[] =
-    "%d \"zipfiles\" were directories.\n";
-static const char Far NoZipfileFound[] = "No zipfiles found.\n";
+static const char ZipfileWasDir[] = "1 \"zipfile\" was a directory.\n";
+static const char ManyZipfilesWereDir[] = "%d \"zipfiles\" were directories.\n";
+static const char NoZipfileFound[] = "No zipfiles found.\n";
 
 /* do_seekable() strings */
-static const char Far CannotFindZipfileDirMsg[] =
+static const char CannotFindZipfileDirMsg[] =
     "%s:  cannot find zipfile directory in one of %s or\n\
         %s%s.zip, and cannot find %s, period.\n";
-static const char Far CannotFindEitherZipfile[] =
+static const char CannotFindEitherZipfile[] =
     "%s:  cannot find or open %s, %s.zip or %s.\n";
-extern const char Far Zipnfo[]; /* in unzip.c */
-static const char Far Unzip[] = "unzip";
-static const char Far ZipfileTooBig[] =
+extern const char Zipnfo[]; /* in unzip.c */
+static const char Unzip[] = "unzip";
+static const char ZipfileTooBig[] =
     "Trying to read large file (> 2 GiB) without large file support\n";
-static const char Far MaybeExe[] =
+static const char MaybeExe[] =
     "note:  %s may be a plain executable, not an archive\n";
-static const char Far CentDirNotInZipMsg[] = "\n\
+static const char CentDirNotInZipMsg[] = "\n\
    [%s]:\n\
      Zipfile is disk %lu of a multi-disk archive, and this is not the disk on\n\
      which the central zipfile directory begins (disk %lu).\n";
-static const char Far EndCentDirBogus[] =
+static const char EndCentDirBogus[] =
     "\nwarning [%s]:  end-of-central-directory record claims this\n\
   is disk %lu but that the central directory starts on disk %lu; this is a\n\
   contradiction.  Attempting to process anyway.\n";
-static const char Far MaybePakBug[] = "warning [%s]:\
+static const char MaybePakBug[] = "warning [%s]:\
   zipfile claims to be last disk of a multi-part archive;\n\
   attempting to process anyway, assuming all parts have been concatenated\n\
   together in order.  Expect \"errors\" and warnings...true multi-part support\
 \n  doesn't exist yet (coming soon).\n";
-static const char Far ExtraBytesAtStart[] =
+static const char ExtraBytesAtStart[] =
     "warning [%s]:  %s extra byte%s at beginning or within zipfile\n\
   (attempting to process anyway)\n";
 
-static const char Far LogInitline[] = "Archive:  %s\n";
+static const char LogInitline[] = "Archive:  %s\n";
 
-static const char Far MissingBytes[] =
-    "error [%s]:  missing %s bytes in zipfile\n\
+static const char MissingBytes[] = "error [%s]:  missing %s bytes in zipfile\n\
   (attempting to process anyway)\n";
-static const char Far NullCentDirOffset[] =
+static const char NullCentDirOffset[] =
     "error [%s]:  NULL central directory offset\n\
   (attempting to process anyway)\n";
-static const char Far ZipfileEmpty[] = "warning [%s]:  zipfile is empty\n";
-static const char Far CentDirStartNotFound[] =
+static const char ZipfileEmpty[] = "warning [%s]:  zipfile is empty\n";
+static const char CentDirStartNotFound[] =
     "error [%s]:  start of central directory not found;\n\
   zipfile corrupt.\n%s";
-static const char Far Cent64EndSigSearchErr[] =
+static const char Cent64EndSigSearchErr[] =
     "fatal error: read failure while seeking for End-of-centdir-64 signature.\n\
   This zipfile is corrupt.\n";
-static const char Far Cent64EndSigSearchOff[] =
+static const char Cent64EndSigSearchOff[] =
     "error: End-of-centdir-64 signature not where expected (prepended bytes?)\n\
   (attempting to process anyway)\n";
-static const char Far CentDirTooLong[] =
+static const char CentDirTooLong[] =
     "error [%s]:  reported length of central directory is\n\
   %s bytes too long (Atari STZip zipfile?  J.H.Holm ZIPSPLIT 1.1\n\
   zipfile?).  Compensating...\n";
-static const char Far CentDirEndSigNotFound[] = "\
+static const char CentDirEndSigNotFound[] = "\
   End-of-central-directory signature not found.  Either this file is not\n\
   a zipfile, or it constitutes one disk of a multi-part archive.  In the\n\
   latter case the central directory and zipfile comment will be found on\n\
   the last disk(s) of this archive.\n";
-static const char Far ZipTimeStampFailed[] =
-    "warning:  cannot set time for %s\n";
-static const char Far ZipTimeStampSuccess[] = "Updated time stamp for %s.\n";
-static const char Far ZipfileCommTrunc1[] =
+static const char ZipTimeStampFailed[] = "warning:  cannot set time for %s\n";
+static const char ZipTimeStampSuccess[] = "Updated time stamp for %s.\n";
+static const char ZipfileCommTrunc1[] =
     "\ncaution:  zipfile comment truncated\n";
-static const char Far UnicodeVersionError[] =
+static const char UnicodeVersionError[] =
     "\nwarning:  Unicode Path version > 1\n";
-static const char Far UnicodeMismatchError[] =
+static const char UnicodeMismatchError[] =
     "\nwarning:  Unicode Path checksum invalid\n";
-static const char Far UFilenameTooLongTrunc[] =
+static const char UFilenameTooLongTrunc[] =
     "warning:  filename too long (P1) -- truncating.\n";
 
 /*******************************/
@@ -381,9 +377,9 @@ void free_G_buffers() /* releases all memory allocated in global vars */
     }
 
     for (i = 0; i < DIR_BLKSIZ; i++) {
-        if (G.info[i].cfilname != (char Far *) NULL) {
+        if (G.info[i].cfilname != (char *) NULL) {
             free(G.info[i].cfilname);
-            G.info[i].cfilname = (char Far *) NULL;
+            G.info[i].cfilname = (char *) NULL;
         }
     }
 

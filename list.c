@@ -24,28 +24,27 @@
 
 static int fn_is_dir(void);
 
-static const char Far CompFactorStr[] = "%c%d%%";
-static const char Far CompFactor100[] = "100%%";
+static const char CompFactorStr[] = "%c%d%%";
+static const char CompFactor100[] = "100%%";
 
-static const char Far HeadersS[] = "  Length      Date    Time    Name";
-static const char Far HeadersS1[] = "---------  ---------- -----   ----";
+static const char HeadersS[] = "  Length      Date    Time    Name";
+static const char HeadersS1[] = "---------  ---------- -----   ----";
 
-static const char Far HeadersL[] =
+static const char HeadersL[] =
     " Length   Method    Size  Cmpr    Date    Time   CRC-32   Name";
-static const char Far HeadersL1[] =
+static const char HeadersL1[] =
     "--------  ------  ------- ---- ---------- ----- --------  ----";
-static const char Far *Headers[][2] = {{HeadersS, HeadersS1},
-                                       {HeadersL, HeadersL1}};
+static const char *Headers[][2] = {{HeadersS, HeadersS1},
+                                   {HeadersL, HeadersL1}};
 
-static const char Far CaseConversion[] =
-    "%s (\"^\" ==> case\n%s   conversion)\n";
-static const char Far LongHdrStats[] =
+static const char CaseConversion[] = "%s (\"^\" ==> case\n%s   conversion)\n";
+static const char LongHdrStats[] =
     "%s  %-7s%s %4s %02u%c%02u%c%02u %02u:%02u %08lx %c";
-static const char Far LongFileTrailer[] =
+static const char LongFileTrailer[] =
     "--------          -------  ---                       \
      -------\n%s         %s %4s                            %lu file%s\n";
-static const char Far ShortHdrStats[] = "%s  %02u%c%02u%c%02u %02u:%02u  %c";
-static const char Far ShortFileTrailer[] =
+static const char ShortHdrStats[] = "%s  %02u%c%02u%c%02u %02u:%02u  %c";
+static const char ShortFileTrailer[] =
     "---------                     -------\n%s\
                      %lu file%s\n";
 
@@ -70,7 +69,7 @@ int list_files() /* return PK-type error code */
     min_info info;
     char methbuf[8];
     static const char dtype[] = "NXFS"; /* see zi_short() */
-    static const char Far method[NUM_METHODS + 1][8] = {
+    static const char method[NUM_METHODS + 1][8] = {
         "Stored",  "Shrunk", "Reduce1", "Reduce2", "Reduce3", "Reduce4",
         "Implode", "Token",  "Defl:#",  "Def64#",  "ImplDCL", "BZip2",
         "LZMA",    "Terse",  "IBMLZ77", "WavPack", "PPMd",    "Unk:###"};
