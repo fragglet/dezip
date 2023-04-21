@@ -173,10 +173,6 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 #  endif
      static ZCONST char Far Use_Zip64[] =
      "ZIP64_SUPPORT (archives using Zip64 for large files supported)";
-#  ifdef USE_ZLIB
-     static ZCONST char Far UseZlib[] =
-     "USE_ZLIB (compiled with version %s; using version %s)";
-#  endif
      static ZCONST char Far UseBZip2[] =
      "USE_BZIP2 (PKZIP 4.6+, using bzip2 lib version %s)";
      static ZCONST char Far Decryption[] =
@@ -1312,13 +1308,6 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Zip64)));
         ++numopts;
-#ifdef USE_ZLIB
-        sprintf((char *)(slide+256), LoadFarStringSmall(UseZlib),
-          ZLIB_VERSION, zlibVersion());
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          (char *)(slide+256)));
-        ++numopts;
-#endif
         sprintf((char *)(slide+256), LoadFarStringSmall(UseBZip2),
           BZ2_bzlibVersion());
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),

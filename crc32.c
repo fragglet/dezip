@@ -23,8 +23,6 @@
 
 #include "zip.h"
 
-#if (!defined(USE_ZLIB) || defined(USE_OWN_CRCTAB))
-
 #ifndef ZCONST
 #  define ZCONST const
 #endif
@@ -35,8 +33,6 @@
    system-independent table containing 256 entries is created; any support
    for "unfolding" optimization is disabled.
  */
-#if (defined(USE_ZLIB) || defined(CRC_TABLE_ONLY))
-#endif /* (USE_ZLIB || CRC_TABLE_ONLY) */
 
 #  define CRC_TBLS  1
 
@@ -127,20 +123,10 @@ local ZCONST ulg near crc_table[CRC_TBLS*256] = {
 };
 
 /* use "OF((void))" here to work around a Borland TC++ 1.0 problem */
-#ifdef USE_ZLIB
-ZCONST uLongf *get_crc_table OF((void))
-#else
 ZCONST ulg near *get_crc_table OF((void))
-#endif
 {
-#ifdef USE_ZLIB
-  return (ZCONST uLongf *)crc_table;
-#else
   return crc_table;
-#endif
 }
-
-#ifndef USE_ZLIB
 
 #define DO1(crc, buf)  crc = CRC32(crc, *buf++, crc_32_tab)
 #define DO2(crc, buf)  DO1(crc, buf); DO1(crc, buf)
@@ -172,5 +158,3 @@ ulg crc32(crc, buf, len)
 
   return REV_BE(c) ^ 0xffffffffL;   /* (instead of ~c for 64-bit machines) */
 }
-#endif /* !USE_ZLIB */
-#endif /* !USE_ZLIB || USE_OWN_CRCTAB */

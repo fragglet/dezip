@@ -118,9 +118,7 @@
 #include "crypt.h"
 #include "ttyio.h"
 
-#ifndef USE_ZLIB  /* zlib's function is called inflate(), too */
 #  define UZinflate inflate
-#endif
 
 /* PKZIP header definitions */
 #define ZIPMAG 0x4b50           /* two-byte zip lead-in */
@@ -172,33 +170,6 @@ ZCONST unsigned near mask_bits[17] = {
     0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
-
-
-#ifdef USE_ZLIB
-
-int fillinbuf(__G)
-__GDEF
-/* Fill input buffer for pull-model inflate() in zlib.  Return the number of
- * bytes in inbuf. */
-{
-/*   GRR: check return value from fread(): same as read()?  check errno? */
-  if ((G.incnt = fread((char *)G.inbuf, 1, INBUFSIZ, G.in)) <= 0)
-    return 0;
-  G.inptr = G.inbuf;
-
-  if (encrypted) {
-    uch *p;
-    int n;
-
-    for (n = G.incnt, p = G.inptr;  n--;  p++)
-      zdecode(*p);
-  }
-
-  return G.incnt;
-
-}
-
-#endif /* USE_ZLIB */
 
 
 static void err(n, m)
@@ -370,11 +341,6 @@ char **argv;
   {                             /* deflated entry */
     int r;
 
-#ifdef USE_ZLIB
-    /* need to allocate and prepare input buffer */
-    if ((G.inbuf = (uch *)malloc(INBUFSIZ)) == (uch *)NULL)
-       err(1, "out of memory");
-#endif /* USE_ZLIB */
     if ((r = UZinflate(__G__ (method == ENHDEFLATED))) != 0) {
       if (r == 3)
         err(1, "out of memory");

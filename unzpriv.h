@@ -29,11 +29,6 @@
 
 /* fUnZip should never need to be reentrant */
 
-#if (defined(USE_ZLIB) && !defined(HAVE_ZL_INFLAT64) && !defined(NO_DEFLATE64))
-   /* zlib does not (yet?) provide Deflate64(tm) support */
-#  define NO_DEFLATE64
-#endif
-
    /* enable Deflate64(tm) support unless compiling for SFX stub */
 
 /* disable bzip2 support for SFX stub, unless explicitly requested */
@@ -287,12 +282,6 @@
 #    ifndef far
 #      define far
 #    endif
-
-#if (defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB))
-#endif
-
-#ifdef USE_ZLIB
-#endif
 
 #ifndef INBUFSIZ
 #    define INBUFSIZ  8192  /* larger buffers for real OSes */
@@ -1243,13 +1232,8 @@ int    huft_free                 OF((struct huft *t));          /* inflate.c */
 int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
                                      unsigned s, ZCONST ush *d, ZCONST uch *e,
                                      struct huft **t, unsigned *m));
-#ifdef USE_ZLIB
-   int    UZinflate              OF((__GPRO__ int is_defl64));  /* inflate.c */
-#  define inflate_free(x)        inflateEnd(&((Uz_Globs *)(&G))->dstrm)
-#else
    int    inflate                OF((__GPRO__ int is_defl64));  /* inflate.c */
    int    inflate_free           OF((__GPRO));                  /* inflate.c */
-#endif /* ?USE_ZLIB */
    int    unshrink               OF((__GPRO));                 /* unshrink.c */
 /* static void  partial_clear    OF((__GPRO));                  * unshrink.c */
    int    UZbunzip2              OF((__GPRO));                  /* extract.c */

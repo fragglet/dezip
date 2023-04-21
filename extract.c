@@ -1645,9 +1645,7 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
                   (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)?
                   "" : (G.pInfo->textfile? txt : bin), uO.cflag? NEWLINE : ""));
             }
-#ifndef USE_ZLIB  /* zlib's function is called inflate(), too */
 #  define UZinflate inflate
-#endif
             if ((r = UZinflate(__G__
                                (G.lrec.compression_method == ENHDEFLATED)))
                 != 0) {

@@ -25,13 +25,8 @@
 #  define ZCONST const
 #endif
 
-#ifndef USE_ZLIB
    ZCONST ulg near *get_crc_table  OF((void));
-#endif
-#if (defined(USE_ZLIB) || defined(CRC_TABLE_ONLY))
-#else /* !(USE_ZLIB || CRC_TABLE_ONLY) */
    ulg      crc32           OF((ulg crc, ZCONST uch *buf, extent len));
-#endif /* ?(USE_ZLIB || CRC_TABLE_ONLY) */
 
 #ifndef CRC_32_TAB
 #  define CRC_32_TAB     crc_32_tab
