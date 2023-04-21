@@ -1437,9 +1437,6 @@ void version(__G)
 #  endif
 #  endif
 #else
-#ifdef __FreeBSD__
-      (BSD4_4 == 0.5)? " (FreeBSD 1.x)" : " (FreeBSD 2.0 or later)",
-#else
 #if defined(i686) || defined(__i686) || defined(__i686__)
       " (Intel 686)",
 #else
@@ -1493,7 +1490,6 @@ void version(__G)
 #endif /* 486 */
 #endif /* 586 */
 #endif /* 686 */
-#endif /* NetBSD */
 #endif /* FreeBSD */
 #endif /* SCO Xenix */
 #endif /* SCO Unix */
