@@ -124,10 +124,6 @@ freely, subject to the above disclaimer and the following restrictions:
 /* Borland C does not define __TURBOC__ if compiling for a 32-bit platform */
 
 /* define MSDOS for Turbo C (unless OS/2) and Power C as well as Microsoft C */
-#ifdef __POWERC
-#  define __TURBOC__
-#  define MSDOS
-#endif /* __POWERC */
 
 /* RSXNTDJ (at least up to v1.3) compiles for WIN32 (RSXNT) using a derivate
    of the EMX environment, but defines MSDOS and __GO32__. ARG !!! */
