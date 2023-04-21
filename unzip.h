@@ -87,11 +87,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #    define UNIX
 #  endif
 #endif /* unix || _unix || __unix || __unix__ */
-#if (defined(CONVEX) || defined(MINIX) || defined(_AIX) || defined(__QNX__))
-#  ifndef UNIX
-#    define UNIX
-#  endif
-#endif /* CONVEX || MINIX || _AIX || __QNX__ */
 
 #if (defined(VM_CMS) || defined(MVS))
 #  define CMS_MVS

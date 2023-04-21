@@ -140,11 +140,6 @@
 #    define SYSV
 #  endif
 #endif /* __SVR4 || __svr4__ || sgi || __hpux */
-#if (defined(LINUX) || defined(__QNX__))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* LINUX || __QNX__ */
 
 #if (defined(ultrix) || defined(__ultrix) || defined(bsd4_2))
 #  if (!defined(BSD) && !defined(SYSV))
