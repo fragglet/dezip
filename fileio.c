@@ -850,7 +850,6 @@ ulg dosdatetime;
     tm->tm_sec = (int) ((unsigned) dosdatetime << 1) & 0x3e;
 
     m_time = mktime(tm);
-    NATIVE_TO_TIMET(m_time) /* NOP unless MSC 7.0 or Macintosh */
     TTrace((stderr, "  final m_time  =       %lu\n", (ulg) m_time));
 
     if ((dosdatetime >= DOSTIME_2038_01_18) && (m_time < (time_t) 0x70000000L))
@@ -907,8 +906,6 @@ char *filename;               /*  exist yet */
                   FnFilter1(filename), ""));
         return EXISTS_AND_OLDER; /* symlink dates are meaningless */
     }
-
-    NATIVE_TO_TIMET(G.statbuf.st_mtime) /* NOP unless MSC 7.0 or Macintosh */
 
     /* The `Unix extra field mtime' should be used for comparison with the
      * time stamp of the existing file >>>ONLY<<< when the EF info is also

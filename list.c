@@ -198,7 +198,6 @@ int list_files() /* return PK-type error code */
                                   G.crec.last_mod_dos_datetime, &z_utime,
                                   NULL) &
                  EB_UT_FL_MTIME)) {
-                TIMET_TO_NATIVE(z_utime.mtime) /* NOP unless MSC 7.0, Mac */
                 t = localtime(&(z_utime.mtime));
             } else
                 t = (struct tm *) NULL;

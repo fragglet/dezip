@@ -227,10 +227,6 @@ typedef size_t extent;
 #ifndef USAGE
 #define USAGE(ret) usage((ret)) /* used in unzip.c, zipinfo.c */
 #endif
-#ifndef TIMET_TO_NATIVE /* everybody but MSC 7.0 and Macintosh */
-#define TIMET_TO_NATIVE(x)
-#define NATIVE_TO_TIMET(x)
-#endif
 #ifndef STRNICMP
 #ifdef NO_STRNICMP
 #define STRNICMP zstrnicmp
