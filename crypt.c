@@ -41,8 +41,8 @@
 #define GLOBAL(g) G.g
 
 /* char *key = (char *)NULL; moved to globals.h */
-local int testp(__GPRO__ const uch *h);
-local int testkey(__GPRO__ const uch *h, const char *key);
+static int testp(__GPRO__ const uch *h);
+static int testkey(__GPRO__ const uch *h, const char *key);
 
 #ifndef Trace
 #ifdef CRYPT_DEBUG
@@ -197,7 +197,7 @@ __GDEF const char *passwrd;
 /***********************************************************************
  * Test the password.  Return -1 if bad, 0 if OK.
  */
-local int testp(h)
+static int testp(h)
 __GDEF const uch *h;
 {
     int r;
@@ -250,7 +250,7 @@ __GDEF const uch *h;
 
 } /* end function testp() */
 
-local int testkey(h, key)
+static int testkey(h, key)
 __GDEF
 const uch *h;    /* decrypted header */
 const char *key; /* decryption password to test */
