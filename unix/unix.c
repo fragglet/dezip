@@ -1292,11 +1292,7 @@ void version(__G)
 #  endif
 #  endif
 #else
-#ifdef __QNXNTO__
-      " (QNX Neutrino)",
-#else
       "",
-#endif /* QNX Neutrino */
 #endif /* DEC */
 #endif /* Amdahl */
 #endif /* Sun */
