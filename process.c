@@ -131,7 +131,7 @@ static const char Far UFilenameTooLongTrunc[] =
 /* Function process_zipfiles() */
 /*******************************/
 
-int process_zipfiles(__G) /* return PK-type error code */
+int process_zipfiles() /* return PK-type error code */
     __GDEF
 {
     char *lastzipfn = (char *) NULL;
@@ -336,7 +336,7 @@ int process_zipfiles(__G) /* return PK-type error code */
     }
 
     /* free allocated memory */
-    free_G_buffers(__G);
+    free_G_buffers();
 
     return error_in_archive;
 
@@ -346,12 +346,12 @@ int process_zipfiles(__G) /* return PK-type error code */
 /* Function free_G_buffers() */
 /*****************************/
 
-void free_G_buffers(__G) /* releases all memory allocated in global vars */
+void free_G_buffers() /* releases all memory allocated in global vars */
     __GDEF
 {
     unsigned i;
 
-    inflate_free(__G);
+    inflate_free();
     checkdir(__G__(char *) NULL, END);
 
     if (G.key != (char *) NULL) {
@@ -446,8 +446,8 @@ static int do_seekable(__G__ lastchance) /* return PK-type error code */
     if (G.statbuf.st_mode & S_IEXEC) /* no extension on Unix exes:  might */
         maybe_exe = TRUE;            /*  find unzip, not unzip.zip; etc. */
 
-    if (open_input_file(__G)) /* this should never happen, given */
-        return PK_NOZIP;      /*  the stat() test above, but... */
+    if (open_input_file()) /* this should never happen, given */
+        return PK_NOZIP;   /*  the stat() test above, but... */
 
     /* Need more care: Do not trust the size returned by stat() but
        determine it by reading beyond the end of the file. */
@@ -623,9 +623,9 @@ static int do_seekable(__G__ lastchance) /* return PK-type error code */
             if (uO.T_flag)
                 error = get_time_stamp(__G__ & uxstamp, &nmember);
             else if (uO.vflag && !uO.tflag && !uO.cflag)
-                error = list_files(__G); /* LIST 'EM */
+                error = list_files(); /* LIST 'EM */
             else
-                error = extract_or_test_files(__G); /* EXTRACT OR TEST 'EM */
+                error = extract_or_test_files(); /* EXTRACT OR TEST 'EM */
 
             Trace(
                 (stderr, "done with extract/list files (error = %d)\n", error));
@@ -771,7 +771,7 @@ int rec_size;
 /* Function check_ecrec_zip64() */
 /********************************/
 
-static int check_ecrec_zip64(__G)
+static int check_ecrec_zip64()
     __GDEF
 {
     return G.ecrec.offset_start_central_directory  == 0xFFFFFFFFL
@@ -1093,7 +1093,7 @@ static int find_ecrec(__G__ searchlen) /* return PK-class error */
     /* Now, we have to read the archive comment, BEFORE the file pointer
        is moved away backwards to seek for a Zip64 ECLOC64 structure.
      */
-    if ((error_in_archive = process_zip_cmmnt(__G)) > PK_WARN)
+    if ((error_in_archive = process_zip_cmmnt()) > PK_WARN)
         return error_in_archive;
 
     /* Next: Check for existence of Zip64 end-of-cent-dir locator
@@ -1126,7 +1126,7 @@ static int find_ecrec(__G__ searchlen) /* return PK-class error */
 /* Function process_zip_cmmnt() */
 /********************************/
 
-static int process_zip_cmmnt(__G) /* return PK-type error code */
+static int process_zip_cmmnt() /* return PK-type error code */
     __GDEF
 {
     int error = PK_COOL;
@@ -1151,7 +1151,7 @@ static int process_zip_cmmnt(__G) /* return PK-type error code */
 /* Function process_cdir_file_hdr() */
 /************************************/
 
-int process_cdir_file_hdr(__G) /* return PK-type error code */
+int process_cdir_file_hdr() /* return PK-type error code */
     __GDEF
 {
     int error;
@@ -1162,7 +1162,7 @@ int process_cdir_file_hdr(__G) /* return PK-type error code */
         file is coming.
       ---------------------------------------------------------------------------*/
 
-    if ((error = get_cdir_ent(__G)) != 0)
+    if ((error = get_cdir_ent()) != 0)
         return error;
 
     G.pInfo->hostver = G.crec.version_made_by[0];
@@ -1229,7 +1229,7 @@ int process_cdir_file_hdr(__G) /* return PK-type error code */
 /* Function get_cdir_ent() */
 /***************************/
 
-static int get_cdir_ent(__G) /* return PK-type error code */
+static int get_cdir_ent() /* return PK-type error code */
     __GDEF
 {
     cdir_byte_hdr byterec;
@@ -1277,7 +1277,7 @@ static int get_cdir_ent(__G) /* return PK-type error code */
 /* Function process_local_file_hdr() */
 /*************************************/
 
-int process_local_file_hdr(__G) /* return PK-type error code */
+int process_local_file_hdr() /* return PK-type error code */
     __GDEF
 {
     local_byte_hdr byterec;

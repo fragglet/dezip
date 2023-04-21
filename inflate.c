@@ -627,7 +627,7 @@ cleanup_and_exit:
     return retval;
 }
 
-static int inflate_stored(__G) __GDEF
+static int inflate_stored() __GDEF
 /* "decompress" an inflated type 0 (stored) block. */
 {
     UINT_D64 w;          /* current window position (deflate64: up to 64k!) */
@@ -684,7 +684,7 @@ struct huft *fixed_td;
 int fixed_bl, fixed_bd;
 #endif
 
-static int inflate_fixed(__G) __GDEF
+static int inflate_fixed() __GDEF
 /* decompress an inflated type 1 (fixed Huffman codes) block.  We should
    either replace this with a custom decoder, or at least precompute the
    Huffman tables. */
@@ -727,7 +727,7 @@ static int inflate_fixed(__G) __GDEF
     return inflate_codes(__G__ G.fixed_tl, G.fixed_td, G.fixed_bl, G.fixed_bd);
 }
 
-static int inflate_dynamic(__G) __GDEF
+static int inflate_dynamic() __GDEF
 /* decompress an inflated type 2 (dynamic Huffman codes) block. */
 {
     unsigned i; /* temporary variables */
@@ -912,11 +912,11 @@ static int inflate_block(__G__ e) __GDEF int *e; /* last block flag */
 
     /* inflate that block type */
     if (t == 2)
-        return inflate_dynamic(__G);
+        return inflate_dynamic();
     if (t == 0)
-        return inflate_stored(__G);
+        return inflate_stored();
     if (t == 1)
-        return inflate_fixed(__G);
+        return inflate_fixed();
 
     /* bad block type */
     retval = 2;
@@ -989,7 +989,7 @@ int inflate(__G__ is_defl64) __GDEF int is_defl64;
     return (FLUSH(G.wp));
 }
 
-int inflate_free(__G) __GDEF
+int inflate_free() __GDEF
 {
     if (G.fixed_tl != (struct huft *) NULL) {
         huft_free(G.fixed_td);

@@ -543,7 +543,7 @@ char *argv[];
         Okey dokey, we have everything we need to get started.  Let's roll.
       ---------------------------------------------------------------------------*/
 
-    retcode = process_zipfiles(__G);
+    retcode = process_zipfiles();
 
 cleanup_and_exit:
 #if (defined(MALLOC_WORK) && !defined(REENTRANT))
@@ -866,7 +866,7 @@ char ***pargv;
     if (showhelp > 0) { /* just print help message and quit */
         *pargc = -1;
         if (showhelp == 2) {
-            help_extended(__G);
+            help_extended();
             return PK_OK;
         } else {
             return USAGE(PK_OK);
@@ -889,7 +889,7 @@ char ***pargv;
         *pargc = argc;
         *pargv = argv;
         if (uO.vflag >= 2 && argc == -1) { /* "unzip -v" */
-            show_version_info(__G);
+            show_version_info();
             return PK_OK;
         }
         if (!G.noargs && !error)
@@ -964,7 +964,7 @@ int usage(__G__ error) /* return PK-type error code */
 } /* end function usage() */
 
 /* Print extended help to stdout. */
-static void help_extended(__G) __GDEF
+static void help_extended() __GDEF
 {
     extent i; /* counter for help array */
 
@@ -1283,7 +1283,7 @@ static void help_extended(__G) __GDEF
 /* Function show_version_info() */
 /********************************/
 
-static void show_version_info(__G) __GDEF
+static void show_version_info() __GDEF
 {
     if (uO.qflag > 3) /* "unzip -vqqqq" */
         Info(slide, 0,
@@ -1298,7 +1298,7 @@ static void show_version_info(__G) __GDEF
               UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
               LoadFarStringSmall(VersionDate)));
         Info(slide, 0, ((char *) slide, LoadFarString(UnzipUsageLine2v)));
-        version(__G);
+        version();
         Info(slide, 0, ((char *) slide, LoadFarString(CompileOptions)));
         Info(slide, 0,
              ((char *) slide, LoadFarString(CompileOptFormat),

@@ -21,13 +21,10 @@
  * Non-echo keyboard/console input support is needed and enabled.
  */
 
-#ifndef __G /* UnZip only, for now (DLL stuff) */
-#define __G
 #define __G__
 #define __GDEF
 #define __GPRO void
 #define __GPRO__
-#endif
 
 /* Function prototypes */
 
@@ -56,7 +53,7 @@
  */
 #ifndef echoff
 #define echoff(f) Echoff(__G__ f)
-#define echon()   Echon(__G)
+#define echon()   Echon()
 void Echoff(__GPRO__ int f);
 void Echon(__GPRO);
 #endif

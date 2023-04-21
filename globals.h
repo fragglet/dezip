@@ -67,10 +67,10 @@
 
   To support this new global struct, all functions must now conditionally
   pass the globals pointer (pG) to each other.  This is supported by 5 macros:
-  __GPRO, __GPRO__, __G, __G__ and __GDEF.  A function that needs no other
+  __GPRO, __GPRO__, , __G__ and __GDEF.  A function that needs no other
   parameters would look like this:
 
-    int extract_or_test_files(__G)
+    int extract_or_test_files()
       __GDEF
     {
        ... stuff ...
@@ -292,7 +292,6 @@ extern char end_centloc64_sig[4];
 /* extern char extd_local_sig[4];  NOT USED YET */
 
 extern Uz_Globs G;
-#define __G
 #define __G__
 #define __GPRO void
 #define __GPRO__

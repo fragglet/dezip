@@ -47,13 +47,10 @@
 #define CR_VERSION_DATE "05 Jan 2007" /* last public release date */
 #define CR_RELEASE
 
-#ifndef __G /* UnZip only, for now (DLL stuff) */
-#define __G
 #define __G__
 #define __GDEF
 #define __GPRO void
 #define __GPRO__
-#endif
 
 /* To allow combining of Zip and UnZip static libraries in a single binary,
  * the Zip and UnZip versions of the crypt core functions have to be named
@@ -69,10 +66,10 @@
 /* the crc_32_tab array has to be provided externally for the crypt calculus */
 
 /* encode byte c, using temp t.  Warning: c must not have side effects. */
-#define zencode(c, t) (t = decrypt_byte(__G), update_keys(c), t ^ (c))
+#define zencode(c, t) (t = decrypt_byte(), update_keys(c), t ^ (c))
 
 /* decode byte c in place */
-#define zdecode(c) update_keys(__G__ c ^= decrypt_byte(__G))
+#define zdecode(c) update_keys(__G__ c ^= decrypt_byte())
 
 int decrypt_byte(__GPRO);
 int update_keys(__GPRO__ int c);

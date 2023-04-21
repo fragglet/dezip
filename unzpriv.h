@@ -1360,7 +1360,7 @@ int stamp_file(const char *fname, time_t modtime);       /* local */
 #define FLUSH(w)                                          \
     ((G.mem_mode) ? memflush(__G__ redirSlide, (ulg) (w)) \
                   : flush(__G__ redirSlide, (ulg) (w), 0))
-#define NEXTBYTE (G.incnt-- > 0 ? (int) (*G.inptr++) : readbyte(__G))
+#define NEXTBYTE (G.incnt-- > 0 ? (int) (*G.inptr++) : readbyte())
 
 #define READBITS(nbits, zdest)                                        \
     {                                                                 \

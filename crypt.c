@@ -59,7 +59,7 @@ local int testkey(__GPRO__ const uch *h, const char *key);
 /***********************************************************************
  * Return the next byte in the pseudo-random sequence
  */
-int decrypt_byte(__G) __GDEF
+int decrypt_byte() __GDEF
 {
     unsigned temp; /* POTENTIAL BUG:  temp*(temp^1) may overflow in an
                     * unpredictable manner on 16-bit systems; not a problem
@@ -125,7 +125,7 @@ int decrypt(__G__ passwrd) __GDEF const char *passwrd;
     /* get header once (turn off "encrypted" flag temporarily so we don't
      * try to decrypt the same data twice) */
     GLOBAL(pInfo->encrypted) = FALSE;
-    defer_leftover_input(__G);
+    defer_leftover_input();
     for (n = 0; n < RAND_HEAD_LEN; n++) {
         /* 2012-11-23 SMS.  (OUSPG report.)
          * Quit early if compressed size < HEAD_LEN.  The resulting
@@ -140,7 +140,7 @@ int decrypt(__G__ passwrd) __GDEF const char *passwrd;
         h[n] = (uch) b;
         Trace((stdout, " (%02x)", h[n]));
     }
-    undefer_input(__G);
+    undefer_input();
     GLOBAL(pInfo->encrypted) = TRUE;
 
     if (GLOBAL(newzip)) { /* this is first encrypted member in this zipfile */

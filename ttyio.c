@@ -68,7 +68,7 @@ void Echoff(__G__ f) __GDEF
 /*
  * Turn echo back on for file descriptor echofd.
  */
-void Echon(__G) __GDEF
+void Echon() __GDEF
 {
     struct sgttyb sg; /* tty device structure */
 

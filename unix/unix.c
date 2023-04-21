@@ -216,7 +216,7 @@ static unsigned filtattr(__G__ perms) __GDEF unsigned perms;
 /* Function mapattr() */
 /**********************/
 
-int mapattr(__G) __GDEF
+int mapattr() __GDEF
 {
     int r;
     ulg tmp = G.crec.external_file_attributes;
@@ -834,7 +834,7 @@ ulg z_uidgid[2];
 /* Function close_outfile() */
 /****************************/
 
-void close_outfile(__G) /* GRR: change to return PK-style warning level */
+void close_outfile() /* GRR: change to return PK-style warning level */
     __GDEF
 {
     union {
@@ -1068,7 +1068,7 @@ time_t modtime;
 /*  Function version()  */
 /************************/
 
-void version(__G) __GDEF
+void version() __GDEF
 {
 
     /* Pyramid, NeXT have problems with huge macro expansion, too:  no Info() */

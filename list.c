@@ -53,7 +53,7 @@ static const char Far ShortFileTrailer[] =
 /* Function list_files() */
 /*************************/
 
-int list_files(__G) /* return PK-type error code */
+int list_files() /* return PK-type error code */
     __GDEF
 {
     int do_this_file = FALSE, cfactor, error, error_in_archive = PK_COOL;
@@ -136,7 +136,7 @@ int list_files(__G) /* return PK-type error code */
             }
         }
         /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag, ...: */
-        if ((error = process_cdir_file_hdr(__G)) != PK_COOL)
+        if ((error = process_cdir_file_hdr()) != PK_COOL)
             return error; /* only PK_EOF defined */
 
         /*
@@ -288,7 +288,7 @@ int list_files(__G) /* return PK-type error code */
                      ((char *) slide, LoadFarString(ShortHdrStats),
                       FmZofft(G.crec.ucsize, "9", "u"), mo, dt_sepchar, dy,
                       dt_sepchar, yr, hh, mm, (G.pInfo->lcflag ? '^' : ' ')));
-            fnprint(__G);
+            fnprint();
 
             if ((error = do_string(__G__ G.crec.file_comment_length,
                                    QCOND ? DISPL_8 : SKIP)) != 0) {
@@ -363,7 +363,7 @@ int list_files(__G) /* return PK-type error code */
 /* Function fn_is_dir() */
 /************************/
 
-static int fn_is_dir(__G) /* returns TRUE if G.filename is directory */
+static int fn_is_dir() /* returns TRUE if G.filename is directory */
     __GDEF
 {
     extent fn_len = strlen(G.filename);
@@ -419,7 +419,7 @@ ulg *nmember;
             }
         }
         /* process_cdir_file_hdr() sets pInfo->lcflag: */
-        if ((error = process_cdir_file_hdr(__G)) != PK_COOL)
+        if ((error = process_cdir_file_hdr()) != PK_COOL)
             return error; /* only PK_EOF defined */
         if ((error = do_string(__G__ G.crec.filename_length, DS_FN)) !=
             PK_OK) { /*  ^-- (uses pInfo->lcflag) */
@@ -465,7 +465,7 @@ ulg *nmember;
          * Directory entries are always ignored, to stay compatible with both
          * Zip and PKZIP.
          */
-        if ((G.process_all_files || do_this_file) && !fn_is_dir(__G)) {
+        if ((G.process_all_files || do_this_file) && !fn_is_dir()) {
             if (G.extra_field &&
                 (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
                                   G.crec.last_mod_dos_datetime, &z_utime,
@@ -527,7 +527,7 @@ zusz_t uc, c;
 /*  Function fnprint()  */ /* also used by ZipInfo routines */
 /************************/
 
-void fnprint(__G) /* print filename (after filtering) and newline */
+void fnprint() /* print filename (after filtering) and newline */
     __GDEF
 {
     char *name = fnfilter(G.filename, slide, (extent) (WSIZE >> 1));

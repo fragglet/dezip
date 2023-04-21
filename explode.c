@@ -433,7 +433,7 @@ unsigned bdl;         /* number of distance low bits */
     return 0;
 }
 
-int explode(__G) __GDEF
+int explode() __GDEF
 /* Explode an imploded compressed stream.  Based on the general purpose
    bit flag, decide on coded or uncoded literals, and an 8K or 4K sliding
    window.  Construct the literal (if any), length, and distance codes and

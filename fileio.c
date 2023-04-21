@@ -147,7 +147,7 @@ static const char Far PasswRetry[] = "password incorrect--reenter: ";
 /* Function open_input_file() */
 /******************************/
 
-int open_input_file(__G) /* return 1 if open failed */
+int open_input_file() /* return 1 if open failed */
     __GDEF
 {
     /*
@@ -172,7 +172,7 @@ int open_input_file(__G) /* return 1 if open failed */
 /* Function open_outfile() */
 /***************************/
 
-int open_outfile(__G) /* return 1 if fail */
+int open_outfile() /* return 1 if fail */
     __GDEF
 {
     if (SSTAT(G.filename, &G.statbuf) == 0 ||
@@ -245,7 +245,7 @@ int open_outfile(__G) /* return 1 if fail */
 /* function undefer_input() */
 /****************************/
 
-void undefer_input(__G) __GDEF
+void undefer_input() __GDEF
 {
     if (G.incnt > 0)
         G.csize += G.incnt;
@@ -269,7 +269,7 @@ void undefer_input(__G) __GDEF
 /* function defer_leftover_input() */
 /***********************************/
 
-void defer_leftover_input(__G) __GDEF
+void defer_leftover_input() __GDEF
 {
     if ((zoff_t) G.incnt > G.csize) {
         /* (G.csize < MAXINT), we can safely cast it to int !! */
@@ -327,7 +327,7 @@ register unsigned size;
 /* Function readbyte() */
 /***********************/
 
-int readbyte(__G) /* refill inbuf and return a byte if available, else EOF */
+int readbyte() /* refill inbuf and return a byte if available, else EOF */
     __GDEF
 {
     if (G.mem_mode)
@@ -350,7 +350,7 @@ int readbyte(__G) /* refill inbuf and return a byte if available, else EOF */
         }
         G.cur_zipfile_bufstart += INBUFSIZ; /* always starts on block bndry */
         G.inptr = G.inbuf;
-        defer_leftover_input(__G); /* decrements G.csize */
+        defer_leftover_input(); /* decrements G.csize */
     }
 
     if (G.pInfo->encrypted) {
@@ -374,7 +374,7 @@ int readbyte(__G) /* refill inbuf and return a byte if available, else EOF */
 /* Function fillinbuf() */
 /************************/
 
-int fillinbuf(__G) /* like readbyte() except returns number of bytes in inbuf */
+int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
     __GDEF
 {
     if (G.mem_mode ||
@@ -382,7 +382,7 @@ int fillinbuf(__G) /* like readbyte() except returns number of bytes in inbuf */
         return 0;
     G.cur_zipfile_bufstart += INBUFSIZ; /* always starts on a block boundary */
     G.inptr = G.inbuf;
-    defer_leftover_input(__G); /* decrements G.csize */
+    defer_leftover_input(); /* decrements G.csize */
 
     if (G.pInfo->encrypted) {
         uch *p;
@@ -499,7 +499,7 @@ int unshrink;
          * DEC Ultrix cc), write() is used anyway.
          */
         if (!uO.cflag && WriteError(rawbuf, size, G.outfile))
-            return disk_error(__G);
+            return disk_error();
         else if (uO.cflag && (*G.message)((void *) &G, rawbuf, size, 0))
             return PK_OK;
     } else { /* textmode:  aflag is true */
@@ -548,7 +548,7 @@ int unshrink;
         if (q > transbuf) {
             if (!uO.cflag &&
                 WriteError(transbuf, (extent) (q - transbuf), G.outfile))
-                return disk_error(__G);
+                return disk_error();
             else if (uO.cflag && (*G.message)((void *) &G, transbuf,
                                               (ulg) (q - transbuf), 0))
                 return PK_OK;
@@ -563,7 +563,7 @@ int unshrink;
 /* Function disk_error() */
 /*************************/
 
-static int disk_error(__G) __GDEF
+static int disk_error() __GDEF
 {
     /* OK to use slide[] here because this file is finished regardless */
     Info(slide, 0x4a1,

@@ -95,7 +95,7 @@ static void partial_clear(__GPRO__ int lastcodeused);
 /* Function unshrink() */
 /***********************/
 
-int unshrink(__G) __GDEF
+int unshrink() __GDEF
 {
     uch *stacktop = stack + (HSIZE - 1);
     register uch *newstr;

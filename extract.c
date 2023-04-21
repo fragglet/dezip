@@ -367,7 +367,7 @@ bound_t end;
 /*  Function extract_or_test_files()  */
 /**************************************/
 
-int extract_or_test_files(__G) /* return PK-type error code */
+int extract_or_test_files() /* return PK-type error code */
     __GDEF
 {
     unsigned i, j;
@@ -537,7 +537,7 @@ int extract_or_test_files(__G) /* return PK-type error code */
                 break;
             }
             /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag */
-            if ((error = process_cdir_file_hdr(__G)) != PK_COOL) {
+            if ((error = process_cdir_file_hdr()) != PK_COOL) {
                 error_in_archive = error; /* only PK_EOF defined */
                 reached_end = TRUE;       /* ...so no more left to do */
                 break;
@@ -579,7 +579,7 @@ int extract_or_test_files(__G) /* return PK-type error code */
                 }
             }
             if (G.process_all_files) {
-                if (store_info(__G))
+                if (store_info())
                     ++j; /* file is OK; info[] stored; continue with next */
                 else
                     ++num_skipped;
@@ -608,7 +608,7 @@ int extract_or_test_files(__G) /* return PK-type error code */
                         }
                 }
                 if (do_this_file) {
-                    if (store_info(__G))
+                    if (store_info())
                         ++j; /* file is OK */
                     else
                         ++num_skipped; /* unsupp. compression or encryption */
@@ -843,7 +843,7 @@ int extract_or_test_files(__G) /* return PK-type error code */
 /*  Function store_info()  */
 /***************************/
 
-static int store_info(__G) /* return 0 if skipping, 1 if OK */
+static int store_info() /* return 0 if skipping, 1 if OK */
     __GDEF
 {
 #define UNKN_BZ2 (G.crec.compression_method != BZIPPED)
@@ -962,7 +962,7 @@ static int store_info(__G) /* return 0 if skipping, 1 if OK */
         strcpy(G.pInfo->cfilname, G.filename);
 
     /* map whatever file attributes we have into the local format */
-    mapattr(__G); /* GRR:  worry about return value later */
+    mapattr(); /* GRR:  worry about return value later */
 
     G.pInfo->diskstart = G.crec.disk_number_start;
     G.pInfo->offset = (zoff_t) G.crec.relative_offset_local_header;
@@ -1136,7 +1136,7 @@ int error_in_archive;
             } else
                 continue; /* this one hosed; try next */
         }
-        if ((error = process_local_file_hdr(__G)) != PK_COOL) {
+        if ((error = process_local_file_hdr()) != PK_COOL) {
             Info(slide, 0x421,
                  ((char *) slide, LoadFarString(BadLocalHdr), *pfilnum));
             error_in_archive = error; /* only PK_EOF defined */
@@ -1427,7 +1427,7 @@ int error_in_archive;
         } /* end if (extracting to disk) */
 
         G.disk_full = 0;
-        if ((error = extract_or_test_member(__G)) != PK_COOL) {
+        if ((error = extract_or_test_member()) != PK_COOL) {
             if (error > error_in_archive)
                 error_in_archive = error; /* ...and keep going */
             if (G.disk_full > 1) {
@@ -1459,7 +1459,7 @@ int error_in_archive;
 /*  Function extract_or_test_member()  */
 /***************************************/
 
-static int extract_or_test_member(__G) /* return PK-type error code */
+static int extract_or_test_member() /* return PK-type error code */
     __GDEF
 {
     char *nul = "[empty] ", *txt = "[text]  ", *bin = "[binary]";
@@ -1490,7 +1490,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
         if (uO.cflag) {
             G.outfile = stdout;
 #define NEWLINE "\n"
-        } else if (open_outfile(__G))
+        } else if (open_outfile())
             return PK_DISK;
     }
 
@@ -1498,7 +1498,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
         Unpack the file.
       ---------------------------------------------------------------------------*/
 
-    defer_leftover_input(__G); /* so NEXTBYTE bounds check will work */
+    defer_leftover_input(); /* so NEXTBYTE bounds check will work */
     switch (G.lrec.compression_method) {
     case STORED:
         if (!uO.tflag && QCOND2) {
@@ -1547,7 +1547,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
                       : (G.pInfo->textfile ? txt : bin),
                   uO.cflag ? NEWLINE : ""));
         }
-        if ((r = unshrink(__G)) != PK_COOL) {
+        if ((r = unshrink()) != PK_COOL) {
             if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
@@ -1577,7 +1577,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
                       : (G.pInfo->textfile ? txt : bin),
                   uO.cflag ? NEWLINE : ""));
         }
-        if ((r = explode(__G)) != 0) {
+        if ((r = explode()) != 0) {
             if (r == 5) { /* treat 5 specially */
                 int warning = ((zusz_t) G.used_csize <= G.lrec.csize);
 
@@ -1662,7 +1662,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
                       : (G.pInfo->textfile ? txt : bin),
                   uO.cflag ? NEWLINE : ""));
         }
-        if ((r = UZbunzip2(__G)) != 0) {
+        if ((r = UZbunzip2()) != 0) {
             if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
@@ -1688,7 +1688,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
              ((char *) slide, LoadFarString(FileUnknownCompMethod),
               FnFilter1(G.filename)));
         /* close and delete file before return? */
-        undefer_input(__G);
+        undefer_input();
         return PK_WARN;
 
     } /* end switch (compression method) */
@@ -1700,7 +1700,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
       ---------------------------------------------------------------------------*/
 
     if (!uO.tflag && !uO.cflag) /* don't close NULL file or stdout */
-        close_outfile(__G);
+        close_outfile();
 
     /* GRR: CONVERT close_outfile() TO NON-VOID:  CHECK FOR ERRORS! */
 
@@ -1725,7 +1725,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
 
     if (error >
         PK_WARN) { /* don't print redundant CRC error if error already */
-        undefer_input(__G);
+        undefer_input();
         return error;
     }
     if (G.crc32val != G.lrec.crc32) {
@@ -1750,7 +1750,7 @@ static int extract_or_test_member(__G) /* return PK-type error code */
             Info(slide, 0, ((char *) slide, "\n"));
     }
 
-    undefer_input(__G);
+    undefer_input();
 
     if ((G.lrec.general_purpose_bit_flag & 8) != 0) {
         /* skip over data descriptor (harder than it sounds, due to signature
@@ -2267,7 +2267,7 @@ static int Cdecl dircomp(a, b) /* used by qsort(); swiped from Zip */
 /*  Function UZbunzip2()  */
 /**************************/
 
-int UZbunzip2(__G) __GDEF
+int UZbunzip2() __GDEF
 /* decompress a bzipped entry using the libbz2 routines */
 {
     int retval = 0; /* return code: 0 = "no error" */
@@ -2322,7 +2322,7 @@ int UZbunzip2(__G) __GDEF
                 break;
 
             if (bstrm.avail_in == 0) {
-                if (fillinbuf(__G) == 0) {
+                if (fillinbuf() == 0) {
                     /* no "END-condition" yet, but no more data */
                     retval = 2;
                     goto uzbunzip_cleanup_exit;
