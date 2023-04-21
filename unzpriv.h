@@ -754,11 +754,7 @@
 #define MSG_NO_WDLL(f) (f & 0x1000)   /* bit 12:  1 = skip if Windows DLL */
 
 #if (defined(MORE) && !defined(SCREENLINES))
-#  ifdef DOS_FLX_NLM_OS2_W32
-#    define SCREENLINES 25  /* can be (should be) a function instead */
-#  else
 #    define SCREENLINES 24  /* VT-100s are assumed to be minimal hardware */
-#  endif
 #endif
 #if (defined(MORE) && !defined(SCREENSIZE))
 #  ifndef SCREENWIDTH
@@ -1026,9 +1022,6 @@
  * define some or all of the following:  NAME_MAX, PATH_MAX, _POSIX_NAME_MAX,
  * _POSIX_PATH_MAX.
  */
-#ifdef DOS_FLX_NLM_OS2_W32
-#  include <limits.h>
-#endif
 
 /* 2008-07-22 SMS.
  * Unfortunately, on VMS, <limits.h> exists, and is included by <stdlib.h>

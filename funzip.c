@@ -307,13 +307,6 @@ char **argv;
   }
   else
   {
-#ifdef DOS_FLX_NLM_OS2_W32
-#if (defined(__HIGHC__) && !defined(FLEXOS))
-    setmode(stdin, _BINARY);
-#else
-    setmode(0, O_BINARY);  /* some buggy C libraries require BOTH setmode() */
-#endif                     /*  call AND the fdopen() in binary mode :-( */
-#endif /* DOS_FLX_NLM_OS2_W32 */
 
 #ifdef RISCOS
     G.in = stdin;

@@ -130,30 +130,11 @@ int envargs(Pargc, Pargv, envstr, envstr2)
                 *(bufptr++) = '\0';
         }
 #else
-#ifdef DOS_FLX_NLM_OS2_W32
-        /* we do not support backslash-quoting of quotes in quoted
-         * strings under DOS_FLX_NLM_OS2_W32, because backslashes are
-         * directory separators and double quotes are illegal in filenames */
-        if (*bufptr == '"') {
-            *(argv++) = ++bufptr;
-            while ((ch = *bufptr) != '\0' && ch != '\"')
-                INCSTR(bufptr);
-            if (ch != '\0')
-                *(bufptr++) = '\0';
-        } else {
-            *(argv++) = bufptr;
-            while ((ch = *bufptr) != '\0' && !ISspace(ch))
-                INCSTR(bufptr);
-            if (ch != '\0')
-                *(bufptr++) = '\0';
-        }
-#else
         *(argv++) = bufptr;
         while ((ch = *bufptr) != '\0' && !ISspace(ch))
             INCSTR(bufptr);
         if (ch != '\0')
             *(bufptr++) = '\0';
-#endif /* ?DOS_FLX_NLM_OS2_W32 */
 #endif /* ?(AMIGA || UNIX) */
         while ((ch = *bufptr) != '\0' && ISspace(ch))
             INCSTR(bufptr);
@@ -195,15 +176,6 @@ static int count_args(s)
                 ++s;        /* trailing quote */
         } else
 #else
-#ifdef DOS_FLX_NLM_OS2_W32
-        if (*s == '\"') {
-            ++s;                /* leading quote */
-            while ((ch = *s) != '\0' && ch != '\"')
-                INCSTR(s);
-            if (*s)
-                ++s;        /* trailing quote */
-        } else
-#endif /* DOS_FLX_NLM_OS2_W32 */
 #endif /* ?(AMIGA || UNIX) */
         while ((ch = *s) != '\0' && !ISspace(ch))  /* note else-clauses above */
             INCSTR(s);

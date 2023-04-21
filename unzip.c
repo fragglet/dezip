@@ -1500,14 +1500,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.rflag = TRUE;
                     break;
 #endif /* TANDEM */
-#ifdef DOS_FLX_NLM_OS2_W32
-                case ('s'):    /* spaces in filenames:  allow by default */
-                    if (negative)
-                        uO.sflag = FALSE, negative = 0;
-                    else
-                        uO.sflag = TRUE;
-                    break;
-#endif /* DOS_FLX_NLM_OS2_W32 */
 #ifdef VMS
                 /* VMS:  extract "text" files in Stream_LF format (-a[a]) */
                 case ('S'):
