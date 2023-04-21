@@ -153,9 +153,6 @@ freely, subject to the above disclaimer and the following restrictions:
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
 
 /* turn off prototypes if requested */
-#if (defined(NOPROTO) && defined(PROTO))
-#  undef PROTO
-#endif
 
 /* used to remove arguments in function prototypes for non-ANSI C */
 #  define OF(a) a
