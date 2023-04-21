@@ -1311,28 +1311,6 @@
 
 #   endif /* _MSC_VER || __MINGW__ || __LCC__ */
 
-#   ifdef __CYGWIN__
-    /* CYGWIN GCC Posix emulator on Windows
-       (configuration not yet finished/tested)  */
-
-      /* 64-bit stat functions */
-#     define zstat _stati64
-#     define zfstat _fstati64
-
-      /* 64-bit lseek */
-#     define zlseek _lseeki64
-
-      /* 64-bit fseeko */
-#     define zfseeko fseeko
-
-      /* 64-bit ftello */
-#     define zftello ftello
-
-      /* 64-bit fopen */
-#     define zfopen fopen
-#     define zfdopen fdopen
-
-#   endif
 #   if defined(__WATCOMC__) || defined(__BORLANDC__)
     /* WATCOM C and Borland C provide their own C runtime libraries,
        but they are sufficiently compatible with MS CRTL. */

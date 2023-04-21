@@ -80,15 +80,6 @@ typedef struct stat z_stat;
 #  define DIRENT
 #endif /* __osf__ */
 
-#ifdef __CYGWIN__
-#  include <unistd.h>
-#  define DIRENT
-#  define HAVE_TERMIOS_H
-#  ifndef timezone
-#    define timezone _timezone
-#  endif
-#endif
-
 #  include <time.h>
    struct tm *gmtime(), *localtime();
 

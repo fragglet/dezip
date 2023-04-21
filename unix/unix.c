@@ -569,19 +569,6 @@ int mapname(__G__ renamed)
                 lastsemi = (char *)NULL; /* leave direct. semi-colons alone */
                 break;
 
-#ifdef __CYGWIN__   /* Cygwin runs on Win32, apply FAT/NTFS filename rules */
-            case ':':         /* drive spec not stored, so no colon allowed */
-            case '\\':        /* '\\' may come as normal filename char (not */
-            case '<':         /*  dir sep char!) from unix-like file system */
-            case '>':         /* no redirection symbols allowed either */
-            case '|':         /* no pipe signs allowed */
-            case '"':         /* no double quotes allowed */
-            case '?':         /* no wildcards allowed */
-            case '*':
-                *pp++ = '_';  /* these rules apply equally to FAT and NTFS */
-                break;
-#endif
-
             case ';':             /* VMS version (or DEC-20 attrib?) */
                 lastsemi = pp;
                 *pp++ = ';';      /* keep for now; remove VMS ";##" */
@@ -1567,9 +1554,6 @@ void version(__G)
 #ifdef __FreeBSD__
       (BSD4_4 == 0.5)? " (FreeBSD 1.x)" : " (FreeBSD 2.0 or later)",
 #else
-#ifdef __CYGWIN__
-      " (Cygwin)",
-#else
 #if defined(i686) || defined(__i686) || defined(__i686__)
       " (Intel 686)",
 #else
@@ -1623,7 +1607,6 @@ void version(__G)
 #endif /* 486 */
 #endif /* 586 */
 #endif /* 686 */
-#endif /* Cygwin */
 #endif /* NetBSD */
 #endif /* FreeBSD */
 #endif /* SCO Xenix */
