@@ -40,9 +40,7 @@
 #  ifdef SFX            /* fUnZip is NOT the sfx stub! */
 #    undef SFX
 #  endif
-#  ifdef USE_BZIP2      /* fUnZip does not support bzip2 decompression */
 #    undef USE_BZIP2
-#  endif
 #endif
 
 #if (defined(USE_ZLIB) && !defined(HAVE_ZL_INFLAT64) && !defined(NO_DEFLATE64))
@@ -261,11 +259,7 @@
 
 #define UNZIP_BZ2VERS   46
 #ifdef ZIP64_SUPPORT
-# ifdef USE_BZIP2
 #  define UNZIP_VERSION   UNZIP_BZ2VERS
-# else
-#  define UNZIP_VERSION   45
-# endif
 #else
 #ifdef USE_DEFLATE64
 #  define UNZIP_VERSION   21   /* compatible with PKUNZIP 4.0 */
@@ -1498,10 +1492,8 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 /* static void  partial_clear    OF((__GPRO));                  * unshrink.c */
 #endif /* !LZW_CLEAN */
 #endif /* !SFX && !FUNZIP */
-#ifdef USE_BZIP2
    int    UZbunzip2              OF((__GPRO));                  /* extract.c */
    void   bz_internal_error      OF((int bzerrcode));           /* ubz2err.c */
-#endif
 
 /*---------------------------------------------------------------------------
     Internal API functions (only included in DLL versions):

@@ -245,9 +245,7 @@ static ZCONST char Far ErrUnzipNoFile[] = "\n  error:  %s%s\n";
 static ZCONST char Far NotEnoughMem[] = "not enough memory to ";
 static ZCONST char Far InvalidComprData[] = "invalid compressed data to ";
 static ZCONST char Far Inflate[] = "inflate";
-#ifdef USE_BZIP2
   static ZCONST char Far BUnzip[] = "bunzip";
-#endif
 
 #ifndef SFX
    static ZCONST char Far Explode[] = "explode";
@@ -926,11 +924,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
 static int store_info(__G)   /* return 0 if skipping, 1 if OK */
     __GDEF
 {
-#ifdef USE_BZIP2
 #  define UNKN_BZ2 (G.crec.compression_method!=BZIPPED)
-#else
-#  define UNKN_BZ2 TRUE       /* bzip2 unknown */
-#endif
 
 #ifdef USE_LZMA
 #  define UNKN_LZMA (G.crec.compression_method!=LZMAED)
@@ -1830,7 +1824,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
             }
             break;
 
-#ifdef USE_BZIP2
         case BZIPPED:
             if (!uO.tflag && QCOND2) {
                 Info(slide, 0, ((char *)slide, LoadFarString(ExtractMsg),
@@ -1859,7 +1852,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
                 }
             }
             break;
-#endif /* USE_BZIP2 */
 
         default:   /* should never get to this point */
             Info(slide, 0x401, ((char *)slide,
@@ -2603,8 +2595,6 @@ static int Cdecl dircomp(a, b)  /* used by qsort(); swiped from Zip */
 }
 
 
-#ifdef USE_BZIP2
-
 /**************************/
 /*  Function UZbunzip2()  */
 /**************************/
@@ -2733,4 +2723,3 @@ uzbunzip_cleanup_exit:
 
     return retval;
 } /* end function UZbunzip2() */
-#endif /* USE_BZIP2 */

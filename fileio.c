@@ -504,8 +504,6 @@ int readbyte(__G)   /* refill inbuf and return a byte if available, else EOF */
 
 
 
-#if defined(USE_ZLIB) || defined(USE_BZIP2)
-
 /************************/
 /* Function fillinbuf() */
 /************************/
@@ -533,8 +531,6 @@ int fillinbuf(__G) /* like readbyte() except returns number of bytes in inbuf */
     return G.incnt;
 
 } /* end function fillinbuf() */
-
-#endif /* USE_ZLIB || USE_BZIP2 */
 
 
 

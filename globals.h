@@ -142,9 +142,7 @@
 #  endif
 #endif
 
-#ifdef USE_BZIP2
 #  include "bzlib.h"
-#endif
 
 
 /*************/

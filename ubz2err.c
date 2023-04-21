@@ -28,8 +28,6 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-#ifdef USE_BZIP2
-
 /**********************************/
 /*  Function bz_internal_error()  */
 /**********************************/
@@ -49,4 +47,3 @@ void bz_internal_error(bzerrcode)
     EXIT(PK_BADERR);
 } /* end function bz_internal_error() */
 
-#endif /* USE_BZIP2 */
