@@ -287,11 +287,7 @@
 #endif
 
 /* some buffer counters must be capable of holding 64k for Deflate64 */
-#if (defined(USE_DEFLATE64) && defined(INT_16BIT))
-#  define UINT_D64 ulg
-#else
 #  define UINT_D64 unsigned
-#endif
 
 #  define wsize WSIZE       /* wsize is a constant */
 

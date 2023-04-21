@@ -2376,9 +2376,6 @@ static int test_compr_eb(__G__ eb, eb_size, compr_offset, test_uc_ebdata)
         return PK_ERR;
 
     if (
-#ifdef INT_16BIT
-        (((ulg)(extent)eb_ucsize) != eb_ucsize) ||
-#endif
         (eb_ucptr = (uch *)malloc((extent)eb_ucsize)) == (uch *)NULL)
         return PK_MEM4;
 

@@ -121,11 +121,7 @@
 #  define WSIZE 0x8000  /* window size--must be a power of two, and */
 #endif                  /* at least 8K for zip's implode method */
 
-#  if defined(USE_DEFLATE64) && defined(INT_16BIT)
-#    define wszimpl (unsigned)(WSIZE>>1)
-#  else /* !(USE_DEFLATE64 && INT_16BIT) */
 #    define wszimpl WSIZE
-#  endif /* !(USE_DEFLATE64 && INT_16BIT) */
 
 /* routines here */
 static int get_tree OF((__GPRO__ unsigned *l, unsigned n));

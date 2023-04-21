@@ -360,9 +360,7 @@
 #  include <fcntl.h>
 #  ifndef __INT32
      /* We are compiling with non-WIDE memory model, int = 16 bits */
-#    ifndef INT_16BIT
 #      define INT_16BIT   /* report "int" size is 16-bit to inflate setup */
-#    endif
 #    ifdef USE_DEFLATE64
        /* Following required for 64k WSIZE of Deflate64 support */
 #      define MED_MEM     /* else OUTBUFSIZ is 64K and fails in do_string */
@@ -759,19 +757,6 @@
 #    define INBUFSIZ  2048  /* works for MS-DOS small model */
 #  else
 #    define INBUFSIZ  8192  /* larger buffers for real OSes */
-#  endif
-#endif
-
-#if (defined(INT_16BIT) && (defined(USE_DEFLATE64) || lenEOL > 1))
-   /* For environments using 16-bit integers OUTBUFSIZ must be limited to
-    * less than 64k (do_string() uses "unsigned" in calculations involving
-    * OUTBUFSIZ).  This is achieved by defining MED_MEM when WSIZE = 64k (aka
-    * Deflate64 support enabled) or EOL markers contain multiple characters.
-    * (The rule gets applied AFTER the default rule for INBUFSIZ because it
-    * is not neccessary to reduce INBUFSIZE in this case.)
-    */
-#  if (!defined(SMALL_MEM) && !defined(MED_MEM))
-#    define MED_MEM
 #  endif
 #endif
 
