@@ -27,10 +27,6 @@
 
 #define UZ_VER_STRING  "6.0"          /* keep in sync with Version numbers! */
 
-#ifndef IZ_COMPANY_NAME               /* might be already defined... */
-#  define IZ_COMPANY_NAME "Info-ZIP"
-#endif
-
 /* these are obsolete but remain for backward compatibility: */
 
 #define DW_MAJORVER    UZ_MAJORVER    /* DLL for MS Windows */
