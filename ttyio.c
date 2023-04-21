@@ -49,52 +49,15 @@
 #  define GLOBAL(g) G.g
 #endif
 
-#  ifndef HAVE_TERMIOS_H
-#    define HAVE_TERMIOS_H     /* POSIX termios.h */
-#  endif
-
 #ifdef UNZIP            /* Zip handles this with the unix/configure script */
 #endif /* UNZIP */
 
-#ifdef HAVE_TERMIOS_H
-#endif
-
    /* include system support for switching of console echo */
-#    ifdef HAVE_TERMIOS_H
 #      include <termios.h>
 #      define sgttyb termios
 #      define sg_flags c_lflag
 #      define GTTY(f, s) tcgetattr(f, (zvoid *) s)
 #      define STTY(f, s) tcsetattr(f, TCSAFLUSH, (zvoid *) s)
-#    else /* !HAVE_TERMIOS_H */
-#      ifdef USE_SYSV_TERMIO           /* Amdahl, Cray, all SysV? */
-#        ifdef NEED_PTEM
-#          include <sys/stream.h>
-#          include <sys/ptem.h>
-#        endif
-#        define sgttyb termio
-#        define sg_flags c_lflag
-#        define GTTY(f,s) ioctl(f,TCGETA,(zvoid *)s)
-#        define STTY(f,s) ioctl(f,TCSETAW,(zvoid *)s)
-#      else /* !USE_SYSV_TERMIO */
-#          if (!defined(MINIX) && !defined(GOT_IOCTL_H))
-#            include <sys/ioctl.h>
-#          endif
-#          include <sgtty.h>
-#          define GTTY gtty
-#          define STTY stty
-#          ifdef UNZIP
-             /*
-              * XXX : Are these declarations needed at all ????
-              */
-             /*
-              * GRR: let's find out...   Hmmm, appears not...
-             int gtty OF((int, struct sgttyb *));
-             int stty OF((int, struct sgttyb *));
-              */
-#          endif
-#      endif /* ?USE_SYSV_TERMIO */
-#    endif /* ?HAVE_TERMIOS_H */
 #      ifndef UNZIP
 #        include <fcntl.h>
 #      endif
