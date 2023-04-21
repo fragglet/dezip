@@ -104,10 +104,6 @@
 #define THS_IWOTH   0x0002         /* write permission: other */
 #define THS_IXOTH   0x0001         /* execute permission: other */
 
-#ifdef OLD_THEOS_EXTRA
-#  include "theos/oldstat.h"
-#endif
-
 #ifndef NSK_UNSTRUCTURED
 # define NSK_UNSTRUCTURED   0
 #endif
@@ -189,9 +185,6 @@ static ZCONST char Far OS_BeOS[] = "BeOS";
 static ZCONST char Far OS_Tandem[] = "Tandem NSK";
 static ZCONST char Far OS_Theos[] = "Theos";
 static ZCONST char Far OS_MacDarwin[] = "Mac OS/X (Darwin)";
-#ifdef OLD_THEOS_EXTRA
-  static ZCONST char Far OS_TheosOld[] = "Theos (Old)";
-#endif /* OLD_THEOS_EXTRA */
 
 static ZCONST char Far MthdNone[] = "none (stored)";
 static ZCONST char Far MthdShrunk[] = "shrunk";
@@ -1029,12 +1022,6 @@ static int zi_long(__G__ pEndprev, error_in_archive)
         varmsg_str = unkn;
     } else {
         varmsg_str = LoadFarStringSmall(os[hostnum]);
-#ifdef OLD_THEOS_EXTRA
-        if (hostnum == FS_VFAT_ && hostver == 20) {
-            /* entry made by old non-official THEOS port zip archive */
-            varmsg_str = LoadFarStringSmall(OS_TheosOld);
-        }
-#endif /* OLD_THEOS_EXTRA */
     }
     Info(slide, 0, ((char *)slide, LoadFarString(HostOS), varmsg_str));
     Info(slide, 0, ((char *)slide, LoadFarString(EncodeSWVer), hostver/10,
@@ -1209,37 +1196,6 @@ static int zi_long(__G__ pEndprev, error_in_archive)
         attribs[20] = 0;
         Info(slide, 0, ((char *)slide, LoadFarString(TheosFileAttributes),
           xattr, attribs));
-
-#ifdef OLD_THEOS_EXTRA
-    } else if (hostnum == FS_VFAT_ && hostver == 20) {
-        /* process old non-official THEOS port zip archive */
-        ZCONST char Far *fpFtyp;
-
-        switch (xattr & _THS_IFMT) {
-            case _THS_IFLIB:  fpFtyp = TheosFTypLib;  break;
-            case _THS_IFDIR:  fpFtyp = TheosFTypDir;  break;
-            case _THS_IFREG:  fpFtyp = TheosFTypReg;  break;
-            case _THS_IODRC:  fpFtyp = TheosFTypRel;  break;
-            case _THS_IOKEY:  fpFtyp = TheosFTypKey;  break;
-            case _THS_IOIND:  fpFtyp = TheosFTypInd;  break;
-            case _THS_IOPRG:  fpFtyp = TheosFTypR16;  break;
-            case _THS_IO286:  fpFtyp = TheosFTypP16;  break;
-            case _THS_IO386:  fpFtyp = TheosFTypP32;  break;
-            default:         fpFtyp = TheosFTypUkn;  break;
-        }
-        strcpy(attribs, LoadFarStringSmall(fpFtyp));
-        attribs[12] = (xattr & _THS_HIDDN) ? 'H' : '.';
-        attribs[13] = (xattr & _THS_IXOTH) ? '.' : 'X';
-        attribs[14] = (xattr & _THS_IWOTH) ? '.' : 'W';
-        attribs[15] = (xattr & _THS_IROTH) ? '.' : 'R';
-        attribs[16] = (xattr & _THS_IEUSR) ? '.' : 'E';
-        attribs[17] = (xattr & _THS_IXUSR) ? '.' : 'X';
-        attribs[18] = (xattr & _THS_IWUSR) ? '.' : 'W';
-        attribs[19] = (xattr & _THS_IRUSR) ? '.' : 'R';
-        attribs[20] = 0;
-        Info(slide, 0, ((char *)slide, LoadFarString(TheosFileAttributes),
-          xattr, attribs));
-#endif /* OLD_THEOS_EXTRA */
 
     } else if ((hostnum != FS_FAT_) && (hostnum != FS_HPFS_) &&
                (hostnum != FS_NTFS_) && (hostnum != FS_VFAT_) &&
@@ -1444,9 +1400,6 @@ static int zi_long(__G__ pEndprev, error_in_archive)
                     ef_fieldname = efSmartZip;
                     break;
                 case EF_THEOS:
-#ifdef OLD_THEOS_EXTRA
-                case EF_THEOSO:
-#endif
                     ef_fieldname = efTheos;
                     break;
                 default:
@@ -1832,9 +1785,6 @@ static int zi_short(__G)   /* return PK-type error code */
         "ths", "osx", "???", "???", "???", "???", "???", "???", "???",
         "???", "???", "???", "ath", "???"
     };
-#ifdef OLD_THEOS_EXTRA
-    static ZCONST char Far os_TheosOld[] = "tho";
-#endif
     static ZCONST char Far method[NUM_METHODS+1][5] = {
         "stor", "shrk", "re:1", "re:2", "re:3", "re:4", "i#:#", "tokn",
         "def#", "d64#", "dcli", "bzp2", "lzma", "ters", "lz77", "wavp",
@@ -1969,33 +1919,6 @@ static int zi_short(__G)   /* return PK-type error code */
             break;
 
         case FS_VFAT_:
-#ifdef OLD_THEOS_EXTRA
-            if (hostver == 20) {
-                switch (xattr & _THS_IFMT) {
-                    case _THS_IFLIB: *attribs = 'L'; break;
-                    case _THS_IFDIR: *attribs = 'd'; break;
-                    case _THS_IFCHR: *attribs = 'c'; break;
-                    case _THS_IFREG: *attribs = 'S'; break;
-                    case _THS_IODRC: *attribs = 'D'; break;
-                    case _THS_IOKEY: *attribs = 'K'; break;
-                    case _THS_IOIND: *attribs = 'I'; break;
-                    case _THS_IOPRG: *attribs = 'P'; break;
-                    case _THS_IO286: *attribs = '2'; break;
-                    case _THS_IO386: *attribs = '3'; break;
-                    default:         *attribs = '?'; break;
-                }
-                attribs[1] = (xattr & _THS_HIDDN) ? 'H' : '.';
-                attribs[2] = (xattr & _THS_IXOTH) ? '.' : 'X';
-                attribs[3] = (xattr & _THS_IWOTH) ? '.' : 'W';
-                attribs[4] = (xattr & _THS_IROTH) ? '.' : 'R';
-                attribs[5] = (xattr & _THS_IEUSR) ? '.' : 'E';
-                attribs[6] = (xattr & _THS_IXUSR) ? '.' : 'X';
-                attribs[7] = (xattr & _THS_IWUSR) ? '.' : 'W';
-                attribs[8] = (xattr & _THS_IRUSR) ? '.' : 'R';
-                sprintf(&attribs[12], "%u.%u", hostver/10, hostver%10);
-                break;
-            } /* else: fall through! */
-#endif /* OLD_THEOS_EXTRA */
 
         case FS_FAT_:
         case FS_HPFS_:
@@ -2072,17 +1995,9 @@ static int zi_short(__G)   /* return PK-type error code */
 
     } /* end switch (hostnum: external attributes format) */
 
-#ifdef OLD_THEOS_EXTRA
-    Info(slide, 0, ((char *)slide, "%s %s %s ", attribs,
-      LoadFarStringSmall(((hostnum == FS_VFAT_ && hostver == 20) ?
-                          os_TheosOld :
-                          os[hostnum])),
-      FmZofft(G.crec.ucsize, "8", "u")));
-#else
     Info(slide, 0, ((char *)slide, "%s %s %s ", attribs,
       LoadFarStringSmall(os[hostnum]),
       FmZofft(G.crec.ucsize, "8", "u")));
-#endif
     Info(slide, 0, ((char *)slide, "%c",
       (G.crec.general_purpose_bit_flag & 1)?
       ((G.crec.internal_file_attributes & 1)? 'T' : 'B') :  /* encrypted */

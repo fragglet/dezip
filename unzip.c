@@ -316,10 +316,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
      static ZCONST char Far W32NoIZTimeFix[] = "NO_W32TIMES_IZFIX";
 #  endif
-#  ifdef OLD_THEOS_EXTRA
-     static ZCONST char Far OldTheosExtra[] =
-     "OLD_THEOS_EXTRA (handle also old Theos port extra field)";
-#  endif
 #  ifdef OS2_EAS
      static ZCONST char Far OS2ExtAttrib[] = "OS2_EAS";
 #  endif
@@ -2101,11 +2097,6 @@ static void show_version_info(__G)
 #if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(W32NoIZTimeFix)));
-        ++numopts;
-#endif
-#ifdef OLD_THEOS_EXTRA
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(OldTheosExtra)));
         ++numopts;
 #endif
 #ifdef OS2_EAS
