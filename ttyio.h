@@ -69,9 +69,6 @@
 
 /* this stuff is used by MORE and also now by the ctrl-S code; fileio.c only */
 #if (defined(UNZIP) && !defined(FUNZIP))
-#  ifdef HAVE_WORKING_GETCH
-#    define FGETCH(f)  getch()
-#  endif
 #  ifndef FGETCH
      /* default for all systems where no getch()-like function is available */
      int zgetch OF((__GPRO__ int f));

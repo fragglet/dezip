@@ -72,7 +72,6 @@
    /* int ioctl OF((int, int, zvoid *));   GRR: may need for some systems */
 #endif
 
-#ifndef HAVE_WORKING_GETCH
    /* include system support for switching of console echo */
 #    ifdef HAVE_TERMIOS_H
 #      include <termios.h>
@@ -118,11 +117,7 @@
 #      ifndef UNZIP
 #        include <fcntl.h>
 #      endif
-#endif /* !HAVE_WORKING_GETCH */
 
-
-
-#ifndef HAVE_WORKING_GETCH
 
 
 /* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
@@ -295,7 +290,6 @@ int zgetch(__G__ f)
 
 
 #endif /* UNZIP && !FUNZIP */
-#endif /* !HAVE_WORKING_GETCH */
 
 
 #if CRYPT                       /* getp() is only used with full encryption */
@@ -312,63 +306,6 @@ int zgetch(__G__ f)
  * Get a password of length n-1 or less into *p using the prompt *m.
  * The entered password is not echoed.
  */
-
-#ifdef HAVE_WORKING_GETCH
-/*
- * For the AMIGA, getch() is defined as Agetch(), which is in
- * amiga/filedate.c; SAS/C 6.x provides a getch(), but since Agetch()
- * uses the infrastructure that is already in place in filedate.c, it is
- * smaller.  With this function, echoff() and echon() are not needed.
- *
- * For the MAC, a non-echo macgetch() function is defined in the MacOS
- * specific sources which uses the event handling mechanism of the
- * desktop window manager to get a character from the keyboard.
- *
- * For the other systems in this section, a non-echo getch() function
- * is either contained the C runtime library (conio package), or getch()
- * is defined as an alias for a similar system specific RTL function.
- */
-
-/* This is the getp() function for all systems (with TTY type user interface)
- * that supply a working `non-echo' getch() function for "raw" console input.
- */
-char *getp(__G__ m, p, n)
-    __GDEF
-    ZCONST char *m;             /* prompt for password */
-    char *p;                    /* return value: line input */
-    int n;                      /* bytes available in p[] */
-{
-    char c;                     /* one-byte buffer for read() to use */
-    int i;                      /* number of characters input */
-    char *w;                    /* warning on retry */
-
-    /* get password */
-    w = "";
-    do {
-        fputs(w, stderr);       /* warning if back again */
-        fputs(m, stderr);       /* display prompt and flush */
-        fflush(stderr);
-        i = 0;
-        do {                    /* read line, keeping first n characters */
-            if ((c = (char)getch()) == '\r')
-                c = '\n';       /* until user hits CR */
-            if (c == 8 || c == 127) {
-                if (i > 0) i--; /* the `backspace' and `del' keys works */
-            }
-            else if (i < n)
-                p[i++] = c;     /* truncate past n */
-        } while (c != '\n');
-        PUTC('\n', stderr);  fflush(stderr);
-        w = "(line too long--try again)\n";
-    } while (p[i-1] != '\n');
-    p[i-1] = 0;                 /* terminate at newline */
-
-    return p;                   /* return pointer to password */
-
-} /* end function getp() */
-
-
-#else /* !HAVE_WORKING_GETCH */
 
 
 #ifndef _PATH_TTY
@@ -424,6 +361,5 @@ char *getp(__G__ m, p, n)
 
 
 
-#endif /* ?HAVE_WORKING_GETCH */
 #endif /* CRYPT */
 #endif /* CRYPT || (UNZIP && !FUNZIP) */
