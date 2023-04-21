@@ -786,7 +786,6 @@ char *plastchar(const char *ptr, extent len);
 
 #define QCOND2 (!uO.qflag)
 
-#define __WDLPRO
 #define __WDL
 #define WISEP
 
@@ -1234,8 +1233,8 @@ int envargs OF((int *Pargc, char ***Pargv, const char *envstr,
 /* envargs.c */
 void mksargs(int *argcp, char ***argvp); /* envargs.c */
 
-int match(const char *s, const char *p, int ic __WDLPRO); /* match.c */
-int iswild(const char *p);                                /* match.c */
+int match(const char *s, const char *p, int ic); /* match.c */
+int iswild(const char *p);                       /* match.c */
 
 /* declarations of public CRC-32 functions have been moved into crc32.h
    (free_crc_table(), get_crc_table(), crc32())                      crc32.c */

@@ -94,10 +94,10 @@
 #if 0 /* GRR:  add this to unzip.h someday... */
 #define match(s, p, ic) (recmatch((const uch *) p, (const uch *) s, ic) == 1)
 int recmatch OF((const uch *pattern, const uch *string,
-                 int ignore_case __WDLPRO));
+                 int ignore_case ));
 #endif /* 0 */
 static int recmatch OF((const uch *pattern, const uch *string,
-                        int ignore_case __WDLPRO));
+                        int ignore_case));
 static char *isshexp(const char *p);
 static int namecmp(const char *s1, const char *s2);
 
