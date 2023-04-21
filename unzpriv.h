@@ -79,9 +79,7 @@
 #endif
 
 #if (defined(DYNAMIC_CRC_TABLE) && !defined(REENTRANT))
-#  ifndef DYNALLOC_CRCTAB
 #    define DYNALLOC_CRCTAB
-#  endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -344,18 +342,7 @@
 #      define far
 #    endif
 
-#if (defined(DYNALLOC_CRCTAB) && !defined(DYNAMIC_CRC_TABLE))
-#  undef DYNALLOC_CRCTAB
-#endif
-
-#if (defined(DYNALLOC_CRCTAB) && defined(REENTRANT))
-#  undef DYNALLOC_CRCTAB   /* not safe with reentrant code */
-#endif
-
 #if (defined(USE_ZLIB) && !defined(USE_OWN_CRCTAB))
-#  ifdef DYNALLOC_CRCTAB
-#    undef DYNALLOC_CRCTAB
-#  endif
 #endif
 
 #ifdef USE_ZLIB

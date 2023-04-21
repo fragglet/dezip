@@ -25,9 +25,6 @@
 #  define ZCONST const
 #endif
 
-#ifdef DYNALLOC_CRCTAB
-   void     free_crc_table  OF((void));
-#endif
 #ifndef USE_ZLIB
    ZCONST ulg near *get_crc_table  OF((void));
 #endif

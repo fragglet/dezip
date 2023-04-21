@@ -84,32 +84,10 @@
 
 local void make_crc_table OF((void));
 
-#if (defined(DYNALLOC_CRCTAB) && defined(REENTRANT))
-   error: Dynamic allocation of CRC table not safe with reentrant code.
-#endif /* DYNALLOC_CRCTAB && REENTRANT */
-
-#ifdef DYNALLOC_CRCTAB
-   local ulg near *crc_table = NULL;
-# if 0          /* not used, since sizeof("near *") <= sizeof(int) */
-   /* Use this section when access to a "local int" is faster than access to
-      a "local pointer" (e.g.: i86 16bit code with far pointers). */
-   local int crc_table_empty = 1;
-#  define CRC_TABLE_IS_EMPTY    (crc_table_empty != 0)
-#  define MARK_CRCTAB_FILLED    crc_table_empty = 0
-#  define MARK_CRCTAB_EMPTY     crc_table_empty = 1
-# else
-   /* Use this section on systems where the size of pointers and ints is
-      equal (e.g.: all 32bit systems). */
-#  define CRC_TABLE_IS_EMPTY    (crc_table == NULL)
-#  define MARK_CRCTAB_FILLED    crc_table = crctab_p
-#  define MARK_CRCTAB_EMPTY     crc_table = NULL
-# endif
-#else /* !DYNALLOC_CRCTAB */
    local ulg near crc_table[CRC_TBLS*256];
    local int crc_table_empty = 1;
 #  define CRC_TABLE_IS_EMPTY    (crc_table_empty != 0)
 #  define MARK_CRCTAB_FILLED    crc_table_empty = 0
-#endif /* ?DYNALLOC_CRCTAB */
 
 
 local void make_crc_table()
@@ -117,11 +95,7 @@ local void make_crc_table()
   ulg c;                /* crc shift register */
   int n;                /* counter for all possible eight bit values */
   int k;                /* byte being shifted into crc apparatus */
-#ifdef DYNALLOC_CRCTAB
-  ulg near *crctab_p;   /* temporary pointer to allocated crc_table area */
-#else /* !DYNALLOC_CRCTAB */
 # define crctab_p crc_table
-#endif /* DYNALLOC_CRCTAB */
 
 #ifdef COMPUTE_XOR_PATTERN
   /* This piece of code has been left here to explain how the XOR pattern
@@ -140,13 +114,6 @@ local void make_crc_table()
 #else
 # define xor 0xedb88320L
 #endif
-
-#ifdef DYNALLOC_CRCTAB
-  crctab_p = (ulg near *) nearmalloc (CRC_TBLS*256*sizeof(ulg));
-  if (crctab_p == NULL) {
-    ziperr(ZE_MEM, "crc_table allocation");
-  }
-#endif /* DYNALLOC_CRCTAB */
 
   /* generate a crc for every 8-bit value */
   for (n = 0; n < 256; n++) {
@@ -171,10 +138,6 @@ local void make_crc_table()
 }
 
 #else /* !DYNAMIC_CRC_TABLE */
-
-#ifdef DYNALLOC_CRCTAB
-   error: Inconsistent flags, DYNALLOC_CRCTAB without DYNAMIC_CRC_TABLE.
-#endif
 
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by make_crc_table)
@@ -629,17 +592,6 @@ ZCONST ulg near *get_crc_table OF((void))
   return crc_table;
 #endif
 }
-
-#ifdef DYNALLOC_CRCTAB
-void free_crc_table()
-{
-  if (!CRC_TABLE_IS_EMPTY)
-  {
-    nearfree((ulg near *)crc_table);
-    MARK_CRCTAB_EMPTY;
-  }
-}
-#endif
 
 #ifndef USE_ZLIB
 

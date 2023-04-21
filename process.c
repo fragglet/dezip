@@ -475,13 +475,6 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
     inflate_free(__G);
     checkdir(__G__ (char *)NULL, END);
 
-#ifdef DYNALLOC_CRCTAB
-    if (CRC_32_TAB) {
-        free_crc_table();
-        CRC_32_TAB = NULL;
-    }
-#endif
-
    if (G.key != (char *)NULL) {
         free(G.key);
         G.key = (char *)NULL;
