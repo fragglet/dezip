@@ -110,8 +110,6 @@ freely, subject to the above disclaimer and the following restrictions:
  * or Macintosh, or Sequent, or Atari, or IBM RS/6000, or Silicon Graphics,
  * or Convex?, or AtheOS, or BeOS.
  */
-#if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
-#endif
 /* Sequent running Dynix/ptx:  non-modern compiler */
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
 
