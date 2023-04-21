@@ -858,11 +858,6 @@ int unzip(__G__ argc, argv)
     getRISCOSexts(ENV_UNZIPEXTS);
 #endif
 
-#ifdef MSDOS
-    /* extract MKS extended argument list from environment (before envargs!) */
-    mksargs(&argc, &argv);
-#endif
-
 #ifdef VMSCLI
     {
         ulg status = vms_unzip_cmdline(&argc, &argv);
@@ -1084,10 +1079,6 @@ cleanup_and_exit:
         free(G.area.Slide);
         G.area.Slide = (uch *)NULL;
     }
-#endif
-#if (defined(MSDOS) && !defined(SFX) && !defined(WINDLL))
-    if (retcode != PK_OK)
-        check_for_windows("UnZip");
 #endif
     return(retcode);
 

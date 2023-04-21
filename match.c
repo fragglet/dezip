@@ -101,7 +101,6 @@
 #endif
 
 #if 0                /* GRR:  add this to unzip.h someday... */
-#if !(defined(MSDOS) && defined(DOSWILD))
 #ifdef WILD_STOP_AT_DIR
 #define match(s,p,ic,sc) (recmatch((ZCONST uch *)p,(ZCONST uch *)s,ic,sc) == 1)
 #else
@@ -109,7 +108,6 @@
 #endif
 int recmatch OF((ZCONST uch *pattern, ZCONST uch *string,
                  int ignore_case __WDLPRO));
-#endif
 #endif /* 0 */
 static int recmatch OF((ZCONST uch *pattern, ZCONST uch *string,
                         int ignore_case __WDLPRO));
@@ -124,38 +122,6 @@ int match(string, pattern, ignore_case __WDL)
     int ignore_case;
     __WDLDEF
 {
-#if (defined(MSDOS) && defined(DOSWILD))
-    char *dospattern;
-    int j = strlen(pattern);
-
-/*---------------------------------------------------------------------------
-    Optional MS-DOS preprocessing section:  compare last three chars of the
-    wildcard to "*.*" and translate to "*" if found; else compare the last
-    two characters to "*." and, if found, scan the non-wild string for dots.
-    If in the latter case a dot is found, return failure; else translate the
-    "*." to "*".  In either case, continue with the normal (Unix-like) match
-    procedure after translation.  (If not enough memory, default to normal
-    match.)  This causes "a*.*" and "a*." to behave as MS-DOS users expect.
-  ---------------------------------------------------------------------------*/
-
-    if ((dospattern = (char *)malloc(j+1)) != NULL) {
-        strcpy(dospattern, pattern);
-        if (!strcmp(dospattern+j-3, "*.*")) {
-            dospattern[j-2] = '\0';                    /* nuke the ".*" */
-        } else if (!strcmp(dospattern+j-2, "*.")) {
-            char *p = MBSCHR(string, '.');
-
-            if (p) {   /* found a dot:  match fails */
-                free(dospattern);
-                return 0;
-            }
-            dospattern[j-1] = '\0';                    /* nuke the end "." */
-        }
-        j = recmatch((uch *)dospattern, (uch *)string, ignore_case __WDL);
-        free(dospattern);
-        return j == 1;
-    } else
-#endif /* MSDOS && DOSWILD */
     return recmatch((uch *)pattern, (uch *)string, ignore_case __WDL) == 1;
 }
 

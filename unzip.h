@@ -149,9 +149,6 @@ freely, subject to the above disclaimer and the following restrictions:
 
 /* RSXNTDJ (at least up to v1.3) compiles for WIN32 (RSXNT) using a derivate
    of the EMX environment, but defines MSDOS and __GO32__. ARG !!! */
-#if (defined(MSDOS) && defined(WIN32))
-#  undef MSDOS                  /* WIN32 is >>>not<<< MSDOS */
-#endif
 
 #ifdef __riscos
 #  define RISCOS

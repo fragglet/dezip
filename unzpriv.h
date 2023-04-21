@@ -2049,12 +2049,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
     MSDOS-only functions:
   ---------------------------------------------------------------------------*/
 
-#ifdef MSDOS
-#if (!defined(FUNZIP) && !defined(SFX) && !defined(WINDLL))
-   void     check_for_windows     OF((ZCONST char *app));         /* msdos.c */
-#endif
-#endif
-
 /*---------------------------------------------------------------------------
     OS/2-only functions:
   ---------------------------------------------------------------------------*/
