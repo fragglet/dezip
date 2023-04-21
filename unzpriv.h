@@ -48,12 +48,7 @@
 #  define NO_DEFLATE64
 #endif
 
-#ifdef NO_DEFLATE64
-   /* disable support for Deflate64(tm) */
-#    undef USE_DEFLATE64
-#else
    /* enable Deflate64(tm) support unless compiling for SFX stub */
-#endif
 
 /* disable bzip2 support for SFX stub, unless explicitly requested */
 #if (defined(SFX) && !defined(BZIP2_SFX) && defined(USE_BZIP2))
