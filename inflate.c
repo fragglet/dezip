@@ -729,17 +729,9 @@ static ZCONST uch cpdext64[] = {
 static ZCONST uch cpdext32[] = {
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
-#ifdef PKZIP_BUG_WORKAROUND
         12, 12, 13, 13, INVALID_CODE, INVALID_CODE};
-#else
-        12, 12, 13, 13};
-#endif
 
-#ifdef PKZIP_BUG_WORKAROUND
 #  define MAXLITLENS 288
-#else
-#  define MAXLITLENS 286
-#endif
 #  define MAXDISTS 32
 
 
@@ -1219,10 +1211,8 @@ static int inflate_dynamic(__G)
   }
   bd = dbits;
   retval = huft_build(__G__ ll + nl, nd, 0, cpdist, G.cpdext, &td, &bd);
-#ifdef PKZIP_BUG_WORKAROUND
   if (retval == 1)
     retval = 0;
-#endif
   if (bd == 0 && nl > 257)    /* lengths but no distances */
     retval = 1;
   if (retval)
