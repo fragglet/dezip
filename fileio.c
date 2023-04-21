@@ -229,15 +229,11 @@ int open_input_file(__G)    /* return 1 if open failed */
 #ifdef MACOS
     G.zipfd = open(G.zipfn, 0);
 #else /* !MACOS */
-#ifdef CMS_MVS
-    G.zipfd = vmmvs_open_infile(__G);
-#else /* !CMS_MVS */
 #ifdef USE_STRM_INPUT
     G.zipfd = fopen(G.zipfn, FOPR);
 #else /* !USE_STRM_INPUT */
     G.zipfd = open(G.zipfn, O_RDONLY | O_BINARY);
 #endif /* ?USE_STRM_INPUT */
-#endif /* ?CMS_MVS */
 #endif /* ?MACOS */
 #endif /* ?VMS */
 

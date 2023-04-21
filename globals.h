@@ -309,10 +309,6 @@ typedef struct Globals {
     char     *unipath_filename;    /* UTF-8 path */
 #endif /* UNICODE_SUPPORT */
 
-#ifdef CMS_MVS
-    char     *tempfn;              /* temp file used; erase on close */
-#endif
-
     char *key;         /* crypt static: decryption password or NULL */
     int nopwd;         /* crypt static */
 #endif /* !FUNZIP */

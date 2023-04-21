@@ -62,9 +62,7 @@
 #endif
 
 #if (defined(VM_CMS) || defined(MVS))
-#  ifndef CMS_MVS
 #    define CMS_MVS
-#  endif
 #endif
 
 
@@ -136,10 +134,6 @@
  * of crypt support and UnZip's "pause prompting" features, but without
  * any echo suppression.
  */
-#ifdef CMS_MVS
-#  define echoff(f)
-#  define echon()
-#endif
 
 #ifdef TANDEM
 #  define echoff(f)

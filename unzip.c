@@ -1126,11 +1126,7 @@ int unzip(__G__ argc, argv)
         G.pfnames = argv;
         while (*++pp) {
             Trace((stderr, "pp - argv = %d\n", pp-argv));
-#ifdef CMS_MVS
-            if (!uO.exdir && STRNICMP(*pp, "-d", 2) == 0) {
-#else
             if (!uO.exdir && strncmp(*pp, "-d", 2) == 0) {
-#endif
                 int firstarg = (pp == argv);
 
                 uO.exdir = (*pp) + 2;
@@ -1293,11 +1289,7 @@ int uz_opts(__G__ pargc, pargv)
     while (++argv, (--argc > 0 && *argv != NULL && **argv == '-')) {
         s = *argv + 1;
         while ((c = *s++) != 0) {    /* "!= 0":  prevent Turbo C warning */
-#ifdef CMS_MVS
-            switch (tolower(c))
-#else
             switch (c)
-#endif
             {
                 case ('-'):
                     ++negative;
@@ -1368,14 +1360,12 @@ int uz_opts(__G__ pargc, pargv)
 #endif
                     }
                     break;
-#ifndef CMS_MVS
                 case ('C'):    /* -C:  match filenames case-insensitively */
                     if (negative)
                         uO.C_flag = FALSE, negative = 0;
                     else
                         uO.C_flag = TRUE;
                     break;
-#endif /* !CMS_MVS */
 #if (!defined(SFX) || defined(SFX_EXDIR))
                 case ('d'):
                     if (negative) {   /* negative not allowed with -d exdir */
@@ -1502,7 +1492,6 @@ int uz_opts(__G__ pargc, pargv)
                         ++uO.vflag;
                     break;
 #endif /* !SFX */
-#ifndef CMS_MVS
                 case ('L'):    /* convert (some) filenames to lowercase */
                     if (negative) {
                         uO.L_flag = MAX(uO.L_flag-negative,0);
@@ -1510,11 +1499,7 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.L_flag;
                     break;
-#endif /* !CMS_MVS */
 #ifdef MORE
-#ifdef CMS_MVS
-                case ('m'):
-#endif
                 case ('M'):    /* send all screen output through "more" fn. */
 /* GRR:  eventually check for numerical argument => height */
                     if (negative)
@@ -1657,14 +1642,12 @@ int uz_opts(__G__ pargc, pargv)
                         uO.U_flag++;
                     break;
 #else /* !UNICODE_SUPPORT */
-#ifndef CMS_MVS
                 case ('U'):    /* obsolete; to be removed in version 6.0 */
                     if (negative)
                         uO.L_flag = TRUE, negative = 0;
                     else
                         uO.L_flag = FALSE;
                     break;
-#endif /* !CMS_MVS */
 #endif /* ?UNICODE_SUPPORT */
 #ifndef SFX
                 case ('v'):    /* verbose */
@@ -1677,14 +1660,12 @@ int uz_opts(__G__ pargc, pargv)
                         uO.vflag = 2;
                     break;
 #endif /* !SFX */
-#ifndef CMS_MVS
                 case ('V'):    /* Version (retain VMS/DEC-20 file versions) */
                     if (negative)
                         uO.V_flag = FALSE, negative = 0;
                     else
                         uO.V_flag = TRUE;
                     break;
-#endif /* !CMS_MVS */
 #ifdef WILD_STOP_AT_DIR
                 case ('W'):    /* Wildcard interpretation (stop at '/'?) */
                     if (negative)

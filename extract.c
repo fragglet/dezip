@@ -1791,9 +1791,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
      __GDEF
 {
     char *nul="[empty] ", *txt="[text]  ", *bin="[binary]";
-#ifdef CMS_MVS
-    char *ebc="[ebcdic]";
-#endif
     register int b;
     int r, error=PK_COOL;
 

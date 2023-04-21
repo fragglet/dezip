@@ -243,15 +243,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #    define MODERN
 #  endif
 #endif
-#if (defined(CMS_MVS) || defined(__ATHEOS__) || defined(__BEOS__))
-/* || defined(CONVEX) ? */
-#  ifndef PROTO
-#    define PROTO
-#  endif
-#  ifndef MODERN
-#    define MODERN
-#  endif
-#endif
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
 #if (defined(__hpux))
 #  ifndef MODERN

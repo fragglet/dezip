@@ -144,7 +144,6 @@
 #        define GTTY(f,s) ioctl(f,TCGETA,(zvoid *)s)
 #        define STTY(f,s) ioctl(f,TCSETAW,(zvoid *)s)
 #      else /* !USE_SYSV_TERMIO */
-#        ifndef CMS_MVS
 #          if (!defined(MINIX) && !defined(GOT_IOCTL_H))
 #            include <sys/ioctl.h>
 #          endif
@@ -161,7 +160,6 @@
              int stty OF((int, struct sgttyb *));
               */
 #          endif
-#        endif /* !CMS_MVS */
 #      endif /* ?USE_SYSV_TERMIO */
 #    endif /* ?HAVE_TERMIOS_H */
 #    ifndef NO_FCNTL_H
@@ -290,7 +288,6 @@ int tt_getch()
 
 
 /* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
-#ifndef CMS_MVS
 
 #ifdef ZIP                      /* moved to globals.h for UnZip */
    static int echofd=(-1);      /* file descriptor whose echo is off */
@@ -327,7 +324,6 @@ void Echon(__G)
     }
 }
 
-#endif /* !CMS_MVS */
 #endif /* ?VMS */
 
 
