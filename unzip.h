@@ -170,33 +170,21 @@ freely, subject to the above disclaimer and the following restrictions:
 #  ifndef PROTO
 #    define PROTO
 #  endif
-#  ifndef MODERN
-#    define MODERN
-#  endif
 #endif
 #if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
 #  ifndef PROTO
 #    define PROTO
-#  endif
-#  ifndef MODERN
-#    define MODERN
 #  endif
 #endif
 #if (defined(MACOS) || defined(ATARI_ST) || defined(RISCOS) || defined(THEOS))
 #  ifndef PROTO
 #    define PROTO
 #  endif
-#  ifndef MODERN
-#    define MODERN
-#  endif
 #endif
 /* Sequent running Dynix/ptx:  non-modern compiler */
 #if (defined(_AIX) || defined(sgi) || (defined(_SEQUENT_) && !defined(PTX)))
 #  ifndef PROTO
 #    define PROTO
-#  endif
-#  ifndef MODERN
-#    define MODERN
 #  endif
 #endif
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
@@ -214,11 +202,9 @@ freely, subject to the above disclaimer and the following restrictions:
 #endif
 
 /* enable the "const" keyword only if MODERN and if not otherwise instructed */
-#ifdef MODERN
 #  if (!defined(ZCONST) && (defined(USE_CONST) || !defined(NO_CONST)))
 #    define ZCONST const
 #  endif
-#endif
 
 #ifndef ZCONST
 #  define ZCONST
@@ -322,14 +308,7 @@ extern "C" {
   ---------------------------------------------------------------------------*/
 
 #ifndef _IZ_TYPES_DEFINED
-#ifdef MODERN
    typedef void zvoid;
-#else /* !MODERN */
-#    ifndef VAXC         /* not fully modern, but has knows 'void' */
-#      define void int
-#    endif /* !VAXC */
-   typedef char zvoid;
-#endif /* ?MODERN */
 typedef unsigned char   uch;    /* code assumes unsigned bytes; these type-  */
 typedef unsigned short  ush;    /*  defs replace byte/UWORD/ULONG (which are */
 typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
