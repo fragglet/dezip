@@ -139,13 +139,6 @@
 #  define NO_UID_GID         /* no uid_t/gid_t */
 #endif
 
-#ifdef DNIX
-#  define SYSV
-#  define SHORT_NAMES         /* 14-char limitation on path components */
-/* #  define FILENAME_MAX  14 */
-#  define FILENAME_MAX  NAME_MAX    /* GRR:  experiment */
-#endif
-
 #if (defined(SYSTEM_FIVE) || defined(__SYSTEM_FIVE))
 #  ifndef SYSV
 #    define SYSV
