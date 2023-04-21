@@ -317,15 +317,6 @@ unsigned bdl;                   /* number of distance low bits */
           d += e;
         }
         else
-#ifndef NOMEMCPY
-          if (w - d >= e)       /* (this test assumes unsigned comparison) */
-          {
-            memcpy(redirSlide + w, redirSlide + d, e);
-            w += e;
-            d += e;
-          }
-          else                  /* do it slow to avoid memcpy() overlap */
-#endif /* !NOMEMCPY */
             do {
               redirSlide[w++] = redirSlide[d++];
             } while (--e);
@@ -427,15 +418,6 @@ unsigned bdl;           /* number of distance low bits */
           d += e;
         }
         else
-#ifndef NOMEMCPY
-          if (w - d >= e)       /* (this test assumes unsigned comparison) */
-          {
-            memcpy(redirSlide + w, redirSlide + d, e);
-            w += e;
-            d += e;
-          }
-          else                  /* do it slow to avoid memcpy() overlap */
-#endif /* !NOMEMCPY */
             do {
               redirSlide[w++] = redirSlide[d++];
             } while (--e);
