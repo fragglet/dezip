@@ -650,7 +650,7 @@ int extract_or_test_files(__G) /* return PK-type error code */
          * the next batch of files.
          */
 
-        G.cur_zipfile_bufstart = zlseek(G.zipfd, cd_bufstart, SEEK_SET);
+        G.cur_zipfile_bufstart = lseek(G.zipfd, cd_bufstart, SEEK_SET);
         read(G.zipfd, (char *) G.inbuf, INBUFSIZ); /* been here before... */
         G.inptr = cd_inptr;
         G.incnt = cd_incnt;
@@ -1076,7 +1076,7 @@ int error_in_archive;
 
         if (bufstart != G.cur_zipfile_bufstart) {
             Trace((stderr, "debug: bufstart != cur_zipfile_bufstart\n"));
-            G.cur_zipfile_bufstart = zlseek(G.zipfd, bufstart, SEEK_SET);
+            G.cur_zipfile_bufstart = lseek(G.zipfd, bufstart, SEEK_SET);
             if ((G.incnt = read(G.zipfd, (char *) G.inbuf, INBUFSIZ)) <= 0) {
                 Info(slide, 0x401,
                      ((char *) slide, LoadFarString(OffsetMsg), *pfilnum,
@@ -2149,7 +2149,7 @@ set_deferred_symlink(__G__ slnk_entry) __GDEF slinkentry *slnk_entry;
         return;
     }
     linktarget[ucsize] = '\0';
-    G.outfile = zfopen(linkfname, FOPR); /* open link placeholder for reading */
+    G.outfile = fopen(linkfname, FOPR); /* open link placeholder for reading */
     /* Check that the following conditions are all fulfilled:
      * a) the placeholder file exists,
      * b) the placeholder file contains exactly "ucsize" bytes

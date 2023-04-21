@@ -43,7 +43,7 @@
              memset()                 (ZMEM only)
              memcpy()                 (ZMEM only)
              zstrnicmp()              (NO_STRNICMP only)
-             zstat()                  (REGULUS only)
+             stat()                  (REGULUS only)
              plastchar()              (_MBCS only)
              uzmbclen()               (_MBCS && NEED_UZMBCLEN, only)
              uzmbschr()               (_MBCS && NEED_UZMBSCHR, only)
@@ -194,7 +194,7 @@ int open_outfile(__G) /* return 1 if fail */
     Info(slide, 1,
          ((char *) slide, "open_outfile:  doing fopen(%s) for reading\n",
           FnFilter1(G.filename)));
-    if ((G.outfile = zfopen(G.filename, FOPR)) == (FILE *) NULL)
+    if ((G.outfile = fopen(G.filename, FOPR)) == (FILE *) NULL)
         Info(slide, 1,
              ((char *) slide,
               "open_outfile:  fopen(%s) for reading failed:  does not exist\n",
@@ -214,7 +214,7 @@ int open_outfile(__G) /* return 1 if fail */
         /* These features require the ability to re-read extracted data from
            the output files. Output files are created with Read&Write access.
          */
-        G.outfile = zfopen(G.filename, FOPWR);
+        G.outfile = fopen(G.filename, FOPWR);
         umask(umask_sav);
     }
     if (G.outfile == (FILE *) NULL) {
@@ -434,7 +434,7 @@ int seek_zipf(__G__ abs_offset) __GDEF zoff_t abs_offset;
         Trace((stderr, "fpos_zip: abs_offset = %s, G.extra_bytes = %s\n",
                FmZofft(abs_offset, NULL, NULL),
                FmZofft(G.extra_bytes, NULL, NULL)));
-        G.cur_zipfile_bufstart = zlseek(G.zipfd, bufstart, SEEK_SET);
+        G.cur_zipfile_bufstart = lseek(G.zipfd, bufstart, SEEK_SET);
         Trace((stderr,
                "       request = %s, (abs+extra) = %s, inbuf_offset = %s\n",
                FmZofft(request, NULL, NULL),

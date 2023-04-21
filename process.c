@@ -671,9 +671,9 @@ int fh;
     char waste[4];
 
     /* Seek to actual EOF. */
-    ofs = zlseek(fh, 0, SEEK_END);
+    ofs = lseek(fh, 0, SEEK_END);
     if (ofs == (zoff_t) -1) {
-        /* zlseek() failed.  (Unlikely.) */
+        /* lseek() failed.  (Unlikely.) */
         ofs = EOF;
     } else if (ofs < 0) {
         /* Offset negative (overflow).  File too big. */
@@ -682,9 +682,9 @@ int fh;
         /* Seek to apparent EOF offset.
            Won't be at actual EOF if offset was truncated.
         */
-        ofs = zlseek(fh, ofs, SEEK_SET);
+        ofs = lseek(fh, ofs, SEEK_SET);
         if (ofs == (zoff_t) -1) {
-            /* zlseek() failed.  (Unlikely.) */
+            /* lseek() failed.  (Unlikely.) */
             ofs = EOF;
         } else {
             /* Read a byte at apparent EOF.  Should set EOF flag. */
@@ -718,7 +718,7 @@ int rec_size;
       ---------------------------------------------------------------------------*/
 
     if ((tail_len = G.ziplen % INBUFSIZ) > rec_size) {
-        G.cur_zipfile_bufstart = zlseek(G.zipfd, G.ziplen - tail_len, SEEK_SET);
+        G.cur_zipfile_bufstart = lseek(G.zipfd, G.ziplen - tail_len, SEEK_SET);
         if ((G.incnt = read(G.zipfd, (char *) G.inbuf,
                             (unsigned int) tail_len)) != (int) tail_len)
             return 2; /* it's expedient... */
@@ -749,7 +749,7 @@ int rec_size;
 
     for (i = 1; !found && (i <= numblks); ++i) {
         G.cur_zipfile_bufstart -= INBUFSIZ;
-        zlseek(G.zipfd, G.cur_zipfile_bufstart, SEEK_SET);
+        lseek(G.zipfd, G.cur_zipfile_bufstart, SEEK_SET);
         if ((G.incnt = read(G.zipfd, (char *) G.inbuf, INBUFSIZ)) != INBUFSIZ)
             return 2; /* read error is fatal failure */
 
@@ -811,7 +811,7 @@ static int find_ecrec64(__G__ searchlen) /* return PK-class error */
         /* Seeking would go past beginning, so probably empty archive */
         return PK_COOL;
 
-    G.cur_zipfile_bufstart = zlseek(G.zipfd, ecloc64_start_offset, SEEK_SET);
+    G.cur_zipfile_bufstart = lseek(G.zipfd, ecloc64_start_offset, SEEK_SET);
 
     if ((G.incnt = read(G.zipfd, (char *) byterecL, ECLOC64_SIZE + 4)) !=
         (ECLOC64_SIZE + 4)) {
@@ -874,7 +874,7 @@ static int find_ecrec64(__G__ searchlen) /* return PK-class error */
         return PK_ERR;
     }
 
-    G.cur_zipfile_bufstart = zlseek(G.zipfd, ecrec64_start_offset, SEEK_SET);
+    G.cur_zipfile_bufstart = lseek(G.zipfd, ecrec64_start_offset, SEEK_SET);
 
     if ((G.incnt = read(G.zipfd, (char *) byterec, ECREC64_SIZE + 4)) !=
         (ECREC64_SIZE + 4)) {
@@ -894,8 +894,7 @@ static int find_ecrec64(__G__ searchlen) /* return PK-class error */
         /* Make a guess as to where the Zip64 EOCD Record might be */
         ecrec64_start_offset = ecloc64_start_offset - ECREC64_SIZE - 4;
 
-        G.cur_zipfile_bufstart =
-            zlseek(G.zipfd, ecrec64_start_offset, SEEK_SET);
+        G.cur_zipfile_bufstart = lseek(G.zipfd, ecrec64_start_offset, SEEK_SET);
 
         if ((G.incnt = read(G.zipfd, (char *) byterec, ECREC64_SIZE + 4)) !=
             (ECREC64_SIZE + 4)) {
@@ -1016,7 +1015,7 @@ static int find_ecrec(__G__ searchlen) /* return PK-class error */
       ---------------------------------------------------------------------------*/
 
     if (G.ziplen <= INBUFSIZ) {
-        zlseek(G.zipfd, 0L, SEEK_SET);
+        lseek(G.zipfd, 0L, SEEK_SET);
         if ((G.incnt = read(G.zipfd, (char *) G.inbuf,
                             (unsigned int) G.ziplen)) == (int) G.ziplen)
 

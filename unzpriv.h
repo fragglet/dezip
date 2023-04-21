@@ -484,32 +484,17 @@ char *plastchar OF((const char *ptr, extent len));
 /* ---------------------------- */
 
 /* 64-bit stat functions */
-#define zstat  stat
-#define zfstat fstat
 
 /* 64-bit fseeko */
-#define zlseek  lseek
-#define zfseeko fseeko
 
 /* 64-bit ftello */
-#define zftello ftello
 
 /* 64-bit fopen */
-#define zfopen  fopen
-#define zfdopen fdopen
 
 /* ---------------------------- */
 
 #else
 /* No Large File Support */
-
-#define zstat   stat
-#define zfstat  fstat
-#define zlseek  lseek
-#define zfseeko fseek
-#define zftello ftell
-#define zfopen  fopen
-#define zfdopen fdopen
 
 /* For these systems, implement "64bit file vs. 32bit prog" check  */
 
@@ -518,7 +503,7 @@ char *plastchar OF((const char *ptr, extent len));
 /* No "64bit file vs. 32bit prog" check for SFX stub, to save space */
 
 #ifndef SSTAT
-#define SSTAT zstat
+#define SSTAT stat
 #endif
 
 /* Default fzofft() format selection. */
