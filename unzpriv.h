@@ -271,9 +271,6 @@ typedef size_t extent;
 #ifndef near
 #define near
 #endif
-#ifndef far
-#define far
-#endif
 
 #ifndef INBUFSIZ
 #define INBUFSIZ 8192 /* larger buffers for real OSes */
@@ -412,7 +409,7 @@ char *plastchar(const char *ptr, extent len);
 /* Any system without a special calloc function */
 #ifndef zcalloc
 #define zcalloc(items, size) \
-    (void far *) calloc((unsigned) (items), (unsigned) (size))
+    (void *) calloc((unsigned) (items), (unsigned) (size))
 #endif
 #ifndef zcfree
 #define zcfree free
