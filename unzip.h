@@ -162,14 +162,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #endif /* __COMPILER_KCC__ */
 
 /* Borland C does not define __TURBOC__ if compiling for a 32-bit platform */
-#ifdef __BORLANDC__
-#  ifndef __TURBOC__
-#    define __TURBOC__
-#  endif
-#  if (!defined(__MSDOS__) && !defined(OS2) && !defined(WIN32))
-#    define __MSDOS__
-#  endif
-#endif
 
 /* define MSDOS for Turbo C (unless OS/2) and Power C as well as Microsoft C */
 #ifdef __POWERC

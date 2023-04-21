@@ -356,9 +356,6 @@
 #    define TIMET_TO_NATIVE(x)  (x) += (ulg)2209075200L;
 #    define NATIVE_TO_TIMET(x)  (x) -= (ulg)2209075200L;
 #  endif
-#  if (defined(__BORLANDC__) && (__BORLANDC__ >= 0x0450))
-#    define timezone      _timezone
-#  endif
 #  if (defined(__GO32__) || defined(FLEXOS))
 #    define DIR_END       '/'
 #  else
