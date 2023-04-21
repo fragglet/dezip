@@ -25,10 +25,8 @@ ZCONST unsigned near mask_bits[17] = {
 
 ZCONST char Far VersionDate[] = UZ_VERSION_DATE; /* now defined in unzvers.h */
 
-#ifndef SFX
    ZCONST char Far EndSigMsg[] =
    "\nnote:  didn't find end-of-central-dir signature at end of central dir.\n";
-#endif
 
 ZCONST char Far CentSigMsg[] =
   "error:  expected central file header signature not found (file #%lu).\n";
@@ -42,7 +40,5 @@ ZCONST char Far ExclFilenameNotMatched[] =
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode and that you have compiled UnZip properly)\n";
 
-#ifndef SFX
   ZCONST char Far Zipnfo[] = "zipinfo";
   ZCONST char Far CompiledWith[] = "Compiled with %s%s for %s%s%s%s.\n\n";
-#endif

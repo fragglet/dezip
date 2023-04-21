@@ -1399,51 +1399,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
 
     switch (option) {
 
-#if (defined(SFX) && defined(CHEAP_SFX_AUTORUN))
-    /*
-     * Special case: See if the comment begins with an autorun command line.
-     * Save that and display (or skip) the remainder.
-     */
-
-    case CHECK_AUTORUN:
-    case CHECK_AUTORUN_Q:
-        comment_bytes_left = length;
-        if (length >= 10)
-        {
-            block_len = readbuf(__G__ (char *)G.outbuf, 10);
-            if (block_len == 0)
-                return PK_EOF;
-            comment_bytes_left -= block_len;
-            G.outbuf[block_len] = '\0';
-            if (!strcmp((char *)G.outbuf, "$AUTORUN$>")) {
-                char *eol;
-                length -= 10;
-                block_len = readbuf(__G__ G.autorun_command,
-                                    MIN(length, sizeof(G.autorun_command)-1));
-                if (block_len == 0)
-                    return PK_EOF;
-                comment_bytes_left -= block_len;
-                G.autorun_command[block_len] = '\0';
-                A_TO_N(G.autorun_command);
-                eol = strchr(G.autorun_command, '\n');
-                if (!eol)
-                    eol = G.autorun_command + strlen(G.autorun_command) - 1;
-                length -= eol + 1 - G.autorun_command;
-                while (eol >= G.autorun_command && isspace(*eol))
-                    *eol-- = '\0';
-            }
-        }
-        if (option == CHECK_AUTORUN_Q)  /* don't display the remainder */
-            length = 0;
-        /* seek to beginning of remaining part of comment -- rewind if */
-        /* displaying entire comment, or skip to end if discarding it  */
-        seek_zipf(__G__ G.cur_zipfile_bufstart - G.extra_bytes +
-                  (G.inptr - G.inbuf) + comment_bytes_left - length);
-        if (!length)
-            break;
-        /*  FALL THROUGH...  */
-#endif /* SFX && CHEAP_SFX_AUTORUN */
-
     /*
      * First normal case:  print string on standard output.  First set loop
      * variables, then loop through the comment in chunks of OUTBUFSIZ bytes,

@@ -77,10 +77,8 @@
 /* Local Functions */
 /*******************/
 
-#ifndef SFX
 static void  help_extended      OF((__GPRO));
 static void  show_version_info  OF((__GPRO));
-#endif
 
 
 /*************/
@@ -92,7 +90,6 @@ static void  show_version_info  OF((__GPRO));
 
 /* constant local variables: */
 
-#ifndef SFX
    static ZCONST char Far EnvUnZip[] = ENV_UNZIP;
    static ZCONST char Far EnvUnZip2[] = ENV_UNZIP2;
    static ZCONST char Far EnvZipInfo[] = ENV_ZIPINFO;
@@ -101,31 +98,25 @@ static void  show_version_info  OF((__GPRO));
     "envargs:  cannot get memory for arguments";
   static ZCONST char Far CmdLineParamTooLong[] =
     "error:  command line parameter #%d exceeds internal size limit\n";
-#endif /* !SFX */
 
-#if (!defined(SFX) || defined(SFX_EXDIR))
    static ZCONST char Far NotExtracting[] =
      "caution:  not extracting; -d ignored\n";
    static ZCONST char Far MustGiveExdir[] =
      "error:  must specify directory to which to extract with -d option\n";
    static ZCONST char Far OnlyOneExdir[] =
      "error:  -d option used more than once (only one exdir allowed)\n";
-#endif
 
    static ZCONST char Far MustGivePasswd[] =
      "error:  must give decryption password with -P option\n";
 
-#ifndef SFX
    static ZCONST char Far Zfirst[] =
    "error:  -Z must be first option for ZipInfo mode (check UNZIP variable?)\n";
-#endif
 static ZCONST char Far InvalidOptionsMsg[] = "error:\
   -fn or any combination of -c, -l, -p, -t, -u and -v options invalid\n";
 static ZCONST char Far IgnoreOOptionMsg[] =
   "caution:  both -n and -o specified; ignoring -o\n";
 
 /* usage() strings */
-#ifndef SFX
    static ZCONST char Far Example3[] = "ReadMe";
    static ZCONST char Far Example2[] = " \
  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
@@ -142,7 +133,6 @@ static ZCONST char Far IgnoreOOptionMsg[] =
    static ZCONST char Far local2[] = " -X  restore UID/GID info";
    static ZCONST char Far local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
-#endif /* !SFX */
 
 #ifndef NO_ZIPINFO
    static ZCONST char Far ZipInfoExample[] = "*, ?, [] (e.g., \"[a-j]*.zip\")";
@@ -170,17 +160,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
    static ZCONST char Far ZipInfoUsageLine4[] = "";
 #endif /* !NO_ZIPINFO */
 
-#ifdef SFX
-     static ZCONST char Far UnzipSFXBanner[] =
-     "UnZipSFX %d.%d%d%s of %s, by Info-ZIP (http://www.info-zip.org).\n";
-#  ifdef SFX_EXDIR
-     static ZCONST char Far UnzipSFXOpts[] =
-    "Valid options are -tfupcz and -d <exdir>; modifiers are -abjnoqCL%sV%s.\n";
-#  else
-     static ZCONST char Far UnzipSFXOpts[] =
-       "Valid options are -tfupcz; modifiers are -abjnoqCL%sV%s.\n";
-#  endif
-#else /* !SFX */
    static ZCONST char Far CompileOptions[] =
      "UnZip special compilation options:\n";
    static ZCONST char Far CompileOptFormat[] = "        %s\n";
@@ -323,7 +302,6 @@ See \"unzip -hh\" or unzip.txt for more help.  Examples:\n\
   unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
 %s\
   unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
-#endif /* ?SFX */
 
 
 
@@ -360,9 +338,7 @@ int unzip(__G__ argc, argv)
 #ifndef NO_ZIPINFO
     char *p;
 #endif
-#if (defined(DOS_FLX_H68_NLM_OS2_W32) || !defined(SFX))
     int i;
-#endif
     int retcode, error=FALSE;
 #   define SET_SIGHANDLER(sigtype, newsighandler) \
       signal((sigtype), (newsighandler))
@@ -543,15 +519,6 @@ int unzip(__G__ argc, argv)
     through any command-line options lurking about...
   ---------------------------------------------------------------------------*/
 
-#ifdef SFX
-    G.argv0 = argv[0];
-    G.zipfn = G.argv0;
-
-    uO.zipinfo_mode = FALSE;
-    error = uz_opts(__G__ &argc, &argv);   /* UnZipSFX call only */
-
-#else /* !SFX */
-
     G.noargs = (argc == 1);   /* no options, no zipfile, no anything */
 
 #ifndef NO_ZIPINFO
@@ -606,8 +573,6 @@ int unzip(__G__ argc, argv)
             error = uz_opts(__G__ &argc, &argv);
     }
 
-#endif /* ?SFX */
-
     if ((argc < 0) || error) {
         retcode = error;
         goto cleanup_and_exit;
@@ -618,37 +583,7 @@ int unzip(__G__ argc, argv)
     maining options and file specifications.
   ---------------------------------------------------------------------------*/
 
-#ifndef SFX
     G.wildzipfn = *argv++;
-#endif
-
-#if (defined(SFX) && !defined(SFX_EXDIR)) /* only check for -x */
-
-    G.filespecs = argc;
-    G.xfilespecs = 0;
-
-    if (argc > 0) {
-        char **pp = argv-1;
-
-        G.pfnames = argv;
-        while (*++pp)
-            if (strcmp(*pp, "-x") == 0) {
-                if (pp > argv) {
-                    *pp = 0;              /* terminate G.pfnames */
-                    G.filespecs = pp - G.pfnames;
-                } else {
-                    G.pfnames = (char **)fnames;  /* defaults */
-                    G.filespecs = 0;
-                }
-                G.pxnames = pp + 1;      /* excluded-names ptr: _after_ -x */
-                G.xfilespecs = argc - G.filespecs - 1;
-                break;                    /* skip rest of args */
-            }
-        G.process_all_files = FALSE;
-    } else
-        G.process_all_files = TRUE;      /* for speed */
-
-#else /* !SFX || SFX_EXDIR */             /* check for -x or -d */
 
     G.filespecs = argc;
     G.xfilespecs = 0;
@@ -719,7 +654,6 @@ int unzip(__G__ argc, argv)
 
     if (uO.exdir != (char *)NULL && !G.extract_flag)    /* -d ignored */
         Info(slide, 0x401, ((char *)slide, LoadFarString(NotExtracting)));
-#endif /* ?(SFX && !SFX_EXDIR) */
 
 #ifdef UNICODE_SUPPORT
     /* set Unicode-escape-all if option -U used */
@@ -814,7 +748,6 @@ int uz_opts(__G__ pargc, pargv)
                     else
                         uO.C_flag = TRUE;
                     break;
-#if (!defined(SFX) || defined(SFX_EXDIR))
                 case ('d'):
                     if (negative) {   /* negative not allowed with -d exdir */
                         Info(slide, 0x401, ((char *)slide,
@@ -853,7 +786,6 @@ int uz_opts(__G__ pargc, pargv)
                                 ;
                     }
                     break;
-#endif /* !SFX || SFX_EXDIR */
 #if (!defined(NO_TIMESTAMPS))
                 case ('D'):    /* -D: Skip restoring dir (or any) timestamp. */
                     if (negative) {
@@ -873,11 +805,9 @@ int uz_opts(__G__ pargc, pargv)
                     break;
                 case ('h'):    /* just print help message and quit */
                     if (showhelp == 0) {
-#ifndef SFX
                         if (*s == 'h')
                             showhelp = 2;
                         else
-#endif /* !SFX */
                         {
                             showhelp = 1;
                         }
@@ -896,7 +826,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.K_flag = TRUE;
                     }
                     break;
-#ifndef SFX
                 case ('l'):
                     if (negative) {
                         uO.vflag = MAX(uO.vflag-negative,0);
@@ -904,7 +833,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.vflag;
                     break;
-#endif /* !SFX */
                 case ('L'):    /* convert (some) filenames to lowercase */
                     if (negative) {
                         uO.L_flag = MAX(uO.L_flag-negative,0);
@@ -1021,7 +949,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.L_flag = FALSE;
                     break;
 #endif /* ?UNICODE_SUPPORT */
-#ifndef SFX
                 case ('v'):    /* verbose */
                     if (negative) {
                         uO.vflag = MAX(uO.vflag-negative,0);
@@ -1031,7 +958,6 @@ int uz_opts(__G__ pargc, pargv)
                     else
                         uO.vflag = 2;
                     break;
-#endif /* !SFX */
                 case ('V'):    /* Version (retain VMS/DEC-20 file versions) */
                     if (negative)
                         uO.V_flag = FALSE, negative = 0;
@@ -1047,19 +973,6 @@ int uz_opts(__G__ pargc, pargv)
                     break;
 #endif /* WILD_STOP_AT_DIR */
                 case ('x'):    /* extract:  default */
-#ifdef SFX
-                    /* when 'x' is the only option in this argument, and the
-                     * next arg is not an option, assume this initiates an
-                     * exclusion list (-x xlist):  terminate option-scanning
-                     * and leave uz_opts with argv still pointing to "-x";
-                     * the xlist is processed later
-                     */
-                    if (s - argv[0] == 2 && *s == '\0' &&
-                        argc > 1 && argv[1][0] != '-') {
-                        /* break out of nested loops without "++argv;--argc" */
-                        goto opts_done;
-                    }
-#endif /* SFX */
                     break;
                 case ('X'):   /* restore owner/protection info (need privs?) */
                     if (negative) {
@@ -1075,12 +988,10 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.zflag;
                     break;
-#ifndef SFX
                 case ('Z'):    /* should have been first option (ZipInfo) */
                     Info(slide, 0x401, ((char *)slide, LoadFarString(Zfirst)));
                     error = TRUE;
                     break;
-#endif /* !SFX */
                 case (':'):    /* allow "parent dir" path components */
                     if (negative) {
                         uO.ddotflag = MAX(uO.ddotflag-negative,0);
@@ -1107,18 +1018,12 @@ int uz_opts(__G__ pargc, pargv)
     Check for nonsensical combinations of options.
   ---------------------------------------------------------------------------*/
 
-#ifdef SFX
-opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
-#endif
-
     if (showhelp > 0) {         /* just print help message and quit */
         *pargc = -1;
-#ifndef SFX
         if (showhelp == 2) {
             help_extended(__G);
             return PK_OK;
         } else
-#endif /* !SFX */
         {
             return USAGE(PK_OK);
         }
@@ -1137,32 +1042,18 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
         uO.overwrite_all = FALSE;
     }
 
-#ifdef SFX
-    if (error)
-#else
     if ((argc-- == 0) || error)
-#endif
     {
         *pargc = argc;
         *pargv = argv;
-#ifndef SFX
         if (uO.vflag >= 2 && argc == -1) {              /* "unzip -v" */
             show_version_info(__G);
             return PK_OK;
         }
         if (!G.noargs && !error)
             error = TRUE;       /* had options (not -h or -v) but no zipfile */
-#endif /* !SFX */
         return USAGE(error);
     }
-
-#ifdef SFX
-    /* print our banner unless we're being fairly quiet */
-    if (uO.qflag < 2)
-        Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXBanner),
-          UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
-          LoadFarStringSmall(VersionDate)));
-#endif /* SFX */
 
     if (uO.cflag || uO.tflag || uO.vflag || uO.zflag
 #ifdef TIMESTAMP
@@ -1186,41 +1077,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 /* Function usage() */
 /********************/
 
-#ifdef SFX
-#    define LOCAL "X"
-   /* Default for all other systems: */
-#  ifndef LOCAL
-#    define LOCAL ""
-#  endif
-
-#  ifndef NO_TIMESTAMP
-#      define SFXOPT1 "D"
-#  else
-#      define SFXOPT1 ""
-#  endif
-
-int usage(__G__ error)   /* return PK-type error code */
-    __GDEF
-    int error;
-{
-    Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXBanner),
-      UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
-      LoadFarStringSmall(VersionDate)));
-    Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXOpts),
-      SFXOPT1, LOCAL));
-
-    if (error)
-        return PK_PARAM;
-    else
-        return PK_COOL;     /* just wanted usage screen: no error */
-
-} /* end function usage() */
-
-
-
-
-
-#else /* !SFX */
 #    define QUOT ' '
 #    define QUOTS ""
 
@@ -1281,12 +1137,8 @@ int usage(__G__ error)   /* return PK-type error code */
 
 } /* end function usage() */
 
-#endif /* ?SFX */
 
 
-
-
-#ifndef SFX
 
 /* Print extended help to stdout. */
 static void help_extended(__G)
@@ -1684,4 +1536,3 @@ static void show_version_info(__G)
     }
 } /* end function show_version() */
 
-#endif /* !SFX */

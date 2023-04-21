@@ -83,13 +83,11 @@ static int extract_or_test_entrylist OF((__GPRO__ unsigned numchunk,
                 unsigned *pnum_dirs, direntry **pdirlist,
                 int error_in_archive));
 static int extract_or_test_member OF((__GPRO));
-#ifndef SFX
    static int TestExtraField OF((__GPRO__ uch *ef, unsigned ef_len));
    static int test_compr_eb OF((__GPRO__ uch *eb, unsigned eb_size,
         unsigned compr_offset,
         int (*test_uc_ebdata)(__GPRO__ uch *eb, unsigned eb_size,
                               uch *eb_ucptr, ulg eb_ucsize)));
-#endif
 #if (defined(VMS) || defined(VMS_TEXT_CONV))
    static void decompress_bits OF((uch *outptr, unsigned needlen,
                                    ZCONST uch *bitptr));
@@ -109,7 +107,6 @@ static ZCONST char Far VersionMsg[] =
   "   skipping: %-22s  need %s compat. v%u.%u (can do v%u.%u)\n";
 static ZCONST char Far ComprMsgNum[] =
   "   skipping: %-22s  unsupported compression method %u\n";
-#ifndef SFX
    static ZCONST char Far ComprMsgName[] =
      "   skipping: %-22s  `%s' method not supported\n";
    static ZCONST char Far CmprNone[]       = "store";
@@ -136,16 +133,13 @@ static ZCONST char Far ComprMsgNum[] =
      IMPLODED, TOKENIZED, DEFLATED, ENHDEFLATED, DCLIMPLODED,
      BZIPPED, LZMAED, IBMTERSED, IBMLZ77ED, WAVPACKED, PPMDED
    };
-#endif /* !SFX */
 static ZCONST char Far FilNamMsg[] =
   "%s:  bad filename length (%s)\n";
-#ifndef SFX
    static ZCONST char Far WarnNoMemCFName[] =
      "%s:  warning, no memory for comparison with local header\n";
    static ZCONST char Far LvsCFNamMsg[] =
      "%s:  mismatching \"local\" filename (%s),\n\
          continuing with \"central\" filename version\n";
-#endif /* !SFX */
 #if (!defined(SFX) && defined(UNICODE_SUPPORT))
    static ZCONST char Far GP11FlagsDiffer[] =
      "file #%lu (%s):\n\
@@ -161,21 +155,17 @@ static ZCONST char Far OffsetMsg[] =
   "file #%lu:  bad zipfile offset (%s):  %ld\n";
 static ZCONST char Far ExtractMsg[] =
   "%8sing: %-22s  %s%s";
-#ifndef SFX
    static ZCONST char Far LengthMsg[] =
      "%s  %s:  %s bytes required to uncompress to %s bytes;\n    %s\
       supposed to require %s bytes%s%s%s\n";
-#endif
 
 static ZCONST char Far BadFileCommLength[] = "%s:  bad file comment length\n";
 static ZCONST char Far LocalHdrSig[] = "local header sig";
 static ZCONST char Far BadLocalHdr[] = "file #%lu:  bad local header\n";
 static ZCONST char Far AttemptRecompensate[] =
   "  (attempting to re-compensate)\n";
-#ifndef SFX
    static ZCONST char Far BackslashPathSep[] =
      "warning:  %s appears to use backslashes as path separators\n";
-#endif
 static ZCONST char Far AbsolutePathWarning[] =
   "warning:  stripped absolute path spec from %s\n";
 static ZCONST char Far SkipVolumeLabel[] =
@@ -242,10 +232,8 @@ static ZCONST char Far InvalidComprData[] = "invalid compressed data to ";
 static ZCONST char Far Inflate[] = "inflate";
   static ZCONST char Far BUnzip[] = "bunzip";
 
-#ifndef SFX
    static ZCONST char Far Explode[] = "explode";
    static ZCONST char Far Unshrink[] = "unshrink";
-#endif
 
 #if (!defined(DELETE_IF_FULL) || !defined(HAVE_UNLINK))
    static ZCONST char Far FileTruncated[] =
@@ -261,7 +249,6 @@ char ZCONST Far TruncEAs[] = " compressed EA data missing (%d bytes)%s";
 char ZCONST Far TruncNTSD[] =
   " compressed WinNT security data missing (%d bytes)%s";
 
-#ifndef SFX
    static ZCONST char Far InconsistEFlength[] = "bad extra-field entry:\n \
      EF block length (%u bytes) exceeds remaining EF data (%u bytes)\n";
    static ZCONST char Far TooSmallEBlength[] = "bad extra-field entry:\n \
@@ -277,7 +264,6 @@ char ZCONST Far TruncNTSD[] =
      " out of memory while inflating EAs\n";
    static ZCONST char Far UnknErrorEAs[] =
      " unknown error on extended attributes\n";
-#endif /* !SFX */
 
 static ZCONST char Far UnsupportedExtraField[] =
   "\nerror:  unsupported extra-field compression type (%u)--skipping\n";
@@ -420,9 +406,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
     int cd_incnt;
     ulg filnum=0L, blknum=0L;
     int reached_end;
-#ifndef SFX
     int no_endsig_found;
-#endif
     int error, error_in_archive=PK_COOL;
     int *fn_matched=NULL, *xn_matched=NULL;
     zucn_t members_processed;
@@ -444,7 +428,6 @@ int extract_or_test_files(__G)    /* return PK-type error code */
         }
     }
 
-#if (!defined(SFX) || defined(SFX_EXDIR))
     /* b) check out if specified extraction root directory exists */
     if (uO.exdir != (char *)NULL && G.extract_flag) {
         G.create_dirs = !uO.fflag;
@@ -453,7 +436,6 @@ int extract_or_test_files(__G)    /* return PK-type error code */
             return (error == MPN_NOMEM ? PK_MEM : PK_ERR);
         }
     }
-#endif /* !SFX || SFX_EXDIR */
 
     /* One more: initialize cover structure for bomb detection. Start with
        spans that cover any extra bytes at the start, the central directory,
@@ -513,9 +495,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
     G.pInfo = G.info;
 
     G.newzip = TRUE;
-#ifndef SFX
     G.reported_backslash = FALSE;
-#endif
 
     /* malloc space for check on unmatched filespecs (OK if one or both NULL) */
     if (G.filespecs > 0  &&
@@ -537,9 +517,7 @@ int extract_or_test_files(__G)    /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     members_processed = 0;
-#ifndef SFX
     no_endsig_found = FALSE;
-#endif
     reached_end = FALSE;
     while (!reached_end) {
         j = 0;
@@ -566,7 +544,6 @@ int extract_or_test_files(__G)    /* return PK-type error code */
                 if ((members_processed
                      & (G.ecrec.have_ecr64 ? MASK_ZUCN64 : MASK_ZUCN16))
                     == G.ecrec.total_entries_central_dir) {
-#ifndef SFX
                     /* yes, so look if we ARE back at the end_central record
                      */
                     no_endsig_found =
@@ -577,7 +554,6 @@ int extract_or_test_files(__G)    /* return PK-type error code */
                        && (!G.ecrec.is_zip64_archive)
                        && (memcmp(G.sig, end_central_sig, 4) != 0)
                       );
-#endif /* !SFX */
                 } else {
                     /* no; we have found an error in the central directory
                      * -> report it and stop searching for more Zip entries
@@ -845,14 +821,12 @@ int extract_or_test_files(__G)    /* return PK-type error code */
     ground and redirecting to a file can just do a "tail" on the output file.
   ---------------------------------------------------------------------------*/
 
-#ifndef SFX
     if (no_endsig_found) {                      /* just to make sure */
         Info(slide, 0x401, ((char *)slide, LoadFarString(EndSigMsg)));
         Info(slide, 0x401, ((char *)slide, LoadFarString(ReportMsg)));
         if (!error_in_archive)       /* don't overwrite stronger error */
             error_in_archive = PK_WARN;
     }
-#endif /* !SFX */
     if (uO.tflag) {
         ulg num = filnum - num_bad_pwd;
 
@@ -929,12 +903,6 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
 #  define UNKN_PPMD TRUE      /* PPMd unknown */
 #endif
 
-#ifdef SFX
-#    define UNKN_COMPR \
-     (G.crec.compression_method!=STORED && G.crec.compression_method<DEFLATED \
-      && G.crec.compression_method>ENHDEFLATED \
-      && UNKN_BZ2 && UNKN_LZMA && UNKN_WAVP && UNKN_PPMD)
-#else
 #    define UNKN_RED (G.crec.compression_method >= REDUCED1 && \
                       G.crec.compression_method <= REDUCED4)
 #    define UNKN_SHR  FALSE  /* unshrinking not unknown */
@@ -942,7 +910,6 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
      G.crec.compression_method==TOKENIZED || \
      (G.crec.compression_method>ENHDEFLATED && UNKN_BZ2 && UNKN_LZMA \
       && UNKN_WAVP && UNKN_PPMD))
-#endif
 
 #if (defined(USE_BZIP2) && (UNZIP_VERSION < UNZIP_BZ2VERS))
     int unzvers_support = (UNKN_BZ2 ? UNZIP_VERSION : UNZIP_BZ2VERS);
@@ -1004,7 +971,6 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
 
     if (UNKN_COMPR) {
         if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))) {
-#ifndef SFX
             unsigned cmpridx;
 
             if ((cmpridx = find_compr_idx(G.crec.compression_method))
@@ -1013,7 +979,6 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
                   FnFilter1(G.filename),
                   LoadFarStringSmall(ComprNames[cmpridx])));
             else
-#endif
                 Info(slide, 0x401, ((char *)slide, LoadFarString(ComprMsgNum),
                   FnFilter1(G.filename),
                   G.crec.compression_method));
@@ -1021,14 +986,12 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
         return 0;
     }
 
-#ifndef SFX
     /* store a copy of the central header filename for later comparison */
     if ((G.pInfo->cfilname = zfmalloc(strlen(G.filename) + 1)) == NULL) {
         Info(slide, 0x401, ((char *)slide, LoadFarString(WarnNoMemCFName),
           FnFilter1(G.filename)));
     } else
         zfstrcpy(G.pInfo->cfilname, G.filename);
-#endif /* !SFX */
 
     /* map whatever file attributes we have into the local format */
     mapattr(__G);   /* GRR:  worry about return value later */
@@ -1043,7 +1006,6 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
 
 
 
-#ifndef SFX
 /*******************************/
 /*  Function find_compr_idx()  */
 /*******************************/
@@ -1058,7 +1020,6 @@ unsigned find_compr_idx(compr_methodnum)
     }
     return i;
 }
-#endif /* !SFX */
 
 
 
@@ -1266,7 +1227,6 @@ static int extract_or_test_entrylist(__G__ numchunk,
                 continue;   /* go on */
             }
         }
-#ifndef SFX
         /* Filename consistency checks must come after reading in the local
          * extra field, so that a UTF-8 entry name e.f. block has already
          * been processed.
@@ -1285,7 +1245,6 @@ static int extract_or_test_entrylist(__G__ numchunk,
             zffree(G.pInfo->cfilname);
             G.pInfo->cfilname = (char Far *)NULL;
         }
-#endif /* !SFX */
         /* Size consistency checks must come after reading in the local extra
          * field, so that any Zip64 extension local e.f. block has already
          * been processed.
@@ -1352,7 +1311,6 @@ startover:
              *  of slash as directory separator (bug in some zipper(s); so
              *  far, not a problem in HPFS, NTFS or VFAT systems)
              */
-#ifndef SFX
             if (G.pInfo->hostnum == FS_FAT_ && !MBSCHR(G.filename, '/')) {
                 char *p=G.filename;
 
@@ -1369,7 +1327,6 @@ startover:
                     }
                 } while (*PREINCSTR(p));
             }
-#endif /* !SFX */
 
             if (!renamed) {
                /* remove absolute path specs */
@@ -1641,7 +1598,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
             }
             break;
 
-#ifndef SFX
         case SHRUNK:
             if (!uO.tflag && QCOND2) {
                 Info(slide, 0, ((char *)slide, LoadFarString(ExtractMsg),
@@ -1719,7 +1675,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
                 }
             }
             break;
-#endif /* !SFX */
 
         case DEFLATED:
         case ENHDEFLATED:
@@ -1839,13 +1794,11 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
             Info(slide, 0x401, ((char *)slide, LoadFarString(MaybeBadPasswd)));
         error = PK_ERR;
     } else if (uO.tflag) {
-#ifndef SFX
         if (G.extra_field) {
             if ((r = TestExtraField(__G__ G.extra_field,
                                     G.lrec.extra_field_length)) > error)
                 error = r;
         } else
-#endif /* !SFX */
         if (!uO.qflag)
             Info(slide, 0, ((char *)slide, " OK\n"));
     } else {
@@ -1889,8 +1842,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
 
 
 
-
-#ifndef SFX
 
 /*******************************/
 /*  Function TestExtraField()  */
@@ -2142,8 +2093,6 @@ static int test_compr_eb(
     return r;
 
 } /* end function test_compr_eb() */
-
-#endif /* !SFX */
 
 
 

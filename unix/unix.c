@@ -70,9 +70,6 @@ static ZCONST char CannotSetTimestamps[] =
   " (warning) cannot set modif./access times\n          %s";
 
 
-#ifndef SFX
-
-
 /**********************/
 /* Function do_wild() */   /* for porting: dir separator; match(ignore_case) */
 /**********************/
@@ -194,8 +191,6 @@ char *do_wild(__G__ wildspec)
     return (char *)NULL;
 
 } /* end function do_wild() */
-
-#endif /* !SFX */
 
 
 
@@ -745,7 +740,6 @@ int checkdir(__G__ pathcomp, flag)
     on the command line.
   ---------------------------------------------------------------------------*/
 
-#if (!defined(SFX) || defined(SFX_EXDIR))
     if (FUNCTION == ROOT) {
         Trace((stderr, "initializing root path to [%s]\n",
           FnFilter1(pathcomp)));
@@ -800,7 +794,6 @@ int checkdir(__G__ pathcomp, flag)
         }
         return MPN_OK;
     }
-#endif /* !SFX || SFX_EXDIR */
 
 /*---------------------------------------------------------------------------
     END:  free rootpath, immediately prior to program exit.
@@ -1124,8 +1117,6 @@ int stamp_file(fname, modtime)
 
 
 
-#ifndef SFX
-
 /************************/
 /*  Function version()  */
 /************************/
@@ -1170,8 +1161,6 @@ void version(__G)
     (*G.message)((zvoid *)&G, slide, (ulg)strlen((char *)slide), 0);
 
 } /* end function version() */
-
-#endif /* !SFX */
 
 
 

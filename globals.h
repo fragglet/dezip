@@ -301,10 +301,6 @@ typedef struct Globals {
     int      VMS_line_pad;
 #endif
 
-#if (defined(SFX) && defined(CHEAP_SFX_AUTORUN))
-    char autorun_command[FILNAMSIZ];
-#endif
-
 #ifdef SYSTEM_SPECIFIC_GLOBALS
     SYSTEM_SPECIFIC_GLOBALS
 #endif

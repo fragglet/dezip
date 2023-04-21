@@ -69,9 +69,6 @@ int main(argc, argv)
     printf(out_format, "redirslide", (ulg)&redirSlide - (ulg)&G);
     printf(out_format, "SIZEOF_slide", (ulg)sizeof(redirSlide));
     printf(out_format, "CRYPT", (ulg)CRYPT);
-#ifdef SFX
-    (*set_flag)("SFX");
-#endif
     (*set_flag)("USE_DEFLATE64");
 
     return 0;
