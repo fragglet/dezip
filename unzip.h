@@ -87,11 +87,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #    define UNIX
 #  endif
 #endif /* unix || _unix || __unix || __unix__ */
-#if (defined(M_XENIX) || defined(COHERENT) || defined(__hpux))
-#  ifndef UNIX
-#    define UNIX
-#  endif
-#endif /* M_XENIX || COHERENT || __hpux */
 #if (defined(__NetBSD__) || defined(__FreeBSD__))
 #  ifndef UNIX
 #    define UNIX

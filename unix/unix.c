@@ -1319,9 +1319,6 @@ void version(__G)
       " (NeXTStep for Intel)",
 #  endif
 #else              /* the next dozen or so are somewhat order-dependent */
-#ifdef M_XENIX
-      " (SCO Xenix)",
-#else
 #ifdef __NetBSD__
 #  ifdef NetBSD0_8
       (sprintf(os_namebuf, " (NetBSD 0.8%c)", (char)(NetBSD0_8 - 1 + 'A')),
@@ -1366,7 +1363,6 @@ void version(__G)
 #endif /* DEC */
 #endif /* Pyramid */
 #endif /* FreeBSD */
-#endif /* SCO Xenix */
 #endif /* NeXT */
 #endif /* Amdahl */
 #endif /* OSF/1 */

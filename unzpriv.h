@@ -123,16 +123,6 @@
 #endif
 
 /* bad or (occasionally?) missing stddef.h: */
-#if (defined(M_XENIX) || defined(DNIX))
-#  define NO_STDDEF_H
-#endif
-
-#if (defined(M_XENIX) && !defined(M_UNIX))   /* SCO Xenix only, not SCO Unix */
-#  define SCO_XENIX
-#  define NO_LIMITS_H        /* no limits.h, but MODERN defined */
-#  define NO_UID_GID         /* no uid_t/gid_t */
-#  define size_t int
-#endif
 
 #ifdef realix   /* Modcomp Real/IX, real-time SysV.3 variant */
 #  define SYSV
