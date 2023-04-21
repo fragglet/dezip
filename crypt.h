@@ -80,9 +80,7 @@
 #endif
 
 #if defined(MSDOS) || defined(OS2) || defined(WIN32)
-#  ifndef DOS_OS2_W32
 #    define DOS_OS2_W32
-#  endif
 #endif
 
 #if defined(DOS_OS2_W32) || defined(__human68k__)

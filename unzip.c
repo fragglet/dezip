@@ -1756,9 +1756,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 #  ifdef UNIX
 #    define LOCAL "X"
 #  endif
-#  ifdef DOS_OS2_W32
-#    define LOCAL "s$"
-#  endif
 #  if (defined(FLEXOS) || defined(NLM))
 #    define LOCAL "s"
 #  endif

@@ -1528,16 +1528,9 @@ startover:
                     }
 #endif /* SET_DIR_ATTRIB */
                 } else if (errcode == MPN_VOL_LABEL) {
-#ifdef DOS_OS2_W32
-                    Info(slide, 0x401, ((char *)slide,
-                      LoadFarString(SkipVolumeLabel),
-                      FnFilter1(G.filename),
-                      uO.volflag? "hard disk " : ""));
-#else
                     Info(slide, 1, ((char *)slide,
                       LoadFarString(SkipVolumeLabel),
                       FnFilter1(G.filename), ""));
-#endif
                 } else if (errcode > MPN_INF_SKIP &&
                            error_in_archive < PK_ERR)
                     error_in_archive = PK_ERR;
