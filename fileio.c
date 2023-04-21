@@ -151,9 +151,6 @@ static ZCONST char Far ExtraFieldCorrupt[] =
      static ZCONST char Far FileIsSymLink[] =
        "%s exists and is a symbolic link%s.\n";
 #  endif
-#  ifdef MORE
-     static ZCONST char Far MorePrompt[] = "--More--(%lu)";
-#  endif
    static ZCONST char Far QuitPrompt[] =
      "--- Press `Q' to quit, or any other key to continue ---";
    static ZCONST char Far HidePrompt[] = /* "\r                       \r"; */
@@ -990,12 +987,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
      */
     int error;
     uch *q=buf, *endbuf=buf+(unsigned)size;
-#ifdef MORE
-    uch *p=buf;
-#if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
-    int islinefeed = FALSE;
-#endif
-#endif
     FILE *outfp;
 
 
@@ -1029,41 +1020,10 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
         }
     }
 
-#ifdef MORE
-# ifdef SCREENSIZE
-    /* room for --More-- and one line of overlap: */
-#  if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
-    SCREENSIZE(&((Uz_Globs *)pG)->height, &((Uz_Globs *)pG)->width);
-#  else
-    SCREENSIZE(&((Uz_Globs *)pG)->height, (int *)NULL);
-#  endif
-    ((Uz_Globs *)pG)->height -= 2;
-# else
-    /* room for --More-- and one line of overlap: */
-    ((Uz_Globs *)pG)->height = SCREENLINES - 2;
-#  if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
-    ((Uz_Globs *)pG)->width = SCREENWIDTH;
-#  endif
-# endif
-#endif /* MORE */
-
     if (MSG_LNEWLN(flag) && !((Uz_Globs *)pG)->sol) {
         /* not at start of line:  want newline */
             putc('\n', outfp);
             fflush(outfp);
-#ifdef MORE
-            if (((Uz_Globs *)pG)->M_flag)
-            {
-#if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
-                ((Uz_Globs *)pG)->chars = 0;
-#endif
-                ++((Uz_Globs *)pG)->numlines;
-                ++((Uz_Globs *)pG)->lines;
-                if (((Uz_Globs *)pG)->lines >= ((Uz_Globs *)pG)->height)
-                    (*((Uz_Globs *)pG)->mpause)((zvoid *)pG,
-                      LoadFarString(MorePrompt), 1);
-            }
-#endif /* MORE */
             if (MSG_STDERR(flag) && ((Uz_Globs *)pG)->UzO.tflag &&
                 !isatty(1) && isatty(2))
             {
@@ -1075,53 +1035,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     }
 
     /* put zipfile name, filename and/or error/warning keywords here */
-
-#ifdef MORE
-    if (((Uz_Globs *)pG)->M_flag
-                                                 )
-    {
-        while (p < endbuf) {
-            if (*p == '\n') {
-#if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
-                islinefeed = TRUE;
-            } else if (SCREENLWRAP) {
-                if (*p == '\r') {
-                    ((Uz_Globs *)pG)->chars = 0;
-                } else {
-#  ifdef TABSIZE
-                    if (*p == '\t')
-                        ((Uz_Globs *)pG)->chars +=
-                            (TABSIZE - (((Uz_Globs *)pG)->chars % TABSIZE));
-                    else
-#  endif
-                        ++((Uz_Globs *)pG)->chars;
-
-                    if (((Uz_Globs *)pG)->chars >= ((Uz_Globs *)pG)->width)
-                        islinefeed = TRUE;
-                }
-            }
-            if (islinefeed) {
-                islinefeed = FALSE;
-                ((Uz_Globs *)pG)->chars = 0;
-#endif /* (SCREENWIDTH && SCREEN_LWRAP) */
-                ++((Uz_Globs *)pG)->numlines;
-                ++((Uz_Globs *)pG)->lines;
-                if (((Uz_Globs *)pG)->lines >= ((Uz_Globs *)pG)->height)
-                {
-                    if ((error = WriteTxtErr(q, p-q+1, outfp)) != 0)
-                        return error;
-                    fflush(outfp);
-                    ((Uz_Globs *)pG)->sol = TRUE;
-                    q = p + 1;
-                    (*((Uz_Globs *)pG)->mpause)((zvoid *)pG,
-                      LoadFarString(MorePrompt), 1);
-                }
-            }
-            INCSTR(p);
-        } /* end while */
-        size = (ulg)(p - q);   /* remaining text */
-    }
-#endif /* MORE */
 
     if (size) {
             if ((error = WriteTxtErr(q, size, outfp)) != 0)
@@ -1207,12 +1120,6 @@ void UZ_EXP UzpMorePause(pG, prompt, flag)
     }
 
     ((Uz_Globs *)pG)->sol = TRUE;
-
-#ifdef MORE
-    /* space for another screen, enter for another line. */
-    if ((flag & 1) && c == ' ')
-        ((Uz_Globs *)pG)->lines = 0;
-#endif /* MORE */
 
 } /* end function UzpMorePause() */
 

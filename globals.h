@@ -155,19 +155,8 @@ typedef struct Globals {
     UzpOpts UzO;        /* command options of general use */
 
     /* command options specific to the high level command line interface */
-#ifdef MORE
-    int M_flag;         /* -M: built-in "more" function */
-#endif
 
     /* internal flags and general globals */
-#ifdef MORE
-    int height;           /* check for SIGWINCH, etc., eventually... */
-    int lines;            /* count of lines displayed on current screen */
-# if (defined(SCREENWIDTH) && defined(SCREENLWRAP))
-    int width;
-    int chars;            /* count of screen characters in current line */
-# endif
-#endif /* MORE */
     int noargs;           /* did true command line have *any* arguments? */
     unsigned filespecs;   /* number of real file specifications to be matched */
     unsigned xfilespecs;  /* number of excluded filespecs to be matched */

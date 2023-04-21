@@ -158,13 +158,8 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 
 /* local2[] and local3[]:  modifier options */
    static ZCONST char Far local2[] = " -X  restore UID/GID info";
-#ifdef MORE
-   static ZCONST char Far local3[] = "\
-  -K  keep setuid/setgid/tacky permissions   -M  pipe through \"more\" pager\n";
-#else
    static ZCONST char Far local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
-#endif
 #endif /* !SFX */
 
 #ifndef NO_ZIPINFO
@@ -190,12 +185,7 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
   -z  print zipfile comment   -T  print file times in sortable decimal format\
 \n  -C  be case-insensitive   %s\
   -x  exclude filenames that follow from listing\n";
-#ifdef MORE
-   static ZCONST char Far ZipInfoUsageLine4[] =
-     "  -M  page output through built-in \"more\"\n";
-#else /* !MORE */
    static ZCONST char Far ZipInfoUsageLine4[] = "";
-#endif /* ?MORE */
 #endif /* !NO_ZIPINFO */
 
 #ifdef SFX
@@ -224,9 +214,7 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef DEBUG_TIME
      static ZCONST char Far DebugTime[] = "DEBUG_TIME";
 #  endif
-#  ifndef MORE
      static ZCONST char Far No_More[] = "NO_MORE";
-#  endif
 #  ifdef NO_ZIPINFO
      static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
 #  endif
@@ -1009,15 +997,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.L_flag;
                     break;
-#ifdef MORE
-                case ('M'):    /* send all screen output through "more" fn. */
-/* GRR:  eventually check for numerical argument => height */
-                    if (negative)
-                        G.M_flag = FALSE, negative = 0;
-                    else
-                        G.M_flag = TRUE;
-                    break;
-#endif /* MORE */
                 case ('n'):    /* don't overwrite any files */
                     if (negative)
                         uO.overwrite_none = FALSE, negative = 0;
@@ -1242,10 +1221,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
         Info(slide, 0x401, ((char *)slide, LoadFarString(IgnoreOOptionMsg)));
         uO.overwrite_all = FALSE;
     }
-#ifdef MORE
-    if (G.M_flag && !isatty(1))  /* stdout redirected: "more" func. useless */
-        G.M_flag = 0;
-#endif
 
 #ifdef SFX
     if (error)
@@ -1304,17 +1279,9 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 #  endif
 
 #  ifndef NO_TIMESTAMP
-#    ifdef MORE
-#      define SFXOPT1 "DM"
-#    else
 #      define SFXOPT1 "D"
-#    endif
 #  else
-#    ifdef MORE
-#      define SFXOPT1 "M"
-#    else
 #      define SFXOPT1 ""
-#    endif
 #  endif
 
 int usage(__G__ error)   /* return PK-type error code */
@@ -1680,11 +1647,9 @@ static void show_version_info(__G)
           LoadFarStringSmall(DebugTime)));
         ++numopts;
 #endif
-#ifndef MORE
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_More)));
         ++numopts;
-#endif
 #ifdef NO_ZIPINFO
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_ZipInfo)));

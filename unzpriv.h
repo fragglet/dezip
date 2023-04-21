@@ -28,9 +28,7 @@
 #endif
 
 /* GRR 960204:  MORE defined here in preparation for removal altogether */
-#ifndef MORE
 #  define MORE
-#endif
 
 /* fUnZip should never need to be reentrant */
 
@@ -297,20 +295,6 @@
 #define MSG_NO_DLL2(f) (f & 0x0400)   /* bit 10:  1 = skip if OS/2 DLL */
 #define MSG_NO_NDLL(f) (f & 0x0800)   /* bit 11:  1 = skip if WIN32 DLL */
 #define MSG_NO_WDLL(f) (f & 0x1000)   /* bit 12:  1 = skip if Windows DLL */
-
-#if (defined(MORE) && !defined(SCREENLINES))
-#    define SCREENLINES 24  /* VT-100s are assumed to be minimal hardware */
-#endif
-#if (defined(MORE) && !defined(SCREENSIZE))
-#  ifndef SCREENWIDTH
-#    define SCREENSIZE(scrrows, scrcols) { \
-          if ((scrrows) != NULL) *(scrrows) = SCREENLINES; }
-#  else
-#    define SCREENSIZE(scrrows, scrcols) { \
-          if ((scrrows) != NULL) *(scrrows) = SCREENLINES; \
-          if ((scrcols) != NULL) *(scrcols) = SCREENWIDTH; }
-#  endif
-#endif
 
 # define DIR_BLKSIZ 16384   /* use more memory, to reduce long-range seeks */
 
@@ -1467,9 +1451,6 @@ int      mapname         OF((__GPRO__ int renamed));                /* local */
 int      checkdir        OF((__GPRO__ char *pathcomp, int flag));   /* local */
 char    *do_wild         OF((__GPRO__ ZCONST char *wildzipfn));     /* local */
 char    *GetLoadPath     OF((__GPRO));                              /* local */
-#if (defined(MORE) && (defined(ATH_BEO_UNX) || defined(QDOS) || defined(VMS)))
-   int screensize        OF((int *tt_rows, int *tt_cols));          /* local */
-#endif /* MORE && (ATH_BEO_UNX || QDOS || VMS) */
    void  close_outfile   OF((__GPRO));                              /* local */
    int  set_symlnk_attribs  OF((__GPRO__ slinkentry *slnk_entry));  /* local */
    int   defer_dir_attribs  OF((__GPRO__ direntry **pd));           /* local */

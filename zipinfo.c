@@ -488,14 +488,6 @@ int zi_opts(__G__ pargc, pargv)
                     else
                         uO.lflag = 4;
                     break;
-#ifdef MORE
-                case 'M':      /* send output through built-in "more" */
-                    if (negative)
-                        G.M_flag = FALSE, negative = 0;
-                    else
-                        G.M_flag = TRUE;
-                    break;
-#endif
                 case 's':      /* default:  shorter "ls -l" type listing */
                     if (negative)
                         uO.lflag = -2, negative = 0;
@@ -559,11 +551,6 @@ int zi_opts(__G__ pargc, pargv)
         *pargv = argv;
         return USAGE(error);
     }
-
-#ifdef MORE
-    if (G.M_flag && !isatty(1))  /* stdout redirected: "more" func useless */
-        G.M_flag = 0;
-#endif
 
     /* if no listing options given (or all negated), or if only -h/-t given
      * with individual files specified, use default listing format */
