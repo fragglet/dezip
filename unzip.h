@@ -207,11 +207,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  endif
 #endif
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
-#if (defined(__hpux))
-#  ifndef MODERN
-#    define MODERN
-#  endif
-#endif
 
 /* turn off prototypes if requested */
 #if (defined(NOPROTO) && defined(PROTO))

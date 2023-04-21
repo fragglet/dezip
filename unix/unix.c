@@ -1377,9 +1377,6 @@ void version(__G)
 #  endif
 #  endif
 #else
-#ifdef __hpux
-      " (HP-UX)",
-#else
 #ifdef __osf__
       " (DEC OSF/1)",
 #else
@@ -1484,7 +1481,6 @@ void version(__G)
 #endif /* NeXT */
 #endif /* Amdahl */
 #endif /* OSF/1 */
-#endif /* HP-UX */
 #endif /* Sun */
 #endif /* SGI */
 
