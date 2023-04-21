@@ -730,16 +730,8 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
             CLOSE_INFILE();
             return PK_BADERR;
         }
-#ifdef OLD_SEEK_TEST
-        if (error != PK_OK || readbuf(__G__ G.sig, 4) == 0) {
-            CLOSE_INFILE();
-            return PK_ERR;  /* file may be locked, or possibly disk error(?) */
-        }
-        if (memcmp(G.sig, central_hdr_sig, 4))
-#else
         if ((error != PK_OK) || (readbuf(__G__ G.sig, 4) == 0) ||
             memcmp(G.sig, central_hdr_sig, 4))
-#endif
         {
 #ifndef SFX
             zoff_t tmp = G.extra_bytes;
