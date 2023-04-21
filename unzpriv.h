@@ -122,11 +122,6 @@
 
 /* bad or (occasionally?) missing stddef.h: */
 
-#if (defined(SYSTEM_FIVE) || defined(__SYSTEM_FIVE))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* SYSTEM_FIVE || __SYSTEM_FIVE */
 /* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
 
 #if (defined(ultrix) || defined(__ultrix) || defined(bsd4_2))
