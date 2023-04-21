@@ -38,11 +38,7 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 #ifdef WINDLL
-#  ifdef POCKET_UNZIP
-#    include "wince/intrface.h"
-#  else
 #    include "windll/windll.h"
-#  endif
 #endif
 #include "unzvers.h"
 #include <setjmp.h>

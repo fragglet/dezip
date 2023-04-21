@@ -205,10 +205,6 @@ freely, subject to the above disclaimer and the following restrictions:
     Grab system-specific public include headers.
   ---------------------------------------------------------------------------*/
 
-#ifdef POCKET_UNZIP             /* WinCE port */
-#  include "wince/punzip.h"     /* must appear before windows.h */
-#endif
-
 #ifdef WINDLL
    /* for UnZip, the "basic" part of the win32 api is sufficient */
 #  ifndef WIN32_LEAN_AND_MEAN
