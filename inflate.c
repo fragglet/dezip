@@ -100,7 +100,7 @@
                                     and huft_free() to end of file
    c14u   1 Oct 95  G. Roelofs      moved G into definition of MESSAGE macro
    c14v   8 Nov 95  P. Kienitz      changed ASM_INFLATECODES to use a regular
-                                    call with __G__ instead of a macro
+                                    call with instead of a macro
     c15   3 Aug 96  M. Adler        fixed bomb-bug on random input data (Adobe)
    c15b  24 Aug 96  M. Adler        more fixes for random input data
    c15c  28 Mar 97  G. Roelofs      changed USE_ZLIB fatal exit code from
@@ -513,7 +513,7 @@ static const unsigned lbits = 9;
 /* bits in base distance lookup table */
 static const unsigned dbits = 6;
 
-int inflate_codes(__G__ tl, td, bl, bd)
+int inflate_codes(tl, td, bl, bd)
 __GDEF
 struct huft *tl, *td; /* literal/length and distance decoder tables */
 unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
@@ -705,7 +705,7 @@ static int inflate_fixed() __GDEF
         for (; i < 288; i++) /* make a complete, but wrong code set */
             l[i] = 8;
         G.fixed_bl = 7;
-        if ((i = huft_build(__G__ l, 288, 257, G.cplens, G.cplext, &G.fixed_tl,
+        if ((i = huft_build(l, 288, 257, G.cplens, G.cplext, &G.fixed_tl,
                             &G.fixed_bl)) != 0) {
             G.fixed_tl = (struct huft *) NULL;
             return i;
@@ -715,7 +715,7 @@ static int inflate_fixed() __GDEF
         for (i = 0; i < MAXDISTS; i++) /* make an incomplete code set */
             l[i] = 5;
         G.fixed_bd = 5;
-        if ((i = huft_build(__G__ l, MAXDISTS, 0, cpdist, G.cpdext, &G.fixed_td,
+        if ((i = huft_build(l, MAXDISTS, 0, cpdist, G.cpdext, &G.fixed_td,
                             &G.fixed_bd)) > 1) {
             huft_free(G.fixed_tl);
             G.fixed_td = G.fixed_tl = (struct huft *) NULL;
@@ -724,7 +724,7 @@ static int inflate_fixed() __GDEF
     }
 
     /* decompress until an end-of-block code */
-    return inflate_codes(__G__ G.fixed_tl, G.fixed_td, G.fixed_bl, G.fixed_bd);
+    return inflate_codes(G.fixed_tl, G.fixed_td, G.fixed_bl, G.fixed_bd);
 }
 
 static int inflate_dynamic() __GDEF
@@ -778,7 +778,7 @@ static int inflate_dynamic() __GDEF
 
     /* build decoding table for trees--single level, 7 bit lookup */
     bl = 7;
-    retval = huft_build(__G__ ll, 19, 19, NULL, NULL, &tl, &bl);
+    retval = huft_build(ll, 19, 19, NULL, NULL, &tl, &bl);
     if (bl == 0) /* no bit lengths */
         retval = 1;
     if (retval) {
@@ -845,7 +845,7 @@ static int inflate_dynamic() __GDEF
 
     /* build the decoding tables for literal/length and distance codes */
     bl = lbits;
-    retval = huft_build(__G__ ll, nl, 257, G.cplens, G.cplext, &tl, &bl);
+    retval = huft_build(ll, nl, 257, G.cplens, G.cplext, &tl, &bl);
     if (bl == 0) /* no literals or lengths */
         retval = 1;
     if (retval) {
@@ -857,7 +857,7 @@ static int inflate_dynamic() __GDEF
         return retval; /* incomplete code set */
     }
     bd = dbits;
-    retval = huft_build(__G__ ll + nl, nd, 0, cpdist, G.cpdext, &td, &bd);
+    retval = huft_build(ll + nl, nd, 0, cpdist, G.cpdext, &td, &bd);
     if (retval == 1)
         retval = 0;
     if (bd == 0 && nl > 257) /* lengths but no distances */
@@ -873,7 +873,7 @@ static int inflate_dynamic() __GDEF
     }
 
     /* decompress until an end-of-block code */
-    retval = inflate_codes(__G__ tl, td, bl, bd);
+    retval = inflate_codes(tl, td, bl, bd);
 
 cleanup_and_exit:
     /* free the decoding tables, return */
@@ -884,7 +884,8 @@ cleanup_and_exit:
     return retval;
 }
 
-static int inflate_block(__G__ e) __GDEF int *e; /* last block flag */
+static int inflate_block(e)
+__GDEF int *e; /* last block flag */
 /* decompress an inflated block */
 {
     unsigned t;          /* block type */
@@ -925,7 +926,8 @@ cleanup_and_exit:
     return retval;
 }
 
-int inflate(__G__ is_defl64) __GDEF int is_defl64;
+int inflate(is_defl64)
+__GDEF int is_defl64;
 /* decompress an inflated entry */
 {
     int e; /* last block flag */
@@ -962,7 +964,7 @@ int inflate(__G__ is_defl64) __GDEF int is_defl64;
 #ifdef DEBUG
         G.hufts = 0;
 #endif
-        if ((r = inflate_block(__G__ & e)) != 0)
+        if ((r = inflate_block(&e)) != 0)
             return r;
 #ifdef DEBUG
         if (G.hufts > h)
@@ -1008,7 +1010,7 @@ int inflate_free() __GDEF
 #define BMAX  16  /* maximum bit length of any code (16 for explode) */
 #define N_MAX 288 /* maximum number of codes in any set */
 
-int huft_build(__G__ b, n, s, d, e, t, m)
+int huft_build(b, n, s, d, e, t, m)
 __GDEF
 const unsigned *b; /* code lengths in bits (all assumed <= BMAX) */
 unsigned n;        /* number of codes (assumed <= N_MAX) */

@@ -287,7 +287,7 @@ void defer_leftover_input() __GDEF
 /* Function readbuf() */
 /**********************/
 
-unsigned readbuf(__G__ buf, size) /* return number of bytes read into buf */
+unsigned readbuf(buf, size) /* return number of bytes read into buf */
 __GDEF
 char *buf;
 register unsigned size;
@@ -400,7 +400,8 @@ int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
 /* Function seek_zipf() */
 /************************/
 
-int seek_zipf(__G__ abs_offset) __GDEF zoff_t abs_offset;
+int seek_zipf(abs_offset)
+__GDEF zoff_t abs_offset;
 {
     /*
      *  Seek to the block boundary of the block which includes abs_offset,
@@ -458,7 +459,7 @@ int seek_zipf(__G__ abs_offset) __GDEF zoff_t abs_offset;
 /* Function flush() */ /* returns PK error codes: */
 /********************/ /* if tflag => always 0; PK_DISK if write error */
 
-int flush(__G__ rawbuf, size, unshrink)
+int flush(rawbuf, size, unshrink)
 __GDEF
 uch *rawbuf;
 ulg size;
@@ -592,7 +593,7 @@ int flag; /* flag bits */
     /* IMPORTANT NOTE:
      *    The name of the first parameter of UzpMessagePrnt(), which passes
      *    the "Uz_Globs" address, >>> MUST <<< be identical to the string
-     *    expansion of the __G__ macro in the REENTRANT case (see globals.h).
+     *    expansion of the macro in the REENTRANT case (see globals.h).
      *    This name identity is mandatory for the LoadFarString() macro
      *    (in the SMALL_MEM case) !!!
      */
@@ -768,7 +769,7 @@ const char *efn;               /* name of archive entry being processed */
         m = (char *) LoadFarString(PasswRetry);
     }
 
-    m = getp(__G__ m, pwbuf, size);
+    m = getp(m, pwbuf, size);
     if (prompt != (char *) NULL) {
         free(prompt);
     }
@@ -873,9 +874,9 @@ ulg dosdatetime;
 /* Function check_for_newer() */ /* used for overwriting/freshening/updating */
 /******************************/
 
-int check_for_newer(__G__ filename) /* return 1 if existing file is newer */
-    __GDEF                          /*  or equal; 0 if older; -1 if doesn't */
-    char *filename;                 /*  exist yet */
+int check_for_newer(filename) /* return 1 if existing file is newer */
+    __GDEF                    /*  or equal; 0 if older; -1 if doesn't */
+    char *filename;           /*  exist yet */
 {
     time_t existing, archive;
     iztimes z_utime;
@@ -950,7 +951,7 @@ int check_for_newer(__G__ filename) /* return 1 if existing file is newer */
 /* Function do_string() */
 /************************/
 
-int do_string(__G__ length, option) /* return PK-type error code */
+int do_string(length, option) /* return PK-type error code */
 __GDEF
 unsigned int length; /* without prototype, ush converted to this */
 int option;
@@ -1000,9 +1001,9 @@ int option;
             register uch *p = G.outbuf;
             register uch *q = G.outbuf;
 
-            if ((block_len = readbuf(
-                     __G__(char *) G.outbuf,
-                     MIN((unsigned) OUTBUFSIZ, comment_bytes_left))) == 0)
+            if ((block_len =
+                     readbuf((char *) G.outbuf, MIN((unsigned) OUTBUFSIZ,
+                                                    comment_bytes_left))) == 0)
                 return PK_EOF;
             comment_bytes_left -= block_len;
 
@@ -1083,7 +1084,7 @@ int option;
                 return PK_MEM;
             G.fnfull_bufsize = fnbufsiz;
         }
-        if (readbuf(__G__ G.filename_full, length) == 0)
+        if (readbuf(G.filename_full, length) == 0)
             return PK_EOF;
         G.filename_full[length] = '\0'; /* terminate w/zero:  ASCIIZ */
 
@@ -1133,8 +1134,8 @@ int option;
     case SKIP:
         /* cur_zipfile_bufstart already takes account of extra_bytes, so don't
          * correct for it twice: */
-        seek_zipf(__G__ G.cur_zipfile_bufstart - G.extra_bytes +
-                  (G.inptr - G.inbuf) + length);
+        seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes + (G.inptr - G.inbuf) +
+                  length);
         break;
 
         /*
@@ -1150,13 +1151,13 @@ int option;
                  ((char *) slide, LoadFarString(ExtraFieldTooLong), length));
             /* cur_zipfile_bufstart already takes account of extra_bytes,
              * so don't correct for it twice: */
-            seek_zipf(__G__ G.cur_zipfile_bufstart - G.extra_bytes +
+            seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes +
                       (G.inptr - G.inbuf) + length);
         } else {
-            if (readbuf(__G__(char *) G.extra_field, length) == 0)
+            if (readbuf((char *) G.extra_field, length) == 0)
                 return PK_EOF;
             /* Looks like here is where extra fields are read */
-            if (getZip64Data(__G__ G.extra_field, length) != PK_COOL) {
+            if (getZip64Data(G.extra_field, length) != PK_COOL) {
                 Info(slide, 0x401,
                      ((char *) slide, LoadFarString(ExtraFieldCorrupt),
                       EF_PKSZ64));
@@ -1171,7 +1172,7 @@ int option;
                     G.unipath_filename = G.filename_full;
                 } else {
                     /* Get the Unicode fields if exist */
-                    getUnicodeData(__G__ G.extra_field, length);
+                    getUnicodeData(G.extra_field, length);
                     if (G.unipath_filename && strlen(G.unipath_filename) == 0) {
                         /* the standard filename field is UTF-8 */
                         free(G.unipath_filename);
@@ -1292,7 +1293,7 @@ zusz_t makeint64(sig) const uch *sig;
 /*********************/
 
 /* Format a zoff_t value in a cylindrical buffer set. */
-char *fzofft(__G__ val, pre, post)
+char *fzofft(val, pre, post)
 __GDEF
 zoff_t val;
 const char *pre;

@@ -71,8 +71,8 @@ static const char CannotSetTimestamps[] =
 /* Function do_wild() */ /* for porting: dir separator; match(ignore_case) */
 /**********************/
 
-char *do_wild(__G__ wildspec) __GDEF const
-    char *wildspec; /* only used first time on a given dir */
+char *do_wild(wildspec)
+__GDEF const char *wildspec; /* only used first time on a given dir */
 {
     /* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in unxcfg.h:
         static DIR *wild_dir = (DIR *)NULL;
@@ -203,7 +203,8 @@ char *do_wild(__G__ wildspec) __GDEF const
  * file as the user or group.  The new option -K bypasses this check.
  */
 
-static unsigned filtattr(__G__ perms) __GDEF unsigned perms;
+static unsigned filtattr(perms)
+__GDEF unsigned perms;
 {
     /* keep setuid/setgid/tacky perms? */
     if (!uO.K_flag)
@@ -355,7 +356,8 @@ int mapattr() __GDEF
 /*  Function mapname()  */
 /************************/
 
-int mapname(__G__ renamed) __GDEF int renamed;
+int mapname(renamed)
+__GDEF int renamed;
 /*
  * returns:
  *  MPN_OK          - no problem detected
@@ -389,7 +391,7 @@ int mapname(__G__ renamed) __GDEF int renamed;
     /* user gave full pathname:  don't prepend rootpath */
     G.renamed_fullpath = (renamed && (*G.filename == '/'));
 
-    if (checkdir(__G__(char *) NULL, INIT) == MPN_NOMEM)
+    if (checkdir((char *) NULL, INIT) == MPN_NOMEM)
         return MPN_NOMEM; /* initialize path buffer, unless no memory */
 
     *pathcomp = '\0'; /* initialize translation buffer */
@@ -419,9 +421,8 @@ int mapname(__G__ renamed) __GDEF int renamed;
                 killed_ddot = TRUE; /* set "show message" flag */
             }
             /* when path component is not empty, append it now */
-            if (*pathcomp != '\0' &&
-                ((error = checkdir(__G__ pathcomp, APPEND_DIR)) & MPN_MASK) >
-                    MPN_INF_TRUNC)
+            if (*pathcomp != '\0' && ((error = checkdir(pathcomp, APPEND_DIR)) &
+                                      MPN_MASK) > MPN_INF_TRUNC)
                 return error;
             pp = pathcomp; /* reset conversion buffer for next piece */
             lastsemi = (char *) NULL; /* leave direct. semi-colons alone */
@@ -460,7 +461,7 @@ int mapname(__G__ renamed) __GDEF int renamed;
       ---------------------------------------------------------------------------*/
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
-        checkdir(__G__ G.filename, GETPATH);
+        checkdir(G.filename, GETPATH);
         if (G.created_dir) {
             if (QCOND2) {
                 Info(slide, 0,
@@ -468,7 +469,7 @@ int mapname(__G__ renamed) __GDEF int renamed;
                       FnFilter1(G.filename)));
             }
             /* Filter out security-relevant attributes bits. */
-            G.pInfo->file_attr = filtattr(__G__ G.pInfo->file_attr);
+            G.pInfo->file_attr = filtattr(G.pInfo->file_attr);
             /* When extracting non-UNIX directories or when extracting
              * without UID/GID restoration or SGID preservation, any
              * SGID flag inherited from the parent directory should be
@@ -521,8 +522,8 @@ int mapname(__G__ renamed) __GDEF int renamed;
         return (error & ~MPN_MASK) | MPN_ERR_SKIP;
     }
 
-    checkdir(__G__ pathcomp, APPEND_NAME); /* returns 1 if truncated: care? */
-    checkdir(__G__ G.filename, GETPATH);
+    checkdir(pathcomp, APPEND_NAME); /* returns 1 if truncated: care? */
+    checkdir(G.filename, GETPATH);
 
     return error;
 
@@ -550,7 +551,7 @@ int mapname(__G__ renamed) __GDEF int renamed;
 /* Function checkdir() */
 /***********************/
 
-int checkdir(__G__ pathcomp, flag)
+int checkdir(pathcomp, flag)
 __GDEF
 char *pathcomp;
 int flag;
@@ -789,7 +790,7 @@ int flag;
 
 static int get_extattribs(__GPRO__ iztimes *pzt, ulg z_uidgid[2]);
 
-static int get_extattribs(__G__ pzt, z_uidgid)
+static int get_extattribs(pzt, z_uidgid)
 __GDEF
 iztimes *pzt;
 ulg z_uidgid[2];
@@ -844,7 +845,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
     ulg z_uidgid[2];
     int have_uidgid_flg;
 
-    have_uidgid_flg = get_extattribs(__G__ & (zt.t3), z_uidgid);
+    have_uidgid_flg = get_extattribs(&(zt.t3), z_uidgid);
 
     /*---------------------------------------------------------------------------
         If symbolic links are supported, allocate storage for a symlink control
@@ -943,7 +944,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         zipfile.
       ---------------------------------------------------------------------------*/
 
-    if (fchmod(fileno(G.outfile), filtattr(__G__ G.pInfo->file_attr)))
+    if (fchmod(fileno(G.outfile), filtattr(G.pInfo->file_attr)))
         perror("fchmod (file attributes) error");
 
     fclose(G.outfile);
@@ -964,7 +965,8 @@ void close_outfile() /* GRR: change to return PK-style warning level */
 
 } /* end function close_outfile() */
 
-int set_symlnk_attribs(__G__ slnk_entry) __GDEF slinkentry *slnk_entry;
+int set_symlnk_attribs(slnk_entry)
+__GDEF slinkentry *slnk_entry;
 {
     if (slnk_entry->attriblen > 0) {
         if (slnk_entry->attriblen > sizeof(unsigned)) {
@@ -994,7 +996,8 @@ int set_symlnk_attribs(__G__ slnk_entry) __GDEF slinkentry *slnk_entry;
 static const char DirlistChmodFailed[] =
     "warning:  cannot set permissions for %s\n          %s\n";
 
-int defer_dir_attribs(__G__ pd) __GDEF direntry **pd;
+int defer_dir_attribs(pd)
+__GDEF direntry **pd;
 {
     uxdirattr *d_entry;
 
@@ -1008,12 +1011,12 @@ int defer_dir_attribs(__G__ pd) __GDEF direntry **pd;
 
     d_entry->perms = G.pInfo->file_attr;
 
-    d_entry->have_uidgid =
-        get_extattribs(__G__ & (d_entry->u.t3), d_entry->uidgid);
+    d_entry->have_uidgid = get_extattribs(&(d_entry->u.t3), d_entry->uidgid);
     return PK_OK;
 } /* end function defer_dir_attribs() */
 
-int set_direc_attribs(__G__ d) __GDEF direntry *d;
+int set_direc_attribs(d)
+__GDEF direntry *d;
 {
     int errval = PK_OK;
 

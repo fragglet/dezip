@@ -21,7 +21,6 @@
  * Non-echo keyboard/console input support is needed and enabled.
  */
 
-#define __G__
 #define __GDEF
 #define __GPRO void
 #define __GPRO__
@@ -52,7 +51,7 @@
  * Echon() for suppressing and (re)enabling console input echo.
  */
 #ifndef echoff
-#define echoff(f) Echoff(__G__ f)
+#define echoff(f) Echoff(f)
 #define echon()   Echon()
 void Echoff(__GPRO__ int f);
 void Echon(__GPRO);
@@ -62,7 +61,7 @@ void Echon(__GPRO);
 #ifndef FGETCH
 /* default for all systems where no getch()-like function is available */
 int zgetch(__GPRO__ int f);
-#define FGETCH(f) zgetch(__G__ f)
+#define FGETCH(f) zgetch(f)
 #endif
 
 char *getp(__GPRO__ const char *m, char *p, int n);

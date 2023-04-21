@@ -207,7 +207,7 @@ int process_zipfiles() /* return PK-type error code */
     NumWinFiles = NumLoseFiles = NumWarnFiles = 0;
     NumMissDirs = NumMissFiles = 0;
 
-    while ((G.zipfn = do_wild(__G__ G.wildzipfn)) != (char *) NULL) {
+    while ((G.zipfn = do_wild(G.wildzipfn)) != (char *) NULL) {
         Trace((stderr, "do_wild( %s ) returns %s\n", G.wildzipfn, G.zipfn));
 
         lastzipfn = G.zipfn;
@@ -218,7 +218,7 @@ int process_zipfiles() /* return PK-type error code */
             (NumWinFiles + NumLoseFiles + NumWarnFiles + NumMissFiles) > 0)
             (*G.message)((void *) &G, (uch *) "\n", 1L, 0);
 
-        if ((error = do_seekable(__G__ 0)) == PK_WARN)
+        if ((error = do_seekable(0)) == PK_WARN)
             ++NumWarnFiles;
         else if (error == IZ_DIR)
             ++NumMissDirs;
@@ -262,11 +262,11 @@ int process_zipfiles() /* return PK-type error code */
              */
             /* and a pig to code for,  so treat as case insensitive for now */
             /* we do this under QDOS to check for .zip as well as _zip */
-            if ((error = do_seekable(__G__ 0)) == PK_NOZIP || error == IZ_DIR) {
+            if ((error = do_seekable(0)) == PK_NOZIP || error == IZ_DIR) {
                 if (error == IZ_DIR)
                     ++NumMissDirs;
                 strcpy(p, ALT_ZSUFX);
-                error = do_seekable(__G__ 1);
+                error = do_seekable(1);
             }
             Trace((stderr, "do_seekable(1) returns %d\n", error));
             switch (error) {
@@ -352,7 +352,7 @@ void free_G_buffers() /* releases all memory allocated in global vars */
     unsigned i;
 
     inflate_free();
-    checkdir(__G__(char *) NULL, END);
+    checkdir((char *) NULL, END);
 
     if (G.key != (char *) NULL) {
         free(G.key);
@@ -409,8 +409,8 @@ void free_G_buffers() /* releases all memory allocated in global vars */
 /* Function do_seekable() */
 /**************************/
 
-static int do_seekable(__G__ lastchance) /* return PK-type error code */
-    __GDEF int lastchance;
+static int do_seekable(lastchance) /* return PK-type error code */
+__GDEF int lastchance;
 {
     /* static int no_ecrec = FALSE;  SKM: moved to globals.h */
     int maybe_exe = FALSE;
@@ -477,8 +477,7 @@ static int do_seekable(__G__ lastchance) /* return PK-type error code */
     if ((!uO.zipinfo_mode && !uO.qflag && !uO.T_flag))
         Info(slide, 0, ((char *) slide, LoadFarString(LogInitline), G.zipfn));
 
-    if ((error_in_archive = find_ecrec(__G__ MIN(G.ziplen, 66000L))) >
-        PK_WARN) {
+    if ((error_in_archive = find_ecrec(MIN(G.ziplen, 66000L))) > PK_WARN) {
         CLOSE_INFILE();
 
         if (maybe_exe)
@@ -578,18 +577,18 @@ static int do_seekable(__G__ lastchance) /* return PK-type error code */
           ZIPSPLIT 1.1).
           -----------------------------------------------------------------------*/
 
-        error = seek_zipf(__G__ G.ecrec.offset_start_central_directory);
+        error = seek_zipf(G.ecrec.offset_start_central_directory);
         if (error == PK_BADERR) {
             CLOSE_INFILE();
             return PK_BADERR;
         }
-        if ((error != PK_OK) || (readbuf(__G__ G.sig, 4) == 0) ||
+        if ((error != PK_OK) || (readbuf(G.sig, 4) == 0) ||
             memcmp(G.sig, central_hdr_sig, 4)) {
             zoff_t tmp = G.extra_bytes;
 
             G.extra_bytes = 0;
-            error = seek_zipf(__G__ G.ecrec.offset_start_central_directory);
-            if ((error != PK_OK) || (readbuf(__G__ G.sig, 4) == 0) ||
+            error = seek_zipf(G.ecrec.offset_start_central_directory);
+            if ((error != PK_OK) || (readbuf(G.sig, 4) == 0) ||
                 memcmp(G.sig, central_hdr_sig, 4)) {
                 if (error != PK_BADERR)
                     Info(slide, 0x401,
@@ -610,7 +609,7 @@ static int do_seekable(__G__ lastchance) /* return PK-type error code */
             or test member files as instructed, and close the zipfile.
           -----------------------------------------------------------------------*/
 
-        error = seek_zipf(__G__ G.ecrec.offset_start_central_directory);
+        error = seek_zipf(G.ecrec.offset_start_central_directory);
         if (error != PK_OK) {
             CLOSE_INFILE();
             return error;
@@ -621,7 +620,7 @@ static int do_seekable(__G__ lastchance) /* return PK-type error code */
 
         {
             if (uO.T_flag)
-                error = get_time_stamp(__G__ & uxstamp, &nmember);
+                error = get_time_stamp(&uxstamp, &nmember);
             else if (uO.vflag && !uO.tflag && !uO.cflag)
                 error = list_files(); /* LIST 'EM */
             else
@@ -702,7 +701,7 @@ int fh;
 /* Function rec_find() */
 /***********************/
 
-static int rec_find(__G__ searchlen, signature, rec_size)
+static int rec_find(searchlen, signature, rec_size)
 /* return 0 when rec found, 1 when not found, 2 in case of read error */
 __GDEF
 zoff_t searchlen;
@@ -787,8 +786,8 @@ static int check_ecrec_zip64()
 /* Function find_ecrec64() */
 /***************************/
 
-static int find_ecrec64(__G__ searchlen) /* return PK-class error */
-    __GDEF zoff_t searchlen;
+static int find_ecrec64(searchlen) /* return PK-class error */
+__GDEF zoff_t searchlen;
 {
     ec_byte_rec64 byterec;       /* buf for ecrec64 */
     ec_byte_loc64 byterecL;      /* buf for ecrec64 locator */
@@ -1002,8 +1001,8 @@ static int find_ecrec64(__G__ searchlen) /* return PK-class error */
 /* Function find_ecrec() */
 /*************************/
 
-static int find_ecrec(__G__ searchlen) /* return PK-class error */
-    __GDEF zoff_t searchlen;
+static int find_ecrec(searchlen) /* return PK-class error */
+__GDEF zoff_t searchlen;
 {
     int found = FALSE;
     int error_in_archive;
@@ -1039,9 +1038,8 @@ static int find_ecrec(__G__ searchlen) /* return PK-class error */
           ---------------------------------------------------------------------------*/
 
     } else {
-        found = (rec_find(__G__ searchlen, end_central_sig, ECREC_SIZE) == 0
-                     ? TRUE
-                     : FALSE);
+        found = (rec_find(searchlen, end_central_sig, ECREC_SIZE) == 0 ? TRUE
+                                                                       : FALSE);
     } /* end if (ziplen > INBUFSIZ) */
 
     /*---------------------------------------------------------------------------
@@ -1073,7 +1071,7 @@ static int find_ecrec(__G__ searchlen) /* return PK-class error */
            G.inptr - G.inbuf, G.inptr - G.inbuf);
 #endif
 
-    if (readbuf(__G__(char *) byterec, ECREC_SIZE + 4) == 0)
+    if (readbuf((char *) byterec, ECREC_SIZE + 4) == 0)
         return PK_EOF;
 
     G.ecrec.number_this_disk = makeword(&byterec[NUMBER_THIS_DISK]);
@@ -1107,7 +1105,7 @@ static int find_ecrec(__G__ searchlen) /* return PK-class error */
        in the archive, so just check for that to see if this is a
        Zip64 archive.
      */
-    result = find_ecrec64(__G__ searchlen + 76);
+    result = find_ecrec64(searchlen + 76);
     /* 76 bytes for zip64ec & zip64 locator */
     if (result != PK_COOL) {
         if (error_in_archive < result)
@@ -1137,7 +1135,7 @@ static int process_zip_cmmnt() /* return PK-type error code */
 
     if (G.ecrec.zipfile_comment_length &&
         (uO.zflag > 0 || (uO.zflag == 0 && !uO.T_flag && !uO.qflag))) {
-        if (do_string(__G__ G.ecrec.zipfile_comment_length, DISPLAY)) {
+        if (do_string(G.ecrec.zipfile_comment_length, DISPLAY)) {
             Info(slide, 0x401,
                  ((char *) slide, LoadFarString(ZipfileCommTrunc1)));
             error = PK_WARN;
@@ -1241,7 +1239,7 @@ static int get_cdir_ent() /* return PK-type error code */
         usable struct (crec)).
       ---------------------------------------------------------------------------*/
 
-    if (readbuf(__G__(char *) byterec, CREC_SIZE) == 0)
+    if (readbuf((char *) byterec, CREC_SIZE) == 0)
         return PK_EOF;
 
     G.crec.version_made_by[0] = byterec[C_VERSION_MADE_BY_0];
@@ -1289,7 +1287,7 @@ int process_local_file_hdr() /* return PK-type error code */
         usable struct (lrec)).
       ---------------------------------------------------------------------------*/
 
-    if (readbuf(__G__(char *) byterec, LREC_SIZE) == 0)
+    if (readbuf((char *) byterec, LREC_SIZE) == 0)
         return PK_EOF;
 
     G.lrec.version_needed_to_extract[0] =
@@ -1324,7 +1322,7 @@ int process_local_file_hdr() /* return PK-type error code */
 /* Function getZip64Data() */
 /*******************************/
 
-int getZip64Data(__G__ ef_buf, ef_len)
+int getZip64Data(ef_buf, ef_len)
 __GDEF
 const uch *ef_buf; /* buffer containing extra field */
 unsigned ef_len;   /* total length of extra field */
@@ -1422,7 +1420,7 @@ unsigned ef_len;   /* total length of extra field */
 /* Function getUnicodeData() */
 /*******************************/
 
-int getUnicodeData(__G__ ef_buf, ef_len)
+int getUnicodeData(ef_buf, ef_len)
 __GDEF
 const uch *ef_buf; /* buffer containing extra field */
 unsigned ef_len;   /* total length of extra field */

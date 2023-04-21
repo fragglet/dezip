@@ -402,7 +402,7 @@ int extract_or_test_files() /* return PK-type error code */
     /* b) check out if specified extraction root directory exists */
     if (uO.exdir != (char *) NULL && G.extract_flag) {
         G.create_dirs = !uO.fflag;
-        if ((error = checkdir(__G__ uO.exdir, ROOT)) > MPN_INF_SKIP) {
+        if ((error = checkdir(uO.exdir, ROOT)) > MPN_INF_SKIP) {
             /* out of memory, or file in way */
             return (error == MPN_NOMEM ? PK_MEM : PK_ERR);
         }
@@ -500,7 +500,7 @@ int extract_or_test_files() /* return PK-type error code */
         while ((j < DIR_BLKSIZ)) {
             G.pInfo = &G.info[j];
 
-            if (readbuf(__G__ G.sig, 4) == 0) {
+            if (readbuf(G.sig, 4) == 0) {
                 error_in_archive = PK_EOF;
                 reached_end = TRUE; /* ...so no more left to do */
                 break;
@@ -542,8 +542,7 @@ int extract_or_test_files() /* return PK-type error code */
                 reached_end = TRUE;       /* ...so no more left to do */
                 break;
             }
-            if ((error = do_string(__G__ G.crec.filename_length, DS_FN)) !=
-                PK_COOL) {
+            if ((error = do_string(G.crec.filename_length, DS_FN)) != PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;
                 if (error > PK_WARN) { /* fatal:  no more left to do */
@@ -554,8 +553,8 @@ int extract_or_test_files() /* return PK-type error code */
                     break;
                 }
             }
-            if ((error = do_string(__G__ G.crec.extra_field_length,
-                                   EXTRA_FIELD)) != 0) {
+            if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) !=
+                0) {
                 if (error > error_in_archive)
                     error_in_archive = error;
                 if (error > PK_WARN) { /* fatal */
@@ -566,7 +565,7 @@ int extract_or_test_files() /* return PK-type error code */
                     break;
                 }
             }
-            if ((error = do_string(__G__ G.crec.file_comment_length, SKIP)) !=
+            if ((error = do_string(G.crec.file_comment_length, SKIP)) !=
                 PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;
@@ -629,7 +628,7 @@ int extract_or_test_files() /* return PK-type error code */
             each one.
           -----------------------------------------------------------------------*/
 
-        error = extract_or_test_entrylist(__G__ j, &filnum, &num_bad_pwd,
+        error = extract_or_test_entrylist(j, &filnum, &num_bad_pwd,
                                           &old_extra_bytes, &num_dirs, &dirlist,
                                           error_in_archive);
         if (error != PK_COOL) {
@@ -675,7 +674,7 @@ int extract_or_test_files() /* return PK-type error code */
         if (QCOND2)
             Info(slide, 0, ((char *) slide, LoadFarString(SymLnkDeferred)));
         while (G.slink_head != NULL) {
-            set_deferred_symlink(__G__ G.slink_head);
+            set_deferred_symlink(G.slink_head);
             /* remove the processed entry from the chain and free its memory */
             G.slink_last = G.slink_head;
             G.slink_head = G.slink_last->next;
@@ -719,7 +718,7 @@ int extract_or_test_files() /* return PK-type error code */
                 direntry *d = sorted_dirlist[i];
 
                 Trace((stderr, "dir = %s\n", d->fn));
-                if ((error = set_direc_attribs(__G__ d)) != PK_OK) {
+                if ((error = set_direc_attribs(d)) != PK_OK) {
                     ndirs_fail++;
                     Info(slide, 0x201,
                          ((char *) slide, LoadFarString(DirlistSetAttrFailed),
@@ -991,8 +990,8 @@ unsigned compr_methodnum;
 /******************************************/
 
 static int
-extract_or_test_entrylist(__G__ numchunk, pfilnum, pnum_bad_pwd,
-                          pold_extra_bytes, pnum_dirs, pdirlist,
+extract_or_test_entrylist(numchunk, pfilnum, pnum_bad_pwd, pold_extra_bytes,
+                          pnum_dirs, pdirlist,
                           error_in_archive) /* return PK-type error code */
 __GDEF
 unsigned numchunk;
@@ -1027,7 +1026,7 @@ int error_in_archive;
          * (either haven't yet read far enough, or (maybe) skipping back-
          * ward), skip to the target position and reset readbuf(). */
 
-        /* seek_zipf(__G__ pInfo->offset);  */
+        /* seek_zipf(pInfo->offset);  */
         request = G.pInfo->offset + G.extra_bytes;
         if (cover_within((cover_t *) G.cover, request)) {
             Info(slide, 0x401,
@@ -1092,7 +1091,7 @@ int error_in_archive;
         }
 
         /* should be in proper position now, so check for sig */
-        if (readbuf(__G__ G.sig, 4) == 0) { /* bad offset */
+        if (readbuf(G.sig, 4) == 0) { /* bad offset */
             Info(slide, 0x401,
                  ((char *) slide, LoadFarString(OffsetMsg), *pfilnum, "EOF",
                   (long) request));
@@ -1117,8 +1116,8 @@ int error_in_archive;
                     G.extra_bytes = 0L;
                 } else
                     G.extra_bytes = *pold_extra_bytes; /* third attempt */
-                if (((error = seek_zipf(__G__ G.pInfo->offset)) != PK_OK) ||
-                    (readbuf(__G__ G.sig, 4) == 0)) { /* bad offset */
+                if (((error = seek_zipf(G.pInfo->offset)) != PK_OK) ||
+                    (readbuf(G.sig, 4) == 0)) { /* bad offset */
                     if (error != PK_BADERR)
                         Info(slide, 0x401,
                              ((char *) slide, LoadFarString(OffsetMsg),
@@ -1154,8 +1153,7 @@ int error_in_archive;
             if (error_in_archive < PK_WARN)
                 error_in_archive = PK_WARN;
         }
-        if ((error = do_string(__G__ G.lrec.filename_length, DS_FN_L)) !=
-            PK_COOL) {
+        if ((error = do_string(G.lrec.filename_length, DS_FN_L)) != PK_COOL) {
             if (error > error_in_archive)
                 error_in_archive = error;
             if (error > PK_WARN) {
@@ -1169,8 +1167,7 @@ int error_in_archive;
             free(G.extra_field);
             G.extra_field = (uch *) NULL;
         }
-        if ((error = do_string(__G__ G.lrec.extra_field_length, EXTRA_FIELD)) !=
-            0) {
+        if ((error = do_string(G.lrec.extra_field_length, EXTRA_FIELD)) != 0) {
             if (error > error_in_archive)
                 error_in_archive = error;
             if (error > PK_WARN) {
@@ -1227,8 +1224,7 @@ int error_in_archive;
             }
         }
 
-        if (G.pInfo->encrypted &&
-            (error = decrypt(__G__ uO.pwdarg)) != PK_COOL) {
+        if (G.pInfo->encrypted && (error = decrypt(uO.pwdarg)) != PK_COOL) {
             if (error == PK_WARN) {
                 if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
                     Info(slide, 0x401,
@@ -1300,7 +1296,7 @@ int error_in_archive;
             }
 
             /* mapname can create dirs if not freshening or if renamed */
-            error = mapname(__G__ renamed);
+            error = mapname(renamed);
             if ((errcode = error & ~MPN_MASK) != PK_OK &&
                 error_in_archive < errcode)
                 error_in_archive = errcode;
@@ -1308,7 +1304,7 @@ int error_in_archive;
                 if (errcode == MPN_CREATED_DIR) {
                     direntry *d_entry;
 
-                    error = defer_dir_attribs(__G__ & d_entry);
+                    error = defer_dir_attribs(&d_entry);
                     if (d_entry == (direntry *) NULL) {
                         /* There may be no dir_attribs info available, or
                          * we have encountered a mem allocation error.
@@ -1338,7 +1334,7 @@ int error_in_archive;
                 continue; /* go on to next file */
             }
 
-            switch (check_for_newer(__G__ G.filename)) {
+            switch (check_for_newer(G.filename)) {
             case DOES_NOT_EXIST:
                 /* freshen (no new files): skip unless just renamed */
                 if (uO.fflag && !renamed)
@@ -1523,7 +1519,7 @@ static int extract_or_test_member() /* return PK-type error code */
         while ((b = NEXTBYTE) != EOF) {
             *G.outptr++ = (uch) b;
             if (++G.outcnt == wsize) {
-                error = flush(__G__ redirSlide, G.outcnt, 0);
+                error = flush(redirSlide, G.outcnt, 0);
                 G.outptr = redirSlide;
                 G.outcnt = 0L;
                 if (error != PK_COOL || G.disk_full)
@@ -1531,7 +1527,7 @@ static int extract_or_test_member() /* return PK-type error code */
             }
         }
         if (G.outcnt) { /* flush final (partial) buffer */
-            r = flush(__G__ redirSlide, G.outcnt, 0);
+            r = flush(redirSlide, G.outcnt, 0);
             if (error < r)
                 error = r;
         }
@@ -1630,8 +1626,7 @@ static int extract_or_test_member() /* return PK-type error code */
                   uO.cflag ? NEWLINE : ""));
         }
 #define UZinflate inflate
-        if ((r = UZinflate(__G__(G.lrec.compression_method == ENHDEFLATED))) !=
-            0) {
+        if ((r = UZinflate((G.lrec.compression_method == ENHDEFLATED))) != 0) {
             if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
@@ -1740,8 +1735,8 @@ static int extract_or_test_member() /* return PK-type error code */
         error = PK_ERR;
     } else if (uO.tflag) {
         if (G.extra_field) {
-            if ((r = TestExtraField(__G__ G.extra_field,
-                                    G.lrec.extra_field_length)) > error)
+            if ((r = TestExtraField(G.extra_field, G.lrec.extra_field_length)) >
+                error)
                 error = r;
         } else if (!uO.qflag)
             Info(slide, 0, ((char *) slide, " OK\n"));
@@ -1787,7 +1782,7 @@ static int extract_or_test_member() /* return PK-type error code */
 /*  Function TestExtraField()  */
 /*******************************/
 
-static int TestExtraField(__G__ ef, ef_len)
+static int TestExtraField(ef, ef_len)
 __GDEF
 uch *ef;
 unsigned ef_len;
@@ -1845,8 +1840,7 @@ unsigned ef_len;
                     eb_cmpr_offs = EB_BEOS_HLEN;
                 break;
             }
-            if ((r = test_compr_eb(__G__ ef, ebLen, eb_cmpr_offs, NULL)) !=
-                PK_OK) {
+            if ((r = test_compr_eb(ef, ebLen, eb_cmpr_offs, NULL)) != PK_OK) {
                 if (uO.qflag)
                     Info(slide, 1,
                          ((char *) slide, "%-22s ", FnFilter1(G.filename)));
@@ -1891,7 +1885,7 @@ unsigned ef_len;
                     ? IZ_EF_TRUNC
                     : ((ef[EB_HEADSIZE + EB_NTSD_VERSION] > EB_NTSD_MAX_VER)
                            ? (PK_WARN | 0x4000)
-                           : test_compr_eb(__G__ ef, ebLen, EB_NTSD_L_LEN,
+                           : test_compr_eb(ef, ebLen, EB_NTSD_L_LEN,
                                            TEST_NTSD));
             if (r != PK_OK) {
                 if (uO.qflag)
@@ -2014,11 +2008,11 @@ test_compr_eb(__GPRO__ uch *eb, unsigned eb_size, unsigned compr_offset,
     if ((eb_ucptr = (uch *) malloc((extent) eb_ucsize)) == (uch *) NULL)
         return PK_MEM4;
 
-    r = memextract(__G__ eb_ucptr, eb_ucsize, eb + (EB_HEADSIZE + compr_offset),
+    r = memextract(eb_ucptr, eb_ucsize, eb + (EB_HEADSIZE + compr_offset),
                    (ulg) (eb_size - compr_offset));
 
     if (r == PK_OK && test_uc_ebdata != NULL)
-        r = (*test_uc_ebdata)(__G__ eb, eb_size, eb_ucptr, eb_ucsize);
+        r = (*test_uc_ebdata)(eb, eb_size, eb_ucptr, eb_ucsize);
 
     free(eb_ucptr);
     return r;
@@ -2029,10 +2023,10 @@ test_compr_eb(__GPRO__ uch *eb, unsigned eb_size, unsigned compr_offset,
 /*  Function memextract()  */
 /***************************/
 
-int memextract(__G__ tgt, tgtsize, src, srcsize) /* extract compressed */
-    __GDEF                                       /*  extra field block; */
-    uch *tgt;                                    /*  return PK-type error */
-ulg tgtsize;                                     /*  level */
+int memextract(tgt, tgtsize, src, srcsize) /* extract compressed */
+    __GDEF                                 /*  extra field block; */
+    uch *tgt;                              /*  return PK-type error */
+ulg tgtsize;                               /*  level */
 const uch *src;
 ulg srcsize;
 {
@@ -2061,7 +2055,7 @@ ulg srcsize;
     case DEFLATED:
     case ENHDEFLATED:
         G.outcnt = 0L;
-        if ((r = UZinflate(__G__(method == ENHDEFLATED))) != 0) {
+        if ((r = UZinflate((method == ENHDEFLATED))) != 0) {
             if (!uO.tflag)
                 Info(slide, 0x401,
                      ((char *) slide, LoadFarStringSmall(ErrUnzipNoFile),
@@ -2112,7 +2106,7 @@ ulg srcsize;
 /*  Function memflush()  */
 /*************************/
 
-int memflush(__G__ rawbuf, size)
+int memflush(rawbuf, size)
 __GDEF
 const uch *rawbuf;
 ulg size;
@@ -2135,8 +2129,7 @@ ulg size;
 /* Function set_deferred_symlink() */
 /***********************************/
 
-static void
-set_deferred_symlink(__G__ slnk_entry) __GDEF slinkentry *slnk_entry;
+static void set_deferred_symlink(slnk_entry) __GDEF slinkentry *slnk_entry;
 {
     extent ucsize = slnk_entry->targetlen;
     char *linkfname = slnk_entry->fname;
@@ -2177,7 +2170,7 @@ set_deferred_symlink(__G__ slnk_entry) __GDEF slinkentry *slnk_entry;
     if (symlink(linktarget, linkfname)) /* create the real link */
         perror("symlink error");
     free(linktarget);
-    set_symlnk_attribs(__G__ slnk_entry);
+    set_symlnk_attribs(slnk_entry);
     return; /* can't set time on symlinks */
 
 } /* end function set_deferred_symlink() */

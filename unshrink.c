@@ -161,7 +161,7 @@ int unshrink() __GDEF
             } else if (code == 2) {
                 Trace((stderr, " (partial clear code)\n"));
                 /* clear leafs (nodes with no children) */
-                partial_clear(__G__ lastfreecode);
+                partial_clear(lastfreecode);
                 Trace((stderr, " (done with partial clear)\n"));
                 lastfreecode = BOGUSCODE; /* reset start of free-node search */
             }
@@ -220,7 +220,7 @@ int unshrink() __GDEF
                 OUTDBG(*p)
                 if (++G.outcnt == outbufsiz) {
                     Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
-                    if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0) {
+                    if ((error = flush(realbuf, G.outcnt, TRUE)) != 0) {
                         Trace(
                             (stderr, "unshrink:  flush() error (%d)\n", error));
                         return error;
@@ -259,7 +259,7 @@ int unshrink() __GDEF
 
     if (G.outcnt > 0L) {
         Trace((stderr, "doing final flush(), outcnt = %lu\n", G.outcnt));
-        if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0) {
+        if ((error = flush(realbuf, G.outcnt, TRUE)) != 0) {
             Trace((stderr, "unshrink:  flush() error (%d)\n", error));
             return error;
         }
@@ -274,7 +274,7 @@ int unshrink() __GDEF
 /* Function partial_clear() */ /* no longer recursive... */
 /****************************/
 
-static void partial_clear(__G__ lastcodeused) __GDEF int lastcodeused;
+static void partial_clear(lastcodeused) __GDEF int lastcodeused;
 {
     register shrint code;
 

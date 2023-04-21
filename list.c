@@ -113,7 +113,7 @@ int list_files() /* return PK-type error code */
 
     for (j = 1L;; j++) {
 
-        if (readbuf(__G__ G.sig, 4) == 0)
+        if (readbuf(G.sig, 4) == 0)
             return PK_EOF;
         if (memcmp(G.sig, central_hdr_sig, 4)) { /* is it a CentDir entry? */
             /* no new central directory entry
@@ -150,7 +150,7 @@ int list_files() /* return PK-type error code */
          * note of it if it is.
          */
 
-        if ((error = do_string(__G__ G.crec.filename_length, DS_FN)) !=
+        if ((error = do_string(G.crec.filename_length, DS_FN)) !=
             PK_COOL) /*  ^--(uses pInfo->lcflag) */
         {
             error_in_archive = error;
@@ -161,8 +161,7 @@ int list_files() /* return PK-type error code */
             free(G.extra_field);
             G.extra_field = (uch *) NULL;
         }
-        if ((error = do_string(__G__ G.crec.extra_field_length, EXTRA_FIELD)) !=
-            0) {
+        if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal */
                 return error;
@@ -290,7 +289,7 @@ int list_files() /* return PK-type error code */
                       dt_sepchar, yr, hh, mm, (G.pInfo->lcflag ? '^' : ' ')));
             fnprint();
 
-            if ((error = do_string(__G__ G.crec.file_comment_length,
+            if ((error = do_string(G.crec.file_comment_length,
                                    QCOND ? DISPL_8 : SKIP)) != 0) {
                 error_in_archive = error; /* might be just warning */
                 if (error > PK_WARN)      /* fatal */
@@ -378,7 +377,7 @@ static int fn_is_dir() /* returns TRUE if G.filename is directory */
 /* Function get_time_stamp() */
 /*****************************/
 
-int get_time_stamp(__G__ last_modtime, nmember) /* return PK-type error code */
+int get_time_stamp(last_modtime, nmember) /* return PK-type error code */
 __GDEF
 time_t *last_modtime;
 ulg *nmember;
@@ -401,7 +400,7 @@ ulg *nmember;
 
     for (j = 1L;; j++) {
 
-        if (readbuf(__G__ G.sig, 4) == 0)
+        if (readbuf(G.sig, 4) == 0)
             return PK_EOF;
         if (memcmp(G.sig, central_hdr_sig, 4)) { /* is it a CentDir entry? */
             if (((unsigned) (j - 1) & (unsigned) 0xFFFF) ==
@@ -421,7 +420,7 @@ ulg *nmember;
         /* process_cdir_file_hdr() sets pInfo->lcflag: */
         if ((error = process_cdir_file_hdr()) != PK_COOL)
             return error; /* only PK_EOF defined */
-        if ((error = do_string(__G__ G.crec.filename_length, DS_FN)) !=
+        if ((error = do_string(G.crec.filename_length, DS_FN)) !=
             PK_OK) { /*  ^-- (uses pInfo->lcflag) */
             error_in_archive = error;
             if (error > PK_WARN) /* fatal:  can't continue */
@@ -431,8 +430,7 @@ ulg *nmember;
             free(G.extra_field);
             G.extra_field = (uch *) NULL;
         }
-        if ((error = do_string(__G__ G.crec.extra_field_length, EXTRA_FIELD)) !=
-            0) {
+        if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal */
                 return error;

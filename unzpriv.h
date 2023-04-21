@@ -225,7 +225,7 @@ typedef size_t extent;
 #define EXIT exit
 #endif
 #ifndef USAGE
-#define USAGE(ret) usage(__G__(ret)) /* used in unzip.c, zipinfo.c */
+#define USAGE(ret) usage((ret)) /* used in unzip.c, zipinfo.c */
 #endif
 #ifndef TIMET_TO_NATIVE /* everybody but MSC 7.0 and Macintosh */
 #define TIMET_TO_NATIVE(x)
@@ -1302,7 +1302,7 @@ int stamp_file(const char *fname, time_t modtime);       /* local */
 /*  This wrapper macro around fzofft() is just defined to "hide" the
  *  argument needed to reference the global storage buffers.
  */
-#define FmZofft(val, pre, post) fzofft(__G__ val, pre, post)
+#define FmZofft(val, pre, post) fzofft(val, pre, post)
 
 /*  The following macro wrappers around the fnfilter function are used many
  *  times to prepare archive entry names or name components for displaying
@@ -1334,11 +1334,11 @@ int stamp_file(const char *fname, time_t modtime);       /* local */
 #define TEST_NTSD NULL /*   ... is not available */
 #endif
 
-#define SKIP_(length)                                               \
-    if (length && ((error = do_string(__G__ length, SKIP)) != 0)) { \
-        error_in_archive = error;                                   \
-        if (error > 1)                                              \
-            return error;                                           \
+#define SKIP_(length)                                         \
+    if (length && ((error = do_string(length, SKIP)) != 0)) { \
+        error_in_archive = error;                             \
+        if (error > 1)                                        \
+            return error;                                     \
     }
 
 /*
@@ -1357,9 +1357,9 @@ int stamp_file(const char *fname, time_t modtime);       /* local */
  *
  */
 
-#define FLUSH(w)                                          \
-    ((G.mem_mode) ? memflush(__G__ redirSlide, (ulg) (w)) \
-                  : flush(__G__ redirSlide, (ulg) (w), 0))
+#define FLUSH(w)                                    \
+    ((G.mem_mode) ? memflush(redirSlide, (ulg) (w)) \
+                  : flush(redirSlide, (ulg) (w), 0))
 #define NEXTBYTE (G.incnt-- > 0 ? (int) (*G.inptr++) : readbyte())
 
 #define READBITS(nbits, zdest)                                        \

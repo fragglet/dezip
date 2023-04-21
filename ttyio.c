@@ -54,8 +54,7 @@
 /*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.
  */
-void Echoff(__G__ f) __GDEF
-    int f; /* file descriptor for which to turn echo off */
+void Echoff(f) __GDEF int f; /* file descriptor for which to turn echo off */
 {
     struct sgttyb sg; /* tty device structure */
 
@@ -83,7 +82,8 @@ void Echon() __GDEF
 /*
  * Get a character from the given file descriptor without echo or newline.
  */
-int zgetch(__G__ f) __GDEF int f; /* file descriptor from which to read */
+int zgetch(f)
+__GDEF int f; /* file descriptor from which to read */
 {
     char oldmin, oldtim;
     char c;
@@ -129,7 +129,7 @@ error : This Info - ZIP tool requires zcrypt 2.7 or later.
 #endif
 
                                                     char *
-                                                    getp(__G__ m, p, n)
+                                                    getp(m, p, n)
 __GDEF
 const char *m; /* prompt for password */
 char *p;       /* return value: line input */

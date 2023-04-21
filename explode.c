@@ -217,7 +217,7 @@ static const ush cpdist8[] = {
         }                                                  \
     }
 
-static int get_tree(__G__ l, n)
+static int get_tree(l, n)
 __GDEF
 unsigned *l; /* bit lengths */
 unsigned n;  /* number expected */
@@ -245,7 +245,7 @@ unsigned n;  /* number expected */
     return k != n ? 4 : 0; /* should have read n of them */
 }
 
-static int explode_lit(__G__ tb, tl, td, bb, bl, bd, bdl)
+static int explode_lit(tb, tl, td, bb, bl, bd, bdl)
 __GDEF
 struct huft *tb, *tl, *td; /* literal, length, and distance tables */
 unsigned bb, bl, bd;       /* number of bits decoded by those */
@@ -283,7 +283,7 @@ unsigned bdl;              /* number of distance low bits */
             DECODEHUFT(tb, bb, mb) /* get coded literal */
             redirSlide[w++] = (uch) t->v.n;
             if (w == wszimpl) {
-                if ((retval = flush(__G__ redirSlide, (ulg) w, 0)) != 0)
+                if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
                     return retval;
                 w = u = 0;
             }
@@ -320,7 +320,7 @@ unsigned bdl;              /* number of distance low bits */
                         redirSlide[w++] = redirSlide[d++];
                     } while (--e);
                 if (w == wszimpl) {
-                    if ((retval = flush(__G__ redirSlide, (ulg) w, 0)) != 0)
+                    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
                         return retval;
                     w = u = 0;
                 }
@@ -329,7 +329,7 @@ unsigned bdl;              /* number of distance low bits */
     }
 
     /* flush out redirSlide */
-    if ((retval = flush(__G__ redirSlide, (ulg) w, 0)) != 0)
+    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
         return retval;
     if (G.csize + G.incnt + (k >> 3)) /* should have read csize bytes, but */
     { /* sometimes read one too many:  k>>3 compensates */
@@ -339,7 +339,7 @@ unsigned bdl;              /* number of distance low bits */
     return 0;
 }
 
-static int explode_nolit(__G__ tl, td, bl, bd, bdl)
+static int explode_nolit(tl, td, bl, bd, bdl)
 __GDEF
 struct huft *tl, *td; /* length and distance decoder tables */
 unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
@@ -376,7 +376,7 @@ unsigned bdl;         /* number of distance low bits */
             NEEDBITS(8)
             redirSlide[w++] = (uch) b;
             if (w == wszimpl) {
-                if ((retval = flush(__G__ redirSlide, (ulg) w, 0)) != 0)
+                if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
                     return retval;
                 w = u = 0;
             }
@@ -414,7 +414,7 @@ unsigned bdl;         /* number of distance low bits */
                         redirSlide[w++] = redirSlide[d++];
                     } while (--e);
                 if (w == wszimpl) {
-                    if ((retval = flush(__G__ redirSlide, (ulg) w, 0)) != 0)
+                    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
                         return retval;
                     w = u = 0;
                 }
@@ -423,7 +423,7 @@ unsigned bdl;         /* number of distance low bits */
     }
 
     /* flush out redirSlide */
-    if ((retval = flush(__G__ redirSlide, (ulg) w, 0)) != 0)
+    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
         return retval;
     if (G.csize + G.incnt + (k >> 3)) /* should have read csize bytes, but */
     { /* sometimes read one too many:  k>>3 compensates */
@@ -469,18 +469,18 @@ int explode() __GDEF
     /* With literal tree--minimum match length is 3 */
     {
         bb = 9; /* base table size for literals */
-        if ((r = get_tree(__G__ l, 256)) != 0)
+        if ((r = get_tree(l, 256)) != 0)
             return (int) r;
-        if ((r = huft_build(__G__ l, 256, 256, NULL, NULL, &tb, &bb)) != 0) {
+        if ((r = huft_build(l, 256, 256, NULL, NULL, &tb, &bb)) != 0) {
             if (r == 1)
                 huft_free(tb);
             return (int) r;
         }
-        if ((r = get_tree(__G__ l, 64)) != 0) {
+        if ((r = get_tree(l, 64)) != 0) {
             huft_free(tb);
             return (int) r;
         }
-        if ((r = huft_build(__G__ l, 64, 0, cplen3, extra, &tl, &bl)) != 0) {
+        if ((r = huft_build(l, 64, 0, cplen3, extra, &tl, &bl)) != 0) {
             if (r == 1)
                 huft_free(tl);
             huft_free(tb);
@@ -490,16 +490,16 @@ int explode() __GDEF
     /* No literal tree--minimum match length is 2 */
     {
         tb = (struct huft *) NULL;
-        if ((r = get_tree(__G__ l, 64)) != 0)
+        if ((r = get_tree(l, 64)) != 0)
             return (int) r;
-        if ((r = huft_build(__G__ l, 64, 0, cplen2, extra, &tl, &bl)) != 0) {
+        if ((r = huft_build(l, 64, 0, cplen2, extra, &tl, &bl)) != 0) {
             if (r == 1)
                 huft_free(tl);
             return (int) r;
         }
     }
 
-    if ((r = get_tree(__G__ l, 64)) != 0) {
+    if ((r = get_tree(l, 64)) != 0) {
         huft_free(tl);
         if (tb != (struct huft *) NULL)
             huft_free(tb);
@@ -508,11 +508,11 @@ int explode() __GDEF
     if (G.lrec.general_purpose_bit_flag & 2) /* true if 8K */
     {
         bdl = 7;
-        r = huft_build(__G__ l, 64, 0, cpdist8, extra, &td, &bd);
+        r = huft_build(l, 64, 0, cpdist8, extra, &td, &bd);
     } else /* else 4K */
     {
         bdl = 6;
-        r = huft_build(__G__ l, 64, 0, cpdist4, extra, &td, &bd);
+        r = huft_build(l, 64, 0, cpdist4, extra, &td, &bd);
     }
     if (r != 0) {
         if (r == 1)
@@ -524,10 +524,10 @@ int explode() __GDEF
     }
 
     if (tb != NULL) {
-        r = explode_lit(__G__ tb, tl, td, bb, bl, bd, bdl);
+        r = explode_lit(tb, tl, td, bb, bl, bd, bdl);
         huft_free(tb);
     } else {
-        r = explode_nolit(__G__ tl, td, bl, bd, bdl);
+        r = explode_nolit(tl, td, bl, bd, bdl);
     }
 
     huft_free(td);

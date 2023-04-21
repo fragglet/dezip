@@ -72,7 +72,8 @@ int decrypt_byte() __GDEF
 /***********************************************************************
  * Update the encryption keys with the next byte of plain text
  */
-int update_keys(__G__ c) __GDEF int c; /* byte of plain text */
+int update_keys(c)
+__GDEF int c; /* byte of plain text */
 {
     GLOBAL(keys[0]) = CRC32(GLOBAL(keys[0]), c, CRY_CRC_TAB);
     GLOBAL(keys[1]) =
@@ -88,14 +89,14 @@ int update_keys(__G__ c) __GDEF int c; /* byte of plain text */
  * Initialize the encryption keys and the random header according to
  * the given password.
  */
-void init_keys(__G__ passwd) __GDEF const
+void init_keys(passwd) __GDEF const
     char *passwd; /* password string with which to modify keys */
 {
     GLOBAL(keys[0]) = 305419896L;
     GLOBAL(keys[1]) = 591751049L;
     GLOBAL(keys[2]) = 878082192L;
     while (*passwd != '\0') {
-        update_keys(__G__(int) * passwd);
+        update_keys((int) *passwd);
         passwd++;
     }
 }
@@ -114,7 +115,8 @@ void init_keys(__G__ passwd) __GDEF const
  * Get the password and set up keys for current zipfile member.
  * Return PK_ class error.
  */
-int decrypt(__G__ passwrd) __GDEF const char *passwrd;
+int decrypt(passwrd)
+__GDEF const char *passwrd;
 {
     ush b;
     int n, r;
@@ -161,7 +163,7 @@ int decrypt(__G__ passwrd) __GDEF const char *passwrd;
 
     /* if have key already, test it; else allocate memory for it */
     if (GLOBAL(key)) {
-        if (!testp(__G__ h))
+        if (!testp(h))
             return PK_COOL; /* existing password OK (else prompt for new) */
         else if (GLOBAL(nopwd))
             return PK_WARN; /* user indicated no more prompting */
@@ -182,7 +184,7 @@ int decrypt(__G__ passwrd) __GDEF const char *passwrd;
             *GLOBAL(key) = '\0';  /*   We try the NIL password, ... */
             n = 0;                /*   and cancel fetch for this item. */
         }
-        if (!testp(__G__ h))
+        if (!testp(h))
             return PK_COOL;
         if (r == IZ_PW_CANCELALL) /* User replied "Skip all" */
             GLOBAL(nopwd) = TRUE; /*   inhibit any further PW prompt! */
@@ -195,7 +197,8 @@ int decrypt(__G__ passwrd) __GDEF const char *passwrd;
 /***********************************************************************
  * Test the password.  Return -1 if bad, 0 if OK.
  */
-local int testp(__G__ h) __GDEF const uch *h;
+local int testp(h)
+__GDEF const uch *h;
 {
     int r;
     char *key_translated;
@@ -209,10 +212,10 @@ local int testp(__G__ h) __GDEF const uch *h;
     if ((key_translated = malloc(strlen(GLOBAL(key)) + 1)) == (char *) NULL)
         return -1;
     /* first try, test password translated "standard" charset */
-    r = testkey(__G__ h, STR_TO_CP1(key_translated, GLOBAL(key)));
+    r = testkey(h, STR_TO_CP1(key_translated, GLOBAL(key)));
 #else  /* !STR_TO_CP1 */
     /* first try, test password as supplied on the extractor's host */
-    r = testkey(__G__ h, GLOBAL(key));
+    r = testkey(h, GLOBAL(key));
 #endif /* ?STR_TO_CP1 */
 
 #ifdef STR_TO_CP2
@@ -223,11 +226,11 @@ local int testp(__G__ h) __GDEF const uch *h;
             return -1;
 #endif
         /* second try, password translated to alternate ("standard") charset */
-        r = testkey(__G__ h, STR_TO_CP2(key_translated, GLOBAL(key)));
+        r = testkey(h, STR_TO_CP2(key_translated, GLOBAL(key)));
 #ifdef STR_TO_CP3
         if (r != 0)
             /* third try, password translated to another "standard" charset */
-            r = testkey(__G__ h, STR_TO_CP3(key_translated, GLOBAL(key)));
+            r = testkey(h, STR_TO_CP3(key_translated, GLOBAL(key)));
 #endif
 #ifndef STR_TO_CP1
         free(key_translated);
@@ -239,7 +242,7 @@ local int testp(__G__ h) __GDEF const uch *h;
     free(key_translated);
     if (r != 0) {
         /* last resort, test password as supplied on the extractor's host */
-        r = testkey(__G__ h, GLOBAL(key));
+        r = testkey(h, GLOBAL(key));
     }
 #endif /* STR_TO_CP1 */
 
@@ -247,7 +250,7 @@ local int testp(__G__ h) __GDEF const uch *h;
 
 } /* end function testp() */
 
-local int testkey(__G__ h, key)
+local int testkey(h, key)
 __GDEF
 const uch *h;    /* decrypted header */
 const char *key; /* decryption password to test */
@@ -261,7 +264,7 @@ const char *key; /* decryption password to test */
     uch hh[RAND_HEAD_LEN]; /* decrypted header */
 
     /* set keys and save the encrypted header */
-    init_keys(__G__ key);
+    init_keys(key);
     memcpy(hh, h, RAND_HEAD_LEN);
 
     /* check password */

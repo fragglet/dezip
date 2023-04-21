@@ -47,7 +47,6 @@
 #define CR_VERSION_DATE "05 Jan 2007" /* last public release date */
 #define CR_RELEASE
 
-#define __G__
 #define __GDEF
 #define __GPRO void
 #define __GPRO__
@@ -69,7 +68,7 @@
 #define zencode(c, t) (t = decrypt_byte(), update_keys(c), t ^ (c))
 
 /* decode byte c in place */
-#define zdecode(c) update_keys(__G__ c ^= decrypt_byte())
+#define zdecode(c) update_keys(c ^= decrypt_byte())
 
 int decrypt_byte(__GPRO);
 int update_keys(__GPRO__ int c);

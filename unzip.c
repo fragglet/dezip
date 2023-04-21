@@ -234,7 +234,7 @@ char *argv[];
     int r;
 
     CONSTRUCTGLOBALS();
-    r = unzip(__G__ argc, argv);
+    r = unzip(argc, argv);
     DESTROYGLOBALS();
     RETURN(r);
 }
@@ -243,7 +243,7 @@ char *argv[];
 /*  Primary UnZip entry point  */
 /*******************************/
 
-int unzip(__G__ argc, argv)
+int unzip(argc, argv)
 __GDEF
 int argc;
 char *argv[];
@@ -448,7 +448,7 @@ char *argv[];
                 goto cleanup_and_exit;
             }
         }
-        error = uz_opts(__G__ & argc, &argv);
+        error = uz_opts(&argc, &argv);
     }
 
     if ((argc < 0) || error) {
@@ -560,7 +560,7 @@ cleanup_and_exit:
 /* Function uz_opts() */
 /**********************/
 
-int uz_opts(__G__ pargc, pargv)
+int uz_opts(pargc, pargv)
 __GDEF
 int *pargc;
 char ***pargv;
@@ -915,8 +915,8 @@ char ***pargv;
 #define QUOT  ' '
 #define QUOTS ""
 
-int usage(__G__ error) /* return PK-type error code */
-    __GDEF int error;
+int usage(error) /* return PK-type error code */
+__GDEF int error;
 {
     int flag = (error ? 1 : 0);
 
