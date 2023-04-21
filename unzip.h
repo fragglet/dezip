@@ -75,7 +75,7 @@ freely, subject to the above disclaimer and the following restrictions:
        own source and binary releases.
   ---------------------------------------------------------------------------*/
 
-#ifndef __unzip_h   /* prevent multiple inclusions */
+#ifndef __unzip_h /* prevent multiple inclusions */
 #define __unzip_h
 
 /*---------------------------------------------------------------------------
@@ -100,15 +100,15 @@ freely, subject to the above disclaimer and the following restrictions:
 /* turn off prototypes if requested */
 
 /* used to remove arguments in function prototypes for non-ANSI C */
-#  define OF(a) a
+#define OF(a) a
 
 /* enable the "const" keyword only if MODERN and if not otherwise instructed */
-#  if (!defined(ZCONST) && (defined(USE_CONST) || !defined(NO_CONST)))
-#    define ZCONST const
-#  endif
+#if (!defined(ZCONST) && (defined(USE_CONST) || !defined(NO_CONST)))
+#define ZCONST const
+#endif
 
 #ifndef ZCONST
-#  define ZCONST
+#define ZCONST
 #endif
 
 /* Tell Microsoft Visual C++ 2005 (and newer) to leave us alone
@@ -132,45 +132,44 @@ freely, subject to the above disclaimer and the following restrictions:
 #endif /* 0 */
 
 #ifndef UZ_EXP
-#  define UZ_EXP
+#define UZ_EXP
 #endif
 
 /*---------------------------------------------------------------------------
     Public typedefs.
   ---------------------------------------------------------------------------*/
 
-   typedef void zvoid;
-typedef unsigned char   uch;    /* code assumes unsigned bytes; these type-  */
-typedef unsigned short  ush;    /*  defs replace byte/UWORD/ULONG (which are */
-typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
+typedef void zvoid;
+typedef unsigned char uch;  /* code assumes unsigned bytes; these type-  */
+typedef unsigned short ush; /*  defs replace byte/UWORD/ULONG (which are */
+typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
 #define _IZ_TYPES_DEFINED
 
 /* InputFn is not yet used and is likely to change: */
-   typedef int   (UZ_EXP MsgFn)     (zvoid *pG, uch *buf, ulg size, int flag);
-   typedef int   (UZ_EXP InputFn)   (zvoid *pG, uch *buf, int *size, int flag);
-   typedef void  (UZ_EXP PauseFn)   (zvoid *pG, ZCONST char *prompt, int flag);
-   typedef int   (UZ_EXP PasswdFn)  (zvoid *pG, int *rcnt, char *pwbuf,
-                                     int size, ZCONST char *zfn,
-                                     ZCONST char *efn);
-   typedef int   (UZ_EXP StatCBFn)  (zvoid *pG, int fnflag, ZCONST char *zfn,
-                                     ZCONST char *efn, ZCONST zvoid *details);
-   typedef void  (UZ_EXP UsrIniFn)  (void);
+typedef int(UZ_EXP MsgFn)(zvoid *pG, uch *buf, ulg size, int flag);
+typedef int(UZ_EXP InputFn)(zvoid *pG, uch *buf, int *size, int flag);
+typedef void(UZ_EXP PauseFn)(zvoid *pG, ZCONST char *prompt, int flag);
+typedef int(UZ_EXP PasswdFn)(zvoid *pG, int *rcnt, char *pwbuf, int size,
+                             ZCONST char *zfn, ZCONST char *efn);
+typedef int(UZ_EXP StatCBFn)(zvoid *pG, int fnflag, ZCONST char *zfn,
+                             ZCONST char *efn, ZCONST zvoid *details);
+typedef void(UZ_EXP UsrIniFn)(void);
 
-typedef struct _UzpBuffer {    /* rxstr */
-    ulg   strlength;           /* length of string */
-    char  *strptr;             /* pointer to string */
+typedef struct _UzpBuffer { /* rxstr */
+    ulg strlength;          /* length of string */
+    char *strptr;           /* pointer to string */
 } UzpBuffer;
 
 typedef struct _UzpInit {
-    ulg structlen;             /* length of the struct being passed */
+    ulg structlen; /* length of the struct being passed */
 
     /* GRR: can we assume that each of these is a 32-bit pointer?  if not,
      * does it matter? add "far" keyword to make sure? */
     MsgFn *msgfn;
     InputFn *inputfn;
     PauseFn *pausefn;
-    UsrIniFn *userfn;          /* user init function to be called after */
-                               /*  globals constructed and initialized */
+    UsrIniFn *userfn; /* user init function to be called after */
+                      /*  globals constructed and initialized */
 
     /* pointer to program's environment area or something? */
     /* hooks for performance testing? */
@@ -179,7 +178,7 @@ typedef struct _UzpInit {
 } UzpInit;
 
 typedef struct _UzpCB {
-    ulg structlen;             /* length of the struct being passed */
+    ulg structlen; /* length of the struct being passed */
     /* GRR: can we assume that each of these is a 32-bit pointer?  if not,
      * does it matter? add "far" keyword to make sure? */
     MsgFn *msgfn;
@@ -223,39 +222,38 @@ typedef struct _UzpOpts {
 
 /* intended to be a private struct: */
 typedef struct _ver {
-    uch major;              /* e.g., integer 5 */
-    uch minor;              /* e.g., 2 */
-    uch patchlevel;         /* e.g., 0 */
+    uch major;      /* e.g., integer 5 */
+    uch minor;      /* e.g., 2 */
+    uch patchlevel; /* e.g., 0 */
     uch not_used;
 } _version_type;
 
 typedef struct _UzpVer {
-    ulg structlen;            /* length of the struct being passed */
-    ulg flag;                 /* bit 0: is_beta   bit 1: uses_zlib */
-    ZCONST char *betalevel;   /* e.g. "g BETA" or "" */
-    ZCONST char *date;        /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
-    ZCONST char *zlib_version;/* e.g. "1.2.3" or NULL */
-    _version_type unzip;      /* current UnZip version */
-    _version_type zipinfo;    /* current ZipInfo version */
-    _version_type os2dll;     /* OS2DLL version (retained for compatibility */
-    _version_type windll;     /* WinDLL version (retained for compatibility */
-    _version_type dllapimin;  /* last incompatible change of library API */
+    ulg structlen;             /* length of the struct being passed */
+    ulg flag;                  /* bit 0: is_beta   bit 1: uses_zlib */
+    ZCONST char *betalevel;    /* e.g. "g BETA" or "" */
+    ZCONST char *date;         /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
+    ZCONST char *zlib_version; /* e.g. "1.2.3" or NULL */
+    _version_type unzip;       /* current UnZip version */
+    _version_type zipinfo;     /* current ZipInfo version */
+    _version_type os2dll;      /* OS2DLL version (retained for compatibility */
+    _version_type windll;      /* WinDLL version (retained for compatibility */
+    _version_type dllapimin;   /* last incompatible change of library API */
 } UzpVer;
 
 /* for Visual BASIC access to Windows DLLs: */
 typedef struct _UzpVer2 {
-    ulg structlen;            /* length of the struct being passed */
-    ulg flag;                 /* bit 0: is_beta   bit 1: uses_zlib */
-    char betalevel[10];       /* e.g. "g BETA" or "" */
-    char date[20];            /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
-    char zlib_version[10];    /* e.g. "1.2.3" or NULL */
-    _version_type unzip;      /* current UnZip version */
-    _version_type zipinfo;    /* current ZipInfo version */
-    _version_type os2dll;     /* OS2DLL version (retained for compatibility */
-    _version_type windll;     /* WinDLL version (retained for compatibility */
-    _version_type dllapimin;  /* last incompatible change of library API */
+    ulg structlen;           /* length of the struct being passed */
+    ulg flag;                /* bit 0: is_beta   bit 1: uses_zlib */
+    char betalevel[10];      /* e.g. "g BETA" or "" */
+    char date[20];           /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
+    char zlib_version[10];   /* e.g. "1.2.3" or NULL */
+    _version_type unzip;     /* current UnZip version */
+    _version_type zipinfo;   /* current ZipInfo version */
+    _version_type os2dll;    /* OS2DLL version (retained for compatibility */
+    _version_type windll;    /* WinDLL version (retained for compatibility */
+    _version_type dllapimin; /* last incompatible change of library API */
 } UzpVer2;
-
 
 typedef struct _Uzp_Siz64 {
     unsigned long lo32;
@@ -280,93 +278,85 @@ typedef struct _Uzp_cdir_Rec {
     Uzp_Siz64 relative_offset_local_header;
 } Uzp_cdir_Rec;
 
-
-#define UZPINIT_LEN   sizeof(UzpInit)
-#define UZPVER_LEN    sizeof(UzpVer)
-#define cbList(func)  int (* UZ_EXP func)(char *filename, Uzp_cdir_Rec *crec)
-
+#define UZPINIT_LEN  sizeof(UzpInit)
+#define UZPVER_LEN   sizeof(UzpVer)
+#define cbList(func) int (*UZ_EXP func)(char *filename, Uzp_cdir_Rec *crec)
 
 /*---------------------------------------------------------------------------
     Return (and exit) values of the public UnZip API functions.
   ---------------------------------------------------------------------------*/
 
 /* external return codes */
-#define PK_OK              0   /* no error */
-#define PK_COOL            0   /* no error */
-#define PK_WARN            1   /* warning error */
-#define PK_ERR             2   /* error in zipfile */
-#define PK_BADERR          3   /* severe error in zipfile */
-#define PK_MEM             4   /* insufficient memory (during initialization) */
-#define PK_MEM2            5   /* insufficient memory (password failure) */
-#define PK_MEM3            6   /* insufficient memory (file decompression) */
-#define PK_MEM4            7   /* insufficient memory (memory decompression) */
-#define PK_MEM5            8   /* insufficient memory (not yet used) */
-#define PK_NOZIP           9   /* zipfile not found */
-#define PK_PARAM          10   /* bad or illegal parameters specified */
-#define PK_FIND           11   /* no files found */
-#define PK_BOMB           12   /* likely zip bomb */
-#define PK_DISK           50   /* disk full */
-#define PK_EOF            51   /* unexpected EOF */
+#define PK_OK     0  /* no error */
+#define PK_COOL   0  /* no error */
+#define PK_WARN   1  /* warning error */
+#define PK_ERR    2  /* error in zipfile */
+#define PK_BADERR 3  /* severe error in zipfile */
+#define PK_MEM    4  /* insufficient memory (during initialization) */
+#define PK_MEM2   5  /* insufficient memory (password failure) */
+#define PK_MEM3   6  /* insufficient memory (file decompression) */
+#define PK_MEM4   7  /* insufficient memory (memory decompression) */
+#define PK_MEM5   8  /* insufficient memory (not yet used) */
+#define PK_NOZIP  9  /* zipfile not found */
+#define PK_PARAM  10 /* bad or illegal parameters specified */
+#define PK_FIND   11 /* no files found */
+#define PK_BOMB   12 /* likely zip bomb */
+#define PK_DISK   50 /* disk full */
+#define PK_EOF    51 /* unexpected EOF */
 
-#define IZ_CTRLC          80   /* user hit ^C to terminate */
-#define IZ_UNSUP          81   /* no files found: all unsup. compr/encrypt. */
-#define IZ_BADPWD         82   /* no files found: all had bad password */
-#define IZ_ERRBF          83   /* big-file archive, small-file program */
+#define IZ_CTRLC  80 /* user hit ^C to terminate */
+#define IZ_UNSUP  81 /* no files found: all unsup. compr/encrypt. */
+#define IZ_BADPWD 82 /* no files found: all had bad password */
+#define IZ_ERRBF  83 /* big-file archive, small-file program */
 
 /* return codes of password fetches (negative = user abort; positive = error) */
-#define IZ_PW_ENTERED      0   /* got some password string; use/try it */
-#define IZ_PW_CANCEL      -1   /* no password available (for this entry) */
-#define IZ_PW_CANCELALL   -2   /* no password, skip any further pwd. request */
-#define IZ_PW_ERROR        5   /* = PK_MEM2 : failure (no mem, no tty, ...) */
+#define IZ_PW_ENTERED   0  /* got some password string; use/try it */
+#define IZ_PW_CANCEL    -1 /* no password available (for this entry) */
+#define IZ_PW_CANCELALL -2 /* no password, skip any further pwd. request */
+#define IZ_PW_ERROR     5  /* = PK_MEM2 : failure (no mem, no tty, ...) */
 
 /* flag values for status callback function */
-#define UZ_ST_START_EXTRACT     1       /* no details */
-#define UZ_ST_IN_PROGRESS       2       /* no details */
-#define UZ_ST_FINISH_MEMBER     3       /* 'details': extracted size */
+#define UZ_ST_START_EXTRACT 1 /* no details */
+#define UZ_ST_IN_PROGRESS   2 /* no details */
+#define UZ_ST_FINISH_MEMBER 3 /* 'details': extracted size */
 
 /* return values of status callback function */
-#define UZ_ST_CONTINUE          0
-#define UZ_ST_BREAK             1
-
+#define UZ_ST_CONTINUE 0
+#define UZ_ST_BREAK    1
 
 /*---------------------------------------------------------------------------
     Prototypes for public UnZip API (DLL) functions.
   ---------------------------------------------------------------------------*/
 
-#define  UzpMatch match
+#define UzpMatch match
 
-int      UZ_EXP UzpMain            OF((int argc, char **argv));
-int      UZ_EXP UzpAltMain         OF((int argc, char **argv, UzpInit *init));
-ZCONST UzpVer * UZ_EXP UzpVersion  OF((void));
-void     UZ_EXP UzpFreeMemBuffer   OF((UzpBuffer *retstr));
-int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file, UzpOpts *optflgs,
-                                       UzpCB *UsrFunc, UzpBuffer *retstr));
-int      UZ_EXP UzpGrep            OF((char *archive, char *file,
-                                       char *pattern, int cmd, int SkipBin,
-                                       UzpCB *UsrFunc));
+int UZ_EXP UzpMain OF((int argc, char **argv));
+int UZ_EXP UzpAltMain OF((int argc, char **argv, UzpInit *init));
+ZCONST UzpVer *UZ_EXP UzpVersion OF((void) );
+void UZ_EXP UzpFreeMemBuffer OF((UzpBuffer * retstr));
+int UZ_EXP UzpUnzipToMemory OF((char *zip, char *file, UzpOpts *optflgs,
+                                UzpCB *UsrFunc, UzpBuffer *retstr));
+int UZ_EXP UzpGrep OF((char *archive, char *file, char *pattern, int cmd,
+                       int SkipBin, UzpCB *UsrFunc));
 
-unsigned UZ_EXP UzpVersion2        OF((UzpVer2 *version));
-int      UZ_EXP UzpValidate        OF((char *archive, int AllCodes));
-
+unsigned UZ_EXP UzpVersion2 OF((UzpVer2 * version));
+int UZ_EXP UzpValidate OF((char *archive, int AllCodes));
 
 /* default I/O functions (can be swapped out via UzpAltMain() entry point): */
 
-int      UZ_EXP UzpMessagePrnt   OF((zvoid *pG, uch *buf, ulg size, int flag));
-int      UZ_EXP UzpMessageNull   OF((zvoid *pG, uch *buf, ulg size, int flag));
-int      UZ_EXP UzpInput         OF((zvoid *pG, uch *buf, int *size, int flag));
-void     UZ_EXP UzpMorePause     OF((zvoid *pG, ZCONST char *prompt, int flag));
-int      UZ_EXP UzpPassword      OF((zvoid *pG, int *rcnt, char *pwbuf,
-                                     int size, ZCONST char *zfn,
-                                     ZCONST char *efn));
-
+int UZ_EXP UzpMessagePrnt OF((zvoid * pG, uch *buf, ulg size, int flag));
+int UZ_EXP UzpMessageNull OF((zvoid * pG, uch *buf, ulg size, int flag));
+int UZ_EXP UzpInput OF((zvoid * pG, uch *buf, int *size, int flag));
+void UZ_EXP UzpMorePause OF((zvoid * pG, ZCONST char *prompt, int flag));
+int UZ_EXP UzpPassword OF((zvoid * pG, int *rcnt, char *pwbuf, int size,
+                           ZCONST char *zfn, ZCONST char *efn));
 
 /*---------------------------------------------------------------------------
     Remaining private stuff for UnZip compilation.
   ---------------------------------------------------------------------------*/
 
 #ifdef UNZIP_INTERNAL
-#  include "unzpriv.h"
+#include "unzpriv.h"
 #endif
-
 
 #endif /* !__unzip_h */

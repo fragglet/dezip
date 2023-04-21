@@ -24,7 +24,7 @@
 
   ---------------------------------------------------------------------------*/
 
-#define __TTYIO_C       /* identifies this source module */
+#define __TTYIO_C /* identifies this source module */
 
 #include "zip.h"
 #include "crypt.h"
@@ -37,94 +37,86 @@
 #include "ttyio.h"
 
 #ifndef PUTC
-#  define PUTC putc
+#define PUTC putc
 #endif
 
-#  define GLOBAL(g) G.g
+#define GLOBAL(g) G.g
 
-   /* include system support for switching of console echo */
-#      include <termios.h>
-#      define sgttyb termios
-#      define sg_flags c_lflag
-#      define GTTY(f, s) tcgetattr(f, (zvoid *) s)
-#      define STTY(f, s) tcsetattr(f, TCSAFLUSH, (zvoid *) s)
-
-
+/* include system support for switching of console echo */
+#include <termios.h>
+#define sgttyb     termios
+#define sg_flags   c_lflag
+#define GTTY(f, s) tcgetattr(f, (zvoid *) s)
+#define STTY(f, s) tcsetattr(f, TCSAFLUSH, (zvoid *) s)
 
 /* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
 
 /*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.
  */
-void Echoff(__G__ f)
-    __GDEF
-    int f;                    /* file descriptor for which to turn echo off */
+void Echoff(__G__ f) __GDEF
+    int f; /* file descriptor for which to turn echo off */
 {
-    struct sgttyb sg;         /* tty device structure */
+    struct sgttyb sg; /* tty device structure */
 
     GLOBAL(echofd) = f;
-    GTTY(f, &sg);             /* get settings */
-    sg.sg_flags &= ~ECHO;     /* turn echo off */
+    GTTY(f, &sg);         /* get settings */
+    sg.sg_flags &= ~ECHO; /* turn echo off */
     STTY(f, &sg);
 }
 
 /*
  * Turn echo back on for file descriptor echofd.
  */
-void Echon(__G)
-    __GDEF
+void Echon(__G) __GDEF
 {
-    struct sgttyb sg;         /* tty device structure */
+    struct sgttyb sg; /* tty device structure */
 
     if (GLOBAL(echofd) != -1) {
-        GTTY(GLOBAL(echofd), &sg);    /* get settings */
-        sg.sg_flags |= ECHO;  /* turn echo on */
+        GTTY(GLOBAL(echofd), &sg); /* get settings */
+        sg.sg_flags |= ECHO;       /* turn echo on */
         STTY(GLOBAL(echofd), &sg);
         GLOBAL(echofd) = -1;
     }
 }
 
-
 /*
  * Get a character from the given file descriptor without echo or newline.
  */
-int zgetch(__G__ f)
-    __GDEF
-    int f;                      /* file descriptor from which to read */
+int zgetch(__G__ f) __GDEF int f; /* file descriptor from which to read */
 {
     char oldmin, oldtim;
     char c;
-    struct sgttyb sg;           /* tty device structure */
+    struct sgttyb sg; /* tty device structure */
 
-    GTTY(f, &sg);               /* get settings */
-    oldmin = sg.c_cc[VMIN];     /* save old values */
+    GTTY(f, &sg);           /* get settings */
+    oldmin = sg.c_cc[VMIN]; /* save old values */
     oldtim = sg.c_cc[VTIME];
-    sg.c_cc[VMIN] = 1;          /* need only one char to return read() */
-    sg.c_cc[VTIME] = 0;         /* no timeout */
-    sg.sg_flags &= ~ICANON;     /* canonical mode off */
-    sg.sg_flags &= ~ECHO;       /* turn echo off, too */
-    STTY(f, &sg);               /* set cbreak mode */
-    GLOBAL(echofd) = f;         /* in case ^C hit (not perfect: still CBREAK) */
+    sg.c_cc[VMIN] = 1;      /* need only one char to return read() */
+    sg.c_cc[VTIME] = 0;     /* no timeout */
+    sg.sg_flags &= ~ICANON; /* canonical mode off */
+    sg.sg_flags &= ~ECHO;   /* turn echo off, too */
+    STTY(f, &sg);           /* set cbreak mode */
+    GLOBAL(echofd) = f;     /* in case ^C hit (not perfect: still CBREAK) */
 
-    read(f, &c, 1);             /* read our character */
+    read(f, &c, 1); /* read our character */
 
-    sg.c_cc[VMIN] = oldmin;     /* restore old values */
+    sg.c_cc[VMIN] = oldmin; /* restore old values */
     sg.c_cc[VTIME] = oldtim;
-    sg.sg_flags |= ICANON;      /* canonical mode on */
-    sg.sg_flags |= ECHO;        /* turn echo on */
-    STTY(f, &sg);               /* restore canonical mode */
+    sg.sg_flags |= ICANON; /* canonical mode on */
+    sg.sg_flags |= ECHO;   /* turn echo on */
+    STTY(f, &sg);          /* restore canonical mode */
     GLOBAL(echofd) = -1;
 
-    return (int)(uch)c;
+    return (int) (uch) c;
 }
-
 
 /*
  * Simple compile-time check for source compatibility between
  * zcrypt and ttyio:
  */
 #if (!defined(CR_MAJORVER) || (CR_MAJORVER < 2) || (CR_MINORVER < 7))
-   error:  This Info-ZIP tool requires zcrypt 2.7 or later.
+error : This Info - ZIP tool requires zcrypt 2.7 or later.
 #endif
 
 /*
@@ -132,21 +124,21 @@ int zgetch(__G__ f)
  * The entered password is not echoed.
  */
 
-
 #ifndef _PATH_TTY
-#    define _PATH_TTY "/dev/tty"
+#define _PATH_TTY "/dev/tty"
 #endif
 
-char *getp(__G__ m, p, n)
-    __GDEF
-    ZCONST char *m;             /* prompt for password */
-    char *p;                    /* return value: line input */
-    int n;                      /* bytes available in p[] */
+                                                    char *
+                                                    getp(__G__ m, p, n)
+__GDEF
+ZCONST char *m; /* prompt for password */
+char *p;        /* return value: line input */
+int n;          /* bytes available in p[] */
 {
-    char c;                     /* one-byte buffer for read() to use */
-    int i;                      /* number of characters input */
-    char *w;                    /* warning on retry */
-    int f;                      /* file descriptor for tty device */
+    char c;  /* one-byte buffer for read() to use */
+    int i;   /* number of characters input */
+    char *w; /* warning on retry */
+    int f;   /* file descriptor for tty device */
 
     /* turn off echo on tty */
 
@@ -155,27 +147,25 @@ char *getp(__G__ m, p, n)
     /* get password */
     w = "";
     do {
-        fputs(w, stderr);       /* warning if back again */
-        fputs(m, stderr);       /* prompt */
+        fputs(w, stderr); /* warning if back again */
+        fputs(m, stderr); /* prompt */
         fflush(stderr);
         i = 0;
         echoff(f);
-        do {                    /* read line, keeping n */
+        do { /* read line, keeping n */
             read(f, &c, 1);
             if (i < n)
                 p[i++] = c;
         } while (c != '\n');
         echon();
-        PUTC('\n', stderr);  fflush(stderr);
+        PUTC('\n', stderr);
+        fflush(stderr);
         w = "(line too long--try again)\n";
-    } while (p[i-1] != '\n');
-    p[i-1] = 0;                 /* terminate at newline */
+    } while (p[i - 1] != '\n');
+    p[i - 1] = 0; /* terminate at newline */
 
     close(f);
 
-    return p;                   /* return pointer to password */
+    return p; /* return pointer to password */
 
 } /* end function getp() */
-
-
-

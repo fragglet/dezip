@@ -11,7 +11,7 @@
    (In case you are looking for the Info-ZIP license, please follow
    the pointers above.)  */
 
-#ifndef __zip_h   /* don't include more than once */
+#ifndef __zip_h /* don't include more than once */
 #define __zip_h
 
 #define UNZIP_INTERNAL
@@ -19,7 +19,7 @@
 
 #define local static
 
-#define ZE_MEM         PK_MEM
-#define ziperr(c, h)   return
+#define ZE_MEM       PK_MEM
+#define ziperr(c, h) return
 
 #endif /* !__zip_h */

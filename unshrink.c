@@ -64,67 +64,65 @@
 
   ---------------------------------------------------------------------------*/
 
-
-#define __UNSHRINK_C    /* identifies this source module */
+#define __UNSHRINK_C /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-
-static void  partial_clear  OF((__GPRO__ int lastcodeused));
+static void partial_clear OF((__GPRO__ int lastcodeused));
 
 #ifdef DEBUG
-#  define OUTDBG(c) \
-   if ((c)<32 || (c)>=127) fprintf(stderr,"\\x%02x",(c)); else putc((c),stderr);
+#define OUTDBG(c)                        \
+    if ((c) < 32 || (c) >= 127)          \
+        fprintf(stderr, "\\x%02x", (c)); \
+    else                                 \
+        putc((c), stderr);
 #else
-#  define OUTDBG(c)
+#define OUTDBG(c)
 #endif
 
 /* HSIZE is defined as 2^13 (8192) in unzip.h (resp. unzpriv.h */
-#define BOGUSCODE  256
-#define FLAG_BITS  parent        /* upper bits of parent[] used as flag bits */
-#define CODE_MASK  (HSIZE - 1)   /* 0x1fff (lower bits are parent's index) */
-#define FREE_CODE  HSIZE         /* 0x2000 (code is unused or was cleared) */
-#define HAS_CHILD  (HSIZE << 1)  /* 0x4000 (code has a child--do not clear) */
+#define BOGUSCODE 256
+#define FLAG_BITS parent       /* upper bits of parent[] used as flag bits */
+#define CODE_MASK (HSIZE - 1)  /* 0x1fff (lower bits are parent's index) */
+#define FREE_CODE HSIZE        /* 0x2000 (code is unused or was cleared) */
+#define HAS_CHILD (HSIZE << 1) /* 0x4000 (code has a child--do not clear) */
 
 #define parent G.area.shrink.Parent
 #define Value  G.area.shrink.value /* "value" conflicts with Pyramid ioctl.h */
 #define stack  G.area.shrink.Stack
 
-
 /***********************/
 /* Function unshrink() */
 /***********************/
 
-int unshrink(__G)
-     __GDEF
+int unshrink(__G) __GDEF
 {
     uch *stacktop = stack + (HSIZE - 1);
     register uch *newstr;
     uch finalval;
-    int codesize=9, len, error;
+    int codesize = 9, len, error;
     shrint code, oldcode, curcode;
     shrint lastfreecode;
     unsigned int outbufsiz;
-#   define realbuf G.outbuf
+#define realbuf G.outbuf
 
-
-/*---------------------------------------------------------------------------
-    Initialize various variables.
-  ---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+        Initialize various variables.
+      ---------------------------------------------------------------------------*/
 
     lastfreecode = BOGUSCODE;
 
     /* non-memory-limited machines:  allocate second (large) buffer for
      * textmode conversion in flush(), but only if needed */
     if (G.pInfo->textmode && !G.outbuf2 &&
-        (G.outbuf2 = (uch *)malloc(TRANSBUFSIZ)) == (uch *)NULL)
+        (G.outbuf2 = (uch *) malloc(TRANSBUFSIZ)) == (uch *) NULL)
         return PK_MEM3;
 
-    for (code = 0;  code < BOGUSCODE;  ++code) {
-        Value[code] = (uch)code;
+    for (code = 0; code < BOGUSCODE; ++code) {
+        Value[code] = (uch) code;
         parent[code] = BOGUSCODE;
     }
-    for (code = BOGUSCODE+1;  code < HSIZE;  ++code)
+    for (code = BOGUSCODE + 1; code < HSIZE; ++code)
         parent[code] = FREE_CODE;
 
     if (G.pInfo->textmode)
@@ -134,15 +132,15 @@ int unshrink(__G)
     G.outptr = realbuf;
     G.outcnt = 0L;
 
-/*---------------------------------------------------------------------------
-    Get and output first code, then loop over remaining ones.
-  ---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+        Get and output first code, then loop over remaining ones.
+      ---------------------------------------------------------------------------*/
 
     READBITS(codesize, oldcode)
     if (G.zipeof)
         return PK_OK;
 
-    finalval = (uch)oldcode;
+    finalval = (uch) oldcode;
     OUTDBG(finalval)
     *G.outptr++ = finalval;
     ++G.outcnt;
@@ -151,14 +149,15 @@ int unshrink(__G)
         READBITS(codesize, code)
         if (G.zipeof)
             break;
-        if (code == BOGUSCODE) {   /* possible to have consecutive escapes? */
+        if (code == BOGUSCODE) { /* possible to have consecutive escapes? */
             READBITS(codesize, code)
             if (G.zipeof)
                 break;
             if (code == 1) {
                 ++codesize;
                 Trace((stderr, " (codesize now %d bits)\n", codesize));
-                if (codesize > MAX_BITS) return PK_ERR;
+                if (codesize > MAX_BITS)
+                    return PK_ERR;
             } else if (code == 2) {
                 Trace((stderr, " (partial clear code)\n"));
                 /* clear leafs (nodes with no children) */
@@ -169,9 +168,9 @@ int unshrink(__G)
             continue;
         }
 
-    /*-----------------------------------------------------------------------
-        Translate code:  traverse tree from leaf back to root.
-      -----------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------
+            Translate code:  traverse tree from leaf back to root.
+          -----------------------------------------------------------------------*/
 
         newstr = stacktop;
         curcode = code;
@@ -179,7 +178,7 @@ int unshrink(__G)
         if (parent[code] == FREE_CODE) {
             /* or (FLAG_BITS[code] & FREE_CODE)? */
             Trace((stderr, " (found a KwKwK code %d; oldcode = %d)\n", code,
-              oldcode));
+                   oldcode));
             *newstr-- = finalval;
             code = oldcode;
         }
@@ -192,39 +191,38 @@ int unshrink(__G)
             }
             if (parent[code] == FREE_CODE) {
                 /* or (FLAG_BITS[code] & FREE_CODE)? */
-                Trace((stderr, " (found a KwKwK code %d; oldcode = %d)\n",
-                  code, oldcode));
+                Trace((stderr, " (found a KwKwK code %d; oldcode = %d)\n", code,
+                       oldcode));
                 *newstr-- = finalval;
                 code = oldcode;
             } else {
                 *newstr-- = Value[code];
-                code = (shrint)(parent[code] & CODE_MASK);
+                code = (shrint) (parent[code] & CODE_MASK);
             }
         }
 
-        len = (int)(stacktop - newstr++);
+        len = (int) (stacktop - newstr++);
         finalval = *newstr;
 
-    /*-----------------------------------------------------------------------
-        Write expanded string in reverse order to output buffer.
-      -----------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------
+            Write expanded string in reverse order to output buffer.
+          -----------------------------------------------------------------------*/
 
-        Trace((stderr,
-          "code %4d; oldcode %4d; char %3d (%c); len %d; string [", curcode,
-          oldcode, (int)(*newstr), (*newstr<32 || *newstr>=127)? ' ':*newstr,
-          len));
+        Trace((stderr, "code %4d; oldcode %4d; char %3d (%c); len %d; string [",
+               curcode, oldcode, (int) (*newstr),
+               (*newstr < 32 || *newstr >= 127) ? ' ' : *newstr, len));
 
         {
             register uch *p;
 
-            for (p = newstr;  p < newstr+len;  ++p) {
+            for (p = newstr; p < newstr + len; ++p) {
                 *G.outptr++ = *p;
                 OUTDBG(*p)
                 if (++G.outcnt == outbufsiz) {
                     Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
                     if ((error = flush(__G__ realbuf, G.outcnt, TRUE)) != 0) {
-                        Trace((stderr, "unshrink:  flush() error (%d)\n",
-                          error));
+                        Trace(
+                            (stderr, "unshrink:  flush() error (%d)\n", error));
                         return error;
                     }
                     G.outptr = realbuf;
@@ -234,12 +232,13 @@ int unshrink(__G)
             }
         }
 
-    /*-----------------------------------------------------------------------
-        Add new leaf (first character of newstr) to tree as child of oldcode.
-      -----------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------
+            Add new leaf (first character of newstr) to tree as child of
+          oldcode.
+          -----------------------------------------------------------------------*/
 
         /* search for freecode */
-        code = (shrint)(lastfreecode + 1);
+        code = (shrint) (lastfreecode + 1);
         /* add if-test before loop for speed? */
         while ((code < HSIZE) && (parent[code] != FREE_CODE))
             ++code;
@@ -252,12 +251,11 @@ int unshrink(__G)
         Value[code] = finalval;
         parent[code] = oldcode;
         oldcode = curcode;
-
     }
 
-/*---------------------------------------------------------------------------
-    Flush any remaining data and return to sender...
-  ---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+        Flush any remaining data and return to sender...
+      ---------------------------------------------------------------------------*/
 
     if (G.outcnt > 0L) {
         Trace((stderr, "doing final flush(), outcnt = %lu\n", G.outcnt));
@@ -272,35 +270,29 @@ int unshrink(__G)
 
 } /* end function unshrink() */
 
-
-
-
-
 /****************************/
-/* Function partial_clear() */      /* no longer recursive... */
+/* Function partial_clear() */ /* no longer recursive... */
 /****************************/
 
-static void partial_clear(__G__ lastcodeused)
-    __GDEF
-    int lastcodeused;
+static void partial_clear(__G__ lastcodeused) __GDEF int lastcodeused;
 {
     register shrint code;
 
     /* clear all nodes which have no children (i.e., leaf nodes only) */
 
     /* first loop:  mark each parent as such */
-    for (code = BOGUSCODE+1;  code <= lastcodeused;  ++code) {
-        register shrint cparent = (shrint)(parent[code] & CODE_MASK);
+    for (code = BOGUSCODE + 1; code <= lastcodeused; ++code) {
+        register shrint cparent = (shrint) (parent[code] & CODE_MASK);
 
         if (cparent > BOGUSCODE)
-            FLAG_BITS[cparent] |= HAS_CHILD;   /* set parent's child-bit */
+            FLAG_BITS[cparent] |= HAS_CHILD; /* set parent's child-bit */
     }
 
     /* second loop:  clear all nodes *not* marked as parents; reset flag bits */
-    for (code = BOGUSCODE+1;  code <= lastcodeused;  ++code) {
-        if (FLAG_BITS[code] & HAS_CHILD)    /* just clear child-bit */
+    for (code = BOGUSCODE + 1; code <= lastcodeused; ++code) {
+        if (FLAG_BITS[code] & HAS_CHILD) /* just clear child-bit */
             FLAG_BITS[code] &= ~HAS_CHILD;
-        else {                              /* leaf:  lose it */
+        else { /* leaf:  lose it */
             Trace((stderr, "%d\n", code));
             parent[code] = FREE_CODE;
         }
@@ -308,4 +300,3 @@ static void partial_clear(__G__ lastcodeused)
 
     return;
 }
-

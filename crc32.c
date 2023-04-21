@@ -19,12 +19,12 @@
 
 /* $Id: crc32.c,v 2.0 2007/01/07 05:20:36 spc Exp $ */
 
-#define __CRC32_C       /* identifies this source module */
+#define __CRC32_C /* identifies this source module */
 
 #include "zip.h"
 
 #ifndef ZCONST
-#  define ZCONST const
+#define ZCONST const
 #endif
 
 #include "crc32.h"
@@ -34,8 +34,7 @@
    for "unfolding" optimization is disabled.
  */
 
-#  define CRC_TBLS  1
-
+#define CRC_TBLS 1
 
 /*
   Generate tables for a byte-wise 32-bit CRC calculation on the polynomial:
@@ -67,7 +66,7 @@
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by make_crc_table)
  */
-local ZCONST ulg near crc_table[CRC_TBLS*256] = {
+local ZCONST ulg near crc_table[CRC_TBLS * 256] = {
     0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
     0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
     0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
@@ -119,42 +118,48 @@ local ZCONST ulg near crc_table[CRC_TBLS*256] = {
     0xbdbdf21cL, 0xcabac28aL, 0x53b39330L, 0x24b4a3a6L, 0xbad03605L,
     0xcdd70693L, 0x54de5729L, 0x23d967bfL, 0xb3667a2eL, 0xc4614ab8L,
     0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
-    0x2d02ef8dL
-};
+    0x2d02ef8dL};
 
 /* use "OF((void))" here to work around a Borland TC++ 1.0 problem */
-ZCONST ulg near *get_crc_table OF((void))
+ZCONST ulg near *get_crc_table OF((void) )
 {
-  return crc_table;
+    return crc_table;
 }
 
-#define DO1(crc, buf)  crc = CRC32(crc, *buf++, crc_32_tab)
-#define DO2(crc, buf)  DO1(crc, buf); DO1(crc, buf)
-#define DO4(crc, buf)  DO2(crc, buf); DO2(crc, buf)
-#define DO8(crc, buf)  DO4(crc, buf); DO4(crc, buf)
-
+#define DO1(crc, buf) crc = CRC32(crc, *buf++, crc_32_tab)
+#define DO2(crc, buf) \
+    DO1(crc, buf);    \
+    DO1(crc, buf)
+#define DO4(crc, buf) \
+    DO2(crc, buf);    \
+    DO2(crc, buf)
+#define DO8(crc, buf) \
+    DO4(crc, buf);    \
+    DO4(crc, buf)
 
 /* ========================================================================= */
 ulg crc32(crc, buf, len)
-    ulg crc;                    /* crc shift register */
-    register ZCONST uch *buf;   /* pointer to bytes to pump through */
-    extent len;                 /* number of bytes in buf[] */
+ulg crc;                  /* crc shift register */
+register ZCONST uch *buf; /* pointer to bytes to pump through */
+extent len;               /* number of bytes in buf[] */
 /* Run a set of bytes through the crc shift register.  If buf is a NULL
    pointer, then initialize the crc shift register contents instead.
    Return the current crc in either case. */
 {
-  register z_uint4 c;
-  register ZCONST ulg near *crc_32_tab;
+    register z_uint4 c;
+    register ZCONST ulg near *crc_32_tab;
 
-  if (buf == NULL) return 0L;
+    if (buf == NULL)
+        return 0L;
 
-  crc_32_tab = get_crc_table();
+    crc_32_tab = get_crc_table();
 
-  c = (REV_BE((z_uint4)crc) ^ 0xffffffffL);
+    c = (REV_BE((z_uint4) crc) ^ 0xffffffffL);
 
-  if (len) do {
-    DO1(c, buf);
-  } while (--len);
+    if (len)
+        do {
+            DO1(c, buf);
+        } while (--len);
 
-  return REV_BE(c) ^ 0xffffffffL;   /* (instead of ~c for 64-bit machines) */
+    return REV_BE(c) ^ 0xffffffffL; /* (instead of ~c for 64-bit machines) */
 }

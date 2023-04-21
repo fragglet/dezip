@@ -10,29 +10,28 @@
    ttyio.h
  */
 
-#ifndef __ttyio_h   /* don't include more than once */
+#ifndef __ttyio_h /* don't include more than once */
 #define __ttyio_h
 
 #ifndef __crypt_h
-#  include "crypt.h"  /* ensure that encryption header file has been seen */
+#include "crypt.h" /* ensure that encryption header file has been seen */
 #endif
 
 /*
  * Non-echo keyboard/console input support is needed and enabled.
  */
 
-#ifndef __G         /* UnZip only, for now (DLL stuff) */
-#  define __G
-#  define __G__
-#  define __GDEF
-#  define __GPRO    void
-#  define __GPRO__
+#ifndef __G /* UnZip only, for now (DLL stuff) */
+#define __G
+#define __G__
+#define __GDEF
+#define __GPRO void
+#define __GPRO__
 #endif
 
-#ifndef ZCONST      /* UnZip only (until have configure script like Zip) */
-#  define ZCONST const
+#ifndef ZCONST /* UnZip only (until have configure script like Zip) */
+#define ZCONST const
 #endif
-
 
 /* Function prototypes */
 
@@ -60,19 +59,19 @@
  * Echon() for suppressing and (re)enabling console input echo.
  */
 #ifndef echoff
-#  define echoff(f)  Echoff(__G__ f)
-#  define echon()    Echon(__G)
-   void Echoff OF((__GPRO__ int f));
-   void Echon OF((__GPRO));
+#define echoff(f) Echoff(__G__ f)
+#define echon()   Echon(__G)
+void Echoff OF((__GPRO__ int f));
+void Echon OF((__GPRO));
 #endif
 
 /* this stuff is used by MORE and also now by the ctrl-S code; fileio.c only */
-#  ifndef FGETCH
-     /* default for all systems where no getch()-like function is available */
-     int zgetch OF((__GPRO__ int f));
-#    define FGETCH(f)  zgetch(__G__ f)
-#  endif
+#ifndef FGETCH
+/* default for all systems where no getch()-like function is available */
+int zgetch OF((__GPRO__ int f));
+#define FGETCH(f) zgetch(__G__ f)
+#endif
 
-   char *getp OF((__GPRO__ ZCONST char *m, char *p, int n));
+char *getp OF((__GPRO__ ZCONST char *m, char *p, int n));
 
 #endif /* !__ttyio_h */

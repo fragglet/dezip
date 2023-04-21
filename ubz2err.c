@@ -23,8 +23,7 @@
 
   ---------------------------------------------------------------------------*/
 
-
-#define __UBZ2ERR_C     /* identifies this source module */
+#define __UBZ2ERR_C /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
@@ -36,14 +35,13 @@
  * BZ_NO_STDIO), required to handle fatal internal bug-type errors of
  * the bzip2 library.
  */
-void bz_internal_error(bzerrcode)
-    int bzerrcode;
+void bz_internal_error(bzerrcode) int bzerrcode;
 {
     GETGLOBALS();
 
-    Info(slide, 0x421, ((char *)slide,
-      "error: internal fatal libbzip2 error number %d\n", bzerrcode));
+    Info(slide, 0x421,
+         ((char *) slide, "error: internal fatal libbzip2 error number %d\n",
+          bzerrcode));
     DESTROYGLOBALS();
     EXIT(PK_BADERR);
 } /* end function bz_internal_error() */
-

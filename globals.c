@@ -19,26 +19,22 @@
 
   ---------------------------------------------------------------------------*/
 
-
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
 /* initialization of sigs is completed at runtime so unzip(sfx) executable
  * won't look like a zipfile
  */
-char central_hdr_sig[4]   = {0, 0, 0x01, 0x02};
-char local_hdr_sig[4]     = {0, 0, 0x03, 0x04};
-char end_central_sig[4]   = {0, 0, 0x05, 0x06};
+char central_hdr_sig[4] = {0, 0, 0x01, 0x02};
+char local_hdr_sig[4] = {0, 0, 0x03, 0x04};
+char end_central_sig[4] = {0, 0, 0x05, 0x06};
 char end_central64_sig[4] = {0, 0, 0x06, 0x06};
 char end_centloc64_sig[4] = {0, 0, 0x06, 0x07};
 /* extern char extd_local_sig[4] = {0, 0, 0x07, 0x08};  NOT USED YET */
 
-ZCONST char *fnames[2] = {"*", NULL};   /* default filenames vector */
+ZCONST char *fnames[2] = {"*", NULL}; /* default filenames vector */
 
-
-   Uz_Globs G;
-
-
+Uz_Globs G;
 
 Uz_Globs *globalsCtor()
 {
@@ -47,15 +43,15 @@ Uz_Globs *globalsCtor()
 
     memzero(&G, sizeof(Uz_Globs));
 
-    uO.lflag=(-1);
+    uO.lflag = (-1);
     G.wildzipfn = "";
-    G.pfnames = (char **)fnames;
-    G.pxnames = (char **)&fnames[1];
+    G.pfnames = (char **) fnames;
+    G.pxnames = (char **) &fnames[1];
     G.pInfo = G.info;
-    G.sol = TRUE;          /* at start of line */
+    G.sol = TRUE; /* at start of line */
 
     G.message = UzpMessagePrnt;
-    G.input = UzpInput;           /* not used by anyone at the moment... */
+    G.input = UzpInput; /* not used by anyone at the moment... */
     G.mpause = UzpMorePause;
     G.decr_passwd = UzpPassword;
 

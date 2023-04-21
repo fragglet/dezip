@@ -9,7 +9,6 @@
 /* inflate.h for UnZip -- by Mark Adler
    version c14f, 23 November 1995 */
 
-
 /* Copyright history:
    - Starting with UnZip 5.41 of 16-April-2000, this source file
      is covered by the Info-Zip LICENSE cited above.
@@ -33,4 +32,4 @@
  */
 
 #define UNZIP_INTERNAL
-#include "unzip.h"     /* provides slide[], typedefs and macros */
+#include "unzip.h" /* provides slide[], typedefs and macros */

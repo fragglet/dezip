@@ -12,31 +12,31 @@
  */
 
 #ifndef __crc32_h
-#define __crc32_h       /* identifies this source module */
+#define __crc32_h /* identifies this source module */
 
 /* This header should be read AFTER zip.h resp. unzip.h
  * (the latter with UNZIP_INTERNAL defined...).
  */
 
 #ifndef OF
-#  define OF(a) a
+#define OF(a) a
 #endif
 #ifndef ZCONST
-#  define ZCONST const
+#define ZCONST const
 #endif
 
-   ZCONST ulg near *get_crc_table  OF((void));
-   ulg      crc32           OF((ulg crc, ZCONST uch *buf, extent len));
+ZCONST ulg near *get_crc_table OF((void) );
+ulg crc32 OF((ulg crc, ZCONST uch *buf, extent len));
 
 #ifndef CRC_32_TAB
-#  define CRC_32_TAB     crc_32_tab
+#define CRC_32_TAB crc_32_tab
 #endif
 
 #ifdef CRC32
-#  undef CRC32
+#undef CRC32
 #endif
-#  define CRC32UPD(c, crctab) (crctab[((int)(c)) & 0xff] ^ ((c) >> 8))
-#  define CRC32(c, b, crctab) (crctab[((int)(c) ^ (b)) & 0xff] ^ ((c) >> 8))
-#  define REV_BE(w) w
+#define CRC32UPD(c, crctab) (crctab[((int) (c)) & 0xff] ^ ((c) >> 8))
+#define CRC32(c, b, crctab) (crctab[((int) (c) ^ (b)) & 0xff] ^ ((c) >> 8))
+#define REV_BE(w)           w
 
 #endif /* !__crc32_h */

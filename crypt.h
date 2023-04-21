@@ -22,10 +22,10 @@
   public domain versions.
  */
 
-#ifndef __crypt_h   /* don't include more than once */
+#ifndef __crypt_h /* don't include more than once */
 #define __crypt_h
 
-#  undef CRYPT
+#undef CRYPT
 /*
    Logic of selecting "full crypt" code:
    a) default behaviour:
@@ -37,22 +37,22 @@
       - never full crypt code
    NO_CRYPT takes precedence over USE_CRYPT
  */
-#  define CRYPT  1  /* full version */
+#define CRYPT 1 /* full version */
 
 /* full version */
 
-#define CR_MAJORVER        2
-#define CR_MINORVER        11
-#  define CR_BETA_VER      ""
-#  define CR_VERSION_DATE  "05 Jan 2007"       /* last public release date */
-#  define CR_RELEASE
+#define CR_MAJORVER     2
+#define CR_MINORVER     11
+#define CR_BETA_VER     ""
+#define CR_VERSION_DATE "05 Jan 2007" /* last public release date */
+#define CR_RELEASE
 
-#ifndef __G         /* UnZip only, for now (DLL stuff) */
-#  define __G
-#  define __G__
-#  define __GDEF
-#  define __GPRO    void
-#  define __GPRO__
+#ifndef __G /* UnZip only, for now (DLL stuff) */
+#define __G
+#define __G__
+#define __GDEF
+#define __GPRO void
+#define __GPRO__
 #endif
 
 /* To allow combining of Zip and UnZip static libraries in a single binary,
@@ -60,24 +60,24 @@
  * differently.
  */
 
-#define IZ_PWLEN  80    /* input buffer size for reading encryption key */
-#ifndef PWLEN           /* for compatibility with previous zcrypt release... */
-#  define PWLEN IZ_PWLEN
+#define IZ_PWLEN 80 /* input buffer size for reading encryption key */
+#ifndef PWLEN       /* for compatibility with previous zcrypt release... */
+#define PWLEN IZ_PWLEN
 #endif
-#define RAND_HEAD_LEN  12       /* length of encryption random header */
+#define RAND_HEAD_LEN 12 /* length of encryption random header */
 
 /* the crc_32_tab array has to be provided externally for the crypt calculus */
 
 /* encode byte c, using temp t.  Warning: c must not have side effects. */
-#define zencode(c,t)  (t=decrypt_byte(__G), update_keys(c), t^(c))
+#define zencode(c, t) (t = decrypt_byte(__G), update_keys(c), t ^ (c))
 
 /* decode byte c in place */
-#define zdecode(c)   update_keys(__G__ c ^= decrypt_byte(__G))
+#define zdecode(c) update_keys(__G__ c ^= decrypt_byte(__G))
 
-int  decrypt_byte OF((__GPRO));
-int  update_keys OF((__GPRO__ int c));
+int decrypt_byte OF((__GPRO));
+int update_keys OF((__GPRO__ int c));
 void init_keys OF((__GPRO__ ZCONST char *passwd));
 
-   int  decrypt OF((__GPRO__ ZCONST char *passwrd));
+int decrypt OF((__GPRO__ ZCONST char *passwrd));
 
 #endif /* !__crypt_h */
