@@ -332,9 +332,6 @@
 
 #ifdef USE_ZLIB
 #endif
-#  ifdef IZ_CRCOPTIM_UNFOLDTBL
-#    undef IZ_CRCOPTIM_UNFOLDTBL
-#  endif
 
 #ifndef INBUFSIZ
 #    define INBUFSIZ  8192  /* larger buffers for real OSes */
