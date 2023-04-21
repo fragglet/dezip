@@ -1105,21 +1105,13 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     }
 #endif
 
-#if (defined(NO_FCHOWN))
-    fclose(G.outfile);
-#endif
-
     /* if -X option was specified and we have UID/GID info, restore it */
     if (have_uidgid_flg
         /* check that both uid and gid values fit into their data sizes */
         && ((ulg)(uid_t)(z_uidgid[0]) == z_uidgid[0])
         && ((ulg)(gid_t)(z_uidgid[1]) == z_uidgid[1])) {
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
-#if (defined(NO_FCHOWN))
-        if (chown(G.filename, (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
-#else
         if (fchown(fileno(G.outfile), (uid_t)z_uidgid[0], (gid_t)z_uidgid[1]))
-#endif
         {
             if (uO.qflag)
                 Info(slide, 0x201, ((char *)slide, CannotSetItemUidGid,
@@ -1131,7 +1123,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         }
     }
 
-#if (!defined(NO_FCHOWN) && !defined(NO_FCHMOD))
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
     zipfile.
@@ -1141,7 +1132,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         perror("fchmod (file attributes) error");
 
     fclose(G.outfile);
-#endif /* !NO_FCHOWN && !NO_FCHMOD */
 
     /* skip restoring time stamps on user's request */
     if (uO.D_flag <= 1) {
@@ -1155,16 +1145,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
                   strerror(errno)));
         }
     }
-
-#if (defined(NO_FCHOWN) || defined(NO_FCHMOD))
-/*---------------------------------------------------------------------------
-    Change the file permissions from default ones to those stored in the
-    zipfile.
-  ---------------------------------------------------------------------------*/
-
-    if (chmod(G.filename, filtattr(__G__ G.pInfo->file_attr)))
-        perror("chmod (file attributes) error");
-#endif /* NO_FCHOWN || NO_FCHMOD */
 
 } /* end function close_outfile() */
 
