@@ -1153,7 +1153,6 @@ int set_symlnk_attribs(__G__ slnk_entry)
     slinkentry *slnk_entry;
 {
     if (slnk_entry->attriblen > 0) {
-# if (!defined(NO_LCHOWN))
       if (slnk_entry->attriblen > sizeof(unsigned)) {
         ulg *z_uidgid_p = (zvoid *)(slnk_entry->buf + sizeof(unsigned));
         /* check that both uid and gid values fit into their data sizes */
@@ -1172,7 +1171,6 @@ int set_symlnk_attribs(__G__ slnk_entry)
           }
         }
       }
-# endif /* !NO_LCHOWN */
     }
     /* currently, no error propagation... */
     return PK_OK;

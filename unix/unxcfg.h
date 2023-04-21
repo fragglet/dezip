@@ -147,9 +147,7 @@ typedef struct stat z_stat;
 #define SCREENWIDTH     80
 #define SCREENLWRAP     1
 #define USE_EF_UT_TIME
-#if (!defined(NO_LCHOWN) || !defined(NO_LCHMOD))
 #  define SET_SYMLINK_ATTRIBS
-#endif
 #ifdef MTS
 #  ifdef SET_DIR_ATTRIB
 #    undef SET_DIR_ATTRIB
