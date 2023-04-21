@@ -360,11 +360,7 @@
 
 #include <ctype.h>       /* skip for VMS, to use tolower() function? */
 #include <errno.h>       /* used in mapname() */
-#ifdef USE_STRINGS_H
-#  include <strings.h>   /* strcpy, strcmp, memcpy, index/rindex, etc. */
-#else
 #  include <string.h>    /* strcpy, strcmp, memcpy, strchr/strrchr, etc. */
-#endif
 #  include <limits.h>    /* MAX/MIN constant symbols for system types... */
 
 /* this include must be down here for SysV.4, for some reason... */
