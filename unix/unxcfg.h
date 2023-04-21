@@ -74,11 +74,6 @@ typedef struct stat z_stat;
 #    define GOT_UTIMBUF
 #  endif
 
-#if defined(NO_UNICODE_SUPPORT) && defined(UNICODE_SUPPORT)
-   /* disable Unicode (UTF-8) support when requested */
-#  undef UNICODE_SUPPORT
-#endif
-
 #if (defined(_MBCS) && defined(NO_MBCS))
    /* disable MBCS support when requested */
 #  undef _MBCS
