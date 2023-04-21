@@ -288,7 +288,6 @@ typedef struct Globals {
     struct huft *fixed_tl;              /* inflate static */
     struct huft *fixed_td;              /* inflate static */
     unsigned fixed_bl, fixed_bd;        /* inflate static */
-#ifdef USE_DEFLATE64
     struct huft *fixed_tl64;            /* inflate static */
     struct huft *fixed_td64;            /* inflate static */
     unsigned fixed_bl64, fixed_bd64;    /* inflate static */
@@ -298,7 +297,6 @@ typedef struct Globals {
     ZCONST ush *cplens;                 /* inflate static */
     ZCONST uch *cplext;                 /* inflate static */
     ZCONST uch *cpdext;                 /* inflate static */
-#endif
     unsigned wp;              /* inflate static: current position in slide */
     ulg bb;                   /* inflate static: bit buffer */
     unsigned bk;              /* inflate static: bits count in bit buffer */

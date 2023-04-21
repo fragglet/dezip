@@ -932,16 +932,10 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
 #endif
 
 #ifdef SFX
-#  ifdef USE_DEFLATE64
 #    define UNKN_COMPR \
      (G.crec.compression_method!=STORED && G.crec.compression_method<DEFLATED \
       && G.crec.compression_method>ENHDEFLATED \
       && UNKN_BZ2 && UNKN_LZMA && UNKN_WAVP && UNKN_PPMD)
-#  else
-#    define UNKN_COMPR \
-     (G.crec.compression_method!=STORED && G.crec.compression_method!=DEFLATED\
-      && UNKN_BZ2 && UNKN_LZMA && UNKN_WAVP && UNKN_PPMD)
-#  endif
 #else
 #    define UNKN_RED (G.crec.compression_method >= REDUCED1 && \
                       G.crec.compression_method <= REDUCED4)
@@ -950,17 +944,10 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
 #  else
 #    define UNKN_SHR  FALSE  /* unshrinking not unknown */
 #  endif
-#  ifdef USE_DEFLATE64
 #    define UNKN_COMPR (UNKN_RED || UNKN_SHR || \
      G.crec.compression_method==TOKENIZED || \
      (G.crec.compression_method>ENHDEFLATED && UNKN_BZ2 && UNKN_LZMA \
       && UNKN_WAVP && UNKN_PPMD))
-#  else
-#    define UNKN_COMPR (UNKN_RED || UNKN_SHR || \
-     G.crec.compression_method==TOKENIZED || \
-     (G.crec.compression_method>DEFLATED && UNKN_BZ2 && UNKN_LZMA \
-      && UNKN_WAVP && UNKN_PPMD))
-#  endif
 #endif
 
 #if (defined(USE_BZIP2) && (UNZIP_VERSION < UNZIP_BZ2VERS))
@@ -1743,9 +1730,7 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
 #endif /* !SFX */
 
         case DEFLATED:
-#ifdef USE_DEFLATE64
         case ENHDEFLATED:
-#endif
             if (!uO.tflag && QCOND2) {
                 Info(slide, 0, ((char *)slide, LoadFarString(ExtractMsg),
                   "inflat", FnFilter1(G.filename),
@@ -2207,9 +2192,7 @@ int memextract(__G__ tgt, tgtsize, src, srcsize)  /* extract compressed */
             G.outcnt = (ulg)G.csize;    /* for CRC calculation */
             break;
         case DEFLATED:
-#ifdef USE_DEFLATE64
         case ENHDEFLATED:
-#endif
             G.outcnt = 0L;
             if ((r = UZinflate(__G__ (method == ENHDEFLATED))) != 0) {
                 if (!uO.tflag)

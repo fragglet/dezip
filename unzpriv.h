@@ -50,14 +50,9 @@
 
 #ifdef NO_DEFLATE64
    /* disable support for Deflate64(tm) */
-#  ifdef USE_DEFLATE64
 #    undef USE_DEFLATE64
-#  endif
 #else
    /* enable Deflate64(tm) support unless compiling for SFX stub */
-#  if (!defined(USE_DEFLATE64) && !defined(SFX))
-#    define USE_DEFLATE64
-#  endif
 #endif
 
 /* disable bzip2 support for SFX stub, unless explicitly requested */
@@ -261,11 +256,7 @@
 #ifdef ZIP64_SUPPORT
 #  define UNZIP_VERSION   UNZIP_BZ2VERS
 #else
-#ifdef USE_DEFLATE64
 #  define UNZIP_VERSION   21   /* compatible with PKUNZIP 4.0 */
-#else
-#  define UNZIP_VERSION   20   /* compatible with PKUNZIP 2.0 */
-#endif
 #endif
 #define VMS_UNZIP_VERSION 42   /* if OS-needed-to-extract is VMS:  can do */
 
@@ -346,11 +337,7 @@
 # define DIR_BLKSIZ 16384   /* use more memory, to reduce long-range seeks */
 
 #ifndef WSIZE
-#  ifdef USE_DEFLATE64
 #    define WSIZE   65536L  /* window size--must be a power of two, and */
-#  else                     /*  at least 64K for PKZip's deflate64 method */
-#    define WSIZE   0x8000  /* window size--must be a power of two, and */
-#  endif                    /*  at least 32K for zip's deflate method */
 #endif
 
 #  define nearmalloc  malloc

@@ -310,9 +310,7 @@ char **argv;
     switch (method = SH(h + LOCHOW)) {
       case STORED:
       case DEFLATED:
-#ifdef USE_DEFLATE64
       case ENHDEFLATED:
-#endif
         break;
       default:
         err(3, "first entry not deflated or stored--cannot unpack");

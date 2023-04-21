@@ -87,9 +87,7 @@ int main(argc, argv)
 #ifdef REENTRANT
     (*set_flag)("REENTRANT");
 #endif
-#ifdef USE_DEFLATE64
     (*set_flag)("USE_DEFLATE64");
-#endif
 
     return 0;
 }

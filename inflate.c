@@ -279,11 +279,7 @@
 #define IS_INVALID_CODE(c)  ((c) == INVALID_CODE)
 
 #ifndef WSIZE               /* default is 32K resp. 64K */
-#  ifdef USE_DEFLATE64
 #    define WSIZE   65536L  /* window size--must be a power of two, and */
-#  else                     /*  at least 64K for PKZip's deflate64 method */
-#    define WSIZE   0x8000  /* window size--must be a power of two, and */
-#  endif                    /*  at least 32K for zip's deflate method */
 #endif
 
 /* some buffer counters must be capable of holding 64k for Deflate64 */
@@ -343,7 +339,6 @@
 #endif
 
 /* Check for incompatible combinations of zlib and Deflate64 support. */
-#if defined(USE_DEFLATE64)
 # if !USE_ZLIB_INFLATCB
   #error Deflate64 is incompatible with traditional (pre-1.2.x) zlib interface!
 # else
@@ -352,7 +347,6 @@
     */
 #  include "infback9.h"
 # endif
-#endif /* USE_DEFLATE64 */
 
 
 #if USE_ZLIB_INFLATCB
@@ -427,7 +421,6 @@ int UZinflate(__G__ is_defl64)
         G.inflInit = 1;
     }
 
-#ifdef USE_DEFLATE64
     if (is_defl64)
     {
         Trace((stderr, "initializing inflate9()\n"));
@@ -478,7 +471,6 @@ int UZinflate(__G__ is_defl64)
         }
     }
     else
-#endif /* USE_DEFLATE64 */
     {
         /* For the callback interface, inflate initialization has to
            be called before each decompression call.
@@ -724,26 +716,18 @@ static ZCONST unsigned border[] = {
         16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 
 /* - Copy lengths for literal codes 257..285 */
-#ifdef USE_DEFLATE64
 static ZCONST ush cplens64[] = {
         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 3, 0, 0};
         /* For Deflate64, the code 285 is defined differently. */
-#else
-#  define cplens32 cplens
-#endif
 static ZCONST ush cplens32[] = {
         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
         /* note: see note #13 above about the 258 in this list. */
 /* - Extra bits for literal codes 257..285 */
-#ifdef USE_DEFLATE64
 static ZCONST uch cplext64[] = {
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
         3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 16, INVALID_CODE, INVALID_CODE};
-#else
-#  define cplext32 cplext
-#endif
 static ZCONST uch cplext32[] = {
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
         3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, INVALID_CODE, INVALID_CODE};
@@ -752,21 +736,13 @@ static ZCONST uch cplext32[] = {
 static ZCONST ush cpdist[] = {
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
-#if (defined(USE_DEFLATE64) || defined(PKZIP_BUG_WORKAROUND))
         8193, 12289, 16385, 24577, 32769, 49153};
-#else
-        8193, 12289, 16385, 24577};
-#endif
 
 /* - Extra bits for distance codes 0..29 (0..31 for Deflate64) */
-#ifdef USE_DEFLATE64
 static ZCONST uch cpdext64[] = {
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
         12, 12, 13, 13, 14, 14};
-#else
-#  define cpdext32 cpdext
-#endif
 static ZCONST uch cpdext32[] = {
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
@@ -781,11 +757,7 @@ static ZCONST uch cpdext32[] = {
 #else
 #  define MAXLITLENS 286
 #endif
-#if (defined(USE_DEFLATE64) || defined(PKZIP_BUG_WORKAROUND))
 #  define MAXDISTS 32
-#else
-#  define MAXDISTS 30
-#endif
 
 
 /* moved to consts.h (included in unzip.c), resp. funzip.c */
@@ -1108,13 +1080,8 @@ static int inflate_fixed(__G)
     for (; i < 288; i++)          /* make a complete, but wrong code set */
       l[i] = 8;
     G.fixed_bl = 7;
-#ifdef USE_DEFLATE64
     if ((i = huft_build(__G__ l, 288, 257, G.cplens, G.cplext,
                         &G.fixed_tl, &G.fixed_bl)) != 0)
-#else
-    if ((i = huft_build(__G__ l, 288, 257, cplens, cplext,
-                        &G.fixed_tl, &G.fixed_bl)) != 0)
-#endif
     {
       G.fixed_tl = (struct huft *)NULL;
       return i;
@@ -1124,13 +1091,8 @@ static int inflate_fixed(__G)
     for (i = 0; i < MAXDISTS; i++)      /* make an incomplete code set */
       l[i] = 5;
     G.fixed_bd = 5;
-#ifdef USE_DEFLATE64
     if ((i = huft_build(__G__ l, MAXDISTS, 0, cpdist, G.cpdext,
                         &G.fixed_td, &G.fixed_bd)) > 1)
-#else
-    if ((i = huft_build(__G__ l, MAXDISTS, 0, cpdist, cpdext,
-                        &G.fixed_td, &G.fixed_bd)) > 1)
-#endif
     {
       huft_free(G.fixed_tl);
       G.fixed_td = G.fixed_tl = (struct huft *)NULL;
@@ -1276,11 +1238,7 @@ static int inflate_dynamic(__G)
 
   /* build the decoding tables for literal/length and distance codes */
   bl = lbits;
-#ifdef USE_DEFLATE64
   retval = huft_build(__G__ ll, nl, 257, G.cplens, G.cplext, &tl, &bl);
-#else
-  retval = huft_build(__G__ ll, nl, 257, cplens, cplext, &tl, &bl);
-#endif
   if (bl == 0)                  /* no literals or lengths */
     retval = 1;
   if (retval)
@@ -1300,11 +1258,7 @@ static int inflate_dynamic(__G)
 #else
   bd = dbits;
 #endif
-#ifdef USE_DEFLATE64
   retval = huft_build(__G__ ll + nl, nd, 0, cpdist, G.cpdext, &td, &bd);
-#else
-  retval = huft_build(__G__ ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
-#endif
 #ifdef PKZIP_BUG_WORKAROUND
   if (retval == 1)
     retval = 0;
@@ -1403,7 +1357,6 @@ int inflate(__G__ is_defl64)
   G.bk = 0;
   G.bb = 0;
 
-#ifdef USE_DEFLATE64
   if (is_defl64) {
     G.cplens = cplens64;
     G.cplext = cplext64;
@@ -1421,16 +1374,6 @@ int inflate(__G__ is_defl64)
     G.fixed_td = G.fixed_td32;
     G.fixed_bd = G.fixed_bd32;
   }
-#else /* !USE_DEFLATE64 */
-  if (is_defl64) {
-    /* This should not happen unless UnZip is built from object files
-     * compiled with inconsistent option setting.  Handle this by
-     * returning with "bad input" error code.
-     */
-    Trace((stderr, "\nThis inflate() cannot handle Deflate64!\n"));
-    return 2;
-  }
-#endif /* ?USE_DEFLATE64 */
 
   /* decompress until the last block */
   do {
@@ -1448,7 +1391,6 @@ int inflate(__G__ is_defl64)
   Trace((stderr, "\n%u bytes in Huffman tables (%u/entry)\n",
          h * (unsigned)sizeof(struct huft), (unsigned)sizeof(struct huft)));
 
-#ifdef USE_DEFLATE64
   if (is_defl64) {
     G.fixed_tl64 = G.fixed_tl;
     G.fixed_bl64 = G.fixed_bl;
@@ -1460,7 +1402,6 @@ int inflate(__G__ is_defl64)
     G.fixed_td32 = G.fixed_td;
     G.fixed_bd32 = G.fixed_bd;
   }
-#endif
 
   /* flush out redirSlide and return (success, unless final FLUSH failed) */
   return (FLUSH(G.wp));

@@ -259,10 +259,8 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far Use_Unshrink[] =
      "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
 #  endif
-#  ifdef USE_DEFLATE64
      static ZCONST char Far Use_Deflate64[] =
      "USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)";
-#  endif
 #  ifdef UNICODE_SUPPORT
 #   ifdef UTF8_MAYBE_NATIVE
        /* direct native UTF-8 check AND charset transform via wchar_t */
@@ -1747,11 +1745,9 @@ static void show_version_info(__G)
           LoadFarStringSmall(Use_Unshrink)));
         ++numopts;
 #endif
-#ifdef USE_DEFLATE64
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Deflate64)));
         ++numopts;
-#endif
 #ifdef UNICODE_SUPPORT
 # ifdef UTF8_MAYBE_NATIVE
         sprintf((char *)(slide+256), LoadFarStringSmall(Use_Unicode),
