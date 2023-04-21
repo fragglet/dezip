@@ -78,10 +78,6 @@
 #  define DYNAMIC_CRC_TABLE
 #endif
 
-#if (defined(DYNAMIC_CRC_TABLE) && !defined(REENTRANT))
-#    define DYNALLOC_CRCTAB
-#endif
-
 /*---------------------------------------------------------------------------
     OS-dependent configuration for UnZip internals
   ---------------------------------------------------------------------------*/

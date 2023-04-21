@@ -75,70 +75,6 @@
   word-at-a-time CRC calculation, where a word is four bytes.
 */
 
-#ifdef DYNAMIC_CRC_TABLE
-
-/* =========================================================================
- * Make the crc table. This function is needed only if you want to compute
- * the table dynamically.
- */
-
-local void make_crc_table OF((void));
-
-   local ulg near crc_table[CRC_TBLS*256];
-   local int crc_table_empty = 1;
-#  define CRC_TABLE_IS_EMPTY    (crc_table_empty != 0)
-#  define MARK_CRCTAB_FILLED    crc_table_empty = 0
-
-
-local void make_crc_table()
-{
-  ulg c;                /* crc shift register */
-  int n;                /* counter for all possible eight bit values */
-  int k;                /* byte being shifted into crc apparatus */
-# define crctab_p crc_table
-
-#ifdef COMPUTE_XOR_PATTERN
-  /* This piece of code has been left here to explain how the XOR pattern
-   * used in the creation of the crc_table values can be recomputed.
-   * For production versions of this function, it is more efficient to
-   * supply the resultant pattern at compile time.
-   */
-  ulg xor;              /* polynomial exclusive-or pattern */
-  /* terms of polynomial defining this crc (except x^32): */
-  static ZCONST uch p[] = {0,1,2,4,5,7,8,10,11,12,16,22,23,26};
-
-  /* make exclusive-or pattern from polynomial (0xedb88320L) */
-  xor = 0L;
-  for (n = 0; n < sizeof(p)/sizeof(uch); n++)
-    xor |= 1L << (31 - p[n]);
-#else
-# define xor 0xedb88320L
-#endif
-
-  /* generate a crc for every 8-bit value */
-  for (n = 0; n < 256; n++) {
-    c = (ulg)n;
-    for (k = 8; k; k--)
-      c = c & 1 ? xor ^ (c >> 1) : c >> 1;
-    crctab_p[n] = REV_BE(c);
-  }
-
-#ifdef IZ_CRCOPTIM_UNFOLDTBL
-  /* generate crc for each value followed by one, two, and three zeros */
-  for (n = 0; n < 256; n++) {
-      c = crctab_p[n];
-      for (k = 1; k < 4; k++) {
-          c = CRC32(c, 0, crctab_p);
-          crctab_p[k*256+n] = c;
-      }
-  }
-#endif /* IZ_CRCOPTIM_UNFOLDTBL */
-
-  MARK_CRCTAB_FILLED;
-}
-
-#else /* !DYNAMIC_CRC_TABLE */
-
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by make_crc_table)
  */
@@ -573,7 +509,6 @@ local ZCONST ulg near crc_table[CRC_TBLS*256] = {
 #  endif /* IZ_CRCOPTIM_UNFOLDTBL */
 # endif /* ? IZ_CRC_BE_OPTIMIZ */
 };
-#endif /* ?DYNAMIC_CRC_TABLE */
 
 /* use "OF((void))" here to work around a Borland TC++ 1.0 problem */
 #ifdef USE_ZLIB
@@ -582,10 +517,6 @@ ZCONST uLongf *get_crc_table OF((void))
 ZCONST ulg near *get_crc_table OF((void))
 #endif
 {
-#ifdef DYNAMIC_CRC_TABLE
-  if (CRC_TABLE_IS_EMPTY)
-    make_crc_table();
-#endif
 #ifdef USE_ZLIB
   return (ZCONST uLongf *)crc_table;
 #else
