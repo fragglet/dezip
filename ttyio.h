@@ -52,13 +52,6 @@
  * (or an alias) and do not need the echoff() / echon() function pair.
  */
 
-#ifdef MACOS
-#  define echoff(f)
-#  define echon()
-#  define getch() macgetch()
-#  define HAVE_WORKING_GETCH
-#endif
-
 #ifdef NLM
 #  define echoff(f)
 #  define echon()

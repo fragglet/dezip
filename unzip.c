@@ -171,12 +171,8 @@ static ZCONST char Far IgnoreOOptionMsg[] =
    static ZCONST char Far Example2[] =
      "";                /* no room:  too many local3[] items */
 #else /* !OS2 */
-#ifdef MACOS
-   static ZCONST char Far Example2[] = ""; /* not needed */
-#else /* !MACOS */
    static ZCONST char Far Example2[] = " \
  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
-#endif /* ?MACOS */
 #endif /* ?OS2 */
 #endif /* ?RISCOS */
 #endif /* ?VMS */
@@ -471,12 +467,6 @@ Latest sources and executables are at ftp://ftp.info-zip.org/pub/infozip/ ;\
 \nsee ftp://ftp.info-zip.org/pub/infozip/UnZip.html for other sites.\
 \n\n";
 
-#ifdef MACOS
-static ZCONST char Far UnzipUsageLine2[] = "\
-Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-d exdir]\n \
- Default action is to extract files in list, to exdir;\n\
-  file[.zip] may be a wildcard.  %s\n";
-#else /* !MACOS */
 #ifdef VM_CMS
 static ZCONST char Far UnzipUsageLine2[] = "\
 Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d fm]\n \
@@ -488,7 +478,6 @@ Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
  Default action is to extract files in list, except those in xlist, to exdir;\n\
   file[.zip] may be a wildcard.  %s\n";
 #endif /* ?VM_CMS */
-#endif /* ?MACOS */
 
 #ifdef NO_ZIPINFO
 #  define ZIPINFO_MODE_OPTION  ""
@@ -506,13 +495,6 @@ Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
 \n";
 #endif
 
-#ifdef MACOS
-static ZCONST char Far UnzipUsageLine3[] = "\n\
-  -d  extract files into exdir               -l  list files (short format)\n\
-  -f  freshen existing files, create none    -t  test compressed archive data\n\
-  -u  update files, create if necessary      -z  display archive comment only\n\
-  -v  list verbosely/show version info     %s\n";
-#else /* !MACOS */
 #ifdef VM_CMS
 static ZCONST char Far UnzipUsageLine3[] = "\n\
   -p  extract files to pipe, no messages     -l  list files (short format)\n\
@@ -528,7 +510,6 @@ static ZCONST char Far UnzipUsageLine3[] = "\n\
   -v  list verbosely/show version info     %s\n\
   -x  exclude files that follow (in xlist)   -d  extract files into exdir\n";
 #endif /* ?VM_CMS */
-#endif /* ?MACOS */
 
 /* There is not enough space on a standard 80x25 Windows console screen for
  * the additional line advertising the UTF-8 debugging options. This may
@@ -742,16 +723,6 @@ int unzip(__G__ argc, argv)
 /*---------------------------------------------------------------------------
     Macintosh initialization code.
   ---------------------------------------------------------------------------*/
-
-#ifdef MACOS
-    {
-        int a;
-
-        for (a = 0;  a < 4;  ++a)
-            G.rghCursor[a] = GetCursor(a+128);
-        G.giCursor = 0;
-    }
-#endif
 
 /*---------------------------------------------------------------------------
     NetWare initialization code.
@@ -1301,15 +1272,6 @@ int uz_opts(__G__ pargc, pargv)
 #endif /* (!NO_TIMESTAMPS) */
                 case ('e'):    /* just ignore -e, -x options (extract) */
                     break;
-#ifdef MACOS
-                case ('E'): /* -E [MacOS] display Mac e.f. when restoring */
-                    if( negative ) {
-                        uO.E_flag = FALSE, negative = 0;
-                    } else {
-                        uO.E_flag = TRUE;
-                    }
-                    break;
-#endif /* MACOS */
                 case ('f'):    /* "freshen" (extract only newer files) */
                     if (negative)
                         uO.fflag = uO.uflag = FALSE, negative = 0;
@@ -1336,30 +1298,12 @@ int uz_opts(__G__ pargc, pargv)
                         }
                     }
                     break;
-#ifdef MACOS
-                case ('i'): /* -i [MacOS] ignore filenames stored in Mac ef */
-                    if( negative ) {
-                        uO.i_flag = FALSE, negative = 0;
-                    } else {
-                        uO.i_flag = TRUE;
-                    }
-                    break;
-#endif  /* MACOS */
                 case ('j'):    /* junk pathnames/directory structure */
                     if (negative)
                         uO.jflag = FALSE, negative = 0;
                     else
                         uO.jflag = TRUE;
                     break;
-#if (defined(ATH_BEO) || defined(MACOS))
-                case ('J'):    /* Junk AtheOS, BeOS or MacOS file attributes */
-                    if( negative ) {
-                        uO.J_flag = FALSE, negative = 0;
-                    } else {
-                        uO.J_flag = TRUE;
-                    }
-                    break;
-#endif /* ATH_BEO || MACOS */
                 case ('K'):
                     if (negative) {
                         uO.K_flag = FALSE, negative = 0;

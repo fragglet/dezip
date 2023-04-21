@@ -447,9 +447,6 @@ int zi_opts(__G__ pargc, pargv)
     int    explicit_h=FALSE, explicit_t=FALSE;
 
 
-#ifdef MACOS
-    uO.lflag = LFLAG;         /* reset default on each call */
-#endif
     G.extract_flag = FALSE;   /* zipinfo does not extract to disk */
     argc = *pargc;
     argv = *pargv;
@@ -868,10 +865,6 @@ int zipinfo(__G)   /* return PK-type error code */
             if (G.crec.general_purpose_bit_flag & 1)
                 tot_csize -= 12;   /* don't count encryption header */
             ++members;
-
-#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
-            UserStop();
-#endif
 
         } else {        /* not listing this file */
             SKIP_(G.crec.extra_field_length)

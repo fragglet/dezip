@@ -412,24 +412,15 @@ typedef struct _UzpOpts {
     int cflag;          /* -c: output to stdout */
     int C_flag;         /* -C: match filenames case-insensitively */
     int D_flag;         /* -D: don't restore directory (-DD: any) timestamps */
-#ifdef MACOS
-    int E_flag;         /* -E: [MacOS] show Mac extra field during restoring */
-#endif
     int fflag;          /* -f: "freshen" (extract only newer files) */
 #if (defined(RISCOS) || defined(ACORN_FTYPE_NFS))
     int acorn_nfs_ext;  /* -F: RISC OS types & NFS filetype extensions */
 #endif
     int hflag;          /* -h: header line (zipinfo) */
-#ifdef MACOS
-    int i_flag;         /* -i: [MacOS] ignore filenames stored in Mac e.f. */
-#endif
 #ifdef RISCOS
     int scanimage;      /* -I: scan image files */
 #endif
     int jflag;          /* -j: junk pathnames (unzip) */
-#if (defined(__ATHEOS__) || defined(__BEOS__) || defined(MACOS))
-    int J_flag;         /* -J: ignore AtheOS/BeOS/MacOS e. f. info (unzip) */
-#endif
 #if (defined(__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
     int K_flag;         /* -K: keep setuid/setgid/tacky permissions */
 #endif

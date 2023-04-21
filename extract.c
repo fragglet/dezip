@@ -1703,9 +1703,6 @@ reprompt:
             }
         } /* end if (extracting to disk) */
 
-#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
-        UserStop();
-#endif
         G.disk_full = 0;
         if ((error = extract_or_test_member(__G)) != PK_COOL) {
             if (error > error_in_archive)
@@ -1726,9 +1723,6 @@ reprompt:
               LoadFarString(OverlappedComponents)));
             return PK_BOMB;
         }
-#ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
-        UserStop();
-#endif
     } /* end for-loop (i:  files in current block) */
 
     return error_in_archive;

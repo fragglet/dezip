@@ -191,12 +191,7 @@ static ZCONST char Far ExtraFieldCorrupt[] =
    static ZCONST char Far HidePrompt[] = /* "\r                       \r"; */
      "\r                                                         \r";
 #  if CRYPT
-#    ifdef MACOS
-       /* SPC: are names on MacOS REALLY so much longer than elsewhere ??? */
-       static ZCONST char Far PasswPrompt[] = "[%s]\n %s password: ";
-#    else
        static ZCONST char Far PasswPrompt[] = "[%s] %s password: ";
-#    endif
      static ZCONST char Far PasswPrompt2[] = "Enter password: ";
      static ZCONST char Far PasswRetry[] = "password incorrect--reenter: ";
 #  endif /* CRYPT */
@@ -221,15 +216,11 @@ int open_input_file(__G)    /* return 1 if open failed */
 #ifdef VMS
     G.zipfd = open(G.zipfn, O_RDONLY, 0, OPNZIP_RMS_ARGS);
 #else /* !VMS */
-#ifdef MACOS
-    G.zipfd = open(G.zipfn, 0);
-#else /* !MACOS */
 #ifdef USE_STRM_INPUT
     G.zipfd = fopen(G.zipfn, FOPR);
 #else /* !USE_STRM_INPUT */
     G.zipfd = open(G.zipfn, O_RDONLY | O_BINARY);
 #endif /* ?USE_STRM_INPUT */
-#endif /* ?MACOS */
 #endif /* ?VMS */
 
 #ifdef USE_STRM_INPUT
