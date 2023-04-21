@@ -841,13 +841,6 @@ ulg bb;                         /* bit buffer */
 unsigned bk;                    /* bits in bit buffer */
 #endif
 
-#ifndef CHECK_EOF
-#  define CHECK_EOF   /* default as of 5.13/5.2 */
-#endif
-
-#ifndef CHECK_EOF
-#  define NEEDBITS(n) {while(k<(n)){b|=((ulg)NEXTBYTE)<<k;k+=8;}}
-#else
 # ifdef FIX_PAST_EOB_BY_TABLEADJUST
 #  define NEEDBITS(n) {while(k<(n)){int c=NEXTBYTE;\
     if(c==EOF){retval=1;goto cleanup_and_exit;}\
@@ -857,7 +850,6 @@ unsigned bk;                    /* bits in bit buffer */
     if(c==EOF){if((int)k>=0)break;retval=1;goto cleanup_and_exit;}\
     b|=((ulg)c)<<k;k+=8;}}
 # endif
-#endif
 
 #define DUMPBITS(n) {b>>=(n);k-=(n);}
 
