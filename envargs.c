@@ -34,9 +34,6 @@
 
 #  define ISspace(c) isspace((unsigned)c)
 
-#if (!defined(RISCOS) && (!defined(MODERN) || defined(NO_STDLIB_H)))
-extern char *getenv();
-#endif
 static int count_args OF((ZCONST char *));
 
 

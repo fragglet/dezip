@@ -372,9 +372,7 @@
 
 
 #    include <stddef.h>
-#  ifndef NO_STDLIB_H
 #    include <stdlib.h>  /* standard library prototypes, malloc(), etc. */
-#  endif
    typedef size_t extent;
 
 
