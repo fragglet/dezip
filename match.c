@@ -396,9 +396,6 @@ int iswild(p)        /* originally only used for stat()-bug workaround in */
 #ifdef TEST_MATCH
 
 #define put(s) {fputs(s,stdout); fflush(stdout);}
-#ifdef main
-#  undef main
-#endif
 
 int main(int argc, char **argv)
 {
