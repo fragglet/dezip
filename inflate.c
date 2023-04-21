@@ -317,9 +317,9 @@
 #endif /* !OF */
 int inflate_codes OF((__GPRO__ struct huft * tl, struct huft *td, unsigned bl,
                       unsigned bd));
-static int inflate_stored(__GPRO);
-static int inflate_fixed(__GPRO);
-static int inflate_dynamic(__GPRO);
+static int inflate_stored(void);
+static int inflate_fixed(void);
+static int inflate_dynamic(void);
 static int inflate_block(__GPRO__ int *e);
 
 /* The inflate algorithm uses a sliding 32K byte window on the uncompressed

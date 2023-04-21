@@ -75,8 +75,8 @@
 /* Local Functions */
 /*******************/
 
-static void help_extended(__GPRO);
-static void show_version_info(__GPRO);
+static void help_extended(void);
+static void show_version_info(void);
 
 /*************/
 /* Constants */

@@ -67,7 +67,7 @@
 
   To support this new global struct, all functions must now conditionally
   pass the globals pointer (pG) to each other.  This is supported by 5 macros:
-  __GPRO, __GPRO__, , and.  A function that needs no other
+void, __GPRO__, , and.  A function that needs no other
   parameters would look like this:
 
     int extract_or_test_files()
@@ -84,11 +84,11 @@
       ... stuff ...
     }
 
-  In the Function Prototypes section of unzpriv.h, you should use __GPRO and
+  In the Function Prototypes section of unzpriv.h, you should usevoid and
   __GPRO__ instead:
 
     int  uz_opts(__GPRO__ int *pargc, char ***pargv);
-    int  process_zipfiles(__GPRO);
+    int  process_zipfiles(void);
 
   Note that there is NO comma after or __GPRO__ and no semi-colon after
 .  I wish there was another way but I don't think there is.
@@ -290,7 +290,6 @@ extern char end_centloc64_sig[4];
 /* extern char extd_local_sig[4];  NOT USED YET */
 
 extern Uz_Globs G;
-#define __GPRO void
 #define __GPRO__
 #define GETGLOBALS()
 #define CONSTRUCTGLOBALS() globalsCtor()

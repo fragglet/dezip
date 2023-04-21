@@ -21,7 +21,6 @@
  * Non-echo keyboard/console input support is needed and enabled.
  */
 
-#define __GPRO void
 #define __GPRO__
 
 /* Function prototypes */
@@ -53,7 +52,7 @@
 #define echoff(f) Echoff(f)
 #define echon()   Echon()
 void Echoff(__GPRO__ int f);
-void Echon(__GPRO);
+void Echon(void);
 #endif
 
 /* this stuff is used by MORE and also now by the ctrl-S code; fileio.c only */

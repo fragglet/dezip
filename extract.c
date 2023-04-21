@@ -77,12 +77,12 @@
         }                                                   \
     }
 
-static int store_info(__GPRO);
+static int store_info(void);
 static int extract_or_test_entrylist
     OF((__GPRO__ unsigned numchunk, ulg *pfilnum, ulg *pnum_bad_pwd,
         zoff_t *pold_extra_bytes, unsigned *pnum_dirs, direntry **pdirlist,
         int error_in_archive));
-static int extract_or_test_member(__GPRO);
+static int extract_or_test_member(void);
 static int TestExtraField(__GPRO__ uch *ef, unsigned ef_len);
 static int test_compr_eb
     OF((__GPRO__ uch * eb, unsigned eb_size, unsigned compr_offset,

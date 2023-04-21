@@ -1094,13 +1094,13 @@ int usage(__GPRO__ int error);
     Functions in process.c (main driver routines):
   ---------------------------------------------------------------------------*/
 
-int process_zipfiles(__GPRO);
-void free_G_buffers(__GPRO);
+int process_zipfiles(void);
+void free_G_buffers(void);
 /* static int    do_seekable(__GPRO__ int lastchance); */
 /* static int    find_ecrec(__GPRO__ long searchlen); */
-/* static int    process_central_comment(__GPRO); */
-int process_cdir_file_hdr(__GPRO);
-int process_local_file_hdr(__GPRO);
+/* static int    process_central_comment(void); */
+int process_cdir_file_hdr(void);
+int process_local_file_hdr(void);
 int getZip64Data(__GPRO__ const uch *ef_buf, unsigned ef_len);
 int getUnicodeData(__GPRO__ const uch *ef_buf, unsigned ef_len);
 unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
@@ -1115,25 +1115,25 @@ unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
     Functions in list.c (generic zipfile-listing routines):
   ---------------------------------------------------------------------------*/
 
-int list_files(__GPRO);
+int list_files(void);
 int get_time_stamp(__GPRO__ time_t *last_modtime, ulg *nmember);
 int ratio(zusz_t uc, zusz_t c);
-void fnprint(__GPRO);
+void fnprint(void);
 
 /*---------------------------------------------------------------------------
     Functions in fileio.c:
   ---------------------------------------------------------------------------*/
 
-int open_input_file(__GPRO);
-int open_outfile(__GPRO); /* also vms.c */
-void undefer_input(__GPRO);
-void defer_leftover_input(__GPRO);
+int open_input_file(void);
+int open_outfile(void); /* also vms.c */
+void undefer_input(void);
+void defer_leftover_input(void);
 unsigned readbuf(__GPRO__ char *buf, register unsigned len);
-int readbyte(__GPRO);
-int fillinbuf(__GPRO);
+int readbyte(void);
+int fillinbuf(void);
 int seek_zipf(__GPRO__ zoff_t abs_offset);
 int flush(__GPRO__ uch *buf, ulg size, int unshrink);
-/* static int  disk_error(__GPRO); */
+/* static int  disk_error(void); */
 void handler(int signal);
 time_t dos_to_unix_time(ulg dos_datetime);
 int check_for_newer(__GPRO__ char *filename); /* os2,vmcms,vms */
@@ -1166,9 +1166,9 @@ unsigned char *uzmbsrchr(const unsigned char *str, unsigned int c);
     Functions in extract.c:
   ---------------------------------------------------------------------------*/
 
-int extract_or_test_files(__GPRO);
+int extract_or_test_files(void);
 /* static int   store_info(void); */
-/* static int   extract_or_test_member(__GPRO); */
+/* static int   extract_or_test_member(void); */
 /* static int   TestExtraField(__GPRO__ uch *ef, unsigned ef_len); */
 /* static int   test_OS2(__GPRO__ uch *eb, unsigned eb_size); */
 /* static int   test_NT(__GPRO__ uch *eb, unsigned eb_size); */
@@ -1182,15 +1182,15 @@ char *fnfilter(const char *raw, uch *space, extent size);
     Decompression functions:
   ---------------------------------------------------------------------------*/
 
-int explode(__GPRO);           /* explode.c */
+int explode(void);             /* explode.c */
 int huft_free(struct huft *t); /* inflate.c */
 int huft_build OF((__GPRO__ const unsigned *b, unsigned n, unsigned s,
                    const ush *d, const uch *e, struct huft **t, unsigned *m));
 int inflate(__GPRO__ int is_defl64); /* inflate.c */
-int inflate_free(__GPRO);            /* inflate.c */
-int unshrink(__GPRO);                /* unshrink.c */
-/* static void  partial_clear(__GPRO);                  * unshrink.c */
-int UZbunzip2(__GPRO);                 /* extract.c */
+int inflate_free(void);              /* inflate.c */
+int unshrink(void);                  /* unshrink.c */
+/* static void  partial_clear(void);                  * unshrink.c */
+int UZbunzip2(void);                   /* extract.c */
 void bz_internal_error(int bzerrcode); /* ubz2err.c */
 
 /*---------------------------------------------------------------------------
@@ -1244,13 +1244,13 @@ int iswild(const char *p);                                /* match.c */
 
 int dateformat(void);                                    /* local */
 char dateseparator(void);                                /* local */
-void version(__GPRO);                                    /* local */
-int mapattr(__GPRO);                                     /* local */
+void version(void);                                      /* local */
+int mapattr(void);                                       /* local */
 int mapname(__GPRO__ int renamed);                       /* local */
 int checkdir(__GPRO__ char *pathcomp, int flag);         /* local */
 char *do_wild(__GPRO__ const char *wildzipfn);           /* local */
-char *GetLoadPath(__GPRO);                               /* local */
-void close_outfile(__GPRO);                              /* local */
+char *GetLoadPath(void);                                 /* local */
+void close_outfile(void);                                /* local */
 int set_symlnk_attribs(__GPRO__ slinkentry *slnk_entry); /* local */
 int defer_dir_attribs(__GPRO__ direntry **pd);           /* local */
 int set_direc_attribs(__GPRO__ direntry *d);             /* local */

@@ -47,7 +47,6 @@
 #define CR_VERSION_DATE "05 Jan 2007" /* last public release date */
 #define CR_RELEASE
 
-#define __GPRO void
 #define __GPRO__
 
 /* To allow combining of Zip and UnZip static libraries in a single binary,
@@ -69,7 +68,7 @@
 /* decode byte c in place */
 #define zdecode(c) update_keys(c ^= decrypt_byte())
 
-int decrypt_byte(__GPRO);
+int decrypt_byte(void);
 int update_keys(__GPRO__ int c);
 void init_keys(__GPRO__ const char *passwd);
 

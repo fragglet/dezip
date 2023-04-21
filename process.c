@@ -38,8 +38,8 @@ static zoff_t file_size(int fh);
 static int rec_find(__GPRO__ zoff_t, char *, int);
 static int find_ecrec64(__GPRO__ zoff_t searchlen);
 static int find_ecrec(__GPRO__ zoff_t searchlen);
-static int process_zip_cmmnt(__GPRO);
-static int get_cdir_ent(__GPRO);
+static int process_zip_cmmnt(void);
+static int get_cdir_ent(void);
 static int read_ux3_value OF((const uch *dbuf, unsigned uidgid_sz,
                               ulg *p_uidgid));
 

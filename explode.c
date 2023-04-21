@@ -128,7 +128,7 @@ static int explode_lit OF((__GPRO__ struct huft * tb, struct huft *tl,
                            unsigned bd, unsigned bdl));
 static int explode_nolit OF((__GPRO__ struct huft * tl, struct huft *td,
                              unsigned bl, unsigned bd, unsigned bdl));
-int explode(__GPRO);
+int explode(void);
 
 /* The implode algorithm uses a sliding 4K or 8K byte window on the
    uncompressed stream to find repeated byte strings.  This is implemented
