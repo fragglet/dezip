@@ -631,39 +631,7 @@
 
 /* OS-specific exceptions to the "ANSI <--> INT_SPRINTF" rule */
 
-#if (!defined(PCHAR_SPRINTF) && !defined(INT_SPRINTF))
-#  if (defined(SYSV) || defined(CONVEX) || defined(NeXT) || defined(BSD4_4))
-#    define INT_SPRINTF      /* sprintf() returns int:  SysVish/Posix */
-#  endif
-#  if (defined(DOS_FLX_NLM_OS2_W32) || defined(VMS) || defined(AMIGA))
-#    define INT_SPRINTF      /* sprintf() returns int:  ANSI */
-#  endif
-#  if (defined(ultrix) || defined(__ultrix)) /* Ultrix 4.3 and newer */
-#    if (defined(POSIX) || defined(__POSIX))
-#      define INT_SPRINTF    /* sprintf() returns int:  ANSI/Posix */
-#    endif
-#    ifdef __GNUC__
-#      define PCHAR_SPRINTF  /* undetermined actual return value */
-#    endif
-#  endif
-#  if (defined(__osf__) || defined(_AIX) || defined(CMS_MVS) || defined(THEOS))
-#    define INT_SPRINTF      /* sprintf() returns int:  ANSI/Posix */
-#  endif
-#  if defined(sun)
-#    define PCHAR_SPRINTF    /* sprintf() returns char *:  SunOS cc *and* gcc */
-#  endif
-#endif
-
 /* defaults that we hope will take care of most machines in the future */
-
-#if (!defined(PCHAR_SPRINTF) && !defined(INT_SPRINTF))
-#  ifdef __STDC__
-#    define INT_SPRINTF      /* sprintf() returns int:  ANSI */
-#  endif
-#  ifndef INT_SPRINTF
-#    define PCHAR_SPRINTF    /* sprintf() returns char *:  BSDish */
-#  endif
-#endif
 
 #define MSG_STDERR(f)  (f & 1)        /* bit 0:  0 = stdout, 1 = stderr */
 #define MSG_INFO(f)    ((f & 6) == 0) /* bits 1 and 2:  0 = info */
@@ -2395,14 +2363,8 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #    define Info(buf,flag,sprf_arg) \
      fputs((char *)(sprintf sprf_arg, (buf)), (flag)&1? stderr : stdout)
 #  else
-#    ifdef INT_SPRINTF  /* optimized version for "int sprintf()" flavour */
 #      define Info(buf,flag,sprf_arg) \
        (*G.message)((zvoid *)&G, (uch *)(buf), (ulg)sprintf sprf_arg, (flag))
-#    else          /* generic version, does not use sprintf() return value */
-#      define Info(buf,flag,sprf_arg) \
-       (*G.message)((zvoid *)&G, (uch *)(buf), \
-                     (ulg)(sprintf sprf_arg, strlen((char *)(buf))), (flag))
-#    endif
 #  endif
 #endif /* !Info */
 
