@@ -132,9 +132,6 @@
  * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
  * included on this list; it would be good to know what version the problem
  * was fixed at, if it did exist.  */
-#if (defined(__TURBOC__) && !defined(WIN32))
-/*#  define WILD_STAT_BUG*/
-#endif
 #if (defined(VMS) || defined(__MINT__))
 #  define WILD_STAT_BUG
 #endif
