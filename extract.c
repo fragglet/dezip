@@ -1371,9 +1371,6 @@ startover:
                         skip_entry = SKIP_Y_NONEXIST;
                     break;
                 case EXISTS_AND_OLDER:
-#ifdef UNIXBACKUP
-                    if (!uO.B_flag)
-#endif
                     {
                         if (IS_OVERWRT_NONE)
                             /* never overwrite:  skip file */
@@ -1383,20 +1380,12 @@ startover:
                     }
                     break;
                 case EXISTS_AND_NEWER:             /* (or equal) */
-#ifdef UNIXBACKUP
-                    if ((!uO.B_flag && IS_OVERWRT_NONE) ||
-#else
                     if (IS_OVERWRT_NONE ||
-#endif
                         (uO.uflag && !renamed)) {
                         /* skip if update/freshen & orig name */
                         skip_entry = SKIP_Y_EXISTING;
                     } else {
-#ifdef UNIXBACKUP
-                        if (!IS_OVERWRT_ALL && !uO.B_flag)
-#else
                         if (!IS_OVERWRT_ALL)
-#endif
                             query = TRUE;
                     }
                     break;

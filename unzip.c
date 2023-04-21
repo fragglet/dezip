@@ -179,9 +179,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far SymLinkSupport[] =
      "SYMLINKS (symbolic links supported, if RTL and file system permit)";
      static ZCONST char Far TimeStamp[] = "TIMESTAMP";
-#  ifdef UNIXBACKUP
-     static ZCONST char Far UnixBackup[] = "UNIXBACKUP";
-#  endif
      static ZCONST char Far Use_EF_UT_time[] = "USE_EF_UT_TIME";
      static ZCONST char Far Use_Unshrink[] =
      "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
@@ -697,14 +694,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.aflag = 0;
                     }
                     break;
-#ifdef UNIXBACKUP
-                case ('B'): /* -B: back up existing files */
-                    if (negative)
-                        uO.B_flag = FALSE, negative = 0;
-                    else
-                        uO.B_flag = TRUE;
-                    break;
-#endif
                 case ('c'):
                     if (negative) {
                         uO.cflag = FALSE, negative = 0;
@@ -1392,11 +1381,6 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(TimeStamp)));
         ++numopts;
-#ifdef UNIXBACKUP
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(UnixBackup)));
-        ++numopts;
-#endif
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_EF_UT_time)));
         ++numopts;

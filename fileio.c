@@ -121,11 +121,6 @@ static ZCONST char Far CannotOpenZipfile[] =
 
    static ZCONST char Far CannotDeleteOldFile[] =
      "error:  cannot delete old %s\n        %s\n";
-#ifdef UNIXBACKUP
-   static ZCONST char Far CannotRenameOldFile[] =
-     "error:  cannot rename old %s\n        %s\n";
-   static ZCONST char Far BackupSuffix[] = "~";
-#endif
    static ZCONST char Far CannotCreateFile[] =
      "error:  cannot create %s\n        %s\n";
 
@@ -199,73 +194,6 @@ int open_outfile(__G)           /* return 1 if fail */
     {
         Trace((stderr, "open_outfile:  stat(%s) returns 0:  file exists\n",
           FnFilter1(G.filename)));
-#ifdef UNIXBACKUP
-        if (uO.B_flag) {    /* do backup */
-            char *tname;
-            z_stat tmpstat;
-            int blen, flen, tlen;
-
-            blen = strlen(BackupSuffix);
-            flen = strlen(G.filename);
-            tlen = flen + blen + 6;    /* includes space for 5 digits */
-            if (tlen >= FILNAMSIZ) {   /* in case name is too long, truncate */
-                tname = (char *)malloc(FILNAMSIZ);
-                if (tname == NULL)
-                    return 1;                 /* in case we run out of space */
-                tlen = FILNAMSIZ - 1 - blen;
-                strcpy(tname, G.filename);    /* make backup name */
-                tname[tlen] = '\0';
-                if (flen > tlen) flen = tlen;
-                tlen = FILNAMSIZ;
-            } else {
-                tname = (char *)malloc(tlen);
-                if (tname == NULL)
-                    return 1;                 /* in case we run out of space */
-                strcpy(tname, G.filename);    /* make backup name */
-            }
-            strcpy(tname+flen, BackupSuffix);
-
-            if (IS_OVERWRT_ALL) {
-                /* If there is a previous backup file, delete it,
-                 * otherwise the following rename operation may fail.
-                 */
-                if (SSTAT(tname, &tmpstat) == 0)
-                    unlink(tname);
-            } else {
-                /* Check if backupname exists, and, if it's true, try
-                 * appending numbers of up to 5 digits (or the maximum
-                 * "unsigned int" number on 16-bit systems) to the
-                 * BackupSuffix, until an unused name is found.
-                 */
-                unsigned maxtail, i;
-                char *numtail = tname + flen + blen;
-
-                /* take account of the "unsigned" limit on 16-bit systems: */
-                maxtail = ( ((~0) >= 99999L) ? 99999 : (~0) );
-                switch (tlen - flen - blen - 1) {
-                    case 4: maxtail = 9999; break;
-                    case 3: maxtail = 999; break;
-                    case 2: maxtail = 99; break;
-                    case 1: maxtail = 9; break;
-                    case 0: maxtail = 0; break;
-                }
-                /* while filename exists */
-                for (i = 0; (i < maxtail) && (SSTAT(tname, &tmpstat) == 0);)
-                    sprintf(numtail,"%u", ++i);
-            }
-
-            if (rename(G.filename, tname) != 0) {   /* move file */
-                Info(slide, 0x401, ((char *)slide,
-                  LoadFarString(CannotRenameOldFile),
-                  FnFilter1(G.filename), strerror(errno)));
-                free(tname);
-                return 1;
-            }
-            Trace((stderr, "open_outfile:  %s now renamed into %s\n",
-              FnFilter1(G.filename), FnFilter2(tname)));
-            free(tname);
-        } else
-#endif /* UNIXBACKUP */
         {
             if (unlink(G.filename) != 0) {
                 Info(slide, 0x401, ((char *)slide,

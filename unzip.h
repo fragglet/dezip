@@ -119,9 +119,6 @@ freely, subject to the above disclaimer and the following restrictions:
  */
 
 /* NO_UNIXBACKUP overrides UNIXBACKUP */
-#if defined(NO_UNIXBACKUP) && defined(UNIXBACKUP)
-#  undef UNIXBACKUP
-#endif
 
 /*---------------------------------------------------------------------------
     Grab system-specific public include headers.
