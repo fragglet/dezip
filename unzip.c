@@ -358,9 +358,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far Use_Zip64[] =
      "ZIP64_SUPPORT (archives using Zip64 for large files supported)";
 #  endif
-#  ifdef USE_VFAT
-     static ZCONST char Far Use_VFAT_support[] = "USE_VFAT";
-#  endif
 #  ifdef USE_ZLIB
      static ZCONST char Far UseZlib[] =
      "USE_ZLIB (compiled with version %s; using version %s)";
@@ -2066,11 +2063,6 @@ static void show_version_info(__G)
 #ifdef ZIP64_SUPPORT
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Zip64)));
-        ++numopts;
-#endif
-#ifdef USE_VFAT
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Use_VFAT_support)));
         ++numopts;
 #endif
 #ifdef USE_ZLIB
