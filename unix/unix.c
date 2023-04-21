@@ -1425,12 +1425,8 @@ void version(__G)
 #endif /* __SUNPRO_C */
 #endif /* (__GNUC__ && NX_CURRENT_COMPILER_RELEASE) */
 
-#if ((defined(CRAY) || defined(cray)) && defined(_UNICOS))
-    char os_namebuf[40];
-#else
 #if defined(__NetBSD__)
     char os_namebuf[40];
-#endif
 #endif
 
     /* Pyramid, NeXT have problems with huge macro expansion, too:  no Info() */
@@ -1523,13 +1519,6 @@ void version(__G)
 #else
 #ifdef __osf__
       " (DEC OSF/1)",
-#else
-#if defined(CRAY) || defined(cray)
-#  ifdef _UNICOS
-      (sprintf(os_namebuf, " (Cray UNICOS release %d)", _UNICOS), os_namebuf),
-#  else
-      " (Cray UNICOS)",
-#  endif
 #else
 #if defined(uts) || defined(UTS)
       " (Amdahl UTS)",
@@ -1643,7 +1632,6 @@ void version(__G)
 #endif /* Linux */
 #endif /* NeXT */
 #endif /* Amdahl */
-#endif /* Cray */
 #endif /* OSF/1 */
 #endif /* HP-UX */
 #endif /* Sun */
