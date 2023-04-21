@@ -256,13 +256,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
     of whether the function does anything, should be removed from the ifdefs.
   ---------------------------------------------------------------------------*/
 
-#if (defined(WIN32) && defined(USE_EF_UT_TIME))
-    /* For the Win32 environment, we may have to "prepare" the environment
-       prior to the tzset() call, to work around tzset() implementation bugs.
-     */
-    iz_w32_prepareTZenv();
-#endif
-
 /* For systems that do not have tzset() but supply this function using another
    name (_tzset() or something similar), an appropiate "#define tzset ..."
    should be added to the system specifc configuration section.  */
@@ -307,9 +300,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
             G.zipfn = G.argv0;  /* for "cannot find myself" message only */
         }
 #endif /* EXE_EXTENSION */
-#ifdef WIN32
-        G.zipfn = G.argv0;  /* for "cannot find myself" message only */
-#endif
     }
     if (error) {
         if (error == IZ_DIR)
@@ -670,12 +660,7 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 # else /* not (!WINDLL && !SFX) ==> !NO_ZIPINFO !! */
     if (uO.zipinfo_mode && uO.hflag)
 # endif /* if..else..: (!WINDLL && !SFX) */
-# ifdef WIN32   /* Win32 console may require codepage conversion for G.zipfn */
-        Info(slide, 0, ((char *)slide, LoadFarString(LogInitline),
-          FnFilter1(G.zipfn)));
-# else
         Info(slide, 0, ((char *)slide, LoadFarString(LogInitline), G.zipfn));
-# endif
 #endif /* (!WINDLL && !SFX) || !NO_ZIPINFO */
 
     if ( (error_in_archive = find_ecrec(__G__
@@ -889,11 +874,7 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 
 #ifdef TIMESTAMP
     if (uO.T_flag && !uO.zipinfo_mode && (nmember > 0L)) {
-# ifdef WIN32
-        if (stamp_file(__G__ G.zipfn, uxstamp)) {       /* TIME-STAMP 'EM */
-# else
         if (stamp_file(G.zipfn, uxstamp)) {             /* TIME-STAMP 'EM */
-# endif
             if (uO.qflag < 3)
                 Info(slide, 0x201, ((char *)slide,
                   LoadFarString(ZipTimeStampFailed), G.zipfn));
@@ -2374,7 +2355,6 @@ zwchar escape_string_to_wide(escape_string)
 }
 #endif /* unused */
 
-#ifndef WIN32  /* WIN32 supplies a special variant of this function */
 /* convert wide character string to multi-byte character string */
 char *wide_to_local_string(wide_string, escape_all)
   ZCONST zwchar *wide_string;
@@ -2466,7 +2446,6 @@ char *wide_to_local_string(wide_string, escape_all)
 
   return local_string;
 }
-#endif /* !WIN32 */
 
 #if 0 /* currently unused */
 /* convert local string to display character set string */

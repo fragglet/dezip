@@ -34,10 +34,6 @@
 #  define ZCONST const
 #endif
 
-#if (defined(MSDOS) || defined(OS2) || defined(WIN32))
-#    define DOS_OS2_W32
-#endif
-
 
 /* Function prototypes */
 

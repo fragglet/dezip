@@ -18,11 +18,7 @@
  */
 #define TZ_MAX_TIMES    272 /* (=2*(LastGoodYr + 1 - FirstGoodYr) */
 #define TZ_MAX_TYPES    2   /* We only support basic standard and daylight */
-#ifdef WIN32    /* Win32 tzinfo supplies at max (2 * 32) chars of tz names */
-#define TZ_MAX_CHARS    64  /* Maximum number of abbreviation characters */
-#else
 #define TZ_MAX_CHARS    50  /* Maximum number of abbreviation characters */
-#endif
 
 /* supported types of transition rules */
 #define JULIAN_DAY              0   /* Jn - Julian day */

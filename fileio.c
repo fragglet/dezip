@@ -1390,12 +1390,6 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 
 
 
-#if (!defined(HAVE_MKTIME) || defined(WIN32))
-/* also used in amiga/filedate.c and win32/win32.c */
-ZCONST ush ydays[] =
-    { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };
-#endif
-
 /*******************************/
 /* Function dos_to_unix_time() */ /* used for freshening/updating/timestamps */
 /*******************************/
@@ -1588,11 +1582,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 length -= eol + 1 - G.autorun_command;
                 while (eol >= G.autorun_command && isspace(*eol))
                     *eol-- = '\0';
-#if (defined(WIN32) && !defined(_WIN32_WCE))
-                /* Win9x console always uses OEM character coding, and
-                   WinNT console is set to OEM charset by default, too */
-                INTERN_TO_OEM(G.autorun_command, G.autorun_command);
-#endif /* (WIN32 && !_WIN32_WCE) */
             }
         }
         if (option == CHECK_AUTORUN_Q)  /* don't display the remainder */
@@ -1656,11 +1645,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 /* translate to ANSI (RTL internal codepage may be OEM) */
                 INTERN_TO_ISO((char *)G.outbuf, (char *)G.outbuf);
 #else /* !WINDLL */
-#if (defined(WIN32) && !defined(_WIN32_WCE))
-                /* Win9x console always uses OEM character coding, and
-                   WinNT console is set to OEM charset by default, too */
-                INTERN_TO_OEM((char *)G.outbuf, (char *)G.outbuf);
-#endif /* (WIN32 && !_WIN32_WCE) */
 #endif /* ?WINDLL */
             } else {
                 A_TO_N(G.outbuf);   /* translate string to native */

@@ -103,20 +103,6 @@
 /* Some compiler distributions for Win32/i386 systems try to emulate
  * a Unix (POSIX-compatible) environment.
  */
-#if (defined(WIN32) && defined(UNIX))
-   /* UnZip does not support merging both ports in a single executable. */
-#  if (defined(FORCE_WIN32_OVER_UNIX) && defined(FORCE_UNIX_OVER_WIN32))
-     /* conflicting choice requests -> we prefer the Win32 environment */
-#    undef FORCE_UNIX_OVER_WIN32
-#  endif
-#  ifdef FORCE_WIN32_OVER_UNIX
-     /* native Win32 support was explicitly requested... */
-#    undef UNIX
-#  else
-     /* use the POSIX (Unix) emulation features by default... */
-#    undef WIN32
-#  endif
-#endif
 
 /* bad or (occasionally?) missing stddef.h: */
 
@@ -221,10 +207,6 @@
     Win32 (Windows 95/NT) section:
   ---------------------------------------------------------------------------*/
 
-#if (defined(WIN32) && !defined(POCKET_UNZIP) && !defined(_WIN32_WCE))
-#  include "win32/w32cfg.h"
-#endif
-
 /*---------------------------------------------------------------------------
     Win32 Windows CE section (also POCKET_UNZIP)
   ---------------------------------------------------------------------------*/
@@ -302,15 +284,6 @@
 #endif
 #endif
 #define VMS_UNZIP_VERSION 42   /* if OS-needed-to-extract is VMS:  can do */
-
-#if (defined(OS2) || defined(WIN32))
-#  define OS2_W32
-#endif
-
-#if (defined(DOS_OS2) || defined(WIN32))
-#  define DOS_OS2_W32
-#  define DOS_W32_OS2          /* historical:  don't use */
-#endif
 
 #  define ATH_BEO_UNX
 
@@ -721,50 +694,6 @@
 #   define zfdopen fdopen
 
 /* ---------------------------- */
-
-# ifdef WIN32
-
-#   if defined(_MSC_VER) || defined(__MINGW32__) || defined(__LCC__)
-    /* MS C (VC), MinGW GCC port and LCC-32 use the MS C Runtime lib */
-
-      /* 64-bit stat functions */
-#     define zstat _stati64
-#     define zfstat _fstati64
-
-      /* 64-bit lseek */
-#     define zlseek _lseeki64
-
-#     if defined(__MSVCRT_VERSION__) && (__MSVCRT_VERSION__ >= 0x800)
-        /* Up-to-date versions of MinGW define the macro __MSVCRT_VERSION__
-           to denote the version of the MS C rtl dll used for linking.  When
-           configured to link against the runtime of MS Visual Studio 8 (or
-           newer), the built-in 64-bit fseek/ftell functions are available. */
-        /* 64-bit fseeko */
-#       define zfseeko _fseeki64
-        /* 64-bit ftello */
-#       define zftello _ftelli64
-
-#     else /* !(defined(__MSVCRT_VERSION__) && (__MSVCRT_VERSION__>=0x800)) */
-        /* The version of the C runtime is lower than MSC 14 or unknown. */
-
-        /* The newest MinGW port contains built-in extensions to the MSC rtl
-           that provide fseeko and ftello, but our implementations will do
-           for now. */
-       /* 64-bit fseeko */
-       int zfseeko OF((FILE *, zoff_t, int));
-
-       /* 64-bit ftello */
-       zoff_t zftello OF((FILE *));
-
-#     endif /* ? (__MSVCRT_VERSION__ >= 0x800) */
-
-      /* 64-bit fopen */
-#     define zfopen fopen
-#     define zfdopen fdopen
-
-#   endif /* _MSC_VER || __MINGW__ || __LCC__ */
-
-# endif /* WIN32 */
 
 #else
   /* No Large File Support */
@@ -1643,14 +1572,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
     WIN32-only functions:
   ---------------------------------------------------------------------------*/
 
-#ifdef WIN32
-   int   IsWinNT        OF((void));                               /* win32.c */
-#ifdef W32_STAT_BANDAID
-   int   zstat_win32    OF((__W32STAT_GLOBALS__
-                            const char *path, z_stat *buf));      /* win32.c */
-#endif
-#endif
-
 /*---------------------------------------------------------------------------
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
@@ -1687,12 +1608,7 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
    int   defer_dir_attribs  OF((__GPRO__ direntry **pd));           /* local */
    int   set_direc_attribs  OF((__GPRO__ direntry *d));             /* local */
 #ifdef TIMESTAMP
-# ifdef WIN32
-   int   stamp_file      OF((__GPRO__
-                             ZCONST char *fname, time_t modtime));  /* local */
-# else
    int   stamp_file      OF((ZCONST char *fname, time_t modtime));  /* local */
-# endif
 #endif
 #ifdef NEED_ISO_OEM_INIT
    void  prepare_ISO_OEM_translat   OF((__GPRO));                   /* local */

@@ -66,18 +66,8 @@ int envargs(Pargc, Pargv, envstr, envstr2)
     if (bufptr == (char *)NULL)
         return PK_MEM;
 #if ((defined(WIN32) || defined(WINDLL)) && !defined(_WIN32_WCE))
-# ifdef WIN32
-    if (IsWinNT()) {
-        /* SPC: don't know codepage of 'real' WinNT console */
-        strcpy(bufptr, envptr);
-    } else {
-        /* Win95 environment is DOS and uses OEM character coding */
-        OEM_TO_INTERN(envptr, bufptr);
-    }
-# else /* !WIN32 */
     /* DOS (Win 3.x) environment uses OEM codepage */
     OEM_TO_INTERN(envptr, bufptr);
-# endif
 #else /* !((WIN32 || WINDLL) && !_WIN32_WCE) */
     strcpy(bufptr, envptr);
 #endif /* ?((WIN32 || WINDLL) && !_WIN32_WCE) */

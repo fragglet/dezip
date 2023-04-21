@@ -1568,9 +1568,6 @@ reprompt:
                             if (lastchar(G.filename, fnlen) == '\n')
                                 G.filename[--fnlen] = '\0';
                         } while (fnlen == 0);
-#ifdef WIN32  /* WIN32 fgets( ... , stdin) returns OEM coded strings */
-                        _OEM_INTERN(G.filename);
-#endif
                         renamed = TRUE;
                         goto startover;   /* sorry for a goto */
                     case 'A':   /* dangerous option:  force caps */
@@ -2651,11 +2648,6 @@ char *fnfilter(raw, space, size)   /* convert name to safely printable form */
 #ifdef WINDLL
     INTERN_TO_ISO((char *)space, (char *)space);  /* translate to ANSI */
 #else
-#if (defined(WIN32) && !defined(_WIN32_WCE))
-    /* Win9x console always uses OEM character coding, and
-       WinNT console is set to OEM charset by default, too */
-    INTERN_TO_OEM((char *)space, (char *)space);
-#endif /* (WIN32 && !_WIN32_WCE) */
 #endif /* ?WINDLL */
 
     return (char *)space;

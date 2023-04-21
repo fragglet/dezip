@@ -90,9 +90,7 @@ freely, subject to the above disclaimer and the following restrictions:
 #endif
 
 #if defined(_WIN32_WCE)
-#  ifndef WIN32         /* WinCE is treated as a variant of the Win32 API */
 #    define WIN32
-#  endif
 #  ifndef UNICODE       /* WinCE requires UNICODE wide character support */
 #    define UNICODE
 #  endif
@@ -261,12 +259,6 @@ typedef struct _UzpOpts {
 #endif /* !FUNZIP */
     int qflag;          /* -q: produce a lot less output */
 #ifndef FUNZIP
-#if (defined(MSDOS) || defined(FLEXOS) || defined(OS2) || defined(WIN32))
-    int sflag;          /* -s: convert spaces in filenames to underscores */
-#endif
-#if (defined(MSDOS) || defined(__human68k__) || defined(OS2) || defined(WIN32))
-    int volflag;        /* -$: extract volume labels */
-#endif
     int tflag;          /* -t: test (unzip) or totals line (zipinfo) */
     int T_flag;         /* -T: timestamps (unzip) or dec. time fmt (zipinfo) */
     int uflag;          /* -u: "update" (extract only newer/brand-new files) */

@@ -258,9 +258,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef NO_ZIPINFO
      static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
 #  endif
-#  if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
-     static ZCONST char Far W32NoIZTimeFix[] = "NO_W32TIMES_IZFIX";
-#  endif
 #  ifdef REENTRANT
      static ZCONST char Far Reentrant[] = "REENTRANT";
 #  endif
@@ -644,11 +641,7 @@ int unzip(__G__ argc, argv)
 
 #ifdef SFX
     G.argv0 = argv[0];
-#if (defined(OS2) || defined(WIN32))
-    G.zipfn = GetLoadPath(__G);/* non-MSC NT puts path into G.filename[] */
-#else
     G.zipfn = G.argv0;
-#endif
 
     uO.zipinfo_mode = FALSE;
     error = uz_opts(__G__ &argc, &argv);   /* UnZipSFX call only */
@@ -1795,11 +1788,6 @@ static void show_version_info(__G)
 #ifdef NO_ZIPINFO
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_ZipInfo)));
-        ++numopts;
-#endif
-#if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(W32NoIZTimeFix)));
         ++numopts;
 #endif
 #ifdef REENTRANT
