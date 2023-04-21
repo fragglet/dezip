@@ -790,11 +790,7 @@
 #endif
 
 #ifndef SSTAT
-#  ifdef WILD_STAT_BUG
-#    define SSTAT(path,pbuf) (iswild(path) || zstat(path,pbuf))
-#  else
 #    define SSTAT    zstat
-#  endif
 #endif
 
 
