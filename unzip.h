@@ -82,10 +82,6 @@ freely, subject to the above disclaimer and the following restrictions:
     Predefined, machine-specific macros.
   ---------------------------------------------------------------------------*/
 
-#if (defined(VM_CMS) || defined(MVS))
-#  define CMS_MVS
-#endif
-
 #if (defined(__VMS) && !defined(VMS))
 #  define VMS
 #endif

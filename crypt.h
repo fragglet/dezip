@@ -83,10 +83,6 @@
 #    define DOS_OS2_W32
 #endif
 
-#if defined(VM_CMS) || defined(MVS)
-#    define CMS_MVS
-#endif
-
 /* To allow combining of Zip and UnZip static libraries in a single binary,
  * the Zip and UnZip versions of the crypt core functions have to be named
  * differently.

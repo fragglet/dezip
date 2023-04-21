@@ -38,10 +38,6 @@
 #    define DOS_OS2_W32
 #endif
 
-#if (defined(VM_CMS) || defined(MVS))
-#    define CMS_MVS
-#endif
-
 
 /* Function prototypes */
 
