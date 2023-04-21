@@ -144,11 +144,6 @@
 #    define SYSV
 #  endif
 #endif /* SYSTEM_FIVE || __SYSTEM_FIVE */
-#if (defined(M_SYSV) || defined(M_SYS5))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* M_SYSV || M_SYS5 */
 /* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
 #if (defined(__SVR4) || defined(__svr4__) || defined(sgi) || defined(__hpux))
 #  ifndef SYSV
