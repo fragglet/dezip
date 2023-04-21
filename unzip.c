@@ -279,9 +279,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef WILD_STOP_AT_DIR
      static ZCONST char Far WildStopAtDir[] = "WILD_STOP_AT_DIR";
 #  endif
-#    ifdef PASSWD_FROM_STDIN
-       static ZCONST char Far PasswdStdin[] = "PASSWD_FROM_STDIN";
-#    endif
      static ZCONST char Far Decryption[] =
        "        [decryption, version %d.%d%s of %s]\n";
      static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
@@ -1744,10 +1741,6 @@ static void show_version_info(__G)
           LoadFarStringSmall(WildStopAtDir)));
         ++numopts;
 #endif
-# ifdef PASSWD_FROM_STDIN
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(PasswdStdin)));
-# endif
         Info(slide, 0, ((char *)slide, LoadFarString(Decryption),
           CR_MAJORVER, CR_MINORVER, CR_BETA_VER,
           LoadFarStringSmall(CryptDate)));

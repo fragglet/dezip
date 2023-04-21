@@ -220,15 +220,10 @@ char *getp(__G__ m, p, n)
     char *w;                    /* warning on retry */
     int f;                      /* file descriptor for tty device */
 
-#ifdef PASSWD_FROM_STDIN
-    /* Read from stdin. This is unsafe if the password is stored on disk. */
-    f = 0;
-#else
     /* turn off echo on tty */
 
     if ((f = open(_PATH_TTY, 0)) == -1)
         return NULL;
-#endif
     /* get password */
     w = "";
     do {
@@ -248,9 +243,7 @@ char *getp(__G__ m, p, n)
     } while (p[i-1] != '\n');
     p[i-1] = 0;                 /* terminate at newline */
 
-#ifndef PASSWD_FROM_STDIN
     close(f);
-#endif
 
     return p;                   /* return pointer to password */
 
