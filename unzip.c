@@ -626,20 +626,10 @@ int unzip(__G__ argc, argv)
 # ifdef UTF8_MAYBE_NATIVE
     {
         char *codeset;
-#  if !(defined(NO_NL_LANGINFO) || defined(NO_LANGINFO_H))
         /* get the codeset (character set encoding) currently used */
 #       include <langinfo.h>
 
         codeset = nl_langinfo(CODESET);
-#  else /* NO_NL_LANGINFO || NO_LANGINFO_H */
-        /* query the current locale setting for character classification */
-        codeset = setlocale(LC_CTYPE, NULL);
-        if (codeset != NULL) {
-            /* extract the codeset portion of the locale name */
-            codeset = strchr(codeset, '.');
-            if (codeset != NULL) ++codeset;
-        }
-#  endif /* ?(NO_NL_LANGINFO || NO_LANGINFO_H) */
         /* is the current codeset UTF-8 ? */
         if ((codeset != NULL) && (strcmp(codeset, "UTF-8") == 0)) {
             /* successfully found UTF-8 char coding */
