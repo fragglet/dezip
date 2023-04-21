@@ -250,27 +250,6 @@
     Atari ST section:
   ---------------------------------------------------------------------------*/
 
-#ifdef ATARI
-#  include <time.h>
-#  include <stat.h>
-#  include <fcntl.h>
-#  include <limits.h>
-#  define SYMLINKS
-#  define EXE_EXTENSION  ".tos"
-#  ifndef DATE_FORMAT
-#    define DATE_FORMAT  DF_DMY
-#  endif
-#  define DIR_END        '/'
-#  define INT_SPRINTF
-#  define timezone      _timezone
-#  define lenEOL        2
-#  define PutNativeEOL  {*q++ = native(CR); *q++ = native(LF);}
-#  undef SHORT_NAMES
-#  if (!defined(NOTIMESTAMP) && !defined(TIMESTAMP))
-#    define TIMESTAMP
-#  endif
-#endif
-
 /*---------------------------------------------------------------------------
     AtheOS section:
   ---------------------------------------------------------------------------*/
@@ -773,11 +752,6 @@
 
 
 #if (defined(DOS_FLX_NLM_OS2_W32) || defined(ATH_BEO_UNX) || defined(RISCOS))
-#  ifndef HAVE_UNLINK
-#    define HAVE_UNLINK
-#  endif
-#endif
-#if (defined(AOS_VS) || defined(ATARI)) /* GRR: others? */
 #  ifndef HAVE_UNLINK
 #    define HAVE_UNLINK
 #  endif

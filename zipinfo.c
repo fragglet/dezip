@@ -1155,10 +1155,6 @@ static int zi_long(__G__ pEndprev, error_in_archive)
       (G.crec.internal_file_attributes & 1)? "text"
          : (G.crec.internal_file_attributes & 2)? "ebcdic"
               : "binary"));             /* changed to accept EBCDIC */
-#ifdef ATARI
-    printf("  external file attributes (hex):                   %.8lx\n",
-      G.crec.external_file_attributes);
-#endif
     xattr = (unsigned)((G.crec.external_file_attributes >> 16) & 0xFFFF);
     if (hostnum == VMS_) {
         char   *p=attribs, *q=attribs+1;
