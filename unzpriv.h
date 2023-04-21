@@ -775,15 +775,9 @@
 #    define LoadFarStringSmall(x)   (char *)(x)
 #    define LoadFarStringSmall2(x)  (char *)(x)
 #  endif
-#  ifdef MED_MEM
-#    define OUTBUFSIZ 0xFF80         /* can't malloc arrays of 0xFFE8 or more */
-#    define TRANSBUFSIZ 0xFF80
-     typedef short  shrint;
-#  else
 #    define OUTBUFSIZ (lenEOL*WSIZE) /* more efficient text conversion */
 #    define TRANSBUFSIZ (lenEOL*OUTBUFSIZ)
        typedef int  shrint;          /* for efficiency/speed, we hope... */
-#  endif /* ?MED_MEM */
 #  define RAWBUFSIZ OUTBUFSIZ
 #endif /* ?SMALL_MEM */
 
