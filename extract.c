@@ -956,12 +956,8 @@ static int store_info(__G)   /* return 0 if skipping, 1 if OK */
       && UNKN_BZ2 && UNKN_LZMA && UNKN_WAVP && UNKN_PPMD)
 #  endif
 #else
-#  ifdef COPYRIGHT_CLEAN  /* no reduced files */
 #    define UNKN_RED (G.crec.compression_method >= REDUCED1 && \
                       G.crec.compression_method <= REDUCED4)
-#  else
-#    define UNKN_RED  FALSE  /* reducing not unknown */
-#  endif
 #  ifdef LZW_CLEAN  /* no shrunk files */
 #    define UNKN_SHR (G.crec.compression_method == SHRUNK)
 #  else
@@ -1716,24 +1712,6 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
             }
             break;
 #endif /* !LZW_CLEAN */
-
-#ifndef COPYRIGHT_CLEAN
-        case REDUCED1:
-        case REDUCED2:
-        case REDUCED3:
-        case REDUCED4:
-            if (!uO.tflag && QCOND2) {
-                Info(slide, 0, ((char *)slide, LoadFarString(ExtractMsg),
-                  "unreduc", FnFilter1(G.filename),
-                  (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)?
-                  "" : (G.pInfo->textfile? txt : bin), uO.cflag? NEWLINE : ""));
-            }
-            if ((r = unreduce(__G)) != PK_COOL) {
-                /* unreduce() returns only PK_COOL, PK_DISK, or IZ_CTRLC */
-                error = r;
-            }
-            break;
-#endif /* !COPYRIGHT_CLEAN */
 
         case IMPLODED:
             if (!uO.tflag && QCOND2) {

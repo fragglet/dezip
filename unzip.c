@@ -218,10 +218,8 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      "\nUnZip and ZipInfo environment options:\n";
    static ZCONST char Far EnvOptFormat[] = "%16s:  %.1024s\n";
    static ZCONST char Far None[] = "[none]";
-#  ifdef COPYRIGHT_CLEAN
      static ZCONST char Far Copyright_Clean[] =
      "COPYRIGHT_CLEAN (PKZIP 0.9x unreducing method not supported)";
-#  endif
 #  ifdef DEBUG
      static ZCONST char Far UDebug[] = "DEBUG";
 #  endif
@@ -262,10 +260,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifndef LZW_CLEAN
      static ZCONST char Far Use_Unshrink[] =
      "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
-#  endif
-#  ifndef COPYRIGHT_CLEAN
-     static ZCONST char Far Use_Smith_Code[] =
-     "USE_SMITH_CODE (PKZIP 0.9x unreducing method supported)";
 #  endif
 #  ifdef USE_DEFLATE64
      static ZCONST char Far Use_Deflate64[] =
@@ -321,16 +315,9 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
 #  endif
 
-# ifdef COPYRIGHT_CLEAN
    static ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Debian. Original by Info-ZIP.\
 \n\n";
-# else
-   static ZCONST char Far UnzipUsageLine1[] = "\
-UnZip %d.%d%d%s of %s, by Info-ZIP.  UnReduce (c) 1989 by S. H. Smith.\n\
-Send bug reports using //www.info-zip.org/zip-bug.html; see README for details.\
-\n\n";
-# endif /* ?COPYRIGHT_CLEAN */
 # define UnzipUsageLine1v       UnzipUsageLine1
 
 static ZCONST char Far UnzipUsageLine2v[] = "\
@@ -1697,11 +1684,9 @@ static void show_version_info(__G)
           LoadFarString(UnzipUsageLine2v)));
         version(__G);
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptions)));
-#ifdef COPYRIGHT_CLEAN
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Copyright_Clean)));
         ++numopts;
-#endif
 #ifdef DEBUG
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(UDebug)));
@@ -1763,11 +1748,6 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_EF_UT_time)));
         ++numopts;
-#ifndef COPYRIGHT_CLEAN
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Use_Smith_Code)));
-        ++numopts;
-#endif
 #ifndef LZW_CLEAN
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Unshrink)));

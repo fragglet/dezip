@@ -23,13 +23,3 @@
 #include "unzip.h"      /* defines COPYRIGHT_CLEAN by default */
 
 
-#ifndef COPYRIGHT_CLEAN
-
- /* This line is indented to hide the #error directive from pure traditional
-  * K&R C preprocessors. These do not recognize the #error directive, but
-  * they also recognize only lines that start with a '#' in column 1 as
-  * preprocessor directives.
-  */
- #error This dummy-module does not support the unreduce method!
-
-#endif /* !COPYRIGHT_CLEAN */
