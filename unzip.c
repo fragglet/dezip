@@ -778,7 +778,6 @@ int uz_opts(__G__ pargc, pargv)
                                 ;
                     }
                     break;
-#if (!defined(NO_TIMESTAMPS))
                 case ('D'):    /* -D: Skip restoring dir (or any) timestamp. */
                     if (negative) {
                         uO.D_flag = MAX(uO.D_flag-negative,0);
@@ -786,7 +785,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         uO.D_flag++;
                     break;
-#endif /* (!NO_TIMESTAMPS) */
                 case ('e'):    /* just ignore -e, -x options (extract) */
                     break;
                 case ('f'):    /* "freshen" (extract only newer files) */
