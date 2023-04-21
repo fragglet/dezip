@@ -396,10 +396,6 @@ char *plastchar(const char *ptr, extent len);
 #define FALSE 0
 #endif
 
-#if (!defined(S_IEXEC) && defined(S_IXUSR))
-#define S_IEXEC S_IXUSR
-#endif
-
 #define SYMLINKS
 
 #ifndef IS_VOLID

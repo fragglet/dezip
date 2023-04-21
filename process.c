@@ -437,7 +437,7 @@ int lastchance;
     }
     G.ziplen = G.statbuf.st_size;
 
-    if (G.statbuf.st_mode & S_IEXEC) /* no extension on Unix exes:  might */
+    if (G.statbuf.st_mode & S_IXUSR) /* no extension on Unix exes:  might */
         maybe_exe = TRUE;            /*  find unzip, not unzip.zip; etc. */
 
     if (open_input_file()) /* this should never happen, given */
