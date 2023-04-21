@@ -205,23 +205,12 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #endif /* !NO_ZIPINFO */
 
 #ifdef BETA
-#  ifdef VMSCLI
-   /* BetaVersion[] is also used in vms/cmdline.c:  do not make it static */
-     ZCONST char Far BetaVersion[] = "%s\
-        THIS IS STILL A BETA VERSION OF UNZIP%s -- DO NOT DISTRIBUTE.\n\n";
-#  else
      static ZCONST char Far BetaVersion[] = "%s\
         THIS IS STILL A BETA VERSION OF UNZIP%s -- DO NOT DISTRIBUTE.\n\n";
-#  endif
 #endif
 
 #ifdef SFX
-#  ifdef VMSCLI
-   /* UnzipSFXBanner[] is also used in vms/cmdline.c:  do not make it static */
-     ZCONST char Far UnzipSFXBanner[] =
-#  else
      static ZCONST char Far UnzipSFXBanner[] =
-#  endif
      "UnZipSFX %d.%d%d%s of %s, by Info-ZIP (http://www.info-zip.org).\n";
 #  ifdef SFX_EXDIR
      static ZCONST char Far UnzipSFXOpts[] =
@@ -341,9 +330,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  endif
 #  ifdef VMS_TEXT_CONV
      static ZCONST char Far VmsTextConv[] = "VMS_TEXT_CONV";
-#  endif
-#  ifdef VMSCLI
-     static ZCONST char Far VmsCLI[] = "VMSCLI";
 #  endif
 #  ifdef VMSWILD
      static ZCONST char Far VmsWild[] = "VMSWILD";
@@ -667,30 +653,10 @@ int unzip(__G__ argc, argv)
     G.zipfn = G.argv0;
 #endif
 
-#ifdef VMSCLI
-    {
-        ulg status = vms_unzip_cmdline(&argc, &argv);
-        if (!(status & 1)) {
-            retcode = (int)status;
-            goto cleanup_and_exit;
-        }
-    }
-#endif /* VMSCLI */
-
     uO.zipinfo_mode = FALSE;
     error = uz_opts(__G__ &argc, &argv);   /* UnZipSFX call only */
 
 #else /* !SFX */
-
-#ifdef VMSCLI
-    {
-        ulg status = vms_unzip_cmdline(&argc, &argv);
-        if (!(status & 1)) {
-            retcode = (int)status;
-            goto cleanup_and_exit;
-        }
-    }
-#endif /* VMSCLI */
 
     G.noargs = (argc == 1);   /* no options, no zipfile, no anything */
 
@@ -1936,11 +1902,6 @@ static void show_version_info(__G)
 #ifdef VMS_TEXT_CONV
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(VmsTextConv)));
-        ++numopts;
-#endif
-#ifdef VMSCLI
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(VmsCLI)));
         ++numopts;
 #endif
 #ifdef VMSWILD
