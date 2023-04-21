@@ -160,9 +160,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #if (defined(THINK_C) || defined(MPW))
 #  define MACOS
 #endif
-#if (defined(__MWERKS__) && defined(macintosh))
-#  define MACOS
-#endif
 
 /* use prototypes and ANSI libraries if __STDC__, or MS-DOS, or OS/2, or Win32,
  * or IBM C Set/2, or Borland C, or Watcom C, or GNU gcc (emx or Cygwin),
