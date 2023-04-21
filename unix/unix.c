@@ -218,9 +218,6 @@ char *do_wild(__G__ wildspec)
 #ifndef S_ISUID
 # define S_ISUID        0004000 /* set user id on execution */
 #endif
-#ifndef S_ISGID
-# define S_ISGID        0002000 /* set group id on execution */
-#endif
 #ifndef S_ISVTX
 # define S_ISVTX        0001000 /* save swapped text even after use */
 #endif
