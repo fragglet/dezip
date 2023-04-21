@@ -200,9 +200,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef NO_ZIPINFO
      static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
 #  endif
-#  ifdef REGARGS
-     static ZCONST char Far RegArgs[] = "REGARGS";
-#  endif
      static ZCONST char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
 #  ifdef SYMLINKS
      static ZCONST char Far SymLinkSupport[] =
@@ -1571,11 +1568,6 @@ static void show_version_info(__G)
 #ifdef NO_ZIPINFO
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_ZipInfo)));
-        ++numopts;
-#endif
-#ifdef REGARGS
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(RegArgs)));
         ++numopts;
 #endif
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
