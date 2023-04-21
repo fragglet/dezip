@@ -1023,11 +1023,6 @@
 #define FZOFFT_LEN 24           /* Number of characters/chamber. */
 
 
-#ifdef SHORT_SYMS                   /* Mark Williams C, ...? */
-#  define extract_or_test_files     xtr_or_tst_files
-#  define extract_or_test_member    xtr_or_tst_member
-#endif
-
 #ifndef S_TIME_T_MAX            /* max value of signed (>= 32-bit) time_t */
 #  define S_TIME_T_MAX  ((time_t)(ulg)0x7fffffffL)
 #endif
