@@ -903,11 +903,7 @@
 #  define QCOND     (longhdr)     /*  kill file comments when listing */
 #endif
 
-#ifdef OLD_QQ
-#  define QCOND2    (uO.qflag < 2)
-#else
 #  define QCOND2    (!uO.qflag)
-#endif
 
 #ifdef WILD_STOP_AT_DIR
 #  define __WDLPRO  , int sepc
