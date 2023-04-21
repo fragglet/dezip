@@ -401,8 +401,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
        "        [decryption, version %d.%d%s of %s]\n";
      static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
 #  endif
-#  ifndef __RSXNT__
-#  endif /* !__RSXNT__ */
 
 #ifdef VMS
 /* UnzipUsageLine1[] is also used in vms/cmdline.c:  do not make it static */
@@ -673,12 +671,6 @@ int unzip(__G__ argc, argv)
 #endif
 #ifdef SIGSEGV
     SET_SIGHANDLER(SIGSEGV, handler);
-#endif
-
-#if (defined(WIN32) && defined(__RSXNT__))
-    for (i = 0 ; i < argc; i++) {
-        _ISO_INTERN(argv[i]);
-    }
 #endif
 
 /*---------------------------------------------------------------------------
@@ -2208,8 +2200,6 @@ static void show_version_info(__G)
           LoadFarStringSmall(EnvZipInfo2),
           (envptr == (char *)NULL || *envptr == 0)?
           LoadFarStringSmall2(None) : envptr));
-#ifndef __RSXNT__
-#endif /* !__RSXNT__ */
 #endif /* !_WIN32_WCE */
     }
 } /* end function show_version() */
