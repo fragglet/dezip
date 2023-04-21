@@ -837,12 +837,6 @@
 #  define FALSE     0
 #endif
 
-#ifndef SEEK_SET
-#  define SEEK_SET  0
-#  define SEEK_CUR  1
-#  define SEEK_END  2
-#endif
-
 #if (!defined(S_IEXEC) && defined(S_IXUSR))
 #  define S_IEXEC   S_IXUSR
 #endif
