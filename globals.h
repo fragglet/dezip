@@ -249,9 +249,6 @@ typedef struct Globals {
     slinkentry *slink_head;        /* pointer to head of symlinks list */
     slinkentry *slink_last;        /* pointer to last entry in symlinks list */
 #endif
-#ifdef NOVELL_BUG_FAILSAFE
-    int      dne;                  /* true if stat() says file doesn't exist */
-#endif
 
     FILE     *outfile;
     uch      *outbuf;

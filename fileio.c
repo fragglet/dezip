@@ -143,10 +143,6 @@ static ZCONST char Far CannotOpenZipfile[] =
      "error:  cannot rename old %s\n        %s\n";
    static ZCONST char Far BackupSuffix[] = "~";
 #endif
-#ifdef NOVELL_BUG_FAILSAFE
-   static ZCONST char Far NovellBug[] =
-     "error:  %s: stat() says does not exist, but fopen() found anyway\n";
-#endif
    static ZCONST char Far CannotCreateFile[] =
      "error:  cannot create %s\n        %s\n";
 #endif /* !VMS && !AOS_VS && !CMS_MVS && !MACOS */
@@ -345,14 +341,6 @@ int open_outfile(__G)           /* return 1 if fail */
         fclose(G.outfile);
     }
 #endif /* DEBUG */
-#ifdef NOVELL_BUG_FAILSAFE
-    if (G.dne && ((G.outfile = zfopen(G.filename, FOPR)) != (FILE *)NULL)) {
-        Info(slide, 0x401, ((char *)slide, LoadFarString(NovellBug),
-          FnFilter1(G.filename)));
-        fclose(G.outfile);
-        return 1;   /* with "./" fix in checkdir(), should never reach here */
-    }
-#endif /* NOVELL_BUG_FAILSAFE */
     Trace((stderr, "open_outfile:  doing fopen(%s) for writing\n",
       FnFilter1(G.filename)));
     {

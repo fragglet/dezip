@@ -1163,9 +1163,6 @@ static int extract_or_test_entrylist(__G__ numchunk,
     for (i = 0; i < numchunk; ++i) {
         (*pfilnum)++;   /* *pfilnum = i + blknum*DIR_BLKSIZ + 1; */
         G.pInfo = &G.info[i];
-#ifdef NOVELL_BUG_FAILSAFE
-        G.dne = FALSE;  /* assume file exists until stat() says otherwise */
-#endif
 
         /* if the target position is not within the current input buffer
          * (either haven't yet read far enough, or (maybe) skipping back-
@@ -1497,9 +1494,6 @@ startover:
 
             switch (check_for_newer(__G__ G.filename)) {
                 case DOES_NOT_EXIST:
-#ifdef NOVELL_BUG_FAILSAFE
-                    G.dne = TRUE;   /* stat() says file DOES NOT EXIST */
-#endif
                     /* freshen (no new files): skip unless just renamed */
                     if (uO.fflag && !renamed)
                         skip_entry = SKIP_Y_NONEXIST;
