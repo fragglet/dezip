@@ -74,16 +74,6 @@ typedef struct stat z_stat;
 #    define GOT_UTIMBUF
 #  endif
 
-#if (defined(V7) || defined(pyr_bsd))
-#  define strchr   index
-#  define strrchr  rindex
-#endif
-#ifdef V7
-#  define O_RDONLY 0
-#  define O_WRONLY 1
-#  define O_RDWR   2
-#endif
-
 #if defined(NO_UNICODE_SUPPORT) && defined(UNICODE_SUPPORT)
    /* disable Unicode (UTF-8) support when requested */
 #  undef UNICODE_SUPPORT
