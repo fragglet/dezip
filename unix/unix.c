@@ -1237,9 +1237,6 @@ void version(__G)
 #endif
       IZ_OS_NAME,
 
-#if defined(sgi) || defined(__sgi)
-      " (Silicon Graphics IRIX)",
-#else
 #ifdef sun
 #  ifdef sparc
 #    ifdef __SVR4
@@ -1277,7 +1274,6 @@ void version(__G)
 #endif /* DEC */
 #endif /* Amdahl */
 #endif /* Sun */
-#endif /* SGI */
 
 #if 0
       " on ", __DATE__

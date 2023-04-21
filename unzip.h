@@ -139,8 +139,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #if (defined(MACOS) || defined(ATARI_ST) || defined(RISCOS) || defined(THEOS))
 #endif
 /* Sequent running Dynix/ptx:  non-modern compiler */
-#if (defined(_AIX) || defined(sgi) || (defined(_SEQUENT_) && !defined(PTX)))
-#endif
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
 
 /* turn off prototypes if requested */
