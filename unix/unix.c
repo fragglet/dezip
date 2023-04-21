@@ -1184,19 +1184,12 @@ int stamp_file(fname, modtime)
 void version(__G)
     __GDEF
 {
-#if (defined(__SUNPRO_C))
-    char cc_versbuf[17];
-#else
-#endif /* __SUNPRO_C */
 
     /* Pyramid, NeXT have problems with huge macro expansion, too:  no Info() */
     sprintf((char *)slide, LoadFarString(CompiledWith),
 
 #ifdef __GNUC__
       "gcc ", __VERSION__,
-#else
-#if defined(__SUNPRO_C)
-      "Sun C ", (sprintf(cc_versbuf, "version %x", __SUNPRO_C), cc_versbuf),
 #else
 #ifdef __VERSION__
 #   ifndef IZ_CC_NAME
@@ -1209,7 +1202,6 @@ void version(__G)
 #   endif
       IZ_CC_NAME, "",
 #endif /* ?__VERSION__ */
-#endif /* ?__SUNPRO_C */
 #endif /* ?__GNUC__ */
 
 #ifndef IZ_OS_NAME
