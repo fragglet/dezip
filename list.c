@@ -245,15 +245,6 @@ int list_files(__G)    /* return PK-type error code */
 
         if (G.process_all_files || do_this_file) {
 
-#ifdef OS2DLL
-            /* this is used by UzpFileTree() to allow easy processing of lists
-             * of zip directory contents */
-            if (G.processExternally) {
-                if ((G.processExternally)(G.filename, &G.crec))
-                    break;
-                ++members;
-            } else {
-#endif
 #ifdef OS2_EAS
             {
                 uch *ef_ptr = G.extra_field;
@@ -426,9 +417,6 @@ int list_files(__G)    /* return PK-type error code */
                 ++tot_aclfiles;
             }
 #endif
-#ifdef OS2DLL
-            } /* end of "if (G.processExternally) {...} else {..." */
-#endif
         } else {        /* not listing this file */
             SKIP_(G.crec.file_comment_length)
         }
@@ -440,9 +428,6 @@ int list_files(__G)    /* return PK-type error code */
   ---------------------------------------------------------------------------*/
 
     if (uO.qflag < 2
-#ifdef OS2DLL
-                     && !G.processExternally
-#endif
                                             ) {
         if ((cfactor = ratio(tot_ucsize, tot_csize)) < 0) {
 #ifndef WINDLL

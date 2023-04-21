@@ -1187,9 +1187,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
 
     if (MSG_LNEWLN(flag) && !((Uz_Globs *)pG)->sol) {
         /* not at start of line:  want newline */
-#ifdef OS2DLL
-        if (!((Uz_Globs *)pG)->redirect_text) {
-#endif
             putc('\n', outfp);
             fflush(outfp);
 #ifdef MORE
@@ -1212,10 +1209,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
                 putc('\n', stderr);
                 fflush(stderr);
             }
-#ifdef OS2DLL
-        } else
-           REDIRECTC('\n');
-#endif
         ((Uz_Globs *)pG)->sol = TRUE;
     }
 
@@ -1223,9 +1216,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
 
 #ifdef MORE
     if (((Uz_Globs *)pG)->M_flag
-#ifdef OS2DLL
-         && !((Uz_Globs *)pG)->redirect_text
-#endif
                                                  )
     {
         while (p < endbuf) {
@@ -1272,9 +1262,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
 #endif /* MORE */
 
     if (size) {
-#ifdef OS2DLL
-        if (!((Uz_Globs *)pG)->redirect_text) {
-#endif
             if ((error = WriteTxtErr(q, size, outfp)) != 0)
                 return error;
 #ifndef VMS     /* 2005-09-16 SMS.  See note at "WriteTxtErr()", above. */
@@ -1288,12 +1275,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
                     return error;
                 fflush(stderr);
             }
-#ifdef OS2DLL
-        } else {                /* GRR:  this is ugly:  hide with macro */
-            if ((error = REDIRECTPRINT(q, size)) != 0)
-                return error;
-        }
-#endif /* OS2DLL */
         ((Uz_Globs *)pG)->sol = (endbuf[-1] == '\n');
     }
     return 0;

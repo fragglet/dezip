@@ -86,11 +86,6 @@ int main(int argc, char *argv[])
 #endif
          + sizeof(_version_type) ))
     {
-#ifdef OS2DLL
-#       define UZ_API_COMP_MAJOR        UZ_OS2API_COMP_MAJOR
-#       define UZ_API_COMP_MINOR        UZ_OS2API_COMP_MINOR
-#       define UZ_API_COMP_REVIS        UZ_OS2API_COMP_REVIS
-#else /* !OS2DLL */
 #ifdef WINDLL
 #       define UZ_API_COMP_MAJOR        UZ_WINAPI_COMP_MAJOR
 #       define UZ_API_COMP_MINOR        UZ_WINAPI_COMP_MINOR
@@ -100,7 +95,6 @@ int main(int argc, char *argv[])
 #       define UZ_API_COMP_MINOR        UZ_GENAPI_COMP_MINOR
 #       define UZ_API_COMP_REVIS        UZ_GENAPI_COMP_REVIS
 #endif /* ?WINDLL */
-#endif /* ?OS2DLL */
         printf(
           "   UnZip API version: can handle <= %u.%u%u, DLL supplies %u.%u%u\n",
           UZ_API_COMP_MAJOR, UZ_API_COMP_MINOR, UZ_API_COMP_REVIS,
