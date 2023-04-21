@@ -1648,23 +1648,7 @@ void version(__G)
 #ifdef Lynx
       " (LynxOS)",
 #else
-#ifdef __APPLE__
-#  ifdef __i386__
-      " Mac OS X Intel i32",
-#  else
-#  ifdef __ppc__
-      " Mac OS X PowerPC",
-#  else
-#  ifdef __ppc64__
-      " Mac OS X PowerPC64",
-#  else
-      " Mac OS X",
-#  endif /* __ppc64__ */
-#  endif /* __ppc__ */
-#  endif /* __i386__ */
-#else
       "",
-#endif /* Apple */
 #endif /* Lynx */
 #endif /* QNX Neutrino */
 #endif /* QNX 4 */
