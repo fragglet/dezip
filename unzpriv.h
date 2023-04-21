@@ -366,10 +366,6 @@
 #endif
 
 
-#  ifndef HAVE_UNLINK
-#    define HAVE_UNLINK
-#  endif
-
 /* OS-specific exceptions to the "ANSI <--> INT_SPRINTF" rule */
 
 /* defaults that we hope will take care of most machines in the future */
