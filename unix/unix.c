@@ -37,9 +37,6 @@
 #    define DIRENT
 #  endif
 #endif
-#if defined(_AIX) || defined(__mpexl)
-#  define DIRENT
-#endif
 
 #ifdef _POSIX_VERSION
 #endif
