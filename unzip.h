@@ -142,25 +142,13 @@ freely, subject to the above disclaimer and the following restrictions:
  * or Convex?, or AtheOS, or BeOS.
  */
 #if (defined(__STDC__) || defined(MSDOS) || defined(OS2) || defined(WIN32))
-#  ifndef PROTO
-#    define PROTO
-#  endif
 #endif
 #if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
-#  ifndef PROTO
-#    define PROTO
-#  endif
 #endif
 #if (defined(MACOS) || defined(ATARI_ST) || defined(RISCOS) || defined(THEOS))
-#  ifndef PROTO
-#    define PROTO
-#  endif
 #endif
 /* Sequent running Dynix/ptx:  non-modern compiler */
 #if (defined(_AIX) || defined(sgi) || (defined(_SEQUENT_) && !defined(PTX)))
-#  ifndef PROTO
-#    define PROTO
-#  endif
 #endif
 /* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
 
@@ -170,11 +158,7 @@ freely, subject to the above disclaimer and the following restrictions:
 #endif
 
 /* used to remove arguments in function prototypes for non-ANSI C */
-#ifdef PROTO
 #  define OF(a) a
-#else
-#  define OF(a) ()
-#endif
 
 /* enable the "const" keyword only if MODERN and if not otherwise instructed */
 #  if (!defined(ZCONST) && (defined(USE_CONST) || !defined(NO_CONST)))
@@ -251,7 +235,6 @@ typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
 #endif /* !_IZ_TYPES_DEFINED */
 
 /* InputFn is not yet used and is likely to change: */
-#ifdef PROTO
    typedef int   (UZ_EXP MsgFn)     (zvoid *pG, uch *buf, ulg size, int flag);
    typedef int   (UZ_EXP InputFn)   (zvoid *pG, uch *buf, int *size, int flag);
    typedef void  (UZ_EXP PauseFn)   (zvoid *pG, ZCONST char *prompt, int flag);
@@ -261,14 +244,6 @@ typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
    typedef int   (UZ_EXP StatCBFn)  (zvoid *pG, int fnflag, ZCONST char *zfn,
                                      ZCONST char *efn, ZCONST zvoid *details);
    typedef void  (UZ_EXP UsrIniFn)  (void);
-#else /* !PROTO */
-   typedef int   (UZ_EXP MsgFn)     ();
-   typedef int   (UZ_EXP InputFn)   ();
-   typedef void  (UZ_EXP PauseFn)   ();
-   typedef int   (UZ_EXP PasswdFn)  ();
-   typedef int   (UZ_EXP StatCBFn)  ();
-   typedef void  (UZ_EXP UsrIniFn)  ();
-#endif /* ?PROTO */
 
 typedef struct _UzpBuffer {    /* rxstr */
     ulg   strlength;           /* length of string */

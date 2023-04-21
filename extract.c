@@ -2309,7 +2309,6 @@ static int TestExtraField(__G__ ef, ef_len)
 /*  Function test_compr_eb()  */
 /******************************/
 
-#ifdef PROTO
 static int test_compr_eb(
     __GPRO__
     uch *eb,
@@ -2317,14 +2316,6 @@ static int test_compr_eb(
     unsigned compr_offset,
     int (*test_uc_ebdata)(__GPRO__ uch *eb, unsigned eb_size,
                           uch *eb_ucptr, ulg eb_ucsize))
-#else /* !PROTO */
-static int test_compr_eb(__G__ eb, eb_size, compr_offset, test_uc_ebdata)
-    __GDEF
-    uch *eb;
-    unsigned eb_size;
-    unsigned compr_offset;
-    int (*test_uc_ebdata)();
-#endif /* ?PROTO */
 {
     ulg eb_ucsize;
     uch *eb_ucptr;
