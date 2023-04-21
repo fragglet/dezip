@@ -38,15 +38,9 @@
 
 /* disable bzip2 support for SFX stub, unless explicitly requested */
 
-#if (defined(NO_VMS_TEXT_CONV) || defined(VMS))
 #  ifdef VMS_TEXT_CONV
 #    undef VMS_TEXT_CONV
 #  endif
-#else
-#  if (!defined(VMS_TEXT_CONV) && !defined(SFX))
-#    define VMS_TEXT_CONV
-#  endif
-#endif
 
 /* Enable -B option per default on specific systems, to allow backing up
  * files that would be overwritten.
