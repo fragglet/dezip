@@ -813,15 +813,9 @@ ulg bb;                         /* bit buffer */
 unsigned bk;                    /* bits in bit buffer */
 #endif
 
-# ifdef FIX_PAST_EOB_BY_TABLEADJUST
-#  define NEEDBITS(n) {while(k<(n)){int c=NEXTBYTE;\
-    if(c==EOF){retval=1;goto cleanup_and_exit;}\
-    b|=((ulg)c)<<k;k+=8;}}
-# else
 #  define NEEDBITS(n) {while((int)k<(int)(n)){int c=NEXTBYTE;\
     if(c==EOF){if((int)k>=0)break;retval=1;goto cleanup_and_exit;}\
     b|=((ulg)c)<<k;k+=8;}}
-# endif
 
 #define DUMPBITS(n) {b>>=(n);k-=(n);}
 
@@ -1250,14 +1244,7 @@ static int inflate_dynamic(__G)
     }
     return retval;              /* incomplete code set */
   }
-#ifdef FIX_PAST_EOB_BY_TABLEADJUST
-  /* Adjust the requested distance base table size so that a distance code
-     fetch never tries to get bits behind an immediatly following end-of-block
-     code. */
-  bd = (dbits <= bl+1 ? dbits : bl+1);
-#else
   bd = dbits;
-#endif
   retval = huft_build(__G__ ll + nl, nd, 0, cpdist, G.cpdext, &td, &bd);
 #ifdef PKZIP_BUG_WORKAROUND
   if (retval == 1)
