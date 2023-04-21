@@ -38,9 +38,6 @@
 #  endif
 #endif
 
-#ifdef _POSIX_VERSION
-#endif
-
 #  include <dirent.h>
 
 #ifdef SET_DIR_ATTRIB
