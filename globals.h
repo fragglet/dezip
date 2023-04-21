@@ -171,9 +171,6 @@ typedef struct Globals {
     int chars;            /* count of screen characters in current line */
 # endif
 #endif /* MORE */
-#if (defined(IZ_CHECK_TZ) && defined(USE_EF_UT_TIME))
-    int tz_is_valid;      /* indicates that timezone info can be used */
-#endif
     int noargs;           /* did true command line have *any* arguments? */
     unsigned filespecs;   /* number of real file specifications to be matched */
     unsigned xfilespecs;  /* number of excluded filespecs to be matched */

@@ -276,9 +276,6 @@ int list_files(__G)    /* return PK-type error code */
             }
 #endif
             if (G.extra_field &&
-#ifdef IZ_CHECK_TZ
-                G.tz_is_valid &&
-#endif
                 (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
                                   G.crec.last_mod_dos_datetime, &z_utime, NULL)
                  & EB_UT_FL_MTIME))
@@ -650,9 +647,6 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
          */
         if ((G.process_all_files || do_this_file) && !fn_is_dir(__G)) {
             if (G.extra_field &&
-#ifdef IZ_CHECK_TZ
-                G.tz_is_valid &&
-#endif
                 (ef_scan_for_izux(G.extra_field, G.crec.extra_field_length, 1,
                                   G.crec.last_mod_dos_datetime, &z_utime, NULL)
                  & EB_UT_FL_MTIME))

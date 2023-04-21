@@ -964,11 +964,7 @@ static int get_extattribs(__G__ pzt, z_uidgid)
 
     eb_izux_flg = (G.extra_field ? ef_scan_for_izux(G.extra_field,
                    G.lrec.extra_field_length, 0, G.lrec.last_mod_dos_datetime,
-#ifdef IZ_CHECK_TZ
-                   (G.tz_is_valid ? pzt : NULL),
-#else
                    pzt,
-#endif
                    z_uidgid) : 0);
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nget_extattribs:  Unix e.f. modif. time = %ld\n",

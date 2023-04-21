@@ -1773,9 +1773,6 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
      * used to set the modification time of the extracted file.
      */
     if (G.extra_field &&
-#ifdef IZ_CHECK_TZ
-        G.tz_is_valid &&
-#endif
         (ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
                           G.lrec.last_mod_dos_datetime, &z_utime, NULL)
          & EB_UT_FL_MTIME))

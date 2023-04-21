@@ -77,10 +77,6 @@ static ZCONST char Far CannotAllocateBuffers[] =
 
 #else /* !SFX */
    /* process_zipfiles() strings */
-# if (defined(IZ_CHECK_TZ) && defined(USE_EF_UT_TIME))
-     static ZCONST char Far WarnInvalidTZ[] =
-       "Warning: TZ environment variable not found, cannot use UTC times!!\n";
-# endif
 # if !(defined(UNIX) || defined(AMIGA))
    static ZCONST char Far CannotFindWildcardMatch[] =
      "%s:  cannot find any matches for wildcard specification \"%s\".\n";
@@ -292,23 +288,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
      */
     iz_w32_prepareTZenv();
 #endif
-
-#if (defined(IZ_CHECK_TZ) && defined(USE_EF_UT_TIME))
-#  ifndef VALID_TIMEZONE
-#     define VALID_TIMEZONE(tmp) \
-             (((tmp = getenv("TZ")) != NULL) && (*tmp != '\0'))
-#  endif
-    {
-        char *p;
-        G.tz_is_valid = VALID_TIMEZONE(p);
-#  ifndef SFX
-        if (!G.tz_is_valid) {
-            Info(slide, 0x401, ((char *)slide, LoadFarString(WarnInvalidTZ)));
-            error_in_archive = error = PK_WARN;
-        }
-#  endif /* !SFX */
-    }
-#endif /* IZ_CHECK_TZ && USE_EF_UT_TIME */
 
 /* For systems that do not have tzset() but supply this function using another
    name (_tzset() or something similar), an appropiate "#define tzset ..."
