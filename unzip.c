@@ -313,9 +313,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef NO_ZIPINFO
      static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
 #  endif
-#  ifdef NTSD_EAS
-     static ZCONST char Far NTSDExtAttrib[] = "NTSD_EAS";
-#  endif
 #  if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
      static ZCONST char Far W32NoIZTimeFix[] = "NO_W32TIMES_IZFIX";
 #  endif
@@ -2099,11 +2096,6 @@ static void show_version_info(__G)
 #ifdef NO_ZIPINFO
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(No_ZipInfo)));
-        ++numopts;
-#endif
-#ifdef NTSD_EAS
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(NTSDExtAttrib)));
         ++numopts;
 #endif
 #if defined(WIN32) && defined(NO_W32TIMES_IZFIX)

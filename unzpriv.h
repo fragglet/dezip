@@ -2074,12 +2074,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 
 #ifdef WIN32
    int   IsWinNT        OF((void));                               /* win32.c */
-#ifdef NTSD_EAS
-   void  process_defer_NT     OF((__GPRO));                       /* win32.c */
-   int   test_NTSD      OF((__GPRO__ uch *eb, unsigned eb_size,
-                            uch *eb_ucptr, ulg eb_ucsize));       /* win32.c */
-#  define TEST_NTSD     test_NTSD
-#endif
 #ifdef W32_STAT_BANDAID
    int   zstat_win32    OF((__W32STAT_GLOBALS__
                             const char *path, z_stat *buf));      /* win32.c */

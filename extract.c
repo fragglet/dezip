@@ -302,10 +302,6 @@ char ZCONST Far TruncNTSD[] =
      EF block length (%u bytes) invalid (< %d)\n";
    static ZCONST char Far InvalidComprDataEAs[] =
      " invalid compressed data for EAs\n";
-#  if (defined(WIN32) && defined(NTSD_EAS))
-     static ZCONST char Far InvalidSecurityEAs[] =
-       " EAs fail security check\n";
-#  endif
    static ZCONST char Far UnsuppNTSDVersEAs[] =
      " unsupported NTSD EAs version %d\n";
    static ZCONST char Far BadCRC_EAs[] = " bad CRC for extended attributes\n";
@@ -2236,12 +2232,6 @@ static int TestExtraField(__G__ ef, ef_len)
                               LoadFarString(TruncNTSD),
                               ebLen-(EB_NTSD_L_LEN+EB_CMPRHEADLEN), "\n"));
                             break;
-#if (defined(WIN32) && defined(NTSD_EAS))
-                        case PK_WARN:
-                            Info(slide, 1, ((char *)slide,
-                              LoadFarString(InvalidSecurityEAs)));
-                            break;
-#endif
                         case PK_ERR:
                             Info(slide, 1, ((char *)slide,
                               LoadFarString(InvalidComprDataEAs)));
