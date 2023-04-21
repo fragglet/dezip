@@ -36,7 +36,6 @@
 
 #  include <dirent.h>
 
-#ifdef SET_DIR_ATTRIB
 typedef struct uxdirattr {      /* struct for holding unix style directory */
     struct uxdirattr *next;     /*  info until can be sorted and set at end */
     char *fn;                   /* filename of directory */
@@ -50,7 +49,6 @@ typedef struct uxdirattr {      /* struct for holding unix style directory */
     char fnbuf[1];              /* buffer stub for directory name */
 } uxdirattr;
 #define UxAtt(d)  ((uxdirattr *)d)    /* typecast shortcut */
-#endif /* SET_DIR_ATTRIB */
 
 #ifdef ACORN_FTYPE_NFS
 /* Acorn bits for NFS filetyping */
@@ -1113,7 +1111,6 @@ int set_symlnk_attribs(__G__ slnk_entry)
 #endif /* SYMLINKS && SET_SYMLINK_ATTRIBS */
 
 
-#ifdef SET_DIR_ATTRIB
 /* messages of code for setting directory attributes */
   static ZCONST char DirlistChmodFailed[] =
     "warning:  cannot set permissions for %s\n          %s\n";
@@ -1178,8 +1175,6 @@ int set_direc_attribs(__G__ d)
     }
     return errval;
 } /* end function set_direc_attribs() */
-
-#endif /* SET_DIR_ATTRIB */
 
 
 

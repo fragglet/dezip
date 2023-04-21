@@ -309,9 +309,7 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef REGARGS
      static ZCONST char Far RegArgs[] = "REGARGS";
 #  endif
-#  ifdef SET_DIR_ATTRIB
      static ZCONST char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
-#  endif
 #  ifdef SYMLINKS
      static ZCONST char Far SymLinkSupport[] =
      "SYMLINKS (symbolic links supported, if RTL and file system permit)";
@@ -2052,11 +2050,9 @@ static void show_version_info(__G)
           LoadFarStringSmall(RegArgs)));
         ++numopts;
 #endif
-#ifdef SET_DIR_ATTRIB
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(SetDirAttrib)));
         ++numopts;
-#endif
 #ifdef SYMLINKS
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(SymLinkSupport)));

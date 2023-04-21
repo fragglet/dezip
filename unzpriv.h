@@ -1423,13 +1423,11 @@ typedef struct iztimes {
    time_t ctime;             /* used for creation time; NOT same as st_ctime */
 } iztimes;
 
-#ifdef SET_DIR_ATTRIB
    typedef struct direntry {    /* head of system-specific struct holding */
        struct direntry *next;   /*  defered directory attributes info */
        char *fn;                /* filename of directory */
        char buf[1];             /* start of system-specific internal data */
    } direntry;
-#endif /* SET_DIR_ATTRIB */
 
 #ifdef SYMLINKS
    typedef struct slinkentry {  /* info for deferred symlink creation */
@@ -1957,10 +1955,8 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 #ifdef SET_SYMLINK_ATTRIBS
    int  set_symlnk_attribs  OF((__GPRO__ slinkentry *slnk_entry));  /* local */
 #endif
-#ifdef SET_DIR_ATTRIB
    int   defer_dir_attribs  OF((__GPRO__ direntry **pd));           /* local */
    int   set_direc_attribs  OF((__GPRO__ direntry *d));             /* local */
-#endif
 #ifdef TIMESTAMP
 # ifdef WIN32
    int   stamp_file      OF((__GPRO__
