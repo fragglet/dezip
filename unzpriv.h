@@ -345,15 +345,12 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 
 /* 2007-09-18 SMS.
  * Include <locale.h> here if it will be needed later for Unicode.
- * Otherwise, SETLOCALE may be defined here, and then defined again
+ * Otherwise, setlocale may be defined here, and then defined again
  * (differently) when <locale.h> is read later.
  */
 #include <wchar.h>
 #ifndef _MBCS /* no need to include <locale.h> twice, see below */
 #include <locale.h>
-#ifndef SETLOCALE
-#define SETLOCALE(category, locale) setlocale(category, locale)
-#endif
 #endif
 
 /* DBCS support for Info-ZIP  (mainly for japanese (-: )
@@ -383,9 +380,6 @@ char *plastchar(const char *ptr, extent len);
 #define NEED_UZMBSRCHR
 #define MBSRCHR(str, c) (char *) uzmbsrchr((const unsigned char *) (str), c)
 #endif
-#ifndef SETLOCALE
-#define SETLOCALE(category, locale) setlocale(category, locale)
-#endif
 #else /* !_MBCS */
 #define ___MBS_TMP_DEF
 #define ___TMP_PTR
@@ -396,9 +390,6 @@ char *plastchar(const char *ptr, extent len);
 #define lastchar(ptr, len)  (ptr[(len) -1])
 #define MBSCHR(str, c)      strchr(str, c)
 #define MBSRCHR(str, c)     strrchr(str, c)
-#ifndef SETLOCALE
-#define SETLOCALE(category, locale)
-#endif
 #endif /* ?_MBCS */
 #define INCSTR(ptr) PREINCSTR(ptr)
 

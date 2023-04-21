@@ -250,7 +250,7 @@ char *argv[];
     signal((sigtype), (newsighandler))
 
     /* initialize international char support to the current environment */
-    SETLOCALE(LC_CTYPE, "");
+    setlocale(LC_CTYPE, "");
 
     /* see if can use UTF-8 Unicode locale */
     {
