@@ -124,9 +124,6 @@
 
 /* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
 
-#if (defined(ultrix) || defined(__ultrix) || defined(bsd4_2))
-#endif /* ultrix || __ultrix || bsd4_2 */
-
 /* stat() bug for Borland, VAX C RTL, and Atari ST MiNT on TOS
  * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
  * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously

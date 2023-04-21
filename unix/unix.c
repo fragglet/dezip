@@ -1210,19 +1210,7 @@ void version(__G)
 #if defined(uts) || defined(UTS)
       " (Amdahl UTS)",
 #else
-#ifdef ultrix
-#  ifdef mips
-      " (DEC/MIPS)",
-#  else
-#  ifdef vax
-      " (DEC/VAX)",
-#  else /* __alpha? */
-      " (DEC/Alpha)",
-#  endif
-#  endif
-#else
       "",
-#endif /* DEC */
 #endif /* Amdahl */
 
 #if 0
