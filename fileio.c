@@ -132,12 +132,10 @@ static ZCONST char Far CannotOpenZipfile[] =
 static ZCONST char Far ReadError[] = "error:  zipfile read error\n";
 static ZCONST char Far FilenameTooLongTrunc[] =
   "warning:  filename too long--truncating.\n";
-#ifdef UNICODE_SUPPORT
    static ZCONST char Far UFilenameCorrupt[] =
      "error: Unicode filename corrupt.\n";
    static ZCONST char Far UFilenameTooLongTrunc[] =
      "warning:  Converted Unicode filename too long--truncating.\n";
-#endif
 static ZCONST char Far ExtraFieldTooLong[] =
   "warning:  extra field too long (%d).  Ignoring...\n";
 static ZCONST char Far ExtraFieldCorrupt[] =
@@ -1461,7 +1459,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
 
     case DS_FN:
     case DS_FN_L:
-#ifdef UNICODE_SUPPORT
         /* get the whole filename as need it for Unicode checksum */
         if (G.fnfull_bufsize <= length) {
             extent fnbufsiz = FILNAMSIZ;
@@ -1490,21 +1487,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
         block_len = 0;
         strncpy(G.filename, G.filename_full, length);
         G.filename[length] = '\0';      /* terminate w/zero:  ASCIIZ */
-#else /* !UNICODE_SUPPORT */
-        if (length >= FILNAMSIZ) {
-            Info(slide, 0x401, ((char *)slide,
-              LoadFarString(FilenameTooLongTrunc)));
-            error = PK_WARN;
-            /* remember excess length in block_len */
-            block_len = length - (FILNAMSIZ - 1);
-            length = FILNAMSIZ - 1;
-        } else
-            /* no excess size */
-            block_len = 0;
-        if (readbuf(__G__ G.filename, length) == 0)
-            return PK_EOF;
-        G.filename[length] = '\0';      /* terminate w/zero:  ASCIIZ */
-#endif /* ?UNICODE_SUPPORT */
 
         /* translate the Zip entry filename coded in host-dependent "extended
            ASCII" into the compiler's (system's) internal text code page */
@@ -1569,7 +1551,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                  LoadFarString( ExtraFieldCorrupt), EF_PKSZ64));
                 error = PK_WARN;
             }
-#ifdef UNICODE_SUPPORT
             G.unipath_filename = NULL;
             if (G.UzO.U_flag < 2) {
               /* check if GPB11 (General Purpuse Bit 11) is set indicating
@@ -1638,7 +1619,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 G.unipath_filename = NULL;
               }
             }
-#endif /* UNICODE_SUPPORT */
         }
         break;
 

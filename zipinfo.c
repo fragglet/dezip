@@ -509,7 +509,6 @@ int zi_opts(__G__ pargc, pargv)
                     else
                         uO.T_flag = TRUE;
                     break;
-#ifdef UNICODE_SUPPORT
                 case ('U'):    /* escape UTF-8, or disable UTF-8 support */
                     if (negative) {
                         uO.U_flag = MAX(uO.U_flag-negative,0);
@@ -517,7 +516,6 @@ int zi_opts(__G__ pargc, pargv)
                     } else
                         uO.U_flag++;
                     break;
-#endif /* UNICODE_SUPPORT */
                 case 'v':      /* turbo-verbose listing */
                     if (negative)
                         uO.lflag = -2, negative = 0;

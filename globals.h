@@ -233,7 +233,6 @@ typedef struct Globals {
     uch      *outptr;
     ulg      outcnt;               /* number of chars stored in outbuf */
     char     filename[FILNAMSIZ];  /* also used by NT for temporary SFX path */
-#ifdef UNICODE_SUPPORT
     char     *filename_full;       /* the full path so Unicode checks work */
     extent   fnfull_bufsize;       /* size of allocated filename buffer */
     int      unicode_escape_all;
@@ -245,7 +244,6 @@ typedef struct Globals {
     int      unipath_version;      /* version of Unicode field */
     ulg      unipath_checksum;     /* Unicode field checksum */
     char     *unipath_filename;    /* UTF-8 path */
-#endif /* UNICODE_SUPPORT */
 
     char *key;         /* crypt static: decryption password or NULL */
     int nopwd;         /* crypt static */

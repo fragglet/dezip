@@ -32,9 +32,7 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#if defined(DYNALLOC_CRCTAB) || defined(UNICODE_SUPPORT)
 #  include "crc32.h"
-#endif
 
 static int    do_seekable        OF((__GPRO__ int lastchance));
 static zoff_t file_size          OF((int fh));
@@ -140,14 +138,12 @@ static ZCONST char Far ZipfileCommTrunc1[] =
    static ZCONST char Far ZipfileCommTrunc2[] =
      "\n  The zipfile comment is truncated.\n";
 #endif /* !NO_ZIPINFO */
-#ifdef UNICODE_SUPPORT
    static ZCONST char Far UnicodeVersionError[] =
      "\nwarning:  Unicode Path version > 1\n";
    static ZCONST char Far UnicodeMismatchError[] =
      "\nwarning:  Unicode Path checksum invalid\n";
    static ZCONST char Far UFilenameTooLongTrunc[] =
      "warning:  filename too long (P1) -- truncating.\n";
-#endif
 
 
 
@@ -402,13 +398,11 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
         free(G.inbuf);
     G.inbuf = G.outbuf = (uch *)NULL;
 
-#ifdef UNICODE_SUPPORT
     if (G.filename_full) {
         free(G.filename_full);
         G.filename_full = (char *)NULL;
         G.fnfull_bufsize = 0;
     }
-#endif /* UNICODE_SUPPORT */
 
     for (i = 0; i < DIR_BLKSIZ; i++) {
         if (G.info[i].cfilname != (char Far *)NULL) {
@@ -1343,12 +1337,10 @@ int process_cdir_file_hdr(__G)    /* return PK-type error code */
        strings (see do_string() function in fileio.c) */
     G.pInfo->HasUxAtt = (G.crec.external_file_attributes & 0xffff0000L) != 0L;
 
-#ifdef UNICODE_SUPPORT
     /* remember the state of GPB11 (General Purpuse Bit 11) which indicates
        that the standard path and comment are UTF-8. */
     G.pInfo->GPFIsUTF8
         = (G.crec.general_purpose_bit_flag & (1 << 11)) == (1 << 11);
-#endif
 
     /* Initialize the symlink flag, may be set by the platform-specific
        mapattr function.  */
@@ -1577,8 +1569,6 @@ int getZip64Data(__G__ ef_buf, ef_len)
     return PK_COOL;
 } /* end function getZip64Data() */
 
-
-#ifdef UNICODE_SUPPORT
 
 /*******************************/
 /* Function getUnicodeData() */
@@ -2277,8 +2267,6 @@ zwchar *utf8_to_wide_string(utf8_string)
 
   return wide_string;
 }
-
-#endif /* UNICODE_SUPPORT */
 
 
 

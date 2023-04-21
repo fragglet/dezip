@@ -138,12 +138,10 @@ static ZCONST char Far FilNamMsg[] =
    static ZCONST char Far LvsCFNamMsg[] =
      "%s:  mismatching \"local\" filename (%s),\n\
          continuing with \"central\" filename version\n";
-#if (!defined(SFX) && defined(UNICODE_SUPPORT))
    static ZCONST char Far GP11FlagsDiffer[] =
      "file #%lu (%s):\n\
          mismatch between local and central GPF bit 11 (\"UTF-8\"),\n\
          continuing with central flag (IsUTF8 = %d)\n";
-#endif /* !SFX && UNICODE_SUPPORT */
 static ZCONST char Far WrnStorUCSizCSizDiff[] =
   "%s:  ucsize %s <> csize %s for STORED entry\n\
          continuing with \"compressed\" size value\n";
@@ -1170,7 +1168,6 @@ static int extract_or_test_entrylist(__G__ numchunk,
             error_in_archive = error;   /* only PK_EOF defined */
             continue;   /* can still try next one */
         }
-#if (!defined(SFX) && defined(UNICODE_SUPPORT))
         if (((G.lrec.general_purpose_bit_flag & (1 << 11)) == (1 << 11))
             != (G.pInfo->GPFIsUTF8 != 0)) {
             if (QCOND2) {
@@ -1183,7 +1180,6 @@ static int extract_or_test_entrylist(__G__ numchunk,
             if (error_in_archive < PK_WARN)
                 error_in_archive = PK_WARN;
         }
-#endif /* !SFX && UNICODE_SUPPORT */
         if ((error = do_string(__G__ G.lrec.filename_length, DS_FN_L)) !=
              PK_COOL)
         {

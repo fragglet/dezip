@@ -414,14 +414,11 @@
  */
 #define FILNAMSIZ  PATH_MAX
 
-#ifdef UNICODE_SUPPORT
-#endif
 /* 2007-09-18 SMS.
  * Include <locale.h> here if it will be needed later for Unicode.
  * Otherwise, SETLOCALE may be defined here, and then defined again
  * (differently) when <locale.h> is read later.
  */
-#ifdef UNICODE_SUPPORT
 #   include <wchar.h>
 # ifndef _MBCS  /* no need to include <locale.h> twice, see below */
 #   include <locale.h>
@@ -429,7 +426,6 @@
 #     define SETLOCALE(category, locale) setlocale(category, locale)
 #   endif
 # endif
-#endif /* UNICODE_SUPPORT */
 
 /* DBCS support for Info-ZIP  (mainly for japanese (-: )
  * by Yoshioka Tsuneo (QWF00133@nifty.ne.jp,tsuneo-y@is.aist-nara.ac.jp)
@@ -971,9 +967,7 @@ typedef struct min_info {
     unsigned vollabel : 1;   /* "file" is an MS-DOS volume (disk) label */
     unsigned symlink : 1;    /* file is a symbolic link */
     unsigned HasUxAtt : 1;   /* crec ext_file_attr has Unix style mode bits */
-#ifdef UNICODE_SUPPORT
     unsigned GPFIsUTF8: 1;   /* crec gen_purpose_flag UTF-8 bit 11 is set */
-#endif
     char Far *cfilname;      /* central header version of filename */
 } min_info;
 
@@ -1197,10 +1191,8 @@ int      process_cdir_file_hdr   OF((__GPRO));
 int      process_local_file_hdr  OF((__GPRO));
 int      getZip64Data            OF((__GPRO__ ZCONST uch *ef_buf,
                                      unsigned ef_len));
-#ifdef UNICODE_SUPPORT
   int    getUnicodeData          OF((__GPRO__ ZCONST uch *ef_buf,
                                      unsigned ef_len));
-#endif
 unsigned ef_scan_for_izux        OF((ZCONST uch *ef_buf, unsigned ef_len,
                                      int ef_is_c, ulg dos_mdatetime,
                                      iztimes *z_utim, ulg *z_uidgid));
@@ -1759,7 +1751,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
     Unicode Support
     28 August 2005
   ---------------------------------------------------------------------*/
-#if (defined(UNICODE_SUPPORT) && defined(UNICODE_WCHAR))
 
   /* Default character when a zwchar too big for wchar_t */
 # define zwchar_to_wchar_t_default_char '_'
@@ -1810,8 +1801,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
   /* convert wide string to UTF-8 */
   char *wide_to_utf8_string OF((ZCONST zwchar *wide_string));
 # endif /* unused */
-
-#endif /* UNICODE_SUPPORT && UNICODE_WCHAR */
 
 
 #endif /* !__unzpriv_h */

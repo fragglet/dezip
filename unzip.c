@@ -187,7 +187,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
      static ZCONST char Far Use_Deflate64[] =
      "USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)";
-#  ifdef UNICODE_SUPPORT
 #   ifdef UTF8_MAYBE_NATIVE
        /* direct native UTF-8 check AND charset transform via wchar_t */
        static ZCONST char Far Use_Unicode[] =
@@ -199,7 +198,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
        static ZCONST char Far Use_Unicode[] =
        "UNICODE_SUPPORT [wide-chars] (handle UTF-8 paths)";
 #   endif /* ?UTF8_MAYBE_NATIVE */
-#  endif /* UNICODE_SUPPORT */
 #  ifdef _MBCS
      static ZCONST char Far Have_MBCS_Support[] =
      "MBCS-support (multibyte character support, MB_CUR_MAX = %u)";
@@ -270,7 +268,6 @@ static ZCONST char Far UnzipUsageLine3[] = "\n\
  * Likely, other advanced options should be moved to an extended help page and
  * the option to list that page put here.  [E. Gordon, 2008-3-16]
  */
-#if (defined(UNICODE_SUPPORT) && !defined(WIN32))
 static ZCONST char Far UnzipUsageLine4[] = "\
 modifiers:\n\
   -n  never overwrite existing files         -q  quiet mode (-qq => quieter)\n\
@@ -279,15 +276,6 @@ modifiers:\n\
   -U  use escapes for all non-ASCII Unicode  -UU ignore any Unicode fields\n\
   -C  match filenames case-insensitively     -L  make (some) names \
 lowercase\n %-42s  -V  retain VMS version numbers\n%s";
-#else /* !UNICODE_SUPPORT */
-static ZCONST char Far UnzipUsageLine4[] = "\
-modifiers:\n\
-  -n  never overwrite existing files         -q  quiet mode (-qq => quieter)\n\
-  -o  overwrite files WITHOUT prompting      -a  auto-convert any text files\n\
-  -j  junk paths (do not make directories)   -aa treat ALL files as text\n\
-  -C  match filenames case-insensitively     -L  make (some) names \
-lowercase\n %-42s  -V  retain VMS version numbers\n%s";
-#endif /* ?UNICODE_SUPPORT */
 
 static ZCONST char Far UnzipUsageLine5[] = "\
 See \"unzip -hh\" or unzip.txt for more help.  Examples:\n\
@@ -338,7 +326,6 @@ int unzip(__G__ argc, argv)
     /* initialize international char support to the current environment */
     SETLOCALE(LC_CTYPE, "");
 
-#ifdef UNICODE_SUPPORT
     /* see if can use UTF-8 Unicode locale */
 # ifdef UTF8_MAYBE_NATIVE
     {
@@ -370,7 +357,6 @@ int unzip(__G__ argc, argv)
     G.unipath_version = 0;
     G.unipath_checksum = 0;
     G.unipath_filename = NULL;
-#endif /* UNICODE_SUPPORT */
 
 
 #ifdef MALLOC_WORK
@@ -647,11 +633,9 @@ int unzip(__G__ argc, argv)
     if (uO.exdir != (char *)NULL && !G.extract_flag)    /* -d ignored */
         Info(slide, 0x401, ((char *)slide, LoadFarString(NotExtracting)));
 
-#ifdef UNICODE_SUPPORT
     /* set Unicode-escape-all if option -U used */
     if (uO.U_flag == 1)
         G.unicode_escape_all = TRUE;
-#endif
 
 
 /*---------------------------------------------------------------------------
@@ -921,7 +905,6 @@ int uz_opts(__G__ pargc, pargv)
                     else
                         uO.uflag = TRUE;
                     break;
-#ifdef UNICODE_SUPPORT
                 case ('U'):    /* escape UTF-8, or disable UTF-8 support */
                     if (negative) {
                         uO.U_flag = MAX(uO.U_flag-negative,0);
@@ -929,14 +912,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         uO.U_flag++;
                     break;
-#else /* !UNICODE_SUPPORT */
-                case ('U'):    /* obsolete; to be removed in version 6.0 */
-                    if (negative)
-                        uO.L_flag = TRUE, negative = 0;
-                    else
-                        uO.L_flag = FALSE;
-                    break;
-#endif /* ?UNICODE_SUPPORT */
                 case ('v'):    /* verbose */
                     if (negative) {
                         uO.vflag = MAX(uO.vflag-negative,0);
@@ -1431,7 +1406,6 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Deflate64)));
         ++numopts;
-#ifdef UNICODE_SUPPORT
 # ifdef UTF8_MAYBE_NATIVE
         sprintf((char *)(slide+256), LoadFarStringSmall(Use_Unicode),
           LoadFarStringSmall2(G.native_is_utf8 ? SysChUTF8 : SysChOther));
@@ -1442,7 +1416,6 @@ static void show_version_info(__G)
           LoadFarStringSmall(Use_Unicode)));
 # endif
         ++numopts;
-#endif
 #ifdef _MBCS
         sprintf((char *)(slide+256), LoadFarStringSmall(Have_MBCS_Support),
           (unsigned int)MB_CUR_MAX);
