@@ -128,11 +128,6 @@
 #  endif
 #endif /* SYSTEM_FIVE || __SYSTEM_FIVE */
 /* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
-#if (defined(__SVR4) || defined(__svr4__) || defined(sgi) || defined(__hpux))
-#  ifndef SYSV
-#    define SYSV
-#  endif
-#endif /* __SVR4 || __svr4__ || sgi || __hpux */
 
 #if (defined(ultrix) || defined(__ultrix) || defined(bsd4_2))
 #  if (!defined(BSD) && !defined(SYSV))
