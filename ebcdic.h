@@ -197,8 +197,4 @@ ZCONST uch Far *iso2oem = iso2oem_850;  /* backward compatibility default */
 ZCONST uch Far *oem2iso = oem2iso_850;  /* backward compatibility default */
 #endif /* IZ_OEM2ISO_ARRAY */
 
-#if defined(THEOS) || defined(THEOS_SUPPORT)
-#  include "theos/charconv.h"
-#endif
-
 #endif /* __ebcdic_h  */
