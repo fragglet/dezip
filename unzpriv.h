@@ -304,11 +304,7 @@
 #  ifdef OS2                  /* defined for all OS/2 compilers */
 #    include "os2/os2cfg.h"
 #  else
-#    ifdef FLEXOS
-#      include "flexos/flxcfg.h"
-#    else
 #      include "msdos/doscfg.h"
-#    endif
 #  endif
 
 #  if (defined(_MSC_VER) && (_MSC_VER == 700) && !defined(GRR))
@@ -610,18 +606,6 @@
 
 #if (defined(DOS_OS2_W32) || defined(__human68k__))
 #  define DOS_H68_OS2_W32
-#endif
-
-#if (defined(DOS_OS2) || defined(FLEXOS))
-#  define DOS_FLX_OS2
-#endif
-
-#if (defined(DOS_OS2_W32) || defined(FLEXOS))
-#  define DOS_FLX_OS2_W32
-#endif
-
-#if (defined(DOS_H68_OS2_W32) || defined(FLEXOS))
-#  define DOS_FLX_H68_OS2_W32
 #endif
 
 #if (defined(DOS_FLX_OS2) || defined(NLM))

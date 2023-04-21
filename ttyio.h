@@ -42,14 +42,6 @@
 #    define DOS_H68_OS2_W32
 #endif
 
-#if (defined(DOS_OS2_W32) || defined(FLEXOS))
-#    define DOS_FLX_OS2_W32
-#endif
-
-#if (defined(DOS_H68_OS2_W32) || defined(FLEXOS))
-#    define DOS_FLX_H68_OS2_W32
-#endif
-
 #if (defined(__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
 #endif
 
@@ -87,13 +79,6 @@
 #  define echoff(f)
 #  define echon()
 #  define getch() SWI_OS_ReadC()
-#  define HAVE_WORKING_GETCH
-#endif
-
-#ifdef FLEXOS
-#  define echoff(f)
-#  define echon()
-#  define getch() getchar() /* not correct, but may not be on a console */
 #  define HAVE_WORKING_GETCH
 #endif
 
