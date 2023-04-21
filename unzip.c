@@ -311,9 +311,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
      static ZCONST char Far W32NoIZTimeFix[] = "NO_W32TIMES_IZFIX";
 #  endif
-#  ifdef QLZIP
-     static ZCONST char Far SMSExFldOnUnix[] = "QLZIP";
-#  endif
 #  ifdef REENTRANT
      static ZCONST char Far Reentrant[] = "REENTRANT";
 #  endif
@@ -2084,11 +2081,6 @@ static void show_version_info(__G)
 #if defined(WIN32) && defined(NO_W32TIMES_IZFIX)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(W32NoIZTimeFix)));
-        ++numopts;
-#endif
-#ifdef QLZIP
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(SMSExFldOnUnix)));
         ++numopts;
 #endif
 #ifdef REENTRANT
