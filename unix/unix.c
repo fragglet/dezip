@@ -1607,9 +1607,6 @@ void version(__G)
 #ifdef __bsdi__
       (BSD4_4 == 0.5)? " (BSD/386 1.0)" : " (BSD/386 1.1 or later)",
 #else
-#ifdef __386BSD__
-      (BSD4_4 == 1)? " (386BSD, post-4.4 release)" : " (386BSD)",
-#else
 #ifdef __CYGWIN__
       " (Cygwin)",
 #else
@@ -1687,7 +1684,6 @@ void version(__G)
 #endif /* 586 */
 #endif /* 686 */
 #endif /* Cygwin */
-#endif /* 386BSD */
 #endif /* BSDI BSD/386 */
 #endif /* NetBSD */
 #endif /* FreeBSD */
