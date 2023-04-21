@@ -24,9 +24,7 @@
 #include "unzip.h"
 
 
-#ifdef TIMESTAMP
    static int  fn_is_dir   OF((__GPRO));
-#endif
 
    static ZCONST char Far CompFactorStr[] = "%c%d%%";
    static ZCONST char Far CompFactor100[] = "100%%";
@@ -374,8 +372,6 @@ int list_files(__G)    /* return PK-type error code */
 
 
 
-#ifdef TIMESTAMP
-
 /************************/
 /* Function fn_is_dir() */
 /************************/
@@ -525,8 +521,6 @@ int get_time_stamp(__G__ last_modtime, nmember)  /* return PK-type error code */
     return error_in_archive;
 
 } /* end function get_time_stamp() */
-
-#endif /* TIMESTAMP */
 
 
 

@@ -122,12 +122,8 @@ static ZCONST char Far IgnoreOOptionMsg[] =
  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
 
 /* local1[]:  command options */
-#if defined(TIMESTAMP)
    static ZCONST char Far local1[] =
      "  -T  timestamp archive to latest";
-#else /* !TIMESTAMP */
-   static ZCONST char Far local1[] = "";
-#endif /* ?TIMESTAMP */
 
 /* local2[] and local3[]:  modifier options */
    static ZCONST char Far local2[] = " -X  restore UID/GID info";
@@ -182,9 +178,7 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
      static ZCONST char Far SymLinkSupport[] =
      "SYMLINKS (symbolic links supported, if RTL and file system permit)";
-#  ifdef TIMESTAMP
      static ZCONST char Far TimeStamp[] = "TIMESTAMP";
-#  endif
 #  ifdef UNIXBACKUP
      static ZCONST char Far UnixBackup[] = "UNIXBACKUP";
 #  endif
@@ -917,14 +911,12 @@ int uz_opts(__G__ pargc, pargv)
                     else
                         uO.tflag = TRUE;
                     break;
-#ifdef TIMESTAMP
                 case ('T'):
                     if (negative)
                         uO.T_flag = FALSE, negative = 0;
                     else
                         uO.T_flag = TRUE;
                     break;
-#endif
                 case ('u'):    /* update (extract only new and newer files) */
                     if (negative)
                         uO.uflag = FALSE, negative = 0;
@@ -1054,9 +1046,7 @@ int uz_opts(__G__ pargc, pargv)
     }
 
     if (uO.cflag || uO.tflag || uO.vflag || uO.zflag
-#ifdef TIMESTAMP
                                                      || uO.T_flag
-#endif
                                                                  )
         G.extract_flag = FALSE;
     else
@@ -1426,11 +1416,9 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(SymLinkSupport)));
         ++numopts;
-#ifdef TIMESTAMP
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(TimeStamp)));
         ++numopts;
-#endif
 #ifdef UNIXBACKUP
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(UnixBackup)));

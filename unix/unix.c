@@ -1087,8 +1087,6 @@ int set_direc_attribs(__G__ d)
 
 
 
-#ifdef TIMESTAMP
-
 /***************************/
 /*  Function stamp_file()  */
 /***************************/
@@ -1103,8 +1101,6 @@ int stamp_file(fname, modtime)
     return (utime(fname, &tp));
 
 } /* end function stamp_file() */
-
-#endif /* TIMESTAMP */
 
 
 
