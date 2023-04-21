@@ -216,17 +216,6 @@ freely, subject to the above disclaimer and the following restrictions:
  *  header include. They are located here, because for WINDLL the
  *  first system header includes follow just below.)
  */
-#if defined(_MSC_VER) && (_MSC_VER >= 1400)
-#  ifndef _CRT_SECURE_NO_WARNINGS
-#    define _CRT_SECURE_NO_WARNINGS
-#  endif
-#  ifndef _CRT_NONSTDC_NO_WARNINGS
-#    define _CRT_NONSTDC_NO_WARNINGS
-#  endif
-#  if defined(POCKET_UNZIP) && !defined(_CRT_NON_CONFORMING_SWPRINTFS)
-#    define _CRT_NON_CONFORMING_SWPRINTFS
-#  endif
-#endif
 
 /* NO_UNIXBACKUP overrides UNIXBACKUP */
 #if defined(NO_UNIXBACKUP) && defined(UNIXBACKUP)

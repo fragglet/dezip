@@ -246,10 +246,6 @@
 #  endif
 #endif
 
-#if (defined(_MSC_VER) || (defined(M_I86) && !defined(__WATCOMC__)))
-#    define MSC               /* This should work for older MSC, too!  */
-#endif
-
 #if (defined(MSDOS) || defined(OS2) || defined(FLEXOS))
 #  include <sys/types.h>      /* off_t, time_t, dev_t, ... */
 #  include <sys/stat.h>
@@ -263,18 +259,6 @@
 #      include "msdos/doscfg.h"
 #  endif
 
-#  if (defined(_MSC_VER) && (_MSC_VER == 700) && !defined(GRR))
-    /*
-     * ARGH.  MSC 7.0 libraries think times are based on 1899 Dec 31 00:00, not
-     *  1970 Jan 1 00:00.  So we have to diddle time_t's appropriately:  add or
-     *  subtract 70 years' worth of seconds; i.e., number of days times 86400;
-     *  i.e., (70*365 regular days + 17 leap days + 1 1899 day) * 86400 ==
-     *  (25550 + 17 + 1) * 86400 == 2209075200 seconds.  We know time_t is an
-     *  unsigned long (ulg) on the only system with this bug.
-     */
-#    define TIMET_TO_NATIVE(x)  (x) += (ulg)2209075200L;
-#    define NATIVE_TO_TIMET(x)  (x) -= (ulg)2209075200L;
-#  endif
 #    define DIR_END       '\\'  /* OS uses '\\' as directory separator */
 #    define DIR_END2      '/'   /* also check for '/' (RTL may convert) */
 #  ifdef DATE_FORMAT
@@ -719,15 +703,7 @@
 #  define LoadFarString(x)       fLoadFarString(__G__ (x))
 #  define LoadFarStringSmall(x)  fLoadFarStringSmall(__G__ (x))
 #  define LoadFarStringSmall2(x) fLoadFarStringSmall2(__G__ (x))
-#  if (defined(_MSC_VER) && (_MSC_VER >= 600))
-#    define zfstrcpy(dest, src)  _fstrcpy((dest), (src))
-#    define zfstrcmp(s1, s2)     _fstrcmp((s1), (s2))
-#  endif
 #  if !(defined(SFX) || defined(FUNZIP))
-#    if (defined(_MSC_VER))
-#      define zfmalloc(sz)       _fmalloc((sz))
-#      define zffree(x)          _ffree(x)
-#    endif
 #    if (defined(__TURBOC__))
 #      include <alloc.h>
 #      define zfmalloc(sz)       farmalloc((unsigned long)(sz))
@@ -1072,17 +1048,6 @@
       /* 64-bit lseek */
 #     define zlseek _lseeki64
 
-#     if defined(_MSC_VER) && (_MSC_VER >= 1400)
-        /* Beginning with VS 8.0 (Visual Studio 2005, MSC 14), the Microsoft
-           C rtl publishes its (previously internal) implmentations of
-           "fseeko" and "ftello" for 64-bit file offsets. */
-        /* 64-bit fseeko */
-#       define zfseeko _fseeki64
-        /* 64-bit ftello */
-#       define zftello _ftelli64
-
-#     else /* not (defined(_MSC_VER) && (_MSC_VER >= 1400)) */
-
 #     if defined(__MSVCRT_VERSION__) && (__MSVCRT_VERSION__ >= 0x800)
         /* Up-to-date versions of MinGW define the macro __MSVCRT_VERSION__
            to denote the version of the MS C rtl dll used for linking.  When
@@ -1106,7 +1071,6 @@
        zoff_t zftello OF((FILE *));
 
 #     endif /* ? (__MSVCRT_VERSION__ >= 0x800) */
-#     endif /* ? (_MSC_VER >= 1400) */
 
       /* 64-bit fopen */
 #     define zfopen fopen

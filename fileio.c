@@ -2481,7 +2481,6 @@ char *fLoadFarStringSmall2(__GPRO__ const char Far *sz)
 
 
 
-#if (!defined(_MSC_VER) || (_MSC_VER < 600))
 /*************************/
 /*  Function zfstrcpy()  */   /* portable clone of _fstrcpy() */
 /*************************/
@@ -2510,6 +2509,5 @@ int Far zfstrcmp(const char Far *s1, const char Far *s2)
     return ret;
 }
 #endif /* !(SFX || FUNZIP) */
-#endif /* !_MSC_VER || (_MSC_VER < 600) */
 
 #endif /* SMALL_MEM */
