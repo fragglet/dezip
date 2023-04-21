@@ -914,35 +914,6 @@ int checkdir(__G__ pathcomp, flag)
 
 
 
-#ifdef NO_MKDIR
-
-/********************/
-/* Function mkdir() */
-/********************/
-
-int mkdir(path, mode)
-    ZCONST char *path;
-    int mode;   /* ignored */
-/*
- * returns:   0 - successful
- *           -1 - failed (errno not set, however)
- */
-{
-    char command[FILNAMSIZ+40]; /* buffer for system() call */
-
-    /* GRR 930416:  added single quotes around path to avoid bug with
-     * creating directories with ampersands in name; not yet tested */
-    sprintf(command, "IFS=\" \t\n\" /bin/mkdir '%s' 2>/dev/null", path);
-    if (system(command))
-        return -1;
-    return 0;
-}
-
-#endif /* NO_MKDIR */
-
-
-
-
 #if (!defined(MTS) || defined(SET_DIR_ATTRIB))
 static int get_extattribs OF((__GPRO__ iztimes *pzt, ulg z_uidgid[2]));
 
