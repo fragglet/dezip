@@ -103,15 +103,15 @@ static int namecmp(const char *s1, const char *s2);
 
 /* match() is a shell to recmatch() to return only Boolean values. */
 
-int match(string, pattern, ignore_case __WDL) const char *string, *pattern;
+int match(string, pattern, ignore_case) const char *string, *pattern;
 int ignore_case;
 {
-    return recmatch((uch *) pattern, (uch *) string, ignore_case __WDL) == 1;
+    return recmatch((uch *) pattern, (uch *) string, ignore_case) == 1;
 }
 
-static int recmatch(p, s, ic __WDL) const uch *p; /* sh pattern to match */
-const uch *s; /* string to which to match it */
-int ic;       /* true for case insensitivity */
+static int recmatch(p, s, ic) const uch *p; /* sh pattern to match */
+const uch *s;                               /* string to which to match it */
+int ic;                                     /* true for case insensitivity */
 /* directory sepchar for WildStopAtDir mode, or 0 */
 /* Recursively compare the sh pattern p with the string s and return 1 if
  * they match, and 0 or 2 if they don't or if there is a syntax error in the
@@ -184,7 +184,7 @@ int ic;       /* true for case insensitivity */
         } else {
             /* pattern contains more wildcards, continue with recursion... */
             for (; *s; INCSTR(s))
-                if ((c = recmatch(p, s, ic __WDL)) != 0)
+                if ((c = recmatch(p, s, ic)) != 0)
                     return (int) c;
             return 2; /* 2 means give up--match will return false */
         }
@@ -220,11 +220,11 @@ int ic;       /* true for case insensitivity */
                 if (*(p + 1) != '-')
                     for (c = c ? c : *p; c <= *p; c++) /* compare range */
                         if ((unsigned) Case(c) == cc) /* typecast for MSC bug */
-                            return r ? 0 : recmatch(q + 1, s + 1, ic __WDL);
+                            return r ? 0 : recmatch(q + 1, s + 1, ic);
                 c = e = 0; /* clear range, escape flags */
             }
         }
-        return r ? recmatch(q + CLEN(q), s + CLEN(s), ic __WDL) : 0;
+        return r ? recmatch(q + CLEN(q), s + CLEN(s), ic) : 0;
         /* bracket match failed */
     }
 
@@ -233,7 +233,7 @@ int ic;       /* true for case insensitivity */
         return 0;
 
     /* just a character--compare it */
-    return Case((uch) c) == Case(*s) ? recmatch(p, s + CLEN(s), ic __WDL) : 0;
+    return Case((uch) c) == Case(*s) ? recmatch(p, s + CLEN(s), ic) : 0;
 
 } /* end function recmatch() */
 
