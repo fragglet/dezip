@@ -146,10 +146,6 @@
 #  define NO_UID_GID         /* no uid_t/gid_t */
 #endif
 
-#if defined(apollo)          /* defines __STDC__ */
-#    define NO_STDLIB_H
-#endif
-
 #ifdef DNIX
 #  define SYSV
 #  define SHORT_NAMES         /* 14-char limitation on path components */
