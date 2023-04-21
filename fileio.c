@@ -448,9 +448,7 @@ int open_outfile(__G)           /* return 1 if fail */
     Trace((stderr, "open_outfile:  doing fopen(%s) for writing\n",
       FnFilter1(G.filename)));
     {
-#if defined(ATH_BE_UNX) || defined(AOS_VS) || defined(QDOS) || defined(TANDEM)
         mode_t umask_sav = umask(0077);
-#endif
 #if defined(SYMLINKS) || defined(QLZIP)
         /* These features require the ability to re-read extracted data from
            the output files. Output files are created with Read&Write access.
@@ -459,9 +457,7 @@ int open_outfile(__G)           /* return 1 if fail */
 #else
         G.outfile = zfopen(G.filename, FOPW);
 #endif
-#if defined(ATH_BE_UNX) || defined(AOS_VS) || defined(QDOS) || defined(TANDEM)
         umask(umask_sav);
-#endif
     }
     if (G.outfile == (FILE *)NULL) {
         Info(slide, 0x401, ((char *)slide, LoadFarString(CannotCreateFile),
