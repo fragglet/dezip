@@ -22,7 +22,7 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-static int fn_is_dir OF((__GPRO));
+static int fn_is_dir(__GPRO);
 
 static const char Far CompFactorStr[] = "%c%d%%";
 static const char Far CompFactor100[] = "100%%";

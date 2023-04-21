@@ -89,8 +89,8 @@
   In the Function Prototypes section of unzpriv.h, you should use __GPRO and
   __GPRO__ instead:
 
-    int  uz_opts                   OF((__GPRO__ int *pargc, char ***pargv));
-    int  process_zipfiles          OF((__GPRO));
+    int  uz_opts(__GPRO__ int *pargc, char ***pargv);
+    int  process_zipfiles(__GPRO);
 
   Note that there is NO comma after __G__ or __GPRO__ and no semi-colon after
   __GDEF.  I wish there was another way but I don't think there is.
@@ -278,7 +278,7 @@ typedef struct Globals {
 
 #define CRC_32_TAB G.crc_32_tab
 
-Uz_Globs *globalsCtor OF((void) );
+Uz_Globs *globalsCtor(void);
 
 /* pseudo constant sigs; they are initialized at runtime so unzip executable
  * won't look like a zipfile

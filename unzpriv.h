@@ -398,7 +398,7 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 #endif
 #define POSTINCSTR(ptr) \
     (___TMP_PTR = (char *) (ptr), PREINCSTR(ptr), ___TMP_PTR)
-char *plastchar OF((const char *ptr, extent len));
+char *plastchar(const char *ptr, extent len);
 #define lastchar(ptr, len) ((int) (unsigned) *plastchar(ptr, len))
 #ifndef MBSCHR
 #define NEED_UZMBSCHR
@@ -1085,24 +1085,24 @@ typedef struct _APIDocStruct {
     Functions in unzip.c (initialization routines):
   ---------------------------------------------------------------------------*/
 
-int MAIN OF((int argc, char **argv));
-int unzip OF((__GPRO__ int argc, char **argv));
-int uz_opts OF((__GPRO__ int *pargc, char ***pargv));
-int usage OF((__GPRO__ int error));
+int MAIN(int argc, char **argv);
+int unzip(__GPRO__ int argc, char **argv);
+int uz_opts(__GPRO__ int *pargc, char ***pargv);
+int usage(__GPRO__ int error);
 
 /*---------------------------------------------------------------------------
     Functions in process.c (main driver routines):
   ---------------------------------------------------------------------------*/
 
-int process_zipfiles OF((__GPRO));
-void free_G_buffers OF((__GPRO));
-/* static int    do_seekable     OF((__GPRO__ int lastchance)); */
-/* static int    find_ecrec      OF((__GPRO__ long searchlen)); */
-/* static int    process_central_comment OF((__GPRO)); */
-int process_cdir_file_hdr OF((__GPRO));
-int process_local_file_hdr OF((__GPRO));
-int getZip64Data OF((__GPRO__ const uch *ef_buf, unsigned ef_len));
-int getUnicodeData OF((__GPRO__ const uch *ef_buf, unsigned ef_len));
+int process_zipfiles(__GPRO);
+void free_G_buffers(__GPRO);
+/* static int    do_seekable(__GPRO__ int lastchance); */
+/* static int    find_ecrec(__GPRO__ long searchlen); */
+/* static int    process_central_comment(__GPRO); */
+int process_cdir_file_hdr(__GPRO);
+int process_local_file_hdr(__GPRO);
+int getZip64Data(__GPRO__ const uch *ef_buf, unsigned ef_len);
+int getUnicodeData(__GPRO__ const uch *ef_buf, unsigned ef_len);
 unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
                               ulg dos_mdatetime, iztimes *z_utim,
                               ulg *z_uidgid));
@@ -1115,83 +1115,83 @@ unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
     Functions in list.c (generic zipfile-listing routines):
   ---------------------------------------------------------------------------*/
 
-int list_files OF((__GPRO));
-int get_time_stamp OF((__GPRO__ time_t * last_modtime, ulg *nmember));
-int ratio OF((zusz_t uc, zusz_t c));
-void fnprint OF((__GPRO));
+int list_files(__GPRO);
+int get_time_stamp(__GPRO__ time_t *last_modtime, ulg *nmember);
+int ratio(zusz_t uc, zusz_t c);
+void fnprint(__GPRO);
 
 /*---------------------------------------------------------------------------
     Functions in fileio.c:
   ---------------------------------------------------------------------------*/
 
-int open_input_file OF((__GPRO));
-int open_outfile OF((__GPRO)); /* also vms.c */
-void undefer_input OF((__GPRO));
-void defer_leftover_input OF((__GPRO));
-unsigned readbuf OF((__GPRO__ char *buf, register unsigned len));
-int readbyte OF((__GPRO));
-int fillinbuf OF((__GPRO));
-int seek_zipf OF((__GPRO__ zoff_t abs_offset));
-int flush OF((__GPRO__ uch * buf, ulg size, int unshrink));
-/* static int  disk_error     OF((__GPRO)); */
-void handler OF((int signal));
-time_t dos_to_unix_time OF((ulg dos_datetime));
-int check_for_newer OF((__GPRO__ char *filename)); /* os2,vmcms,vms */
-int do_string OF((__GPRO__ unsigned int length, int option));
-ush makeword OF((const uch *b));
-ulg makelong OF((const uch *sig));
-zusz_t makeint64 OF((const uch *sig));
-char *fzofft OF((__GPRO__ zoff_t val, const char *pre, const char *post));
+int open_input_file(__GPRO);
+int open_outfile(__GPRO); /* also vms.c */
+void undefer_input(__GPRO);
+void defer_leftover_input(__GPRO);
+unsigned readbuf(__GPRO__ char *buf, register unsigned len);
+int readbyte(__GPRO);
+int fillinbuf(__GPRO);
+int seek_zipf(__GPRO__ zoff_t abs_offset);
+int flush(__GPRO__ uch *buf, ulg size, int unshrink);
+/* static int  disk_error(__GPRO); */
+void handler(int signal);
+time_t dos_to_unix_time(ulg dos_datetime);
+int check_for_newer(__GPRO__ char *filename); /* os2,vmcms,vms */
+int do_string(__GPRO__ unsigned int length, int option);
+ush makeword(const uch *b);
+ulg makelong(const uch *sig);
+zusz_t makeint64(const uch *sig);
+char *fzofft(__GPRO__ zoff_t val, const char *pre, const char *post);
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
-char *str2iso OF((char *dst, const char *src));
+char *str2iso(char *dst, const char *src);
 #endif
 #if (!defined(STR_TO_OEM) || defined(NEED_STR2OEM))
-char *str2oem OF((char *dst, const char *src));
+char *str2oem(char *dst, const char *src);
 #endif
 #ifdef NO_STRNICMP
 int zstrnicmp OF((register const char *s1, register const char *s2,
                   register unsigned n));
 #endif
 #ifdef NEED_UZMBCLEN
-extent uzmbclen OF((const unsigned char *ptr));
+extent uzmbclen(const unsigned char *ptr);
 #endif
 #ifdef NEED_UZMBSCHR
-unsigned char *uzmbschr OF((const unsigned char *str, unsigned int c));
+unsigned char *uzmbschr(const unsigned char *str, unsigned int c);
 #endif
 #ifdef NEED_UZMBSRCHR
-unsigned char *uzmbsrchr OF((const unsigned char *str, unsigned int c));
+unsigned char *uzmbsrchr(const unsigned char *str, unsigned int c);
 #endif
 
 /*---------------------------------------------------------------------------
     Functions in extract.c:
   ---------------------------------------------------------------------------*/
 
-int extract_or_test_files OF((__GPRO));
-/* static int   store_info          OF((void)); */
-/* static int   extract_or_test_member   OF((__GPRO)); */
-/* static int   TestExtraField   OF((__GPRO__ uch *ef, unsigned ef_len)); */
-/* static int   test_OS2         OF((__GPRO__ uch *eb, unsigned eb_size)); */
-/* static int   test_NT          OF((__GPRO__ uch *eb, unsigned eb_size)); */
-unsigned find_compr_idx OF((unsigned compr_methodnum));
+int extract_or_test_files(__GPRO);
+/* static int   store_info(void); */
+/* static int   extract_or_test_member(__GPRO); */
+/* static int   TestExtraField(__GPRO__ uch *ef, unsigned ef_len); */
+/* static int   test_OS2(__GPRO__ uch *eb, unsigned eb_size); */
+/* static int   test_NT(__GPRO__ uch *eb, unsigned eb_size); */
+unsigned find_compr_idx(unsigned compr_methodnum);
 int memextract OF((__GPRO__ uch * tgt, ulg tgtsize, const uch *src,
                    ulg srcsize));
-int memflush OF((__GPRO__ const uch *rawbuf, ulg size));
-char *fnfilter OF((const char *raw, uch *space, extent size));
+int memflush(__GPRO__ const uch *rawbuf, ulg size);
+char *fnfilter(const char *raw, uch *space, extent size);
 
 /*---------------------------------------------------------------------------
     Decompression functions:
   ---------------------------------------------------------------------------*/
 
-int explode OF((__GPRO));            /* explode.c */
-int huft_free OF((struct huft * t)); /* inflate.c */
+int explode(__GPRO);           /* explode.c */
+int huft_free(struct huft *t); /* inflate.c */
 int huft_build OF((__GPRO__ const unsigned *b, unsigned n, unsigned s,
                    const ush *d, const uch *e, struct huft **t, unsigned *m));
-int inflate OF((__GPRO__ int is_defl64)); /* inflate.c */
-int inflate_free OF((__GPRO));            /* inflate.c */
-int unshrink OF((__GPRO));                /* unshrink.c */
-/* static void  partial_clear    OF((__GPRO));                  * unshrink.c */
-int UZbunzip2 OF((__GPRO));                 /* extract.c */
-void bz_internal_error OF((int bzerrcode)); /* ubz2err.c */
+int inflate(__GPRO__ int is_defl64); /* inflate.c */
+int inflate_free(__GPRO);            /* inflate.c */
+int unshrink(__GPRO);                /* unshrink.c */
+/* static void  partial_clear(__GPRO);                  * unshrink.c */
+int UZbunzip2(__GPRO);                 /* extract.c */
+void bz_internal_error(int bzerrcode); /* ubz2err.c */
 
 /*---------------------------------------------------------------------------
     Internal API functions (only included in DLL versions):
@@ -1229,32 +1229,32 @@ void bz_internal_error OF((int bzerrcode)); /* ubz2err.c */
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
 
-Uz_Globs *globalsCtor OF((void) ); /* globals.c */
+Uz_Globs *globalsCtor(void); /* globals.c */
 
 int envargs OF((int *Pargc, char ***Pargv, const char *envstr,
                 const char *envstr2));
 /* envargs.c */
-void mksargs OF((int *argcp, char ***argvp)); /* envargs.c */
+void mksargs(int *argcp, char ***argvp); /* envargs.c */
 
-int match OF((const char *s, const char *p, int ic __WDLPRO)); /* match.c */
-int iswild OF((const char *p));                                /* match.c */
+int match(const char *s, const char *p, int ic __WDLPRO); /* match.c */
+int iswild(const char *p);                                /* match.c */
 
 /* declarations of public CRC-32 functions have been moved into crc32.h
    (free_crc_table(), get_crc_table(), crc32())                      crc32.c */
 
-int dateformat OF((void) );                                    /* local */
-char dateseparator OF((void) );                                /* local */
-void version OF((__GPRO));                                     /* local */
-int mapattr OF((__GPRO));                                      /* local */
-int mapname OF((__GPRO__ int renamed));                        /* local */
-int checkdir OF((__GPRO__ char *pathcomp, int flag));          /* local */
-char *do_wild OF((__GPRO__ const char *wildzipfn));            /* local */
-char *GetLoadPath OF((__GPRO));                                /* local */
-void close_outfile OF((__GPRO));                               /* local */
-int set_symlnk_attribs OF((__GPRO__ slinkentry * slnk_entry)); /* local */
-int defer_dir_attribs OF((__GPRO__ direntry * *pd));           /* local */
-int set_direc_attribs OF((__GPRO__ direntry * d));             /* local */
-int stamp_file OF((const char *fname, time_t modtime));        /* local */
+int dateformat(void);                                    /* local */
+char dateseparator(void);                                /* local */
+void version(__GPRO);                                    /* local */
+int mapattr(__GPRO);                                     /* local */
+int mapname(__GPRO__ int renamed);                       /* local */
+int checkdir(__GPRO__ char *pathcomp, int flag);         /* local */
+char *do_wild(__GPRO__ const char *wildzipfn);           /* local */
+char *GetLoadPath(__GPRO);                               /* local */
+void close_outfile(__GPRO);                              /* local */
+int set_symlnk_attribs(__GPRO__ slinkentry *slnk_entry); /* local */
+int defer_dir_attribs(__GPRO__ direntry **pd);           /* local */
+int set_direc_attribs(__GPRO__ direntry *d);             /* local */
+int stamp_file(const char *fname, time_t modtime);       /* local */
 
 /************/
 /*  Macros  */
@@ -1660,32 +1660,32 @@ typedef unsigned long zwchar;
 
 #if 0  /* currently unused */
   /* check if string is all ASCII */
-  int is_ascii_string OF((const char *mbstring));
+  int is_ascii_string(const char *mbstring);
 #endif /* unused */
 
 /* convert UTF-8 string to multi-byte string */
-char *utf8_to_local_string OF((const char *utf8_string, int escape_all));
+char *utf8_to_local_string(const char *utf8_string, int escape_all);
 
 /* convert UTF-8 string to wide string */
-zwchar *utf8_to_wide_string OF((const char *utf8_string));
+zwchar *utf8_to_wide_string(const char *utf8_string);
 
 /* convert wide string to multi-byte string */
-char *wide_to_local_string OF((const zwchar *wide_string, int escape_all));
+char *wide_to_local_string(const zwchar *wide_string, int escape_all);
 
 #if 0  /* currently unused */
   /* convert local string to multi-byte display string */
-  char *local_to_display_string OF((const char *local_string));
+  char *local_to_display_string(const char *local_string);
 #endif /* unused */
 
 /* convert wide character to escape string */
-char *wide_to_escape_string OF((unsigned long) );
+char *wide_to_escape_string(unsigned long);
 
 #define utf8_to_escaped_string(utf8_string) \
     utf8_to_local_string(utf8_string, TRUE)
 
 #if 0  /* currently unused */
   /* convert escape string to wide character */
-  unsigned long escape_string_to_wide OF((const char *escape_string));
+  unsigned long escape_string_to_wide(const char *escape_string);
 
   /* convert local to UTF-8 */
   char *local_to_utf8_string OF ((const char *local_string));
@@ -1694,7 +1694,7 @@ char *wide_to_escape_string OF((unsigned long) );
   zwchar *local_to_wide_string OF ((const char *local_string));
 
   /* convert wide string to UTF-8 */
-  char *wide_to_utf8_string OF((const zwchar *wide_string));
+  char *wide_to_utf8_string(const zwchar *wide_string);
 #endif /* unused */
 
 #endif /* !__unzpriv_h */

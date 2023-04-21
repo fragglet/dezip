@@ -317,10 +317,10 @@
 #endif /* !OF */
 int inflate_codes OF((__GPRO__ struct huft * tl, struct huft *td, unsigned bl,
                       unsigned bd));
-static int inflate_stored OF((__GPRO));
-static int inflate_fixed OF((__GPRO));
-static int inflate_dynamic OF((__GPRO));
-static int inflate_block OF((__GPRO__ int *e));
+static int inflate_stored(__GPRO);
+static int inflate_fixed(__GPRO);
+static int inflate_dynamic(__GPRO);
+static int inflate_block(__GPRO__ int *e);
 
 /* The inflate algorithm uses a sliding 32K byte window on the uncompressed
    stream to find repeated byte strings.  This is implemented here as a

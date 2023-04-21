@@ -68,7 +68,7 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-static void partial_clear OF((__GPRO__ int lastcodeused));
+static void partial_clear(__GPRO__ int lastcodeused);
 
 #ifdef DEBUG
 #define OUTDBG(c)                        \

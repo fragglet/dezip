@@ -33,13 +33,13 @@
 #include "unzip.h"
 #include "crc32.h"
 
-static int do_seekable OF((__GPRO__ int lastchance));
-static zoff_t file_size OF((int fh));
-static int rec_find OF((__GPRO__ zoff_t, char *, int) );
-static int find_ecrec64 OF((__GPRO__ zoff_t searchlen));
-static int find_ecrec OF((__GPRO__ zoff_t searchlen));
-static int process_zip_cmmnt OF((__GPRO));
-static int get_cdir_ent OF((__GPRO));
+static int do_seekable(__GPRO__ int lastchance);
+static zoff_t file_size(int fh);
+static int rec_find(__GPRO__ zoff_t, char *, int);
+static int find_ecrec64(__GPRO__ zoff_t searchlen);
+static int find_ecrec(__GPRO__ zoff_t searchlen);
+static int process_zip_cmmnt(__GPRO);
+static int get_cdir_ent(__GPRO);
 static int read_ux3_value OF((const uch *dbuf, unsigned uidgid_sz,
                               ulg *p_uidgid));
 
@@ -1553,9 +1553,9 @@ unsigned ef_len;   /* total length of extra field */
    encoded as UTF-8.
 */
 
-static int utf8_char_bytes OF((const char *utf8));
-static ulg ucs4_char_from_utf8 OF((const char **utf8));
-static int utf8_to_ucs4_string OF((const char *utf8, ulg *ucs4buf, int buflen));
+static int utf8_char_bytes(const char *utf8);
+static ulg ucs4_char_from_utf8(const char **utf8);
+static int utf8_to_ucs4_string(const char *utf8, ulg *ucs4buf, int buflen);
 
 /* utility functions for managing UTF-8 and UCS-4 strings */
 

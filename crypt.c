@@ -41,8 +41,8 @@
 #define GLOBAL(g) G.g
 
 /* char *key = (char *)NULL; moved to globals.h */
-local int testp OF((__GPRO__ const uch *h));
-local int testkey OF((__GPRO__ const uch *h, const char *key));
+local int testp(__GPRO__ const uch *h);
+local int testkey(__GPRO__ const uch *h, const char *key);
 
 #ifndef Trace
 #ifdef CRYPT_DEBUG

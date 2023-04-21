@@ -122,13 +122,13 @@
 #define wszimpl WSIZE
 
 /* routines here */
-static int get_tree OF((__GPRO__ unsigned *l, unsigned n));
+static int get_tree(__GPRO__ unsigned *l, unsigned n);
 static int explode_lit OF((__GPRO__ struct huft * tb, struct huft *tl,
                            struct huft *td, unsigned bb, unsigned bl,
                            unsigned bd, unsigned bdl));
 static int explode_nolit OF((__GPRO__ struct huft * tl, struct huft *td,
                              unsigned bl, unsigned bd, unsigned bdl));
-int explode OF((__GPRO));
+int explode(__GPRO);
 
 /* The implode algorithm uses a sliding 4K or 8K byte window on the
    uncompressed stream to find repeated byte strings.  This is implemented

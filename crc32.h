@@ -22,8 +22,8 @@
 #define OF(a) a
 #endif
 
-const ulg near *get_crc_table OF((void) );
-ulg crc32 OF((ulg crc, const uch *buf, extent len));
+const ulg near *get_crc_table(void);
+ulg crc32(ulg crc, const uch *buf, extent len);
 
 #ifndef CRC_32_TAB
 #define CRC_32_TAB crc_32_tab

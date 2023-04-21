@@ -77,19 +77,19 @@
         }                                                   \
     }
 
-static int store_info OF((__GPRO));
+static int store_info(__GPRO);
 static int extract_or_test_entrylist
     OF((__GPRO__ unsigned numchunk, ulg *pfilnum, ulg *pnum_bad_pwd,
         zoff_t *pold_extra_bytes, unsigned *pnum_dirs, direntry **pdirlist,
         int error_in_archive));
-static int extract_or_test_member OF((__GPRO));
-static int TestExtraField OF((__GPRO__ uch * ef, unsigned ef_len));
+static int extract_or_test_member(__GPRO);
+static int TestExtraField(__GPRO__ uch *ef, unsigned ef_len);
 static int test_compr_eb
     OF((__GPRO__ uch * eb, unsigned eb_size, unsigned compr_offset,
         int (*test_uc_ebdata)(__GPRO__ uch *eb, unsigned eb_size, uch *eb_ucptr,
                               ulg eb_ucsize)));
-static void set_deferred_symlink OF((__GPRO__ slinkentry * slnk_entry));
-static int Cdecl dircomp OF((const void *a, const void *b));
+static void set_deferred_symlink(__GPRO__ slinkentry *slnk_entry);
+static int Cdecl dircomp(const void *a, const void *b);
 
 /*******************************/
 /*  Strings used in extract.c  */

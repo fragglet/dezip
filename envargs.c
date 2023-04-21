@@ -33,7 +33,7 @@
 
 #define ISspace(c) isspace((unsigned) c)
 
-static int count_args OF((const char *) );
+static int count_args(const char *);
 
 /* envargs() returns PK-style error code */
 

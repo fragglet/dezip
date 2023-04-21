@@ -105,7 +105,7 @@
 */
 #define WriteTxtErr(buf, len, strm) WriteError(buf, len, strm)
 
-static int disk_error OF((__GPRO));
+static int disk_error(__GPRO);
 
 /****************************/
 /* Strings used in fileio.c */
