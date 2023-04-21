@@ -81,24 +81,15 @@ typedef struct stat z_stat;
 #  ifdef NGROUPS_MAX
 #    undef NGROUPS_MAX      /* SCO bug:  defined again in <sys/param.h> */
 #  endif
-#  ifdef BSD
-#    define TEMP_BSD        /* may be defined again in <sys/param.h> */
-#    undef BSD
-#  endif
 #  include <sys/param.h>    /* conflict with <sys/types.h>, some systems? */
 #  ifdef TEMP_BSD
 #    undef TEMP_BSD
-#    ifndef BSD
 #      define BSD
-#    endif
 #  endif
 #endif /* !NO_PARAM_H */
 
 #ifdef __osf__
 #  define DIRENT
-#  ifdef BSD
-#    undef BSD
-#  endif
 #endif /* __osf__ */
 
 #ifdef __CYGWIN__
@@ -110,16 +101,8 @@ typedef struct stat z_stat;
 #  endif
 #endif
 
-#ifdef BSD
-#  include <sys/time.h>
-#  include <sys/timeb.h>
-#  if (defined(_AIX) || defined(__GLIBC__) || defined(__GNU__))
-#    include <time.h>
-#  endif
-#else
 #  include <time.h>
    struct tm *gmtime(), *localtime();
-#endif
 
 #if (defined(BSD4_4) || (defined(SYSV) && defined(MODERN)))
 #  include <unistd.h>           /* this includes utime.h on SGIs */

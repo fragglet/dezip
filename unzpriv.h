@@ -187,11 +187,6 @@
 #endif /* sun || pyr || CONVEX */
 
 #ifdef pyr  /* Pyramid:  has BSD and AT&T "universes" */
-#  ifdef BSD
-#    define pyr_bsd
-#    define USE_STRINGS_H  /* instead of more common string.h */
-#    define ZMEM           /* ZMEM now uses bcopy/bzero: not in AT&T universe */
-#  endif                   /* (AT&T memcpy claimed to be very slow, though) */
 #  define DECLARE_ERRNO
 #endif /* pyr */
 
