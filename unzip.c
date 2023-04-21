@@ -200,11 +200,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #endif /* ?MORE */
 #endif /* !NO_ZIPINFO */
 
-#ifdef BETA
-     static ZCONST char Far BetaVersion[] = "%s\
-        THIS IS STILL A BETA VERSION OF UNZIP%s -- DO NOT DISTRIBUTE.\n\n";
-#endif
-
 #ifdef SFX
      static ZCONST char Far UnzipSFXBanner[] =
      "UnZipSFX %d.%d%d%s of %s, by Info-ZIP (http://www.info-zip.org).\n";
@@ -1309,11 +1304,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
         Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXBanner),
           UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
           LoadFarStringSmall(VersionDate)));
-#ifdef BETA
-    /* always print the beta warning:  no unauthorized distribution!! */
-    Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(BetaVersion), "\n",
-      "SFX"));
-#endif
 #endif /* SFX */
 
     if (uO.cflag || uO.tflag || uO.vflag || uO.zflag
@@ -1368,10 +1358,6 @@ int usage(__G__ error)   /* return PK-type error code */
       LoadFarStringSmall(VersionDate)));
     Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(UnzipSFXOpts),
       SFXOPT1, LOCAL));
-#ifdef BETA
-    Info(slide, error? 1 : 0, ((char *)slide, LoadFarString(BetaVersion), "\n",
-      "SFX"));
-#endif
 
     if (error)
         return PK_PARAM;
@@ -1419,9 +1405,6 @@ int usage(__G__ error)   /* return PK-type error code */
         Info(slide, flag, ((char *)slide, LoadFarString(UnzipUsageLine1),
           UZ_MAJORVER, UZ_MINORVER, UZ_PATCHLEVEL, UZ_BETALEVEL,
           LoadFarStringSmall(VersionDate)));
-#ifdef BETA
-        Info(slide, flag, ((char *)slide, LoadFarString(BetaVersion), "", ""));
-#endif
 
         Info(slide, flag, ((char *)slide, LoadFarString(UnzipUsageLine2),
           ZIPINFO_MODE_OPTION, LoadFarStringSmall(ZipInfoMode)));

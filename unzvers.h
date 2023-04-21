@@ -13,18 +13,9 @@
 #ifndef __unzvers_h     /* don't include more than once */
 #define __unzvers_h
 
-#ifdef BETA
-#  undef BETA           /* undefine BETA for public releases */
-#endif
-
-#ifdef BETA
-#  define UZ_BETALEVEL      "h03 BETA"
-#  define UZ_VERSION_DATE   "17 Apr 09"         /* internal beta version */
-#else
 #  define UZ_BETALEVEL      ""
 #  define UZ_VERSION_DATE   "20 April 2009"     /* official release version */
 #  define RELEASE
-#endif
 
 #define UZ_MAJORVER    6   /* UnZip */
 #define UZ_MINORVER    0
