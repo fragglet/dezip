@@ -618,14 +618,7 @@
 # endif
 #endif /* MALLOC_WORK && !MY_ZCALLOC */
 
-#ifdef ZMEM
-#  undef ZMEM
-#  define memcmp(b1,b2,len)      bcmp(b2,b1,len)
-#  define memcpy(dest,src,len)   bcopy(src,dest,len)
-#  define memzero                bzero
-#else
 #  define memzero(dest,len)      memset(dest,0,len)
-#endif
 
 #ifndef TRUE
 #  define TRUE      1   /* sort of obvious */
@@ -1447,13 +1440,6 @@ char    *fzofft               OF((__GPRO__ zoff_t val,
    int   zstrnicmp            OF((register ZCONST char *s1,
                                   register ZCONST char *s2,
                                   register unsigned n));
-#endif
-#ifdef ZMEM   /* MUST be ifdef'd because of conflicts with the standard def. */
-   zvoid *memset OF((register zvoid *, register int, register unsigned int));
-   int    memcmp OF((register ZCONST zvoid*, register ZCONST zvoid *,
-                     register unsigned int));
-   zvoid *memcpy OF((register zvoid *, register ZCONST zvoid *,
-                     register unsigned int));
 #endif
 #ifdef NEED_UZMBCLEN
    extent uzmbclen          OF((ZCONST unsigned char *ptr));
