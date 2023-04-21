@@ -88,15 +88,9 @@
 #endif
 #define Case(x)  (ic? ToLower(x) : (x))
 
-#ifdef VMSWILD
-#  define WILDCHAR   '%'
-#  define BEG_RANGE  '('
-#  define END_RANGE  ')'
-#else
 #  define WILDCHAR   '?'
 #  define BEG_RANGE  '['
 #  define END_RANGE  ']'
-#endif
 
 #if 0                /* GRR:  add this to unzip.h someday... */
 #ifdef WILD_STOP_AT_DIR

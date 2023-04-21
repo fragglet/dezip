@@ -331,9 +331,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef VMS_TEXT_CONV
      static ZCONST char Far VmsTextConv[] = "VMS_TEXT_CONV";
 #  endif
-#  ifdef VMSWILD
-     static ZCONST char Far VmsWild[] = "VMSWILD";
-#  endif
 #  ifdef WILD_STOP_AT_DIR
      static ZCONST char Far WildStopAtDir[] = "WILD_STOP_AT_DIR";
 #  endif
@@ -1902,11 +1899,6 @@ static void show_version_info(__G)
 #ifdef VMS_TEXT_CONV
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(VmsTextConv)));
-        ++numopts;
-#endif
-#ifdef VMSWILD
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(VmsWild)));
         ++numopts;
 #endif
 #ifdef WILD_STOP_AT_DIR
