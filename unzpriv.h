@@ -331,15 +331,10 @@
 #endif
 
 #ifdef USE_ZLIB
-#  ifdef IZ_CRC_LE_OPTIMIZ
-#    undef IZ_CRC_LE_OPTIMIZ
-#  endif
 #endif
-#if (!defined(IZ_CRC_BE_OPTIMIZ) && !defined(IZ_CRC_LE_OPTIMIZ))
 #  ifdef IZ_CRCOPTIM_UNFOLDTBL
 #    undef IZ_CRCOPTIM_UNFOLDTBL
 #  endif
-#endif
 
 #ifndef INBUFSIZ
 #    define INBUFSIZ  8192  /* larger buffers for real OSes */

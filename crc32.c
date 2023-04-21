@@ -315,25 +315,6 @@ ZCONST ulg near *get_crc_table OF((void))
 #define DO4(crc, buf)  DO2(crc, buf); DO2(crc, buf)
 #define DO8(crc, buf)  DO4(crc, buf); DO4(crc, buf)
 
-#if (defined(IZ_CRC_BE_OPTIMIZ) || defined(IZ_CRC_LE_OPTIMIZ))
-
-# ifdef IZ_CRCOPTIM_UNFOLDTBL
-#    define DO_OPT4(c, buf4)  c ^= *(buf4)++; \
-        c = crc_32_tab[3*256+(c & 0xff)] ^ crc_32_tab[2*256+((c>>8) & 0xff)] \
-           ^ crc_32_tab[256+((c>>16) & 0xff)] ^ crc_32_tab[c>>24]
-# else /* !IZ_CRCOPTIM_UNFOLDTBL */
-#    define DO_OPT4(c, buf4)  c ^= *(buf4)++; \
-       c = CRC32UPD(c, crc_32_tab); \
-       c = CRC32UPD(c, crc_32_tab); \
-       c = CRC32UPD(c, crc_32_tab); \
-       c = CRC32UPD(c, crc_32_tab)
-# endif /* ?IZ_CRCOPTIM_UNFOLDTBL */
-
-# define DO_OPT16(crc, buf4) DO_OPT4(crc, buf4); DO_OPT4(crc, buf4); \
-                             DO_OPT4(crc, buf4); DO_OPT4(crc, buf4);
-
-#endif /* (IZ_CRC_BE_OPTIMIZ || IZ_CRC_LE_OPTIMIZ) */
-
 
 /* ========================================================================= */
 ulg crc32(crc, buf, len)
@@ -353,32 +334,12 @@ ulg crc32(crc, buf, len)
 
   c = (REV_BE((z_uint4)crc) ^ 0xffffffffL);
 
-#if (defined(IZ_CRC_BE_OPTIMIZ) || defined(IZ_CRC_LE_OPTIMIZ))
-  /* Align buf pointer to next DWORD boundary. */
-  while (len && ((ptrdiff_t)buf & 3)) {
-    DO1(c, buf);
-    len--;
-  }
-  {
-    ZCONST z_uint4 *buf4 = (ZCONST z_uint4 *)buf;
-    while (len >= 16) {
-      DO_OPT16(c, buf4);
-      len -= 16;
-    }
-    while (len >= 4) {
-      DO_OPT4(c, buf4);
-      len -= 4;
-    }
-    buf = (ZCONST uch *)buf4;
-  }
-#else /* !(IZ_CRC_BE_OPTIMIZ || IZ_CRC_LE_OPTIMIZ) */
 #ifndef NO_UNROLLED_LOOPS
   while (len >= 8) {
     DO8(c, buf);
     len -= 8;
   }
 #endif /* !NO_UNROLLED_LOOPS */
-#endif /* ?(IZ_CRC_BE_OPTIMIZ || IZ_CRC_LE_OPTIMIZ) */
   if (len) do {
     DO1(c, buf);
   } while (--len);
