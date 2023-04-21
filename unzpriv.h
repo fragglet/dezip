@@ -127,9 +127,6 @@
  * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
  * included on this list; it would be good to know what version the problem
  * was fixed at, if it did exist.  */
-#if (defined(VMS) || defined(__MINT__))
-#  define WILD_STAT_BUG
-#endif
 
 /*---------------------------------------------------------------------------
     OS-dependent includes
@@ -219,10 +216,6 @@
 /*---------------------------------------------------------------------------
     VMS section:
   ---------------------------------------------------------------------------*/
-
-#ifdef VMS
-#  include "vms/vmscfg.h"
-#endif /* VMS */
 
 /*---------------------------------------------------------------------------
     Win32 (Windows 95/NT) section:
@@ -317,10 +310,6 @@
 #if (defined(DOS_OS2) || defined(WIN32))
 #  define DOS_OS2_W32
 #  define DOS_W32_OS2          /* historical:  don't use */
-#endif
-
-#if (defined(TOPS20) || defined(VMS))
-#  define T20_VMS
 #endif
 
 #  define ATH_BEO_UNX
@@ -537,12 +526,6 @@
 #endif
 
 /* File operations--use "b" for binary if allowed or fixed length 512 on VMS */
-#ifdef VMS
-#  define FOPR  "r","ctx=stm"
-#  define FOPM  "r+","ctx=stm","rfm=fix","mrs=512"
-#  define FOPW  "w","ctx=stm","rfm=fix","mrs=512"
-#  define FOPWR "w+","ctx=stm","rfm=fix","mrs=512"
-#endif /* VMS */
 
 /* Defaults when nothing special has been defined previously. */
 #  ifndef FOPR
@@ -575,9 +558,6 @@
  * artificially undefine it here, to allow our better-defined _MAX_PATH
  * (see vms/vmscfg.h) to be used.
  */
-#ifdef VMS
-#  undef PATH_MAX
-#endif
 
 #ifndef PATH_MAX
 #  ifdef MAXPATHLEN
@@ -929,14 +909,6 @@
 #define IS_OVERWRT_ALL    (G.overwrite_mode == OVERWRT_ALWAYS)
 #define IS_OVERWRT_NONE   (G.overwrite_mode == OVERWRT_NEVER)
 
-#ifdef VMS
-  /* return codes for VMS-specific open_outfile() function */
-# define OPENOUT_OK       0   /* file openend normally */
-# define OPENOUT_FAILED   1   /* file open failed */
-# define OPENOUT_SKIPOK   2   /* file not opened, skip at error level OK */
-# define OPENOUT_SKIPWARN 3   /* file not opened, skip at error level WARN */
-#endif /* VMS */
-
 #define ROOT              0    /* checkdir() extract-to path:  called once */
 #define INIT              1    /* allocate buildpath:  called once per member */
 #define APPEND_DIR        2    /* append a dir comp.:  many times per member */
@@ -1134,10 +1106,6 @@
 #  define NOANSIFILT
 #endif
 
-#ifdef VMS
-#  define ENV_UNZIP       "UNZIP_OPTS"     /* names of environment variables */
-#  define ENV_ZIPINFO     "ZIPINFO_OPTS"
-#endif /* VMS */
 #ifndef ENV_UNZIP
 #  define ENV_UNZIP       "UNZIP"          /* the standard names */
 #  define ENV_ZIPINFO     "ZIPINFO"
@@ -1700,19 +1668,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
     VMS-only functions:
   ---------------------------------------------------------------------------*/
 
-#ifdef VMS
-   int    check_format        OF((__GPRO));                         /* vms.c */
-/* int    open_outfile        OF((__GPRO));           * (see fileio.c) vms.c */
-/* int    flush               OF((__GPRO__ uch *rawbuf, unsigned size,
-                                  int final_flag));   * (see fileio.c) vms.c */
-   char  *vms_msg_text        OF((void));                           /* vms.c */
-   void   return_VMS          OF((int zip_error));                  /* vms.c */
-#ifdef VMSCLI
-   ulg    vms_unzip_cmdline   OF((int *, char ***));            /* cmdline.c */
-   int    VMSCLI_usage        OF((__GPRO__ int error));         /* cmdline.c */
-#endif
-#endif
-
 /*---------------------------------------------------------------------------
     WIN32-only functions:
   ---------------------------------------------------------------------------*/
@@ -1755,9 +1710,6 @@ char    *do_wild         OF((__GPRO__ ZCONST char *wildzipfn));     /* local */
 char    *GetLoadPath     OF((__GPRO));                              /* local */
 #if (defined(MORE) && (defined(ATH_BEO_UNX) || defined(QDOS) || defined(VMS)))
    int screensize        OF((int *tt_rows, int *tt_cols));          /* local */
-# if defined(VMS)
-   int screenlinewrap    OF((void));                                /* local */
-# endif
 #endif /* MORE && (ATH_BEO_UNX || QDOS || VMS) */
    void  close_outfile   OF((__GPRO));                              /* local */
    int  set_symlnk_attribs  OF((__GPRO__ slinkentry *slnk_entry));  /* local */

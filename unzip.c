@@ -150,15 +150,9 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 
 /* usage() strings */
 #ifndef SFX
-#ifdef VMS
-   static ZCONST char Far Example3[] = "vms.c";
-   static ZCONST char Far Example2[] = "  unzip \"-V\" foo \"Bar\"\
- (Quote names to preserve case, unless SET PROC/PARS=EXT)\n";
-#else /* !VMS */
    static ZCONST char Far Example3[] = "ReadMe";
    static ZCONST char Far Example2[] = " \
  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
-#endif /* ?VMS */
 
 /* local1[]:  command options */
 #if defined(TIMESTAMP)
@@ -169,22 +163,6 @@ static ZCONST char Far IgnoreOOptionMsg[] =
 #endif /* ?TIMESTAMP */
 
 /* local2[] and local3[]:  modifier options */
-#ifdef VMS
-   static ZCONST char Far local2[] = " -X  restore owner/ACL protection info";
-#ifdef MORE
-   static ZCONST char Far local3[] = "\
-  -Y  treat \".nnn\" as \";nnn\" version         -2  force ODS2 names\n\
-  --D restore dir (-D: no) timestamps        -M  pipe through \"more\" pager\n\
-  (Must quote upper-case options, like \"-V\", unless SET PROC/PARSE=EXTEND.)\
-\n\n";
-#else
-   static ZCONST char Far local3[] = "\n\
-  -Y  treat \".nnn\" as \";nnn\" version         -2  force ODS2 names\n\
-  --D restore dir (-D: no) timestamps\n\
-  (Must quote upper-case options, like \"-V\", unless SET PROC/PARSE=EXTEND.)\
-\n\n";
-#endif
-#else /* !VMS */
    static ZCONST char Far local2[] = " -X  restore UID/GID info";
 #ifdef MORE
    static ZCONST char Far local3[] = "\
@@ -193,15 +171,10 @@ static ZCONST char Far IgnoreOOptionMsg[] =
    static ZCONST char Far local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
 #endif
-#endif /* ?VMS */
 #endif /* !SFX */
 
 #ifndef NO_ZIPINFO
-#ifdef VMS
-   static ZCONST char Far ZipInfoExample[] = "* or % (e.g., \"*font-%.zip\")";
-#else
    static ZCONST char Far ZipInfoExample[] = "*, ?, [] (e.g., \"[a-j]*.zip\")";
-#endif
 
 static ZCONST char Far ZipInfoUsageLine1[] = "\
 ZipInfo %d.%d%d%s of %s, by Greg Roelofs and the Info-ZIP group.\n\
@@ -387,22 +360,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
 #  endif
 
-#ifdef VMS
-/* UnzipUsageLine1[] is also used in vms/cmdline.c:  do not make it static */
-   ZCONST char Far UnzipUsageLine1[] = "\
-UnZip %d.%d%d%s of %s, by Info-ZIP.  For more details see: unzip -v.\n\n";
-# ifdef COPYRIGHT_CLEAN
-   static ZCONST char Far UnzipUsageLine1v[] = "\
-UnZip %d.%d%d%s of %s, by Info-ZIP.  Maintained by C. Spieler.  Send\n\
-bug reports using http://www.info-zip.org/zip-bug.html; see README for details.\
-\n\n";
-# else
-   static ZCONST char Far UnzipUsageLine1v[] = "\
-UnZip %d.%d%d%s of %s, by Info-ZIP.  UnReduce (c) 1989 by S. H. Smith.\n\
-Send bug reports using //www.info-zip.org/zip-bug.html; see README for details.\
-\n\n";
-# endif /* ?COPYRIGHT_CLEAN */
-#else /* !VMS */
 # ifdef COPYRIGHT_CLEAN
    static ZCONST char Far UnzipUsageLine1[] = "\
 UnZip %d.%d%d%s of %s, by Debian. Original by Info-ZIP.\
@@ -414,7 +371,6 @@ Send bug reports using //www.info-zip.org/zip-bug.html; see README for details.\
 \n\n";
 # endif /* ?COPYRIGHT_CLEAN */
 # define UnzipUsageLine1v       UnzipUsageLine1
-#endif /* ?VMS */
 
 static ZCONST char Far UnzipUsageLine2v[] = "\
 Latest sources and executables are at ftp://ftp.info-zip.org/pub/infozip/ ;\
@@ -436,12 +392,6 @@ Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
      "-Z => ZipInfo mode (\"unzip -Z\" for usage).";
 #endif /* ?NO_ZIPINFO */
 
-#ifdef VMS
-   static ZCONST char Far VMSusageLine2b[] = "\
-=> define foreign command symbol in LOGIN.COM:  $ unzip :== $dev:[dir]unzip.exe\
-\n";
-#endif
-
 static ZCONST char Far UnzipUsageLine3[] = "\n\
   -p  extract files to pipe, no messages     -l  list files (short format)\n\
   -f  freshen existing files, create none    -t  test compressed archive data\n\
@@ -458,17 +408,6 @@ static ZCONST char Far UnzipUsageLine3[] = "\n\
  * the option to list that page put here.  [E. Gordon, 2008-3-16]
  */
 #if (defined(UNICODE_SUPPORT) && !defined(WIN32))
-#ifdef VMS
-static ZCONST char Far UnzipUsageLine4[] = "\
-modifiers:\n\
-  -n  never overwrite or make a new version of an existing file\n\
-  -o  always make a new version (-oo: overwrite original) of an existing file\n\
-  -q  quiet mode (-qq => quieter)            -a  auto-convert any text files\n\
-  -j  junk paths (do not make directories)   -aa treat ALL files as text\n\
-  -U  use escapes for all non-ASCII Unicode  -UU ignore any Unicode fields\n\
-  -C  match filenames case-insensitively     -L  make (some) names \
-lowercase\n %-42s  -V  retain VMS version numbers\n%s";
-#else /* !VMS */
 static ZCONST char Far UnzipUsageLine4[] = "\
 modifiers:\n\
   -n  never overwrite existing files         -q  quiet mode (-qq => quieter)\n\
@@ -477,18 +416,7 @@ modifiers:\n\
   -U  use escapes for all non-ASCII Unicode  -UU ignore any Unicode fields\n\
   -C  match filenames case-insensitively     -L  make (some) names \
 lowercase\n %-42s  -V  retain VMS version numbers\n%s";
-#endif /* ?VMS */
 #else /* !UNICODE_SUPPORT */
-#ifdef VMS
-static ZCONST char Far UnzipUsageLine4[] = "\
-modifiers:\n\
-  -n  never overwrite or make a new version of an existing file\n\
-  -o  always make a new version (-oo: overwrite original) of an existing file\n\
-  -q  quiet mode (-qq => quieter)            -a  auto-convert any text files\n\
-  -j  junk paths (do not make directories)   -aa treat ALL files as text\n\
-  -C  match filenames case-insensitively     -L  make (some) names \
-lowercase\n %-42s  -V  retain VMS version numbers\n%s";
-#else /* !VMS */
 static ZCONST char Far UnzipUsageLine4[] = "\
 modifiers:\n\
   -n  never overwrite existing files         -q  quiet mode (-qq => quieter)\n\
@@ -496,7 +424,6 @@ modifiers:\n\
   -j  junk paths (do not make directories)   -aa treat ALL files as text\n\
   -C  match filenames case-insensitively     -L  make (some) names \
 lowercase\n %-42s  -V  retain VMS version numbers\n%s";
-#endif /* ?VMS */
 #endif /* ?UNICODE_SUPPORT */
 
 static ZCONST char Far UnzipUsageLine5[] = "\
@@ -1047,15 +974,8 @@ int uz_opts(__G__ pargc, pargv)
                     break;
                 case ('b'):
                     if (negative) {
-#if (defined(TANDEM) || defined(VMS))
-                        uO.bflag = MAX(uO.bflag-negative,0);
-#endif
                         negative = 0;   /* do nothing:  "-b" is default */
                     } else {
-#ifdef VMS
-                        if (uO.aflag == 0)
-                           ++uO.bflag;
-#endif
                         uO.aflag = 0;
                     }
                     break;
@@ -1276,15 +1196,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.qflag;
                     break;
-#ifdef VMS
-                /* VMS:  extract "text" files in Stream_LF format (-a[a]) */
-                case ('S'):
-                    if (negative)
-                        uO.S_flag = FALSE, negative = 0;
-                    else
-                        uO.S_flag = TRUE;
-                    break;
-#endif /* VMS */
                 case ('t'):
                     if (negative)
                         uO.tflag = FALSE, negative = 0;
@@ -1368,14 +1279,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.X_flag;
                     break;
-#ifdef VMS
-                case ('Y'):    /* Treat ".nnn" as ";nnn" version. */
-                    if (negative)
-                        uO.Y_flag = FALSE, negative = 0;
-                    else
-                        uO.Y_flag = TRUE;
-                    break;
-#endif /* VMS */
                 case ('z'):    /* display only the archive comment */
                     if (negative) {
                         uO.zflag = MAX(uO.zflag-negative,0);
@@ -1389,14 +1292,6 @@ int uz_opts(__G__ pargc, pargv)
                     error = TRUE;
                     break;
 #endif /* !SFX */
-#ifdef VMS
-                case ('2'):    /* Force ODS2-compliant names. */
-                    if (negative)
-                        uO.ods2_flag = FALSE, negative = 0;
-                    else
-                        uO.ods2_flag = TRUE;
-                    break;
-#endif /* VMS */
                 case (':'):    /* allow "parent dir" path components */
                     if (negative) {
                         uO.ddotflag = MAX(uO.ddotflag-negative,0);
@@ -1448,13 +1343,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
     }
     if (uO.aflag > 2)
         uO.aflag = 2;
-#ifdef VMS
-    if (uO.bflag > 2)
-        uO.bflag = 2;
-    /* Clear -s flag when converting text files. */
-    if (uO.aflag <= 0)
-        uO.S_flag = 0;
-#endif /* VMS */
     if (uO.overwrite_all && uO.overwrite_none) {
         Info(slide, 0x401, ((char *)slide, LoadFarString(IgnoreOOptionMsg)));
         uO.overwrite_all = FALSE;
@@ -1519,10 +1407,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 /********************/
 
 #ifdef SFX
-#  ifdef VMS
-#    define LOCAL "X.\n\
-(Must quote upper-case options, like \"-V\", unless SET PROC/PARSE=EXTEND.)"
-#  endif
 #    define LOCAL "X"
    /* Default for all other systems: */
 #  ifndef LOCAL
@@ -1569,13 +1453,8 @@ int usage(__G__ error)   /* return PK-type error code */
 
 
 #else /* !SFX */
-#  ifdef VMS
-#    define QUOT '\"'
-#    define QUOTS "\""
-#  else
 #    define QUOT ' '
 #    define QUOTS ""
-#  endif
 
 int usage(__G__ error)   /* return PK-type error code */
     __GDEF
@@ -1600,11 +1479,6 @@ int usage(__G__ error)   /* return PK-type error code */
         Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine2)));
         Info(slide, flag, ((char *)slide, LoadFarString(ZipInfoUsageLine3),
           LoadFarStringSmall(ZipInfoUsageLine4)));
-#ifdef VMS
-        Info(slide, flag, ((char *)slide, "\n\
-You must quote non-lowercase options and filespecs, unless SET PROC/PARSE=EXT.\
-\n"));
-#endif
 
 #endif /* !NO_ZIPINFO */
 
@@ -1619,10 +1493,6 @@ You must quote non-lowercase options and filespecs, unless SET PROC/PARSE=EXT.\
 
         Info(slide, flag, ((char *)slide, LoadFarString(UnzipUsageLine2),
           ZIPINFO_MODE_OPTION, LoadFarStringSmall(ZipInfoMode)));
-#ifdef VMS
-        if (!error)  /* maybe no command-line tail found; show extra help */
-            Info(slide, flag, ((char *)slide, LoadFarString(VMSusageLine2b)));
-#endif
 
         Info(slide, flag, ((char *)slide, LoadFarString(UnzipUsageLine3),
           LoadFarStringSmall(local1)));

@@ -38,15 +38,9 @@ ZCONST char Far FilenameNotMatched[] = "caution: filename not matched:  %s\n";
 ZCONST char Far ExclFilenameNotMatched[] =
   "caution: excluded filename not matched:  %s\n";
 
-#ifdef VMS
-  ZCONST char Far ReportMsg[] = "\
-  (please check that you have transferred or created the zipfile in the\n\
-  appropriate BINARY mode--this includes ftp, Kermit, AND unzip'd zipfiles)\n";
-#else
   ZCONST char Far ReportMsg[] = "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode and that you have compiled UnZip properly)\n";
-#endif
 
 #ifndef SFX
   ZCONST char Far Zipnfo[] = "zipinfo";

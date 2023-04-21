@@ -60,14 +60,6 @@
 /* VMS has a single echo() function in ttyio.c to toggle terminal
  * input echo on and off.
  */
-#ifdef VMS
-#  define echoff(f)  echo(0)
-#  define echon()    echo(1)
-#  define getch()    tt_getch()
-#  define FGETCH(f)  tt_getch()
-   int echo OF((int));
-   int tt_getch OF((void));
-#endif
 
 /* For all other systems, ttyio.c supplies the two functions Echoff() and
  * Echon() for suppressing and (re)enabling console input echo.

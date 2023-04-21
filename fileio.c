@@ -115,12 +115,7 @@
    buffer."  Apparently fprintf() buffers the stuff somewhere, and puts
    out a record (only) when it sees a newline.
 */
-#ifdef VMS
-#  define WriteTxtErr(buf,len,strm) \
-   ((extent)fprintf(strm, "%.*s", len, buf) != (extent)(len))
-#else
 #  define WriteTxtErr(buf,len,strm)  WriteError(buf,len,strm)
-#endif
 
 #ifdef VMS_TEXT_CONV
 static int is_vms_varlen_txt OF((__GPRO__ uch *ef_buf, unsigned ef_len));
@@ -135,7 +130,6 @@ static int disk_error OF((__GPRO));
 static ZCONST char Far CannotOpenZipfile[] =
   "error:  cannot open zipfile [ %s ]\n        %s\n";
 
-#if (!defined(VMS) && !defined(AOS_VS) && !defined(CMS_MVS) && !defined(MACOS))
    static ZCONST char Far CannotDeleteOldFile[] =
      "error:  cannot delete old %s\n        %s\n";
 #ifdef UNIXBACKUP
@@ -145,7 +139,6 @@ static ZCONST char Far CannotOpenZipfile[] =
 #endif
    static ZCONST char Far CannotCreateFile[] =
      "error:  cannot create %s\n        %s\n";
-#endif /* !VMS && !AOS_VS && !CMS_MVS && !MACOS */
 
 static ZCONST char Far ReadError[] = "error:  zipfile read error\n";
 static ZCONST char Far FilenameTooLongTrunc[] =
@@ -203,15 +196,11 @@ int open_input_file(__G)    /* return 1 if open failed */
      *  translation, which would corrupt the bitstreams
      */
 
-#ifdef VMS
-    G.zipfd = open(G.zipfn, O_RDONLY, 0, OPNZIP_RMS_ARGS);
-#else /* !VMS */
 #ifdef USE_STRM_INPUT
     G.zipfd = fopen(G.zipfn, FOPR);
 #else /* !USE_STRM_INPUT */
     G.zipfd = open(G.zipfn, O_RDONLY | O_BINARY);
 #endif /* ?USE_STRM_INPUT */
-#endif /* ?VMS */
 
 #ifdef USE_STRM_INPUT
     if (G.zipfd == NULL)
@@ -230,8 +219,6 @@ int open_input_file(__G)    /* return 1 if open failed */
 
 
 
-
-#if (!defined(VMS) && !defined(AOS_VS) && !defined(CMS_MVS) && !defined(MACOS))
 
 /***************************/
 /* Function open_outfile() */
@@ -366,8 +353,6 @@ int open_outfile(__G)           /* return 1 if fail */
     return 0;
 
 } /* end function open_outfile() */
-
-#endif /* !VMS && !AOS_VS && !CMS_MVS && !MACOS */
 
 
 
@@ -641,8 +626,6 @@ int seek_zipf(__G__ abs_offset)
 
 
 
-
-#ifndef VMS  /* for VMS use code in vms.c */
 
 /********************/
 /* Function flush() */   /* returns PK error codes: */
@@ -1016,8 +999,6 @@ static int disk_error(__G)
 
 } /* end function disk_error() */
 
-#endif /* !VMS */
-
 
 
 
@@ -1185,9 +1166,7 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     if (size) {
             if ((error = WriteTxtErr(q, size, outfp)) != 0)
                 return error;
-#ifndef VMS     /* 2005-09-16 SMS.  See note at "WriteTxtErr()", above. */
             fflush(outfp);
-#endif
             if (MSG_STDERR(flag) && ((Uz_Globs *)pG)->UzO.tflag &&
                 !isatty(1) && isatty(2))
             {
@@ -1411,8 +1390,6 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 
 
 
-#if (!defined(VMS) && !defined(CMS_MVS))
-
 #if (!defined(HAVE_MKTIME) || defined(WIN32))
 /* also used in amiga/filedate.c and win32/win32.c */
 ZCONST ush ydays[] =
@@ -1459,11 +1436,7 @@ time_t dos_to_unix_time(dosdatetime)
 
 } /* end function dos_to_unix_time() */
 
-#endif /* !VMS && !CMS_MVS */
 
-
-
-#if (!defined(VMS) && !defined(OS2) && !defined(CMS_MVS))
 
 /******************************/
 /* Function check_for_newer() */  /* used for overwriting/freshening/updating */
@@ -1542,8 +1515,6 @@ int check_for_newer(__G__ filename)  /* return 1 if existing file is newer */
     return (existing >= archive);
 
 } /* end function check_for_newer() */
-
-#endif /* !VMS && !OS2 && !CMS_MVS */
 
 
 

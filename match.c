@@ -327,11 +327,7 @@ int iswild(p)        /* originally only used for stat()-bug workaround in */
     for (; *p; INCSTR(p))
         if (*p == '\\' && *(p+1))
             ++p;
-#ifdef VMS
-        else if (*p == '%' || *p == '*')
-#else /* !VMS */
         else if (*p == '?' || *p == '*' || *p == '[')
-#endif /* ?VMS */
             return TRUE;
 
     return FALSE;

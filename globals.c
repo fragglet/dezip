@@ -170,12 +170,6 @@ Uz_Globs *globalsCtor()
     memzero(&G, sizeof(Uz_Globs));
 
 #ifndef FUNZIP
-#ifdef VMS
-# if (!defined(NO_TIMESTAMPS))
-    uO.D_flag=1;    /* default to '-D', no restoration of dir timestamps */
-# endif
-    G.cover = NULL;     /* not allocated yet */
-#endif
 
     uO.lflag=(-1);
     G.wildzipfn = "";
@@ -194,9 +188,7 @@ Uz_Globs *globalsCtor()
     G.decr_passwd = UzpPassword;
 #endif /* !FUNZIP */
 
-#if (!defined(MACOS) && !defined(ATARI) && !defined(VMS))
     G.echofd = -1;
-#endif /* !(MACOS || ATARI || VMS) */
 
 #ifdef REENTRANT
 #ifdef USETHREADID

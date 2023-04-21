@@ -249,9 +249,6 @@ typedef struct _UzpOpts {
     char *pwdarg;       /* pointer to command-line password (-P option) */
     int zipinfo_mode;   /* behave like ZipInfo or like normal UnZip? */
     int aflag;          /* -a: do ASCII-EBCDIC and/or end-of-line translation */
-#ifdef VMS
-    int bflag;          /* -b: force fixed record format for binary files */
-#endif
     int B_flag;         /* -B: back up existing files by renaming to *~##### */
     int cflag;          /* -c: output to stdout */
     int C_flag;         /* -C: match filenames case-insensitively */
@@ -273,9 +270,6 @@ typedef struct _UzpOpts {
 #if (defined(MSDOS) || defined(FLEXOS) || defined(OS2) || defined(WIN32))
     int sflag;          /* -s: convert spaces in filenames to underscores */
 #endif
-#ifdef VMS
-    int S_flag;         /* -S: use Stream_LF for text files (-a[a]) */
-#endif
 #if (defined(MSDOS) || defined(__human68k__) || defined(OS2) || defined(WIN32))
     int volflag;        /* -$: extract volume labels */
 #endif
@@ -287,13 +281,7 @@ typedef struct _UzpOpts {
     int V_flag;         /* -V: don't strip VMS version numbers */
     int W_flag;         /* -W: wildcard '*' won't match '/' dir separator */
     int X_flag;         /* -X: restore owner/protection or UID/GID or ACLs */
-#ifdef VMS
-    int Y_flag;         /* -Y: treat ".nnn" as ";nnn" version */
-#endif
     int zflag;          /* -z: display the zipfile comment (only, for unzip) */
-#ifdef VMS
-    int ods2_flag;      /* -2: force names to conform to ODS2 */
-#endif
     int ddotflag;       /* -:: don't skip over "../" path elements */
     int cflxflag;       /* -^: allow control chars in extracted filenames */
 #endif /* !FUNZIP */

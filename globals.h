@@ -254,9 +254,7 @@ typedef struct Globals {
     uch      *outbuf;
     uch      *realbuf;
 
-#ifndef VMS                        /* if SMALL_MEM, outbuf2 is initialized in */
     uch      *outbuf2;             /*  process_zipfiles() (never changes); */
-#endif                             /*  else malloc'd ONLY if unshrink and -a */
 #endif /* !FUNZIP */
     uch      *outptr;
     ulg      outcnt;               /* number of chars stored in outbuf */
@@ -281,9 +279,7 @@ typedef struct Globals {
 #endif /* !FUNZIP */
     z_uint4 keys[3];   /* crypt static: keys defining pseudo-random sequence */
 
-#if (!defined(MACOS) && !defined(ATARI) && !defined(VMS))
     int echofd;        /* ttyio static: file descriptor whose echo is off */
-#endif /* !(MACOS || ATARI || VMS) */
 
     unsigned hufts;    /* track memory usage */
 

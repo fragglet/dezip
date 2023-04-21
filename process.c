@@ -233,8 +233,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
         return(PK_MEM);
     }
     G.hold = G.inbuf + INBUFSIZ;     /* to check for boundary-spanning sigs */
-#ifndef VMS     /* VMS uses its own buffer scheme for textmode flush(). */
-#endif /* !VMS */
 
 #if 0 /* CRC_32_TAB has been NULLified by CONSTRUCTGLOBALS !!!! */
     /* allocate the CRC table later when we know we can read zipfile data */
@@ -378,7 +376,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
         (NumMissDirs + NumMissFiles) == 1  &&  lastzipfn != (char *)NULL)
     {
         {
-#ifndef VMS
             /* 2004-11-24 SMS.
              * VMS has already tried a default file type of ".zip" in
              * do_wild(), so adding ZSUFX here only causes confusion by
@@ -393,7 +390,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
              */
             char *p =
               strcpy(lastzipfn + strlen(lastzipfn), ZSUFX);
-#endif /* !VMS */
 
             G.zipfn = lastzipfn;
 
@@ -529,13 +525,11 @@ void free_G_buffers(__G)     /* releases all memory allocated in global vars */
         G.extra_field = (uch *)NULL;
    }
 
-#if (!defined(VMS) && !defined(SMALL_MEM))
     /* VMS uses its own buffer scheme for textmode flush() */
     if (G.outbuf2) {
         free(G.outbuf2);   /* malloc'd ONLY if unshrink and -a */
         G.outbuf2 = (uch *)NULL;
     }
-#endif
 
     if (G.outbuf)
         free(G.outbuf);
@@ -631,11 +625,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
     if (G.statbuf.st_mode & S_IEXEC)   /* no extension on Unix exes:  might */
         maybe_exe = TRUE;               /*  find unzip, not unzip.zip; etc. */
 #endif /* !SFX */
-
-#ifdef VMS
-    if (check_format(__G))              /* check for variable-length format */
-        return PK_ERR;
-#endif
 
     if (open_input_file(__G))   /* this should never happen, given */
         return PK_NOZIP;        /*  the stat() test above, but... */

@@ -74,18 +74,6 @@
 
 #ifndef HAVE_WORKING_GETCH
    /* include system support for switching of console echo */
-#  ifdef VMS
-#    include <descrip.h>
-#    include <iodef.h>
-#    include <ttdef.h>
-     /* Workaround for broken header files of older DECC distributions
-      * that are incompatible with the /NAMES=AS_IS qualifier. */
-#    define sys$assign SYS$ASSIGN
-#    define sys$dassgn SYS$DASSGN
-#    define sys$qiow SYS$QIOW
-#    include <starlet.h>
-#    include <ssdef.h>
-#  else /* !VMS */
 #    ifdef HAVE_TERMIOS_H
 #      include <termios.h>
 #      define sgttyb termios
@@ -130,122 +118,11 @@
 #      ifndef UNZIP
 #        include <fcntl.h>
 #      endif
-#  endif /* ?VMS */
 #endif /* !HAVE_WORKING_GETCH */
 
 
 
 #ifndef HAVE_WORKING_GETCH
-#ifdef VMS
-
-static struct dsc$descriptor_s DevDesc =
-        {11, DSC$K_DTYPE_T, DSC$K_CLASS_S, "SYS$COMMAND"};
-     /* {dsc$w_length, dsc$b_dtype, dsc$b_class, dsc$a_pointer}; */
-
-/*
- * Turn keyboard echoing on or off (VMS).  Loosely based on VMSmunch.c
- * and hence on Joe Meadows' file.c code.
- */
-int echo(opt)
-    int opt;
-{
-    /*
-     * For VMS v5.x:
-     *   IO$_SENSEMODE/SETMODE info:  Programming, Vol. 7A, System Programming,
-     *     I/O User's: Part I, sec. 8.4.1.1, 8.4.3, 8.4.5, 8.6
-     *   sys$assign(), sys$qio() info:  Programming, Vol. 4B, System Services,
-     *     System Services Reference Manual, pp. sys-23, sys-379
-     *   fixed-length descriptor info:  Programming, Vol. 3, System Services,
-     *     Intro to System Routines, sec. 2.9.2
-     * Greg Roelofs, 15 Aug 91
-     */
-
-    short           DevChan, iosb[4];
-    long            status;
-    unsigned long   ttmode[2];  /* space for 8 bytes */
-
-
-    /* assign a channel to standard input */
-    status = sys$assign(&DevDesc, &DevChan, 0, 0);
-    if (!(status & 1))
-        return status;
-
-    /* use sys$qio and the IO$_SENSEMODE function to determine the current
-     * tty status (for password reading, could use IO$_READVBLK function
-     * instead, but echo on/off will be more general)
-     */
-    status = sys$qiow(0, DevChan, IO$_SENSEMODE, &iosb, 0, 0,
-                     ttmode, 8, 0, 0, 0, 0);
-    if (!(status & 1))
-        return status;
-    status = iosb[0];
-    if (!(status & 1))
-        return status;
-
-    /* modify mode buffer to be either NOECHO or ECHO
-     * (depending on function argument opt)
-     */
-    if (opt == 0)   /* off */
-        ttmode[1] |= TT$M_NOECHO;                       /* set NOECHO bit */
-    else
-        ttmode[1] &= ~((unsigned long) TT$M_NOECHO);    /* clear NOECHO bit */
-
-    /* use the IO$_SETMODE function to change the tty status */
-    status = sys$qiow(0, DevChan, IO$_SETMODE, &iosb, 0, 0,
-                     ttmode, 8, 0, 0, 0, 0);
-    if (!(status & 1))
-        return status;
-    status = iosb[0];
-    if (!(status & 1))
-        return status;
-
-    /* deassign the sys$input channel by way of clean-up */
-    status = sys$dassgn(DevChan);
-    if (!(status & 1))
-        return status;
-
-    return SS$_NORMAL;   /* we be happy */
-
-} /* end function echo() */
-
-
-/*
- * Read a single character from keyboard in non-echoing mode (VMS).
- * (returns EOF in case of errors)
- */
-int tt_getch()
-{
-    short           DevChan, iosb[4];
-    long            status;
-    char            kbbuf[16];  /* input buffer with - some - excess length */
-
-    /* assign a channel to standard input */
-    status = sys$assign(&DevDesc, &DevChan, 0, 0);
-    if (!(status & 1))
-        return EOF;
-
-    /* read a single character from SYS$COMMAND (no-echo) and
-     * wait for completion
-     */
-    status = sys$qiow(0,DevChan,
-                      IO$_READVBLK|IO$M_NOECHO|IO$M_NOFILTR,
-                      &iosb, 0, 0,
-                      &kbbuf, 1, 0, 0, 0, 0);
-    if ((status&1) == 1)
-        status = iosb[0];
-
-    /* deassign the sys$input channel by way of clean-up
-     * (for this step, we do not need to check the completion status)
-     */
-    sys$dassgn(DevChan);
-
-    /* return the first char read, or EOF in case the read request failed */
-    return (int)(((status&1) == 1) ? (uch)kbbuf[0] : EOF);
-
-} /* end function tt_getch() */
-
-
-#else /* !VMS:  basically Unix */
 
 
 /* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
@@ -284,8 +161,6 @@ void Echon(__G)
         GLOBAL(echofd) = -1;
     }
 }
-
-#endif /* ?VMS */
 
 
 #if (defined(UNZIP) && !defined(FUNZIP))
@@ -553,56 +428,6 @@ char *getp(__G__ m, p, n)
 
 
 
-#if (defined(VMS) || defined(CMS_MVS))
-
-char *getp(__G__ m, p, n)
-    __GDEF
-    ZCONST char *m;             /* prompt for password */
-    char *p;                    /* return value: line input */
-    int n;                      /* bytes available in p[] */
-{
-    char c;                     /* one-byte buffer for read() to use */
-    int i;                      /* number of characters input */
-    char *w;                    /* warning on retry */
-    FILE *f;                    /* file structure for SYS$COMMAND device */
-
-#ifdef PASSWD_FROM_STDIN
-    f = stdin;
-#else
-    if ((f = fopen(ctermid(NULL), "r")) == NULL)
-        return NULL;
-#endif
-
-    /* get password */
-    fflush(stdout);
-    w = "";
-    do {
-        if (*w)                 /* bug: VMS apparently adds \n to NULL fputs */
-            fputs(w, stderr);   /* warning if back again */
-        fputs(m, stderr);       /* prompt */
-        fflush(stderr);
-        i = 0;
-        echoff(f);
-        do {                    /* read line, keeping n */
-            if ((c = (char)getc(f)) == '\r')
-                c = '\n';
-            if (i < n)
-                p[i++] = c;
-        } while (c != '\n');
-        echon();
-        PUTC('\n', stderr);  fflush(stderr);
-        w = "(line too long--try again)\n";
-    } while (p[i-1] != '\n');
-    p[i-1] = 0;                 /* terminate at newline */
-#ifndef PASSWD_FROM_STDIN
-    fclose(f);
-#endif
-
-    return p;                   /* return pointer to password */
-
-} /* end function getp() */
-
-#endif /* VMS || CMS_MVS */
 #endif /* ?HAVE_WORKING_GETCH */
 #endif /* CRYPT */
 #endif /* CRYPT || (UNZIP && !FUNZIP) */

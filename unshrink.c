@@ -116,13 +116,11 @@ int unshrink(__G)
 
     lastfreecode = BOGUSCODE;
 
-#ifndef VMS     /* VMS uses its own buffer scheme for textmode flush(). */
     /* non-memory-limited machines:  allocate second (large) buffer for
      * textmode conversion in flush(), but only if needed */
     if (G.pInfo->textmode && !G.outbuf2 &&
         (G.outbuf2 = (uch *)malloc(TRANSBUFSIZ)) == (uch *)NULL)
         return PK_MEM3;
-#endif /* !VMS */
 
     for (code = 0;  code < BOGUSCODE;  ++code) {
         Value[code] = (uch)code;
