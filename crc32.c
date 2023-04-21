@@ -166,12 +166,6 @@ ulg crc32(crc, buf, len)
 
   c = (REV_BE((z_uint4)crc) ^ 0xffffffffL);
 
-#ifndef NO_UNROLLED_LOOPS
-  while (len >= 8) {
-    DO8(c, buf);
-    len -= 8;
-  }
-#endif /* !NO_UNROLLED_LOOPS */
   if (len) do {
     DO1(c, buf);
   } while (--len);
