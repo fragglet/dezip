@@ -1289,9 +1289,6 @@ void version(__G)
 #if defined(uts) || defined(UTS)
       " (Amdahl UTS)",
 #else
-#ifdef pyr
-      " (Pyramid)",
-#else
 #ifdef ultrix
 #  ifdef mips
       " (DEC/MIPS)",
@@ -1313,7 +1310,6 @@ void version(__G)
 #endif /* QNX Neutrino */
 #endif /* QNX 4 */
 #endif /* DEC */
-#endif /* Pyramid */
 #endif /* Amdahl */
 #endif /* Sun */
 #endif /* SGI */

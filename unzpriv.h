@@ -157,10 +157,6 @@
 #  endif
 #endif /* sun || pyr || CONVEX */
 
-#ifdef pyr  /* Pyramid:  has BSD and AT&T "universes" */
-#  define DECLARE_ERRNO
-#endif /* pyr */
-
 /* stat() bug for Borland, VAX C RTL, and Atari ST MiNT on TOS
  * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
  * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
