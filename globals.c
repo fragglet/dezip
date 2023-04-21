@@ -201,10 +201,6 @@ Uz_Globs *globalsCtor()
     G.echofd = -1;
 #endif /* !(MACOS || ATARI || VMS) */
 
-#ifdef SYSTEM_SPECIFIC_CTOR
-    SYSTEM_SPECIFIC_CTOR(__G);
-#endif
-
 #ifdef REENTRANT
 #ifdef USETHREADID
     registerGlobalPointer(__G);
