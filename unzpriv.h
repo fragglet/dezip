@@ -211,10 +211,6 @@
     Win32 Windows CE section (also POCKET_UNZIP)
   ---------------------------------------------------------------------------*/
 
-#if (defined(_WIN32_WCE) || defined(POCKET_UNZIP))
-#  include "wince/wcecfg.h"
-#endif
-
 
 
 /* ----------------------------------------------------------------------------
@@ -562,9 +558,7 @@
  * (differently) when <locale.h> is read later.
  */
 #ifdef UNICODE_SUPPORT
-#  if !(defined(_WIN32_WCE) || defined(POCKET_UNZIP))
 #   include <wchar.h>
-#  endif
 # ifndef _MBCS  /* no need to include <locale.h> twice, see below */
 #   include <locale.h>
 #   ifndef SETLOCALE

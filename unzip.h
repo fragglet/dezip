@@ -86,13 +86,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  define WIN32
 #endif
 
-#if defined(_WIN32_WCE)
-#    define WIN32
-#  ifndef UNICODE       /* WinCE requires UNICODE wide character support */
-#    define UNICODE
-#  endif
-#endif
-
 /* Borland C does not define __TURBOC__ if compiling for a 32-bit platform */
 
 /* define MSDOS for Turbo C (unless OS/2) and Power C as well as Microsoft C */
