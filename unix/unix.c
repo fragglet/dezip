@@ -1173,14 +1173,6 @@ int set_symlnk_attribs(__G__ slnk_entry)
         }
       }
 # endif /* !NO_LCHOWN */
-# if (!defined(NO_LCHMOD))
-      TTrace((stderr,
-        "set_symlnk_attribs:  restoring Unix attributes for\n        %s\n",
-        FnFilter1(slnk_entry->fname)));
-      if (lchmod(slnk_entry->fname,
-                 filtattr(__G__ *(unsigned *)(zvoid *)slnk_entry->buf)))
-          perror("lchmod (file attributes) error");
-# endif /* !NO_LCHMOD */
     }
     /* currently, no error propagation... */
     return PK_OK;
