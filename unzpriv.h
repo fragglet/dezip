@@ -389,10 +389,6 @@
 #  define T20_VMS
 #endif
 
-#if (defined(MSDOS) || defined(T20_VMS))
-#  define DOS_T20_VMS
-#endif
-
 #if (defined(ATH_BEO) || defined(UNIX))
 #  define ATH_BEO_UNX
 #endif

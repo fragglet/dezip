@@ -285,10 +285,8 @@ int process_zipfiles(__G)    /* return PK-type error code */
 /* For systems that do not have tzset() but supply this function using another
    name (_tzset() or something similar), an appropiate "#define tzset ..."
    should be added to the system specifc configuration section.  */
-#if (!defined(T20_VMS) && !defined(MACOS) && !defined(RISCOS) && !defined(QDOS))
 #if (!defined(BSD) && !defined(MTS) && !defined(CMS_MVS) && !defined(TANDEM))
     tzset();
-#endif
 #endif
 
 /* Initialize UnZip's built-in pseudo hard-coded "ISO <--> OEM" translation,
