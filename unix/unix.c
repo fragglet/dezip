@@ -1244,10 +1244,6 @@ void version(__G)
 #endif /* __SUNPRO_C */
 #endif /* (__GNUC__ && NX_CURRENT_COMPILER_RELEASE) */
 
-#if defined(__NetBSD__)
-    char os_namebuf[40];
-#endif
-
     /* Pyramid, NeXT have problems with huge macro expansion, too:  no Info() */
     sprintf((char *)slide, LoadFarString(CompiledWith),
 
@@ -1319,24 +1315,6 @@ void version(__G)
       " (NeXTStep for Intel)",
 #  endif
 #else              /* the next dozen or so are somewhat order-dependent */
-#ifdef __NetBSD__
-#  ifdef NetBSD0_8
-      (sprintf(os_namebuf, " (NetBSD 0.8%c)", (char)(NetBSD0_8 - 1 + 'A')),
-       os_namebuf),
-#  else
-#  ifdef NetBSD0_9
-      (sprintf(os_namebuf, " (NetBSD 0.9%c)", (char)(NetBSD0_9 - 1 + 'A')),
-       os_namebuf),
-#  else
-#  ifdef NetBSD1_0
-      (sprintf(os_namebuf, " (NetBSD 1.0%c)", (char)(NetBSD1_0 - 1 + 'A')),
-       os_namebuf),
-#  else
-      (BSD4_4 == 0.5)? " (NetBSD before 0.9)" : " (NetBSD 1.1 or later)",
-#  endif
-#  endif
-#  endif
-#else
 #ifdef pyr
       " (Pyramid)",
 #else
@@ -1362,7 +1340,6 @@ void version(__G)
 #endif /* QNX 4 */
 #endif /* DEC */
 #endif /* Pyramid */
-#endif /* FreeBSD */
 #endif /* NeXT */
 #endif /* Amdahl */
 #endif /* OSF/1 */
