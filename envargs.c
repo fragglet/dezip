@@ -32,11 +32,7 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-#ifdef __EMX__          /* emx isspace() returns TRUE on extended ASCII !! */
-#  define ISspace(c) ((c) & 0x80 ? 0 : isspace((unsigned)c))
-#else
 #  define ISspace(c) isspace((unsigned)c)
-#endif /* ?__EMX__ */
 
 #if (!defined(RISCOS) && (!defined(MODERN) || defined(NO_STDLIB_H)))
 extern char *getenv();

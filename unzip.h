@@ -167,9 +167,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #if (defined(MSDOS) && defined(WIN32))
 #  undef MSDOS                  /* WIN32 is >>>not<<< MSDOS */
 #endif
-#if (defined(__GO32__) && defined(__EMX__) && defined(__RSXNT__))
-#  undef __GO32__
-#endif
 
 #if (defined(linux) && !defined(LINUX))
 #  define LINUX
@@ -200,14 +197,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  endif
 #endif
 #if (defined(__IBMC__) || defined(__BORLANDC__) || defined(__WATCOMC__))
-#  ifndef PROTO
-#    define PROTO
-#  endif
-#  ifndef MODERN
-#    define MODERN
-#  endif
-#endif
-#if (defined(__EMX__) || defined(__CYGWIN__))
 #  ifndef PROTO
 #    define PROTO
 #  endif

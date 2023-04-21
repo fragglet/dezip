@@ -435,10 +435,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
 #  endif
 #  ifndef __RSXNT__
-#    ifdef __EMX__
-       static ZCONST char Far EnvEMX[] = "EMX";
-       static ZCONST char Far EnvEMXOPT[] = "EMXOPT";
-#    endif
 #    if (defined(__GO32__) && (!defined(__DJGPP__) || (__DJGPP__ < 2)))
        static ZCONST char Far EnvGO32[] = "GO32";
        static ZCONST char Far EnvGO32TMP[] = "GO32TMP";
@@ -2390,18 +2386,6 @@ static void show_version_info(__G)
           (envptr == (char *)NULL || *envptr == 0)?
           LoadFarStringSmall2(None) : envptr));
 #ifndef __RSXNT__
-#ifdef __EMX__
-        envptr = getenv(LoadFarStringSmall(EnvEMX));
-        Info(slide, 0, ((char *)slide, LoadFarString(EnvOptFormat),
-          LoadFarStringSmall(EnvEMX),
-          (envptr == (char *)NULL || *envptr == 0)?
-          LoadFarStringSmall2(None) : envptr));
-        envptr = getenv(LoadFarStringSmall(EnvEMXOPT));
-        Info(slide, 0, ((char *)slide, LoadFarString(EnvOptFormat),
-          LoadFarStringSmall(EnvEMXOPT),
-          (envptr == (char *)NULL || *envptr == 0)?
-          LoadFarStringSmall2(None) : envptr));
-#endif /* __EMX__ */
 #if (defined(__GO32__) && (!defined(__DJGPP__) || (__DJGPP__ < 2)))
         envptr = getenv(LoadFarStringSmall(EnvGO32));
         Info(slide, 0, ((char *)slide, LoadFarString(EnvOptFormat),
