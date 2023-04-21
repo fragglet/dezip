@@ -89,14 +89,6 @@ typedef struct stat z_stat;
 #    include <utime.h>
 #    define GOT_UTIMBUF
 #  endif
-#  if (!defined(GOT_UTIMBUF) && (defined(__hpux) || defined(__SUNPRO_C)))
-#    include <utime.h>
-#    define GOT_UTIMBUF
-#  endif
-#  if (!defined(GOT_UTIMBUF) && defined(__GNU__))
-#    include <utime.h>
-#    define GOT_UTIMBUF
-#  endif
 #endif
 
 #if (defined(V7) || defined(pyr_bsd))

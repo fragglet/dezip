@@ -1775,14 +1775,7 @@
 #  endif
 #endif
 
-#if (defined(GOT_UTIMBUF) || defined(sgi) || defined(ATARI))
    typedef struct utimbuf ztimbuf;
-#else
-   typedef struct ztimbuf {
-       time_t actime;        /* new access time */
-       time_t modtime;       /* new modification time */
-   } ztimbuf;
-#endif
 
 typedef struct iztimes {
    time_t atime;             /* new access time */
