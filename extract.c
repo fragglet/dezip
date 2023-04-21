@@ -88,10 +88,6 @@ static int extract_or_test_member OF((__GPRO));
         unsigned compr_offset,
         int (*test_uc_ebdata)(__GPRO__ uch *eb, unsigned eb_size,
                               uch *eb_ucptr, ulg eb_ucsize)));
-#if (defined(VMS) || defined(VMS_TEXT_CONV))
-   static void decompress_bits OF((uch *outptr, unsigned needlen,
-                                   ZCONST uch *bitptr));
-#endif
    static void set_deferred_symlink OF((__GPRO__ slinkentry *slnk_entry));
    static int Cdecl dircomp OF((ZCONST zvoid *a, ZCONST zvoid *b));
 
@@ -2174,124 +2170,6 @@ int memflush(__G__ rawbuf, size)
     return 0;
 
 } /* end function memflush() */
-
-
-
-
-
-#if (defined(VMS) || defined(VMS_TEXT_CONV))
-
-/************************************/
-/*  Function extract_izvms_block()  */
-/************************************/
-
-/*
- * Extracts block from p. If resulting length is less than needed, fill
- * extra space with corresponding bytes from 'init'.
- * Currently understands 3 formats of block compression:
- * - Simple storing
- * - Compression of zero bytes to zero bits
- * - Deflation (see memextract())
- * The IZVMS block data is returned in malloc'd space.
- */
-uch *extract_izvms_block(__G__ ebdata, size, retlen, init, needlen)
-    __GDEF
-    ZCONST uch *ebdata;
-    unsigned size;
-    unsigned *retlen;
-    ZCONST uch *init;
-    unsigned needlen;
-{
-    uch *ucdata;       /* Pointer to block allocated */
-    int cmptype;
-    unsigned usiz, csiz;
-
-    cmptype = (makeword(ebdata+EB_IZVMS_FLGS) & EB_IZVMS_BCMASK);
-    csiz = size - EB_IZVMS_HLEN;
-    usiz = (cmptype == EB_IZVMS_BCSTOR ?
-            csiz : makeword(ebdata+EB_IZVMS_UCSIZ));
-
-    if (retlen)
-        *retlen = usiz;
-
-    if ((ucdata = (uch *)malloc(MAX(needlen, usiz))) == NULL)
-        return NULL;
-
-    if (init && (usiz < needlen))
-        memcpy((char *)ucdata, (ZCONST char *)init, needlen);
-
-    switch (cmptype)
-    {
-        case EB_IZVMS_BCSTOR: /* The simplest case */
-            memcpy(ucdata, ebdata+EB_IZVMS_HLEN, usiz);
-            break;
-        case EB_IZVMS_BC00:
-            decompress_bits(ucdata, usiz, ebdata+EB_IZVMS_HLEN);
-            break;
-        case EB_IZVMS_BCDEFL:
-            memextract(__G__ ucdata, (ulg)usiz,
-                       ebdata+EB_IZVMS_HLEN, (ulg)csiz);
-            break;
-        default:
-            free(ucdata);
-            ucdata = NULL;
-    }
-    return ucdata;
-
-} /* end of extract_izvms_block */
-
-
-
-
-
-/********************************/
-/*  Function decompress_bits()  */
-/********************************/
-/*
- *  Simple uncompression routine. The compression uses bit stream.
- *  Compression scheme:
- *
- *  if (byte!=0)
- *      putbit(1),putbyte(byte)
- *  else
- *      putbit(0)
- */
-static void decompress_bits(outptr, needlen, bitptr)
-    uch *outptr;        /* Pointer into output block */
-    unsigned needlen;   /* Size of uncompressed block */
-    ZCONST uch *bitptr; /* Pointer into compressed data */
-{
-    ulg bitbuf = 0;
-    int bitcnt = 0;
-
-#define _FILL   {       bitbuf |= (*bitptr++) << bitcnt;\
-                        bitcnt += 8;                    \
-                }
-
-    while (needlen--)
-    {
-        if (bitcnt <= 0)
-            _FILL;
-
-        if (bitbuf & 1)
-        {
-            bitbuf >>= 1;
-            if ((bitcnt -= 1) < 8)
-                _FILL;
-            *outptr++ = (uch)bitbuf;
-            bitcnt -= 8;
-            bitbuf >>= 8;
-        }
-        else
-        {
-            *outptr++ = '\0';
-            bitcnt -= 1;
-            bitbuf >>= 1;
-        }
-    }
-} /* end function decompress_bits() */
-
-#endif /* VMS || VMS_TEXT_CONV */
 
 
 

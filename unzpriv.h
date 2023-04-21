@@ -38,10 +38,6 @@
 
 /* disable bzip2 support for SFX stub, unless explicitly requested */
 
-#  ifdef VMS_TEXT_CONV
-#    undef VMS_TEXT_CONV
-#  endif
-
 /* Enable -B option per default on specific systems, to allow backing up
  * files that would be overwritten.
  * (This list of systems must be kept in sync with the list of systems
@@ -1265,11 +1261,6 @@ int    extract_or_test_files     OF((__GPRO));
 int    memextract                OF((__GPRO__ uch *tgt, ulg tgtsize,
                                      ZCONST uch *src, ulg srcsize));
 int    memflush                  OF((__GPRO__ ZCONST uch *rawbuf, ulg size));
-#if (defined(VMS) || defined(VMS_TEXT_CONV))
-   uch   *extract_izvms_block    OF((__GPRO__ ZCONST uch *ebdata,
-                                     unsigned size, unsigned *retlen,
-                                     ZCONST uch *init, unsigned needlen));
-#endif
 char  *fnfilter                  OF((ZCONST char *raw, uch *space,
                                      extent size));
 

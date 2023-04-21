@@ -209,9 +209,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  endif
      static ZCONST char Far UseBZip2[] =
      "USE_BZIP2 (PKZIP 4.6+, using bzip2 lib version %s)";
-#  ifdef VMS_TEXT_CONV
-     static ZCONST char Far VmsTextConv[] = "VMS_TEXT_CONV";
-#  endif
 #  ifdef WILD_STOP_AT_DIR
      static ZCONST char Far WildStopAtDir[] = "WILD_STOP_AT_DIR";
 #  endif
@@ -1419,11 +1416,6 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           (char *)(slide+256)));
         ++numopts;
-#ifdef VMS_TEXT_CONV
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(VmsTextConv)));
-        ++numopts;
-#endif
 #ifdef WILD_STOP_AT_DIR
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(WildStopAtDir)));

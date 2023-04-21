@@ -106,9 +106,6 @@
 */
 #  define WriteTxtErr(buf,len,strm)  WriteError(buf,len,strm)
 
-#ifdef VMS_TEXT_CONV
-static int is_vms_varlen_txt OF((__GPRO__ uch *ef_buf, unsigned ef_len));
-#endif
 static int disk_error OF((__GPRO));
 
 
@@ -510,9 +507,6 @@ int flush(__G__ rawbuf, size, unshrink)
     register uch *p;
     register uch *q;
     uch *transbuf;
-#if (defined(SMALL_MEM) || defined(MED_MEM) || defined(VMS_TEXT_CONV))
-    ulg transbufsiz;
-#endif
     /* static int didCRlast = FALSE;    moved to globals.h */
 
 
@@ -553,118 +547,14 @@ int flush(__G__ rawbuf, size, unshrink)
         if (unshrink) {
             /* rawbuf = outbuf */
             transbuf = G.outbuf2;
-#if (defined(SMALL_MEM) || defined(MED_MEM) || defined(VMS_TEXT_CONV))
-            transbufsiz = TRANSBUFSIZ;
-#endif
         } else {
             /* rawbuf = slide */
             transbuf = G.outbuf;
-#if (defined(SMALL_MEM) || defined(MED_MEM) || defined(VMS_TEXT_CONV))
-            transbufsiz = OUTBUFSIZ;
-            Trace((stderr, "\ntransbufsiz = OUTBUFSIZ = %u\n",
-                   (unsigned)OUTBUFSIZ));
-#endif
         }
         if (G.newfile) {
-#ifdef VMS_TEXT_CONV
-            if (G.pInfo->hostnum == VMS_ && G.extra_field &&
-                is_vms_varlen_txt(__G__ G.extra_field,
-                                  G.lrec.extra_field_length))
-                G.VMS_line_state = 0;    /* 0: ready to read line length */
-            else
-                G.VMS_line_state = -1;   /* -1: don't treat as VMS text */
-#endif
             G.didCRlast = FALSE;         /* no previous buffers written */
             G.newfile = FALSE;
         }
-
-#ifdef VMS_TEXT_CONV
-        if (G.VMS_line_state >= 0)
-        {
-            p = rawbuf;
-            q = transbuf;
-            while ((extent)(p-rawbuf) < (extent)size) {
-                switch (G.VMS_line_state) {
-
-                    /* 0: ready to read line length */
-                    case 0:
-                        G.VMS_line_length = 0;
-                        if ((extent)(p-rawbuf) == (extent)size-1) {
-                            /* last char */
-                            G.VMS_line_length = (unsigned)(*p++);
-                            G.VMS_line_state = 1;
-                        } else {
-                            G.VMS_line_length = makeword(p);
-                            p += 2;
-                            G.VMS_line_state = 2;
-                        }
-                        G.VMS_line_pad =
-                               ((G.VMS_line_length & 1) != 0); /* odd */
-                        break;
-
-                    /* 1: read one byte of length, need second */
-                    case 1:
-                        G.VMS_line_length += ((unsigned)(*p++) << 8);
-                        G.VMS_line_state = 2;
-                        break;
-
-                    /* 2: ready to read VMS_line_length chars */
-                    case 2:
-                        {
-                            extent remaining = (extent)size+(rawbuf-p);
-                            extent outroom;
-
-                            if (G.VMS_line_length < remaining) {
-                                remaining = G.VMS_line_length;
-                                G.VMS_line_state = 3;
-                            }
-
-                            outroom = transbuf+(extent)transbufsiz-q;
-                            if (remaining >= outroom) {
-                                remaining -= outroom;
-                                for (;outroom > 0; p++, outroom--)
-                                    *q++ = native(*p);
-                                if (!uO.cflag && WriteError(transbuf,
-                                    (extent)(q-transbuf), G.outfile))
-                                    return disk_error(__G);
-                                else if (uO.cflag && (*G.message)((zvoid *)&G,
-                                         transbuf, (ulg)(q-transbuf), 0))
-                                    return PK_OK;
-                                q = transbuf;
-                                /* fall through to normal case */
-                            }
-                            G.VMS_line_length -= remaining;
-                            for (;remaining > 0; p++, remaining--)
-                                *q++ = native(*p);
-                        }
-                        break;
-
-                    /* 3: ready to PutNativeEOL */
-                    case 3:
-                        if (q > transbuf+(extent)transbufsiz-lenEOL) {
-                            if (!uO.cflag &&
-                                WriteError(transbuf, (extent)(q-transbuf),
-                                  G.outfile))
-                                return disk_error(__G);
-                            else if (uO.cflag && (*G.message)((zvoid *)&G,
-                                     transbuf, (ulg)(q-transbuf), 0))
-                                return PK_OK;
-                            q = transbuf;
-                        }
-                        PutNativeEOL
-                        G.VMS_line_state = G.VMS_line_pad ? 4 : 0;
-                        break;
-
-                    /* 4: ready to read pad byte */
-                    case 4:
-                        ++p;
-                        G.VMS_line_state = 0;
-                        break;
-                }
-            } /* end while */
-
-        } else
-#endif /* VMS_TEXT_CONV */
 
     /*-----------------------------------------------------------------------
         Algorithm:  CR/LF => native; lone CR => native; lone LF => native.
@@ -714,134 +604,6 @@ int flush(__G__ rawbuf, size, unshrink)
 
 } /* end function flush() [resp. partflush() for 16-bit Deflate64 support] */
 
-
-
-
-
-#ifdef VMS_TEXT_CONV
-
-/********************************/
-/* Function is_vms_varlen_txt() */
-/********************************/
-
-static int is_vms_varlen_txt(__G__ ef_buf, ef_len)
-    __GDEF
-    uch *ef_buf;        /* buffer containing extra field */
-    unsigned ef_len;    /* total length of extra field */
-{
-    unsigned eb_id;
-    unsigned eb_len;
-    uch *eb_data;
-    unsigned eb_datlen;
-#define VMSREC_C_UNDEF  0
-#define VMSREC_C_VAR    2
-    uch vms_rectype = VMSREC_C_UNDEF;
- /* uch vms_fileorg = 0; */ /* currently, fileorg is not used... */
-
-#define VMSPK_ITEMID            0
-#define VMSPK_ITEMLEN           2
-#define VMSPK_ITEMHEADSZ        4
-
-#define VMSATR_C_RECATTR        4
-#define VMS_FABSIG              0x42414656      /* "VFAB" */
-/* offsets of interesting fields in VMS fabdef structure */
-#define VMSFAB_B_RFM            31      /* record format byte */
-#define VMSFAB_B_ORG            29      /* file organization byte */
-
-    if (ef_len == 0 || ef_buf == NULL)
-        return FALSE;
-
-    while (ef_len >= EB_HEADSIZE) {
-        eb_id = makeword(EB_ID + ef_buf);
-        eb_len = makeword(EB_LEN + ef_buf);
-
-        if (eb_len > (ef_len - EB_HEADSIZE)) {
-            /* discovered some extra field inconsistency! */
-            Trace((stderr,
-              "is_vms_varlen_txt: block length %u > rest ef_size %u\n", eb_len,
-              ef_len - EB_HEADSIZE));
-            break;
-        }
-
-        switch (eb_id) {
-          case EF_PKVMS:
-            /* The PKVMS e.f. raw data part consists of:
-             * a) 4 bytes CRC checksum
-             * b) list of uncompressed variable-length data items
-             * Each data item is introduced by a fixed header
-             *  - 2 bytes data type ID
-             *  - 2 bytes <size> of data
-             *  - <size> bytes of actual attribute data
-             */
-
-            /* get pointer to start of data and its total length */
-            eb_data = ef_buf+(EB_HEADSIZE+4);
-            eb_datlen = eb_len-4;
-
-            /* test the CRC checksum */
-            if (makelong(ef_buf+EB_HEADSIZE) !=
-                crc32(CRCVAL_INITIAL, eb_data, (extent)eb_datlen))
-            {
-                Info(slide, 1, ((char *)slide,
-                  "[Warning: CRC error, discarding PKWARE extra field]\n"));
-                /* skip over the data analysis code */
-                break;
-            }
-
-            /* scan through the attribute data items */
-            while (eb_datlen > 4)
-            {
-                unsigned fldsize = makeword(&eb_data[VMSPK_ITEMLEN]);
-
-                /* check the item type word */
-                switch (makeword(&eb_data[VMSPK_ITEMID])) {
-                  case VMSATR_C_RECATTR:
-                    /* we have found the (currently only) interesting
-                     * data item */
-                    if (fldsize >= 1) {
-                        vms_rectype = eb_data[VMSPK_ITEMHEADSZ] & 15;
-                     /* vms_fileorg = eb_data[VMSPK_ITEMHEADSZ] >> 4; */
-                    }
-                    break;
-                  default:
-                    break;
-                }
-                /* skip to next data item */
-                eb_datlen -= fldsize + VMSPK_ITEMHEADSZ;
-                eb_data += fldsize + VMSPK_ITEMHEADSZ;
-            }
-            break;
-
-          case EF_IZVMS:
-            if (makelong(ef_buf+EB_HEADSIZE) == VMS_FABSIG) {
-                if ((eb_data = extract_izvms_block(__G__
-                                                   ef_buf+EB_HEADSIZE, eb_len,
-                                                   &eb_datlen, NULL, 0))
-                    != NULL)
-                {
-                    if (eb_datlen >= VMSFAB_B_RFM+1) {
-                        vms_rectype = eb_data[VMSFAB_B_RFM] & 15;
-                     /* vms_fileorg = eb_data[VMSFAB_B_ORG] >> 4; */
-                    }
-                    free(eb_data);
-                }
-            }
-            break;
-
-          default:
-            break;
-        }
-
-        /* Skip this extra field block */
-        ef_buf += (eb_len + EB_HEADSIZE);
-        ef_len -= (eb_len + EB_HEADSIZE);
-    }
-
-    return (vms_rectype == VMSREC_C_VAR);
-
-} /* end function is_vms_varlen_txtfile() */
-
-#endif /* VMS_TEXT_CONV */
 
 
 
