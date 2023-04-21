@@ -42,29 +42,9 @@
 #endif
 
 #ifdef _POSIX_VERSION
-#  ifndef DIRENT
-#    define DIRENT
-#  endif
 #endif
 
-#ifdef DIRENT
 #  include <dirent.h>
-#else
-#  ifdef SYSV
-#    ifdef SYSNDIR
-#      include <sys/ndir.h>
-#    else
-#      include <ndir.h>
-#    endif
-#  else /* !SYSV */
-#    ifndef NO_SYSDIR
-#      include <sys/dir.h>
-#    endif
-#  endif /* ?SYSV */
-#  ifndef dirent
-#    define dirent direct
-#  endif
-#endif /* ?DIRENT */
 
 #ifdef SET_DIR_ATTRIB
 typedef struct uxdirattr {      /* struct for holding unix style directory */
