@@ -1138,15 +1138,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     else
         outfp = (FILE *)stdout;
 
-#ifdef QUERY_TRNEWLN
-    /* some systems require termination of query prompts with '\n' to force
-     * immediate display */
-    if (MSG_MNEWLN(flag)) {   /* assumes writable buffer (e.g., slide[]) */
-        *endbuf++ = '\n';     /*  with room for one more char at end of buf */
-        ++size;               /*  (safe assumption:  only used for four */
-    }                         /*  short queries in extract.c and fileio.c) */
-#endif
-
     if (MSG_TNEWLN(flag)) {   /* again assumes writable buffer:  fragile... */
         if ((!size && !((Uz_Globs *)pG)->sol) ||
             (size && (endbuf[-1] != '\n')))
