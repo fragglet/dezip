@@ -206,30 +206,6 @@
     Tandem NSK section:
   ---------------------------------------------------------------------------*/
 
-#ifdef TANDEM
-#  include "tandem.h"
-#  include <fcntl.h>
-#  ifndef __INT32
-     /* We are compiling with non-WIDE memory model, int = 16 bits */
-#      define INT_16BIT   /* report "int" size is 16-bit to inflate setup */
-#    ifdef USE_DEFLATE64
-       /* Following required for 64k WSIZE of Deflate64 support */
-#      define MED_MEM     /* else OUTBUFSIZ is 64K and fails in do_string */
-#      define INBUFSIZ  8192  /* but larger buffer for real OSes */
-#    endif
-#  endif
-   /* use a single LF delimiter so that writes to 101 text files work */
-#  define PutNativeEOL  *q++ = native(LF);
-#  define lenEOL        1
-#  ifndef DATE_FORMAT
-#    define DATE_FORMAT  DF_DMY
-#  endif
-#  define SCREENLINES   25
-   /* USE_EF_UT_TIME is set in tandem.h */
-#  define RESTORE_UIDGID
-#  define NO_STRNICMP
-#endif
-
 /*---------------------------------------------------------------------------
     THEOS section:
   ---------------------------------------------------------------------------*/

@@ -136,7 +136,6 @@ static ZCONST char Far CannotOpenZipfile[] =
   "error:  cannot open zipfile [ %s ]\n        %s\n";
 
 #if (!defined(VMS) && !defined(AOS_VS) && !defined(CMS_MVS) && !defined(MACOS))
-#if (!defined(TANDEM))
    static ZCONST char Far CannotDeleteOldFile[] =
      "error:  cannot delete old %s\n        %s\n";
 #ifdef UNIXBACKUP
@@ -150,7 +149,6 @@ static ZCONST char Far CannotOpenZipfile[] =
 #endif
    static ZCONST char Far CannotCreateFile[] =
      "error:  cannot create %s\n        %s\n";
-#endif /* !TANDEM */
 #endif /* !VMS && !AOS_VS && !CMS_MVS && !MACOS */
 
 static ZCONST char Far ReadError[] = "error:  zipfile read error\n";
@@ -238,7 +236,6 @@ int open_input_file(__G)    /* return 1 if open failed */
 
 
 #if (!defined(VMS) && !defined(AOS_VS) && !defined(CMS_MVS) && !defined(MACOS))
-#if (!defined(TANDEM))
 
 /***************************/
 /* Function open_outfile() */
@@ -399,7 +396,6 @@ int open_outfile(__G)           /* return 1 if fail */
 
 } /* end function open_outfile() */
 
-#endif /* !TANDEM */
 #endif /* !VMS && !AOS_VS && !CMS_MVS && !MACOS */
 
 

@@ -1106,9 +1106,6 @@ int uz_opts(__G__ pargc, pargv)
                         if (uO.aflag == 0)
                            ++uO.bflag;
 #endif
-#ifdef TANDEM
-                        ++uO.bflag;
-#endif
                         uO.aflag = 0;
                     }
                     break;
@@ -1329,14 +1326,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.qflag;
                     break;
-#ifdef TANDEM
-                case ('r'):    /* remove file extensions */
-                    if (negative)
-                        uO.rflag = FALSE, negative = 0;
-                    else
-                        uO.rflag = TRUE;
-                    break;
-#endif /* TANDEM */
 #ifdef VMS
                 /* VMS:  extract "text" files in Stream_LF format (-a[a]) */
                 case ('S'):
@@ -1458,7 +1447,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.ods2_flag = TRUE;
                     break;
 #endif /* VMS */
-#if (!defined(RISCOS) && !defined(CMS_MVS) && !defined(TANDEM))
                 case (':'):    /* allow "parent dir" path components */
                     if (negative) {
                         uO.ddotflag = MAX(uO.ddotflag-negative,0);
@@ -1466,7 +1454,6 @@ int uz_opts(__G__ pargc, pargv)
                     } else
                         ++uO.ddotflag;
                     break;
-#endif /* !RISCOS && !CMS_MVS && !TANDEM */
 #ifdef UNIX
                 case ('^'):    /* allow control chars in filenames */
                     if (negative) {
