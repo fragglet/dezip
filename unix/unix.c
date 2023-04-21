@@ -1365,13 +1365,6 @@ void version(__G)
       " (NeXTStep for Intel)",
 #  endif
 #else              /* the next dozen or so are somewhat order-dependent */
-#ifdef LINUX
-#  ifdef __ELF__
-      " (Linux ELF)",
-#  else
-      " (Linux a.out)",
-#  endif
-#else
 #ifdef MINIX
       " (Minix)",
 #else
@@ -1436,7 +1429,6 @@ void version(__G)
 #endif /* SCO Xenix */
 #endif /* SCO Unix */
 #endif /* Minix */
-#endif /* Linux */
 #endif /* NeXT */
 #endif /* Amdahl */
 #endif /* OSF/1 */
