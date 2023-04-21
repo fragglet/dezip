@@ -562,48 +562,6 @@ struct tm *localtime(when)
     return ret;
 }
 
-#ifdef NEED__ISINDST
-int _isindst(tb)
-    struct tm *tb;
-{
-    time_t     localt;          /* time_t equivalent of given tm struct */
-    time_t     univt;           /* assumed UTC value of given time */
-    long       tzoffset_adj;    /* timezone-adjustment `remainder' */
-    int        bailout_cnt;     /* counter of tries for tz correction */
-    int        timetype;
-
-    __tzset();
-
-    /* when DST is unsupported in current timezone, DST is always off */
-    if (statism.typecnt <= 1) return FALSE;
-
-    localt = mkgmtime(tb);
-    if (localt == (time_t)-1)
-        /* specified time is out-of-range, default to FALSE */
-        return FALSE;
-
-    univt = localt - statism.ttis[0].tt_gmtoff;
-    bailout_cnt = 3;
-    do {
-        if (statism.timecnt == 0 || univt < statism.ats[0])
-            timetype = statism.ttis[0].tt_isdst && statism.typecnt > 1 &&
-                       !statism.ttis[1].tt_isdst;
-        else {
-            for (timetype = 1; timetype < statism.timecnt; ++timetype)
-                if (univt < statism.ats[timetype])
-                    break;
-            timetype = statism.types[timetype - 1];
-        }
-        if ((tzoffset_adj = localt - univt - statism.ttis[timetype].tt_gmtoff)
-            == 0L)
-            break;
-        univt += tzoffset_adj;
-    } while (--bailout_cnt > 0);
-
-    /* return TRUE when DST is active at given time */
-    return (statism.ttis[timetype].tt_isdst);
-}
-#endif /* NEED__ISINDST */
 #endif /* !IZ_MKTIME_ONLY */
 
 /* Return the equivalent in seconds past 12:00:00 a.m. Jan 1, 1970 GMT

@@ -61,10 +61,6 @@ extern int real_timezone_is_set;        /* set by tzset() */
 
 void __tzset OF((void));
 
-#ifdef NEED__ISINDST
-int _isindst OF((struct tm *tb));
-#endif
-
 /* callback function to be supplied by the program that uses this library */
 int GetPlatformLocalTimezone OF((register struct state * ZCONST sp,
         void (*fill_tzstate_from_rules)(struct state * ZCONST sp_res,
