@@ -346,9 +346,6 @@
 #endif
 
 /* user may have defined both by accident...  NOTIMESTAMP takes precedence */
-#if (defined(TIMESTAMP) && defined(NOTIMESTAMP))
-#  undef TIMESTAMP
-#endif
 
 /* The LZW patent is expired worldwide since 2004-Jul-07, so USE_UNSHRINK
  * is now enabled by default.  See unshrink.c.
