@@ -134,20 +134,19 @@ freely, subject to the above disclaimer and the following restrictions:
     Public typedefs.
   ---------------------------------------------------------------------------*/
 
-typedef void zvoid;
 typedef unsigned char uch;  /* code assumes unsigned bytes; these type-  */
 typedef unsigned short ush; /*  defs replace byte/UWORD/ULONG (which are */
 typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
 #define _IZ_TYPES_DEFINED
 
 /* InputFn is not yet used and is likely to change: */
-typedef int(UZ_EXP MsgFn)(zvoid *pG, uch *buf, ulg size, int flag);
-typedef int(UZ_EXP InputFn)(zvoid *pG, uch *buf, int *size, int flag);
-typedef void(UZ_EXP PauseFn)(zvoid *pG, const char *prompt, int flag);
-typedef int(UZ_EXP PasswdFn)(zvoid *pG, int *rcnt, char *pwbuf, int size,
+typedef int(UZ_EXP MsgFn)(void *pG, uch *buf, ulg size, int flag);
+typedef int(UZ_EXP InputFn)(void *pG, uch *buf, int *size, int flag);
+typedef void(UZ_EXP PauseFn)(void *pG, const char *prompt, int flag);
+typedef int(UZ_EXP PasswdFn)(void *pG, int *rcnt, char *pwbuf, int size,
                              const char *zfn, const char *efn);
-typedef int(UZ_EXP StatCBFn)(zvoid *pG, int fnflag, const char *zfn,
-                             const char *efn, const zvoid *details);
+typedef int(UZ_EXP StatCBFn)(void *pG, int fnflag, const char *zfn,
+                             const char *efn, const void *details);
 typedef void(UZ_EXP UsrIniFn)(void);
 
 typedef struct _UzpBuffer { /* rxstr */
@@ -339,11 +338,11 @@ int UZ_EXP UzpValidate OF((char *archive, int AllCodes));
 
 /* default I/O functions (can be swapped out via UzpAltMain() entry point): */
 
-int UZ_EXP UzpMessagePrnt OF((zvoid * pG, uch *buf, ulg size, int flag));
-int UZ_EXP UzpMessageNull OF((zvoid * pG, uch *buf, ulg size, int flag));
-int UZ_EXP UzpInput OF((zvoid * pG, uch *buf, int *size, int flag));
-void UZ_EXP UzpMorePause OF((zvoid * pG, const char *prompt, int flag));
-int UZ_EXP UzpPassword OF((zvoid * pG, int *rcnt, char *pwbuf, int size,
+int UZ_EXP UzpMessagePrnt OF((void *pG, uch *buf, ulg size, int flag));
+int UZ_EXP UzpMessageNull OF((void *pG, uch *buf, ulg size, int flag));
+int UZ_EXP UzpInput OF((void *pG, uch *buf, int *size, int flag));
+void UZ_EXP UzpMorePause OF((void *pG, const char *prompt, int flag));
+int UZ_EXP UzpPassword OF((void *pG, int *rcnt, char *pwbuf, int size,
                            const char *zfn, const char *efn));
 
 /*---------------------------------------------------------------------------

@@ -171,7 +171,7 @@ int decrypt(__G__ passwrd) __GDEF const char *passwrd;
     /* try a few keys */
     n = 0;
     do {
-        r = (*G.decr_passwd)((zvoid *) &G, &n, GLOBAL(key), IZ_PWLEN + 1,
+        r = (*G.decr_passwd)((void *) &G, &n, GLOBAL(key), IZ_PWLEN + 1,
                              GLOBAL(zipfn), GLOBAL(filename));
         if (r == IZ_PW_ERROR) { /* internal error in fetch of PW */
             free(GLOBAL(key));

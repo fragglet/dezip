@@ -216,7 +216,7 @@ int process_zipfiles(__G) /* return PK-type error code */
         if (!uO.qflag && error != PK_NOZIP && error != IZ_DIR &&
             (!uO.T_flag || uO.zipinfo_mode) &&
             (NumWinFiles + NumLoseFiles + NumWarnFiles + NumMissFiles) > 0)
-            (*G.message)((zvoid *) &G, (uch *) "\n", 1L, 0);
+            (*G.message)((void *) &G, (uch *) "\n", 1L, 0);
 
         if ((error = do_seekable(__G__ 0)) == PK_WARN)
             ++NumWarnFiles;
@@ -306,7 +306,7 @@ int process_zipfiles(__G) /* return PK-type error code */
              NumWinFiles != 1) &&
             !(uO.T_flag && !uO.zipinfo_mode && uO.qflag) &&
             !(uO.tflag && uO.qflag > 1))
-            (*G.message)((zvoid *) &G, (uch *) "\n", 1L, 0x401);
+            (*G.message)((void *) &G, (uch *) "\n", 1L, 0x401);
         if ((NumWinFiles > 1) ||
             (NumWinFiles == 1 &&
              NumMissDirs + NumMissFiles + NumLoseFiles + NumWarnFiles > 0))

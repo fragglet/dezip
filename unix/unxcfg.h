@@ -100,7 +100,7 @@ struct tm *gmtime(), *localtime();
     const char *wildname;                                \
     char *dirname, matchname[FILNAMSIZ];                 \
     int rootlen, have_dirname, dirnamelen, notfirstcall; \
-    zvoid *wild_dir;
+    void *wild_dir;
 
 /* created_dir, and renamed_fullpath are used by both mapname() and    */
 /*    checkdir().                                                      */

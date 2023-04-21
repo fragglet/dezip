@@ -89,7 +89,7 @@ static int test_compr_eb
         int (*test_uc_ebdata)(__GPRO__ uch *eb, unsigned eb_size, uch *eb_ucptr,
                               ulg eb_ucsize)));
 static void set_deferred_symlink OF((__GPRO__ slinkentry * slnk_entry));
-static int Cdecl dircomp OF((const zvoid *a, const zvoid *b));
+static int Cdecl dircomp OF((const void *a, const void *b));
 
 /*******************************/
 /*  Strings used in extract.c  */
@@ -755,7 +755,7 @@ int extract_or_test_files(__G) /* return PK-type error code */
                     if (error_in_archive <= PK_WARN)
                         error_in_archive = PK_FIND; /* some files not found */
                 }
-        free((zvoid *) fn_matched);
+        free((void *) fn_matched);
     }
     if (xn_matched) {
         if (reached_end)
@@ -764,7 +764,7 @@ int extract_or_test_files(__G) /* return PK-type error code */
                     Info(slide, 0x401,
                          ((char *) slide, LoadFarString(ExclFilenameNotMatched),
                           G.pxnames[i]));
-        free((zvoid *) xn_matched);
+        free((void *) xn_matched);
     }
 
     /*---------------------------------------------------------------------------
@@ -2255,7 +2255,7 @@ extent size;
 /************************/
 
 static int Cdecl dircomp(a, b) /* used by qsort(); swiped from Zip */
-    const zvoid *a,
+    const void *a,
     *b;
 {
     /* order is significant:  this sorts in reverse order (deepest first) */

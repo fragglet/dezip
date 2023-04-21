@@ -303,7 +303,7 @@ register unsigned size;
             else if (G.incnt < 0) {
                 /* another hack, but no real harm copying same thing twice */
                 (*G.message)(
-                    (zvoid *) &G,
+                    (void *) &G,
                     (uch *) LoadFarString(ReadError), /* CANNOT use slide */
                     (ulg) strlen(LoadFarString(ReadError)), 0x401);
                 return 0; /* discarding some data; better than lock-up */
@@ -342,7 +342,7 @@ int readbyte(__G) /* refill inbuf and return a byte if available, else EOF */
             return EOF;
         } else if (G.incnt < 0) { /* "fail" (abort, retry, ...) returns this */
             /* another hack, but no real harm copying same thing twice */
-            (*G.message)((zvoid *) &G, (uch *) LoadFarString(ReadError),
+            (*G.message)((void *) &G, (uch *) LoadFarString(ReadError),
                          (ulg) strlen(LoadFarString(ReadError)), 0x401);
             echon();
             DESTROYGLOBALS();
@@ -500,7 +500,7 @@ int unshrink;
          */
         if (!uO.cflag && WriteError(rawbuf, size, G.outfile))
             return disk_error(__G);
-        else if (uO.cflag && (*G.message)((zvoid *) &G, rawbuf, size, 0))
+        else if (uO.cflag && (*G.message)((void *) &G, rawbuf, size, 0))
             return PK_OK;
     } else { /* textmode:  aflag is true */
         if (unshrink) {
@@ -549,7 +549,7 @@ int unshrink;
             if (!uO.cflag &&
                 WriteError(transbuf, (extent) (q - transbuf), G.outfile))
                 return disk_error(__G);
-            else if (uO.cflag && (*G.message)((zvoid *) &G, transbuf,
+            else if (uO.cflag && (*G.message)((void *) &G, transbuf,
                                               (ulg) (q - transbuf), 0))
                 return PK_OK;
         }
@@ -583,11 +583,11 @@ static int disk_error(__G) __GDEF
 /* Function UzpMessagePrnt() */
 /*****************************/
 
-int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
-zvoid *pG; /* globals struct:  always passed */
-uch *buf;  /* preformatted string to be printed */
-ulg size;  /* length of string (may include nulls) */
-int flag;  /* flag bits */
+int UZ_EXP UzpMessagePrnt(pG, buf, size,
+                          flag) void *pG; /* globals struct:  always passed */
+uch *buf; /* preformatted string to be printed */
+ulg size; /* length of string (may include nulls) */
+int flag; /* flag bits */
 {
     /* IMPORTANT NOTE:
      *    The name of the first parameter of UzpMessagePrnt(), which passes
@@ -665,9 +665,9 @@ int flag;  /* flag bits */
 /* Function UzpInput() */ /* GRR:  this is a placeholder for now */
 /***********************/
 
-int UZ_EXP UzpInput(pG, buf, size, flag)
-zvoid *pG; /* globals struct:  always passed */
-uch *buf;  /* preformatted string to be printed */
+int UZ_EXP UzpInput(pG, buf, size,
+                    flag) void *pG; /* globals struct:  always passed */
+uch *buf;                           /* preformatted string to be printed */
 int *size; /* (address of) size of buf and of returned string */
 int flag;  /* flag bits (bit 0: no echo) */
 {
@@ -685,10 +685,10 @@ int flag;  /* flag bits (bit 0: no echo) */
 /* Function UzpMorePause() */
 /***************************/
 
-void UZ_EXP UzpMorePause(pG, prompt, flag)
-zvoid *pG;          /* globals struct:  always passed */
-const char *prompt; /* "--More--" prompt */
-int flag;           /* 0 = any char OK; 1 = accept only '\n', ' ', q */
+void UZ_EXP UzpMorePause(pG, prompt,
+                         flag) void *pG; /* globals struct:  always passed */
+const char *prompt;                      /* "--More--" prompt */
+int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 {
     uch c;
 
@@ -726,13 +726,14 @@ int flag;           /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 /* Function UzpPassword() */
 /**************************/
 
-int UZ_EXP UzpPassword(pG, rcnt, pwbuf, size, zfn, efn)
-zvoid *pG;       /* pointer to UnZip's internal global vars */
-int *rcnt;       /* retry counter */
-char *pwbuf;     /* buffer for password */
-int size;        /* size of password buffer */
-const char *zfn; /* name of zip archive */
-const char *efn; /* name of archive entry being processed */
+int UZ_EXP
+    UzpPassword(pG, rcnt, pwbuf, size, zfn,
+                efn) void *pG; /* pointer to UnZip's internal global vars */
+int *rcnt;                     /* retry counter */
+char *pwbuf;                   /* buffer for password */
+int size;                      /* size of password buffer */
+const char *zfn;               /* name of zip archive */
+const char *efn;               /* name of archive entry being processed */
 {
     int r = IZ_PW_ENTERED;
     char *m;
@@ -789,10 +790,9 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
 {
     GETGLOBALS();
 
-#if !(defined(SIGBUS) || defined(SIGSEGV)) /* add a newline if not at */
-    (*G.message)((zvoid *) &G, slide, 0L,
-                 0x41); /*  start of line (to stderr; */
-#endif                  /*  slide[] should be safe) */
+#if !(defined(SIGBUS) || defined(SIGSEGV))      /* add a newline if not at */
+    (*G.message)((void *) &G, slide, 0L, 0x41); /*  start of line (to stderr; */
+#endif                                          /*  slide[] should be safe) */
 
     echon();
 
@@ -1050,16 +1050,16 @@ int option;
                 } else
                     *q++ = *p;
                 if ((unsigned) (q - slide) > WSIZE - 3 || pause) { /* flush */
-                    (*G.message)((zvoid *) &G, slide, (ulg) (q - slide), 0);
+                    (*G.message)((void *) &G, slide, (ulg) (q - slide), 0);
                     q = slide;
                     if (pause && G.extract_flag) /* don't pause for list/test */
-                        (*G.mpause)((zvoid *) &G, LoadFarString(QuitPrompt), 0);
+                        (*G.mpause)((void *) &G, LoadFarString(QuitPrompt), 0);
                 }
             }
-            (*G.message)((zvoid *) &G, slide, (ulg) (q - slide), 0);
+            (*G.message)((void *) &G, slide, (ulg) (q - slide), 0);
         }
         /* add '\n' if not at start of line */
-        (*G.message)((zvoid *) &G, slide, 0L, 0x40);
+        (*G.message)((void *) &G, slide, 0L, 0x40);
         break;
 
         /*

@@ -46,8 +46,8 @@
 #include <termios.h>
 #define sgttyb     termios
 #define sg_flags   c_lflag
-#define GTTY(f, s) tcgetattr(f, (zvoid *) s)
-#define STTY(f, s) tcsetattr(f, TCSAFLUSH, (zvoid *) s)
+#define GTTY(f, s) tcgetattr(f, (void *) s)
+#define STTY(f, s) tcsetattr(f, TCSAFLUSH, (void *) s)
 
 /* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
 
