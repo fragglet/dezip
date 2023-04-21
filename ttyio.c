@@ -74,9 +74,7 @@
 #    endif /* (SYSV || CRAY) && !__MINT__ */
 #  endif /* !_POSIX_VERSION */
 #  if !(defined(BSD4_4) || defined(SYSV) || defined(__convexc__))
-#    ifndef NO_FCNTL_H
 #      define NO_FCNTL_H
-#    endif
 #  endif /* !(BSD4_4 || SYSV || __convexc__) */
 #endif /* UNZIP */
 
@@ -153,13 +151,9 @@
 #          endif
 #      endif /* ?USE_SYSV_TERMIO */
 #    endif /* ?HAVE_TERMIOS_H */
-#    ifndef NO_FCNTL_H
 #      ifndef UNZIP
 #        include <fcntl.h>
 #      endif
-#    else
-       char *ttyname OF((int));
-#    endif
 #  endif /* ?VMS */
 #endif /* !HAVE_WORKING_GETCH */
 
