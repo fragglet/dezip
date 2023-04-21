@@ -2923,10 +2923,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 /*  Global (shared?) RTL variables */
 /***********************************/
 
-#ifdef DECLARE_ERRNO
-   extern int             errno;
-#endif
-
 /*---------------------------------------------------------------------
     Unicode Support
     28 August 2005
