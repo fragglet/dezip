@@ -59,7 +59,7 @@ static int testkey(__GPRO__ const uch *h, const char *key);
 /***********************************************************************
  * Return the next byte in the pseudo-random sequence
  */
-int decrypt_byte() __GDEF
+int decrypt_byte()
 {
     unsigned temp; /* POTENTIAL BUG:  temp*(temp^1) may overflow in an
                     * unpredictable manner on 16-bit systems; not a problem
@@ -73,7 +73,7 @@ int decrypt_byte() __GDEF
  * Update the encryption keys with the next byte of plain text
  */
 int update_keys(c)
-__GDEF int c; /* byte of plain text */
+int c; /* byte of plain text */
 {
     GLOBAL(keys[0]) = CRC32(GLOBAL(keys[0]), c, CRY_CRC_TAB);
     GLOBAL(keys[1]) =
@@ -89,7 +89,7 @@ __GDEF int c; /* byte of plain text */
  * Initialize the encryption keys and the random header according to
  * the given password.
  */
-void init_keys(passwd) __GDEF const
+void init_keys(passwd) const
     char *passwd; /* password string with which to modify keys */
 {
     GLOBAL(keys[0]) = 305419896L;
@@ -115,8 +115,7 @@ void init_keys(passwd) __GDEF const
  * Get the password and set up keys for current zipfile member.
  * Return PK_ class error.
  */
-int decrypt(passwrd)
-__GDEF const char *passwrd;
+int decrypt(passwrd) const char *passwrd;
 {
     ush b;
     int n, r;
@@ -197,8 +196,7 @@ __GDEF const char *passwrd;
 /***********************************************************************
  * Test the password.  Return -1 if bad, 0 if OK.
  */
-static int testp(h)
-__GDEF const uch *h;
+static int testp(h) const uch *h;
 {
     int r;
     char *key_translated;
@@ -250,10 +248,8 @@ __GDEF const uch *h;
 
 } /* end function testp() */
 
-static int testkey(h, key)
-__GDEF
-const uch *h;    /* decrypted header */
-const char *key; /* decryption password to test */
+static int testkey(h, key) const uch *h; /* decrypted header */
+const char *key;                         /* decryption password to test */
 {
     ush b;
 #ifdef ZIP10

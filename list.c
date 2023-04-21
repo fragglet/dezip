@@ -54,7 +54,6 @@ static const char Far ShortFileTrailer[] =
 /*************************/
 
 int list_files() /* return PK-type error code */
-    __GDEF
 {
     int do_this_file = FALSE, cfactor, error, error_in_archive = PK_COOL;
     char sgn, cfactorstr[12];
@@ -363,7 +362,6 @@ int list_files() /* return PK-type error code */
 /************************/
 
 static int fn_is_dir() /* returns TRUE if G.filename is directory */
-    __GDEF
 {
     extent fn_len = strlen(G.filename);
     register char endc;
@@ -378,7 +376,6 @@ static int fn_is_dir() /* returns TRUE if G.filename is directory */
 /*****************************/
 
 int get_time_stamp(last_modtime, nmember) /* return PK-type error code */
-__GDEF
 time_t *last_modtime;
 ulg *nmember;
 {
@@ -526,7 +523,6 @@ zusz_t uc, c;
 /************************/
 
 void fnprint() /* print filename (after filtering) and newline */
-    __GDEF
 {
     char *name = fnfilter(G.filename, slide, (extent) (WSIZE >> 1));
 

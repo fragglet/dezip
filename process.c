@@ -132,7 +132,6 @@ static const char Far UFilenameTooLongTrunc[] =
 /*******************************/
 
 int process_zipfiles() /* return PK-type error code */
-    __GDEF
 {
     char *lastzipfn = (char *) NULL;
     int NumWinFiles, NumLoseFiles, NumWarnFiles;
@@ -347,7 +346,6 @@ int process_zipfiles() /* return PK-type error code */
 /*****************************/
 
 void free_G_buffers() /* releases all memory allocated in global vars */
-    __GDEF
 {
     unsigned i;
 
@@ -410,7 +408,7 @@ void free_G_buffers() /* releases all memory allocated in global vars */
 /**************************/
 
 static int do_seekable(lastchance) /* return PK-type error code */
-__GDEF int lastchance;
+int lastchance;
 {
     /* static int no_ecrec = FALSE;  SKM: moved to globals.h */
     int maybe_exe = FALSE;
@@ -703,7 +701,6 @@ int fh;
 
 static int rec_find(searchlen, signature, rec_size)
 /* return 0 when rec found, 1 when not found, 2 in case of read error */
-__GDEF
 zoff_t searchlen;
 char *signature;
 int rec_size;
@@ -771,7 +768,6 @@ int rec_size;
 /********************************/
 
 static int check_ecrec_zip64()
-    __GDEF
 {
     return G.ecrec.offset_start_central_directory  == 0xFFFFFFFFL
         || G.ecrec.size_central_directory          == 0xFFFFFFFFL
@@ -787,7 +783,7 @@ static int check_ecrec_zip64()
 /***************************/
 
 static int find_ecrec64(searchlen) /* return PK-class error */
-__GDEF zoff_t searchlen;
+zoff_t searchlen;
 {
     ec_byte_rec64 byterec;       /* buf for ecrec64 */
     ec_byte_loc64 byterecL;      /* buf for ecrec64 locator */
@@ -1002,7 +998,7 @@ __GDEF zoff_t searchlen;
 /*************************/
 
 static int find_ecrec(searchlen) /* return PK-class error */
-__GDEF zoff_t searchlen;
+zoff_t searchlen;
 {
     int found = FALSE;
     int error_in_archive;
@@ -1125,7 +1121,6 @@ __GDEF zoff_t searchlen;
 /********************************/
 
 static int process_zip_cmmnt() /* return PK-type error code */
-    __GDEF
 {
     int error = PK_COOL;
 
@@ -1150,7 +1145,6 @@ static int process_zip_cmmnt() /* return PK-type error code */
 /************************************/
 
 int process_cdir_file_hdr() /* return PK-type error code */
-    __GDEF
 {
     int error;
 
@@ -1228,7 +1222,6 @@ int process_cdir_file_hdr() /* return PK-type error code */
 /***************************/
 
 static int get_cdir_ent() /* return PK-type error code */
-    __GDEF
 {
     cdir_byte_hdr byterec;
 
@@ -1276,7 +1269,6 @@ static int get_cdir_ent() /* return PK-type error code */
 /*************************************/
 
 int process_local_file_hdr() /* return PK-type error code */
-    __GDEF
 {
     local_byte_hdr byterec;
 
@@ -1322,10 +1314,9 @@ int process_local_file_hdr() /* return PK-type error code */
 /* Function getZip64Data() */
 /*******************************/
 
-int getZip64Data(ef_buf, ef_len)
-__GDEF
-const uch *ef_buf; /* buffer containing extra field */
-unsigned ef_len;   /* total length of extra field */
+int getZip64Data(ef_buf,
+                 ef_len) const uch *ef_buf; /* buffer containing extra field */
+unsigned ef_len;                            /* total length of extra field */
 {
     unsigned eb_id;
     unsigned eb_len;
@@ -1420,10 +1411,9 @@ unsigned ef_len;   /* total length of extra field */
 /* Function getUnicodeData() */
 /*******************************/
 
-int getUnicodeData(ef_buf, ef_len)
-__GDEF
-const uch *ef_buf; /* buffer containing extra field */
-unsigned ef_len;   /* total length of extra field */
+int getUnicodeData(
+    ef_buf, ef_len) const uch *ef_buf; /* buffer containing extra field */
+unsigned ef_len;                       /* total length of extra field */
 {
     unsigned eb_id;
     unsigned eb_len;

@@ -95,7 +95,7 @@ static void partial_clear(__GPRO__ int lastcodeused);
 /* Function unshrink() */
 /***********************/
 
-int unshrink() __GDEF
+int unshrink()
 {
     uch *stacktop = stack + (HSIZE - 1);
     register uch *newstr;
@@ -274,7 +274,7 @@ int unshrink() __GDEF
 /* Function partial_clear() */ /* no longer recursive... */
 /****************************/
 
-static void partial_clear(lastcodeused) __GDEF int lastcodeused;
+static void partial_clear(lastcodeused) int lastcodeused;
 {
     register shrint code;
 

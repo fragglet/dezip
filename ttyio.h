@@ -21,7 +21,6 @@
  * Non-echo keyboard/console input support is needed and enabled.
  */
 
-#define __GDEF
 #define __GPRO void
 #define __GPRO__
 

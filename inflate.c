@@ -514,7 +514,6 @@ static const unsigned lbits = 9;
 static const unsigned dbits = 6;
 
 int inflate_codes(tl, td, bl, bd)
-__GDEF
 struct huft *tl, *td; /* literal/length and distance decoder tables */
 unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
 /* inflate (decompress) the codes in a deflated (compressed) block.
@@ -627,7 +626,7 @@ cleanup_and_exit:
     return retval;
 }
 
-static int inflate_stored() __GDEF
+static int inflate_stored()
 /* "decompress" an inflated type 0 (stored) block. */
 {
     UINT_D64 w;          /* current window position (deflate64: up to 64k!) */
@@ -684,7 +683,7 @@ struct huft *fixed_td;
 int fixed_bl, fixed_bd;
 #endif
 
-static int inflate_fixed() __GDEF
+static int inflate_fixed()
 /* decompress an inflated type 1 (fixed Huffman codes) block.  We should
    either replace this with a custom decoder, or at least precompute the
    Huffman tables. */
@@ -727,7 +726,7 @@ static int inflate_fixed() __GDEF
     return inflate_codes(G.fixed_tl, G.fixed_td, G.fixed_bl, G.fixed_bd);
 }
 
-static int inflate_dynamic() __GDEF
+static int inflate_dynamic()
 /* decompress an inflated type 2 (dynamic Huffman codes) block. */
 {
     unsigned i; /* temporary variables */
@@ -885,7 +884,7 @@ cleanup_and_exit:
 }
 
 static int inflate_block(e)
-__GDEF int *e; /* last block flag */
+int *e; /* last block flag */
 /* decompress an inflated block */
 {
     unsigned t;          /* block type */
@@ -927,7 +926,7 @@ cleanup_and_exit:
 }
 
 int inflate(is_defl64)
-__GDEF int is_defl64;
+int is_defl64;
 /* decompress an inflated entry */
 {
     int e; /* last block flag */
@@ -991,7 +990,7 @@ __GDEF int is_defl64;
     return (FLUSH(G.wp));
 }
 
-int inflate_free() __GDEF
+int inflate_free()
 {
     if (G.fixed_tl != (struct huft *) NULL) {
         huft_free(G.fixed_td);
@@ -1010,15 +1009,14 @@ int inflate_free() __GDEF
 #define BMAX  16  /* maximum bit length of any code (16 for explode) */
 #define N_MAX 288 /* maximum number of codes in any set */
 
-int huft_build(b, n, s, d, e, t, m)
-__GDEF
-const unsigned *b; /* code lengths in bits (all assumed <= BMAX) */
-unsigned n;        /* number of codes (assumed <= N_MAX) */
-unsigned s;        /* number of simple-valued codes (0..s-1) */
-const ush *d;      /* list of base values for non-simple codes */
-const uch *e;      /* list of extra bits for non-simple codes */
-struct huft **t;   /* result: starting table */
-unsigned *m;       /* maximum lookup bits, returns actual */
+int huft_build(b, n, s, d, e, t, m) const
+    unsigned *b; /* code lengths in bits (all assumed <= BMAX) */
+unsigned n;      /* number of codes (assumed <= N_MAX) */
+unsigned s;      /* number of simple-valued codes (0..s-1) */
+const ush *d;    /* list of base values for non-simple codes */
+const uch *e;    /* list of extra bits for non-simple codes */
+struct huft **t; /* result: starting table */
+unsigned *m;     /* maximum lookup bits, returns actual */
 /* Given a list of code lengths and a maximum table size, make a set of
    tables to decode that set of codes.  Return zero on success, one if
    the given code set is incomplete (the tables are still built in this

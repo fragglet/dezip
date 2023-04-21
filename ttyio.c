@@ -54,7 +54,7 @@
 /*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.
  */
-void Echoff(f) __GDEF int f; /* file descriptor for which to turn echo off */
+void Echoff(f) int f; /* file descriptor for which to turn echo off */
 {
     struct sgttyb sg; /* tty device structure */
 
@@ -67,7 +67,7 @@ void Echoff(f) __GDEF int f; /* file descriptor for which to turn echo off */
 /*
  * Turn echo back on for file descriptor echofd.
  */
-void Echon() __GDEF
+void Echon()
 {
     struct sgttyb sg; /* tty device structure */
 
@@ -83,7 +83,7 @@ void Echon() __GDEF
  * Get a character from the given file descriptor without echo or newline.
  */
 int zgetch(f)
-__GDEF int f; /* file descriptor from which to read */
+int f; /* file descriptor from which to read */
 {
     char oldmin, oldtim;
     char c;
@@ -116,7 +116,8 @@ __GDEF int f; /* file descriptor from which to read */
  * zcrypt and ttyio:
  */
 #if (!defined(CR_MAJORVER) || (CR_MAJORVER < 2) || (CR_MINORVER < 7))
-error : This Info - ZIP tool requires zcrypt 2.7 or later.
+error : This Info - ZIP tool requires zcrypt 2.7 or
+    later.
 #endif
 
 /*
@@ -128,12 +129,9 @@ error : This Info - ZIP tool requires zcrypt 2.7 or later.
 #define _PATH_TTY "/dev/tty"
 #endif
 
-                                                    char *
-                                                    getp(m, p, n)
-__GDEF
-const char *m; /* prompt for password */
-char *p;       /* return value: line input */
-int n;         /* bytes available in p[] */
+    char *getp(m, p, n) const char *m; /* prompt for password */
+char *p;                               /* return value: line input */
+int n;                                 /* bytes available in p[] */
 {
     char c;  /* one-byte buffer for read() to use */
     int i;   /* number of characters input */

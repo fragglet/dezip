@@ -148,7 +148,6 @@ static const char Far PasswRetry[] = "password incorrect--reenter: ";
 /******************************/
 
 int open_input_file() /* return 1 if open failed */
-    __GDEF
 {
     /*
      *  open the zipfile for reading and in BINARY mode to prevent cr/lf
@@ -173,7 +172,6 @@ int open_input_file() /* return 1 if open failed */
 /***************************/
 
 int open_outfile() /* return 1 if fail */
-    __GDEF
 {
     if (SSTAT(G.filename, &G.statbuf) == 0 ||
         lstat(G.filename, &G.statbuf) == 0) {
@@ -245,7 +243,7 @@ int open_outfile() /* return 1 if fail */
 /* function undefer_input() */
 /****************************/
 
-void undefer_input() __GDEF
+void undefer_input()
 {
     if (G.incnt > 0)
         G.csize += G.incnt;
@@ -269,7 +267,7 @@ void undefer_input() __GDEF
 /* function defer_leftover_input() */
 /***********************************/
 
-void defer_leftover_input() __GDEF
+void defer_leftover_input()
 {
     if ((zoff_t) G.incnt > G.csize) {
         /* (G.csize < MAXINT), we can safely cast it to int !! */
@@ -288,7 +286,6 @@ void defer_leftover_input() __GDEF
 /**********************/
 
 unsigned readbuf(buf, size) /* return number of bytes read into buf */
-__GDEF
 char *buf;
 register unsigned size;
 {
@@ -328,7 +325,6 @@ register unsigned size;
 /***********************/
 
 int readbyte() /* refill inbuf and return a byte if available, else EOF */
-    __GDEF
 {
     if (G.mem_mode)
         return EOF;
@@ -375,7 +371,6 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
 /************************/
 
 int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
-    __GDEF
 {
     if (G.mem_mode ||
         (G.incnt = read(G.zipfd, (char *) G.inbuf, INBUFSIZ)) <= 0)
@@ -401,7 +396,7 @@ int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
 /************************/
 
 int seek_zipf(abs_offset)
-__GDEF zoff_t abs_offset;
+zoff_t abs_offset;
 {
     /*
      *  Seek to the block boundary of the block which includes abs_offset,
@@ -460,7 +455,6 @@ __GDEF zoff_t abs_offset;
 /********************/ /* if tflag => always 0; PK_DISK if write error */
 
 int flush(rawbuf, size, unshrink)
-__GDEF
 uch *rawbuf;
 ulg size;
 int unshrink;
@@ -564,7 +558,7 @@ int unshrink;
 /* Function disk_error() */
 /*************************/
 
-static int disk_error() __GDEF
+static int disk_error()
 {
     /* OK to use slide[] here because this file is finished regardless */
     Info(slide, 0x4a1,
@@ -875,8 +869,8 @@ ulg dosdatetime;
 /******************************/
 
 int check_for_newer(filename) /* return 1 if existing file is newer */
-    __GDEF                    /*  or equal; 0 if older; -1 if doesn't */
-    char *filename;           /*  exist yet */
+                              /*  or equal; 0 if older; -1 if doesn't */
+char *filename;               /*  exist yet */
 {
     time_t existing, archive;
     iztimes z_utime;
@@ -952,8 +946,7 @@ int check_for_newer(filename) /* return 1 if existing file is newer */
 /************************/
 
 int do_string(length, option) /* return PK-type error code */
-__GDEF
-unsigned int length; /* without prototype, ush converted to this */
+unsigned int length;          /* without prototype, ush converted to this */
 int option;
 {
     unsigned comment_bytes_left;
@@ -1294,7 +1287,6 @@ zusz_t makeint64(sig) const uch *sig;
 
 /* Format a zoff_t value in a cylindrical buffer set. */
 char *fzofft(val, pre, post)
-__GDEF
 zoff_t val;
 const char *pre;
 const char *post;

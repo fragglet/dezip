@@ -71,8 +71,8 @@ static const char CannotSetTimestamps[] =
 /* Function do_wild() */ /* for porting: dir separator; match(ignore_case) */
 /**********************/
 
-char *do_wild(wildspec)
-__GDEF const char *wildspec; /* only used first time on a given dir */
+char *do_wild(wildspec) const
+    char *wildspec; /* only used first time on a given dir */
 {
     /* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in unxcfg.h:
         static DIR *wild_dir = (DIR *)NULL;
@@ -204,7 +204,7 @@ __GDEF const char *wildspec; /* only used first time on a given dir */
  */
 
 static unsigned filtattr(perms)
-__GDEF unsigned perms;
+unsigned perms;
 {
     /* keep setuid/setgid/tacky perms? */
     if (!uO.K_flag)
@@ -217,7 +217,7 @@ __GDEF unsigned perms;
 /* Function mapattr() */
 /**********************/
 
-int mapattr() __GDEF
+int mapattr()
 {
     int r;
     ulg tmp = G.crec.external_file_attributes;
@@ -357,7 +357,7 @@ int mapattr() __GDEF
 /************************/
 
 int mapname(renamed)
-__GDEF int renamed;
+int renamed;
 /*
  * returns:
  *  MPN_OK          - no problem detected
@@ -552,7 +552,6 @@ __GDEF int renamed;
 /***********************/
 
 int checkdir(pathcomp, flag)
-__GDEF
 char *pathcomp;
 int flag;
 /*
@@ -791,7 +790,6 @@ int flag;
 static int get_extattribs(__GPRO__ iztimes *pzt, ulg z_uidgid[2]);
 
 static int get_extattribs(pzt, z_uidgid)
-__GDEF
 iztimes *pzt;
 ulg z_uidgid[2];
 {
@@ -836,7 +834,6 @@ ulg z_uidgid[2];
 /****************************/
 
 void close_outfile() /* GRR: change to return PK-style warning level */
-    __GDEF
 {
     union {
         iztimes t3; /* mtime, atime, ctime */
@@ -966,7 +963,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
 } /* end function close_outfile() */
 
 int set_symlnk_attribs(slnk_entry)
-__GDEF slinkentry *slnk_entry;
+slinkentry *slnk_entry;
 {
     if (slnk_entry->attriblen > 0) {
         if (slnk_entry->attriblen > sizeof(unsigned)) {
@@ -997,7 +994,7 @@ static const char DirlistChmodFailed[] =
     "warning:  cannot set permissions for %s\n          %s\n";
 
 int defer_dir_attribs(pd)
-__GDEF direntry **pd;
+direntry **pd;
 {
     uxdirattr *d_entry;
 
@@ -1016,7 +1013,7 @@ __GDEF direntry **pd;
 } /* end function defer_dir_attribs() */
 
 int set_direc_attribs(d)
-__GDEF direntry *d;
+direntry *d;
 {
     int errval = PK_OK;
 
@@ -1071,7 +1068,7 @@ time_t modtime;
 /*  Function version()  */
 /************************/
 
-void version() __GDEF
+void version()
 {
 
     /* Pyramid, NeXT have problems with huge macro expansion, too:  no Info() */

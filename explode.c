@@ -218,7 +218,6 @@ static const ush cpdist8[] = {
     }
 
 static int get_tree(l, n)
-__GDEF
 unsigned *l; /* bit lengths */
 unsigned n;  /* number expected */
 /* Get the bit lengths for a code representation from the compressed
@@ -246,7 +245,6 @@ unsigned n;  /* number expected */
 }
 
 static int explode_lit(tb, tl, td, bb, bl, bd, bdl)
-__GDEF
 struct huft *tb, *tl, *td; /* literal, length, and distance tables */
 unsigned bb, bl, bd;       /* number of bits decoded by those */
 unsigned bdl;              /* number of distance low bits */
@@ -340,7 +338,6 @@ unsigned bdl;              /* number of distance low bits */
 }
 
 static int explode_nolit(tl, td, bl, bd, bdl)
-__GDEF
 struct huft *tl, *td; /* length and distance decoder tables */
 unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
 unsigned bdl;         /* number of distance low bits */
@@ -433,7 +430,7 @@ unsigned bdl;         /* number of distance low bits */
     return 0;
 }
 
-int explode() __GDEF
+int explode()
 /* Explode an imploded compressed stream.  Based on the general purpose
    bit flag, decide on coded or uncoded literals, and an 8K or 4K sliding
    window.  Construct the literal (if any), length, and distance codes and

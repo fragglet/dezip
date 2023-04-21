@@ -368,7 +368,6 @@ bound_t end;
 /**************************************/
 
 int extract_or_test_files() /* return PK-type error code */
-    __GDEF
 {
     unsigned i, j;
     zoff_t cd_bufstart;
@@ -843,7 +842,6 @@ int extract_or_test_files() /* return PK-type error code */
 /***************************/
 
 static int store_info() /* return 0 if skipping, 1 if OK */
-    __GDEF
 {
 #define UNKN_BZ2 (G.crec.compression_method != BZIPPED)
 
@@ -993,7 +991,6 @@ static int
 extract_or_test_entrylist(numchunk, pfilnum, pnum_bad_pwd, pold_extra_bytes,
                           pnum_dirs, pdirlist,
                           error_in_archive) /* return PK-type error code */
-__GDEF
 unsigned numchunk;
 ulg *pfilnum;
 ulg *pnum_bad_pwd;
@@ -1456,7 +1453,6 @@ int error_in_archive;
 /***************************************/
 
 static int extract_or_test_member() /* return PK-type error code */
-    __GDEF
 {
     char *nul = "[empty] ", *txt = "[text]  ", *bin = "[binary]";
     register int b;
@@ -1783,7 +1779,6 @@ static int extract_or_test_member() /* return PK-type error code */
 /*******************************/
 
 static int TestExtraField(ef, ef_len)
-__GDEF
 uch *ef;
 unsigned ef_len;
 {
@@ -2024,8 +2019,8 @@ test_compr_eb(__GPRO__ uch *eb, unsigned eb_size, unsigned compr_offset,
 /***************************/
 
 int memextract(tgt, tgtsize, src, srcsize) /* extract compressed */
-    __GDEF                                 /*  extra field block; */
-    uch *tgt;                              /*  return PK-type error */
+                                           /*  extra field block; */
+uch *tgt;                                  /*  return PK-type error */
 ulg tgtsize;                               /*  level */
 const uch *src;
 ulg srcsize;
@@ -2106,9 +2101,7 @@ ulg srcsize;
 /*  Function memflush()  */
 /*************************/
 
-int memflush(rawbuf, size)
-__GDEF
-const uch *rawbuf;
+int memflush(rawbuf, size) const uch *rawbuf;
 ulg size;
 {
     if (size > G.outsize)
@@ -2129,7 +2122,7 @@ ulg size;
 /* Function set_deferred_symlink() */
 /***********************************/
 
-static void set_deferred_symlink(slnk_entry) __GDEF slinkentry *slnk_entry;
+static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
 {
     extent ucsize = slnk_entry->targetlen;
     char *linkfname = slnk_entry->fname;
@@ -2260,7 +2253,7 @@ static int Cdecl dircomp(a, b) /* used by qsort(); swiped from Zip */
 /*  Function UZbunzip2()  */
 /**************************/
 
-int UZbunzip2() __GDEF
+int UZbunzip2()
 /* decompress a bzipped entry using the libbz2 routines */
 {
     int retval = 0; /* return code: 0 = "no error" */

@@ -244,7 +244,6 @@ char *argv[];
 /*******************************/
 
 int unzip(argc, argv)
-__GDEF
 int argc;
 char *argv[];
 {
@@ -561,7 +560,6 @@ cleanup_and_exit:
 /**********************/
 
 int uz_opts(pargc, pargv)
-__GDEF
 int *pargc;
 char ***pargv;
 {
@@ -916,7 +914,7 @@ char ***pargv;
 #define QUOTS ""
 
 int usage(error) /* return PK-type error code */
-__GDEF int error;
+int error;
 {
     int flag = (error ? 1 : 0);
 
@@ -964,7 +962,7 @@ __GDEF int error;
 } /* end function usage() */
 
 /* Print extended help to stdout. */
-static void help_extended() __GDEF
+static void help_extended()
 {
     extent i; /* counter for help array */
 
@@ -1283,7 +1281,7 @@ static void help_extended() __GDEF
 /* Function show_version_info() */
 /********************************/
 
-static void show_version_info() __GDEF
+static void show_version_info()
 {
     if (uO.qflag > 3) /* "unzip -vqqqq" */
         Info(slide, 0,

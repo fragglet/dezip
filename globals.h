@@ -67,11 +67,10 @@
 
   To support this new global struct, all functions must now conditionally
   pass the globals pointer (pG) to each other.  This is supported by 5 macros:
-  __GPRO, __GPRO__, , and __GDEF.  A function that needs no other
+  __GPRO, __GPRO__, , and.  A function that needs no other
   parameters would look like this:
 
     int extract_or_test_files()
-      __GDEF
     {
        ... stuff ...
     }
@@ -79,7 +78,6 @@
   A function with other parameters would look like:
 
     int memextract(tgt, tgtsize, src, srcsize)
-        __GDEF
         uch *tgt, *src;
         ulg tgtsize, srcsize;
     {
@@ -93,7 +91,7 @@
     int  process_zipfiles(__GPRO);
 
   Note that there is NO comma after or __GPRO__ and no semi-colon after
-  __GDEF.  I wish there was another way but I don't think there is.
+.  I wish there was another way but I don't think there is.
 
 
   TESTING THE CODE
@@ -101,7 +99,7 @@
 
   Whether your platform requires reentrancy or not, you should always try
   building with REENTRANT defined if any functions have been added.  It is
-  pretty easy to forget a or a __GDEF and this mistake will only show
+  pretty easy to forget a or a and this mistake will only show
   up if REENTRANT is defined.  All platforms should run with REENTRANT
   defined.  Platforms that can't take advantage of it will just be paying
   a performance penalty needlessly.
@@ -294,7 +292,6 @@ extern char end_centloc64_sig[4];
 extern Uz_Globs G;
 #define __GPRO void
 #define __GPRO__
-#define __GDEF
 #define GETGLOBALS()
 #define CONSTRUCTGLOBALS() globalsCtor()
 #define DESTROYGLOBALS()

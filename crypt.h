@@ -47,7 +47,6 @@
 #define CR_VERSION_DATE "05 Jan 2007" /* last public release date */
 #define CR_RELEASE
 
-#define __GDEF
 #define __GPRO void
 #define __GPRO__
 
