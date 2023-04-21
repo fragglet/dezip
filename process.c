@@ -2067,7 +2067,6 @@ int getUnicodeData(__G__ ef_buf, ef_len)
 
 
 
-#ifdef UNICODE_WCHAR
   /*---------------------------------------------
  * Unicode conversion functions
  *
@@ -2669,7 +2668,6 @@ zwchar *utf8_to_wide_string(utf8_string)
   return wide_string;
 }
 
-#endif /* UNICODE_WCHAR */
 #endif /* UNICODE_SUPPORT */
 
 

@@ -1885,9 +1885,7 @@ int do_string(__G__ length, option)   /* return PK-type error code */
               if (G.unipath_filename) {
 # ifdef UTF8_MAYBE_NATIVE
                 if (G.native_is_utf8
-#  ifdef UNICODE_WCHAR
                     && (!G.unicode_escape_all)
-#  endif
                    ) {
                   strncpy(G.filename, G.unipath_filename, FILNAMSIZ - 1);
                   /* make sure filename is short enough */
@@ -1898,11 +1896,8 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                     error = PK_WARN;
                   }
                 }
-#  ifdef UNICODE_WCHAR
                 else
-#  endif
 # endif /* UTF8_MAYBE_NATIVE */
-# ifdef UNICODE_WCHAR
                 {
                   char *fn;
 
@@ -1934,7 +1929,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                     free(fn);
                   }
                 }
-# endif /* UNICODE_WCHAR */
                 if (G.unipath_filename != G.filename_full)
                   free(G.unipath_filename);
                 G.unipath_filename = NULL;

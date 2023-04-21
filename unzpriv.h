@@ -612,9 +612,6 @@
 #define FILNAMSIZ  PATH_MAX
 
 #ifdef UNICODE_SUPPORT
-# if !(defined(UTF8_MAYBE_NATIVE) || defined(UNICODE_WCHAR))
-#  undef UNICODE_SUPPORT
-# endif
 #endif
 /* 2007-09-18 SMS.
  * Include <locale.h> here if it will be needed later for Unicode.
@@ -622,11 +619,9 @@
  * (differently) when <locale.h> is read later.
  */
 #ifdef UNICODE_SUPPORT
-# ifdef UNICODE_WCHAR
 #  if !(defined(_WIN32_WCE) || defined(POCKET_UNZIP))
 #   include <wchar.h>
 #  endif
-# endif
 # ifndef _MBCS  /* no need to include <locale.h> twice, see below */
 #   include <locale.h>
 #   ifndef SETLOCALE

@@ -133,10 +133,6 @@ static void  show_version_info  OF((__GPRO));
    static ZCONST char Far OnlyOneExdir[] =
      "error:  -d option used more than once (only one exdir allowed)\n";
 #endif
-#if (defined(UNICODE_SUPPORT) && !defined(UNICODE_WCHAR))
-  static ZCONST char Far UTF8EscapeUnSupp[] =
-    "warning:  -U \"escape all non-ASCII UTF-8 chars\" is not supported\n";
-#endif
 
 #if CRYPT
    static ZCONST char Far MustGivePasswd[] =
@@ -335,15 +331,9 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  endif
 #  ifdef UNICODE_SUPPORT
 #   ifdef UTF8_MAYBE_NATIVE
-#    ifdef UNICODE_WCHAR
        /* direct native UTF-8 check AND charset transform via wchar_t */
        static ZCONST char Far Use_Unicode[] =
        "UNICODE_SUPPORT [wide-chars, char coding: %s] (handle UTF-8 paths)";
-#    else
-       /* direct native UTF-8 check, only */
-       static ZCONST char Far Use_Unicode[] =
-       "UNICODE_SUPPORT [char coding: %s] (handle UTF-8 paths)";
-#    endif
        static ZCONST char Far SysChUTF8[] = "UTF-8";
        static ZCONST char Far SysChOther[] = "other";
 #   else /* !UTF8_MAYBE_NATIVE */
@@ -970,11 +960,7 @@ int unzip(__G__ argc, argv)
 #ifdef UNICODE_SUPPORT
     /* set Unicode-escape-all if option -U used */
     if (uO.U_flag == 1)
-# ifdef UNICODE_WCHAR
         G.unicode_escape_all = TRUE;
-# else
-        Info(slide, 0x401, ((char *)slide, LoadFarString(UTF8EscapeUnSupp)));
-# endif
 #endif
 
 
