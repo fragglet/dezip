@@ -80,14 +80,6 @@ typedef struct stat z_stat;
 #endif
 
 #if (!defined(NO_SETLOCALE) && !defined(_MBCS))
-# if (!defined(UNICODE_SUPPORT) || !defined(UTF8_MAYBE_NATIVE))
-   /* enable setlocale here, unless this happens later for UTF-8 and/or
-    * MBCS support */
-#  include <locale.h>
-#  ifndef SETLOCALE
-#    define SETLOCALE(category, locale) setlocale(category, locale)
-#  endif
-# endif
 #endif
 
 #if (!defined(HAVE_STRNICMP) & !defined(NO_STRNICMP))

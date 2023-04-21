@@ -1496,7 +1496,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 }
               }
               if (G.unipath_filename) {
-# ifdef UTF8_MAYBE_NATIVE
                 if (G.native_is_utf8
                     && (!G.unicode_escape_all)
                    ) {
@@ -1510,7 +1509,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                   }
                 }
                 else
-# endif /* UTF8_MAYBE_NATIVE */
                 {
                   char *fn;
 

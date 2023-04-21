@@ -184,17 +184,11 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      "USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)";
      static ZCONST char Far Use_Deflate64[] =
      "USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)";
-#   ifdef UTF8_MAYBE_NATIVE
        /* direct native UTF-8 check AND charset transform via wchar_t */
        static ZCONST char Far Use_Unicode[] =
        "UNICODE_SUPPORT [wide-chars, char coding: %s] (handle UTF-8 paths)";
        static ZCONST char Far SysChUTF8[] = "UTF-8";
        static ZCONST char Far SysChOther[] = "other";
-#   else /* !UTF8_MAYBE_NATIVE */
-       /* charset transform via wchar_t, no native UTF-8 support */
-       static ZCONST char Far Use_Unicode[] =
-       "UNICODE_SUPPORT [wide-chars] (handle UTF-8 paths)";
-#   endif /* ?UTF8_MAYBE_NATIVE */
 #  ifdef _MBCS
      static ZCONST char Far Have_MBCS_Support[] =
      "MBCS-support (multibyte character support, MB_CUR_MAX = %u)";
@@ -324,7 +318,6 @@ int unzip(__G__ argc, argv)
     SETLOCALE(LC_CTYPE, "");
 
     /* see if can use UTF-8 Unicode locale */
-# ifdef UTF8_MAYBE_NATIVE
     {
         char *codeset;
         /* get the codeset (character set encoding) currently used */
@@ -345,7 +338,6 @@ int unzip(__G__ argc, argv)
          *       resulted in garbage display of all non-basic ASCII characters.
          */
     }
-# endif /* UTF8_MAYBE_NATIVE */
 
     /* initialize Unicode */
     G.unicode_escape_all = 0;
@@ -1390,15 +1382,10 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_Deflate64)));
         ++numopts;
-# ifdef UTF8_MAYBE_NATIVE
         sprintf((char *)(slide+256), LoadFarStringSmall(Use_Unicode),
           LoadFarStringSmall2(G.native_is_utf8 ? SysChUTF8 : SysChOther));
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           (char *)(slide+256)));
-# else
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Use_Unicode)));
-# endif
         ++numopts;
 #ifdef _MBCS
         sprintf((char *)(slide+256), LoadFarStringSmall(Have_MBCS_Support),

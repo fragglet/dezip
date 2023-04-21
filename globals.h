@@ -237,9 +237,7 @@ typedef struct Globals {
     extent   fnfull_bufsize;       /* size of allocated filename buffer */
     int      unicode_escape_all;
     int      unicode_mismatch;
-#ifdef UTF8_MAYBE_NATIVE
     int      native_is_utf8;       /* bool, TRUE => native charset == UTF-8 */
-#endif
 
     int      unipath_version;      /* version of Unicode field */
     ulg      unipath_checksum;     /* Unicode field checksum */
