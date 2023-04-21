@@ -245,10 +245,8 @@ void mksargs(argcp, argvp)
     int *argcp;
     char ***argvp;
 {
-#ifndef MSC /* declared differently in MSC 7.0 headers, at least */
 #ifndef __WATCOMC__
     extern char **environ;          /* environment */
-#endif
 #endif
     char        **envp;             /* pointer into environment */
     char        **newargv;          /* new argument list */

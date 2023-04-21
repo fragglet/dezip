@@ -247,9 +247,7 @@
 #endif
 
 #if (defined(_MSC_VER) || (defined(M_I86) && !defined(__WATCOMC__)))
-#  ifndef MSC
 #    define MSC               /* This should work for older MSC, too!  */
-#  endif
 #endif
 
 #if (defined(MSDOS) || defined(OS2) || defined(FLEXOS))
