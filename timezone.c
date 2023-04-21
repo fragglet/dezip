@@ -40,12 +40,6 @@
 #include <ctype.h>
 #include <errno.h>
 
-#ifdef IZTZ_DEFINESTDGLOBALS
-long timezone = 0;
-int daylight = 0;
-char *tzname[2];
-#endif
-
 #ifndef IZTZ_GETLOCALETZINFO
 #  define IZTZ_GETLOCALETZINFO(ptzstruct, pgenrulefunct) (FALSE)
 #endif
