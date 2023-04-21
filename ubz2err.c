@@ -27,9 +27,6 @@
 #define __UBZ2ERR_C     /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#ifdef WINDLL
-#    include "windll/windll.h"
-#endif
 
 #ifdef USE_BZIP2
 
@@ -48,12 +45,8 @@ void bz_internal_error(bzerrcode)
 
     Info(slide, 0x421, ((char *)slide,
       "error: internal fatal libbzip2 error number %d\n", bzerrcode));
-#ifdef WINDLL
-    longjmp(dll_error_return, 1);
-#else
     DESTROYGLOBALS();
     EXIT(PK_BADERR);
-#endif
 } /* end function bz_internal_error() */
 
 #endif /* USE_BZIP2 */

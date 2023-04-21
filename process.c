@@ -32,9 +32,6 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#ifdef WINDLL
-#    include "windll/windll.h"
-#endif
 #if defined(DYNALLOC_CRCTAB) || defined(UNICODE_SUPPORT)
 #  include "crc32.h"
 #endif
@@ -93,11 +90,7 @@ static ZCONST char Far CannotAllocateBuffers[] =
    static ZCONST char Far CannotFindEitherZipfile[] =
      "%s:  cannot find or open %s, %s.zip or %s.\n";
    extern ZCONST char Far Zipnfo[];       /* in unzip.c */
-#ifndef WINDLL
    static ZCONST char Far Unzip[] = "unzip";
-#else
-   static ZCONST char Far Unzip[] = "UnZip DLL";
-#endif
 #ifdef DO_SAFECHECK_2GB
    static ZCONST char Far ZipfileTooBig[] =
      "Trying to read large file (> 2 GiB) without large file support\n";
@@ -353,12 +346,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
         Trace((stderr, "do_seekable(0) returns %d\n", error));
         if (error != IZ_DIR && error > error_in_archive)
             error_in_archive = error;
-#ifdef WINDLL
-        if (error == IZ_CTRLC) {
-            free_G_buffers(__G);
-            return error;
-        }
-#endif
 
     } /* end while-loop (wildcard zipfiles) */
 
@@ -420,12 +407,6 @@ int process_zipfiles(__G)    /* return PK-type error code */
 
             if (error > error_in_archive)
                 error_in_archive = error;
-#ifdef WINDLL
-            if (error == IZ_CTRLC) {
-                free_G_buffers(__G);
-                return error;
-            }
-#endif
         }
     }
 #endif /* ?SFX */
@@ -1471,12 +1452,6 @@ static int process_zip_cmmnt(__G)       /* return PK-type error code */
     Get the zipfile comment (up to 64KB long), if any, and print it out.
   ---------------------------------------------------------------------------*/
 
-#ifdef WINDLL
-    /* for comment button: */
-    if ((!G.fValidate) && (G.lpUserFunctions != NULL))
-       G.lpUserFunctions->cchComment = G.ecrec.zipfile_comment_length;
-#endif /* WINDLL */
-
 #ifndef NO_ZIPINFO
     /* ZipInfo, verbose format */
     if (uO.zipinfo_mode && uO.lflag > 9) {
@@ -1513,7 +1488,6 @@ static int process_zip_cmmnt(__G)       /* return PK-type error code */
 #endif /* !NO_ZIPINFO */
     if ( G.ecrec.zipfile_comment_length &&
          (uO.zflag > 0
-#ifndef WINDLL
           || (uO.zflag == 0
 # ifndef NO_ZIPINFO
               && !uO.zipinfo_mode
@@ -1522,7 +1496,6 @@ static int process_zip_cmmnt(__G)       /* return PK-type error code */
               && !uO.T_flag
 # endif
               && !uO.qflag)
-#endif /* !WINDLL */
          ) )
     {
         if (do_string(__G__ G.ecrec.zipfile_comment_length,

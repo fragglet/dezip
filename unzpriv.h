@@ -159,12 +159,6 @@
     MS-DOS, OS/2, FLEXOS section:
   ---------------------------------------------------------------------------*/
 
-#ifdef WINDLL
-#  ifdef MORE
-#    undef MORE
-#  endif
-#endif
-
 /*---------------------------------------------------------------------------
     MTS section (piggybacks UNIX, I think):
   ---------------------------------------------------------------------------*/
@@ -1357,12 +1351,10 @@ typedef struct _APIDocStruct {
     Functions in unzip.c (initialization routines):
   ---------------------------------------------------------------------------*/
 
-#ifndef WINDLL
    int    MAIN                   OF((int argc, char **argv));
    int    unzip                  OF((__GPRO__ int argc, char **argv));
    int    uz_opts                OF((__GPRO__ int *pargc, char ***pargv));
    int    usage                  OF((__GPRO__ int error));
-#endif /* !WINDLL */
 
 /*---------------------------------------------------------------------------
     Functions in process.c (main driver routines):
@@ -1395,9 +1387,7 @@ unsigned ef_scan_for_izux        OF((ZCONST uch *ef_buf, unsigned ef_len,
   ---------------------------------------------------------------------------*/
 
 #ifndef NO_ZIPINFO
-#ifndef WINDLL
    int   zi_opts                 OF((__GPRO__ int *pargc, char ***pargv));
-#endif
 void     zi_end_central          OF((__GPRO));
 int      zipinfo                 OF((__GPRO));
 /* static int      zi_long       OF((__GPRO__ zusz_t *pEndprev)); */
@@ -1586,9 +1576,7 @@ int      iswild          OF((ZCONST char *p));                    /* match.c */
 
 int      dateformat      OF((void));                                /* local */
 char     dateseparator   OF((void));                                /* local */
-#ifndef WINDLL
    void  version         OF((__GPRO));                              /* local */
-#endif
 int      mapattr         OF((__GPRO));                              /* local */
 int      mapname         OF((__GPRO__ int renamed));                /* local */
 int      checkdir        OF((__GPRO__ char *pathcomp, int flag));   /* local */

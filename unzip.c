@@ -69,8 +69,6 @@
 #include "crypt.h"
 #include "unzvers.h"
 
-#ifndef WINDLL          /* The WINDLL port uses windll/windll.c instead... */
-
 /***************************/
 /* Local type declarations */
 /***************************/
@@ -1921,4 +1919,3 @@ static void show_version_info(__G)
 } /* end function show_version() */
 
 #endif /* !SFX */
-#endif /* !WINDLL */

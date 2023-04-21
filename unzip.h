@@ -131,20 +131,6 @@ freely, subject to the above disclaimer and the following restrictions:
     Grab system-specific public include headers.
   ---------------------------------------------------------------------------*/
 
-#ifdef WINDLL
-   /* for UnZip, the "basic" part of the win32 api is sufficient */
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#    define IZ_HASDEFINED_WIN32LEAN
-#  endif
-#  include <windows.h>
-#  include "windll/structs.h"
-#  ifdef IZ_HASDEFINED_WIN32LEAN
-#    undef WIN32_LEAN_AND_MEAN
-#    undef IZ_HASDEFINED_WIN32LEAN
-#  endif
-#endif
-
 /*---------------------------------------------------------------------------
     Grab system-dependent definition of EXPENTRY for prototypes below.
   ---------------------------------------------------------------------------*/
@@ -381,13 +367,11 @@ int      UZ_EXP UzpMain            OF((int argc, char **argv));
 int      UZ_EXP UzpAltMain         OF((int argc, char **argv, UzpInit *init));
 ZCONST UzpVer * UZ_EXP UzpVersion  OF((void));
 void     UZ_EXP UzpFreeMemBuffer   OF((UzpBuffer *retstr));
-#ifndef WINDLL
 int      UZ_EXP UzpUnzipToMemory   OF((char *zip, char *file, UzpOpts *optflgs,
                                        UzpCB *UsrFunc, UzpBuffer *retstr));
 int      UZ_EXP UzpGrep            OF((char *archive, char *file,
                                        char *pattern, int cmd, int SkipBin,
                                        UzpCB *UsrFunc));
-#endif
 
 unsigned UZ_EXP UzpVersion2        OF((UzpVer2 *version));
 int      UZ_EXP UzpValidate        OF((char *archive, int AllCodes));

@@ -180,11 +180,7 @@ Uz_Globs *globalsCtor()
 
     G.message = UzpMessagePrnt;
     G.input = UzpInput;           /* not used by anyone at the moment... */
-#if defined(WINDLL) || defined(MACOS)
-    G.mpause = NULL;              /* has scrollbars:  no need for pausing */
-#else
     G.mpause = UzpMorePause;
-#endif
     G.decr_passwd = UzpPassword;
 #endif /* !FUNZIP */
 

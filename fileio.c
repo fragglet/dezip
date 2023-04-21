@@ -60,10 +60,6 @@
 #define __FILEIO_C      /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#ifdef WINDLL
-#    include "windll/windll.h"
-#  include <setjmp.h>
-#endif
 #include "crc32.h"
 #include "crypt.h"
 #include "ttyio.h"
@@ -87,13 +83,8 @@
    be valid for anything up to 64K (and probably beyond, assuming your
    buffers are that big).
 */
-#ifdef WINDLL
-#  define WriteError(buf,len,strm) \
-   (win_fprintf(pG, strm, (extent)len, (char far *)buf) != (int)(len))
-#else /* !WINDLL */
 #    define WriteError(buf,len,strm) \
      ((extent)write(fileno(strm),(char *)(buf),(extent)(len)) != (extent)(len))
-#endif /* ?WINDLL */
 
 /*
    2005-09-16 SMS.
@@ -154,10 +145,6 @@ static ZCONST char Far ExtraFieldTooLong[] =
 static ZCONST char Far ExtraFieldCorrupt[] =
   "warning:  extra field (type: 0x%04x) corrupt.  Continuing...\n";
 
-#ifdef WINDLL
-   static ZCONST char Far DiskFullQuery[] =
-     "%s:  write error (disk full?).\n";
-#else
    static ZCONST char Far DiskFullQuery[] =
      "%s:  write error (disk full?).  Continue? (y/n/^C) ";
    static ZCONST char Far ZipfileCorrupt[] =
@@ -178,7 +165,6 @@ static ZCONST char Far ExtraFieldCorrupt[] =
      static ZCONST char Far PasswPrompt2[] = "Enter password: ";
      static ZCONST char Far PasswRetry[] = "password incorrect--reenter: ";
 #  endif /* CRYPT */
-#endif /* !WINDLL */
 
 
 
@@ -487,12 +473,8 @@ int readbyte(__G)   /* refill inbuf and return a byte if available, else EOF */
               (uch *)LoadFarString(ReadError),
               (ulg)strlen(LoadFarString(ReadError)), 0x401);
             echon();
-#ifdef WINDLL
-            longjmp(dll_error_return, 1);
-#else
             DESTROYGLOBALS();
             EXIT(PK_BADERR);    /* totally bailing; better than lock-up */
-#endif
         }
         G.cur_zipfile_bufstart += INBUFSIZ; /* always starts on block bndry */
         G.inptr = G.inbuf;
@@ -987,12 +969,10 @@ static int disk_error(__G)
     Info(slide, 0x4a1, ((char *)slide, LoadFarString(DiskFullQuery),
       FnFilter1(G.filename)));
 
-#ifndef WINDLL
     fgets(G.answerbuf, sizeof(G.answerbuf), stdin);
     if (*G.answerbuf == 'y')   /* stop writing to this file */
         G.disk_full = 1;       /*  (outfile bad?), but new OK */
     else
-#endif
         G.disk_full = 2;       /* no:  exit program */
 
     return PK_DISK;
@@ -1040,14 +1020,6 @@ int UZ_EXP UzpMessagePrnt(pG, buf, size, flag)
     of this one.
   ---------------------------------------------------------------------------*/
 
-#ifdef WINDLL
-    if (MSG_NO_WDLL(flag))
-        return 0;
-#endif
-#ifdef WINDLL
-    if (MSG_NO_WGUI(flag))
-        return 0;
-#endif
 /*
 #ifdef ACORN_GUI
     if (MSG_NO_AGUI(flag))
@@ -1207,8 +1179,6 @@ int UZ_EXP UzpInput(pG, buf, size, flag)
 
 
 
-#if (!defined(WINDLL) && !defined(MACOS))
-
 /***************************/
 /* Function UzpMorePause() */
 /***************************/
@@ -1258,12 +1228,8 @@ void UZ_EXP UzpMorePause(pG, prompt, flag)
 
 } /* end function UzpMorePause() */
 
-#endif /* !WINDLL && !MACOS */
 
 
-
-
-#ifndef WINDLL
 
 /**************************/
 /* Function UzpPassword() */
@@ -1384,8 +1350,6 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
     DESTROYGLOBALS();
     EXIT(IZ_CTRLC);       /* was EXIT(0), then EXIT(PK_ERR) */
 }
-
-#endif /* !WINDLL */
 
 
 
@@ -1641,21 +1605,10 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 Ext_ASCII_TO_Native((char *)G.outbuf, G.pInfo->hostnum,
                                     G.pInfo->hostver, G.pInfo->HasUxAtt,
                                     FALSE);
-#ifdef WINDLL
-                /* translate to ANSI (RTL internal codepage may be OEM) */
-                INTERN_TO_ISO((char *)G.outbuf, (char *)G.outbuf);
-#else /* !WINDLL */
-#endif /* ?WINDLL */
             } else {
                 A_TO_N(G.outbuf);   /* translate string to native */
             }
 
-#ifdef WINDLL
-            /* ran out of local mem -- had to cheat */
-            win_fprintf((zvoid *)&G, stdout, (extent)(q-G.outbuf),
-                        (char *)G.outbuf);
-            win_fprintf((zvoid *)&G, stdout, 2, (char *)"\n\n");
-#else /* !WINDLL */
 #ifdef NOANSIFILT       /* GRR:  can ANSI be used with EBCDIC? */
             (*G.message)((zvoid *)&G, G.outbuf, (ulg)(q-G.outbuf), 0);
 #else /* ASCII, filter out ANSI escape sequences and handle ^S (pause) */
@@ -1686,7 +1639,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
             }
             (*G.message)((zvoid *)&G, slide, (ulg)(q-slide), 0);
 #endif /* ?NOANSIFILT */
-#endif /* ?WINDLL */
         }
         /* add '\n' if not at start of line */
         (*G.message)((zvoid *)&G, slide, 0L, 0x40);

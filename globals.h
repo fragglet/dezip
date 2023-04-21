@@ -316,9 +316,6 @@ typedef struct Globals {
     PauseFn *mpause;
     PasswdFn *decr_passwd;
     StatCBFn *statreportcb;
-#ifdef WINDLL
-    LPUSERFUNCTIONS lpUserFunctions;
-#endif
 
     int incnt_leftover;       /* so improved NEXTBYTE does not waste input */
     uch *inptr_leftover;

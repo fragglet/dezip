@@ -22,16 +22,12 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#ifdef WINDLL
-#    include "windll/windll.h"
-#endif
 
 
 #ifdef TIMESTAMP
    static int  fn_is_dir   OF((__GPRO));
 #endif
 
-#ifndef WINDLL
    static ZCONST char Far CompFactorStr[] = "%c%d%%";
    static ZCONST char Far CompFactor100[] = "100%%";
 
@@ -59,7 +55,6 @@
    static ZCONST char Far ShortFileTrailer[] =
      "---------                     -------\n%s\
                      %lu file%s\n";
-#endif /* !WINDLL */
 
 
 
@@ -73,10 +68,8 @@ int list_files(__G)    /* return PK-type error code */
     __GDEF
 {
     int do_this_file=FALSE, cfactor, error, error_in_archive=PK_COOL;
-#ifndef WINDLL
     char sgn, cfactorstr[12];
     int longhdr=(uO.vflag>1);
-#endif
     int date_format;
     char dt_sepchar;
     ulg members=0L;
@@ -117,7 +110,6 @@ int list_files(__G)    /* return PK-type error code */
     date_format = DATE_FORMAT;
     dt_sepchar = DATE_SEPCHAR;
 
-#ifndef WINDLL
     if (uO.qflag < 2) {
         if (uO.L_flag)
             Info(slide, 0, ((char *)slide, LoadFarString(CaseConversion),
@@ -128,7 +120,6 @@ int list_files(__G)    /* return PK-type error code */
                LoadFarString(Headers[longhdr][0]),
                LoadFarStringSmall(Headers[longhdr][1])));
     }
-#endif /* !WINDLL */
 
     for (j = 1L;;j++) {
 
@@ -258,14 +249,10 @@ int list_files(__G)    /* return PK-type error code */
             if (G.crec.general_purpose_bit_flag & 1)
                 csiz -= 12;   /* if encrypted, don't count encryption header */
             if ((cfactor = ratio(G.crec.ucsize, csiz)) < 0) {
-#ifndef WINDLL
                 sgn = '-';
-#endif
                 cfactor = (-cfactor + 5) / 10;
             } else {
-#ifndef WINDLL
                 sgn = ' ';
-#endif
                 cfactor = (cfactor + 5) / 10;
             }
 
@@ -295,33 +282,6 @@ int list_files(__G)    /* return PK-type error code */
                     *p = '?';  /* change non-printable chars to '?' */
 #endif /* 0 */
 
-#ifdef WINDLL
-            /* send data to application for formatting and printing */
-            if (G.lpUserFunctions->SendApplicationMessage != NULL)
-                (*G.lpUserFunctions->SendApplicationMessage)(G.crec.ucsize,
-                  csiz, (unsigned)cfactor, mo, dy, yr, hh, mm,
-                  (char)(G.pInfo->lcflag ? '^' : ' '),
-                  (LPCSTR)fnfilter(G.filename, slide, (WSIZE>>1)),
-                  (LPCSTR)methbuf, G.crec.crc32,
-                  (char)((G.crec.general_purpose_bit_flag & 1) ? 'E' : ' '));
-            else if (G.lpUserFunctions->SendApplicationMessage_i32 != NULL) {
-                unsigned long ucsize_lo, csiz_lo;
-                unsigned long ucsize_hi=0L, csiz_hi=0L;
-                ucsize_lo = (unsigned long)(G.crec.ucsize);
-                csiz_lo = (unsigned long)(csiz);
-#ifdef ZIP64_SUPPORT
-                ucsize_hi = (unsigned long)(G.crec.ucsize >> 32);
-                csiz_hi = (unsigned long)(csiz >> 32);
-#endif /* ZIP64_SUPPORT */
-                (*G.lpUserFunctions->SendApplicationMessage_i32)(ucsize_lo,
-                    ucsize_hi, csiz_lo, csiz_hi, (unsigned)cfactor,
-                    mo, dy, yr, hh, mm,
-                    (char)(G.pInfo->lcflag ? '^' : ' '),
-                    (LPCSTR)fnfilter(G.filename, slide, (WSIZE>>1)),
-                    (LPCSTR)methbuf, G.crec.crc32,
-                    (char)((G.crec.general_purpose_bit_flag & 1) ? 'E' : ' '));
-            }
-#else /* !WINDLL */
             if (cfactor == 100)
                 sprintf(cfactorstr, LoadFarString(CompFactor100));
             else
@@ -338,7 +298,6 @@ int list_files(__G)    /* return PK-type error code */
                   mo, dt_sepchar, dy, dt_sepchar, yr, hh, mm,
                   (G.pInfo->lcflag? '^':' ')));
             fnprint(__G);
-#endif /* ?WINDLL */
 
             if ((error = do_string(__G__ G.crec.file_comment_length,
                                    QCOND? DISPL_8 : SKIP)) != 0)
@@ -363,24 +322,12 @@ int list_files(__G)    /* return PK-type error code */
     if (uO.qflag < 2
                                             ) {
         if ((cfactor = ratio(tot_ucsize, tot_csize)) < 0) {
-#ifndef WINDLL
             sgn = '-';
-#endif
             cfactor = (-cfactor + 5) / 10;
         } else {
-#ifndef WINDLL
             sgn = ' ';
-#endif
             cfactor = (cfactor + 5) / 10;
         }
-#ifdef WINDLL
-        /* pass the totals back to the calling application */
-        G.lpUserFunctions->TotalSizeComp = tot_csize;
-        G.lpUserFunctions->TotalSize = tot_ucsize;
-        G.lpUserFunctions->CompFactor = (ulg)cfactor;
-        G.lpUserFunctions->NumMembers = members;
-
-#else /* !WINDLL */
         if (cfactor == 100)
             sprintf(cfactorstr, LoadFarString(CompFactor100));
         else
@@ -393,7 +340,6 @@ int list_files(__G)    /* return PK-type error code */
             Info(slide, 0, ((char *)slide, LoadFarString(ShortFileTrailer),
               FmZofft(tot_ucsize, "9", "u"),
               members, members == 1 ? "" : "s"));
-#endif /* ?WINDLL */
     }
 
     /* Skip the following checks in case of a premature listing break. */

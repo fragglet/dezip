@@ -35,9 +35,6 @@
 #define __EXTRACT_C     /* identifies this source module */
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#ifdef WINDLL
-#    include "windll/windll.h"
-#endif
 #include "crc32.h"
 #include "crypt.h"
 
@@ -206,7 +203,6 @@ static ZCONST char Far SkipVolumeLabel[] =
      "  %-22s -> %s\n";
 #endif
 
-#ifndef WINDLL
    static ZCONST char Far ReplaceQuery[] =
      "replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ";
    static ZCONST char Far AssumeNone[] =
@@ -214,7 +210,6 @@ static ZCONST char Far SkipVolumeLabel[] =
    static ZCONST char Far NewNameQuery[] = "new name: ";
    static ZCONST char Far InvalidResponse[] =
      "error:  invalid response [%s]\n";
-#endif /* !WINDLL */
 
 static ZCONST char Far ErrorInArchive[] =
   "At least one %serror was detected in %s.\n";
@@ -1522,27 +1517,6 @@ startover:
                     break;
             }
             if (query) {
-#ifdef WINDLL
-                switch (G.lpUserFunctions->replace != NULL ?
-                        (*G.lpUserFunctions->replace)(G.filename, FILNAMSIZ) :
-                        IDM_REPLACE_NONE) {
-                    case IDM_REPLACE_RENAME:
-                        _ISO_INTERN(G.filename);
-                        renamed = TRUE;
-                        goto startover;
-                    case IDM_REPLACE_ALL:
-                        G.overwrite_mode = OVERWRT_ALWAYS;
-                        /* FALL THROUGH, extract */
-                    case IDM_REPLACE_YES:
-                        break;
-                    case IDM_REPLACE_NONE:
-                        G.overwrite_mode = OVERWRT_NEVER;
-                        /* FALL THROUGH, skip */
-                    case IDM_REPLACE_NO:
-                        skip_entry = SKIP_Y_EXISTING;
-                        break;
-                }
-#else /* !WINDLL */
                 extent fnlen;
 reprompt:
                 Info(slide, 0x81, ((char *)slide,
@@ -1601,19 +1575,8 @@ reprompt:
                           LoadFarString(InvalidResponse), G.answerbuf));
                         goto reprompt;   /* yet another goto? */
                 } /* end switch (*answerbuf) */
-#endif /* ?WINDLL */
             } /* end if (query) */
             if (skip_entry != SKIP_NO) {
-#ifdef WINDLL
-                if (skip_entry == SKIP_Y_EXISTING) {
-                    /* report skipping of an existing entry */
-                    Info(slide, 0, ((char *)slide,
-                      ((IS_OVERWRT_NONE || !uO.uflag || renamed) ?
-                       "Target file exists.  Skipping %s\n" :
-                       "Target file newer.  Skipping %s\n"),
-                      FnFilter1(G.filename)));
-                }
-#endif /* WINDLL */
                 continue;
             }
         } /* end if (extracting to disk) */
@@ -2644,11 +2607,6 @@ char *fnfilter(raw, space, size)   /* convert name to safely printable form */
     } else {
         *s = '\0';
     }
-
-#ifdef WINDLL
-    INTERN_TO_ISO((char *)space, (char *)space);  /* translate to ANSI */
-#else
-#endif /* ?WINDLL */
 
     return (char *)space;
 

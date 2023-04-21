@@ -65,12 +65,7 @@ int envargs(Pargc, Pargv, envstr, envstr2)
     bufptr = malloc(1 + strlen(envptr));
     if (bufptr == (char *)NULL)
         return PK_MEM;
-#if ((defined(WIN32) || defined(WINDLL)) && !defined(_WIN32_WCE))
-    /* DOS (Win 3.x) environment uses OEM codepage */
-    OEM_TO_INTERN(envptr, bufptr);
-#else /* !((WIN32 || WINDLL) && !_WIN32_WCE) */
     strcpy(bufptr, envptr);
-#endif /* ?((WIN32 || WINDLL) && !_WIN32_WCE) */
 
     /* count the args so we can allocate room for them */
     argc = count_args(bufptr);

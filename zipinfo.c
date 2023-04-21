@@ -422,8 +422,6 @@ static ZCONST char Far DecimalTime[] = "%04u%02u%02u.%02u%02u%02u";
 
 
 
-#ifndef WINDLL
-
 /************************/
 /*  Function zi_opts()  */
 /************************/
@@ -601,8 +599,6 @@ int zi_opts(__G__ pargc, pargv)
     return 0;
 
 } /* end function zi_opts() */
-
-#endif /* !WINDLL */
 
 
 

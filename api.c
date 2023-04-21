@@ -37,9 +37,6 @@
 
 #define UNZIP_INTERNAL
 #include "unzip.h"
-#ifdef WINDLL
-#    include "windll/windll.h"
-#endif
 #include "unzvers.h"
 #include <setjmp.h>
 
