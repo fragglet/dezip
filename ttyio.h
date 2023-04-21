@@ -41,9 +41,7 @@
 #endif
 
 #if (defined(DOS_OS2_W32) || defined(__human68k__))
-#  ifndef DOS_H68_OS2_W32
 #    define DOS_H68_OS2_W32
-#  endif
 #endif
 
 #if (defined(DOS_OS2_W32) || defined(FLEXOS))
@@ -93,30 +91,6 @@
 #  define getch() SWI_OS_ReadC()
 #  define HAVE_WORKING_GETCH
 #endif
-
-#ifdef DOS_H68_OS2_W32
-#  define echoff(f)
-#  define echon()
-#  ifdef WIN32
-#    ifndef getch
-#      define getch() getch_win32()
-#    endif
-#  else /* !WIN32 */
-#    ifdef __EMX__
-#      ifndef getch
-#        define getch() _read_kbd(0, 1, 0)
-#      endif
-#    else /* !__EMX__ */
-#      ifdef __GO32__
-#        include <pc.h>
-#        define getch() getkey()
-#      else /* !__GO32__ */
-#        include <conio.h>
-#      endif /* ?__GO32__ */
-#    endif /* ?__EMX__ */
-#  endif /* ?WIN32 */
-#  define HAVE_WORKING_GETCH
-#endif /* DOS_H68_OS2_W32 */
 
 #ifdef FLEXOS
 #  define echoff(f)

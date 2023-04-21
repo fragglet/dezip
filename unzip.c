@@ -1623,15 +1623,6 @@ int uz_opts(__G__ pargc, pargv)
                         uO.ods2_flag = TRUE;
                     break;
 #endif /* VMS */
-#ifdef DOS_H68_OS2_W32
-                case ('$'):
-                    if (negative) {
-                        uO.volflag = MAX(uO.volflag-negative,0);
-                        negative = 0;
-                    } else
-                        ++uO.volflag;
-                    break;
-#endif /* DOS_H68_OS2_W32 */
 #if (!defined(RISCOS) && !defined(CMS_MVS) && !defined(TANDEM))
                 case (':'):    /* allow "parent dir" path components */
                     if (negative) {
