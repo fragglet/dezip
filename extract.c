@@ -585,9 +585,6 @@ int extract_or_test_files(__G)    /* return PK-type error code */
     reached_end = FALSE;
     while (!reached_end) {
         j = 0;
-#ifdef AMIGA
-        memzero(G.filenotes, DIR_BLKSIZ * sizeof(char *));
-#endif
 
         /*
          * Loop through files in central directory, storing offsets, file
@@ -668,14 +665,8 @@ int extract_or_test_files(__G)    /* return PK-type error code */
                     break;
                 }
             }
-#ifdef AMIGA
-            G.filenote_slot = j;
-            if ((error = do_string(__G__ G.crec.file_comment_length,
-                                   uO.N_flag ? FILENOTE : SKIP)) != PK_COOL)
-#else
             if ((error = do_string(__G__ G.crec.file_comment_length, SKIP))
                 != PK_COOL)
-#endif
             {
                 if (error > error_in_archive)
                     error_in_archive = error;
@@ -1740,9 +1731,6 @@ reprompt:
 #endif
 #ifdef MACOS  /* MacOS is no preemptive OS, thus call event-handling by hand */
         UserStop();
-#endif
-#ifdef AMIGA
-        G.filenote_slot = i;
 #endif
         G.disk_full = 0;
         if ((error = extract_or_test_member(__G)) != PK_COOL) {

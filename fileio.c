@@ -1655,9 +1655,6 @@ void handler(signal)   /* upon interrupt, turn on echo and exit cleanly */
 
     /* probably ctrl-C */
     DESTROYGLOBALS();
-#if defined(AMIGA) && defined(__SASC)
-    _abort();
-#endif
     EXIT(IZ_CTRLC);       /* was EXIT(0), then EXIT(PK_ERR) */
 }
 
@@ -1992,9 +1989,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
     unsigned comment_bytes_left;
     unsigned int block_len;
     int error=PK_OK;
-#ifdef AMIGA
-    char tmp_fnote[2 * AMIGA_FILENOTELEN];   /* extra room for squozen chars */
-#endif
 
 
 /*---------------------------------------------------------------------------
@@ -2365,40 +2359,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
 #endif /* UNICODE_SUPPORT */
         }
         break;
-
-#ifdef AMIGA
-    /*
-     * Fifth case, for the Amiga only:  take the comment that would ordinarily
-     * be skipped over, and turn it into a 79 character string that will be
-     * attached to the file as a "filenote" after it is extracted.
-     */
-
-    case FILENOTE:
-        if ((block_len = readbuf(__G__ tmp_fnote, (unsigned)
-                                 MIN(length, 2 * AMIGA_FILENOTELEN - 1))) == 0)
-            return PK_EOF;
-        if ((length -= block_len) > 0)  /* treat remainder as in case SKIP: */
-            seek_zipf(__G__ G.cur_zipfile_bufstart - G.extra_bytes
-                      + (G.inptr - G.inbuf) + length);
-        /* convert multi-line text into single line with no ctl-chars: */
-        tmp_fnote[block_len] = '\0';
-        while ((short int) --block_len >= 0)
-            if ((unsigned) tmp_fnote[block_len] < ' ')
-                if (tmp_fnote[block_len+1] == ' ')     /* no excess */
-                    strcpy(tmp_fnote+block_len, tmp_fnote+block_len+1);
-                else
-                    tmp_fnote[block_len] = ' ';
-        tmp_fnote[AMIGA_FILENOTELEN - 1] = '\0';
-        if (G.filenotes[G.filenote_slot])
-            free(G.filenotes[G.filenote_slot]);     /* should not happen */
-        G.filenotes[G.filenote_slot] = NULL;
-        if (tmp_fnote[0]) {
-            if (!(G.filenotes[G.filenote_slot] = malloc(strlen(tmp_fnote)+1)))
-                return PK_MEM;
-            strcpy(G.filenotes[G.filenote_slot], tmp_fnote);
-        }
-        break;
-#endif /* AMIGA */
 
     } /* end switch (option) */
 

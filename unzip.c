@@ -275,15 +275,6 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
    static ZCONST char Far local3[] = "\n";
 #endif
 #else /* !TANDEM */
-#ifdef AMIGA
-   static ZCONST char Far local2[] = " -N  restore comments as filenotes";
-#ifdef MORE
-   static ZCONST char Far local3[] = " \
-                                            -M  pipe through \"more\" pager\n";
-#else
-   static ZCONST char Far local3[] = "\n";
-#endif
-#else /* !AMIGA */
 #ifdef MACOS
    static ZCONST char Far local2[] = " -E  show Mac info during extraction";
    static ZCONST char Far local3[] = " \
@@ -298,7 +289,6 @@ M  pipe through \"more\" pager              -s  spaces in filenames => '_'\n\n";
    static ZCONST char Far local3[] = "";
 #endif
 #endif /* ?MACOS */
-#endif /* ?AMIGA */
 #endif /* ?TANDEM */
 #endif /* ?ATH_BEO_UNX */
 #endif /* ?VMS */
@@ -1576,14 +1566,6 @@ int uz_opts(__G__ pargc, pargv)
                     else
                         uO.overwrite_none = TRUE;
                     break;
-#ifdef AMIGA
-                case ('N'):    /* restore comments as filenotes */
-                    if (negative)
-                        uO.N_flag = FALSE, negative = 0;
-                    else
-                        uO.N_flag = TRUE;
-                    break;
-#endif /* AMIGA */
                 case ('o'):    /* OK to overwrite files without prompting */
                     if (negative) {
                         uO.overwrite_all = MAX(uO.overwrite_all-negative,0);
@@ -1948,9 +1930,6 @@ opts_done:  /* yes, very ugly...but only used by UnZipSFX with -x xlist */
 #  endif
 #  if (defined(FLEXOS) || defined(NLM))
 #    define LOCAL "s"
-#  endif
-#  ifdef AMIGA
-#    define LOCAL "N"
 #  endif
    /* Default for all other systems: */
 #  ifndef LOCAL

@@ -76,12 +76,6 @@
 /* The following systems supply a `non-echo' character input function "getch()"
  * (or an alias) and do not need the echoff() / echon() function pair.
  */
-#ifdef AMIGA
-#  define echoff(f)
-#  define echon()
-#  define getch() Agetch()
-#  define HAVE_WORKING_GETCH
-#endif /* AMIGA */
 
 #ifdef ATARI
 #  define echoff(f)

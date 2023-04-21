@@ -504,9 +504,6 @@ typedef struct _UzpOpts {
     int lflag;          /* -12slmv: listing format (zipinfo) */
     int L_flag;         /* -L: convert filenames from some OSes to lowercase */
     int overwrite_none; /* -n: never overwrite files (no prompting) */
-#ifdef AMIGA
-    int N_flag;         /* -N: restore comments as AmigaDOS filenotes */
-#endif
     int overwrite_all;  /* -o: OK to overwrite files without prompting */
 #endif /* !FUNZIP */
     int qflag;          /* -q: produce a lot less output */
