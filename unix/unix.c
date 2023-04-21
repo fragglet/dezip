@@ -1217,25 +1217,6 @@ void version(__G)
 #endif
       IZ_OS_NAME,
 
-#ifdef sun
-#  ifdef sparc
-#    ifdef __SVR4
-      " (Sun SPARC/Solaris)",
-#    else /* may or may not be SunOS */
-      " (Sun SPARC)",
-#    endif
-#  else
-#  if defined(sun386) || defined(i386)
-      " (Sun 386i)",
-#  else
-#  if defined(mc68020) || defined(__mc68020__)
-      " (Sun 3)",
-#  else /* mc68010 or mc68000:  Sun 2 or earlier */
-      " (Sun 2)",
-#  endif
-#  endif
-#  endif
-#else
 #if defined(uts) || defined(UTS)
       " (Amdahl UTS)",
 #else
@@ -1253,7 +1234,6 @@ void version(__G)
       "",
 #endif /* DEC */
 #endif /* Amdahl */
-#endif /* Sun */
 
 #if 0
       " on ", __DATE__

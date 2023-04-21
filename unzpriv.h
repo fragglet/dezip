@@ -139,11 +139,6 @@
 #    define BSD
 #  endif
 #endif /* ultrix || __ultrix || bsd4_2 */
-#if (defined(sun) || defined(pyr) || defined(CONVEX))
-#  if (!defined(BSD) && !defined(SYSV))
-#    define BSD
-#  endif
-#endif /* sun || pyr || CONVEX */
 
 /* stat() bug for Borland, VAX C RTL, and Atari ST MiNT on TOS
  * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
