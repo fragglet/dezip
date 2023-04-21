@@ -94,10 +94,6 @@ typedef struct stat z_stat;
 #  endif
 # endif
 #endif
-# if (!defined(NO_WORKING_ISPRINT) && !defined(HAVE_WORKING_ISPRINT))
-   /* enable "enhanced" unprintable chars detection in fnfilter() */
-#  define HAVE_WORKING_ISPRINT
-# endif
 
 #if (!defined(HAVE_STRNICMP) & !defined(NO_STRNICMP))
 #  define NO_STRNICMP
