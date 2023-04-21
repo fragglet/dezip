@@ -37,11 +37,7 @@
 #endif
 
 static int    do_seekable        OF((__GPRO__ int lastchance));
-# ifdef USE_STRM_INPUT
-static zoff_t file_size          OF((FILE *file));
-# else
 static zoff_t file_size          OF((int fh));
-# endif
 static int    rec_find           OF((__GPRO__ zoff_t, char *, int));
 static int    find_ecrec64       OF((__GPRO__ zoff_t searchlen));
 static int    find_ecrec         OF((__GPRO__ zoff_t searchlen));
@@ -735,52 +731,13 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
    small-file program.  Probably should be somewhere else.
    The file has to be opened previously
 */
-#ifdef USE_STRM_INPUT
-static zoff_t file_size(file)
-    FILE *file;
-{
-    int sts;
-    size_t siz;
-#else /* !USE_STRM_INPUT */
 static zoff_t file_size(fh)
     int fh;
 {
     int siz;
-#endif /* ?USE_STRM_INPUT */
     zoff_t ofs;
     char waste[4];
 
-#ifdef USE_STRM_INPUT
-    /* Seek to actual EOF. */
-    sts = zfseeko(file, 0, SEEK_END);
-    if (sts != 0) {
-        /* fseeko() failed.  (Unlikely.) */
-        ofs = EOF;
-    } else {
-        /* Get apparent offset at EOF. */
-        ofs = zftello(file);
-        if (ofs < 0) {
-            /* Offset negative (overflow).  File too big. */
-            ofs = EOF;
-        } else {
-            /* Seek to apparent EOF offset.
-               Won't be at actual EOF if offset was truncated.
-            */
-            sts = zfseeko(file, ofs, SEEK_SET);
-            if (sts != 0) {
-                /* fseeko() failed.  (Unlikely.) */
-                ofs = EOF;
-            } else {
-                /* Read a byte at apparent EOF.  Should set EOF flag. */
-                siz = fread(waste, 1, 1, file);
-                if (feof(file) == 0) {
-                    /* Not at EOF, but should be.  File too big. */
-                    ofs = EOF;
-                }
-            }
-        }
-    }
-#else /* !USE_STRM_INPUT */
     /* Seek to actual EOF. */
     ofs = zlseek(fh, 0, SEEK_END);
     if (ofs == (zoff_t) -1) {
@@ -806,7 +763,6 @@ static zoff_t file_size(fh)
             }
         }
     }
-#endif /* ?USE_STRM_INPUT */
     return ofs;
 } /* end function file_size() */
 
@@ -833,12 +789,7 @@ static int rec_find(__G__ searchlen, signature, rec_size)
   ---------------------------------------------------------------------------*/
 
     if ((tail_len = G.ziplen % INBUFSIZ) > rec_size) {
-#ifdef USE_STRM_INPUT
-        zfseeko(G.zipfd, G.ziplen-tail_len, SEEK_SET);
-        G.cur_zipfile_bufstart = zftello(G.zipfd);
-#else /* !USE_STRM_INPUT */
         G.cur_zipfile_bufstart = zlseek(G.zipfd, G.ziplen-tail_len, SEEK_SET);
-#endif /* ?USE_STRM_INPUT */
         if ((G.incnt = read(G.zipfd, (char *)G.inbuf,
             (unsigned int)tail_len)) != (int)tail_len)
             return 2;      /* it's expedient... */
@@ -870,11 +821,7 @@ static int rec_find(__G__ searchlen, signature, rec_size)
 
     for (i = 1;  !found && (i <= numblks);  ++i) {
         G.cur_zipfile_bufstart -= INBUFSIZ;
-#ifdef USE_STRM_INPUT
-        zfseeko(G.zipfd, G.cur_zipfile_bufstart, SEEK_SET);
-#else /* !USE_STRM_INPUT */
         zlseek(G.zipfd, G.cur_zipfile_bufstart, SEEK_SET);
-#endif /* ?USE_STRM_INPUT */
         if ((G.incnt = read(G.zipfd,(char *)G.inbuf,INBUFSIZ))
             != INBUFSIZ)
             return 2;          /* read error is fatal failure */
@@ -943,12 +890,7 @@ static int find_ecrec64(__G__ searchlen)         /* return PK-class error */
       /* Seeking would go past beginning, so probably empty archive */
       return PK_COOL;
 
-#ifdef USE_STRM_INPUT
-    zfseeko(G.zipfd, ecloc64_start_offset, SEEK_SET);
-    G.cur_zipfile_bufstart = zftello(G.zipfd);
-#else /* !USE_STRM_INPUT */
     G.cur_zipfile_bufstart = zlseek(G.zipfd, ecloc64_start_offset, SEEK_SET);
-#endif /* ?USE_STRM_INPUT */
 
     if ((G.incnt = read(G.zipfd, (char *)byterecL, ECLOC64_SIZE+4))
         != (ECLOC64_SIZE+4)) {
@@ -1010,12 +952,7 @@ static int find_ecrec64(__G__ searchlen)         /* return PK-class error */
       return PK_ERR;
     }
 
-#ifdef USE_STRM_INPUT
-    zfseeko(G.zipfd, ecrec64_start_offset, SEEK_SET);
-    G.cur_zipfile_bufstart = zftello(G.zipfd);
-#else /* !USE_STRM_INPUT */
     G.cur_zipfile_bufstart = zlseek(G.zipfd, ecrec64_start_offset, SEEK_SET);
-#endif /* ?USE_STRM_INPUT */
 
     if ((G.incnt = read(G.zipfd, (char *)byterec, ECREC64_SIZE+4))
         != (ECREC64_SIZE+4)) {
@@ -1035,12 +972,7 @@ static int find_ecrec64(__G__ searchlen)         /* return PK-class error */
       /* Make a guess as to where the Zip64 EOCD Record might be */
       ecrec64_start_offset = ecloc64_start_offset - ECREC64_SIZE - 4;
 
-#ifdef USE_STRM_INPUT
-      zfseeko(G.zipfd, ecrec64_start_offset, SEEK_SET);
-      G.cur_zipfile_bufstart = zftello(G.zipfd);
-#else /* !USE_STRM_INPUT */
       G.cur_zipfile_bufstart = zlseek(G.zipfd, ecrec64_start_offset, SEEK_SET);
-#endif /* ?USE_STRM_INPUT */
 
       if ((G.incnt = read(G.zipfd, (char *)byterec, ECREC64_SIZE+4))
           != (ECREC64_SIZE+4)) {
@@ -1162,11 +1094,7 @@ static int find_ecrec(__G__ searchlen)          /* return PK-class error */
   ---------------------------------------------------------------------------*/
 
     if (G.ziplen <= INBUFSIZ) {
-#ifdef USE_STRM_INPUT
-        zfseeko(G.zipfd, 0L, SEEK_SET);
-#else /* !USE_STRM_INPUT */
         zlseek(G.zipfd, 0L, SEEK_SET);
-#endif /* ?USE_STRM_INPUT */
         if ((G.incnt = read(G.zipfd,(char *)G.inbuf,(unsigned int)G.ziplen))
             == (int)G.ziplen)
 

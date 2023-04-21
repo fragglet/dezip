@@ -1427,18 +1427,6 @@ char    *GetLoadPath     OF((__GPRO));                              /* local */
 
 #  define ToLower(x)   ((char)(isupper((int)x)? tolower((int)x) : x))
 
-#ifdef USE_STRM_INPUT
-   /* ``Replace'' the unbuffered UNIX style I/O function with similar
-    * standard C functions from <stdio.h>.
-    */
-#  define read(fd,buf,n) fread((buf),1,(n),(FILE *)(fd))
-#  ifdef zlseek
-#    undef zlseek
-#  endif
-#  define zlseek(fd,o,w) zfseeko((FILE *)(fd),(o),(w))
-#  define close(fd) fclose((FILE *)(fd))
-#endif /* USE_STRM_INPUT */
-
 /* The return value of the Info() "macro function" is never checked in
  * UnZip. Otherwise, to get the same behaviour as for (*G.message)(), the
  * Info() definition for "FUNZIP" would have to be corrected:
