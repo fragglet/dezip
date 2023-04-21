@@ -1289,9 +1289,6 @@ void version(__G)
 #  endif
 #  endif
 #else
-#ifdef __osf__
-      " (DEC OSF/1)",
-#else
 #if defined(uts) || defined(UTS)
       " (Amdahl UTS)",
 #else
@@ -1321,7 +1318,6 @@ void version(__G)
 #endif /* DEC */
 #endif /* Pyramid */
 #endif /* Amdahl */
-#endif /* OSF/1 */
 #endif /* Sun */
 #endif /* SGI */
 

@@ -69,10 +69,6 @@ typedef struct stat z_stat;
 #  endif
 #endif /* !NO_PARAM_H */
 
-#ifdef __osf__
-#  define DIRENT
-#endif /* __osf__ */
-
 #  include <time.h>
    struct tm *gmtime(), *localtime();
 
