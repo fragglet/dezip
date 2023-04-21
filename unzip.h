@@ -82,21 +82,6 @@ freely, subject to the above disclaimer and the following restrictions:
     Predefined, machine-specific macros.
   ---------------------------------------------------------------------------*/
 
-#ifdef __GO32__                 /* MS-DOS extender:  NOT Unix */
-#  ifdef unix
-#    undef unix
-#  endif
-#  ifdef _unix
-#    undef _unix
-#  endif
-#  ifdef __unix
-#    undef __unix
-#  endif
-#  ifdef __unix__
-#    undef __unix__
-#  endif
-#endif
-
 #if (defined(unix) || defined(_unix) || defined(__unix) || defined(__unix__))
 #  ifndef UNIX
 #    define UNIX

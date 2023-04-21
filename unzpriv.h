@@ -319,12 +319,8 @@
 #    define TIMET_TO_NATIVE(x)  (x) += (ulg)2209075200L;
 #    define NATIVE_TO_TIMET(x)  (x) -= (ulg)2209075200L;
 #  endif
-#  if (defined(__GO32__) || defined(FLEXOS))
-#    define DIR_END       '/'
-#  else
 #    define DIR_END       '\\'  /* OS uses '\\' as directory separator */
 #    define DIR_END2      '/'   /* also check for '/' (RTL may convert) */
-#  endif
 #  ifdef DATE_FORMAT
 #    undef DATE_FORMAT
 #  endif
@@ -2249,14 +2245,6 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 #if (!defined(FUNZIP) && !defined(SFX) && !defined(WINDLL))
    void     check_for_windows     OF((ZCONST char *app));         /* msdos.c */
 #endif
-#if (defined(__GO32__) || defined(__EMX__))
-   unsigned _dos_getcountryinfo(void *);                          /* msdos.c */
-   unsigned _dos_setftime(int, unsigned, unsigned);               /* msdos.c */
-   unsigned _dos_setfileattr(const char *, unsigned);             /* msdos.c */
-   unsigned _dos_creat(const char *, unsigned, int *);            /* msdos.c */
-   void _dos_getdrive(unsigned *);                                /* msdos.c */
-   unsigned _dos_close(int);                                      /* msdos.c */
-#endif /* __GO32__ || __EMX__ */
 #endif
 
 /*---------------------------------------------------------------------------

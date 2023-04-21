@@ -435,10 +435,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far CryptDate[] = CR_VERSION_DATE;
 #  endif
 #  ifndef __RSXNT__
-#    if (defined(__GO32__) && (!defined(__DJGPP__) || (__DJGPP__ < 2)))
-       static ZCONST char Far EnvGO32[] = "GO32";
-       static ZCONST char Far EnvGO32TMP[] = "GO32TMP";
-#    endif
 #  endif /* !__RSXNT__ */
 
 #ifdef VMS
@@ -2382,18 +2378,6 @@ static void show_version_info(__G)
           (envptr == (char *)NULL || *envptr == 0)?
           LoadFarStringSmall2(None) : envptr));
 #ifndef __RSXNT__
-#if (defined(__GO32__) && (!defined(__DJGPP__) || (__DJGPP__ < 2)))
-        envptr = getenv(LoadFarStringSmall(EnvGO32));
-        Info(slide, 0, ((char *)slide, LoadFarString(EnvOptFormat),
-          LoadFarStringSmall(EnvGO32),
-          (envptr == (char *)NULL || *envptr == 0)?
-          LoadFarStringSmall2(None) : envptr));
-        envptr = getenv(LoadFarStringSmall(EnvGO32TMP));
-        Info(slide, 0, ((char *)slide, LoadFarString(EnvOptFormat),
-          LoadFarStringSmall(EnvGO32TMP),
-          (envptr == (char *)NULL || *envptr == 0)?
-          LoadFarStringSmall2(None) : envptr));
-#endif /* __GO32__ && !(__DJGPP__ >= 2) */
 #endif /* !__RSXNT__ */
 #ifdef RISCOS
         envptr = getenv(LoadFarStringSmall(EnvUnZipExts));
