@@ -345,16 +345,6 @@ int open_outfile(__G)           /* return 1 if fail */
         } else
 #endif /* UNIXBACKUP */
         {
-#ifdef DOS_FLX_OS2_W32
-            if (!(G.statbuf.st_mode & S_IWRITE)) {
-                Trace((stderr,
-                  "open_outfile:  existing file %s is read-only\n",
-                  FnFilter1(G.filename)));
-                chmod(G.filename, S_IREAD | S_IWRITE);
-                Trace((stderr, "open_outfile:  %s now writable\n",
-                  FnFilter1(G.filename)));
-            }
-#endif /* DOS_FLX_OS2_W32 */
 #ifdef NLM
             /* Give the file read/write permission (non-POSIX shortcut) */
             chmod(G.filename, 0);
@@ -940,9 +930,7 @@ int flush(__G__ rawbuf, size, unshrink)
                 } else if (*p == LF)      /* lone LF */
                     PutNativeEOL
                 else
-#ifndef DOS_FLX_OS2_W32
                 if (*p != CTRLZ)          /* lose all ^Z's */
-#endif
                     *q++ = native(*p);
 
 #if (defined(SMALL_MEM) || defined(MED_MEM))
