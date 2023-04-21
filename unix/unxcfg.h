@@ -98,11 +98,6 @@ typedef struct stat z_stat;
 #    define GOT_UTIMBUF
 #  endif
 #endif
-#if (defined(__DGUX__) && !defined(GOT_UTIMBUF))
-   /* DG/UX requires this because of a non-standard struct utimebuf */
-#  include <utime.h>
-#  define GOT_UTIMBUF
-#endif
 
 #if (defined(V7) || defined(pyr_bsd))
 #  define strchr   index
