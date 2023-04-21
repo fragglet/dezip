@@ -1131,10 +1131,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         }
     }
 
-#if (!defined(NO_FCHOWN) && defined(NO_FCHMOD))
-    fclose(G.outfile);
-#endif
-
 #if (!defined(NO_FCHOWN) && !defined(NO_FCHMOD))
 /*---------------------------------------------------------------------------
     Change the file permissions from default ones to those stored in the
