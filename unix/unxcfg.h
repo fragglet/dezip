@@ -66,9 +66,6 @@ typedef struct stat z_stat;
 #  include <fcntl.h>            /* O_BINARY for open() w/o CR/LF translation */
 
 #ifndef NO_PARAM_H
-#  ifdef NGROUPS_MAX
-#    undef NGROUPS_MAX      /* SCO bug:  defined again in <sys/param.h> */
-#  endif
 #  include <sys/param.h>    /* conflict with <sys/types.h>, some systems? */
 #  ifdef TEMP_BSD
 #    undef TEMP_BSD
