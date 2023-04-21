@@ -223,9 +223,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      "\nUnZip and ZipInfo environment options:\n";
    static ZCONST char Far EnvOptFormat[] = "%16s:  %.1024s\n";
    static ZCONST char Far None[] = "[none]";
-#  ifdef ASM_CRC
-     static ZCONST char Far AsmCRC[] = "ASM_CRC";
-#  endif
 #  ifdef COPYRIGHT_CLEAN
      static ZCONST char Far Copyright_Clean[] =
      "COPYRIGHT_CLEAN (PKZIP 0.9x unreducing method not supported)";
@@ -1719,11 +1716,6 @@ static void show_version_info(__G)
           LoadFarString(UnzipUsageLine2v)));
         version(__G);
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptions)));
-#ifdef ASM_CRC
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(AsmCRC)));
-        ++numopts;
-#endif
 #ifdef COPYRIGHT_CLEAN
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Copyright_Clean)));
