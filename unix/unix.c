@@ -666,17 +666,10 @@ int checkdir(__G__ pathcomp, flag)
 
     if (FUNCTION == APPEND_DIR) {
         int too_long = FALSE;
-#ifdef SHORT_NAMES
-        char *old_end = end;
-#endif
 
         Trace((stderr, "appending dir segment [%s]\n", FnFilter1(pathcomp)));
         while ((*G.end = *pathcomp++) != '\0')
             ++G.end;
-#ifdef SHORT_NAMES   /* path components restricted to 14 chars, typically */
-        if ((G.end-old_end) > FILENAME_MAX)  /* GRR:  proper constant? */
-            *(G.end = old_end + FILENAME_MAX) = '\0';
-#endif
 
         /* GRR:  could do better check, see if overrunning buffer as we go:
          * check end-buildpath after each append, set warning variable if
@@ -755,17 +748,10 @@ int checkdir(__G__ pathcomp, flag)
   ---------------------------------------------------------------------------*/
 
     if (FUNCTION == APPEND_NAME) {
-#ifdef SHORT_NAMES
-        char *old_end = end;
-#endif
 
         Trace((stderr, "appending filename [%s]\n", FnFilter1(pathcomp)));
         while ((*G.end = *pathcomp++) != '\0') {
             ++G.end;
-#ifdef SHORT_NAMES  /* truncate name at 14 characters, typically */
-            if ((G.end-old_end) > FILENAME_MAX)    /* GRR:  proper constant? */
-                *(G.end = old_end + FILENAME_MAX) = '\0';
-#endif
             if ((G.end-G.buildpath) >= FILNAMSIZ) {
                 *--G.end = '\0';
                 Info(slide, 0x201, ((char *)slide,
