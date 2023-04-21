@@ -51,9 +51,6 @@
 #endif
 
 #ifdef _POSIX_VERSION
-#  ifndef USE_POSIX_TERMIOS
-#    define USE_POSIX_TERMIOS  /* use POSIX style termio (termios) */
-#  endif
 #  ifndef HAVE_TERMIOS_H
 #    define HAVE_TERMIOS_H     /* POSIX termios.h */
 #  endif
@@ -79,9 +76,6 @@
 #endif /* UNZIP */
 
 #ifdef HAVE_TERMIOS_H
-#  ifndef USE_POSIX_TERMIOS
-#    define USE_POSIX_TERMIOS
-#  endif
 #endif
 
 #if (defined(HAVE_TERMIO_H) || defined(HAVE_SYS_TERMIO_H))
@@ -416,35 +410,25 @@ int zgetch(__G__ f)
     __GDEF
     int f;                      /* file descriptor from which to read */
 {
-#if (defined(USE_SYSV_TERMIO) || defined(USE_POSIX_TERMIOS))
     char oldmin, oldtim;
-#endif
     char c;
     struct sgttyb sg;           /* tty device structure */
 
     GTTY(f, &sg);               /* get settings */
-#if (defined(USE_SYSV_TERMIO) || defined(USE_POSIX_TERMIOS))
     oldmin = sg.c_cc[VMIN];     /* save old values */
     oldtim = sg.c_cc[VTIME];
     sg.c_cc[VMIN] = 1;          /* need only one char to return read() */
     sg.c_cc[VTIME] = 0;         /* no timeout */
     sg.sg_flags &= ~ICANON;     /* canonical mode off */
-#else
-    sg.sg_flags |= CBREAK;      /* cbreak mode on */
-#endif
     sg.sg_flags &= ~ECHO;       /* turn echo off, too */
     STTY(f, &sg);               /* set cbreak mode */
     GLOBAL(echofd) = f;         /* in case ^C hit (not perfect: still CBREAK) */
 
     read(f, &c, 1);             /* read our character */
 
-#if (defined(USE_SYSV_TERMIO) || defined(USE_POSIX_TERMIOS))
     sg.c_cc[VMIN] = oldmin;     /* restore old values */
     sg.c_cc[VTIME] = oldtim;
     sg.sg_flags |= ICANON;      /* canonical mode on */
-#else
-    sg.sg_flags &= ~CBREAK;     /* cbreak mode off */
-#endif
     sg.sg_flags |= ECHO;        /* turn echo on */
     STTY(f, &sg);               /* restore canonical mode */
     GLOBAL(echofd) = -1;
