@@ -89,7 +89,7 @@ static int test_compr_eb OF((uch * eb, unsigned eb_size, unsigned compr_offset,
                                                    uch *eb_ucptr,
                                                    ulg eb_ucsize)));
 static void set_deferred_symlink(slinkentry *slnk_entry);
-static int Cdecl dircomp(const void *a, const void *b);
+static int dircomp(const void *a, const void *b);
 
 /*******************************/
 /*  Strings used in extract.c  */
@@ -2228,7 +2228,7 @@ extent size;
 /*  Function dircomp()  */
 /************************/
 
-static int Cdecl dircomp(a, b) /* used by qsort(); swiped from Zip */
+static int dircomp(a, b) /* used by qsort(); swiped from Zip */
     const void *a,
     *b;
 {
