@@ -30,13 +30,9 @@
 #define UNZIP_INTERNAL
 #include "unzip.h"
 
-#ifdef SCO_XENIX
-#  define SYSNDIR
-#else  /* SCO Unix, AIX, DNIX, TI SysV, Coherent 4.x, ... */
 #  if defined(__convexc__) || defined(SYSV) || defined(CRAY) || defined(BSD4_4)
 #    define DIRENT
 #  endif
-#endif
 
 #  include <dirent.h>
 
