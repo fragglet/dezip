@@ -1609,9 +1609,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 A_TO_N(G.outbuf);   /* translate string to native */
             }
 
-#ifdef NOANSIFILT       /* GRR:  can ANSI be used with EBCDIC? */
-            (*G.message)((zvoid *)&G, G.outbuf, (ulg)(q-G.outbuf), 0);
-#else /* ASCII, filter out ANSI escape sequences and handle ^S (pause) */
             p = G.outbuf - 1;
             q = slide;
             while (*++p) {
@@ -1638,7 +1635,6 @@ int do_string(__G__ length, option)   /* return PK-type error code */
                 }
             }
             (*G.message)((zvoid *)&G, slide, (ulg)(q-slide), 0);
-#endif /* ?NOANSIFILT */
         }
         /* add '\n' if not at start of line */
         (*G.message)((zvoid *)&G, slide, 0L, 0x40);
