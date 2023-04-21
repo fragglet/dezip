@@ -652,9 +652,6 @@
 # define zfdopen fdopen
 
     /* For these systems, implement "64bit file vs. 32bit prog" check  */
-#   ifndef DO_SAFECHECK_2GB
-#     define DO_SAFECHECK_2GB
-#   endif
 
 #endif
 

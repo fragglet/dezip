@@ -37,13 +37,11 @@
 #endif
 
 static int    do_seekable        OF((__GPRO__ int lastchance));
-#ifdef DO_SAFECHECK_2GB
 # ifdef USE_STRM_INPUT
 static zoff_t file_size          OF((FILE *file));
 # else
 static zoff_t file_size          OF((int fh));
 # endif
-#endif /* DO_SAFECHECK_2GB */
 static int    rec_find           OF((__GPRO__ zoff_t, char *, int));
 static int    find_ecrec64       OF((__GPRO__ zoff_t searchlen));
 static int    find_ecrec         OF((__GPRO__ zoff_t searchlen));
@@ -91,10 +89,8 @@ static ZCONST char Far CannotAllocateBuffers[] =
      "%s:  cannot find or open %s, %s.zip or %s.\n";
    extern ZCONST char Far Zipnfo[];       /* in unzip.c */
    static ZCONST char Far Unzip[] = "unzip";
-#ifdef DO_SAFECHECK_2GB
    static ZCONST char Far ZipfileTooBig[] =
      "Trying to read large file (> 2 GiB) without large file support\n";
-#endif /* DO_SAFECHECK_2GB */
    static ZCONST char Far MaybeExe[] =
      "note:  %s may be a plain executable, not an archive\n";
    static ZCONST char Far CentDirNotInZipMsg[] = "\n\
@@ -600,7 +596,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
     if (open_input_file(__G))   /* this should never happen, given */
         return PK_NOZIP;        /*  the stat() test above, but... */
 
-#ifdef DO_SAFECHECK_2GB
     /* Need more care: Do not trust the size returned by stat() but
        determine it by reading beyond the end of the file. */
     G.ziplen = file_size(G.zipfd);
@@ -614,7 +609,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
         CLOSE_INFILE();
         return IZ_ERRBF;
     }
-#endif /* DO_SAFECHECK_2GB */
 
 /*---------------------------------------------------------------------------
     Find and process the end-of-central-directory header.  UnZip need only
@@ -875,7 +869,6 @@ static int do_seekable(__G__ lastchance)        /* return PK-type error code */
 
 
 
-#ifdef DO_SAFECHECK_2GB
 /************************/
 /* Function file_size() */
 /************************/
@@ -957,7 +950,6 @@ static zoff_t file_size(fh)
 #endif /* ?USE_STRM_INPUT */
     return ofs;
 } /* end function file_size() */
-#endif /* DO_SAFECHECK_2GB */
 
 
 
