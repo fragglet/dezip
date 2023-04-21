@@ -1593,11 +1593,6 @@ typedef unsigned long zwchar;
 
 /* UTF-8 related conversion functions, currently found in process.c */
 
-#if 0  /* currently unused */
-  /* check if string is all ASCII */
-  int is_ascii_string(const char *mbstring);
-#endif /* unused */
-
 /* convert UTF-8 string to multi-byte string */
 char *utf8_to_local_string(const char *utf8_string, int escape_all);
 
@@ -1607,29 +1602,10 @@ zwchar *utf8_to_wide_string(const char *utf8_string);
 /* convert wide string to multi-byte string */
 char *wide_to_local_string(const zwchar *wide_string, int escape_all);
 
-#if 0  /* currently unused */
-  /* convert local string to multi-byte display string */
-  char *local_to_display_string(const char *local_string);
-#endif /* unused */
-
 /* convert wide character to escape string */
 char *wide_to_escape_string(unsigned long);
 
 #define utf8_to_escaped_string(utf8_string) \
     utf8_to_local_string(utf8_string, TRUE)
-
-#if 0  /* currently unused */
-  /* convert escape string to wide character */
-  unsigned long escape_string_to_wide(const char *escape_string);
-
-  /* convert local to UTF-8 */
-  char *local_to_utf8_string OF ((const char *local_string));
-
-  /* convert local to wide string */
-  zwchar *local_to_wide_string OF ((const char *local_string));
-
-  /* convert wide string to UTF-8 */
-  char *wide_to_utf8_string(const zwchar *wide_string);
-#endif /* unused */
 
 #endif /* !__unzpriv_h */

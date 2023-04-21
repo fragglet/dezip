@@ -1604,45 +1604,6 @@ static ulg ucs4_char_from_utf8(utf8) const char **utf8;
     return (zwchar) ret;
 }
 
-#if 0  /* currently unused */
-/* utf8_from_ucs4_char - Convert UCS char to UTF-8
- *
- * Returns the number of bytes put into utf8buf to represent ch, from 1 to 6,
- * or -1 if ch is too large to represent.  utf8buf must have room for 6 bytes.
- */
-static int utf8_from_ucs4_char(utf8buf, ch)
-  char *utf8buf;
-  ulg ch;
-{
-  int trailing = 0;
-  int leadmask = 0x80;
-  int leadbits = 0x3F;
-  int tch = ch;
-  int ret;
-
-  if (ch > 0x7FFFFFFFL)
-    return -1;                /* UTF-8 can represent 31 bits */
-  if (ch < 0x7F)
-  {
-    *utf8buf++ = (char) ch;   /* ascii-7 */
-    return 1;
-  }
-  do {
-    trailing++;
-    leadmask = (leadmask >> 1) | 0x80;
-    leadbits >>= 1;
-    tch >>= 6;
-  } while (tch & ~leadbits);
-  ret = trailing + 1;
-  /* produce lead byte */
-  *utf8buf++ = (char) (leadmask | (ch >> (6 * trailing)));
-  while (--trailing >= 0)
-    /* produce trailing bytes */
-    *utf8buf++ = (char) (0x80 | ((ch >> (6 * trailing)) & 0x3F));
-  return ret;
-}
-#endif /* unused */
-
 /*===================================================================*/
 
 /* utf8_to_ucs4_string - convert UTF-8 string to UCS string
@@ -1669,52 +1630,6 @@ int buflen;
     }
 }
 
-#if 0  /* currently unused */
-/* ucs4_string_to_utf8
- *
- *
- */
-static int ucs4_string_to_utf8(ucs4, utf8buf, buflen)
-  const ulg *ucs4;
-  char *utf8buf;
-  int buflen;
-{
-  char mb[6];
-  int  count = 0;
-
-  if (!ucs4)
-    return -1;
-  for (;;)
-  {
-    int mbl = utf8_from_ucs4_char(mb, *ucs4++);
-    int c;
-    if (mbl <= 0)
-      return -1;
-    /* We could optimize this a bit by passing utf8buf + count */
-    /* directly to utf8_from_ucs4_char when buflen >= count + 6... */
-    c = buflen - count;
-    if (mbl < c)
-      c = mbl;
-    if (utf8buf && count < buflen)
-      strncpy(utf8buf + count, mb, c);
-    if (mbl == 1 && !mb[0])
-      return count;           /* terminating nul */
-    count += mbl;
-  }
-}
-
-
-/* utf8_chars
- *
- * Wrapper: counts the actual unicode characters in a UTF-8 string.
- */
-static int utf8_chars(utf8)
-  const char *utf8;
-{
-  return utf8_to_ucs4_string(utf8, NULL, 0);
-}
-#endif /* unused */
-
 /* --------------------------------------------------- */
 /* Unicode Support
  *
@@ -1729,32 +1644,6 @@ static int utf8_chars(utf8)
  * in zip.h and 32 bits.  This avoids problems with
  * different sizes of wchar_t.
  */
-
-#if 0  /* currently unused */
-/* is_ascii_string
- * Checks if a string is all ascii
- */
-int is_ascii_string(mbstring)
-  const char *mbstring;
-{
-  char *p;
-  uch c;
-
-  for (p = mbstring; c = (uch)*p; p++) {
-    if (c > 0x7F) {
-      return 0;
-    }
-  }
-  return 1;
-}
-
-/* local to UTF-8 */
-char *local_to_utf8_string(local_string)
-  const char *local_string;
-{
-  return wide_to_utf8_string(local_to_wide_string(local_string));
-}
-#endif /* unused */
 
 /* wide_to_escape_string
    provides a string that represents a wide char not in local char set
@@ -1825,56 +1714,6 @@ zwchar wide_char;
     strcpy(r, e);
     return r;
 }
-
-#if 0  /* currently unused */
-/* returns the wide character represented by the escape string */
-zwchar escape_string_to_wide(escape_string)
-  const char *escape_string;
-{
-  int i;
-  zwchar w;
-  char c;
-  int len;
-  const char *e = escape_string;
-
-  if (e == NULL) {
-    return 0;
-  }
-  if (e[0] != '#') {
-    /* no leading # */
-    return 0;
-  }
-  len = strlen(e);
-  /* either #U1234 or #L123456 format */
-  if (len != 6 && len != 8) {
-    return 0;
-  }
-  w = 0;
-  if (e[1] == 'L') {
-    if (len != 8) {
-      return 0;
-    }
-    /* 3 bytes */
-    for (i = 2; i < 8; i++) {
-      c = e[i];
-      if (c < '0' || c > '9') {
-        return 0;
-      }
-      w = w * 0x10 + (zwchar)(c - '0');
-    }
-  } else if (e[1] == 'U') {
-    /* 2 bytes */
-    for (i = 2; i < 6; i++) {
-      c = e[i];
-      if (c < '0' || c > '9') {
-        return 0;
-      }
-      w = w * 0x10 + (zwchar)(c - '0');
-    }
-  }
-  return w;
-}
-#endif /* unused */
 
 /* convert wide character string to multi-byte character string */
 char *wide_to_local_string(wide_string, escape_all) const zwchar *wide_string;
@@ -1967,27 +1806,6 @@ int escape_all;
     return local_string;
 }
 
-#if 0  /* currently unused */
-/* convert local string to display character set string */
-char *local_to_display_string(local_string)
-  const char *local_string;
-{
-  char *display_string;
-
-  /* For Windows, OEM string should never be bigger than ANSI string, says
-     CharToOem description.
-     For all other ports, just make a copy of local_string.
-  */
-  if ((display_string = (char *)malloc(strlen(local_string) + 1)) == NULL) {
-    return NULL;
-  }
-
-  strcpy(display_string, local_string);
-
-  return display_string;
-}
-#endif /* unused */
-
 /* UTF-8 to local */
 char *utf8_to_local_string(utf8_string, escape_all) const char *utf8_string;
 int escape_all;
@@ -2005,63 +1823,6 @@ int escape_all;
 
     return loc;
 }
-
-#if 0  /* currently unused */
-/* convert multi-byte character string to wide character string */
-zwchar *local_to_wide_string(local_string)
-  const char *local_string;
-{
-  int wsize;
-  wchar_t *wc_string;
-  zwchar *wide_string;
-
-  /* for now try to convert as string - fails if a bad char in string */
-  wsize = mbstowcs(NULL, local_string, strlen(local_string) + 1);
-  if (wsize == (size_t)-1) {
-    /* could not convert */
-    return NULL;
-  }
-
-  /* convert it */
-  if ((wc_string = (wchar_t *)malloc((wsize + 1) * sizeof(wchar_t))) == NULL) {
-    return NULL;
-  }
-  wsize = mbstowcs(wc_string, local_string, strlen(local_string) + 1);
-  wc_string[wsize] = (wchar_t) 0;
-
-  /* in case wchar_t is not zwchar */
-  if ((wide_string = (zwchar *)malloc((wsize + 1) * sizeof(zwchar))) == NULL) {
-    return NULL;
-  }
-  for (wsize = 0; wide_string[wsize] = (zwchar)wc_string[wsize]; wsize++) ;
-  wide_string[wsize] = (zwchar) 0;
-  free(wc_string);
-
-  return wide_string;
-}
-
-
-/* convert wide string to UTF-8 */
-char *wide_to_utf8_string(wide_string)
-  const zwchar *wide_string;
-{
-  int mbcount;
-  char *utf8_string;
-
-  /* get size of utf8 string */
-  mbcount = ucs4_string_to_utf8(wide_string, NULL, 0);
-  if (mbcount == -1)
-    return NULL;
-  if ((utf8_string = (char *) malloc(mbcount + 1)) == NULL) {
-    return NULL;
-  }
-  mbcount = ucs4_string_to_utf8(wide_string, utf8_string, mbcount + 1);
-  if (mbcount == -1)
-    return NULL;
-
-  return utf8_string;
-}
-#endif /* unused */
 
 /* convert UTF-8 string to wide string */
 zwchar *utf8_to_wide_string(utf8_string) const char *utf8_string;
