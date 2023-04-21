@@ -224,9 +224,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
 #  ifdef DEBUG_TIME
      static ZCONST char Far DebugTime[] = "DEBUG_TIME";
 #  endif
-#  ifdef DOSWILD
-     static ZCONST char Far DosWild[] = "DOSWILD";
-#  endif
 #  ifdef LZW_CLEAN
      static ZCONST char Far LZW_Clean[] =
      "LZW_CLEAN (PKZIP/Zip 1.x unshrinking method not supported)";
@@ -1687,11 +1684,6 @@ static void show_version_info(__G)
 #ifdef DEBUG_TIME
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(DebugTime)));
-        ++numopts;
-#endif
-#ifdef DOSWILD
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(DosWild)));
         ++numopts;
 #endif
 #ifdef LZW_CLEAN
