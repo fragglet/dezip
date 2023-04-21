@@ -128,9 +128,6 @@ typedef struct stat z_stat;
 # endif
 #endif
 
-#ifdef MINIX
-#  include <stdio.h>
-#endif
 #if (!defined(HAVE_STRNICMP) & !defined(NO_STRNICMP))
 #  define NO_STRNICMP
 #endif

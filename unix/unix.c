@@ -1365,9 +1365,6 @@ void version(__G)
       " (NeXTStep for Intel)",
 #  endif
 #else              /* the next dozen or so are somewhat order-dependent */
-#ifdef MINIX
-      " (Minix)",
-#else
 #ifdef M_UNIX
       " (SCO Unix)",
 #else
@@ -1424,7 +1421,6 @@ void version(__G)
 #endif /* FreeBSD */
 #endif /* SCO Xenix */
 #endif /* SCO Unix */
-#endif /* Minix */
 #endif /* NeXT */
 #endif /* Amdahl */
 #endif /* OSF/1 */

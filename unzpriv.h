@@ -483,9 +483,7 @@
 #  define Z_STAT_DEFINED
 #endif
 
-#ifndef MINIX            /* Minix needs it after all the other includes (?) */
 #  include <stdio.h>
-#endif
 
 #include <ctype.h>       /* skip for VMS, to use tolower() function? */
 #include <errno.h>       /* used in mapname() */
