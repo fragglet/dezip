@@ -153,10 +153,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  undef MSDOS                  /* WIN32 is >>>not<<< MSDOS */
 #endif
 
-#if (defined(linux) && !defined(LINUX))
-#  define LINUX
-#endif
-
 #ifdef __riscos
 #  define RISCOS
 #endif
