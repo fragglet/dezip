@@ -92,10 +92,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #  define CMS_MVS
 #endif
 
-#if (defined(__TANDEM) && !defined(TANDEM))
-#  define TANDEM
-#endif
-
 #if (defined(__VMS) && !defined(VMS))
 #  define VMS
 #endif
