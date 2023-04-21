@@ -1433,9 +1433,6 @@ void version(__G)
 #if defined(i486) || defined(__i486) || defined(__i486__)
       " (Intel 486)",
 #else
-#if defined(i386) || defined(__i386) || defined(__i386__)
-      " (Intel 386)",
-#else
 #ifdef pyr
       " (Pyramid)",
 #else
@@ -1469,7 +1466,6 @@ void version(__G)
 #endif /* MTS */
 #endif /* DEC */
 #endif /* Pyramid */
-#endif /* 386 */
 #endif /* 486 */
 #endif /* 586 */
 #endif /* 686 */
