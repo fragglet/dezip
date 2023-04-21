@@ -221,11 +221,9 @@ typedef struct Globals {
     ulg      numlines;             /* fileio static: number of lines printed */
     int      sol;                  /* fileio static: at start of line */
     int      no_ecrec;             /* process static */
-#ifdef SYMLINKS
     int      symlnk;
     slinkentry *slink_head;        /* pointer to head of symlinks list */
     slinkentry *slink_last;        /* pointer to last entry in symlinks list */
-#endif
 
     FILE     *outfile;
     uch      *outbuf;

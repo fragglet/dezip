@@ -305,14 +305,12 @@ int mapattr(__G)
                 }
             }
             if (!r) {
-#ifdef SYMLINKS
                 /* Check if the file is a (POSIX-compatible) symbolic link.
                  * We restrict symlink support to those "made-by" hosts that
                  * are known to support symbolic links.
                  */
                 G.pInfo->symlink = S_ISLNK(G.pInfo->file_attr) &&
                                    SYMLINK_HOST(G.pInfo->hostnum);
-#endif
                 return 0;
             }
             /* fall through! */
@@ -346,13 +344,11 @@ int mapattr(__G)
                 /* keep previous G.pInfo->file_attr setting, when its "owner"
                  * part appears to be consistent with DOS attribute flags!
                  */
-#ifdef SYMLINKS
                 /* Entries "made by FS_FAT_" could have been zipped on a
                  * system that supports POSIX-style symbolic links.
                  */
                 G.pInfo->symlink = S_ISLNK(G.pInfo->file_attr) &&
                                    (G.pInfo->hostnum == FS_FAT_);
-#endif
                 return 0;
             }
             G.pInfo->file_attr = (unsigned)(0444 | tmp<<6 | tmp<<3 | tmp);
@@ -885,7 +881,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
     unsigned ints with unsigned longs.
   ---------------------------------------------------------------------------*/
 
-#ifdef SYMLINKS
     if (G.symlnk) {
         extent ucsize = (extent)G.lrec.ucsize;
         extent attribsize = sizeof(unsigned) +
@@ -950,7 +945,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
         G.slink_last = slnk_entry;
         return;
     }
-#endif /* SYMLINKS */
 
     /* if -X option was specified and we have UID/GID info, restore it */
     if (have_uidgid_flg
@@ -996,7 +990,6 @@ void close_outfile(__G)    /* GRR: change to return PK-style warning level */
 } /* end function close_outfile() */
 
 
-#if (defined(SYMLINKS) && defined(SET_SYMLINK_ATTRIBS))
 int set_symlnk_attribs(__G__ slnk_entry)
     __GDEF
     slinkentry *slnk_entry;
@@ -1024,7 +1017,6 @@ int set_symlnk_attribs(__G__ slnk_entry)
     /* currently, no error propagation... */
     return PK_OK;
 } /* end function set_symlnk_attribs() */
-#endif /* SYMLINKS && SET_SYMLINK_ATTRIBS */
 
 
 /* messages of code for setting directory attributes */

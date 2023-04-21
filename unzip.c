@@ -180,10 +180,8 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far No_ZipInfo[] = "NO_ZIPINFO";
 #  endif
      static ZCONST char Far SetDirAttrib[] = "SET_DIR_ATTRIB";
-#  ifdef SYMLINKS
      static ZCONST char Far SymLinkSupport[] =
      "SYMLINKS (symbolic links supported, if RTL and file system permit)";
-#  endif
 #  ifdef TIMESTAMP
      static ZCONST char Far TimeStamp[] = "TIMESTAMP";
 #  endif
@@ -1425,11 +1423,9 @@ static void show_version_info(__G)
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(SetDirAttrib)));
         ++numopts;
-#ifdef SYMLINKS
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(SymLinkSupport)));
         ++numopts;
-#endif
 #ifdef TIMESTAMP
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(TimeStamp)));
