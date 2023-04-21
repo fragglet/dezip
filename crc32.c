@@ -642,7 +642,6 @@ void free_crc_table()
 #endif
 
 #ifndef USE_ZLIB
-#ifndef CRC_TABLE_ONLY
 
 #define DO1(crc, buf)  crc = CRC32(crc, *buf++, crc_32_tab)
 #define DO2(crc, buf)  DO1(crc, buf); DO1(crc, buf)
@@ -725,6 +724,5 @@ ulg crc32(crc, buf, len)
 
   return REV_BE(c) ^ 0xffffffffL;   /* (instead of ~c for 64-bit machines) */
 }
-#endif /* !CRC_TABLE_ONLY */
 #endif /* !USE_ZLIB */
 #endif /* !USE_ZLIB || USE_OWN_CRCTAB */
