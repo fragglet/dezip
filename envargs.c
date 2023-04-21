@@ -161,7 +161,7 @@ char **argv;
     dump_args(argc, argv);
     if ((err = envargs(&argc, &argv, "ENVTEST")) != PK_OK) {
         perror("envargs:  cannot get memory for arguments");
-        EXIT(err);
+        exit(err);
     }
     printf(" New argv: %p\n", argv);
     dump_args(argc, argv);

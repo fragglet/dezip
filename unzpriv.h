@@ -221,9 +221,6 @@ typedef size_t extent;
 #ifndef RETURN
 #define RETURN return /* only used in main() */
 #endif
-#ifndef EXIT
-#define EXIT exit
-#endif
 #ifndef STRNICMP
 #ifdef NO_STRNICMP
 #define STRNICMP zstrnicmp

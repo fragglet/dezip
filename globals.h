@@ -29,7 +29,7 @@
   also be done by any API function that jumps into the middle of the
   code.
 
-  The DESTROYGLOBALS(); statement should be inserted before EVERY "EXIT(n)".
+  The DESTROYGLOBALS(); statement should be inserted before EVERY "exit(n)".
   Naturally, it also needs to be put before any API returns as well.
   In fact, it's much more important in API functions since the process
   will NOT end, and therefore the memory WON'T automatically be freed

@@ -304,7 +304,7 @@ int main(int argc, char **argv)
                    match(str, pat, 1) ? "YES" : "NO");
         }
     }
-    EXIT(0);
+    exit(0);
 }
 
 #endif /* TEST_MATCH */

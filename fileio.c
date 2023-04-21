@@ -340,7 +340,7 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
                          (ulg) strlen(LoadFarString(ReadError)), 0x401);
             echon();
             DESTROYGLOBALS();
-            EXIT(PK_BADERR); /* totally bailing; better than lock-up */
+            exit(PK_BADERR); /* totally bailing; better than lock-up */
         }
         G.cur_zipfile_bufstart += INBUFSIZ; /* always starts on block bndry */
         G.inptr = G.inbuf;
@@ -707,7 +707,7 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 
     if ((ToLower(c) == 'q')) {
         DESTROYGLOBALS();
-        EXIT(PK_COOL);
+        exit(PK_COOL);
     }
 
     ((Uz_Globs *) pG)->sol = TRUE;
@@ -792,7 +792,7 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
         Info(slide, 0x421,
              ((char *) slide, LoadFarString(ZipfileCorrupt), "bus error"));
         DESTROYGLOBALS();
-        EXIT(PK_BADERR);
+        exit(PK_BADERR);
     }
 #endif /* SIGBUS */
 
@@ -802,7 +802,7 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
              ((char *) slide, LoadFarString(ZipfileCorrupt),
               "illegal instruction"));
         DESTROYGLOBALS();
-        EXIT(PK_BADERR);
+        exit(PK_BADERR);
     }
 #endif /* SIGILL */
 
@@ -812,13 +812,13 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
              ((char *) slide, LoadFarString(ZipfileCorrupt),
               "segmentation violation"));
         DESTROYGLOBALS();
-        EXIT(PK_BADERR);
+        exit(PK_BADERR);
     }
 #endif /* SIGSEGV */
 
     /* probably ctrl-C */
     DESTROYGLOBALS();
-    EXIT(IZ_CTRLC); /* was EXIT(0), then EXIT(PK_ERR) */
+    exit(IZ_CTRLC); /* was EXIT(0), then EXIT(PK_ERR) */
 }
 
 /*******************************/
