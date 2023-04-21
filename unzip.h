@@ -119,10 +119,6 @@ freely, subject to the above disclaimer and the following restrictions:
 /* RSXNTDJ (at least up to v1.3) compiles for WIN32 (RSXNT) using a derivate
    of the EMX environment, but defines MSDOS and __GO32__. ARG !!! */
 
-#if (defined(THINK_C) || defined(MPW))
-#  define MACOS
-#endif
-
 /* use prototypes and ANSI libraries if __STDC__, or MS-DOS, or OS/2, or Win32,
  * or IBM C Set/2, or Borland C, or Watcom C, or GNU gcc (emx or Cygwin),
  * or Macintosh, or Sequent, or Atari, or IBM RS/6000, or Silicon Graphics,
