@@ -440,10 +440,6 @@ int open_outfile(__G)           /* return 1 if fail */
 #endif /* !TOPS20 */
 
 #ifdef USE_FWRITE
-#ifdef DOS_NLM_OS2_W32
-    /* 16-bit MSC: buffer size must be strictly LESS than 32K (WSIZE):  bogus */
-    setbuf(G.outfile, (char *)NULL);   /* make output unbuffered */
-#else /* !DOS_NLM_OS2_W32 */
 #ifndef RISCOS
 #ifdef _IOFBF  /* make output fully buffered (works just about like write()) */
     setvbuf(G.outfile, (char *)slide, _IOFBF, WSIZE);
@@ -451,7 +447,6 @@ int open_outfile(__G)           /* return 1 if fail */
     setbuf(G.outfile, (char *)slide);
 #endif
 #endif /* !RISCOS */
-#endif /* ?DOS_NLM_OS2_W32 */
 #endif /* USE_FWRITE */
 #ifdef OS2_W32
     /* preallocate the final file size to prevent file fragmentation */
