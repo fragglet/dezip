@@ -150,13 +150,11 @@ freely, subject to the above disclaimer and the following restrictions:
     Public typedefs.
   ---------------------------------------------------------------------------*/
 
-#ifndef _IZ_TYPES_DEFINED
    typedef void zvoid;
 typedef unsigned char   uch;    /* code assumes unsigned bytes; these type-  */
 typedef unsigned short  ush;    /*  defs replace byte/UWORD/ULONG (which are */
 typedef unsigned long   ulg;    /*  predefined on some systems) & match zip  */
 #define _IZ_TYPES_DEFINED
-#endif /* !_IZ_TYPES_DEFINED */
 
 /* InputFn is not yet used and is likely to change: */
    typedef int   (UZ_EXP MsgFn)     (zvoid *pG, uch *buf, ulg size, int flag);
