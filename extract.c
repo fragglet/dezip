@@ -2134,7 +2134,7 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
         return;
     }
     linktarget[ucsize] = '\0';
-    G.outfile = fopen(linkfname, FOPR); /* open link placeholder for reading */
+    G.outfile = fopen(linkfname, "rb"); /* open link placeholder for reading */
     /* Check that the following conditions are all fulfilled:
      * a) the placeholder file exists,
      * b) the placeholder file contains exactly "ucsize" bytes

@@ -192,7 +192,7 @@ int open_outfile() /* return 1 if fail */
     Info(slide, 1,
          ((char *) slide, "open_outfile:  doing fopen(%s) for reading\n",
           FnFilter1(G.filename)));
-    if ((G.outfile = fopen(G.filename, FOPR)) == (FILE *) NULL)
+    if ((G.outfile = fopen(G.filename, "rb")) == (FILE *) NULL)
         Info(slide, 1,
              ((char *) slide,
               "open_outfile:  fopen(%s) for reading failed:  does not exist\n",
@@ -212,7 +212,7 @@ int open_outfile() /* return 1 if fail */
         /* These features require the ability to re-read extracted data from
            the output files. Output files are created with Read&Write access.
          */
-        G.outfile = fopen(G.filename, FOPWR);
+        G.outfile = fopen(G.filename, "w+b");
         umask(umask_sav);
     }
     if (G.outfile == (FILE *) NULL) {

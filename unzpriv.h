@@ -315,21 +315,6 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 /* File operations--use "b" for binary if allowed or fixed length 512 on VMS */
 
 /* Defaults when nothing special has been defined previously. */
-#ifndef FOPR
-#define FOPR "rb"
-#endif
-#ifndef FOPM
-#define FOPM "r+b"
-#endif
-#ifndef FOPW
-#define FOPW "wb"
-#endif
-#ifndef FOPWT
-#define FOPWT "wt"
-#endif
-#ifndef FOPWR
-#define FOPWR "w+b"
-#endif
 
 /*
  * If <limits.h> exists on most systems, should include that, since it may
