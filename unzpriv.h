@@ -715,14 +715,12 @@
 
 #  define nearmalloc  malloc
 #  define nearfree    free
-#  if (!defined(__IBMC__) || !defined(OS2))
 #    ifndef near
 #      define near
 #    endif
 #    ifndef far
 #      define far
 #    endif
-#  endif
 
 #if (defined(DYNALLOC_CRCTAB) && !defined(DYNAMIC_CRC_TABLE))
 #  undef DYNALLOC_CRCTAB
@@ -1229,18 +1227,6 @@
       /* 64-bit fopen */
 #     define zfopen fopen
 #     define zfdopen fdopen
-
-#   endif
-#   ifdef __IBMC__
-      /* IBM C */
-
-      /* 64-bit stat functions */
-
-      /* 64-bit fseeko */
-
-      /* 64-bit ftello */
-
-      /* 64-bit fopen */
 
 #   endif
 

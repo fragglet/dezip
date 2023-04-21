@@ -1778,11 +1778,7 @@ static int extract_or_test_member(__G)    /* return PK-type error code */
     } else {
         if (uO.cflag)
         {
-#if (defined(OS2) && defined(__IBMC__) && (__IBMC__ >= 200))
-            G.outfile = freopen("", "wb", stdout);   /* VAC++ ignores setmode */
-#else
             G.outfile = stdout;
-#endif
 #           define NEWLINE "\n"
 #ifdef VMS
             /* VMS:  required even for stdout! */

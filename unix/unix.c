@@ -1301,10 +1301,6 @@ void version(__G)
 #if (defined(__SUNPRO_C))
     char cc_versbuf[17];
 #else
-#if (defined(__HP_cc) || defined(__IBMC__))
-    char cc_versbuf[25];
-#else
-#endif /* __HP_cc || __IBMC__ */
 #endif /* __SUNPRO_C */
 #endif /* (__GNUC__ && NX_CURRENT_COMPILER_RELEASE) */
 
@@ -1329,12 +1325,6 @@ void version(__G)
 #if defined(__SUNPRO_C)
       "Sun C ", (sprintf(cc_versbuf, "version %x", __SUNPRO_C), cc_versbuf),
 #else
-#ifdef __IBMC__
-      "IBM C ",
-      (sprintf(cc_versbuf, "version %d.%d.%d",
-               (__IBMC__ / 100), ((__IBMC__ / 10) % 10), (__IBMC__ % 10)),
-               cc_versbuf),
-#else
 #ifdef __VERSION__
 #   ifndef IZ_CC_NAME
 #    define IZ_CC_NAME "cc "
@@ -1346,7 +1336,6 @@ void version(__G)
 #   endif
       IZ_CC_NAME, "",
 #endif /* ?__VERSION__ */
-#endif /* ?__IBMC__ */
 #endif /* ?__SUNPRO_C */
 #endif /* ?__GNUC__ */
 
