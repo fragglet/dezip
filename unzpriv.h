@@ -843,9 +843,6 @@
 
 #if (defined(UNIX) && defined(S_IFLNK) && !defined(MTS))
 #  define SYMLINKS
-#  ifndef S_ISLNK
-#    define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
-#  endif
 #endif /* UNIX && S_IFLNK && !MTS */
 
 #ifndef IS_VOLID
