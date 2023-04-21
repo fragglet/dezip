@@ -457,14 +457,6 @@ static ZCONST char Far ZipInfoUsageLine3[] = "miscellaneous options:\n\
      static ZCONST char Far Use_Zip64[] =
      "ZIP64_SUPPORT (archives using Zip64 for large files supported)";
 #  endif
-#  if (defined(__DJGPP__) && (__DJGPP__ >= 2))
-#    ifdef USE_DJGPP_ENV
-       static ZCONST char Far Use_DJGPP_Env[] = "USE_DJGPP_ENV";
-#    endif
-#    ifdef USE_DJGPP_GLOB
-       static ZCONST char Far Use_DJGPP_Glob[] = "USE_DJGPP_GLOB";
-#    endif
-#  endif /* __DJGPP__ && (__DJGPP__ >= 2) */
 #  ifdef USE_VFAT
      static ZCONST char Far Use_VFAT_support[] = "USE_VFAT";
 #  endif
@@ -2438,18 +2430,6 @@ static void show_version_info(__G)
           LoadFarStringSmall(Use_Zip64)));
         ++numopts;
 #endif
-#if (defined(__DJGPP__) && (__DJGPP__ >= 2))
-#  ifdef USE_DJGPP_ENV
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Use_DJGPP_Env)));
-        ++numopts;
-#  endif
-#  ifdef USE_DJGPP_GLOB
-        Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
-          LoadFarStringSmall(Use_DJGPP_Glob)));
-        ++numopts;
-#  endif
-#endif /* __DJGPP__ && (__DJGPP__ >= 2) */
 #ifdef USE_VFAT
         Info(slide, 0, ((char *)slide, LoadFarString(CompileOptFormat),
           LoadFarStringSmall(Use_VFAT_support)));

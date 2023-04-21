@@ -2333,13 +2333,11 @@ int    huft_build                OF((__GPRO__ ZCONST unsigned *b, unsigned n,
 #endif
 #if (defined(__GO32__) || defined(__EMX__))
    unsigned _dos_getcountryinfo(void *);                          /* msdos.c */
-#if (!defined(__DJGPP__) || (__DJGPP__ < 2))
    unsigned _dos_setftime(int, unsigned, unsigned);               /* msdos.c */
    unsigned _dos_setfileattr(const char *, unsigned);             /* msdos.c */
    unsigned _dos_creat(const char *, unsigned, int *);            /* msdos.c */
    void _dos_getdrive(unsigned *);                                /* msdos.c */
    unsigned _dos_close(int);                                      /* msdos.c */
-#endif /* !__DJGPP__ || (__DJGPP__ < 2) */
 #endif /* __GO32__ || __EMX__ */
 #endif
 
