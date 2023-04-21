@@ -62,7 +62,7 @@
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by make_crc_table)
  */
-static const ulg near crc_table[CRC_TBLS * 256] = {
+static const ulg crc_table[CRC_TBLS * 256] = {
     0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
     0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
     0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
@@ -117,7 +117,7 @@ static const ulg near crc_table[CRC_TBLS * 256] = {
     0x2d02ef8dL};
 
 /* use "OF((void))" here to work around a Borland TC++ 1.0 problem */
-const ulg near *get_crc_table OF((void) )
+const ulg *get_crc_table OF((void) )
 {
     return crc_table;
 }
@@ -143,7 +143,7 @@ extent len;              /* number of bytes in buf[] */
    Return the current crc in either case. */
 {
     register z_uint4 c;
-    register const ulg near *crc_32_tab;
+    register const ulg *crc_32_tab;
 
     if (buf == NULL)
         return 0L;

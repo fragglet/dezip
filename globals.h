@@ -168,7 +168,7 @@ typedef struct Globals {
     min_info *pInfo;
     union work area; /* see unzpriv.h for definition of work */
 
-    const ulg near *crc_32_tab;
+    const ulg *crc_32_tab;
     ulg crc32val; /* CRC shift reg. (was static in funzip) */
 
     uch *inbuf; /* input buffer (any size is OK) */

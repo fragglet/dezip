@@ -268,9 +268,6 @@ typedef size_t extent;
 
 #define nearmalloc malloc
 #define nearfree   free
-#ifndef near
-#define near
-#endif
 
 #ifndef INBUFSIZ
 #define INBUFSIZ 8192 /* larger buffers for real OSes */
@@ -1587,7 +1584,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 /*  Global constants  */
 /**********************/
 
-extern const unsigned near mask_bits[17];
+extern const unsigned mask_bits[17];
 extern const char *fnames[2];
 
 #ifdef IZ_ISO2OEM_ARRAY
