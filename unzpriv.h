@@ -983,9 +983,7 @@
 #else
   /* No Large File Support */
 
-# ifndef REGULUS  /* returns the inode number on success(!)...argh argh argh */
 #   define zstat stat
-# endif
 # define zfstat fstat
 # define zlseek lseek
 # define zfseeko fseek
@@ -1794,9 +1792,6 @@ char    *fzofft               OF((__GPRO__ zoff_t val,
    int   zstrnicmp            OF((register ZCONST char *s1,
                                   register ZCONST char *s2,
                                   register unsigned n));
-#endif
-#ifdef REGULUS
-   int   zstat                OF((ZCONST char *p, struct stat *s));
 #endif
 #ifdef ZMEM   /* MUST be ifdef'd because of conflicts with the standard def. */
    zvoid *memset OF((register zvoid *, register int, register unsigned int));

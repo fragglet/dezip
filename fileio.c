@@ -2288,25 +2288,6 @@ int zstrnicmp(s1, s2, n)
 
 
 
-#ifdef REGULUS  /* returns the inode number on success(!)...argh argh argh */
-#  undef stat
-
-/********************/
-/* Function zstat() */
-/********************/
-
-int zstat(p, s)
-    ZCONST char *p;
-    struct stat *s;
-{
-    return (stat((char *)p,s) >= 0? 0 : (-1));
-}
-
-#endif /* REGULUS */
-
-
-
-
 #ifdef _MBCS
 
 /* DBCS support for Info-ZIP's zip  (mainly for japanese (-: )
