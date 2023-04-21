@@ -254,9 +254,7 @@ static ZCONST char Far FileModDate[] =
   static ZCONST char Far UT_FileModDate[] =
     "  file last modified on (UT extra field modtime): %s %s\n";
   static ZCONST char Far LocalTime[] = "local";
-#ifndef NO_GMTIME
   static ZCONST char Far GMTime[] = "UTC";
-#endif
 static ZCONST char Far CRC32Value[] =
   "  32-bit CRC value (hex):                         %.8lx\n";
 static ZCONST char Far CompressedFileSize[] =
@@ -1106,12 +1104,10 @@ static int zi_long(__G__ pEndprev, error_in_archive)
         zi_time(__G__ &G.crec.last_mod_dos_datetime, &(z_utime.mtime), d_t_buf);
         Info(slide, 0, ((char *)slide, LoadFarString(UT_FileModDate),
           d_t_buf, LoadFarStringSmall(LocalTime)));
-#ifndef NO_GMTIME
         d_t_buf[0] = (char)1;           /* signal "show UTC (GMT) time" */
         zi_time(__G__ &G.crec.last_mod_dos_datetime, &(z_utime.mtime), d_t_buf);
         Info(slide, 0, ((char *)slide, LoadFarString(UT_FileModDate),
           d_t_buf, LoadFarStringSmall(GMTime)));
-#endif /* !NO_GMTIME */
     }
 
     Info(slide, 0, ((char *)slide, LoadFarString(CRC32Value), G.crec.crc32));
@@ -2219,12 +2215,8 @@ static char *zi_time(__G__ datetimez, modtimez, d_t_str)
   ---------------------------------------------------------------------------*/
 
     if (modtimez != NULL) {
-#ifndef NO_GMTIME
         /* check for our secret message from above... */
         t = (d_t_str[0] == (char)1)? gmtime(modtimez) : localtime(modtimez);
-#else
-        t = localtime(modtimez);
-#endif
         if (uO.lflag > 9 && t == (struct tm *)NULL)
             /* time conversion error in verbose listing format,
              * return string with '?' instead of data
