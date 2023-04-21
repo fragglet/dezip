@@ -82,9 +82,6 @@ freely, subject to the above disclaimer and the following restrictions:
     Predefined, machine-specific macros.
   ---------------------------------------------------------------------------*/
 
-#if ((defined(__WIN32__) || defined(_WIN32)) && !defined(WIN32))
-#  define WIN32
-#endif
 #if ((defined(__WINNT__) || defined(__WINNT)) && !defined(WIN32))
 #  define WIN32
 #endif
