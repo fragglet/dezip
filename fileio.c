@@ -334,13 +334,6 @@ int open_outfile(__G)           /* return 1 if fail */
               FnFilter1(G.filename)));
         }
     }
-#ifdef RISCOS
-    if (SWI_OS_File_7(G.filename,0xDEADDEAD,0xDEADDEAD,G.lrec.ucsize)!=NULL) {
-        Info(slide, 1, ((char *)slide, LoadFarString(CannotCreateFile),
-          FnFilter1(G.filename), strerror(errno)));
-        return 1;
-    }
-#endif /* RISCOS */
 #ifdef TOPS20
     char *tfilnam;
 

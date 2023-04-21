@@ -52,13 +52,6 @@
  * (or an alias) and do not need the echoff() / echon() function pair.
  */
 
-#ifdef RISCOS
-#  define echoff(f)
-#  define echon()
-#  define getch() SWI_OS_ReadC()
-#  define HAVE_WORKING_GETCH
-#endif
-
 /* For VM/CMS and MVS, we do not (yet) have any support to switch terminal
  * input echo on and off. The following "fake" definitions allow inclusion
  * of crypt support and UnZip's "pause prompting" features, but without

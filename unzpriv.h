@@ -29,9 +29,7 @@
 
 /* GRR 960204:  MORE defined here in preparation for removal altogether */
 #ifndef MORE
-# ifndef RISCOS
 #  define MORE
-# endif
 #endif
 
 /* fUnZip should never need to be reentrant */
@@ -171,10 +169,6 @@
 /*---------------------------------------------------------------------------
     Acorn RISCOS section:
   ---------------------------------------------------------------------------*/
-
-#ifdef RISCOS
-#  include "acorn/riscos.h"
-#endif
 
 /*---------------------------------------------------------------------------
     Amiga section:
@@ -1055,11 +1049,7 @@
 #endif
 #define DOSTIME_2038_01_18 ((ulg)0x74320000L)
 
-#  ifdef RISCOS
-#    define ZSUFX       "/zip"
-#  else
 #    define ZSUFX       ".zip"
-#  endif
 #  define ALT_ZSUFX     ".ZIP"   /* Unix-only so far (only case-sensitive fs) */
 
 #define CENTRAL_HDR_SIG   "\001\002"   /* the infamous "PK" signature bytes, */
@@ -1318,11 +1308,6 @@
 #  define ENV_UNZIP       "UNZIP_OPTS"     /* names of environment variables */
 #  define ENV_ZIPINFO     "ZIPINFO_OPTS"
 #endif /* VMS */
-#ifdef RISCOS
-#  define ENV_UNZIP       "Unzip$Options"
-#  define ENV_ZIPINFO     "Zipinfo$Options"
-#  define ENV_UNZIPEXTS   "Unzip$Exts"
-#endif /* RISCOS */
 #ifndef ENV_UNZIP
 #  define ENV_UNZIP       "UNZIP"          /* the standard names */
 #  define ENV_ZIPINFO     "ZIPINFO"

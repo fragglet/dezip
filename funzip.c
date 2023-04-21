@@ -308,20 +308,12 @@ char **argv;
   else
   {
 
-#ifdef RISCOS
-    G.in = stdin;
-#else
     if ((G.in = fdopen(0, FOPR)) == (FILE *)NULL)
       err(2, "cannot find stdin");
-#endif
   }
 
-#ifdef RISCOS
-  out = stdout;
-#else
   if ((out = fdopen(1, FOPW)) == (FILE *)NULL)
     err(2, "cannot write to stdout");
-#endif
 
   /* read local header, check validity, and skip name and extra fields */
   n = getc(G.in);  n |= getc(G.in) << 8;

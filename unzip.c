@@ -113,9 +113,6 @@ static void  show_version_info  OF((__GPRO));
    static ZCONST char Far EnvUnZip2[] = ENV_UNZIP2;
    static ZCONST char Far EnvZipInfo[] = ENV_ZIPINFO;
    static ZCONST char Far EnvZipInfo2[] = ENV_ZIPINFO2;
-#ifdef RISCOS
-   static ZCONST char Far EnvUnZipExts[] = ENV_UNZIPEXTS;
-#endif /* RISCOS */
   static ZCONST char Far NoMemEnvArguments[] =
     "envargs:  cannot get memory for arguments";
 #endif /* !_WIN32_WCE */
@@ -163,13 +160,8 @@ static ZCONST char Far IgnoreOOptionMsg[] =
  (Quote names to preserve case, unless SET PROC/PARS=EXT)\n";
 #else /* !VMS */
    static ZCONST char Far Example3[] = "ReadMe";
-#ifdef RISCOS
-   static ZCONST char Far Example2[] =
-"  unzip foo -d RAM:$   => extract all files from foo into RAMDisc\n";
-#else /* !RISCOS */
    static ZCONST char Far Example2[] = " \
  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
-#endif /* ?RISCOS */
 #endif /* ?VMS */
 
 /* local1[]:  command options */
@@ -701,10 +693,6 @@ int unzip(__G__ argc, argv)
     Acorn RISC OS initialization code.
   ---------------------------------------------------------------------------*/
 
-#ifdef RISCOS
-    set_prefix();
-#endif
-
 /*---------------------------------------------------------------------------
     Theos initialization code.
   ---------------------------------------------------------------------------*/
@@ -817,11 +805,6 @@ int unzip(__G__ argc, argv)
     error = uz_opts(__G__ &argc, &argv);   /* UnZipSFX call only */
 
 #else /* !SFX */
-
-#ifdef RISCOS
-    /* get the extensions to swap from environment */
-    getRISCOSexts(ENV_UNZIPEXTS);
-#endif
 
 #ifdef VMSCLI
     {
@@ -1115,17 +1098,6 @@ int uz_opts(__G__ pargc, pargv)
                 case ('-'):
                     ++negative;
                     break;
-#ifdef RISCOS
-                case ('/'):
-                    if (negative) {   /* negative not allowed with -/ swap */
-                        Info(slide, 0x401, ((char *)slide,
-                          "error:  must give extensions list"));
-                        return(PK_PARAM);  /* don't extract here by accident */
-                    }
-                    exts2swap = s; /* override Unzip$Exts */
-                    s += strlen(s);
-                    break;
-#endif
                 case ('a'):
                     if (negative) {
                         uO.aflag = MAX(uO.aflag-negative,0);
@@ -2238,13 +2210,6 @@ static void show_version_info(__G)
           LoadFarStringSmall2(None) : envptr));
 #ifndef __RSXNT__
 #endif /* !__RSXNT__ */
-#ifdef RISCOS
-        envptr = getenv(LoadFarStringSmall(EnvUnZipExts));
-        Info(slide, 0, ((char *)slide, LoadFarString(EnvOptFormat),
-          LoadFarStringSmall(EnvUnZipExts),
-          (envptr == (char *)NULL || *envptr == 0)?
-          LoadFarStringSmall2(None) : envptr));
-#endif /* RISCOS */
 #endif /* !_WIN32_WCE */
     }
 } /* end function show_version() */

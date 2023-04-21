@@ -298,9 +298,6 @@ typedef struct _UzpOpts {
     int acorn_nfs_ext;  /* -F: RISC OS types & NFS filetype extensions */
 #endif
     int hflag;          /* -h: header line (zipinfo) */
-#ifdef RISCOS
-    int scanimage;      /* -I: scan image files */
-#endif
     int jflag;          /* -j: junk pathnames (unzip) */
 #if (defined(__ATHEOS__) || defined(__BEOS__) || defined(UNIX))
     int K_flag;         /* -K: keep setuid/setgid/tacky permissions */
