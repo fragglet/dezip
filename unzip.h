@@ -182,7 +182,6 @@ typedef struct _UzpCB {
 typedef struct _UzpOpts {
     char *exdir;        /* pointer to extraction root directory (-d option) */
     char *pwdarg;       /* pointer to command-line password (-P option) */
-    int zipinfo_mode;   /* behave like ZipInfo or like normal UnZip? */
     int aflag;          /* -a: do ASCII-EBCDIC and/or end-of-line translation */
     int B_flag;         /* -B: back up existing files by renaming to *~##### */
     int cflag;          /* -c: output to stdout */

@@ -376,7 +376,6 @@ char *argv[];
     G.noargs = (argc == 1); /* no options, no zipfile, no anything */
 
     {
-        uO.zipinfo_mode = FALSE;
         if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvUnZip),
                              LoadFarStringSmall2(EnvUnZip2))) != PK_OK)
             perror(LoadFarString(NoMemEnvArguments));

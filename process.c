@@ -207,7 +207,7 @@ int process_zipfiles() /* return PK-type error code */
 
         /* print a blank line between the output of different zipfiles */
         if (!uO.qflag && error != PK_NOZIP && error != IZ_DIR &&
-            (!uO.T_flag || uO.zipinfo_mode) &&
+            !uO.T_flag &&
             (NumWinFiles + NumLoseFiles + NumWarnFiles + NumMissFiles) > 0)
             (*G.message)((void *) &G, (uch *) "\n", 1L, 0);
 
@@ -294,10 +294,10 @@ int process_zipfiles() /* return PK-type error code */
       ---------------------------------------------------------------------------*/
 
     if (iswild(G.wildzipfn) && uO.qflag < 3 &&
-        !(uO.T_flag && !uO.zipinfo_mode && uO.qflag > 1)) {
+        !(uO.T_flag && uO.qflag > 1)) {
         if ((NumMissFiles + NumLoseFiles + NumWarnFiles > 0 ||
              NumWinFiles != 1) &&
-            !(uO.T_flag && !uO.zipinfo_mode && uO.qflag) &&
+            !(uO.T_flag && uO.qflag) &&
             !(uO.tflag && uO.qflag > 1))
             (*G.message)((void *) &G, (uch *) "\n", 1L, 0x401);
         if ((NumWinFiles > 1) ||
@@ -422,13 +422,13 @@ int lastchance;
             if (G.no_ecrec)
                 Info(slide, 1,
                      ((char *) slide, LoadFarString(CannotFindZipfileDirMsg),
-                      LoadFarStringSmall((uO.zipinfo_mode ? Zipnfo : Unzip)),
-                      G.wildzipfn, uO.zipinfo_mode ? "  " : "", G.wildzipfn,
+                      LoadFarStringSmall(Unzip),
+                      G.wildzipfn, "", G.wildzipfn,
                       G.zipfn));
             else
                 Info(slide, 1,
                      ((char *) slide, LoadFarString(CannotFindEitherZipfile),
-                      LoadFarStringSmall((uO.zipinfo_mode ? Zipnfo : Unzip)),
+                      LoadFarStringSmall(Unzip),
                       G.wildzipfn, G.wildzipfn, G.zipfn));
         }
         return error ? IZ_DIR : PK_NOZIP;
@@ -459,14 +459,13 @@ int lastchance;
         Find and process the end-of-central-directory header.  UnZip need only
         check last 65557 bytes of zipfile:  comment may be up to 65535, end-of-
         central-directory record is 18 bytes, and signature itself is 4 bytes;
-        add some to allow for appended garbage.  Since ZipInfo is often used as
-        a debugging tool, search the whole zipfile if zipinfo_mode is true.
+        add some to allow for appended garbage.
       ---------------------------------------------------------------------------*/
 
     G.cur_zipfile_bufstart = 0;
     G.inptr = G.inbuf;
 
-    if ((!uO.zipinfo_mode && !uO.qflag && !uO.T_flag))
+    if ((!uO.qflag && !uO.T_flag))
         Info(slide, 0, ((char *) slide, LoadFarString(LogInitline), G.zipfn));
 
     if ((error_in_archive = find_ecrec(MIN(G.ziplen, 66000L))) > PK_WARN) {
@@ -483,7 +482,7 @@ int lastchance;
         }
     }
 
-    if ((uO.zflag > 0) && !uO.zipinfo_mode) { /* unzip: zflag = comment ONLY */
+    if (uO.zflag > 0) { /* unzip: zflag = comment ONLY */
         CLOSE_INFILE();
         return error_in_archive;
     }
@@ -493,10 +492,9 @@ int lastchance;
         archives) or inconsistencies (missing or extra bytes in zipfile).
       ---------------------------------------------------------------------------*/
 
-    error = !uO.zipinfo_mode && (G.ecrec.number_this_disk != 0);
+    error = (G.ecrec.number_this_disk != 0);
 
-    if (uO.zipinfo_mode &&
-        G.ecrec.number_this_disk != G.ecrec.num_disk_start_cdir) {
+    if ( G.ecrec.number_this_disk != G.ecrec.num_disk_start_cdir) {
         if (G.ecrec.number_this_disk > G.ecrec.num_disk_start_cdir) {
             Info(slide, 0x401,
                  ((char *) slide, LoadFarString(CentDirNotInZipMsg), G.zipfn,
@@ -550,13 +548,8 @@ int lastchance;
 
         if (G.expect_ecrec_offset == 0L &&
             G.ecrec.size_central_directory == 0) {
-            if (uO.zipinfo_mode)
-                Info(slide, 0,
-                     ((char *) slide, "%sEmpty zipfile.\n",
-                      uO.lflag > 9 ? "\n  " : ""));
-            else
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(ZipfileEmpty), G.zipfn));
+            Info(slide, 0x401,
+                 ((char *) slide, LoadFarString(ZipfileEmpty), G.zipfn));
             CLOSE_INFILE();
             return (error_in_archive > PK_WARN) ? error_in_archive : PK_WARN;
         }
@@ -628,7 +621,7 @@ int lastchance;
 
     CLOSE_INFILE();
 
-    if (uO.T_flag && !uO.zipinfo_mode && (nmember > 0L)) {
+    if (uO.T_flag && (nmember > 0L)) {
         if (stamp_file(G.zipfn, uxstamp)) { /* TIME-STAMP 'EM */
             if (uO.qflag < 3)
                 Info(slide, 0x201,
@@ -804,7 +797,7 @@ zoff_t searchlen;
 
     if ((G.incnt = read(G.zipfd, (char *) byterecL, ECLOC64_SIZE + 4)) !=
         (ECLOC64_SIZE + 4)) {
-        if (uO.qflag || uO.zipinfo_mode)
+        if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401,
              ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
@@ -856,7 +849,7 @@ zoff_t searchlen;
 
     if (ecrec64_start_offset > (zusz_t) ecloc64_start_offset) {
         /* ecrec64 has to be before ecrec64 locator */
-        if (uO.qflag || uO.zipinfo_mode)
+        if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401,
              ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
@@ -867,7 +860,7 @@ zoff_t searchlen;
 
     if ((G.incnt = read(G.zipfd, (char *) byterec, ECREC64_SIZE + 4)) !=
         (ECREC64_SIZE + 4)) {
-        if (uO.qflag || uO.zipinfo_mode)
+        if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401,
              ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
@@ -887,7 +880,7 @@ zoff_t searchlen;
 
         if ((G.incnt = read(G.zipfd, (char *) byterec, ECREC64_SIZE + 4)) !=
             (ECREC64_SIZE + 4)) {
-            if (uO.qflag || uO.zipinfo_mode)
+            if (uO.qflag)
                 Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
             Info(slide, 0x401,
                  ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
@@ -897,14 +890,14 @@ zoff_t searchlen;
         if (memcmp((char *) byterec, end_central64_sig, 4)) {
             /* Zip64 EOCD Record not found */
             /* Probably something not so easy to handle so exit */
-            if (uO.qflag || uO.zipinfo_mode)
+            if (uO.qflag)
                 Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
             Info(slide, 0x401,
                  ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
             return PK_ERR;
         }
 
-        if (uO.qflag || uO.zipinfo_mode)
+        if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401,
              ((char *) slide, LoadFarString(Cent64EndSigSearchOff)));
@@ -1038,7 +1031,7 @@ zoff_t searchlen;
       ---------------------------------------------------------------------------*/
 
     if (!found) {
-        if (uO.qflag || uO.zipinfo_mode)
+        if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401,
              ((char *) slide, LoadFarString(CentDirEndSigNotFound)));
