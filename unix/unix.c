@@ -12,18 +12,6 @@
 
   Unix-specific routines for use with Info-ZIP's UnZip 5.41 and later.
 
-  Contains:  readdir()
-             do_wild()           <-- generic enough to put in fileio.c?
-             mapattr()
-             mapname()
-             checkdir()
-             mkdir()
-             close_outfile()
-             defer_dir_attribs()
-             set_direc_attribs()
-             stamp_file()
-             version()
-
   ---------------------------------------------------------------------------*/
 
 #include "unzip.h"

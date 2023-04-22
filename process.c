@@ -11,21 +11,6 @@
 
   This file contains the top-level routines for processing multiple zipfiles.
 
-  Contains:  process_zipfiles()
-             free_G_buffers()
-             do_seekable()
-             file_size()
-             rec_find()
-             find_ecrec64()
-             find_ecrec()
-             process_zip_cmmnt()
-             process_cdir_file_hdr()
-             get_cdir_ent()
-             process_local_file_hdr()
-             getZip64Data()
-             ef_scan_for_izux()
-             getRISCOSexfield()
-
   ---------------------------------------------------------------------------*/
 
 #include "unzip.h"

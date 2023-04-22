@@ -19,8 +19,6 @@
   usage for building a monolythic binary of the Windows application "WiZ"
   that supports bzip2 both in compression and decompression operations.
 
-  Contains:  bz_internal_error()      (USE_BZIP2 only)
-
   ---------------------------------------------------------------------------*/
 
 #include "unzip.h"

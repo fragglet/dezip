@@ -14,21 +14,6 @@
   ting and testing zipfile members.  It calls the low-level routines in files
   explode.c, inflate.c, unreduce.c and unshrink.c.
 
-  Contains:  extract_or_test_files()
-             store_info()
-             find_compr_idx()
-             extract_or_test_entrylist()
-             extract_or_test_member()
-             TestExtraField()
-             test_compr_eb()
-             memextract()
-             memflush()
-             extract_izvms_block()    (VMS or VMS_TEXT_CONV)
-             set_deferred_symlink()   (SYMLINKS only)
-             fnfilter()
-             dircomp()                (SET_DIR_ATTRIB only)
-             UZbunzip2()              (USE_BZIP2 only)
-
   ---------------------------------------------------------------------------*/
 
 #include "unzip.h"

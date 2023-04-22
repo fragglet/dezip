@@ -12,11 +12,6 @@
 
   This file contains the listing routines for UnZip.
 
-  Contains:  list_files()
-             get_time_stamp()   [optional feature]
-             ratio()
-             fnprint()
-
   ---------------------------------------------------------------------------*/
 
 #include "unzip.h"

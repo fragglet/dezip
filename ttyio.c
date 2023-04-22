@@ -14,13 +14,6 @@
   does not contain any restricted code itself.  This file is shared between
   Info-ZIP's Zip and UnZip.
 
-  Contains:  echo()         (VMS only)
-             Echon()        (Unix only)
-             Echoff()       (Unix only)
-             screensize()   (Unix only)
-             zgetch()       (Unix, VMS, and non-Unix/VMS versions)
-             getp()         ("PC," Unix/Atari/Be, VMS/VMCMS/MVS)
-
   ---------------------------------------------------------------------------*/
 
 #include "unzip.h"
