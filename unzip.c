@@ -159,7 +159,8 @@ char end_central_sig[4] = {0, 0, 0x05, 0x06};
 char end_central64_sig[4] = {0, 0, 0x06, 0x06};
 char end_centloc64_sig[4] = {0, 0, 0x06, 0x07};
 
-static const char *default_fnames[2] = {"*", NULL}; /* default filenames vector */
+static const char *default_fnames[2] = {"*",
+                                        NULL}; /* default filenames vector */
 
 Uz_Globs G;
 
@@ -455,7 +456,8 @@ char *argv[];
                             argc - (G.pfnames - argv); /* for now... */
                     } else {
                         G.process_all_files = TRUE;
-                        G.pfnames = (char **) default_fnames; /* GRR: necessary? */
+                        G.pfnames =
+                            (char **) default_fnames; /* GRR: necessary? */
                         G.filespecs = 0;              /* GRR: necessary? */
                         break;
                     }
@@ -869,8 +871,8 @@ int error;
       ---------------------------------------------------------------------------*/
 
     Info(slide, flag,
-         ((char *) slide, LoadFarString(UnzipUsageLine2),
-          ZIPINFO_MODE_OPTION, LoadFarStringSmall(ZipInfoMode)));
+         ((char *) slide, LoadFarString(UnzipUsageLine2), ZIPINFO_MODE_OPTION,
+          LoadFarStringSmall(ZipInfoMode)));
 
     Info(slide, flag,
          ((char *) slide, LoadFarString(UnzipUsageLine3),
@@ -1210,4 +1212,3 @@ static void help_extended()
         Info(slide, 0, ((char *) slide, "%s\n", text[i]));
     }
 } /* end function help_extended() */
-

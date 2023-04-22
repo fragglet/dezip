@@ -206,8 +206,7 @@ int process_zipfiles() /* return PK-type error code */
         lastzipfn = G.zipfn;
 
         /* print a blank line between the output of different zipfiles */
-        if (!uO.qflag && error != PK_NOZIP && error != IZ_DIR &&
-            !uO.T_flag &&
+        if (!uO.qflag && error != PK_NOZIP && error != IZ_DIR && !uO.T_flag &&
             (NumWinFiles + NumLoseFiles + NumWarnFiles + NumMissFiles) > 0)
             (*G.message)((void *) &G, (uch *) "\n", 1L, 0);
 
@@ -293,12 +292,10 @@ int process_zipfiles() /* return PK-type error code */
         need for a summary if just one zipfile).
       ---------------------------------------------------------------------------*/
 
-    if (iswild(G.wildzipfn) && uO.qflag < 3 &&
-        !(uO.T_flag && uO.qflag > 1)) {
+    if (iswild(G.wildzipfn) && uO.qflag < 3 && !(uO.T_flag && uO.qflag > 1)) {
         if ((NumMissFiles + NumLoseFiles + NumWarnFiles > 0 ||
              NumWinFiles != 1) &&
-            !(uO.T_flag && uO.qflag) &&
-            !(uO.tflag && uO.qflag > 1))
+            !(uO.T_flag && uO.qflag) && !(uO.tflag && uO.qflag > 1))
             (*G.message)((void *) &G, (uch *) "\n", 1L, 0x401);
         if ((NumWinFiles > 1) ||
             (NumWinFiles == 1 &&
@@ -422,14 +419,13 @@ int lastchance;
             if (G.no_ecrec)
                 Info(slide, 1,
                      ((char *) slide, LoadFarString(CannotFindZipfileDirMsg),
-                      LoadFarStringSmall(Unzip),
-                      G.wildzipfn, "", G.wildzipfn,
+                      LoadFarStringSmall(Unzip), G.wildzipfn, "", G.wildzipfn,
                       G.zipfn));
             else
                 Info(slide, 1,
                      ((char *) slide, LoadFarString(CannotFindEitherZipfile),
-                      LoadFarStringSmall(Unzip),
-                      G.wildzipfn, G.wildzipfn, G.zipfn));
+                      LoadFarStringSmall(Unzip), G.wildzipfn, G.wildzipfn,
+                      G.zipfn));
         }
         return error ? IZ_DIR : PK_NOZIP;
     }
@@ -494,7 +490,7 @@ int lastchance;
 
     error = (G.ecrec.number_this_disk != 0);
 
-    if ( G.ecrec.number_this_disk != G.ecrec.num_disk_start_cdir) {
+    if (G.ecrec.number_this_disk != G.ecrec.num_disk_start_cdir) {
         if (G.ecrec.number_this_disk > G.ecrec.num_disk_start_cdir) {
             Info(slide, 0x401,
                  ((char *) slide, LoadFarString(CentDirNotInZipMsg), G.zipfn,

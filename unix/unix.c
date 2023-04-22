@@ -1062,4 +1062,3 @@ time_t modtime;
     return (utime(fname, &tp));
 
 } /* end function stamp_file() */
-
