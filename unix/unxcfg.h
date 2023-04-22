@@ -84,19 +84,4 @@ struct tm *gmtime(), *localtime();
 #define SET_DIR_ATTRIB
 #define RESTORE_UIDGID
 
-/* Static variables that we have to add to Uz_Globs: */
-#define SYSTEM_SPECIFIC_GLOBALS                          \
-    int created_dir, renamed_fullpath;                   \
-    char *rootpath, *buildpath, *end;                    \
-    const char *wildname;                                \
-    char *dirname, matchname[FILNAMSIZ];                 \
-    int rootlen, have_dirname, dirnamelen, notfirstcall; \
-    void *wild_dir;
-
-/* created_dir, and renamed_fullpath are used by both mapname() and    */
-/*    checkdir().                                                      */
-/* rootlen, rootpath, buildpath and end are used by checkdir().        */
-/* wild_dir, dirname, wildname, matchname[], dirnamelen, have_dirname, */
-/*    and notfirstcall are used by do_wild().                          */
-
 #endif /* !__unxcfg_h */

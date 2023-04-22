@@ -73,12 +73,6 @@ static const char CannotSetTimestamps[] =
 char *do_wild(wildspec) const
     char *wildspec; /* only used first time on a given dir */
 {
-    /* these statics are now declared in SYSTEM_SPECIFIC_GLOBALS in unxcfg.h:
-        static DIR *wild_dir = (DIR *)NULL;
-        static const char *wildname;
-        static char *dirname, matchname[FILNAMSIZ];
-        static int notfirstcall=FALSE, have_dirname, dirnamelen;
-    */
     struct dirent *file;
 
     /* Even when we're just returning wildspec, we *always* do so in
@@ -528,8 +522,7 @@ int renamed;
 
 } /* end function mapname() */
 
-#if 0 /*========== NOTES ==========*/
-
+/*
   extract-to dir:      a:path/
   buildpath:           path1/path2/ ...   (NULL-terminated)
   pathcomp:                filename
@@ -543,8 +536,7 @@ int renamed;
     finally add filename itself and check for existence? (could use with rename)
         (d:/tmp/unzip/jj/temp/msg.outdir)  (disk:[tmp.unzip.jj.temp]msg.outdir)
     checkdir(name, GETPATH)     -->  copy path to name and free space
-
-#endif /* 0 */
+*/
 
 /***********************/
 /* Function checkdir() */
@@ -686,8 +678,6 @@ int flag;
         extracted.  If file was renamed with an absolute path, don't prepend the
         extract-to path.
       ---------------------------------------------------------------------------*/
-
-    /* GRR:  for VMS and TOPS-20, add up to 13 to strlen */
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));

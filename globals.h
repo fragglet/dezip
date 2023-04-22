@@ -238,10 +238,12 @@ typedef struct Globals {
     int incnt_leftover; /* so improved NEXTBYTE does not waste input */
     uch *inptr_leftover;
 
-#ifdef SYSTEM_SPECIFIC_GLOBALS
-    SYSTEM_SPECIFIC_GLOBALS
-#endif
-
+    int created_dir, renamed_fullpath;
+    char *rootpath, *buildpath, *end;
+    const char *wildname;
+    char *dirname, matchname[FILNAMSIZ];
+    int rootlen, have_dirname, dirnamelen, notfirstcall;
+    void *wild_dir;
 } Uz_Globs; /* end of struct Globals */
 
 /***************************************************************************/
