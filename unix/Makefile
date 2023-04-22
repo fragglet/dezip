@@ -54,14 +54,6 @@ LFLAGS1 =
 LF = -o unzip$E $(LFLAGS1)
 LF2 = -s
 
-# UnZipSFX flags
-SL = -o unzipsfx$E $(LFLAGS1)
-SL2 = $(LF2)
-
-# fUnZip flags
-FL = -o funzip$E $(LFLAGS1)
-FL2 = $(LF2)
-
 # general-purpose stuff
 #CP = cp
 CP = ln
@@ -102,14 +94,14 @@ CFLAGS_BZ = $(CFLAGS)
 # object files
 OBJS1 = unzip$O crc32$O $(CRCA_O) crypt$O envargs$O explode$O
 OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
-OBJS3 = process$O ttyio$O ubz2err$O unreduce$O unshrink$O zipinfo$O
+OBJS3 = process$O ttyio$O ubz2err$O unreduce$O unshrink$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS:.o=.pic.o) api.pic.o
-OBJX = unzipsfx$O crc32_$O $(CRCA_O) crypt_$O extract_$O fileio_$O \
+OBJX = crc32_$O $(CRCA_O) crypt_$O extract_$O fileio_$O \
 	globals_$O inflate_$O match_$O process_$O ttyio_$O ubz2err_$O $M_$O
 LOBJX = $(OBJX)
-OBJF = funzip$O crc32$O $(CRCA_O) cryptf$O globalsf$O inflatef$O ttyiof$O
+OBJF = crc32$O $(CRCA_O) cryptf$O globalsf$O inflatef$O ttyiof$O
 #OBJS_OS2 = $(OBJS1:.o=.obj) $(OBJS2:.o=.obj) os2.obj
 #OBJF_OS2 = $(OBJF:.o=.obj)
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H) $(ACONF_DEP)
@@ -124,20 +116,16 @@ manext = 1
 prefix = /usr/local
 BINDIR = $(prefix)/bin#			where to install executables
 MANDIR = $(prefix)/man/man$(manext)#	where to install man pages
-INSTALLEDBIN = $(BINDIR)/funzip$E $(BINDIR)/unzip$E $(BINDIR)/unzipsfx$E \
-	$(BINDIR)/zipgrep$E $(BINDIR)/zipinfo$E
-INSTALLEDMAN = $(MANDIR)/funzip.$(manext) $(MANDIR)/unzip.$(manext) \
-	$(MANDIR)/unzipsfx.$(manext) $(MANDIR)/zipgrep.$(manext) \
-	$(MANDIR)/zipinfo.$(manext)
+INSTALLEDBIN = $(BINDIR)/unzip$E
+INSTALLEDMAN = $(MANDIR)/unzip.$(manext)
 
 # Solaris 2.x stuff:
 PKGDIR = IZunzip
 VERSION = Version 6.0
 
-UNZIPS = unzip$E funzip$E unzipsfx$E
+UNZIPS = unzip$E
 # this is a little ugly...well, OK, it's a lot ugly:
-MANS = man/funzip.1 man/unzip.1 man/unzipsfx.1 man/zipgrep.1 man/zipinfo.1
-DOCS = funzip.txt unzip.txt unzipsfx.txt zipgrep.txt zipinfo.txt
+MANS = man/unzip.1
 
 # list of supported systems/targets in this version
 SYSTEMG1 = generic generic_gcc  generic_pkg generic_gccpkg
@@ -251,21 +239,8 @@ generic_msg:
 # distributions).  We should probably add a ".1.txt" rule for more generic
 # systems...
 
-funzip.txt:	man/funzip.1
-	nroff -Tascii -man man/funzip.1 | col -bx | uniq | expand > $@
-
 unzip.txt:	man/unzip.1
 	nroff -Tascii -man man/unzip.1 | col -bx | uniq | expand > $@
-
-unzipsfx.txt:	man/unzipsfx.1
-	nroff -Tascii -man man/unzipsfx.1 | col -bx | uniq | expand > $@
-
-zipgrep.txt:	man/zipgrep.1
-	nroff -Tascii -man man/zipgrep.1 | col -bx | uniq | expand > $@
-
-zipinfo.txt:	man/zipinfo.1
-	nroff -Tascii -man man/zipinfo.1 | col -bx | uniq | expand > $@
-
 
 all:		generic_msg generic
 unzips:		$(UNZIPS)
@@ -282,21 +257,6 @@ unzipsdocs:	unzips docs
 unzip$E:	$(OBJS) $(LIBBZ2)	# add `&' for parallel makes
 	$(LD) $(LF) -L$(IZ_BZIP2) $(LOBJS) $(L_BZ2) $(LF2)
 
-unzipsfx$E:	$(OBJX)			# add `&' for parallel makes
-	$(LD) $(SL) $(LOBJX) $(SL2)
-
-funzip$E:	$(OBJF)			# add `&' for parallel makes
-	$(LD) $(FL) $(OBJF) $(FL2)
-
-zipinfo$E:	unzip$E			# `&' is pointless here...
-	@echo\
- '  This is a Unix-specific target.  ZipInfo is not enabled in some MS-DOS'
-	@echo\
- '  versions of UnZip; if it is in yours, copy unzip.exe to zipinfo.exe'
-	@echo\
- '  or else invoke as "unzip -Z" (in a batch file, for example).'
-	$(LN) unzip$E zipinfo$E
-
 # when the optional bzip2 support is provided (as recommended) by sources
 # in the 'bzip2' subdirectory, create/update the library:
 $(IZ_OUR_BZIP2_DIR)/libbz2.a:
@@ -311,7 +271,6 @@ envargs$O:	envargs.c $(UNZIP_H)
 explode$O:	explode.c $(UNZIP_H)
 extract$O:	extract.c $(UNZIP_H) crc32.h crypt.h
 fileio$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
-funzip$O:	funzip.c $(UNZIP_H) crc32.h crypt.h ttyio.h
 globals$O:	globals.c $(UNZIP_H)
 inflate$O:	inflate.c inflate.h $(UNZIP_H)
 list$O:		list.c $(UNZIP_H)
@@ -322,56 +281,6 @@ ubz2err$O:	ubz2err.c $(UNZIP_H)
 unreduce$O:	unreduce.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
 unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
-zipinfo$O:	zipinfo.c $(UNZIP_H)
-
-# unzipsfx compilation section
-unzipsfx$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
-	$(CC) -c $(CF) -DSFX -o $@ unzip.c
-
-crc32_$O:	crc32.c $(UNZIP_H) zip.h crc32.h
-	$(CC) -c $(CF) -DSFX -o $@ crc32.c
-
-crypt_$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
-	$(CC) -c $(CF) -DSFX -o $@ crypt.c
-
-extract_$O:	extract.c $(UNZIP_H) crc32.h crypt.h
-	$(CC) -c $(CF) -DSFX -o $@ extract.c
-
-fileio_$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
-	$(CC) -c $(CF) -DSFX -o $@ fileio.c
-
-globals_$O:	globals.c $(UNZIP_H)
-	$(CC) -c $(CF) -DSFX -o $@ globals.c
-
-inflate_$O:	inflate.c inflate.h $(UNZIP_H) crypt.h
-	$(CC) -c $(CF) -DSFX -o $@ inflate.c
-
-match_$O:	match.c $(UNZIP_H)
-	$(CC) -c $(CF) -DSFX -o $@ match.c
-
-process_$O:	process.c $(UNZIP_H) crc32.h
-	$(CC) -c $(CF) -DSFX -o $@ process.c
-
-ttyio_$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) -c $(CF) -DSFX -o $@ ttyio.c
-
-ubz2err_$O:	ubz2err.c $(UNZIP_H)
-	$(CC) -c $(CF) -DSFX -o $@ ubz2err.c
-
-
-# funzip compilation section
-cryptf$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
-	$(CC) -c $(CF) -DFUNZIP -o $@ crypt.c
-
-globalsf$O:	globals.c $(UNZIP_H)
-	$(CC) -c $(CF) -DFUNZIP -o $@ globals.c
-
-inflatef$O:	inflate.c inflate.h $(UNZIP_H) crypt.h
-	$(CC) -c $(CF) -DFUNZIP -o $@ inflate.c
-
-ttyiof$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
-	$(CC) -c $(CF) -DFUNZIP -o $@ ttyio.c
-
 
 # optional assembler replacements
 crc_i86$O:	msdos/crc_i86.asm				# 16bit only
@@ -450,15 +359,8 @@ svr4package:	unzips
 install:	$(MANS)
 	-$(INSTALL_D) $(BINDIR)
 	$(INSTALL_PROGRAM) $(UNZIPS) $(BINDIR)
-	$(INSTALL) unix/zipgrep $(BINDIR)
-	$(RM) $(BINDIR)/zipinfo$E
-	$(LN) $(BINDIR)/unzip$E $(BINDIR)/zipinfo$E
 	-$(INSTALL_D) $(MANDIR)
-	$(INSTALL) man/funzip.1 $(MANDIR)/funzip.$(manext)
 	$(INSTALL) man/unzip.1 $(MANDIR)/unzip.$(manext)
-	$(INSTALL) man/unzipsfx.1 $(MANDIR)/unzipsfx.$(manext)
-	$(INSTALL) man/zipgrep.1 $(MANDIR)/zipgrep.$(manext)
-	$(INSTALL) man/zipinfo.1 $(MANDIR)/zipinfo.$(manext)
 	$(CHMOD) $(BINPERMS) $(INSTALLEDBIN)
 	$(CHMOD) $(MANPERMS) $(INSTALLEDMAN)
 
@@ -477,14 +379,9 @@ test:		check
 
 check:
 	@echo '#####  This is a Unix-specific target.  (Just so you know.)'
-	@echo '#####     Make sure unzip, funzip and unzipsfx are compiled and'
-	@echo '#####     in this directory.'
+	@echo '#####     Make sure unzip, is compiled and in this directory.'
 	@if test ! -f ./unzip; then \
 	    echo "#####  ERROR:  can't find ./unzip"; exit 1; fi
-	@if test ! -f ./funzip; then \
-	    echo "#####  ERROR:  can't find ./funzip"; exit 1; fi
-	@if test ! -f ./unzipsfx; then \
-	    echo "#####  ERROR:  can't find ./unzipsfx"; exit 1; fi
 #
 	@if test ! -f $(TESTZIP); then \
 	    echo "#####  ERROR:  can't find test file $(TESTZIP)"; exit 1; fi
@@ -495,37 +392,15 @@ check:
 	    echo "#####  ERROR:  file extraction from $(TESTZIP) failed"; \
 	    exit 1; fi
 #
-	@echo '#####  testing zipinfo (unzip -Z)'
-	@./unzip -Z $(TESTZIP) > testmake.unzip-Z
-	@if diff testmake.unzip-Z testmake.zipinfo; then echo "OK."; else \
-	    echo "#####  WARNING:  zipinfo output doesn't match stored version"; \
-	    echo '#####     (If the only difference is the file times, compare your'; \
-	    echo '#####      timezone with the Central European timezone, which is one'; \
-	    echo '#####      hour east of Greenwich but effectively 2 hours east'; \
-	    echo '#####      during summer Daylight Savings Time.  The upper two'; \
-	    echo '#####      lines should correspond to your local time when the'; \
-	    echo '#####      files were created, on 19 November 1998 at 10:46pm CET.'; \
-	    echo '#####      If the times are consistent, please ignore this warning.)'; \
-	    fi
 	@$(RM) testmake.unzip-Z testmake.zipinfo
 #
 	@echo '#####  testing unzip -d exdir option'
 	@./unzip -bo $(TESTZIP) -d testun notes
 	@cat testun/notes
 #
-	@echo '#####  testing unzip -o and funzip (ignore funzip warning)'
+	@echo '#####  testing unzip'
 	@./unzip -boq $(TESTZIP) notes -d testun
-	@./funzip < $(TESTZIP) > testun/notes2
-	@if diff testun/notes testun/notes2; then true; else \
-	    echo '#####  ERROR:  funzip output disagrees with unzip'; fi
 #
-	@echo '#####  testing unzipsfx (self-extractor)'
-	@cat unzipsfx $(TESTZIP) > testsfx
-	@$(CHMOD) 0700 testsfx
-	@./testsfx -bo notes
-	@if diff notes testun/notes; then true; else \
-	    echo '#####  ERROR:  unzipsfx file disagrees with unzip'; fi
-	@$(RM) testsfx notes testun/notes testun/notes2
 	@rmdir testun
 #
 	@echo '#####  testing complete.'
@@ -580,7 +455,7 @@ generic_bz2:	unix_make
 generic_zlib:	unix_make
 	@echo\
  "This target assumes zlib (libz.a or libz.so.*) is already installed."
-	$(MAKE) unzip funzip CF="$(CF) -DUSE_ZLIB" LF2="-lz $(LF2)"
+	$(MAKE) unzip CF="$(CF) -DUSE_ZLIB" LF2="-lz $(LF2)"
 
 # Generic GNU C shared library.  This is an example of how to compile UnZip as
 # a shared library.  (Doing so as a static library would be similar.)  See also
