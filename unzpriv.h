@@ -562,7 +562,7 @@ char *plastchar(const char *ptr, extent len);
 /**************/
 
 #ifndef Z_UINT8_DEFINED
-#if (defined(__GNUC__) || defined(__hpux) || defined(__SUNPRO_C))
+#ifdef __GNUC__
 typedef unsigned long long z_uint8;
 #else
 typedef unsigned __int64 z_uint8;

@@ -20,10 +20,6 @@
 #undef LARGE_FILE_SUPPORT
 #endif
 
-/* Automatically set ZIP64_SUPPORT if LFS */
-#ifdef LARGE_FILE_SUPPORT
-#endif
-
 /* NO_ZIP64_SUPPORT takes preceedence over ZIP64_SUPPORT */
 #if defined(NO_ZIP64_SUPPORT) && defined(ZIP64_SUPPORT)
 #undef ZIP64_SUPPORT
@@ -64,17 +60,12 @@ typedef struct stat z_stat;
 struct tm *gmtime(), *localtime();
 
 #include <unistd.h> /* this includes utime.h on SGIs */
-#if (defined(BSD4_4) || defined(linux) || defined(__GLIBC__))
 #include <utime.h>
 #define GOT_UTIMBUF
-#endif
 
 #if (defined(_MBCS) && defined(NO_MBCS))
 /* disable MBCS support when requested */
 #undef _MBCS
-#endif
-
-#if (!defined(NO_SETLOCALE) && !defined(_MBCS))
 #endif
 
 #if (!defined(HAVE_STRNICMP) & !defined(NO_STRNICMP))

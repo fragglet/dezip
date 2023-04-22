@@ -600,13 +600,6 @@ int flag;                          /* flag bits */
         of this one.
       ---------------------------------------------------------------------------*/
 
-    /*
-    #ifdef ACORN_GUI
-        if (MSG_NO_AGUI(flag))
-            return 0;
-    #endif
-     */
-
     if (MSG_STDERR(flag) && !((Uz_Globs *) pG)->UzO.tflag)
         outfp = (FILE *) stderr;
     else

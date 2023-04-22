@@ -102,10 +102,6 @@ freely, subject to the above disclaimer and the following restrictions:
 /* used to remove arguments in function prototypes for non-ANSI C */
 #define OF(a) a
 
-/* enable the "const" keyword only if MODERN and if not otherwise instructed */
-#if (!defined(const) && (defined(USE_CONST) || !defined(NO_CONST)))
-#endif
-
 /* Tell Microsoft Visual C++ 2005 (and newer) to leave us alone
  * and let us use standard C functions the way we're supposed to.
  * (These preprocessor symbols must appear before the first system

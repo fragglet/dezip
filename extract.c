@@ -209,10 +209,6 @@ static const char BUnzip[] = "bunzip";
 static const char Explode[] = "explode";
 static const char Unshrink[] = "unshrink";
 
-#if (!defined(DELETE_IF_FULL) || !defined(HAVE_UNLINK))
-static const char FileTruncated[] = "warning:  %s is probably truncated\n";
-#endif
-
 static const char FileUnknownCompMethod[] = "%s:  unknown compression method\n";
 static const char BadCRC[] = " bad CRC %08lx  (should be %08lx)\n";
 
@@ -1685,17 +1681,10 @@ static int extract_or_test_member() /* return PK-type error code */
 
     if (G.disk_full) { /* set by flush() */
         if (G.disk_full > 1) {
-#if (defined(DELETE_IF_FULL) && defined(HAVE_UNLINK))
             /* delete the incomplete file if we can */
             if (unlink(G.filename) != 0)
                 Trace((stderr, "extract.c:  could not delete %s\n",
                        FnFilter1(G.filename)));
-#else
-            /* warn user about the incomplete file */
-            Info(slide, 0x421,
-                 ((char *) slide, LoadFarString(FileTruncated),
-                  FnFilter1(G.filename)));
-#endif
             error = PK_DISK;
         } else {
             error = PK_WARN;
