@@ -20,151 +20,11 @@
 #ifndef __unzpriv_h /* prevent multiple inclusions */
 #define __unzpriv_h
 
-/* First thing: Signal all following code that we compile UnZip utilities! */
-
-/* GRR 960204:  MORE defined here in preparation for removal altogether */
-#define MORE
-
-/* fUnZip should never need to be reentrant */
-
-/* enable Deflate64(tm) support unless compiling for SFX stub */
-
-/* disable bzip2 support for SFX stub, unless explicitly requested */
-
-/* Enable -B option per default on specific systems, to allow backing up
- * files that would be overwritten.
- * (This list of systems must be kept in sync with the list of systems
- * that add the B_flag to the UzpOpts structure, see unzip.h.)
- */
-
 #define DYNAMIC_CRC_TABLE
-
-/*---------------------------------------------------------------------------
-    OS-dependent configuration for UnZip internals
-  ---------------------------------------------------------------------------*/
-
-/* Some compiler distributions for Win32/i386 systems try to emulate
- * a Unix (POSIX-compatible) environment.
- */
-
-/* bad or (occasionally?) missing stddef.h: */
-
-/* __SVR4 and __svr4__ catch Solaris on at least some combos of compiler+OS */
-
-/* stat() bug for Borland, VAX C RTL, and Atari ST MiNT on TOS
- * filesystems:  returns 0 for wildcards!  (returns 0xffffffff on Minix
- * filesystem or `U:' drive under Atari MiNT.)  Watcom C was previously
- * included on this list; it would be good to know what version the problem
- * was fixed at, if it did exist.  */
-
-/*---------------------------------------------------------------------------
-    OS-dependent includes
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    API (DLL) section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Acorn RISCOS section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Amiga section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    AOS/VS section (somewhat similar to Unix, apparently):
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Atari ST section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    AtheOS section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    BeOS section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Human68k/X680x0 section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Mac section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    MS-DOS, OS/2, FLEXOS section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    MTS section (piggybacks UNIX, I think):
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-   Novell Netware NLM section
- ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-   QDOS section
- ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Tandem NSK section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    THEOS section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    TOPS-20 section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Unix section:
-  ---------------------------------------------------------------------------*/
 
 #include "unix/unxcfg.h"
 
-/*---------------------------------------------------------------------------
-    VM/CMS and MVS section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    VMS section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Win32 (Windows 95/NT) section:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Win32 Windows CE section (also POCKET_UNZIP)
-  ---------------------------------------------------------------------------*/
-
-/* ----------------------------------------------------------------------------
-   MUST BE AFTER LARGE FILE INCLUDES
-   ----------------------------------------------------------------------------
- */
-/* This stuff calls in types and messes up large file includes.  It needs to
-   go after large file defines in local includes.
-   I am guessing that moving them here probably broke some ports, but hey.
-   10/31/2004 EG */
-/* ----------------------------------------------------------------------------
-   Common includes
-   ----------------------------------------------------------------------------
- */
-
-/* Some ports apply specific adjustments which must be in effect before
-   reading the "standard" include headers.
- */
-
-#if (defined(UNIX) && defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 64))
+#if (defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 64))
 #define Z_OFF_T off_t /* 64bit offsets to support 2GB < zipfile size < 4GB */
 #else
 #define Z_OFF_T long
@@ -181,29 +41,20 @@ typedef struct stat z_stat;
 
 #include <stdio.h>
 
-#include <ctype.h>  /* skip for VMS, to use tolower() function? */
-#include <errno.h>  /* used in mapname() */
-#include <string.h> /* strcpy, strcmp, memcpy, strchr/strrchr, etc. */
-#include <limits.h> /* MAX/MIN constant symbols for system types... */
+#include <ctype.h>
+#include <errno.h>
+#include <string.h>
+#include <limits.h>
 
-/* this include must be down here for SysV.4, for some reason... */
-#include <signal.h> /* used in unzip.c, fileio.c */
+#include <signal.h>
 
 #include <stddef.h>
-#include <stdlib.h> /* standard library prototypes, malloc(), etc. */
+#include <stdlib.h>
 typedef size_t extent;
-
-/*************/
-/*  Defines  */
-/*************/
 
 #define UNZIP_BZ2VERS     46
 #define UNZIP_VERSION     UNZIP_BZ2VERS
 #define VMS_UNZIP_VERSION 42 /* if OS-needed-to-extract is VMS:  can do */
-
-#define ATH_BEO_UNX
-
-#define ATH_BEO_THS_UNX
 
 /* clean up with a few defaults */
 #ifndef DIR_END
@@ -252,9 +103,6 @@ typedef size_t extent;
 #ifndef WSIZE
 #define WSIZE 65536L /* window size--must be a power of two, and */
 #endif
-
-#define nearmalloc malloc
-#define nearfree   free
 
 #ifndef INBUFSIZ
 #define INBUFSIZ 8192 /* larger buffers for real OSes */
@@ -419,28 +267,6 @@ char *plastchar(const char *ptr, extent len);
  * Updated 1/28/2004
  * Lifted and placed here 6/7/2004 - Myles Bennett
  */
-#ifdef LARGE_FILE_SUPPORT
-/* 64-bit Large File Support */
-
-/* ---------------------------- */
-
-/* 64-bit stat functions */
-
-/* 64-bit fseeko */
-
-/* 64-bit ftello */
-
-/* 64-bit fopen */
-
-/* ---------------------------- */
-
-#else
-/* No Large File Support */
-
-/* For these systems, implement "64bit file vs. 32bit prog" check  */
-
-#endif
-
 /* No "64bit file vs. 32bit prog" check for SFX stub, to save space */
 
 #ifndef SSTAT
@@ -1133,38 +959,6 @@ int UZbunzip2(void);                   /* extract.c */
 void bz_internal_error(int bzerrcode); /* ubz2err.c */
 
 /*---------------------------------------------------------------------------
-    Internal API functions (only included in DLL versions):
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    MSDOS-only functions:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    OS/2-only functions:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    QDOS-only functions:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    TOPS20-only functions:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    VM/CMS- and MVS-only functions:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    VMS-only functions:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    WIN32-only functions:
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
 
@@ -1275,22 +1069,6 @@ int stamp_file(const char *fname, time_t modtime); /* local */
         if (error > 1)                                        \
             return error;                                     \
     }
-
-/*
- *  Skip a variable-length field, and report any errors.  Used in zipinfo.c
- *  and unzip.c in several functions.
- *
- *  macro SKIP_(length)
- *      ush length;
- *  {
- *      if (length && ((error = do_string(length, SKIP)) != 0)) {
- *          error_in_archive = error;   /-* might be warning *-/
- *          if (error > 1)              /-* fatal *-/
- *              return (error);
- *      }
- *  }
- *
- */
 
 #define FLUSH(w)                                    \
     ((G.mem_mode) ? memflush(redirSlide, (ulg) (w)) \
