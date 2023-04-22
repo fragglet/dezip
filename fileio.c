@@ -99,10 +99,6 @@ static const char PasswPrompt[] = "[%s] %s password: ";
 static const char PasswPrompt2[] = "Enter password: ";
 static const char PasswRetry[] = "password incorrect--reenter: ";
 
-/******************************/
-/* Function open_input_file() */
-/******************************/
-
 int open_input_file() /* return 1 if open failed */
 {
     /*
@@ -122,10 +118,6 @@ int open_input_file() /* return 1 if open failed */
     return 0;
 
 } /* end function open_input_file() */
-
-/***************************/
-/* Function open_outfile() */
-/***************************/
 
 int open_outfile() /* return 1 if fail */
 {
@@ -219,10 +211,6 @@ void undefer_input()
         G.incnt = 0;
 } /* end function undefer_input() */
 
-/***********************************/
-/* function defer_leftover_input() */
-/***********************************/
-
 void defer_leftover_input()
 {
     if ((zoff_t) G.incnt > G.csize) {
@@ -236,10 +224,6 @@ void defer_leftover_input()
         G.incnt_leftover = 0;
     G.csize -= G.incnt;
 } /* end function defer_leftover_input() */
-
-/**********************/
-/* Function readbuf() */
-/**********************/
 
 unsigned readbuf(buf, size) /* return number of bytes read into buf */
 char *buf;
@@ -275,10 +259,6 @@ register unsigned size;
     return n;
 
 } /* end function readbuf() */
-
-/***********************/
-/* Function readbyte() */
-/***********************/
 
 int readbyte() /* refill inbuf and return a byte if available, else EOF */
 {
@@ -321,10 +301,6 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
 
 } /* end function readbyte() */
 
-/************************/
-/* Function fillinbuf() */
-/************************/
-
 int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
 {
     if (G.mem_mode ||
@@ -345,10 +321,6 @@ int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
     return G.incnt;
 
 } /* end function fillinbuf() */
-
-/************************/
-/* Function seek_zipf() */
-/************************/
 
 int seek_zipf(abs_offset)
 zoff_t abs_offset;
@@ -404,10 +376,6 @@ zoff_t abs_offset;
     }
     return (PK_OK);
 } /* end function seek_zipf() */
-
-/********************/
-/* Function flush() */ /* returns PK error codes: */
-/********************/ /* if tflag => always 0; PK_DISK if write error */
 
 int flush(rawbuf, size, unshrink)
 uch *rawbuf;
@@ -509,10 +477,6 @@ int unshrink;
 
 } /* end function flush() [resp. partflush() for 16-bit Deflate64 support] */
 
-/*************************/
-/* Function disk_error() */
-/*************************/
-
 static int disk_error()
 {
     /* OK to use slide[] here because this file is finished regardless */
@@ -528,10 +492,6 @@ static int disk_error()
     return PK_DISK;
 
 } /* end function disk_error() */
-
-/*****************************/
-/* Function UzpMessagePrnt() */
-/*****************************/
 
 int UzpMessagePrnt(pG, buf, size,
                    flag) void *pG; /* globals struct:  always passed */
@@ -604,10 +564,6 @@ int flag;                          /* flag bits */
 
 } /* end function UzpMessagePrnt() */
 
-/***********************/
-/* Function UzpInput() */ /* GRR:  this is a placeholder for now */
-/***********************/
-
 int UzpInput(pG, buf, size, flag) void *pG; /* globals struct:  always passed */
 uch *buf;  /* preformatted string to be printed */
 int *size; /* (address of) size of buf and of returned string */
@@ -622,10 +578,6 @@ int flag;  /* flag bits (bit 0: no echo) */
     return 0;
 
 } /* end function UzpInput() */
-
-/***************************/
-/* Function UzpMorePause() */
-/***************************/
 
 void UzpMorePause(pG, prompt,
                   flag) void *pG; /* globals struct:  always passed */
@@ -662,10 +614,6 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
     ((Uz_Globs *) pG)->sol = TRUE;
 
 } /* end function UzpMorePause() */
-
-/**************************/
-/* Function UzpPassword() */
-/**************************/
 
 int UzpPassword(pG, rcnt, pwbuf, size, zfn,
                 efn) void *pG; /* pointer to UnZip's internal global vars */
@@ -721,10 +669,6 @@ const char *efn;               /* name of archive entry being processed */
 
 } /* end function UzpPassword() */
 
-/**********************/
-/* Function handler() */
-/**********************/
-
 void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
     int signal;
 {
@@ -764,10 +708,6 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
     exit(IZ_CTRLC); /* was EXIT(0), then EXIT(PK_ERR) */
 }
 
-/*******************************/
-/* Function dos_to_unix_time() */ /* used for freshening/updating/timestamps */
-/*******************************/
-
 time_t dos_to_unix_time(dosdatetime)
 ulg dosdatetime;
 {
@@ -801,10 +741,6 @@ ulg dosdatetime;
     return m_time;
 
 } /* end function dos_to_unix_time() */
-
-/******************************/
-/* Function check_for_newer() */ /* used for overwriting/freshening/updating */
-/******************************/
 
 int check_for_newer(filename) /* return 1 if existing file is newer */
                               /*  or equal; 0 if older; -1 if doesn't */
@@ -876,10 +812,6 @@ char *filename;               /*  exist yet */
     return (existing >= archive);
 
 } /* end function check_for_newer() */
-
-/************************/
-/* Function do_string() */
-/************************/
 
 int do_string(length, option) /* return PK-type error code */
 unsigned int length;          /* without prototype, ush converted to this */
@@ -1163,10 +1095,6 @@ int option;
 
 } /* end function do_string() */
 
-/***********************/
-/* Function makeword() */
-/***********************/
-
 ush makeword(b) const uch *b;
 {
     /*
@@ -1175,10 +1103,6 @@ ush makeword(b) const uch *b;
      */
     return (ush) ((b[1] << 8) | b[0]);
 }
-
-/***********************/
-/* Function makelong() */
-/***********************/
 
 ulg makelong(sig) const uch *sig;
 {
@@ -1189,10 +1113,6 @@ ulg makelong(sig) const uch *sig;
     return (((ulg) sig[3]) << 24) + (((ulg) sig[2]) << 16) +
            (ulg) ((((unsigned) sig[1]) << 8) + ((unsigned) sig[0]));
 }
-
-/************************/
-/* Function makeint64() */
-/************************/
 
 zusz_t makeint64(sig) const uch *sig;
 {
@@ -1216,10 +1136,6 @@ zusz_t makeint64(sig) const uch *sig;
 
 #endif /* ?LARGE_FILE_SUPPORT */
 }
-
-/*********************/
-/* Function fzofft() */
-/*********************/
 
 /* Format a zoff_t value in a cylindrical buffer set. */
 char *fzofft(val, pre, post)
@@ -1267,10 +1183,6 @@ const char *post;
 }
 
 #ifdef NEED_STR2ISO
-/**********************/
-/* Function str2iso() */
-/**********************/
-
 char *str2iso(dst, src)
 char *dst;                /* destination buffer */
 register const char *src; /* source string */
@@ -1292,10 +1204,6 @@ register const char *src; /* source string */
 #endif /* NEED_STR2ISO */
 
 #ifdef NEED_STR2OEM
-/**********************/
-/* Function str2oem() */
-/**********************/
-
 char *str2oem(dst, src)
 char *dst;                /* destination buffer */
 register const char *src; /* source string */
@@ -1317,10 +1225,6 @@ register const char *src; /* source string */
 #endif /* NEED_STR2OEM */
 
 #ifdef NO_STRNICMP
-
-/************************/
-/* Function zstrnicmp() */
-/************************/
 
 int zstrnicmp(s1, s2, n)
 register const char *s1, *s2;
@@ -1347,10 +1251,6 @@ register unsigned n;
  * This code is public domain!   Date: 1998/12/20
  */
 
-/************************/
-/* Function plastchar() */
-/************************/
-
 char *plastchar(ptr, len) const char *ptr;
 extent len;
 {
@@ -1366,10 +1266,6 @@ extent len;
 }
 
 #ifdef NEED_UZMBCLEN
-/***********************/
-/* Function uzmbclen() */
-/***********************/
-
 extent uzmbclen(ptr) const unsigned char *ptr;
 {
     int mbl;
@@ -1386,10 +1282,6 @@ extent uzmbclen(ptr) const unsigned char *ptr;
 #endif /* NEED_UZMBCLEN */
 
 #ifdef NEED_UZMBSCHR
-/***********************/
-/* Function uzmbschr() */
-/***********************/
-
 unsigned char *uzmbschr(str, c) const unsigned char *str;
 unsigned int c;
 {
@@ -1404,10 +1296,6 @@ unsigned int c;
 #endif /* NEED_UZMBSCHR */
 
 #ifdef NEED_UZMBSRCHR
-/************************/
-/* Function uzmbsrchr() */
-/************************/
-
 unsigned char *uzmbsrchr(str, c) const unsigned char *str;
 unsigned int c;
 {

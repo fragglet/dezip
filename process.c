@@ -105,10 +105,6 @@ static const char UnicodeMismatchError[] =
 static const char UFilenameTooLongTrunc[] =
     "warning:  filename too long (P1) -- truncating.\n";
 
-/*******************************/
-/* Function process_zipfiles() */
-/*******************************/
-
 int process_zipfiles() /* return PK-type error code */
 {
     char *lastzipfn = (char *) NULL;
@@ -316,10 +312,6 @@ int process_zipfiles() /* return PK-type error code */
 
 } /* end function process_zipfiles() */
 
-/*****************************/
-/* Function free_G_buffers() */
-/*****************************/
-
 void free_G_buffers() /* releases all memory allocated in global vars */
 {
     unsigned i;
@@ -377,10 +369,6 @@ void free_G_buffers() /* releases all memory allocated in global vars */
     }
 
 } /* end function free_G_buffers() */
-
-/**************************/
-/* Function do_seekable() */
-/**************************/
 
 static int do_seekable(lastchance) /* return PK-type error code */
 int lastchance;
@@ -620,9 +608,6 @@ int lastchance;
 
 } /* end function do_seekable() */
 
-/************************/
-/* Function file_size() */
-/************************/
 /* File size determination which does not mislead for large files in a
    small-file program.  Probably should be somewhere else.
    The file has to be opened previously
@@ -661,10 +646,6 @@ int fh;
     }
     return ofs;
 } /* end function file_size() */
-
-/***********************/
-/* Function rec_find() */
-/***********************/
 
 static int rec_find(searchlen, signature, rec_size)
 /* return 0 when rec found, 1 when not found, 2 in case of read error */
@@ -730,10 +711,6 @@ int rec_size;
 } /* end function rec_find() */
 
 #if 0
-/********************************/
-/* Function check_ecrec_zip64() */
-/********************************/
-
 static int check_ecrec_zip64()
 {
     return G.ecrec.offset_start_central_directory  == 0xFFFFFFFFL
@@ -744,10 +721,6 @@ static int check_ecrec_zip64()
         || G.ecrec.number_this_disk                == 0xFFFF;
 } /* end function check_ecrec_zip64() */
 #endif /* never */
-
-/***************************/
-/* Function find_ecrec64() */
-/***************************/
 
 static int find_ecrec64(searchlen) /* return PK-class error */
 zoff_t searchlen;
@@ -960,10 +933,6 @@ zoff_t searchlen;
     return PK_COOL;
 } /* end function find_ecrec64() */
 
-/*************************/
-/* Function find_ecrec() */
-/*************************/
-
 static int find_ecrec(searchlen) /* return PK-class error */
 zoff_t searchlen;
 {
@@ -1083,10 +1052,6 @@ zoff_t searchlen;
 
 } /* end function find_ecrec() */
 
-/********************************/
-/* Function process_zip_cmmnt() */
-/********************************/
-
 static int process_zip_cmmnt() /* return PK-type error code */
 {
     int error = PK_COOL;
@@ -1106,10 +1071,6 @@ static int process_zip_cmmnt() /* return PK-type error code */
     return error;
 
 } /* end function process_zip_cmmnt() */
-
-/************************************/
-/* Function process_cdir_file_hdr() */
-/************************************/
 
 int process_cdir_file_hdr() /* return PK-type error code */
 {
@@ -1184,10 +1145,6 @@ int process_cdir_file_hdr() /* return PK-type error code */
 
 } /* end function process_cdir_file_hdr() */
 
-/***************************/
-/* Function get_cdir_ent() */
-/***************************/
-
 static int get_cdir_ent() /* return PK-type error code */
 {
     cdir_byte_hdr byterec;
@@ -1231,10 +1188,6 @@ static int get_cdir_ent() /* return PK-type error code */
 
 } /* end function get_cdir_ent() */
 
-/*************************************/
-/* Function process_local_file_hdr() */
-/*************************************/
-
 int process_local_file_hdr() /* return PK-type error code */
 {
     local_byte_hdr byterec;
@@ -1276,10 +1229,6 @@ int process_local_file_hdr() /* return PK-type error code */
     return PK_COOL;
 
 } /* end function process_local_file_hdr() */
-
-/*******************************/
-/* Function getZip64Data() */
-/*******************************/
 
 int getZip64Data(ef_buf,
                  ef_len) const uch *ef_buf; /* buffer containing extra field */
@@ -1373,10 +1322,6 @@ unsigned ef_len;                            /* total length of extra field */
 
     return PK_COOL;
 } /* end function getZip64Data() */
-
-/*******************************/
-/* Function getUnicodeData() */
-/*******************************/
 
 int getUnicodeData(
     ef_buf, ef_len) const uch *ef_buf; /* buffer containing extra field */
@@ -1836,10 +1781,6 @@ ulg *p_uidgid; /* return storage: uid or gid value */
     }
     return TRUE;
 }
-
-/*******************************/
-/* Function ef_scan_for_izux() */
-/*******************************/
 
 unsigned ef_scan_for_izux(
     ef_buf, ef_len, ef_is_c, dos_mdatetime, z_utim,

@@ -331,10 +331,6 @@ bound_t end;
     return 0;
 }
 
-/**************************************/
-/*  Function extract_or_test_files()  */
-/**************************************/
-
 int extract_or_test_files() /* return PK-type error code */
 {
     unsigned i, j;
@@ -805,10 +801,6 @@ int extract_or_test_files() /* return PK-type error code */
 
 } /* end function extract_or_test_files() */
 
-/***************************/
-/*  Function store_info()  */
-/***************************/
-
 static int store_info() /* return 0 if skipping, 1 if OK */
 {
 #define UNKN_BZ2 (G.crec.compression_method != BZIPPED)
@@ -935,10 +927,6 @@ static int store_info() /* return 0 if skipping, 1 if OK */
 
 } /* end function store_info() */
 
-/*******************************/
-/*  Function find_compr_idx()  */
-/*******************************/
-
 unsigned find_compr_idx(compr_methodnum)
 unsigned compr_methodnum;
 {
@@ -950,10 +938,6 @@ unsigned compr_methodnum;
     }
     return i;
 }
-
-/******************************************/
-/*  Function extract_or_test_entrylist()  */
-/******************************************/
 
 static int
 extract_or_test_entrylist(numchunk, pfilnum, pnum_bad_pwd, pold_extra_bytes,
@@ -1416,10 +1400,6 @@ int error_in_archive;
 /* wsize is used in extract_or_test_member() and UZbunzip2() */
 #define wsize WSIZE /* wsize is a constant */
 
-/***************************************/
-/*  Function extract_or_test_member()  */
-/***************************************/
-
 static int extract_or_test_member() /* return PK-type error code */
 {
     char *nul = "[empty] ", *txt = "[text]  ", *bin = "[binary]";
@@ -1735,10 +1715,6 @@ static int extract_or_test_member() /* return PK-type error code */
 
 } /* end function extract_or_test_member() */
 
-/*******************************/
-/*  Function TestExtraField()  */
-/*******************************/
-
 static int TestExtraField(ef, ef_len)
 uch *ef;
 unsigned ef_len;
@@ -1922,10 +1898,6 @@ unsigned ef_len;
 
 } /* end function TestExtraField() */
 
-/******************************/
-/*  Function test_compr_eb()  */
-/******************************/
-
 static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
                          int (*test_uc_ebdata)(uch *eb, unsigned eb_size,
                                                uch *eb_ucptr, ulg eb_ucsize))
@@ -1972,10 +1944,6 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
     return r;
 
 } /* end function test_compr_eb() */
-
-/***************************/
-/*  Function memextract()  */
-/***************************/
 
 int memextract(tgt, tgtsize, src, srcsize) /* extract compressed */
                                            /*  extra field block; */
@@ -2056,10 +2024,6 @@ ulg srcsize;
 
 } /* end function memextract() */
 
-/*************************/
-/*  Function memflush()  */
-/*************************/
-
 int memflush(rawbuf, size) const uch *rawbuf;
 ulg size;
 {
@@ -2076,10 +2040,6 @@ ulg size;
     return 0;
 
 } /* end function memflush() */
-
-/***********************************/
-/* Function set_deferred_symlink() */
-/***********************************/
 
 static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
 {
@@ -2126,10 +2086,6 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
     return; /* can't set time on symlinks */
 
 } /* end function set_deferred_symlink() */
-
-/*************************/
-/*  Function fnfilter()  */
-/*************************/
 
 char *fnfilter(raw, space, size) /* convert name to safely printable form */
     const char *raw;
@@ -2195,10 +2151,6 @@ extent size;
 
 /* must sort saved directories so can set perms from bottom up */
 
-/************************/
-/*  Function dircomp()  */
-/************************/
-
 static int dircomp(a, b) /* used by qsort(); swiped from Zip */
     const void *a,
     *b;
@@ -2207,10 +2159,6 @@ static int dircomp(a, b) /* used by qsort(); swiped from Zip */
     return strcmp((*(direntry **) b)->fn, (*(direntry **) a)->fn);
     /* return namecmp((*(direntry **)b)->fn, (*(direntry **)a)->fn); */
 }
-
-/**************************/
-/*  Function UZbunzip2()  */
-/**************************/
 
 int UZbunzip2()
 /* decompress a bzipped entry using the libbz2 routines */

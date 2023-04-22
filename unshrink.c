@@ -89,10 +89,6 @@ static void partial_clear(int lastcodeused);
 #define Value  G.area.shrink.value /* "value" conflicts with Pyramid ioctl.h */
 #define stack  G.area.shrink.Stack
 
-/***********************/
-/* Function unshrink() */
-/***********************/
-
 int unshrink()
 {
     uch *stacktop = stack + (HSIZE - 1);
@@ -267,10 +263,6 @@ int unshrink()
     return PK_OK;
 
 } /* end function unshrink() */
-
-/****************************/
-/* Function partial_clear() */ /* no longer recursive... */
-/****************************/
 
 static void partial_clear(lastcodeused) int lastcodeused;
 {

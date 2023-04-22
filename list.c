@@ -42,10 +42,6 @@ static const char ShortFileTrailer[] =
     "---------                     -------\n%s\
                      %lu file%s\n";
 
-/*************************/
-/* Function list_files() */
-/*************************/
-
 int list_files() /* return PK-type error code */
 {
     int do_this_file = FALSE, cfactor, error, error_in_archive = PK_COOL;
@@ -349,10 +345,6 @@ int list_files() /* return PK-type error code */
 
 } /* end function list_files() */
 
-/************************/
-/* Function fn_is_dir() */
-/************************/
-
 static int fn_is_dir() /* returns TRUE if G.filename is directory */
 {
     extent fn_len = strlen(G.filename);
@@ -362,10 +354,6 @@ static int fn_is_dir() /* returns TRUE if G.filename is directory */
                           (G.pInfo->hostnum == FS_FAT_ &&
                            !MBSCHR(G.filename, '/') && endc == '\\'));
 }
-
-/*****************************/
-/* Function get_time_stamp() */
-/*****************************/
 
 int get_time_stamp(last_modtime, nmember) /* return PK-type error code */
 time_t *last_modtime;
@@ -487,10 +475,6 @@ ulg *nmember;
 
 } /* end function get_time_stamp() */
 
-/********************/
-/* Function ratio() */
-/********************/
-
 int ratio(uc, c)
 zusz_t uc, c;
 {
@@ -509,10 +493,6 @@ zusz_t uc, c;
                     : -((int) ((1000L * (c - uc) + (denom >> 1)) / denom)));
     } /* ^^^^^^^^ rounding */
 }
-
-/************************/
-/*  Function fnprint()  */
-/************************/
 
 void fnprint() /* print filename (after filtering) and newline */
 {

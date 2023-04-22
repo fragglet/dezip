@@ -23,10 +23,6 @@
 
 #include "unzip.h"
 
-/**********************************/
-/*  Function bz_internal_error()  */
-/**********************************/
-
 /* Call-back function for the bzip2 decompression code (compiled with
  * BZ_NO_STDIO), required to handle fatal internal bug-type errors of
  * the bzip2 library.

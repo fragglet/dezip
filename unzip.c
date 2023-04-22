@@ -286,32 +286,6 @@ char *argv[];
     SET_SIGHANDLER(SIGSEGV, handler);
 #endif
 
-    /*---------------------------------------------------------------------------
-        Macintosh initialization code.
-      ---------------------------------------------------------------------------*/
-
-    /*---------------------------------------------------------------------------
-        NetWare initialization code.
-      ---------------------------------------------------------------------------*/
-
-    /*---------------------------------------------------------------------------
-        Acorn RISC OS initialization code.
-      ---------------------------------------------------------------------------*/
-
-    /*---------------------------------------------------------------------------
-        Theos initialization code.
-      ---------------------------------------------------------------------------*/
-
-    /*---------------------------------------------------------------------------
-        Sanity checks.  Commentary by Otis B. Driftwood and Fiorello:
-
-        D:  It's all right.  That's in every contract.  That's what they
-            call a sanity clause.
-
-        F:  Ha-ha-ha-ha-ha.  You can't fool me.  There ain't no Sanity
-            Claus.
-      ---------------------------------------------------------------------------*/
-
 #ifdef DEBUG
 #ifdef LARGE_FILE_SUPPORT
     /* test if we can support large files - 10/6/04 EG */
@@ -500,10 +474,6 @@ cleanup_and_exit:
     return (retcode);
 
 } /* end main()/unzip() */
-
-/**********************/
-/* Function uz_opts() */
-/**********************/
 
 int uz_opts(pargc, pargv)
 int *pargc;
@@ -847,10 +817,6 @@ char ***pargv;
 
 } /* end function uz_opts() */
 
-/********************/
-/* Function usage() */
-/********************/
-
 #define QUOT  ' '
 #define QUOTS ""
 
@@ -858,11 +824,6 @@ int usage(error) /* return PK-type error code */
 int error;
 {
     int flag = (error ? 1 : 0);
-
-    /*---------------------------------------------------------------------------
-        Print either ZipInfo usage or UnZip usage, depending on incantation.
-        (Strings must be no longer than 512 bytes for Turbo C, apparently.)
-      ---------------------------------------------------------------------------*/
 
     Info(slide, flag,
          ((char *) slide, LoadFarString(UnzipUsageLine2), ZIPINFO_MODE_OPTION,

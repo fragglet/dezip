@@ -530,8 +530,3 @@ int explode()
     return (int) r;
 }
 
-/* so explode.c and inflate.c can be compiled together into one object: */
-#undef DECODEHUFT
-#undef NEEDBITS
-#undef DUMPBITS
-#undef wszimpl
