@@ -977,7 +977,6 @@ int iswild(const char *p);                       /* match.c */
 
 int dateformat(void);                              /* local */
 char dateseparator(void);                          /* local */
-void version(void);                                /* local */
 int mapattr(void);                                 /* local */
 int mapname(int renamed);                          /* local */
 int checkdir(char *pathcomp, int flag);            /* local */

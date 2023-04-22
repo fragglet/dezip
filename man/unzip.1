@@ -147,23 +147,17 @@ extracts those files that do not already exist on disk. See \fB\-f\fP
 above for information on setting the timezone properly.
 .TP
 .B \-v
-list archive files (verbose format) or show diagnostic version info.
-This option has evolved and now behaves as both an option and a modifier.
-As an option it has two purposes: when a zipfile is specified with no
-other options, \fB\-v\fP lists archive files verbosely, adding to the
-basic \fB\-l\fP info the compression method, compressed size,
-compression ratio and 32-bit CRC. In contrast to most of the competing
-utilities, \fIunzip\fP removes the 12 additional header bytes of
-encrypted entries from the compressed size numbers. Therefore,
-compressed size and compression ratio figures are independent of the entry's
-encryption status and show the correct compression performance. (The complete
-size of the encrypted compressed data stream for zipfile entries is reported
-by the more verbose \fIzipinfo\fP(1) reports, see the separate manual.)
-When no zipfile is specified (that is, the complete command is simply
-``\fCunzip \-v\fR''), a diagnostic screen is printed.
-As a modifier it works in
-conjunction with other options (e.g., \fB\-t\fP) to produce more
-verbose or debugging output; this is not yet fully implemented.
+list archive files (verbose format) or show diagnostic version info.  This
+option has evolved and now behaves as both an option and a modifier.  As an
+option it has two purposes: when a zipfile is specified with no other options,
+\fB\-v\fP lists archive files verbosely, adding to the basic \fB\-l\fP info the
+compression method, compressed size, compression ratio and 32-bit CRC. In
+contrast to most of the competing utilities, \fIunzip\fP removes the 12
+additional header bytes of encrypted entries from the compressed size numbers.
+Therefore, compressed size and compression ratio figures are independent of the
+entry's encryption status and show the correct compression performance.  As a
+modifier it works in conjunction with other options (e.g., \fB\-t\fP) to
+produce more verbose or debugging output; this is not yet fully implemented.
 .TP
 .B \-z
 display only the archive comment.

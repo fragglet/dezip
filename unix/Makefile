@@ -279,7 +279,7 @@ process$O:	process.c $(UNZIP_H) crc32.h
 ttyio$O:	ttyio.c $(UNZIP_H) crypt.h ttyio.h
 ubz2err$O:	ubz2err.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
-unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
+unzip$O:	unzip.c $(UNZIP_H) crypt.h consts.h
 
 # optional assembler replacements
 crc_i86$O:	msdos/crc_i86.asm				# 16bit only
@@ -296,7 +296,7 @@ crc_sysv$O:	crc_i386.S $(ACONF_DEP)				# 32bit, SysV AS
 	$(AS) -o $@ crc_i386s.s
 	$(RM) crc_i386s.s
 
-msdos$O:	msdos/msdos.c $(UNZIP_H) unzvers.h		# DOS only
+msdos$O:	msdos/msdos.c $(UNZIP_H) # DOS only
 	$(CC) -c $(CF) msdos/msdos.c
 
 msdos_$O:	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
@@ -307,13 +307,13 @@ msdos_$O:	msdos/msdos.c $(UNZIP_H)			# DOS unzipsfx
 #os2$O:		os2/os2.c $(UNZIP_H)				# OS/2 only
 #	$(CC) -c $(CF) os2/os2.c
 
-unix$O:		unix/unix.c $(UNZIP_H) unzvers.h		# Unix only
+unix$O:		unix/unix.c $(UNZIP_H) # Unix only
 	$(CC) -c $(CF) unix/unix.c
 
 unix_$O:	unix/unix.c $(UNZIP_H)				# Unix unzipsfx
 	$(CC) -c $(CF) -DSFX -o $@ unix/unix.c
 
-unix.pic.o:	unix/unix.c $(UNZIP_H) unzvers.h		# Unix shlib
+unix.pic.o:	unix/unix.c $(UNZIP_H) # Unix shlib
 	$(CC) -c $(CF) -o $@ unix/unix.c
 
 
