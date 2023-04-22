@@ -13,12 +13,6 @@
   be freely distributed in both source and object forms from any country,
   including the USA under License Exception TSU of the U.S. Export
   Administration Regulations (section 740.13(e)) of 6 June 2002.
-
-  NOTE on copyright history:
-  Previous versions of this source package (up to version 2.8) were
-  not copyrighted and put in the public domain.  If you cannot comply
-  with the Info-Zip LICENSE, you may want to look for one of those
-  public domain versions.
  */
 
 #ifndef __crypt_h /* don't include more than once */

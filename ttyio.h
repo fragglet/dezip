@@ -16,31 +16,7 @@
 #include "crypt.h" /* ensure that encryption header file has been seen */
 #endif
 
-/*
- * Non-echo keyboard/console input support is needed and enabled.
- */
-
 /* Function prototypes */
-
-/* The following systems supply a `non-echo' character input function "getch()"
- * (or an alias) and do not need the echoff() / echon() function pair.
- */
-
-/* For VM/CMS and MVS, we do not (yet) have any support to switch terminal
- * input echo on and off. The following "fake" definitions allow inclusion
- * of crypt support and UnZip's "pause prompting" features, but without
- * any echo suppression.
- */
-
-/* The THEOS C runtime library supplies the function conmask() to toggle
- * terminal input echo on (conmask("e")) and off (conmask("n")).  But,
- * since THEOS C RTL also contains a working non-echo getch() function,
- * the echo toggles are not needed.
- */
-
-/* VMS has a single echo() function in ttyio.c to toggle terminal
- * input echo on and off.
- */
 
 /* For all other systems, ttyio.c supplies the two functions Echoff() and
  * Echon() for suppressing and (re)enabling console input echo.

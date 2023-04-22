@@ -133,25 +133,6 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 #define O_BINARY 0
 #endif
 
-/* File operations--use "b" for binary if allowed or fixed length 512 on VMS */
-
-/* Defaults when nothing special has been defined previously. */
-
-/*
- * If <limits.h> exists on most systems, should include that, since it may
- * define some or all of the following:  NAME_MAX, PATH_MAX, _POSIX_NAME_MAX,
- * _POSIX_PATH_MAX.
- */
-
-/* 2008-07-22 SMS.
- * Unfortunately, on VMS, <limits.h> exists, and is included by <stdlib.h>
- * (so it's pretty much unavoidable), and it defines PATH_MAX to a fixed
- * short value (256, correct only for older systems without ODS-5 support),
- * rather than one based on the real RMS NAM[L] situation.  So, we
- * artificially undefine it here, to allow our better-defined _MAX_PATH
- * (see vms/vmscfg.h) to be used.
- */
-
 #ifndef PATH_MAX
 #ifdef MAXPATHLEN
 #define PATH_MAX MAXPATHLEN /* in <sys/param.h> on some systems */
@@ -649,11 +630,6 @@ typedef struct min_info {
     unsigned GPFIsUTF8 : 1; /* crec gen_purpose_flag UTF-8 bit 11 is set */
     char *cfilname;         /* central header version of filename */
 } min_info;
-
-typedef struct VMStimbuf {
-    char *revdate; /* (both roughly correspond to Unix modtime/st_mtime) */
-    char *credate;
-} VMStimbuf;
 
 /*---------------------------------------------------------------------------
     Zipfile work area declarations.
@@ -1339,11 +1315,6 @@ extern const char CompiledWith[];
 /*  Global (shared?) RTL variables */
 /***********************************/
 
-/*---------------------------------------------------------------------
-    Unicode Support
-    28 August 2005
-  ---------------------------------------------------------------------*/
-
 /* Default character when a zwchar too big for wchar_t */
 #define zwchar_to_wchar_t_default_char '_'
 
@@ -1366,8 +1337,5 @@ char *wide_to_local_string(const zwchar *wide_string, int escape_all);
 
 /* convert wide character to escape string */
 char *wide_to_escape_string(unsigned long);
-
-#define utf8_to_escaped_string(utf8_string) \
-    utf8_to_local_string(utf8_string, TRUE)
 
 #endif /* !__unzpriv_h */

@@ -38,8 +38,6 @@
 #define GTTY(f, s) tcgetattr(f, (void *) s)
 #define STTY(f, s) tcsetattr(f, TCSAFLUSH, (void *) s)
 
-/* For VM/CMS and MVS, non-echo terminal input is not (yet?) supported. */
-
 /*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.
  */

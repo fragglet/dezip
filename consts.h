@@ -11,7 +11,7 @@
   consts.h
 
   This file contains global, initialized variables that never change.  It is
-  included by unzip.c and windll/windll.c.
+  included by unzip.c.
 
   ---------------------------------------------------------------------------*/
 
@@ -34,5 +34,3 @@ const char ExclFilenameNotMatched[] =
 const char ReportMsg[] = "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode and that you have compiled UnZip properly)\n";
-
-const char CompiledWith[] = "Compiled with %s%s for %s%s%s%s.\n\n";

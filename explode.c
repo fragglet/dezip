@@ -111,7 +111,7 @@
    module.
  */
 
-#include "unzip.h"  /* must supply slide[] (uch) array and NEXTBYTE macro */
+#include "unzip.h" /* must supply slide[] (uch) array and NEXTBYTE macro */
 
 #ifndef WSIZE
 #define WSIZE 0x8000 /* window size--must be a power of two, and */
@@ -529,4 +529,3 @@ int explode()
     Trace((stderr, "<%u > ", G.hufts));
     return (int) r;
 }
-
