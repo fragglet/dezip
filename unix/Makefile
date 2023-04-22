@@ -94,7 +94,7 @@ CFLAGS_BZ = $(CFLAGS)
 # object files
 OBJS1 = unzip$O crc32$O $(CRCA_O) crypt$O envargs$O explode$O
 OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
-OBJS3 = process$O ttyio$O ubz2err$O unreduce$O unshrink$O
+OBJS3 = process$O ttyio$O ubz2err$O unshrink$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS:.o=.pic.o) api.pic.o
@@ -272,13 +272,12 @@ explode$O:	explode.c $(UNZIP_H)
 extract$O:	extract.c $(UNZIP_H) crc32.h crypt.h
 fileio$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
 globals$O:	globals.c $(UNZIP_H)
-inflate$O:	inflate.c inflate.h $(UNZIP_H)
+inflate$O:	inflate.c $(UNZIP_H)
 list$O:		list.c $(UNZIP_H)
 match$O:	match.c $(UNZIP_H)
 process$O:	process.c $(UNZIP_H) crc32.h
 ttyio$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
 ubz2err$O:	ubz2err.c $(UNZIP_H)
-unreduce$O:	unreduce.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
 unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
 

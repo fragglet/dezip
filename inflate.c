@@ -241,33 +241,11 @@
       Deflate and Deflate64 modes.
  */
 
-#define PKZIP_BUG_WORKAROUND /* PKZIP 1.93a problem--live with it */
-
-/*
-    inflate.h must supply the uch slide[WSIZE] array, the void typedef
-    (void if (void *) is accepted, else char) and the NEXTBYTE,
-    FLUSH() and memzero macros.  If the window size is not 32K, it
-    should also define WSIZE.  If INFMOD is defined, it can include
-    compiled functions to support the NEXTBYTE and/or FLUSH() macros.
-    There are defaults for NEXTBYTE and FLUSH() below for use as
-    examples of what those functions need to do.  Normally, you would
-    also want FLUSH() to compute a crc on the data.  inflate.h also
-    needs to provide these typedefs:
-
-        typedef unsigned char uch;
-        typedef unsigned short ush;
-        typedef unsigned long ulg;
-
-    This module uses the external functions malloc() and free() (and
-    probably memset() or bzero() in the memzero() macro).  Their
-    prototypes are normally found in <string.h> and <stdlib.h>.
- */
-
 #define __INFLATE_C /* identifies this source module */
 
+#include "unzip.h"
+
 /* #define DEBUG */
-#define INFMOD /* tell inflate.h to include code to be compiled */
-#include "inflate.h"
 
 /* marker for "unused" huft code, and corresponding check macro */
 #define INVALID_CODE       99
