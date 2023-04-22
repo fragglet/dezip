@@ -962,8 +962,6 @@ void bz_internal_error(int bzerrcode); /* ubz2err.c */
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
 
-Uz_Globs *globalsCtor(void); /* globals.c */
-
 int envargs OF((int *Pargc, char ***Pargv, const char *envstr,
                 const char *envstr2));
 /* envargs.c */

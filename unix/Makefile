@@ -93,15 +93,15 @@ CFLAGS_BZ = $(CFLAGS)
 
 # object files
 OBJS1 = unzip$O crc32$O $(CRCA_O) crypt$O envargs$O explode$O
-OBJS2 = extract$O fileio$O globals$O inflate$O list$O match$O
+OBJS2 = extract$O fileio$O inflate$O list$O match$O
 OBJS3 = process$O ttyio$O ubz2err$O unshrink$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS:.o=.pic.o) api.pic.o
 OBJX = crc32_$O $(CRCA_O) crypt_$O extract_$O fileio_$O \
-	globals_$O inflate_$O match_$O process_$O ttyio_$O ubz2err_$O $M_$O
+	inflate_$O match_$O process_$O ttyio_$O ubz2err_$O $M_$O
 LOBJX = $(OBJX)
-OBJF = crc32$O $(CRCA_O) cryptf$O globalsf$O inflatef$O ttyiof$O
+OBJF = crc32$O $(CRCA_O) cryptf$O inflatef$O ttyiof$O
 #OBJS_OS2 = $(OBJS1:.o=.obj) $(OBJS2:.o=.obj) os2.obj
 #OBJF_OS2 = $(OBJF:.o=.obj)
 UNZIP_H = unzip.h unzpriv.h globals.h $(OSDEP_H) $(ACONF_DEP)
@@ -271,7 +271,6 @@ envargs$O:	envargs.c $(UNZIP_H)
 explode$O:	explode.c $(UNZIP_H)
 extract$O:	extract.c $(UNZIP_H) crc32.h crypt.h
 fileio$O:	fileio.c $(UNZIP_H) crc32.h crypt.h ttyio.h ebcdic.h
-globals$O:	globals.c $(UNZIP_H)
 inflate$O:	inflate.c $(UNZIP_H)
 list$O:		list.c $(UNZIP_H)
 match$O:	match.c $(UNZIP_H)
@@ -315,7 +314,7 @@ clean:
 	@echo ""
 	-( cd $(IZ_OUR_BZIP2_DIR); $(MAKE) -f Makebz2.iz RM="rm -f" clean )
 	rm -f $(UNZIPS) $(OBJS) $(OBJF) $(OBJX) api$O apihelp$O crc_gcc$O \
-	  crc_sysv$O unzipstb$O crypt_.c extract_.c globals_.c inflate_.c \
+	  crc_sysv$O unzipstb$O crypt_.c extract_.c inflate_.c \
 	  ttyio_.c crc_i386s.s msdos_.c process_.c unix_.c unzipsfx.c
 	rm -f flags
 	rm -rf ./$(PKGDIR)

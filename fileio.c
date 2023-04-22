@@ -338,7 +338,6 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
             (*G.message)((void *) &G, (uch *) LoadFarString(ReadError),
                          (ulg) strlen(LoadFarString(ReadError)), 0x401);
             echon();
-            DESTROYGLOBALS();
             exit(PK_BADERR); /* totally bailing; better than lock-up */
         }
         G.cur_zipfile_bufstart += INBUFSIZ; /* always starts on block bndry */
@@ -705,7 +704,6 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
     fflush(stderr);
 
     if ((ToLower(c) == 'q')) {
-        DESTROYGLOBALS();
         exit(PK_COOL);
     }
 
@@ -778,8 +776,6 @@ const char *efn;               /* name of archive entry being processed */
 void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
     int signal;
 {
-    GETGLOBALS();
-
 #if !(defined(SIGBUS) || defined(SIGSEGV))      /* add a newline if not at */
     (*G.message)((void *) &G, slide, 0L, 0x41); /*  start of line (to stderr; */
 #endif                                          /*  slide[] should be safe) */
@@ -790,7 +786,6 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
     if (signal == SIGBUS) {
         Info(slide, 0x421,
              ((char *) slide, LoadFarString(ZipfileCorrupt), "bus error"));
-        DESTROYGLOBALS();
         exit(PK_BADERR);
     }
 #endif /* SIGBUS */
@@ -800,7 +795,6 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
         Info(slide, 0x421,
              ((char *) slide, LoadFarString(ZipfileCorrupt),
               "illegal instruction"));
-        DESTROYGLOBALS();
         exit(PK_BADERR);
     }
 #endif /* SIGILL */
@@ -810,13 +804,11 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
         Info(slide, 0x421,
              ((char *) slide, LoadFarString(ZipfileCorrupt),
               "segmentation violation"));
-        DESTROYGLOBALS();
         exit(PK_BADERR);
     }
 #endif /* SIGSEGV */
 
     /* probably ctrl-C */
-    DESTROYGLOBALS();
     exit(IZ_CTRLC); /* was EXIT(0), then EXIT(PK_ERR) */
 }
 

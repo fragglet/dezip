@@ -150,6 +150,40 @@ See \"unzip -hh\" or unzip.txt for more help.  Examples:\n\
 %s\
   unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
 
+/* initialization of sigs is completed at runtime so unzip(sfx) executable
+ * won't look like a zipfile
+ */
+char central_hdr_sig[4] = {0, 0, 0x01, 0x02};
+char local_hdr_sig[4] = {0, 0, 0x03, 0x04};
+char end_central_sig[4] = {0, 0, 0x05, 0x06};
+char end_central64_sig[4] = {0, 0, 0x06, 0x06};
+char end_centloc64_sig[4] = {0, 0, 0x06, 0x07};
+
+static const char *default_fnames[2] = {"*", NULL}; /* default filenames vector */
+
+Uz_Globs G;
+
+static void init_globals()
+{
+    /* for REENTRANT version, G is defined as (*pG) */
+
+    memzero(&G, sizeof(Uz_Globs));
+
+    uO.lflag = (-1);
+    G.wildzipfn = "";
+    G.pfnames = (char **) default_fnames;
+    G.pxnames = (char **) &default_fnames[1];
+    G.pInfo = G.info;
+    G.sol = TRUE; /* at start of line */
+
+    G.message = UzpMessagePrnt;
+    G.input = UzpInput; /* not used by anyone at the moment... */
+    G.mpause = UzpMorePause;
+    G.decr_passwd = UzpPassword;
+
+    G.echofd = -1;
+}
+
 /*****************************/
 /*  main() / UzpMain() stub  */
 /*****************************/
@@ -158,12 +192,8 @@ int main(argc, argv) /* return PK-type error code (except under VMS) */
 int argc;
 char *argv[];
 {
-    int r;
-
-    CONSTRUCTGLOBALS();
-    r = unzip(argc, argv);
-    DESTROYGLOBALS();
-    return (r);
+    init_globals();
+    return unzip(argc, argv);
 }
 
 /*******************************/
@@ -426,7 +456,7 @@ char *argv[];
                             argc - (G.pfnames - argv); /* for now... */
                     } else {
                         G.process_all_files = TRUE;
-                        G.pfnames = (char **) fnames; /* GRR: necessary? */
+                        G.pfnames = (char **) default_fnames; /* GRR: necessary? */
                         G.filespecs = 0;              /* GRR: necessary? */
                         break;
                     }
@@ -435,7 +465,7 @@ char *argv[];
                 if (strcmp(*pp, "-x") == 0) {
                     in_xfiles = TRUE;
                     if (pp == G.pfnames) {
-                        G.pfnames = (char **) fnames; /* defaults */
+                        G.pfnames = (char **) default_fnames; /* defaults */
                         G.filespecs = 0;
                     } else if (in_files) {
                         *pp = 0;                      /* terminate G.pfnames */

@@ -18,23 +18,6 @@
   Unix) to call UnZip through an API without a semaphore.  REENTRANT should
   be defined for all platforms that require this.
 
-  GLOBAL CONSTRUCTOR AND DESTRUCTOR (API WRITERS READ THIS!!!)
-  ------------------------------------------------------------
-
-  No, it's not C++, but it's as close as we can get with K&R.
-
-  The main() of each process that uses these globals must include the
-  CONSTRUCTGLOBALS; statement.  This will malloc enough memory for the
-  structure and initialize any variables that require it.  This must
-  also be done by any API function that jumps into the middle of the
-  code.
-
-  The DESTROYGLOBALS(); statement should be inserted before EVERY "exit(n)".
-  Naturally, it also needs to be put before any API returns as well.
-  In fact, it's much more important in API functions since the process
-  will NOT end, and therefore the memory WON'T automatically be freed
-  by the operating system.
-
   USING VARIABLES FROM THE STRUCTURE
   ----------------------------------
 
@@ -110,23 +93,12 @@ void, , , and.  A function that needs no other
   This whole pointer passing scheme falls apart when it comes to SIGNALs.
   I handle this situation 2 ways right now.  If you define USETHREADID,
   UnZip will include a 64-entry table.  Each entry can hold a global
-  pointer and thread ID for one thread.  This should allow up to 64
-  threads to access UnZip simultaneously.  Calling DESTROYGLOBALS()
-  will free the global struct and zero the table entry.  If somebody
-  forgets to call DESTROYGLOBALS(), this table will eventually fill up
-  and UnZip will exit with an error message.  A good way to test your
-  code to make sure you didn't forget a DESTROYGLOBALS() is to change
-  THREADID_ENTRIES to 3 or 4 in globals.c, making the table real small.
-  Then make a small test program that calls your API a dozen times.
+  pointer and thread ID for one thread.
 
   Those platforms that don't have threads still need to be able to compile
   with REENTRANT defined to test and see if new code is correctly written
   to work either way.  For these platforms, I simply keep a global pointer
   called GG that points to the Globals structure.  Good enough for testing.
-
-  I believe that NT has thread level storage.  This could probably be used
-  to store a global pointer for the sake of the signal handler more cleanly
-  than my table approach.
 
   ---------------------------------------------------------------------------*/
 
@@ -276,8 +248,6 @@ typedef struct Globals {
 
 #define CRC_32_TAB G.crc_32_tab
 
-Uz_Globs *globalsCtor(void);
-
 /* pseudo constant sigs; they are initialized at runtime so unzip executable
  * won't look like a zipfile
  */
@@ -290,9 +260,6 @@ extern char end_centloc64_sig[4];
 /* extern char extd_local_sig[4];  NOT USED YET */
 
 extern Uz_Globs G;
-#define GETGLOBALS()
-#define CONSTRUCTGLOBALS() globalsCtor()
-#define DESTROYGLOBALS()
 
 #define uO G.UzO
 

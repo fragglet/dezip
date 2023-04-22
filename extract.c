@@ -2326,7 +2326,6 @@ int UZbunzip2()
             goto uzbunzip_cleanup_exit;
         } else if (err != BZ_OK && err != BZ_STREAM_END) {
             Trace((stderr, "oops!  (bzip(final loop) err = %d)\n", err));
-            DESTROYGLOBALS();
             exit(PK_MEM3);
         }
         /* final flush of slide[] */

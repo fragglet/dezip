@@ -36,11 +36,8 @@
  */
 void bz_internal_error(bzerrcode) int bzerrcode;
 {
-    GETGLOBALS();
-
     Info(slide, 0x421,
          ((char *) slide, "error: internal fatal libbzip2 error number %d\n",
           bzerrcode));
-    DESTROYGLOBALS();
     exit(PK_BADERR);
 } /* end function bz_internal_error() */
