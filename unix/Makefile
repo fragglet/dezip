@@ -265,8 +265,8 @@ $(IZ_OUR_BZIP2_DIR)/libbz2.a:
 	 CFLAGS="$(CFLAGS_BZ)" RM="rm -f" )
 
 
-crc32$O:	crc32.c $(UNZIP_H) zip.h crc32.h
-crypt$O:	crypt.c $(UNZIP_H) zip.h crypt.h crc32.h ttyio.h
+crc32$O:	crc32.c $(UNZIP_H) crc32.h
+crypt$O:	crypt.c $(UNZIP_H) crypt.h crc32.h ttyio.h
 envargs$O:	envargs.c $(UNZIP_H)
 explode$O:	explode.c $(UNZIP_H)
 extract$O:	extract.c $(UNZIP_H) crc32.h crypt.h
@@ -276,7 +276,7 @@ inflate$O:	inflate.c $(UNZIP_H)
 list$O:		list.c $(UNZIP_H)
 match$O:	match.c $(UNZIP_H)
 process$O:	process.c $(UNZIP_H) crc32.h
-ttyio$O:	ttyio.c $(UNZIP_H) zip.h crypt.h ttyio.h
+ttyio$O:	ttyio.c $(UNZIP_H) crypt.h ttyio.h
 ubz2err$O:	ubz2err.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
 unzip$O:	unzip.c $(UNZIP_H) crypt.h unzvers.h consts.h
