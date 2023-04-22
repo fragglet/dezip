@@ -94,8 +94,6 @@ static const char OnlyOneExdir[] =
 static const char MustGivePasswd[] =
     "error:  must give decryption password with -P option\n";
 
-static const char Zfirst[] = "error:  -Z must be first option for ZipInfo "
-                             "mode (check UNZIP variable?)\n";
 static const char InvalidOptionsMsg[] = "error:\
   -fn or any combination of -c, -l, -p, -t, -u and -v options invalid\n";
 static const char IgnoreOOptionMsg[] =

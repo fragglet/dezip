@@ -2244,7 +2244,6 @@ int UZbunzip2()
 {
     int retval = 0; /* return code: 0 = "no error" */
     int err = BZ_OK;
-    int repeated_buf_err;
     bz_stream bstrm;
 
     if (G.incnt <= 0 && G.csize <= 0L) {
@@ -2317,7 +2316,6 @@ int UZbunzip2()
 
     /* no more input, so loop until we have all output */
     Trace((stderr, "beginning final loop:  err = %d\n", err));
-    repeated_buf_err = FALSE;
     while (err != BZ_STREAM_END) {
         err = BZ2_bzDecompress(&bstrm);
         if (err == BZ_DATA_ERROR) {

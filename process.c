@@ -1721,7 +1721,6 @@ int escape_all;
     int i;
     wchar_t wc;
     int b;
-    int state_dependent;
     int wsize = 0;
     int max_bytes = MB_CUR_MAX;
     char buf[MB_CUR_MAX + 1]; /* ("+1" not really needed?) */
@@ -1743,15 +1742,10 @@ int escape_all;
     buffer[0] = '\0';
     /* set initial state if state-dependent encoding */
     wc = (wchar_t) 'a';
-    b = wctomb(NULL, wc);
-    if (b == 0)
-        state_dependent = 0;
-    else
-        state_dependent = 1;
     for (i = 0; i < wsize; i++) {
         if (sizeof(wchar_t) < 4 && wide_string[i] > 0xFFFF) {
             /* wchar_t probably 2 bytes */
-            /* could do surrogates if state_dependent and wctomb can do */
+            /* could do surrogates if wctomb can do */
             wc = zwchar_to_wchar_t_default_char;
         } else {
             wc = (wchar_t) wide_string[i];
