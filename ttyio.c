@@ -99,15 +99,6 @@ int f; /* file descriptor from which to read */
 }
 
 /*
- * Simple compile-time check for source compatibility between
- * zcrypt and ttyio:
- */
-#if (!defined(CR_MAJORVER) || (CR_MAJORVER < 2) || (CR_MINORVER < 7))
-error : This Info - ZIP tool requires zcrypt 2.7 or
-    later.
-#endif
-
-/*
  * Get a password of length n-1 or less into *p using the prompt *m.
  * The entered password is not echoed.
  */

@@ -18,26 +18,7 @@
 #ifndef __crypt_h /* don't include more than once */
 #define __crypt_h
 
-#undef CRYPT
-#define CRYPT 1 /* full version */
-
-/* full version */
-
-#define CR_MAJORVER     2
-#define CR_MINORVER     11
-#define CR_BETA_VER     ""
-#define CR_VERSION_DATE "05 Jan 2007" /* last public release date */
-#define CR_RELEASE
-
-/* To allow combining of Zip and UnZip static libraries in a single binary,
- * the Zip and UnZip versions of the crypt core functions have to be named
- * differently.
- */
-
 #define IZ_PWLEN 80 /* input buffer size for reading encryption key */
-#ifndef PWLEN       /* for compatibility with previous zcrypt release... */
-#define PWLEN IZ_PWLEN
-#endif
 #define RAND_HEAD_LEN 12 /* length of encryption random header */
 
 /* the crc_32_tab array has to be provided externally for the crypt calculus */
