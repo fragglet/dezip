@@ -55,12 +55,10 @@
 
   ---------------------------------------------------------------------------*/
 
+#include <langinfo.h>
+
 #include "unzip.h" /* includes, typedefs, macros, prototypes, etc. */
 #include "crypt.h"
-
-/***************************/
-/* Local type declarations */
-/***************************/
 
 /*******************/
 /* Local Functions */
@@ -214,7 +212,6 @@ char *argv[];
     {
         char *codeset;
         /* get the codeset (character set encoding) currently used */
-#include <langinfo.h>
 
         codeset = nl_langinfo(CODESET);
         /* is the current codeset UTF-8 ? */
