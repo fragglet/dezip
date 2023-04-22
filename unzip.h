@@ -139,40 +139,6 @@ typedef int(PasswdFn)(void *pG, int *rcnt, char *pwbuf, int size,
                       const char *zfn, const char *efn);
 typedef int(StatCBFn)(void *pG, int fnflag, const char *zfn, const char *efn,
                       const void *details);
-typedef void(UsrIniFn)(void);
-
-typedef struct _UzpBuffer { /* rxstr */
-    ulg strlength;          /* length of string */
-    char *strptr;           /* pointer to string */
-} UzpBuffer;
-
-typedef struct _UzpInit {
-    ulg structlen; /* length of the struct being passed */
-
-    /* GRR: can we assume that each of these is a 32-bit pointer?  if not,
-     * does it matter? add "far" keyword to make sure? */
-    MsgFn *msgfn;
-    InputFn *inputfn;
-    PauseFn *pausefn;
-    UsrIniFn *userfn; /* user init function to be called after */
-                      /*  globals constructed and initialized */
-
-    /* pointer to program's environment area or something? */
-    /* hooks for performance testing? */
-    /* hooks for extra unzip -v output? (detect CPU or other hardware?) */
-    /* anything else?  let me (Greg) know... */
-} UzpInit;
-
-typedef struct _UzpCB {
-    ulg structlen; /* length of the struct being passed */
-    /* GRR: can we assume that each of these is a 32-bit pointer?  if not,
-     * does it matter? add "far" keyword to make sure? */
-    MsgFn *msgfn;
-    InputFn *inputfn;
-    PauseFn *pausefn;
-    PasswdFn *passwdfn;
-    StatCBFn *statrepfn;
-} UzpCB;
 
 /* the collection of general UnZip option flags and option arguments */
 typedef struct _UzpOpts {
@@ -203,67 +169,6 @@ typedef struct _UzpOpts {
     int ddotflag;       /* -:: don't skip over "../" path elements */
     int cflxflag;       /* -^: allow control chars in extracted filenames */
 } UzpOpts;
-
-/* intended to be a private struct: */
-typedef struct _ver {
-    uch major;      /* e.g., integer 5 */
-    uch minor;      /* e.g., 2 */
-    uch patchlevel; /* e.g., 0 */
-    uch not_used;
-} _version_type;
-
-typedef struct _UzpVer {
-    ulg structlen;            /* length of the struct being passed */
-    ulg flag;                 /* bit 0: is_beta   bit 1: uses_zlib */
-    const char *betalevel;    /* e.g. "g BETA" or "" */
-    const char *date;         /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
-    const char *zlib_version; /* e.g. "1.2.3" or NULL */
-    _version_type unzip;      /* current UnZip version */
-    _version_type os2dll;     /* OS2DLL version (retained for compatibility */
-    _version_type windll;     /* WinDLL version (retained for compatibility */
-    _version_type dllapimin;  /* last incompatible change of library API */
-} UzpVer;
-
-/* for Visual BASIC access to Windows DLLs: */
-typedef struct _UzpVer2 {
-    ulg structlen;           /* length of the struct being passed */
-    ulg flag;                /* bit 0: is_beta   bit 1: uses_zlib */
-    char betalevel[10];      /* e.g. "g BETA" or "" */
-    char date[20];           /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
-    char zlib_version[10];   /* e.g. "1.2.3" or NULL */
-    _version_type unzip;     /* current UnZip version */
-    _version_type zipinfo;   /* current ZipInfo version */
-    _version_type os2dll;    /* OS2DLL version (retained for compatibility */
-    _version_type windll;    /* WinDLL version (retained for compatibility */
-    _version_type dllapimin; /* last incompatible change of library API */
-} UzpVer2;
-
-typedef struct _Uzp_Siz64 {
-    unsigned long lo32;
-    unsigned long hi32;
-} Uzp_Siz64;
-
-typedef struct _Uzp_cdir_Rec {
-    uch version_made_by[2];
-    uch version_needed_to_extract[2];
-    ush general_purpose_bit_flag;
-    ush compression_method;
-    ulg last_mod_dos_datetime;
-    ulg crc32;
-    Uzp_Siz64 csize;
-    Uzp_Siz64 ucsize;
-    ush filename_length;
-    ush extra_field_length;
-    ush file_comment_length;
-    ush disk_number_start;
-    ush internal_file_attributes;
-    ulg external_file_attributes;
-    Uzp_Siz64 relative_offset_local_header;
-} Uzp_cdir_Rec;
-
-#define UZPINIT_LEN  sizeof(UzpInit)
-#define UZPVER_LEN   sizeof(UzpVer)
-#define cbList(func) int (*func)(char *filename, Uzp_cdir_Rec *crec)
 
 /*---------------------------------------------------------------------------
     Return (and exit) values of the public UnZip API functions.
@@ -310,20 +215,6 @@ typedef struct _Uzp_cdir_Rec {
 /*---------------------------------------------------------------------------
     Prototypes for public UnZip API (DLL) functions.
   ---------------------------------------------------------------------------*/
-
-#define UzpMatch match
-
-int UzpMain(int argc, char **argv);
-int UzpAltMain(int argc, char **argv, UzpInit *init);
-const UzpVer *UzpVersion(void);
-void UzpFreeMemBuffer(UzpBuffer *retstr);
-int UzpUnzipToMemory OF((char *zip, char *file, UzpOpts *optflgs,
-                         UzpCB *UsrFunc, UzpBuffer *retstr));
-int UzpGrep OF((char *archive, char *file, char *pattern, int cmd, int SkipBin,
-                UzpCB *UsrFunc));
-
-unsigned UzpVersion2(UzpVer2 *version);
-int UzpValidate(char *archive, int AllCodes);
 
 /* default I/O functions (can be swapped out via UzpAltMain() entry point): */
 
