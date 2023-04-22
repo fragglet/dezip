@@ -79,50 +79,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #define __unzip_h
 
 /*---------------------------------------------------------------------------
-    Predefined, machine-specific macros.
-  ---------------------------------------------------------------------------*/
-
-/* Borland C does not define __TURBOC__ if compiling for a 32-bit platform */
-
-/* define MSDOS for Turbo C (unless OS/2) and Power C as well as Microsoft C */
-
-/* RSXNTDJ (at least up to v1.3) compiles for WIN32 (RSXNT) using a derivate
-   of the EMX environment, but defines MSDOS and __GO32__. ARG !!! */
-
-/* use prototypes and ANSI libraries if __STDC__, or MS-DOS, or OS/2, or Win32,
- * or IBM C Set/2, or Borland C, or Watcom C, or GNU gcc (emx or Cygwin),
- * or Macintosh, or Sequent, or Atari, or IBM RS/6000, or Silicon Graphics,
- * or Convex?, or AtheOS, or BeOS.
- */
-/* Sequent running Dynix/ptx:  non-modern compiler */
-/* Bundled C compiler on HP-UX needs this.  Others shouldn't care. */
-
-/* turn off prototypes if requested */
-
-/* used to remove arguments in function prototypes for non-ANSI C */
-#define OF(a) a
-
-/* Tell Microsoft Visual C++ 2005 (and newer) to leave us alone
- * and let us use standard C functions the way we're supposed to.
- * (These preprocessor symbols must appear before the first system
- *  header include. They are located here, because for WINDLL the
- *  first system header includes follow just below.)
- */
-
-/* NO_UNIXBACKUP overrides UNIXBACKUP */
-
-/*---------------------------------------------------------------------------
-    Grab system-specific public include headers.
-  ---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------
-    Grab system-dependent definition of EXPENTRY for prototypes below.
-  ---------------------------------------------------------------------------*/
-
-#if 0
-#endif /* 0 */
-
-/*---------------------------------------------------------------------------
     Public typedefs.
   ---------------------------------------------------------------------------*/
 
@@ -222,8 +178,8 @@ int UzpMessagePrnt(void *pG, uch *buf, ulg size, int flag);
 int UzpMessageNull(void *pG, uch *buf, ulg size, int flag);
 int UzpInput(void *pG, uch *buf, int *size, int flag);
 void UzpMorePause(void *pG, const char *prompt, int flag);
-int UzpPassword OF((void *pG, int *rcnt, char *pwbuf, int size, const char *zfn,
-                    const char *efn));
+int UzpPassword(void *pG, int *rcnt, char *pwbuf, int size, const char *zfn,
+                const char *efn);
 
 /*---------------------------------------------------------------------------
     Remaining private stuff for UnZip compilation.

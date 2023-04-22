@@ -290,11 +290,7 @@
 /*---------------------------------------------------------------------------*/
 
 /* Function prototypes */
-#ifndef OF
-#define OF(a) a
-#endif /* !OF */
-int inflate_codes OF((struct huft * tl, struct huft *td, unsigned bl,
-                      unsigned bd));
+int inflate_codes(struct huft *tl, struct huft *td, unsigned bl, unsigned bd);
 static int inflate_stored(void);
 static int inflate_fixed(void);
 static int inflate_dynamic(void);

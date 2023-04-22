@@ -974,7 +974,8 @@ static void help_extended()
         "         marker, and from or to EBCDIC character set as needed.",
         "  -b   Treat all files as binary.",
         "files.",
-        "  -B   Save a backup copy of each overwritten file in foo~ or foo~99999 format.",
+        "  -B   Save a backup copy of each overwritten file in foo~ or "
+        "foo~99999 format.",
         "  -C   Use case-insensitive matching.",
         "  -D   Skip restoration of timestamps for extracted directories.",
         "  -DD  Skip restoration of timestamps for all entries.",

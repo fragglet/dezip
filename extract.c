@@ -77,16 +77,16 @@
     }
 
 static int store_info(void);
-static int extract_or_test_entrylist
-    OF((unsigned numchunk, ulg *pfilnum, ulg *pnum_bad_pwd,
-        zoff_t *pold_extra_bytes, unsigned *pnum_dirs, direntry **pdirlist,
-        int error_in_archive));
+static int extract_or_test_entrylist(unsigned numchunk, ulg *pfilnum,
+                                     ulg *pnum_bad_pwd,
+                                     zoff_t *pold_extra_bytes,
+                                     unsigned *pnum_dirs, direntry **pdirlist,
+                                     int error_in_archive);
 static int extract_or_test_member(void);
 static int TestExtraField(uch *ef, unsigned ef_len);
-static int test_compr_eb OF((uch * eb, unsigned eb_size, unsigned compr_offset,
-                             int (*test_uc_ebdata)(uch *eb, unsigned eb_size,
-                                                   uch *eb_ucptr,
-                                                   ulg eb_ucsize)));
+static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
+                         int (*test_uc_ebdata)(uch *eb, unsigned eb_size,
+                                               uch *eb_ucptr, ulg eb_ucsize));
 static void set_deferred_symlink(slinkentry *slnk_entry);
 static int dircomp(const void *a, const void *b);
 

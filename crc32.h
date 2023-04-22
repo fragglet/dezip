@@ -13,10 +13,6 @@
 #ifndef __crc32_h
 #define __crc32_h /* identifies this source module */
 
-#ifndef OF
-#define OF(a) a
-#endif
-
 const ulg *get_crc_table(void);
 ulg crc32(ulg crc, const uch *buf, extent len);
 

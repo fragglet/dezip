@@ -38,8 +38,7 @@ static int find_ecrec64(zoff_t searchlen);
 static int find_ecrec(zoff_t searchlen);
 static int process_zip_cmmnt(void);
 static int get_cdir_ent(void);
-static int read_ux3_value OF((const uch *dbuf, unsigned uidgid_sz,
-                              ulg *p_uidgid));
+static int read_ux3_value(const uch *dbuf, unsigned uidgid_sz, ulg *p_uidgid);
 
 static const char CannotAllocateBuffers[] =
     "error:  cannot allocate unzip buffers\n";

@@ -255,13 +255,8 @@ char *plastchar(const char *ptr, extent len);
 /***********************************/
 /* This whole section lifted from Zip 3b tailor.h
 
- * Types are in OS dependent headers (eg, w32cfg.h)
- *
  * LARGE_FILE_SUPPORT and ZIP64_SUPPORT are automatically
  * set in OS dependent headers (for some ports) based on the port and compiler.
- *
- * Function prototypes are below as OF is defined earlier in this file
- * but after OS dependent header is included.
  *
  * E. Gordon 9/21/2003
  * Updated 1/28/2004
@@ -406,7 +401,7 @@ char *plastchar(const char *ptr, extent len);
 #define WAVPACKED   97
 #define PPMDED      98
 #define NUM_METHODS 17 /* number of known method IDs */
-/* don't forget to update list.c (list_files()) and extract.c 
+/* don't forget to update list.c (list_files()) and extract.c
  * appropriately if NUM_METHODS changes */
 
 /* (the PK-class error codes are public and have been moved into unzip.h) */
@@ -868,9 +863,8 @@ int process_cdir_file_hdr(void);
 int process_local_file_hdr(void);
 int getZip64Data(const uch *ef_buf, unsigned ef_len);
 int getUnicodeData(const uch *ef_buf, unsigned ef_len);
-unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
-                              ulg dos_mdatetime, iztimes *z_utim,
-                              ulg *z_uidgid));
+unsigned ef_scan_for_izux(const uch *ef_buf, unsigned ef_len, int ef_is_c,
+                          ulg dos_mdatetime, iztimes *z_utim, ulg *z_uidgid);
 
 /*---------------------------------------------------------------------------
     Functions in list.c (generic zipfile-listing routines):
@@ -910,8 +904,8 @@ char *str2iso(char *dst, const char *src);
 char *str2oem(char *dst, const char *src);
 #endif
 #ifdef NO_STRNICMP
-int zstrnicmp OF((register const char *s1, register const char *s2,
-                  register unsigned n));
+int zstrnicmp(register const char *s1, register const char *s2,
+              register unsigned n);
 #endif
 #ifdef NEED_UZMBCLEN
 extent uzmbclen(const unsigned char *ptr);
@@ -934,7 +928,7 @@ int extract_or_test_files(void);
 /* static int   test_OS2(uch *eb, unsigned eb_size); */
 /* static int   test_NT(uch *eb, unsigned eb_size); */
 unsigned find_compr_idx(unsigned compr_methodnum);
-int memextract OF((uch * tgt, ulg tgtsize, const uch *src, ulg srcsize));
+int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize);
 int memflush(const uch *rawbuf, ulg size);
 char *fnfilter(const char *raw, uch *space, extent size);
 
@@ -944,8 +938,8 @@ char *fnfilter(const char *raw, uch *space, extent size);
 
 int explode(void);             /* explode.c */
 int huft_free(struct huft *t); /* inflate.c */
-int huft_build OF((const unsigned *b, unsigned n, unsigned s, const ush *d,
-                   const uch *e, struct huft **t, unsigned *m));
+int huft_build(const unsigned *b, unsigned n, unsigned s, const ush *d,
+               const uch *e, struct huft **t, unsigned *m);
 int inflate(int is_defl64); /* inflate.c */
 int inflate_free(void);     /* inflate.c */
 int unshrink(void);         /* unshrink.c */
@@ -957,8 +951,7 @@ void bz_internal_error(int bzerrcode); /* ubz2err.c */
     Miscellaneous/shared functions:
   ---------------------------------------------------------------------------*/
 
-int envargs OF((int *Pargc, char ***Pargv, const char *envstr,
-                const char *envstr2));
+int envargs(int *Pargc, char ***Pargv, const char *envstr, const char *envstr2);
 /* envargs.c */
 void mksargs(int *argcp, char ***argvp); /* envargs.c */
 

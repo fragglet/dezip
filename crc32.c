@@ -115,8 +115,7 @@ static const ulg crc_table[CRC_TBLS * 256] = {
     0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
     0x2d02ef8dL};
 
-/* use "OF((void))" here to work around a Borland TC++ 1.0 problem */
-const ulg *get_crc_table OF((void) )
+const ulg *get_crc_table(void)
 {
     return crc_table;
 }
