@@ -150,9 +150,7 @@ See \"unzip -hh\" or unzip.txt for more help.  Examples:\n\
 %s\
   unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
 
-/* initialization of sigs is completed at runtime so unzip(sfx) executable
- * won't look like a zipfile
- */
+/* initialization of sigs is completed at runtime */
 char central_hdr_sig[4] = {0, 0, 0x01, 0x02};
 char local_hdr_sig[4] = {0, 0, 0x03, 0x04};
 char end_central_sig[4] = {0, 0, 0x05, 0x06};

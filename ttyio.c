@@ -29,8 +29,7 @@
 #include "crypt.h"
 
 /* Non-echo console/keyboard input is needed for (en/de)cryption's password
- * entry, and for UnZip(SFX)'s MORE and Pause features.
- * (The corresponding #endif is found at the end of this module.)
+ * entry.
  */
 
 #include "ttyio.h"

@@ -38,13 +38,6 @@
   others won't.  This will cause BIG problems. (Inexplicable crashes at
   strange times, car fires, etc.)  When in doubt, always include it!
 
-  Note also that UnZipSFX needs a few variables that UnZip doesn't.  However,
-  it also includes some object files from UnZip.  If we were to conditionally
-  include the extra variables that UnZipSFX needs, the object files from
-  UnZip would not mesh with the UnZipSFX object files.  Result: we just
-  include the UnZipSFX variables every time.  (It's only an extra 4 bytes
-  so who cares!)
-
   ADDING FUNCTIONS
   ----------------
 

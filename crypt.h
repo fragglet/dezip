@@ -25,17 +25,6 @@
 #define __crypt_h
 
 #undef CRYPT
-/*
-   Logic of selecting "full crypt" code:
-   a) default behaviour:
-      - dummy crypt code when compiling UnZipSFX stub, to minimize size
-      - full crypt code when used to compile Zip, UnZip and fUnZip
-   b) USE_CRYPT defined:
-      - always full crypt code
-   c) NO_CRYPT defined:
-      - never full crypt code
-   NO_CRYPT takes precedence over USE_CRYPT
- */
 #define CRYPT 1 /* full version */
 
 /* full version */

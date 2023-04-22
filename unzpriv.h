@@ -262,7 +262,6 @@ char *plastchar(const char *ptr, extent len);
  * Updated 1/28/2004
  * Lifted and placed here 6/7/2004 - Myles Bennett
  */
-/* No "64bit file vs. 32bit prog" check for SFX stub, to save space */
 
 #ifndef SSTAT
 #define SSTAT stat

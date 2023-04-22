@@ -2144,7 +2144,7 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
 } /* end function set_deferred_symlink() */
 
 /*************************/
-/*  Function fnfilter()  */ /* here instead of in list.c for SFX */
+/*  Function fnfilter()  */
 /*************************/
 
 char *fnfilter(raw, space, size) /* convert name to safely printable form */
