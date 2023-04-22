@@ -168,8 +168,7 @@ display only the archive comment.
 .B \-a
 convert text files. Ordinarily all files are extracted exactly as they are
 stored (as ``binary'' files). The \fB\-a\fP option causes files identified by
-\fIzip\fP as text files (those with the `t' label in \fIzipinfo\fP listings,
-rather than `b') to be automatically extracted as such, converting line
+\fIzip\fP as text files to be automatically extracted as such, converting line
 endings, end-of-file characters and the character set itself as necessary.
 (For example, Unix files use line feeds (LFs) for end-of-line (EOL) and have no
 end-of-file (EOF) marker; Macintoshes use carriage returns (CRs) for EOLs; and
@@ -494,7 +493,7 @@ create any files not already there (same caveat as previous example):
 unzip \-uo sources
 .EE
 .PP
-To display a diagnostic screen showing which \fIunzip\fP and \fIzipinfo\fP
+To display a diagnostic screen showing which \fIunzip\fP
 options are stored in environment variables, whether decryption support was
 compiled in, the compiler with which \fIunzip\fP was compiled, etc.:
 .PP

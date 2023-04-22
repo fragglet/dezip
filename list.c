@@ -10,7 +10,7 @@
 
   list.c
 
-  This file contains the non-ZipInfo-specific listing routines for UnZip.
+  This file contains the listing routines for UnZip.
 
   Contains:  list_files()
              get_time_stamp()   [optional feature]
@@ -493,7 +493,7 @@ ulg *nmember;
 } /* end function get_time_stamp() */
 
 /********************/
-/* Function ratio() */ /* also used by ZipInfo routines */
+/* Function ratio() */
 /********************/
 
 int ratio(uc, c)
@@ -516,7 +516,7 @@ zusz_t uc, c;
 }
 
 /************************/
-/*  Function fnprint()  */ /* also used by ZipInfo routines */
+/*  Function fnprint()  */
 /************************/
 
 void fnprint() /* print filename (after filtering) and newline */

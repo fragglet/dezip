@@ -387,7 +387,6 @@ char *plastchar(const char *ptr, extent len);
 #define MAC_OSX_  19 /* Mac OS/X (Darwin) */
 #define ATHEOS_   30 /* AtheOS */
 #define NUM_HOSTS 31 /* index of last system + 1 */
-/* don't forget to update zipinfo.c appropiately if NUM_HOSTS changes! */
 
 #define STORED      0 /* compression methods */
 #define SHRUNK      1
@@ -407,7 +406,7 @@ char *plastchar(const char *ptr, extent len);
 #define WAVPACKED   97
 #define PPMDED      98
 #define NUM_METHODS 17 /* number of known method IDs */
-/* don't forget to update list.c (list_files()), extract.c and zipinfo.c
+/* don't forget to update list.c (list_files()) and extract.c 
  * appropriately if NUM_METHODS changes */
 
 /* (the PK-class error codes are public and have been moved into unzip.h) */
@@ -872,10 +871,6 @@ int getUnicodeData(const uch *ef_buf, unsigned ef_len);
 unsigned ef_scan_for_izux OF((const uch *ef_buf, unsigned ef_len, int ef_is_c,
                               ulg dos_mdatetime, iztimes *z_utim,
                               ulg *z_uidgid));
-
-/*---------------------------------------------------------------------------
-    Functions in zipinfo.c (`zipinfo-style' listing routines):
-  ---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------
     Functions in list.c (generic zipfile-listing routines):

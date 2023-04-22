@@ -184,16 +184,15 @@ typedef struct _UzpOpts {
     int C_flag;         /* -C: match filenames case-insensitively */
     int D_flag;         /* -D: don't restore directory (-DD: any) timestamps */
     int fflag;          /* -f: "freshen" (extract only newer files) */
-    int hflag;          /* -h: header line (zipinfo) */
     int jflag;          /* -j: junk pathnames (unzip) */
     int K_flag;         /* -K: keep setuid/setgid/tacky permissions */
-    int lflag;          /* -12slmv: listing format (zipinfo) */
+    int lflag;          /* -12slmv: listing format */
     int L_flag;         /* -L: convert filenames from some OSes to lowercase */
     int overwrite_none; /* -n: never overwrite files (no prompting) */
     int overwrite_all;  /* -o: OK to overwrite files without prompting */
     int qflag;          /* -q: produce a lot less output */
-    int tflag;          /* -t: test (unzip) or totals line (zipinfo) */
-    int T_flag;         /* -T: timestamps (unzip) or dec. time fmt (zipinfo) */
+    int tflag;          /* -t: test (unzip) or totals line */
+    int T_flag;         /* -T: timestamps (unzip) or dec. time fmt */
     int uflag;          /* -u: "update" (extract only newer/brand-new files) */
     int U_flag;         /* -U: escape non-ASCII, -UU No Unicode paths */
     int vflag;          /* -v: (verbosely) list directory */
@@ -220,7 +219,6 @@ typedef struct _UzpVer {
     const char *date;         /* e.g. "9 Oct 08" (beta) or "9 October 2008" */
     const char *zlib_version; /* e.g. "1.2.3" or NULL */
     _version_type unzip;      /* current UnZip version */
-    _version_type zipinfo;    /* current ZipInfo version */
     _version_type os2dll;     /* OS2DLL version (retained for compatibility */
     _version_type windll;     /* WinDLL version (retained for compatibility */
     _version_type dllapimin;  /* last incompatible change of library API */

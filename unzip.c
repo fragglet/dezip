@@ -943,18 +943,11 @@ static void help_extended()
         "options.",
         "",
         "Basic zipinfo command line:",
-        "  zipinfo options archive[.zip] [file ...] [-x xfile ...]",
         "  unzip -Z options archive[.zip] [file ...] [-x xfile ...]",
-        "",
-        "Below, Mac OS refers to Mac OS before Mac OS X.  Mac OS X is a Unix "
-        "based",
-        "port and is referred to as Unix Apple.",
         "",
         "",
         "unzip options:",
-        "  -Z   Switch to zipinfo mode.  Must be first option.",
         "  -hh  Display extended help.",
-        "  -A   [OS/2, Unix DLL] Print extended help for DLL.",
         "  -c   Extract files to stdout/screen.  As -p but include names.  "
         "Also,",
         "         -a allowed and EBCDIC conversions done if needed.",
@@ -979,29 +972,14 @@ static void help_extended()
         "unzip modifiers:",
         "  -a   Convert text files to local OS format.  Convert line ends, EOF",
         "         marker, and from or to EBCDIC character set as needed.",
-        "  -b   Treat all files as binary.  [Tandem] Force filecode 180 ('C').",
-        "         [VMS] Autoconvert binary files.  -bb forces convert of all "
+        "  -b   Treat all files as binary.",
         "files.",
-        "  -B   [UNIXBACKUP compile option enabled] Save a backup copy of each",
-        "         overwritten file in foo~ or foo~99999 format.",
+        "  -B   Save a backup copy of each overwritten file in foo~ or foo~99999 format.",
         "  -C   Use case-insensitive matching.",
-        "  -D   Skip restoration of timestamps for extracted directories.  On "
-        "VMS this",
-        "         is on by default and -D essentially becames -DD.",
+        "  -D   Skip restoration of timestamps for extracted directories.",
         "  -DD  Skip restoration of timestamps for all entries.",
-        "  -E   [MacOS (not Unix Apple)]  Display contents of MacOS extra "
-        "field during",
-        "         restore.",
-        "  -F   [Acorn] Suppress removal of NFS filetype extension.  "
-        "[Non-Acorn if",
-        "         ACORN_FTYPE_NFS] Translate filetype and append to name.",
-        "  -i   [MacOS] Ignore filenames in MacOS extra field.  Instead, use "
-        "name in",
-        "         standard header.",
         "  -j   Junk paths and deposit all files in extraction directory.",
-        "  -J   [BeOS] Junk file attributes.  [MacOS] Ignore MacOS specific "
-        "info.",
-        "  -K   [AtheOS, BeOS, Unix] Restore SUID/SGID/Tacky file attributes.",
+        "  -K   Restore SUID/SGID/Tacky file attributes.",
         "  -L   Convert to lowercase any names from uppercase only file "
         "system.",
         "  -LL  Convert all files to lowercase.",
@@ -1018,8 +996,6 @@ static void help_extended()
         "         command line to other users.",
         "  -q   Perform operations quietly.  The more q (as in -qq) the "
         "quieter.",
-        "  -s   [OS/2, NT, MS-DOS] Convert spaces in filenames to underscores.",
-        "  -S   [VMS] Convert text files (-a, -aa) into Stream_LF format.",
         "  -U   [UNICODE enabled] Show non-local characters as #Uxxxx or "
         "#Lxxxxxx ASCII",
         "         text escapes where x is hex digit.  [Old] -U used to leave "
@@ -1030,8 +1006,7 @@ static void help_extended()
         "         paths stored as native local paths are still processed as "
         "Unicode.",
         "  -V   Retain VMS file version numbers.",
-        "  -W   [Only if WILD_STOP_AT_DIR] Modify pattern matching so ? and * "
-        "do not",
+        "  -W   Modify pattern matching so ? and * do not",
         "         match directory separator /, but ** does.  Allows matching "
         "at specific",
         "         directory levels.",
@@ -1042,32 +1017,15 @@ static void help_extended()
         "         versions of OS/2, or security ACLs under Windows NT.  Can "
         "require",
         "         user privileges.",
-        "  -XX  [NT] Extract NT security ACLs after trying to enable "
-        "additional",
-        "         system privileges.",
-        "  -Y   [VMS] Treat archived name endings of .nnn as VMS version "
-        "numbers.",
-        "  -$   [MS-DOS, OS/2, NT] Restore volume label if extraction medium "
-        "is",
-        "         removable.  -$$ allows fixed media (hard drives) to be "
-        "labeled.",
-        "  -/ e [Acorn] Use e as extension list.",
-        "  -:   [All but Acorn, VM/CMS, MVS, Tandem] Allow extract archive "
-        "members into",
+        "  -:   Allow extract archive members into",
         "         locations outside of current extraction root folder.  This "
         "allows",
         "         paths such as ../foo to be extracted above the current "
         "extraction",
         "         directory, which can be a security problem.",
-        "  -^   [Unix] Allow control characters in names of extracted entries. "
+        "  -^   Allow control characters in names of extracted entries. "
         " Usually",
         "         this is not a good thing and should be avoided.",
-        "  -2   [VMS] Force unconditional conversion of names to "
-        "ODS-compatible names.",
-        "         Default is to exploit destination file system, preserving "
-        "cases and",
-        "         extended name characters on ODS5 and applying ODS2 filtering "
-        "on ODS2.",
         "",
         "",
         "Wildcards:",
@@ -1124,88 +1082,6 @@ static void help_extended()
         "  digit.",
         "",
         "",
-        "zipinfo options (these are used in zipinfo mode (unzip -Z ...)):",
-        "  -1  List names only, one per line.  No headers/trailers.  Good for "
-        "scripts.",
-        "  -2  List names only as -1, but include headers, trailers, and "
-        "comments.",
-        "  -s  List archive entries in short Unix ls -l format.  Default list "
-        "format.",
-        "  -m  List in long Unix ls -l format.  As -s, but includes "
-        "compression %.",
-        "  -l  List in long Unix ls -l format.  As -m, but compression in "
-        "bytes.",
-        "  -v  List zipfile information in verbose, multi-page format.",
-        "  -h  List header line.  Includes archive name, actual size, total "
-        "files.",
-        "  -M  Pipe all output through internal pager similar to Unix more(1) "
-        "command.",
-        "  -t  List totals for files listed or for all files.  Includes "
-        "uncompressed",
-        "        and compressed sizes, and compression factors.",
-        "  -T  Print file dates and times in a sortable decimal format "
-        "(yymmdd.hhmmss)",
-        "        Default date and time format is a more human-readable "
-        "version.",
-        "  -U  [UNICODE] If entry has a UTF-8 Unicode path, display any "
-        "characters",
-        "        not in current character set as text #Uxxxx and #Lxxxxxx "
-        "escapes",
-        "        representing the Unicode character number of the character in "
-        "hex.",
-        "  -UU [UNICODE]  Disable use of any UTF-8 path information.",
-        "  -z  Include archive comment if any in listing.",
-        "",
-        "",
-        "funzip stream extractor:",
-        "  funzip extracts the first member in an archive to stdout.  "
-        "Typically",
-        "  used to unzip the first member of a stream or pipe.  If a file "
-        "argument",
-        "  is given, read from that file instead of stdin.",
-        "",
-        "funzip command line:",
-        "  funzip [-password] [input[.zip|.gz]]",
-        "",
-        "",
-        "unzipsfx self extractor:",
-        "  Self-extracting archives made with unzipsfx are no more (or less)",
-        "  portable across different operating systems than unzip executables.",
-        "  In general, a self-extracting archive made on a particular Unix "
-        "system,",
-        "  for example, will only self-extract under the same flavor of Unix.",
-        "  Regular unzip may still be used to extract embedded archive "
-        "however.",
-        "",
-        "unzipsfx command line:",
-        "  <unzipsfx+archive_filename>  [-options] [file(s) ... [-x xfile(s) "
-        "...]]",
-        "",
-        "unzipsfx options:",
-        "  -c, -p - Output to pipe.  (See above for unzip.)",
-        "  -f, -u - Freshen and Update, as for unzip.",
-        "  -t     - Test embedded archive.  (Can be used to list contents.)",
-        "  -z     - Print archive comment.  (See unzip above.)",
-        "",
-        "unzipsfx modifiers:",
-        "  Most unzip modifiers are supported.  These include",
-        "  -a     - Convert text files.",
-        "  -n     - Never overwrite.",
-        "  -o     - Overwrite without prompting.",
-        "  -q     - Quiet operation.",
-        "  -C     - Match names case-insensitively.",
-        "  -j     - Junk paths.",
-        "  -V     - Keep version numbers.",
-        "  -s     - Convert spaces to underscores.",
-        "  -$     - Restore volume label.",
-        "",
-        "If unzipsfx compiled with SFX_EXDIR defined, -d option also "
-        "available:",
-        "  -d exd - Extract to directory exd.",
-        "By default, all files extracted to current directory.  This option",
-        "forces extraction to specified directory.",
-        "",
-        "See unzipsfx manual page for more information.",
         ""};
 
     for (i = 0; i < sizeof(text) / sizeof(char *); i++) {

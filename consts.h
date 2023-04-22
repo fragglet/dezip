@@ -35,5 +35,4 @@ const char ReportMsg[] = "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode and that you have compiled UnZip properly)\n";
 
-const char Zipnfo[] = "zipinfo";
 const char CompiledWith[] = "Compiled with %s%s for %s%s%s%s.\n\n";
