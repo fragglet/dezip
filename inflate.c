@@ -241,8 +241,6 @@
       Deflate and Deflate64 modes.
  */
 
-#define __INFLATE_C /* identifies this source module */
-
 #include "unzip.h"
 
 /* #define DEBUG */

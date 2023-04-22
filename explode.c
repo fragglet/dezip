@@ -111,7 +111,6 @@
    module.
  */
 
-#define __EXPLODE_C /* identifies this source module */
 #include "unzip.h"  /* must supply slide[] (uch) array and NEXTBYTE macro */
 
 #ifndef WSIZE

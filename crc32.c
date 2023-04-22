@@ -18,8 +18,6 @@
 
 /* $Id: crc32.c,v 2.0 2007/01/07 05:20:36 spc Exp $ */
 
-#define __CRC32_C /* identifies this source module */
-
 #include "unzip.h"
 
 #include "crc32.h"

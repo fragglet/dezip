@@ -55,7 +55,6 @@
 
   ---------------------------------------------------------------------------*/
 
-#define __UNZIP_C  /* identifies this source module */
 #include "unzip.h" /* includes, typedefs, macros, prototypes, etc. */
 #include "crypt.h"
 

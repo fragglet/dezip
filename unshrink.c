@@ -64,7 +64,6 @@
 
   ---------------------------------------------------------------------------*/
 
-#define __UNSHRINK_C /* identifies this source module */
 #include "unzip.h"
 
 static void partial_clear(int lastcodeused);

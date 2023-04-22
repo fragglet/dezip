@@ -23,8 +23,6 @@
 
   ---------------------------------------------------------------------------*/
 
-#define __TTYIO_C /* identifies this source module */
-
 #include "unzip.h"
 #include "crypt.h"
 
