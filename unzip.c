@@ -105,14 +105,9 @@ static const char local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
 
 static const char UnzipUsageLine2[] = "\
-Usage: unzip %s[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
+Usage: unzip [-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
  Default action is to extract files in list, except those in xlist, to exdir;\n\
-  file[.zip] may be a wildcard.  %s\n";
-
-#define ZIPINFO_MODE_OPTION ""
-static const char ZipInfoMode[] = "(ZipInfo mode is disabled in this version.)";
-
-static const char UnzipUsageLine3[] = "\n\
+  file[.zip] may be a wildcard.\n\
   -p  extract files to pipe, no messages     -l  list files (short format)\n\
   -f  freshen existing files, create none    -t  test compressed archive data\n\
   -u  update files, create if necessary      -z  display archive comment only\n\
@@ -789,13 +784,8 @@ int error;
 {
     int flag = (error ? 1 : 0);
 
-    Info(slide, flag,
-         ((char *) slide, UnzipUsageLine2, ZIPINFO_MODE_OPTION, ZipInfoMode));
-
-    Info(slide, flag, ((char *) slide, UnzipUsageLine3, local1));
-
+    Info(slide, flag, ((char *) slide, UnzipUsageLine2, local1));
     Info(slide, flag, ((char *) slide, UnzipUsageLine4, local2, local3));
-
     Info(slide, flag,
          ((char *) slide, UnzipUsageLine5, Example2, Example3, Example3));
 

@@ -519,10 +519,8 @@ char *plastchar(const char *ptr, extent len);
 
 #ifndef ENV_UNZIP
 #define ENV_UNZIP   "UNZIP" /* the standard names */
-#define ENV_ZIPINFO "ZIPINFO"
 #endif
 #define ENV_UNZIP2   "UNZIPOPT" /* alternate names, for zip compat. */
-#define ENV_ZIPINFO2 "ZIPINFOOPT"
 
 #define QCOND (!uO.qflag) /*  comments with -vq or -vqq */
 
