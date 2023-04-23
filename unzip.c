@@ -173,7 +173,6 @@ static void init_globals()
     G.sol = TRUE; /* at start of line */
 
     G.message = UzpMessagePrnt;
-    G.input = UzpInput; /* not used by anyone at the moment... */
     G.mpause = UzpMorePause;
     G.decr_passwd = UzpPassword;
 

@@ -55,7 +55,6 @@ typedef struct Globals {
     ulg bitbuf;
     int bits_left; /* unreduce and unshrink only */
     int zipeof;
-    char *argv0; /* used for NT and EXE_EXTENSION */
     char *wildzipfn;
     char *zipfn; /* GRR:  WINDLL:  must nuke any malloc'd zipfn... */
     int zipfd;   /* zipfile file handle */
@@ -90,7 +89,6 @@ typedef struct Globals {
 
     FILE *outfile;
     uch *outbuf;
-    uch *realbuf;
 
     uch *outbuf2; /*  process_zipfiles() (never changes); */
     uch *outptr;
@@ -135,10 +133,8 @@ typedef struct Globals {
     int fzofft_index;
 
     MsgFn *message;
-    InputFn *input;
     PauseFn *mpause;
     PasswdFn *decr_passwd;
-    StatCBFn *statreportcb;
 
     int incnt_leftover; /* so improved NEXTBYTE does not waste input */
     uch *inptr_leftover;

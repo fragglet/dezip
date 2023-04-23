@@ -87,14 +87,10 @@ typedef unsigned short ush; /*  defs replace byte/UWORD/ULONG (which are */
 typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
 #define _IZ_TYPES_DEFINED
 
-/* InputFn is not yet used and is likely to change: */
 typedef int(MsgFn)(void *pG, uch *buf, ulg size, int flag);
-typedef int(InputFn)(void *pG, uch *buf, int *size, int flag);
 typedef void(PauseFn)(void *pG, const char *prompt, int flag);
 typedef int(PasswdFn)(void *pG, int *rcnt, char *pwbuf, int size,
                       const char *zfn, const char *efn);
-typedef int(StatCBFn)(void *pG, int fnflag, const char *zfn, const char *efn,
-                      const void *details);
 
 /* the collection of general UnZip option flags and option arguments */
 typedef struct _UzpOpts {

@@ -98,7 +98,6 @@ int unshrink()
     shrint code, oldcode, curcode;
     shrint lastfreecode;
     unsigned int outbufsiz;
-#define realbuf G.outbuf
 
     /*---------------------------------------------------------------------------
         Initialize various variables.
@@ -123,7 +122,7 @@ int unshrink()
         outbufsiz = RAWBUFSIZ;
     else
         outbufsiz = OUTBUFSIZ;
-    G.outptr = realbuf;
+    G.outptr = G.outbuf;
     G.outcnt = 0L;
 
     /*---------------------------------------------------------------------------
@@ -214,12 +213,12 @@ int unshrink()
                 OUTDBG(*p)
                 if (++G.outcnt == outbufsiz) {
                     Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
-                    if ((error = flush(realbuf, G.outcnt, TRUE)) != 0) {
+                    if ((error = flush(G.outbuf, G.outcnt, TRUE)) != 0) {
                         Trace(
                             (stderr, "unshrink:  flush() error (%d)\n", error));
                         return error;
                     }
-                    G.outptr = realbuf;
+                    G.outptr = G.outbuf;
                     G.outcnt = 0L;
                     Trace((stderr, "done with flush()\n"));
                 }
@@ -253,7 +252,7 @@ int unshrink()
 
     if (G.outcnt > 0L) {
         Trace((stderr, "doing final flush(), outcnt = %lu\n", G.outcnt));
-        if ((error = flush(realbuf, G.outcnt, TRUE)) != 0) {
+        if ((error = flush(G.outbuf, G.outcnt, TRUE)) != 0) {
             Trace((stderr, "unshrink:  flush() error (%d)\n", error));
             return error;
         }
