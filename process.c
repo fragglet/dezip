@@ -208,62 +208,48 @@ int process_zipfiles() /* return PK-type error code */
 
     if ((NumWinFiles + NumWarnFiles + NumLoseFiles) == 0 &&
         (NumMissDirs + NumMissFiles) == 1 && lastzipfn != (char *) NULL) {
-        {
-            /* 2004-11-24 SMS.
-             * VMS has already tried a default file type of ".zip" in
-             * do_wild(), so adding ZSUFX here only causes confusion by
-             * corrupting some valid (though nonexistent) file names.
-             * Complaining below about "fred;4.zip" is unlikely to be
-             * helpful to the victim.
-             */
-            /* 2005-08-14 Chr. Spieler
-             * Although we already "know" the failure result, we call
-             * do_seekable() again with the same zipfile name (and the
-             * lastchance flag set), just to trigger the error report...
-             */
-            char *p = strcpy(lastzipfn + strlen(lastzipfn), ZSUFX);
+        /* 2005-08-14 Chr. Spieler
+         * Although we already "know" the failure result, we call
+         * do_seekable() again with the same zipfile name (and the
+         * lastchance flag set), just to trigger the error report...
+         */
+        char *p = strcpy(lastzipfn + strlen(lastzipfn), ZSUFX);
 
-            G.zipfn = lastzipfn;
+        G.zipfn = lastzipfn;
 
-            NumMissDirs = NumMissFiles = 0;
-            error_in_archive = PK_COOL;
+        NumMissDirs = NumMissFiles = 0;
+        error_in_archive = PK_COOL;
 
-            /* only Unix has case-sensitive filesystems */
-            /* Well FlexOS (sometimes) also has them,  but support is per media
-             */
-            /* and a pig to code for,  so treat as case insensitive for now */
-            /* we do this under QDOS to check for .zip as well as _zip */
-            if ((error = do_seekable(0)) == PK_NOZIP || error == IZ_DIR) {
-                if (error == IZ_DIR)
-                    ++NumMissDirs;
-                strcpy(p, ALT_ZSUFX);
-                error = do_seekable(1);
-            }
-            Trace((stderr, "do_seekable(1) returns %d\n", error));
-            switch (error) {
-            case PK_WARN:
-                ++NumWarnFiles;
-                break;
-            case IZ_DIR:
+        if ((error = do_seekable(0)) == PK_NOZIP || error == IZ_DIR) {
+            if (error == IZ_DIR)
                 ++NumMissDirs;
-                error = PK_NOZIP;
-                break;
-            case PK_NOZIP:
-                /* increment again => bug:
-                   "1 file had no zipfile directory." */
-                /* ++NumMissFiles */;
-                break;
-            default:
-                if (error)
-                    ++NumLoseFiles;
-                else
-                    ++NumWinFiles;
-                break;
-            }
-
-            if (error > error_in_archive)
-                error_in_archive = error;
+            strcpy(p, ALT_ZSUFX);
+            error = do_seekable(1);
         }
+        Trace((stderr, "do_seekable(1) returns %d\n", error));
+        switch (error) {
+        case PK_WARN:
+            ++NumWarnFiles;
+            break;
+        case IZ_DIR:
+            ++NumMissDirs;
+            error = PK_NOZIP;
+            break;
+        case PK_NOZIP:
+            /* increment again => bug:
+               "1 file had no zipfile directory." */
+            /* ++NumMissFiles */;
+            break;
+        default:
+            if (error)
+                ++NumLoseFiles;
+            else
+                ++NumWinFiles;
+            break;
+        }
+
+        if (error > error_in_archive)
+            error_in_archive = error;
     }
 
     /*---------------------------------------------------------------------------
@@ -411,10 +397,6 @@ int lastchance;
 
     if (G.ziplen == EOF) {
         Info(slide, 0x401, ((char *) slide, ZipfileTooBig));
-        /*
-        printf(
-" We need a better error message for: 64-bit file, 32-bit program.\n");
-        */
         CLOSE_INFILE();
         return IZ_ERRBF;
     }
@@ -563,17 +545,14 @@ int lastchance;
         Trace((stderr, "about to extract/list files (error = %d)\n",
                error_in_archive));
 
-        {
-            if (uO.T_flag)
-                error = get_time_stamp(&uxstamp, &nmember);
-            else if (uO.vflag && !uO.tflag && !uO.cflag)
-                error = list_files(); /* LIST 'EM */
-            else
-                error = extract_or_test_files(); /* EXTRACT OR TEST 'EM */
+        if (uO.T_flag)
+            error = get_time_stamp(&uxstamp, &nmember);
+        else if (uO.vflag && !uO.tflag && !uO.cflag)
+            error = list_files(); /* LIST 'EM */
+        else
+            error = extract_or_test_files(); /* EXTRACT OR TEST 'EM */
 
-            Trace(
-                (stderr, "done with extract/list files (error = %d)\n", error));
-        }
+        Trace((stderr, "done with extract/list files (error = %d)\n", error));
 
         if (error > error_in_archive) /* don't overwrite stronger error */
             error_in_archive = error; /*  with (for example) a warning */
@@ -698,18 +677,6 @@ int rec_size;
     }
     return (found ? 0 : 1);
 } /* end function rec_find() */
-
-#if 0
-static int check_ecrec_zip64()
-{
-    return G.ecrec.offset_start_central_directory  == 0xFFFFFFFFL
-        || G.ecrec.size_central_directory          == 0xFFFFFFFFL
-        || G.ecrec.total_entries_central_dir       == 0xFFFF
-        || G.ecrec.num_entries_centrl_dir_ths_disk == 0xFFFF
-        || G.ecrec.num_disk_start_cdir             == 0xFFFF
-        || G.ecrec.number_this_disk                == 0xFFFF;
-} /* end function check_ecrec_zip64() */
-#endif /* never */
 
 static int find_ecrec64(searchlen) /* return PK-class error */
 zoff_t searchlen;
@@ -1221,9 +1188,9 @@ unsigned ef_len;                            /* total length of extra field */
     /*---------------------------------------------------------------------------
         This function scans the extra field for zip64 information, ie 8-byte
         versions of compressed file size, uncompressed file size, relative
-      offset and a 4-byte version of disk start number. Sets both local header
-      and central header fields.  Not terribly clever, but it means that this
-      procedure is only called in one place.
+        offset and a 4-byte version of disk start number. Sets both local header
+        and central header fields.  Not terribly clever, but it means that this
+        procedure is only called in one place.
 
         2014-12-05 SMS.  (oCERT.org report.)  CVE-2014-8141.
         Added checks to ensure that enough data are available before calling
@@ -1773,11 +1740,7 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
     unsigned eb_len;
     int have_new_type_eb = 0;
     long i_time; /* buffer for Unix style 32-bit integer time value */
-#ifdef TIME_T_TYPE_DOUBLE
-    int ut_in_archive_sgn = 0;
-#else
     int ut_zip_unzip_compatible = FALSE;
-#endif
 
     /*---------------------------------------------------------------------------
         This function scans the extra field for EF_TIME, EF_IZUNIX2, EF_IZUNIX,
@@ -1828,32 +1791,6 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                         TTrace((stderr, "  UT e.f. modification time = %ld\n",
                                 i_time));
 
-#ifdef TIME_T_TYPE_DOUBLE
-                        if ((ulg) (i_time) & (ulg) (0x80000000L)) {
-                            if (dos_mdatetime == DOSTIME_MINIMUM) {
-                                ut_in_archive_sgn = -1;
-                                z_utim->mtime =
-                                    (time_t) ((long) i_time |
-                                              (~(long) 0x7fffffffL));
-                            } else if (dos_mdatetime >= DOSTIME_2038_01_18) {
-                                ut_in_archive_sgn = 1;
-                                z_utim->mtime =
-                                    (time_t) ((ulg) i_time & (ulg) 0xffffffffL);
-                            } else {
-                                ut_in_archive_sgn = 0;
-                                /* cannot determine sign of mtime;
-                                   without modtime: ignore complete UT field */
-                                flags &= ~0x0ff; /* no time_t times available */
-                                TTrace((stderr, "  UT modtime range error; "
-                                                "ignore e.f.!\n"));
-                                break; /* stop scanning this field */
-                            }
-                        } else {
-                            /* cannot determine, safe assumption is FALSE */
-                            ut_in_archive_sgn = 0;
-                            z_utim->mtime = (time_t) i_time;
-                        }
-#else  /* !TIME_T_TYPE_DOUBLE */
                         if ((ulg) (i_time) & (ulg) (0x80000000L)) {
                             ut_zip_unzip_compatible =
                                 ((time_t) 0x80000000L < (time_t) 0L)
@@ -1872,7 +1809,6 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                             ut_zip_unzip_compatible = FALSE;
                         }
                         z_utim->mtime = (time_t) i_time;
-#endif /* ?TIME_T_TYPE_DOUBLE */
                     } else {
                         flags &= ~EB_UT_FL_MTIME;
                         TTrace((stderr, "  UT e.f. truncated; no modtime\n"));
@@ -1889,26 +1825,6 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                         eb_idx += 4;
                         TTrace(
                             (stderr, "  UT e.f. access time = %ld\n", i_time));
-#ifdef TIME_T_TYPE_DOUBLE
-                        if ((ulg) (i_time) & (ulg) (0x80000000L)) {
-                            if (ut_in_archive_sgn == -1)
-                                z_utim->atime =
-                                    (time_t) ((long) i_time |
-                                              (~(long) 0x7fffffffL));
-                        } else if (ut_in_archive_sgn == 1) {
-                            z_utim->atime =
-                                (time_t) ((ulg) i_time & (ulg) 0xffffffffL);
-                        } else {
-                            /* sign of 32-bit time is unknown -> ignore it */
-                            flags &= ~EB_UT_FL_ATIME;
-                            TTrace(
-                                (stderr,
-                                 "  UT access time range error: skip time!\n"));
-                        }
-                    } else {
-                        z_utim->atime = (time_t) i_time;
-                    }
-#else  /* !TIME_T_TYPE_DOUBLE */
                         if (((ulg) (i_time) & (ulg) (0x80000000L)) &&
                             !ut_zip_unzip_compatible) {
                             flags &= ~EB_UT_FL_ATIME;
@@ -1918,34 +1834,16 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                         } else {
                             z_utim->atime = (time_t) i_time;
                         }
-#endif /* ?TIME_T_TYPE_DOUBLE */
-                } else {
-                    flags &= ~EB_UT_FL_ATIME;
-                }
-            }
-            if (flags & EB_UT_FL_CTIME) {
-                if ((eb_idx + 4) <= eb_len) {
-                    i_time = (long) makelong((EB_HEADSIZE + eb_idx) + ef_buf);
-                    TTrace((stderr, "  UT e.f. creation time = %ld\n", i_time));
-#ifdef TIME_T_TYPE_DOUBLE
-                    if ((ulg) (i_time) & (ulg) (0x80000000L)) {
-                        if (ut_in_archive_sgn == -1)
-                            z_utim->ctime = (time_t) ((long) i_time |
-                                                      (~(long) 0x7fffffffL));
-                    } else if (ut_in_archive_sgn == 1) {
-                        z_utim->ctime =
-                            (time_t) ((ulg) i_time & (ulg) 0xffffffffL);
                     } else {
-                        /* sign of 32-bit time is unknown -> ignore it */
-                        flags &= ~EB_UT_FL_CTIME;
-                        TTrace(
-                            (stderr,
-                             "  UT creation time range error: skip time!\n"));
+                        flags &= ~EB_UT_FL_ATIME;
                     }
-                } else {
-                    z_utim->ctime = (time_t) i_time;
                 }
-#else  /* !TIME_T_TYPE_DOUBLE */
+                if (flags & EB_UT_FL_CTIME) {
+                    if ((eb_idx + 4) <= eb_len) {
+                        i_time =
+                            (long) makelong((EB_HEADSIZE + eb_idx) + ef_buf);
+                        TTrace((stderr, "  UT e.f. creation time = %ld\n",
+                                i_time));
                         if (((ulg) (i_time) & (ulg) (0x80000000L)) &&
                             !ut_zip_unzip_compatible) {
                             flags &= ~EB_UT_FL_CTIME;
@@ -1954,99 +1852,77 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                         } else {
                             z_utim->ctime = (time_t) i_time;
                         }
-#endif /* ?TIME_T_TYPE_DOUBLE */
-            } else {
-                flags &= ~EB_UT_FL_CTIME;
-            }
-        }
-    }
-    break;
-
-case EF_IZUNIX2:
-    if (have_new_type_eb == 0) { /* (< 1) */
-        have_new_type_eb = 1;
-    }
-    if (have_new_type_eb <= 1) {
-        /* Ignore any prior (EF_IZUNIX/EF_PKUNIX) UID/GID. */
-        flags &= 0x0ff;
-    }
-    if (have_new_type_eb > 1)
-        break; /* IZUNIX3 overrides IZUNIX2 e.f. block ! */
-    if (eb_len == EB_UX2_MINLEN && z_uidgid != NULL) {
-        z_uidgid[0] = (ulg) makeword((EB_HEADSIZE + EB_UX2_UID) + ef_buf);
-        z_uidgid[1] = (ulg) makeword((EB_HEADSIZE + EB_UX2_GID) + ef_buf);
-        flags |= EB_UX2_VALID; /* signal success */
-    }
-    break;
-
-case EF_IZUNIX3:
-    /* new 3rd generation Unix ef */
-    have_new_type_eb = 2;
-
-    /* Ignore any prior EF_IZUNIX/EF_PKUNIX/EF_IZUNIX2 UID/GID. */
-    flags &= 0x0ff;
-    /*
-      Version       1 byte      version of this extra field, currently 1
-      UIDSize       1 byte      Size of UID field
-      UID           Variable    UID for this entry
-      GIDSize       1 byte      Size of GID field
-      GID           Variable    GID for this entry
-    */
-
-    if (eb_len >= EB_UX3_MINLEN && z_uidgid != NULL &&
-        (*((EB_HEADSIZE + 0) + ef_buf) == 1))
-    /* only know about version 1 */
-    {
-        uch uid_size;
-        uch gid_size;
-
-        uid_size = *((EB_HEADSIZE + 1) + ef_buf);
-        gid_size = *((EB_HEADSIZE + uid_size + 2) + ef_buf);
-
-        if (read_ux3_value((EB_HEADSIZE + 2) + ef_buf, uid_size,
-                           &z_uidgid[0]) &&
-            read_ux3_value((EB_HEADSIZE + uid_size + 3) + ef_buf, gid_size,
-                           &z_uidgid[1])) {
-            flags |= EB_UX2_VALID; /* signal success */
-        }
-    }
-    break;
-
-case EF_IZUNIX:
-case EF_PKUNIX: /* PKUNIX e.f. layout is identical to IZUNIX */
-    if (eb_len >= EB_UX_MINLEN) {
-        TTrace((stderr, "ef_scan_for_izux: found %s extra field\n",
-                (eb_id == EF_IZUNIX ? "IZUNIX" : "PKUNIX")));
-        if (have_new_type_eb > 0) {
-            break; /* Ignore IZUNIX extra field block ! */
-        }
-        if (z_utim != NULL) {
-            flags |= (EB_UT_FL_MTIME | EB_UT_FL_ATIME);
-            i_time = (long) makelong((EB_HEADSIZE + EB_UX_MTIME) + ef_buf);
-            TTrace((stderr, "  Unix EF modtime = %ld\n", i_time));
-#ifdef TIME_T_TYPE_DOUBLE
-            if ((ulg) (i_time) & (ulg) (0x80000000L)) {
-                if (dos_mdatetime == DOSTIME_MINIMUM) {
-                    ut_in_archive_sgn = -1;
-                    z_utim->mtime =
-                        (time_t) ((long) i_time | (~(long) 0x7fffffffL));
-                } else if (dos_mdatetime >= DOSTIME_2038_01_18) {
-                    ut_in_archive_sgn = 1;
-                    z_utim->mtime = (time_t) ((ulg) i_time & (ulg) 0xffffffffL);
-                } else {
-                    ut_in_archive_sgn = 0;
-                    /* cannot determine sign of mtime;
-                       without modtime: ignore complete UT field */
-                    flags &= ~0x0ff; /* no time_t times available */
-                    TTrace(
-                        (stderr, "  UX modtime range error: ignore e.f.!\n"));
+                    } else {
+                        flags &= ~EB_UT_FL_CTIME;
+                    }
                 }
-            } else {
-                /* cannot determine, safe assumption is FALSE */
-                ut_in_archive_sgn = 0;
-                z_utim->mtime = (time_t) i_time;
             }
-#else  /* !TIME_T_TYPE_DOUBLE */
+            break;
+
+        case EF_IZUNIX2:
+            if (have_new_type_eb == 0) { /* (< 1) */
+                have_new_type_eb = 1;
+            }
+            if (have_new_type_eb <= 1) {
+                /* Ignore any prior (EF_IZUNIX/EF_PKUNIX) UID/GID. */
+                flags &= 0x0ff;
+            }
+            if (have_new_type_eb > 1)
+                break; /* IZUNIX3 overrides IZUNIX2 e.f. block ! */
+            if (eb_len == EB_UX2_MINLEN && z_uidgid != NULL) {
+                z_uidgid[0] =
+                    (ulg) makeword((EB_HEADSIZE + EB_UX2_UID) + ef_buf);
+                z_uidgid[1] =
+                    (ulg) makeword((EB_HEADSIZE + EB_UX2_GID) + ef_buf);
+                flags |= EB_UX2_VALID; /* signal success */
+            }
+            break;
+
+        case EF_IZUNIX3:
+            /* new 3rd generation Unix ef */
+            have_new_type_eb = 2;
+
+            /* Ignore any prior EF_IZUNIX/EF_PKUNIX/EF_IZUNIX2 UID/GID. */
+            flags &= 0x0ff;
+            /*
+              Version       1 byte      version of this extra field, currently 1
+              UIDSize       1 byte      Size of UID field
+              UID           Variable    UID for this entry
+              GIDSize       1 byte      Size of GID field
+              GID           Variable    GID for this entry
+            */
+
+            if (eb_len >= EB_UX3_MINLEN && z_uidgid != NULL &&
+                (*((EB_HEADSIZE + 0) + ef_buf) == 1)) {
+                /* only know about version 1 */
+                uch uid_size;
+                uch gid_size;
+
+                uid_size = *((EB_HEADSIZE + 1) + ef_buf);
+                gid_size = *((EB_HEADSIZE + uid_size + 2) + ef_buf);
+
+                if (read_ux3_value((EB_HEADSIZE + 2) + ef_buf, uid_size,
+                                   &z_uidgid[0]) &&
+                    read_ux3_value((EB_HEADSIZE + uid_size + 3) + ef_buf,
+                                   gid_size, &z_uidgid[1])) {
+                    flags |= EB_UX2_VALID; /* signal success */
+                }
+            }
+            break;
+
+        case EF_IZUNIX:
+        case EF_PKUNIX: /* PKUNIX e.f. layout is identical to IZUNIX */
+            if (eb_len >= EB_UX_MINLEN) {
+                TTrace((stderr, "ef_scan_for_izux: found %s extra field\n",
+                        (eb_id == EF_IZUNIX ? "IZUNIX" : "PKUNIX")));
+                if (have_new_type_eb > 0) {
+                    break; /* Ignore IZUNIX extra field block ! */
+                }
+                if (z_utim != NULL) {
+                    flags |= (EB_UT_FL_MTIME | EB_UT_FL_ATIME);
+                    i_time =
+                        (long) makelong((EB_HEADSIZE + EB_UX_MTIME) + ef_buf);
+                    TTrace((stderr, "  Unix EF modtime = %ld\n", i_time));
                     if ((ulg) (i_time) & (ulg) (0x80000000L)) {
                         ut_zip_unzip_compatible =
                             ((time_t) 0x80000000L < (time_t) 0L)
@@ -2065,25 +1941,9 @@ case EF_PKUNIX: /* PKUNIX e.f. layout is identical to IZUNIX */
                         ut_zip_unzip_compatible = FALSE;
                     }
                     z_utim->mtime = (time_t) i_time;
-#endif /* ?TIME_T_TYPE_DOUBLE */
-            i_time = (long) makelong((EB_HEADSIZE + EB_UX_ATIME) + ef_buf);
-            TTrace((stderr, "  Unix EF actime = %ld\n", i_time));
-#ifdef TIME_T_TYPE_DOUBLE
-            if ((ulg) (i_time) & (ulg) (0x80000000L)) {
-                if (ut_in_archive_sgn == -1)
-                    z_utim->atime =
-                        (time_t) ((long) i_time | (~(long) 0x7fffffffL));
-            } else if (ut_in_archive_sgn == 1) {
-                z_utim->atime = (time_t) ((ulg) i_time & (ulg) 0xffffffffL);
-            } else if (flags & 0x0ff) {
-                /* sign of 32-bit time is unknown -> ignore it */
-                flags &= ~EB_UT_FL_ATIME;
-                TTrace((stderr, "  UX access time range error: skip time!\n"));
-            }
-        } else {
-            z_utim->atime = (time_t) i_time;
-        }
-#else  /* !TIME_T_TYPE_DOUBLE */
+                    i_time =
+                        (long) makelong((EB_HEADSIZE + EB_UX_ATIME) + ef_buf);
+                    TTrace((stderr, "  Unix EF actime = %ld\n", i_time));
                     if (((ulg) (i_time) & (ulg) (0x80000000L)) &&
                         !ut_zip_unzip_compatible && (flags & 0x0ff)) {
                         /* atime not in range of UnZip's time_t */
@@ -2093,24 +1953,23 @@ case EF_PKUNIX: /* PKUNIX e.f. layout is identical to IZUNIX */
                     } else {
                         z_utim->atime = (time_t) i_time;
                     }
-#endif /* ?TIME_T_TYPE_DOUBLE */
+                }
+                if (eb_len >= EB_UX_FULLSIZE && z_uidgid != NULL) {
+                    z_uidgid[0] = makeword((EB_HEADSIZE + EB_UX_UID) + ef_buf);
+                    z_uidgid[1] = makeword((EB_HEADSIZE + EB_UX_GID) + ef_buf);
+                    flags |= EB_UX2_VALID;
+                }
+            }
+            break;
+
+        default:
+            break;
+        }
+
+        /* Skip this extra field block */
+        ef_buf += (eb_len + EB_HEADSIZE);
+        ef_len -= (eb_len + EB_HEADSIZE);
     }
-    if (eb_len >= EB_UX_FULLSIZE && z_uidgid != NULL) {
-        z_uidgid[0] = makeword((EB_HEADSIZE + EB_UX_UID) + ef_buf);
-        z_uidgid[1] = makeword((EB_HEADSIZE + EB_UX_GID) + ef_buf);
-        flags |= EB_UX2_VALID;
-    }
-}
-break;
 
-default:
-break;
-}
-
-/* Skip this extra field block */
-ef_buf += (eb_len + EB_HEADSIZE);
-ef_len -= (eb_len + EB_HEADSIZE);
-}
-
-return flags;
+    return flags;
 }
