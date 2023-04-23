@@ -89,7 +89,6 @@ static const char ExtraFieldCorrupt[] =
 
 static const char DiskFullQuery[] =
     "%s:  write error (disk full?).  Continue? (y/n/^C) ";
-static const char ZipfileCorrupt[] = "error:  zipfile probably corrupt (%s)\n";
 static const char FileIsSymLink[] = "%s exists and is a symbolic link%s.\n";
 static const char QuitPrompt[] =
     "--- Press `Q' to quit, or any other key to continue ---";
@@ -642,42 +641,6 @@ const char *efn; /* name of archive entry being processed */
     return r;
 
 } /* end function UzpPassword() */
-
-void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
-    int signal;
-{
-#if !(defined(SIGBUS) || defined(SIGSEGV)) /* add a newline if not at */
-    (*G.message)(slide, 0L, 0x41);         /*  start of line (to stderr; */
-#endif                                     /*  slide[] should be safe) */
-
-    echon();
-
-#ifdef SIGBUS
-    if (signal == SIGBUS) {
-        Info(slide, 0x421, ((char *) slide, ZipfileCorrupt, "bus error"));
-        exit(PK_BADERR);
-    }
-#endif /* SIGBUS */
-
-#ifdef SIGILL
-    if (signal == SIGILL) {
-        Info(slide, 0x421,
-             ((char *) slide, ZipfileCorrupt, "illegal instruction"));
-        exit(PK_BADERR);
-    }
-#endif /* SIGILL */
-
-#ifdef SIGSEGV
-    if (signal == SIGSEGV) {
-        Info(slide, 0x421,
-             ((char *) slide, ZipfileCorrupt, "segmentation violation"));
-        exit(PK_BADERR);
-    }
-#endif /* SIGSEGV */
-
-    /* probably ctrl-C */
-    exit(IZ_CTRLC); /* was EXIT(0), then EXIT(PK_ERR) */
-}
 
 time_t dos_to_unix_time(dosdatetime)
 ulg dosdatetime;

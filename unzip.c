@@ -59,6 +59,7 @@
 
 #include "unzip.h" /* includes, typedefs, macros, prototypes, etc. */
 #include "crypt.h"
+#include "ttyio.h"
 
 /*******************/
 /* Local Functions */
@@ -189,6 +190,16 @@ char *argv[];
     return unzip(argc, argv);
 }
 
+/* upon interrupt, turn on echo and exit cleanly */
+static void signal_handler(int signal)
+{
+    /* newline if not start of line to stderr */
+    (*G.message)(slide, 0L, 0x41);
+    Echon();
+
+    exit(IZ_CTRLC);
+}
+
 /*******************************/
 /*  Primary UnZip entry point  */
 /*******************************/
@@ -199,8 +210,6 @@ char *argv[];
 {
     int i;
     int retcode, error = FALSE;
-#define SET_SIGHANDLER(sigtype, newsighandler) \
-    signal((sigtype), (newsighandler))
 
     /* initialize international char support to the current environment */
     setlocale(LC_CTYPE, "");
@@ -258,30 +267,10 @@ char *argv[];
         G.area.Slide + (sizeof(shrint) + sizeof(uch)) * (HSIZE);
 #endif
 
-/*---------------------------------------------------------------------------
-    Set signal handler for restoring echo, warn of zipfile corruption, etc.
-  ---------------------------------------------------------------------------*/
-#ifdef SIGINT
-    SET_SIGHANDLER(SIGINT, handler);
-#endif
-#ifdef SIGTERM /* some systems really have no SIGTERM */
-    SET_SIGHANDLER(SIGTERM, handler);
-#endif
-#if defined(SIGABRT)
-    SET_SIGHANDLER(SIGABRT, handler);
-#endif
-#ifdef SIGBREAK
-    SET_SIGHANDLER(SIGBREAK, handler);
-#endif
-#ifdef SIGBUS
-    SET_SIGHANDLER(SIGBUS, handler);
-#endif
-#ifdef SIGILL
-    SET_SIGHANDLER(SIGILL, handler);
-#endif
-#ifdef SIGSEGV
-    SET_SIGHANDLER(SIGSEGV, handler);
-#endif
+    /* Set signal handler for restoring echo */
+    signal(SIGINT, signal_handler);
+    signal(SIGABRT, signal_handler);
+    signal(SIGTERM, signal_handler);
 
 #ifdef DEBUG
 #ifdef LARGE_FILE_SUPPORT
