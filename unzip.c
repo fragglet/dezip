@@ -68,36 +68,11 @@
 #include "consts.h" /* all constant global variables are in here */
                     /* (non-constant globals were moved to globals.c) */
 
-/* constant local variables: */
-
-static const char EnvUnZip[] = ENV_UNZIP;
-static const char EnvUnZip2[] = ENV_UNZIP2;
-static const char NoMemEnvArguments[] =
-    "envargs:  cannot get memory for arguments";
-static const char CmdLineParamTooLong[] =
-    "error:  command line parameter #%d exceeds internal size limit\n";
-
-static const char NotExtracting[] = "caution:  not extracting; -d ignored\n";
 static const char MustGiveExdir[] =
     "error:  must specify directory to which to extract with -d option\n";
-static const char OnlyOneExdir[] =
-    "error:  -d option used more than once (only one exdir allowed)\n";
 
 static const char MustGivePasswd[] =
     "error:  must give decryption password with -P option\n";
-
-static const char InvalidOptionsMsg[] = "error:\
-  -fn or any combination of -c, -l, -p, -t, -u and -v options invalid\n";
-static const char IgnoreOOptionMsg[] =
-    "caution:  both -n and -o specified; ignoring -o\n";
-
-/* usage() strings */
-static const char Example3[] = "ReadMe";
-static const char Example2[] = " \
- unzip -p foo | more  => send contents of foo.zip via pipe into program more\n";
-
-/* local1[]:  command options */
-static const char local1[] = "  -T  timestamp archive to latest";
 
 /* local2[] and local3[]:  modifier options */
 static const char local2[] = " -X  restore UID/GID info";
@@ -105,13 +80,13 @@ static const char local3[] = "\
   -K  keep setuid/setgid/tacky permissions\n";
 
 static const char UnzipUsageLine2[] = "\
-Usage: unzip [-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n \
+Usage: unzip [-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n\
  Default action is to extract files in list, except those in xlist, to exdir;\n\
   file[.zip] may be a wildcard.\n\
   -p  extract files to pipe, no messages     -l  list files (short format)\n\
   -f  freshen existing files, create none    -t  test compressed archive data\n\
   -u  update files, create if necessary      -z  display archive comment only\n\
-  -v  list verbosely/show version info     %s\n\
+  -v  list verbosely/show version info       -T  timestamp archive to latest\n\
   -x  exclude files that follow (in xlist)   -d  extract files into exdir\n";
 
 /* There is not enough space on a standard 80x25 Windows console screen for
@@ -128,13 +103,13 @@ modifiers:\n\
   -o  overwrite files WITHOUT prompting      -a  auto-convert any text files\n\
   -j  junk paths (do not make directories)   -aa treat ALL files as text\n\
   -U  use escapes for all non-ASCII Unicode  -UU ignore any Unicode fields\n\
-  -C  match filenames case-insensitively     -L  make (some) names \
-lowercase\n %-42s  -V  retain VMS version numbers\n%s";
+  -C  match filenames case-insensitively     -L  make (some) names lowercase\n\
+ %-42s  -V  retain VMS version numbers\n%s";
 
 static const char UnzipUsageLine5[] = "\
 Examples:\n\
   unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
-%s\
+  unzip -p foo | more  => send contents of foo.zip via pipe into program more\n\
   unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
 
 /* initialization of sigs is completed at runtime */
@@ -320,8 +295,8 @@ char *argv[];
     G.noargs = (argc == 1); /* no options, no zipfile, no anything */
 
     {
-        if ((error = envargs(&argc, &argv, EnvUnZip, EnvUnZip2)) != PK_OK)
-            perror(NoMemEnvArguments);
+        if ((error = envargs(&argc, &argv, ENV_UNZIP, ENV_UNZIP2)) != PK_OK)
+            perror("envargs: cannot get memory for arguments");
     }
 
     if (!error) {
@@ -334,7 +309,11 @@ char *argv[];
          */
         for (i = 1; i < argc; i++) {
             if (strlen(argv[i]) > ((WSIZE >> 2) - 160)) {
-                Info(slide, 0x401, ((char *) slide, CmdLineParamTooLong, i));
+                Info(slide, 0x401,
+                     ((char *) slide,
+                      "error:  command line "
+                      "parameter #%d exceeds internal size limit\n",
+                      i));
                 retcode = PK_PARAM;
                 goto cleanup_and_exit;
             }
@@ -424,7 +403,8 @@ char *argv[];
         G.process_all_files = TRUE; /* for speed */
 
     if (uO.exdir != (char *) NULL && !G.extract_flag) /* -d ignored */
-        Info(slide, 0x401, ((char *) slide, NotExtracting));
+        Info(slide, 0x401,
+             ((char *) slide, "caution:  not extracting; -d ignored\n"));
 
     /* set Unicode-escape-all if option -U used */
     if (uO.U_flag == 1)
@@ -503,7 +483,10 @@ char ***pargv;
                     return (PK_PARAM); /* don't extract here by accident */
                 }
                 if (uO.exdir != (char *) NULL) {
-                    Info(slide, 0x401, ((char *) slide, OnlyOneExdir));
+                    Info(slide, 0x401,
+                         ((char *) slide,
+                          "error:  -d option "
+                          "used more than once (only one exdir allowed)\n"));
                     return (PK_PARAM); /* GRR:  stupid restriction? */
                 } else {
                     /* first check for "-dexdir", then for "-d exdir" */
@@ -744,13 +727,17 @@ char ***pargv;
 
     if ((uO.cflag && (uO.tflag || uO.uflag)) || (uO.tflag && uO.uflag) ||
         (uO.fflag && uO.overwrite_none)) {
-        Info(slide, 0x401, ((char *) slide, InvalidOptionsMsg));
+        Info(slide, 0x401,
+             ((char *) slide, "error: -fn or any combination of "
+                              "-c, -l, -p, -t, -u and -v options invalid\n"));
         error = TRUE;
     }
     if (uO.aflag > 2)
         uO.aflag = 2;
     if (uO.overwrite_all && uO.overwrite_none) {
-        Info(slide, 0x401, ((char *) slide, IgnoreOOptionMsg));
+        Info(slide, 0x401,
+             ((char *) slide,
+              "caution:  both -n and -o specified; ignoring -o\n"));
         uO.overwrite_all = FALSE;
     }
 
@@ -784,10 +771,9 @@ int error;
 {
     int flag = (error ? 1 : 0);
 
-    Info(slide, flag, ((char *) slide, UnzipUsageLine2, local1));
+    Info(slide, flag, ((char *) slide, UnzipUsageLine2));
     Info(slide, flag, ((char *) slide, UnzipUsageLine4, local2, local3));
-    Info(slide, flag,
-         ((char *) slide, UnzipUsageLine5, Example2, Example3, Example3));
+    Info(slide, flag, ((char *) slide, UnzipUsageLine5, "ReadMe", "ReadMe"));
 
     if (error)
         return PK_PARAM;
@@ -795,4 +781,3 @@ int error;
         return PK_COOL; /* just wanted usage screen: no error */
 
 } /* end function usage() */
-

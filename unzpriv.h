@@ -518,9 +518,9 @@ char *plastchar(const char *ptr, extent len);
 #define CTRLZ 26 /* DOS & OS/2 EOF marker (used in fileio.c, vms.c) */
 
 #ifndef ENV_UNZIP
-#define ENV_UNZIP   "UNZIP" /* the standard names */
+#define ENV_UNZIP "UNZIP" /* the standard names */
 #endif
-#define ENV_UNZIP2   "UNZIPOPT" /* alternate names, for zip compat. */
+#define ENV_UNZIP2 "UNZIPOPT" /* alternate names, for zip compat. */
 
 #define QCOND (!uO.qflag) /*  comments with -vq or -vqq */
 
