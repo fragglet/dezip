@@ -135,9 +135,7 @@ int list_files() /* return PK-type error code */
          * note of it if it is.
          */
 
-        if ((error = do_string(G.crec.filename_length, DS_FN)) !=
-            PK_COOL) /*  ^--(uses pInfo->lcflag) */
-        {
+        if ((error = do_string(G.crec.filename_length, DS_FN)) != PK_COOL) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal:  can't continue */
                 return error;

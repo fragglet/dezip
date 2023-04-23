@@ -98,6 +98,7 @@ int unshrink()
     shrint code, oldcode, curcode;
     shrint lastfreecode;
     unsigned int outbufsiz;
+    register uch *p;
 
     /*---------------------------------------------------------------------------
         Initialize various variables.
@@ -205,23 +206,18 @@ int unshrink()
                curcode, oldcode, (int) (*newstr),
                (*newstr < 32 || *newstr >= 127) ? ' ' : *newstr, len));
 
-        {
-            register uch *p;
-
-            for (p = newstr; p < newstr + len; ++p) {
-                *G.outptr++ = *p;
-                OUTDBG(*p)
-                if (++G.outcnt == outbufsiz) {
-                    Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
-                    if ((error = flush(G.outbuf, G.outcnt, TRUE)) != 0) {
-                        Trace(
-                            (stderr, "unshrink:  flush() error (%d)\n", error));
-                        return error;
-                    }
-                    G.outptr = G.outbuf;
-                    G.outcnt = 0L;
-                    Trace((stderr, "done with flush()\n"));
+        for (p = newstr; p < newstr + len; ++p) {
+            *G.outptr++ = *p;
+            OUTDBG(*p)
+            if (++G.outcnt == outbufsiz) {
+                Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
+                if ((error = flush(G.outbuf, G.outcnt, TRUE)) != 0) {
+                    Trace((stderr, "unshrink:  flush() error (%d)\n", error));
+                    return error;
                 }
+                G.outptr = G.outbuf;
+                G.outcnt = 0L;
+                Trace((stderr, "done with flush()\n"));
             }
         }
 

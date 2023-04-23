@@ -509,15 +509,15 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
     /* inflate the coded data */
     ml = mask_bits[bl]; /* precompute masks for speed */
     md = mask_bits[bd];
-    while (1) /* do until end of block */
-    {
+    while (1) {
+        /* do until end of block */
         NEEDBITS(bl)
         t = tl + ((unsigned) b & ml);
         while (1) {
             DUMPBITS(t->b)
 
-            if ((e = t->e) == 32) /* then it's a literal */
-            {
+            if ((e = t->e) == 32) {
+                /* then it's a literal */
                 redirSlide[w++] = (uch) t->v.n;
                 if (w == wsize) {
                     if ((retval = FLUSH(w)) != 0)
@@ -527,8 +527,8 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
                 break;
             }
 
-            if (e < 31) /* then it's a length */
-            {
+            if (e < 31) {
+                /* then it's a length */
                 /* get length of block to copy */
                 NEEDBITS(e)
                 n = t->v.n + ((unsigned) b & mask_bits[e]);
@@ -572,8 +572,8 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
                 break;
             }
 
-            if (e == 31) /* it's the EOB signal */
-            {
+            if (e == 31) {
+                /* it's the EOB signal */
                 /* sorry for this goto, but we have to exit two loops at once */
                 goto cleanup_decode;
             }
@@ -769,8 +769,8 @@ static int inflate_dynamic()
         j = th->v.n;
         if (j < 16)          /* length of code in bits (0..15) */
             ll[i++] = l = j; /* save last length in l */
-        else if (j == 16)    /* repeat last length 3 to 6 times */
-        {
+        else if (j == 16) {
+            /* repeat last length 3 to 6 times */
             NEEDBITS(2)
             j = 3 + ((unsigned) b & 3);
             DUMPBITS(2)
@@ -780,8 +780,8 @@ static int inflate_dynamic()
             }
             while (j--)
                 ll[i++] = l;
-        } else if (j == 17) /* 3 to 10 zero length codes */
-        {
+        } else if (j == 17) {
+            /* 3 to 10 zero length codes */
             NEEDBITS(3)
             j = 3 + ((unsigned) b & 7);
             DUMPBITS(3)
@@ -792,8 +792,8 @@ static int inflate_dynamic()
             while (j--)
                 ll[i++] = 0;
             l = 0;
-        } else /* j == 18: 11 to 138 zero length codes */
-        {
+        } else {
+            /* j == 18: 11 to 138 zero length codes */
             NEEDBITS(7)
             j = 11 + ((unsigned) b & 0x7f);
             DUMPBITS(7)
@@ -1029,8 +1029,8 @@ unsigned *m;     /* maximum lookup bits, returns actual */
         c[*p]++;
         p++; /* assume all entries <= BMAX */
     } while (--i);
-    if (c[0] == n) /* null input--all zero length codes */
-    {
+    if (c[0] == n) {
+        /* null input--all zero length codes */
         *t = (struct huft *) NULL;
         *m = 0;
         return 0;
@@ -1095,13 +1095,14 @@ unsigned *m;     /* maximum lookup bits, returns actual */
                 w += l[h++]; /* add bits already decoded */
 
                 /* compute minimum size table less than or equal to *m bits */
-                z = (z = g - w) > *m ? *m : z;      /* upper limit */
-                if ((f = 1 << (j = k - w)) > a + 1) /* try a k-w bit table */
-                {               /* too few codes for k-w bit table */
+                z = (z = g - w) > *m ? *m : z; /* upper limit */
+                                               /* try a k-w bit table */
+                if ((f = 1 << (j = k - w)) > a + 1) {
+                    /* too few codes for k-w bit table */
                     f -= a + 1; /* deduct codes from patterns left */
                     xp = c + k;
-                    while (++j < z) /* try smaller tables up to z bits */
-                    {
+                    /* try smaller tables up to z bits */
+                    while (++j < z) {
                         if ((f <<= 1) <= *++xp)
                             break; /* enough codes to use up j bits */
                         f -= *xp;  /* else deduct codes from patterns */

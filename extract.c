@@ -2113,22 +2113,20 @@ int UZbunzip2()
     bstrm.next_in = (char *) G.inptr;
     bstrm.avail_in = G.incnt;
 
-    {
-        /* local buffer for efficiency */
-        /* $TODO Check for BZIP LIB version? */
+    /* local buffer for efficiency */
+    /* $TODO Check for BZIP LIB version? */
 
-        bstrm.bzalloc = NULL;
-        bstrm.bzfree = NULL;
-        bstrm.opaque = NULL;
+    bstrm.bzalloc = NULL;
+    bstrm.bzfree = NULL;
+    bstrm.opaque = NULL;
 
-        Trace((stderr, "initializing bzlib()\n"));
-        err = BZ2_bzDecompressInit(&bstrm, 0, 0);
+    Trace((stderr, "initializing bzlib()\n"));
+    err = BZ2_bzDecompressInit(&bstrm, 0, 0);
 
-        if (err == BZ_MEM_ERROR)
-            return 3;
-        else if (err != BZ_OK)
-            Trace((stderr, "oops!  (BZ2_bzDecompressInit() err = %d)\n", err));
-    }
+    if (err == BZ_MEM_ERROR)
+        return 3;
+    else if (err != BZ_OK)
+        Trace((stderr, "oops!  (BZ2_bzDecompressInit() err = %d)\n", err));
 
     while (G.csize > 0) {
         Trace((stderr, "first loop:  G.csize = %ld\n", G.csize));

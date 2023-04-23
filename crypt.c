@@ -72,12 +72,11 @@ int decrypt_byte()
 int update_keys(c)
 int c; /* byte of plain text */
 {
+    int keyshift;
     G.keys[0] = CRC32(G.keys[0], c, CRY_CRC_TAB);
     G.keys[1] = (G.keys[1] + (G.keys[0] & 0xff)) * 134775813L + 1;
-    {
-        register int keyshift = (int) (G.keys[1] >> 24);
-        G.keys[2] = CRC32(G.keys[2], keyshift, CRY_CRC_TAB);
-    }
+    keyshift = (int) (G.keys[1] >> 24);
+    G.keys[2] = CRC32(G.keys[2], keyshift, CRY_CRC_TAB);
     return c;
 }
 

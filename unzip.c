@@ -174,30 +174,28 @@ char *argv[];
 {
     int i;
     int retcode, error = FALSE;
+    char *codeset;
 
     /* initialize international char support to the current environment */
     setlocale(LC_CTYPE, "");
 
     /* see if can use UTF-8 Unicode locale */
-    {
-        char *codeset;
-        /* get the codeset (character set encoding) currently used */
+    /* get the codeset (character set encoding) currently used */
 
-        codeset = nl_langinfo(CODESET);
-        /* is the current codeset UTF-8 ? */
-        if ((codeset != NULL) && (strcmp(codeset, "UTF-8") == 0)) {
-            /* successfully found UTF-8 char coding */
-            G.native_is_utf8 = TRUE;
-        } else {
-            /* Current codeset is not UTF-8 or cannot be determined. */
-            G.native_is_utf8 = FALSE;
-        }
-        /* Note: At least for UnZip, trying to change the process codeset to
-         *       UTF-8 does not work.  For the example Linux setup of the
-         *       UnZip maintainer, a successful switch to "en-US.UTF-8"
-         *       resulted in garbage display of all non-basic ASCII characters.
-         */
+    codeset = nl_langinfo(CODESET);
+    /* is the current codeset UTF-8 ? */
+    if ((codeset != NULL) && (strcmp(codeset, "UTF-8") == 0)) {
+        /* successfully found UTF-8 char coding */
+        G.native_is_utf8 = TRUE;
+    } else {
+        /* Current codeset is not UTF-8 or cannot be determined. */
+        G.native_is_utf8 = FALSE;
     }
+    /* Note: At least for UnZip, trying to change the process codeset to
+     *       UTF-8 does not work.  For the example Linux setup of the
+     *       UnZip maintainer, a successful switch to "en-US.UTF-8"
+     *       resulted in garbage display of all non-basic ASCII characters.
+     */
 
     /* initialize Unicode */
     G.unicode_escape_all = 0;
@@ -294,10 +292,8 @@ char *argv[];
 
     G.noargs = (argc == 1); /* no options, no zipfile, no anything */
 
-    {
-        if ((error = envargs(&argc, &argv, ENV_UNZIP, ENV_UNZIP2)) != PK_OK)
-            perror("envargs: cannot get memory for arguments");
-    }
+    if ((error = envargs(&argc, &argv, ENV_UNZIP, ENV_UNZIP2)) != PK_OK)
+        perror("envargs: cannot get memory for arguments");
 
     if (!error) {
         /* Check the length of all passed command line parameters.

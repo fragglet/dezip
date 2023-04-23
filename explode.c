@@ -271,8 +271,8 @@ unsigned bdl;              /* number of distance low bits */
     while (s > 0) /* do until ucsize bytes uncompressed */
     {
         NEEDBITS(1)
-        if (b & 1) /* then literal--decode it */
-        {
+        if (b & 1) {
+            /* literal--decode it */
             DUMPBITS(1)
             s--;
             DECODEHUFT(tb, bb, mb) /* get coded literal */
@@ -282,8 +282,8 @@ unsigned bdl;              /* number of distance low bits */
                     return retval;
                 w = u = 0;
             }
-        } else /* else distance/length */
-        {
+        } else {
+            /* else distance/length */
             DUMPBITS(1)
             NEEDBITS(bdl) /* get distance low bits */
             d = (unsigned) b & mdl;
@@ -292,8 +292,8 @@ unsigned bdl;              /* number of distance low bits */
             d = w - d - t->v.n;    /* construct offset */
             DECODEHUFT(tl, bl, ml) /* get coded length */
             n = t->v.n;
-            if (e) /* get length extra bits */
-            {
+            if (e) {
+                /* get length extra bits */
                 NEEDBITS(8)
                 n += (unsigned) b & 0xff;
                 DUMPBITS(8)
@@ -326,8 +326,9 @@ unsigned bdl;              /* number of distance low bits */
     /* flush out redirSlide */
     if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
         return retval;
-    if (G.csize + G.incnt + (k >> 3)) /* should have read csize bytes, but */
-    { /* sometimes read one too many:  k>>3 compensates */
+    if (G.csize + G.incnt + (k >> 3)) {
+        /* should have read csize bytes, but sometimes read one too
+           many: k>>3 compensates */
         G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
         return 5;
     }
@@ -360,11 +361,11 @@ unsigned bdl;         /* number of distance low bits */
     md = mask_bits[bd];
     mdl = mask_bits[bdl];
     s = G.lrec.ucsize;
-    while (s > 0) /* do until ucsize bytes uncompressed */
-    {
+    while (s > 0) {
+        /* do until ucsize bytes uncompressed */
         NEEDBITS(1)
-        if (b & 1) /* then literal--get eight bits */
-        {
+        if (b & 1) {
+            /* then literal--get eight bits */
             DUMPBITS(1)
             s--;
             NEEDBITS(8)
@@ -375,8 +376,8 @@ unsigned bdl;         /* number of distance low bits */
                 w = u = 0;
             }
             DUMPBITS(8)
-        } else /* else distance/length */
-        {
+        } else {
+            /* else distance/length */
             DUMPBITS(1)
             NEEDBITS(bdl) /* get distance low bits */
             d = (unsigned) b & mdl;
@@ -385,8 +386,8 @@ unsigned bdl;         /* number of distance low bits */
             d = w - d - t->v.n;    /* construct offset */
             DECODEHUFT(tl, bl, ml) /* get coded length */
             n = t->v.n;
-            if (e) /* get length extra bits */
-            {
+            if (e) {
+                /* get length extra bits */
                 NEEDBITS(8)
                 n += (unsigned) b & 0xff;
                 DUMPBITS(8)
@@ -419,8 +420,9 @@ unsigned bdl;         /* number of distance low bits */
     /* flush out redirSlide */
     if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
         return retval;
-    if (G.csize + G.incnt + (k >> 3)) /* should have read csize bytes, but */
-    { /* sometimes read one too many:  k>>3 compensates */
+    if (G.csize + G.incnt + (k >> 3)) {
+        /* should have read csize bytes, but
+           sometimes read one too many:  k>>3 compensates */
         G.used_csize = G.lrec.csize - G.csize - G.incnt - (k >> 3);
         return 5;
     }
@@ -459,9 +461,8 @@ int explode()
     G.hufts = 0; /* initialize huft's malloc'ed */
 #endif
 
-    if (G.lrec.general_purpose_bit_flag & 4)
-    /* With literal tree--minimum match length is 3 */
-    {
+    if (G.lrec.general_purpose_bit_flag & 4) {
+        /* With literal tree--minimum match length is 3 */
         bb = 9; /* base table size for literals */
         if ((r = get_tree(l, 256)) != 0)
             return (int) r;
@@ -480,9 +481,8 @@ int explode()
             huft_free(tb);
             return (int) r;
         }
-    } else
-    /* No literal tree--minimum match length is 2 */
-    {
+    } else {
+        /* No literal tree--minimum match length is 2 */
         tb = (struct huft *) NULL;
         if ((r = get_tree(l, 64)) != 0)
             return (int) r;
@@ -499,12 +499,12 @@ int explode()
             huft_free(tb);
         return (int) r;
     }
-    if (G.lrec.general_purpose_bit_flag & 2) /* true if 8K */
-    {
+    if (G.lrec.general_purpose_bit_flag & 2) {
+        /* true if 8K */
         bdl = 7;
         r = huft_build(l, 64, 0, cpdist8, extra, &td, &bd);
-    } else /* else 4K */
-    {
+    } else {
+        /* else 4K */
         bdl = 6;
         r = huft_build(l, 64, 0, cpdist4, extra, &td, &bd);
     }

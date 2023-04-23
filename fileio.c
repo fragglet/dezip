@@ -119,20 +119,19 @@ int open_input_file() /* return 1 if open failed */
 
 int open_outfile() /* return 1 if fail */
 {
+    mode_t umask_sav;
     if (SSTAT(G.filename, &G.statbuf) == 0 ||
         lstat(G.filename, &G.statbuf) == 0) {
         Trace((stderr, "open_outfile:  stat(%s) returns 0:  file exists\n",
                FnFilter1(G.filename)));
-        {
-            if (unlink(G.filename) != 0) {
-                Info(slide, 0x401,
-                     ((char *) slide, CannotDeleteOldFile,
-                      FnFilter1(G.filename), strerror(errno)));
-                return 1;
-            }
-            Trace((stderr, "open_outfile:  %s now deleted\n",
-                   FnFilter1(G.filename)));
+        if (unlink(G.filename) != 0) {
+            Info(slide, 0x401,
+                 ((char *) slide, CannotDeleteOldFile, FnFilter1(G.filename),
+                  strerror(errno)));
+            return 1;
         }
+        Trace(
+            (stderr, "open_outfile:  %s now deleted\n", FnFilter1(G.filename)));
     }
 #ifdef DEBUG
     Info(slide, 1,
@@ -153,14 +152,12 @@ int open_outfile() /* return 1 if fail */
 #endif /* DEBUG */
     Trace((stderr, "open_outfile:  doing fopen(%s) for writing\n",
            FnFilter1(G.filename)));
-    {
-        mode_t umask_sav = umask(0077);
-        /* These features require the ability to re-read extracted data from
-           the output files. Output files are created with Read&Write access.
-         */
-        G.outfile = fopen(G.filename, "w+b");
-        umask(umask_sav);
-    }
+    umask_sav = umask(0077);
+    /* These features require the ability to re-read extracted data from
+       the output files. Output files are created with Read&Write access.
+     */
+    G.outfile = fopen(G.filename, "w+b");
+    umask(umask_sav);
     if (G.outfile == (FILE *) NULL) {
         Info(slide, 0x401,
              ((char *) slide, CannotCreateFile, FnFilter1(G.filename),
@@ -1079,16 +1076,16 @@ const char *post;
 
     /* Assemble the format string. */
     fmt[0] = '%';
-    fmt[1] = '\0';             /* Start after initial "%". */
-    if (pre == FZOFFT_HEX_WID) /* Special hex width. */
-    {
+    fmt[1] = '\0'; /* Start after initial "%". */
+    if (pre == FZOFFT_HEX_WID) {
+        /* Special hex width. */
         strcat(fmt, FZOFFT_HEX_WID_VALUE);
-    } else if (pre == FZOFFT_HEX_DOT_WID) /* Special hex ".width". */
-    {
+    } else if (pre == FZOFFT_HEX_DOT_WID) {
+        /* Special hex ".width". */
         strcat(fmt, ".");
         strcat(fmt, FZOFFT_HEX_WID_VALUE);
-    } else if (pre != NULL) /* Caller's prefix (width). */
-    {
+    } else if (pre != NULL) {
+        /* Caller's prefix (width). */
         strcat(fmt, pre);
     }
 
