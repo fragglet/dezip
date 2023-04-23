@@ -89,14 +89,12 @@ int list_files() /* return PK-type error code */
     if (uO.qflag < 2) {
         if (uO.L_flag)
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(CaseConversion),
-                  LoadFarStringSmall(Headers[longhdr][0]),
-                  LoadFarStringSmall2(Headers[longhdr][1])));
+                 ((char *) slide, CaseConversion, Headers[longhdr][0],
+                  Headers[longhdr][1]));
         else
             Info(slide, 0,
-                 ((char *) slide, "%s\n%s\n",
-                  LoadFarString(Headers[longhdr][0]),
-                  LoadFarStringSmall(Headers[longhdr][1])));
+                 ((char *) slide, "%s\n%s\n", Headers[longhdr][0],
+                  Headers[longhdr][1]));
     }
 
     for (j = 1L;; j++) {
@@ -117,9 +115,8 @@ int list_files() /* return PK-type error code */
                  */
                 break;
             } else {
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(CentSigMsg), j));
-                Info(slide, 0x401, ((char *) slide, LoadFarString(ReportMsg)));
+                Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
+                Info(slide, 0x401, ((char *) slide, ReportMsg));
                 return PK_BADERR; /* sig not found */
             }
         }
@@ -259,19 +256,19 @@ int list_files() /* return PK-type error code */
 #endif /* 0 */
 
             if (cfactor == 100)
-                sprintf(cfactorstr, LoadFarString(CompFactor100));
+                sprintf(cfactorstr, CompFactor100);
             else
-                sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
+                sprintf(cfactorstr, CompFactorStr, sgn, cfactor);
             if (longhdr)
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(LongHdrStats),
+                     ((char *) slide, LongHdrStats,
                       FmZofft(G.crec.ucsize, "8", "u"), methbuf,
                       FmZofft(csiz, "8", "u"), cfactorstr, mo, dt_sepchar, dy,
                       dt_sepchar, yr, hh, mm, G.crec.crc32,
                       (G.pInfo->lcflag ? '^' : ' ')));
             else
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(ShortHdrStats),
+                     ((char *) slide, ShortHdrStats,
                       FmZofft(G.crec.ucsize, "9", "u"), mo, dt_sepchar, dy,
                       dt_sepchar, yr, hh, mm, (G.pInfo->lcflag ? '^' : ' ')));
             fnprint();
@@ -304,17 +301,17 @@ int list_files() /* return PK-type error code */
             cfactor = (cfactor + 5) / 10;
         }
         if (cfactor == 100)
-            sprintf(cfactorstr, LoadFarString(CompFactor100));
+            sprintf(cfactorstr, CompFactor100);
         else
-            sprintf(cfactorstr, LoadFarString(CompFactorStr), sgn, cfactor);
+            sprintf(cfactorstr, CompFactorStr, sgn, cfactor);
         if (longhdr) {
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(LongFileTrailer),
+                 ((char *) slide, LongFileTrailer,
                   FmZofft(tot_ucsize, "8", "u"), FmZofft(tot_csize, "8", "u"),
                   cfactorstr, members, members == 1 ? "" : "s"));
         } else
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(ShortFileTrailer),
+                 ((char *) slide, ShortFileTrailer,
                   FmZofft(tot_ucsize, "9", "u"), members,
                   members == 1 ? "" : "s"));
     }
@@ -332,7 +329,7 @@ int list_files() /* return PK-type error code */
             (!G.ecrec.is_zip64_archive) &&
             (memcmp(G.sig, end_central_sig, 4) !=
              0)) { /* just to make sure again */
-            Info(slide, 0x401, ((char *) slide, LoadFarString(EndSigMsg)));
+            Info(slide, 0x401, ((char *) slide, EndSigMsg));
             error_in_archive = PK_WARN; /* didn't find sig */
         }
 
@@ -388,9 +385,8 @@ ulg *nmember;
                  */
                 break;
             } else {
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(CentSigMsg), j));
-                Info(slide, 0x401, ((char *) slide, LoadFarString(ReportMsg)));
+                Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
+                Info(slide, 0x401, ((char *) slide, ReportMsg));
                 return PK_BADERR; /* sig not found */
             }
         }
@@ -465,7 +461,7 @@ ulg *nmember;
       ---------------------------------------------------------------------------*/
 
     if (memcmp(G.sig, end_central_sig, 4)) { /* just to make sure again */
-        Info(slide, 0x401, ((char *) slide, LoadFarString(EndSigMsg)));
+        Info(slide, 0x401, ((char *) slide, EndSigMsg));
         error_in_archive = PK_WARN;
     }
     if (*nmember == 0L && error_in_archive <= PK_WARN)

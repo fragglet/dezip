@@ -379,8 +379,7 @@ int extract_or_test_files() /* return PK-type error code */
     if (G.cover == NULL) {
         G.cover = malloc(sizeof(cover_t));
         if (G.cover == NULL) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(NotEnoughMemCover)));
+            Info(slide, 0x401, ((char *) slide, NotEnoughMemCover));
             return PK_MEM;
         }
         ((cover_t *) G.cover)->span = NULL;
@@ -391,7 +390,7 @@ int extract_or_test_files() /* return PK-type error code */
                   G.extra_bytes + G.ecrec.offset_start_central_directory,
                   G.extra_bytes + G.ecrec.offset_start_central_directory +
                       G.ecrec.size_central_directory) != 0) {
-        Info(slide, 0x401, ((char *) slide, LoadFarString(NotEnoughMemCover)));
+        Info(slide, 0x401, ((char *) slide, NotEnoughMemCover));
         return PK_MEM;
     }
     if ((G.extra_bytes != 0 &&
@@ -400,8 +399,7 @@ int extract_or_test_files() /* return PK-type error code */
          cover_add((cover_t *) G.cover, G.ecrec.ec64_start, G.ecrec.ec64_end) !=
              0) ||
         cover_add((cover_t *) G.cover, G.ecrec.ec_start, G.ecrec.ec_end) != 0) {
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(OverlappedComponents)));
+        Info(slide, 0x401, ((char *) slide, OverlappedComponents));
         return PK_BOMB;
     }
 
@@ -490,10 +488,9 @@ int extract_or_test_files() /* return PK-type error code */
                      * -> report it and stop searching for more Zip entries
                      */
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(CentSigMsg),
+                         ((char *) slide, CentSigMsg,
                           j + blknum * DIR_BLKSIZ + 1));
-                    Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(ReportMsg)));
+                    Info(slide, 0x401, ((char *) slide, ReportMsg));
                     error_in_archive = PK_BADERR;
                 }
                 reached_end = TRUE; /* ...so no more left to do */
@@ -510,8 +507,8 @@ int extract_or_test_files() /* return PK-type error code */
                     error_in_archive = error;
                 if (error > PK_WARN) { /* fatal:  no more left to do */
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(FilNamMsg),
-                          FnFilter1(G.filename), "central"));
+                         ((char *) slide, FilNamMsg, FnFilter1(G.filename),
+                          "central"));
                     reached_end = TRUE;
                     break;
                 }
@@ -522,8 +519,8 @@ int extract_or_test_files() /* return PK-type error code */
                     error_in_archive = error;
                 if (error > PK_WARN) { /* fatal */
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(ExtFieldMsg),
-                          FnFilter1(G.filename), "central"));
+                         ((char *) slide, ExtFieldMsg, FnFilter1(G.filename),
+                          "central"));
                     reached_end = TRUE;
                     break;
                 }
@@ -534,7 +531,7 @@ int extract_or_test_files() /* return PK-type error code */
                     error_in_archive = error;
                 if (error > PK_WARN) { /* fatal */
                     Info(slide, 0x421,
-                         ((char *) slide, LoadFarString(BadFileCommLength),
+                         ((char *) slide, BadFileCommLength,
                           FnFilter1(G.filename)));
                     reached_end = TRUE;
                     break;
@@ -635,7 +632,7 @@ int extract_or_test_files() /* return PK-type error code */
 
     if (G.slink_last != NULL) {
         if (QCOND2)
-            Info(slide, 0, ((char *) slide, LoadFarString(SymLnkDeferred)));
+            Info(slide, 0, ((char *) slide, SymLnkDeferred));
         while (G.slink_head != NULL) {
             set_deferred_symlink(G.slink_head);
             /* remove the processed entry from the chain and free its memory */
@@ -654,8 +651,7 @@ int extract_or_test_files() /* return PK-type error code */
     if (num_dirs > 0) {
         sorted_dirlist = (direntry **) malloc(num_dirs * sizeof(direntry *));
         if (sorted_dirlist == (direntry **) NULL) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(DirlistSortNoMem)));
+            Info(slide, 0x401, ((char *) slide, DirlistSortNoMem));
             while (dirlist != (direntry *) NULL) {
                 direntry *d = dirlist;
 
@@ -684,8 +680,7 @@ int extract_or_test_files() /* return PK-type error code */
                 if ((error = set_direc_attribs(d)) != PK_OK) {
                     ndirs_fail++;
                     Info(slide, 0x201,
-                         ((char *) slide, LoadFarString(DirlistSetAttrFailed),
-                          d->fn));
+                         ((char *) slide, DirlistSetAttrFailed, d->fn));
                     if (!error_in_archive)
                         error_in_archive = error;
                 }
@@ -695,8 +690,7 @@ int extract_or_test_files() /* return PK-type error code */
             if (!uO.tflag && QCOND2) {
                 if (ndirs_fail > 0)
                     Info(slide, 0,
-                         ((char *) slide, LoadFarString(DirlistFailAttrSum),
-                          ndirs_fail));
+                         ((char *) slide, DirlistFailAttrSum, ndirs_fail));
             }
         }
     }
@@ -712,8 +706,7 @@ int extract_or_test_files() /* return PK-type error code */
             for (i = 0; i < G.filespecs; ++i)
                 if (!fn_matched[i]) {
                     Info(slide, 1,
-                         ((char *) slide, LoadFarString(FilenameNotMatched),
-                          G.pfnames[i]));
+                         ((char *) slide, FilenameNotMatched, G.pfnames[i]));
                     if (error_in_archive <= PK_WARN)
                         error_in_archive = PK_FIND; /* some files not found */
                 }
@@ -723,9 +716,9 @@ int extract_or_test_files() /* return PK-type error code */
         if (reached_end)
             for (i = 0; i < G.xfilespecs; ++i)
                 if (!xn_matched[i])
-                    Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(ExclFilenameNotMatched),
-                          G.pxnames[i]));
+                    Info(
+                        slide, 0x401,
+                        ((char *) slide, ExclFilenameNotMatched, G.pxnames[i]));
         free((void *) xn_matched);
     }
 
@@ -747,8 +740,8 @@ int extract_or_test_files() /* return PK-type error code */
       ---------------------------------------------------------------------------*/
 
     if (no_endsig_found) { /* just to make sure */
-        Info(slide, 0x401, ((char *) slide, LoadFarString(EndSigMsg)));
-        Info(slide, 0x401, ((char *) slide, LoadFarString(ReportMsg)));
+        Info(slide, 0x401, ((char *) slide, EndSigMsg));
+        Info(slide, 0x401, ((char *) slide, ReportMsg));
         if (!error_in_archive) /* don't overwrite stronger error */
             error_in_archive = PK_WARN;
     }
@@ -758,27 +751,25 @@ int extract_or_test_files() /* return PK-type error code */
         if (uO.qflag < 2) { /* GRR 930710:  was (uO.qflag == 1) */
             if (error_in_archive)
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(ErrorInArchive),
+                     ((char *) slide, ErrorInArchive,
                       (error_in_archive == PK_WARN) ? "warning-" : "",
                       G.zipfn));
             else if (num == 0L)
-                Info(slide, 0,
-                     ((char *) slide, LoadFarString(ZeroFilesTested), G.zipfn));
+                Info(slide, 0, ((char *) slide, ZeroFilesTested, G.zipfn));
             else if (G.process_all_files && (num_skipped + num_bad_pwd == 0L))
-                Info(slide, 0,
-                     ((char *) slide, LoadFarString(NoErrInCompData), G.zipfn));
+                Info(slide, 0, ((char *) slide, NoErrInCompData, G.zipfn));
             else
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(NoErrInTestedFiles),
-                      G.zipfn, num, (num == 1L) ? "" : "s"));
+                     ((char *) slide, NoErrInTestedFiles, G.zipfn, num,
+                      (num == 1L) ? "" : "s"));
             if (num_skipped > 0L)
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(FilesSkipped), num_skipped,
+                     ((char *) slide, FilesSkipped, num_skipped,
                       (num_skipped == 1L) ? "" : "s"));
             if (num_bad_pwd > 0L)
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(FilesSkipBadPasswd),
-                      num_bad_pwd, (num_bad_pwd == 1L) ? "" : "s"));
+                     ((char *) slide, FilesSkipBadPasswd, num_bad_pwd,
+                      (num_bad_pwd == 1L) ? "" : "s"));
         }
     }
 
@@ -866,16 +857,14 @@ static int store_info() /* return 0 if skipping, 1 if OK */
         if (G.crec.version_needed_to_extract[0] > VMS_UNZIP_VERSION) {
             if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(VersionMsg),
-                      FnFilter1(G.filename), "VMS",
+                     ((char *) slide, VersionMsg, FnFilter1(G.filename), "VMS",
                       G.crec.version_needed_to_extract[0] / 10,
                       G.crec.version_needed_to_extract[0] % 10,
                       VMS_UNZIP_VERSION / 10, VMS_UNZIP_VERSION % 10));
             return 0;
         } else if (!uO.tflag && !IS_OVERWRT_ALL) { /* if -o, extract anyway */
             Info(slide, 0x481,
-                 ((char *) slide, LoadFarString(VMSFormatQuery),
-                  FnFilter1(G.filename)));
+                 ((char *) slide, VMSFormatQuery, FnFilter1(G.filename)));
             fgets(G.answerbuf, sizeof(G.answerbuf), stdin);
             if ((*G.answerbuf != 'y') && (*G.answerbuf != 'Y'))
                 return 0;
@@ -884,8 +873,7 @@ static int store_info() /* return 0 if skipping, 1 if OK */
     } else if (G.crec.version_needed_to_extract[0] > UNZVERS_SUPPORT) {
         if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(VersionMsg),
-                  FnFilter1(G.filename), "PK",
+                 ((char *) slide, VersionMsg, FnFilter1(G.filename), "PK",
                   G.crec.version_needed_to_extract[0] / 10,
                   G.crec.version_needed_to_extract[0] % 10,
                   UNZVERS_SUPPORT / 10, UNZVERS_SUPPORT % 10));
@@ -899,13 +887,12 @@ static int store_info() /* return 0 if skipping, 1 if OK */
             if ((cmpridx = find_compr_idx(G.crec.compression_method)) <
                 NUM_METHODS)
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(ComprMsgName),
-                      FnFilter1(G.filename),
-                      LoadFarStringSmall(ComprNames[cmpridx])));
+                     ((char *) slide, ComprMsgName, FnFilter1(G.filename),
+                      ComprNames[cmpridx]));
             else
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(ComprMsgNum),
-                      FnFilter1(G.filename), G.crec.compression_method));
+                     ((char *) slide, ComprMsgNum, FnFilter1(G.filename),
+                      G.crec.compression_method));
         }
         return 0;
     }
@@ -913,8 +900,7 @@ static int store_info() /* return 0 if skipping, 1 if OK */
     /* store a copy of the central header filename for later comparison */
     if ((G.pInfo->cfilname = malloc(strlen(G.filename) + 1)) == NULL) {
         Info(slide, 0x401,
-             ((char *) slide, LoadFarString(WarnNoMemCFName),
-              FnFilter1(G.filename)));
+             ((char *) slide, WarnNoMemCFName, FnFilter1(G.filename)));
     } else
         strcpy(G.pInfo->cfilname, G.filename);
 
@@ -978,8 +964,7 @@ int error_in_archive;
         /* seek_zipf(pInfo->offset);  */
         request = G.pInfo->offset + G.extra_bytes;
         if (cover_within((cover_t *) G.cover, request)) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(OverlappedComponents)));
+            Info(slide, 0x401, ((char *) slide, OverlappedComponents));
             return PK_BOMB;
         }
         inbuf_offset = request % INBUFSIZ;
@@ -990,13 +975,10 @@ int error_in_archive;
         Trace((stderr, "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
                (long) bufstart, (long) G.cur_zipfile_bufstart));
         if (request < 0) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarStringSmall(SeekMsg), G.zipfn,
-                  LoadFarString(ReportMsg)));
+            Info(slide, 0x401, ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
             error_in_archive = PK_ERR;
             if (*pfilnum == 1 && G.extra_bytes != 0L) {
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(AttemptRecompensate)));
+                Info(slide, 0x401, ((char *) slide, AttemptRecompensate));
                 *pold_extra_bytes = G.extra_bytes;
                 G.extra_bytes = 0L;
                 request = G.pInfo->offset; /* could also check if != 0 */
@@ -1011,8 +993,7 @@ int error_in_archive;
                 if (request < 0) {
                     Trace((stderr, "debug: recompensated request still < 0\n"));
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(SeekMsg), G.zipfn,
-                          LoadFarString(ReportMsg)));
+                         ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
                     error_in_archive = PK_BADERR;
                     continue;
                 }
@@ -1027,8 +1008,8 @@ int error_in_archive;
             G.cur_zipfile_bufstart = lseek(G.zipfd, bufstart, SEEK_SET);
             if ((G.incnt = read(G.zipfd, (char *) G.inbuf, INBUFSIZ)) <= 0) {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(OffsetMsg), *pfilnum,
-                      "lseek", (long) bufstart));
+                     ((char *) slide, OffsetMsg, *pfilnum, "lseek",
+                      (long) bufstart));
                 error_in_archive = PK_BADERR;
                 continue; /* can still do next file */
             }
@@ -1042,15 +1023,14 @@ int error_in_archive;
         /* should be in proper position now, so check for sig */
         if (readbuf(G.sig, 4) == 0) { /* bad offset */
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(OffsetMsg), *pfilnum, "EOF",
-                  (long) request));
+                 ((char *) slide, OffsetMsg, *pfilnum, "EOF", (long) request));
             error_in_archive = PK_BADERR;
             continue; /* but can still try next one */
         }
         if (memcmp(G.sig, local_hdr_sig, 4)) {
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(OffsetMsg), *pfilnum,
-                  LoadFarStringSmall(LocalHdrSig), (long) request));
+                 ((char *) slide, OffsetMsg, *pfilnum, LocalHdrSig,
+                  (long) request));
             /*
                 GRRDUMP(G.sig, 4)
                 GRRDUMP(local_hdr_sig, 4)
@@ -1058,8 +1038,7 @@ int error_in_archive;
             error_in_archive = PK_ERR;
             if ((*pfilnum == 1 && G.extra_bytes != 0L) ||
                 (G.extra_bytes == 0L && *pold_extra_bytes != 0L)) {
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(AttemptRecompensate)));
+                Info(slide, 0x401, ((char *) slide, AttemptRecompensate));
                 if (G.extra_bytes) {
                     *pold_extra_bytes = G.extra_bytes;
                     G.extra_bytes = 0L;
@@ -1069,15 +1048,15 @@ int error_in_archive;
                     (readbuf(G.sig, 4) == 0)) { /* bad offset */
                     if (error != PK_BADERR)
                         Info(slide, 0x401,
-                             ((char *) slide, LoadFarString(OffsetMsg),
-                              *pfilnum, "EOF", (long) request));
+                             ((char *) slide, OffsetMsg, *pfilnum, "EOF",
+                              (long) request));
                     error_in_archive = PK_BADERR;
                     continue; /* but can still try next one */
                 }
                 if (memcmp(G.sig, local_hdr_sig, 4)) {
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(OffsetMsg), *pfilnum,
-                          LoadFarStringSmall(LocalHdrSig), (long) request));
+                         ((char *) slide, OffsetMsg, *pfilnum, LocalHdrSig,
+                          (long) request));
                     error_in_archive = PK_BADERR;
                     continue;
                 }
@@ -1085,8 +1064,7 @@ int error_in_archive;
                 continue; /* this one hosed; try next */
         }
         if ((error = process_local_file_hdr()) != PK_COOL) {
-            Info(slide, 0x421,
-                 ((char *) slide, LoadFarString(BadLocalHdr), *pfilnum));
+            Info(slide, 0x421, ((char *) slide, BadLocalHdr, *pfilnum));
             error_in_archive = error; /* only PK_EOF defined */
             continue;                 /* can still try next one */
         }
@@ -1095,8 +1073,8 @@ int error_in_archive;
             if (QCOND2) {
 #define cFile_PrintBuf G.pInfo->cfilname
                 Info(slide, 0x421,
-                     ((char *) slide, LoadFarStringSmall2(GP11FlagsDiffer),
-                      *pfilnum, FnFilter1(cFile_PrintBuf), G.pInfo->GPFIsUTF8));
+                     ((char *) slide, GP11FlagsDiffer, *pfilnum,
+                      FnFilter1(cFile_PrintBuf), G.pInfo->GPFIsUTF8));
 #undef cFile_PrintBuf
             }
             if (error_in_archive < PK_WARN)
@@ -1107,8 +1085,8 @@ int error_in_archive;
                 error_in_archive = error;
             if (error > PK_WARN) {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(FilNamMsg),
-                      FnFilter1(G.filename), "local"));
+                     ((char *) slide, FilNamMsg, FnFilter1(G.filename),
+                      "local"));
                 continue; /* go on to next one */
             }
         }
@@ -1121,8 +1099,8 @@ int error_in_archive;
                 error_in_archive = error;
             if (error > PK_WARN) {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(ExtFieldMsg),
-                      FnFilter1(G.filename), "local"));
+                     ((char *) slide, ExtFieldMsg, FnFilter1(G.filename),
+                      "local"));
                 continue; /* go on */
             }
         }
@@ -1134,8 +1112,8 @@ int error_in_archive;
             if (strcmp(G.pInfo->cfilname, G.filename) != 0) {
 #define cFile_PrintBuf G.pInfo->cfilname
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarStringSmall2(LvsCFNamMsg),
-                      FnFilter2(cFile_PrintBuf), FnFilter1(G.filename)));
+                     ((char *) slide, LvsCFNamMsg, FnFilter2(cFile_PrintBuf),
+                      FnFilter1(G.filename)));
 #undef cFile_PrintBuf
                 strcpy(G.filename, G.pInfo->cfilname);
                 if (error_in_archive < PK_WARN)
@@ -1155,16 +1133,15 @@ int error_in_archive;
                 if (csiz_decrypted < 12) {
                     /* handle the error now to prevent unsigned overflow */
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipNoFile),
-                          LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(Inflate)));
+                         ((char *) slide, ErrUnzipNoFile, InvalidComprData,
+                          Inflate));
                     return PK_ERR;
                 }
                 csiz_decrypted -= 12;
             }
             if (G.lrec.ucsize != csiz_decrypted) {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarStringSmall2(WrnStorUCSizCSizDiff),
+                     ((char *) slide, WrnStorUCSizCSizDiff,
                       FnFilter1(G.filename), FmZofft(G.lrec.ucsize, NULL, "u"),
                       FmZofft(csiz_decrypted, NULL, "u")));
                 G.lrec.ucsize = csiz_decrypted;
@@ -1177,14 +1154,14 @@ int error_in_archive;
             if (error == PK_WARN) {
                 if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(SkipIncorrectPasswd),
+                         ((char *) slide, SkipIncorrectPasswd,
                           FnFilter1(G.filename)));
                 ++(*pnum_bad_pwd);
             } else { /* (error > PK_WARN) */
                 if (error > error_in_archive)
                     error_in_archive = error;
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(SkipCannotGetPasswd),
+                     ((char *) slide, SkipCannotGetPasswd,
                       FnFilter1(G.filename)));
             }
             continue; /* go on to next file */
@@ -1215,8 +1192,7 @@ int error_in_archive;
                         if (*p == '\\') {
                             if (!G.reported_backslash) {
                                 Info(slide, 0x21,
-                                     ((char *) slide,
-                                      LoadFarString(BackslashPathSep),
+                                     ((char *) slide, BackslashPathSep,
                                       G.zipfn));
                                 G.reported_backslash = TRUE;
                                 if (!error_in_archive)
@@ -1231,7 +1207,7 @@ int error_in_archive;
                 /* remove absolute path specs */
                 if (G.filename[0] == '/') {
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(AbsolutePathWarning),
+                         ((char *) slide, AbsolutePathWarning,
                           FnFilter1(G.filename)));
                     if (!error_in_archive)
                         error_in_archive = PK_WARN;
@@ -1262,8 +1238,7 @@ int error_in_archive;
                          */
                         if (error) {
                             Info(slide, 0x401,
-                                 ((char *) slide,
-                                  LoadFarString(DirlistEntryNoMem)));
+                                 ((char *) slide, DirlistEntryNoMem));
                             if (!error_in_archive)
                                 error_in_archive = PK_WARN;
                         }
@@ -1274,7 +1249,7 @@ int error_in_archive;
                     }
                 } else if (errcode == MPN_VOL_LABEL) {
                     Info(slide, 1,
-                         ((char *) slide, LoadFarString(SkipVolumeLabel),
+                         ((char *) slide, SkipVolumeLabel,
                           FnFilter1(G.filename), ""));
                 } else if (errcode > MPN_INF_SKIP && error_in_archive < PK_ERR)
                     error_in_archive = PK_ERR;
@@ -1310,11 +1285,10 @@ int error_in_archive;
                 extent fnlen;
             reprompt:
                 Info(slide, 0x81,
-                     ((char *) slide, LoadFarString(ReplaceQuery),
-                      FnFilter1(G.filename)));
+                     ((char *) slide, ReplaceQuery, FnFilter1(G.filename)));
                 if (fgets(G.answerbuf, sizeof(G.answerbuf), stdin) ==
                     (char *) NULL) {
-                    Info(slide, 1, ((char *) slide, LoadFarString(AssumeNone)));
+                    Info(slide, 1, ((char *) slide, AssumeNone));
                     *G.answerbuf = 'N';
                     if (!error_in_archive)
                         error_in_archive = 1; /* not extracted:  warning */
@@ -1323,8 +1297,7 @@ int error_in_archive;
                 case 'r':
                 case 'R':
                     do {
-                        Info(slide, 0x81,
-                             ((char *) slide, LoadFarString(NewNameQuery)));
+                        Info(slide, 0x81, ((char *) slide, NewNameQuery));
                         fgets(G.filename, FILNAMSIZ, stdin);
                         /* usually get \n here:  better check for it */
                         fnlen = strlen(G.filename);
@@ -1361,8 +1334,7 @@ int error_in_archive;
                     if (lastchar(G.answerbuf, fnlen) == '\n')
                         G.answerbuf[--fnlen] = '\0';
                     Info(slide, 1,
-                         ((char *) slide, LoadFarString(InvalidResponse),
-                          G.answerbuf));
+                         ((char *) slide, InvalidResponse, G.answerbuf));
                     goto reprompt; /* yet another goto? */
                 }                  /* end switch (*answerbuf) */
             }                      /* end if (query) */
@@ -1382,13 +1354,11 @@ int error_in_archive;
         error = cover_add((cover_t *) G.cover, request,
                           G.cur_zipfile_bufstart + (G.inptr - G.inbuf));
         if (error < 0) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(NotEnoughMemCover)));
+            Info(slide, 0x401, ((char *) slide, NotEnoughMemCover));
             return PK_MEM;
         }
         if (error != 0) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(OverlappedComponents)));
+            Info(slide, 0x401, ((char *) slide, OverlappedComponents));
             return PK_BOMB;
         }
     } /* end for-loop (i:  files in current block) */
@@ -1424,8 +1394,8 @@ static int extract_or_test_member() /* return PK-type error code */
     if (uO.tflag) {
         if (!uO.qflag)
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(ExtractMsg), "test",
-                  FnFilter1(G.filename), "", ""));
+                 ((char *) slide, ExtractMsg, "test", FnFilter1(G.filename), "",
+                  ""));
     } else {
         if (uO.cflag) {
             G.outfile = stdout;
@@ -1444,11 +1414,11 @@ static int extract_or_test_member() /* return PK-type error code */
         if (!uO.tflag && QCOND2) {
             if (G.symlnk) /* can also be deflated, but rarer... */
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(ExtractMsg), "link",
-                      FnFilter1(G.filename), "", ""));
+                     ((char *) slide, ExtractMsg, "link", FnFilter1(G.filename),
+                      "", ""));
             else
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(ExtractMsg), "extract",
+                     ((char *) slide, ExtractMsg, "extract",
                       FnFilter1(G.filename),
                       (uO.aflag !=
                        1 /* && G.pInfo->textfile==G.pInfo->textmode */)
@@ -1480,8 +1450,7 @@ static int extract_or_test_member() /* return PK-type error code */
     case SHRUNK:
         if (!uO.tflag && QCOND2) {
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(ExtractMsg),
-                  LoadFarStringSmall(Unshrink), FnFilter1(G.filename),
+                 ((char *) slide, ExtractMsg, Unshrink, FnFilter1(G.filename),
                   (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
                       ? ""
                       : (G.pInfo->textfile ? txt : bin),
@@ -1491,17 +1460,14 @@ static int extract_or_test_member() /* return PK-type error code */
             if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipFile),
-                          r == PK_MEM3 ? LoadFarString(NotEnoughMem)
-                                       : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(Unshrink),
-                          FnFilter1(G.filename)));
+                         ((char *) slide, ErrUnzipFile,
+                          r == PK_MEM3 ? NotEnoughMem : InvalidComprData,
+                          Unshrink, FnFilter1(G.filename)));
                 else
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipNoFile),
-                          r == PK_MEM3 ? LoadFarString(NotEnoughMem)
-                                       : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(Unshrink)));
+                         ((char *) slide, ErrUnzipNoFile,
+                          r == PK_MEM3 ? NotEnoughMem : InvalidComprData,
+                          Unshrink));
             }
             error = r;
         }
@@ -1510,8 +1476,7 @@ static int extract_or_test_member() /* return PK-type error code */
     case IMPLODED:
         if (!uO.tflag && QCOND2) {
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(ExtractMsg), "explod",
-                  FnFilter1(G.filename),
+                 ((char *) slide, ExtractMsg, "explod", FnFilter1(G.filename),
                   (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
                       ? ""
                       : (G.pInfo->textfile ? txt : bin),
@@ -1523,7 +1488,7 @@ static int extract_or_test_member() /* return PK-type error code */
 
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(LengthMsg), "",
+                         ((char *) slide, LengthMsg, "",
                           warning ? "warning" : "error",
                           FmZofft(G.used_csize, NULL, NULL),
                           FmZofft(G.lrec.ucsize, NULL, "u"),
@@ -1531,7 +1496,7 @@ static int extract_or_test_member() /* return PK-type error code */
                           " [", FnFilter1(G.filename), "]"));
                 else
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(LengthMsg), "\n",
+                         ((char *) slide, LengthMsg, "\n",
                           warning ? "warning" : "error",
                           FmZofft(G.used_csize, NULL, NULL),
                           FmZofft(G.lrec.ucsize, NULL, "u"),
@@ -1541,16 +1506,13 @@ static int extract_or_test_member() /* return PK-type error code */
             } else if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipFile),
-                          r == 3 ? LoadFarString(NotEnoughMem)
-                                 : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(Explode), FnFilter1(G.filename)));
+                         ((char *) slide, ErrUnzipFile,
+                          r == 3 ? NotEnoughMem : InvalidComprData, Explode,
+                          FnFilter1(G.filename)));
                 else
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipNoFile),
-                          r == 3 ? LoadFarString(NotEnoughMem)
-                                 : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(Explode)));
+                         ((char *) slide, ErrUnzipNoFile,
+                          r == 3 ? NotEnoughMem : InvalidComprData, Explode));
                 error = ((r == 3) ? PK_MEM3 : PK_ERR);
             } else {
                 error = r;
@@ -1562,8 +1524,7 @@ static int extract_or_test_member() /* return PK-type error code */
     case ENHDEFLATED:
         if (!uO.tflag && QCOND2) {
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(ExtractMsg), "inflat",
-                  FnFilter1(G.filename),
+                 ((char *) slide, ExtractMsg, "inflat", FnFilter1(G.filename),
                   (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
                       ? ""
                       : (G.pInfo->textfile ? txt : bin),
@@ -1574,16 +1535,13 @@ static int extract_or_test_member() /* return PK-type error code */
             if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipFile),
-                          r == 3 ? LoadFarString(NotEnoughMem)
-                                 : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(Inflate), FnFilter1(G.filename)));
+                         ((char *) slide, ErrUnzipFile,
+                          r == 3 ? NotEnoughMem : InvalidComprData, Inflate,
+                          FnFilter1(G.filename)));
                 else
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipNoFile),
-                          r == 3 ? LoadFarString(NotEnoughMem)
-                                 : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(Inflate)));
+                         ((char *) slide, ErrUnzipNoFile,
+                          r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
                 error = ((r == 3) ? PK_MEM3 : PK_ERR);
             } else {
                 error = r;
@@ -1594,8 +1552,7 @@ static int extract_or_test_member() /* return PK-type error code */
     case BZIPPED:
         if (!uO.tflag && QCOND2) {
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(ExtractMsg), "bunzipp",
-                  FnFilter1(G.filename),
+                 ((char *) slide, ExtractMsg, "bunzipp", FnFilter1(G.filename),
                   (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
                       ? ""
                       : (G.pInfo->textfile ? txt : bin),
@@ -1605,16 +1562,13 @@ static int extract_or_test_member() /* return PK-type error code */
             if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipFile),
-                          r == 3 ? LoadFarString(NotEnoughMem)
-                                 : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(BUnzip), FnFilter1(G.filename)));
+                         ((char *) slide, ErrUnzipFile,
+                          r == 3 ? NotEnoughMem : InvalidComprData, BUnzip,
+                          FnFilter1(G.filename)));
                 else
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarStringSmall(ErrUnzipNoFile),
-                          r == 3 ? LoadFarString(NotEnoughMem)
-                                 : LoadFarString(InvalidComprData),
-                          LoadFarStringSmall2(BUnzip)));
+                         ((char *) slide, ErrUnzipNoFile,
+                          r == 3 ? NotEnoughMem : InvalidComprData, BUnzip));
                 error = ((r == 3) ? PK_MEM3 : PK_ERR);
             } else {
                 error = r;
@@ -1624,8 +1578,7 @@ static int extract_or_test_member() /* return PK-type error code */
 
     default: /* should never get to this point */
         Info(slide, 0x401,
-             ((char *) slide, LoadFarString(FileUnknownCompMethod),
-              FnFilter1(G.filename)));
+             ((char *) slide, FileUnknownCompMethod, FnFilter1(G.filename)));
         /* close and delete file before return? */
         undefer_input();
         return PK_WARN;
@@ -1665,10 +1618,9 @@ static int extract_or_test_member() /* return PK-type error code */
         if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
             Info(slide, 0x401,
                  ((char *) slide, "%-22s ", FnFilter1(G.filename)));
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(BadCRC), G.crc32val, G.lrec.crc32));
+        Info(slide, 0x401, ((char *) slide, BadCRC, G.crc32val, G.lrec.crc32));
         if (G.pInfo->encrypted)
-            Info(slide, 0x401, ((char *) slide, LoadFarString(MaybeBadPasswd)));
+            Info(slide, 0x401, ((char *) slide, MaybeBadPasswd));
         error = PK_ERR;
     } else if (uO.tflag) {
         if (G.extra_field) {
@@ -1737,7 +1689,7 @@ unsigned ef_len;
                 Info(slide, 1,
                      ((char *) slide, "%-22s ", FnFilter1(G.filename)));
             Info(slide, 1,
-                 ((char *) slide, LoadFarString(InconsistEFlength), ebLen,
+                 ((char *) slide, InconsistEFlength, ebLen,
                   (ef_len - EB_HEADSIZE)));
             return PK_ERR;
         }
@@ -1779,31 +1731,26 @@ unsigned ef_len;
                 switch (r) {
                 case IZ_EF_TRUNC:
                     Info(slide, 1,
-                         ((char *) slide, LoadFarString(TruncEAs),
+                         ((char *) slide, TruncEAs,
                           ebLen - (eb_cmpr_offs + EB_CMPRHEADLEN), "\n"));
                     break;
                 case PK_ERR:
-                    Info(slide, 1,
-                         ((char *) slide, LoadFarString(InvalidComprDataEAs)));
+                    Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
                     break;
                 case PK_MEM3:
                 case PK_MEM4:
-                    Info(slide, 1,
-                         ((char *) slide, LoadFarString(NotEnoughMemEAs)));
+                    Info(slide, 1, ((char *) slide, NotEnoughMemEAs));
                     break;
                 default:
                     if ((r & 0xff) != PK_ERR)
-                        Info(slide, 1,
-                             ((char *) slide, LoadFarString(UnknErrorEAs)));
+                        Info(slide, 1, ((char *) slide, UnknErrorEAs));
                     else {
                         ush m = (ush) (r >> 8);
                         if (m == DEFLATED) /* GRR KLUDGE! */
-                            Info(slide, 1,
-                                 ((char *) slide, LoadFarString(BadCRC_EAs)));
+                            Info(slide, 1, ((char *) slide, BadCRC_EAs));
                         else
                             Info(slide, 1,
-                                 ((char *) slide,
-                                  LoadFarString(UnknComprMethodEAs), m));
+                                 ((char *) slide, UnknComprMethodEAs, m));
                     }
                     break;
                 }
@@ -1825,37 +1772,32 @@ unsigned ef_len;
                 switch (r) {
                 case IZ_EF_TRUNC:
                     Info(slide, 1,
-                         ((char *) slide, LoadFarString(TruncNTSD),
+                         ((char *) slide, TruncNTSD,
                           ebLen - (EB_NTSD_L_LEN + EB_CMPRHEADLEN), "\n"));
                     break;
                 case PK_ERR:
-                    Info(slide, 1,
-                         ((char *) slide, LoadFarString(InvalidComprDataEAs)));
+                    Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
                     break;
                 case PK_MEM3:
                 case PK_MEM4:
-                    Info(slide, 1,
-                         ((char *) slide, LoadFarString(NotEnoughMemEAs)));
+                    Info(slide, 1, ((char *) slide, NotEnoughMemEAs));
                     break;
                 case (PK_WARN | 0x4000):
                     Info(slide, 1,
-                         ((char *) slide, LoadFarString(UnsuppNTSDVersEAs),
+                         ((char *) slide, UnsuppNTSDVersEAs,
                           (int) ef[EB_HEADSIZE + EB_NTSD_VERSION]));
                     r = PK_WARN;
                     break;
                 default:
                     if ((r & 0xff) != PK_ERR)
-                        Info(slide, 1,
-                             ((char *) slide, LoadFarString(UnknErrorEAs)));
+                        Info(slide, 1, ((char *) slide, UnknErrorEAs));
                     else {
                         ush m = (ush) (r >> 8);
                         if (m == DEFLATED) /* GRR KLUDGE! */
-                            Info(slide, 1,
-                                 ((char *) slide, LoadFarString(BadCRC_EAs)));
+                            Info(slide, 1, ((char *) slide, BadCRC_EAs));
                         else
                             Info(slide, 1,
-                                 ((char *) slide,
-                                  LoadFarString(UnknComprMethodEAs), m));
+                                 ((char *) slide, UnknComprMethodEAs, m));
                     }
                     break;
                 }
@@ -1864,13 +1806,11 @@ unsigned ef_len;
             break;
         case EF_PKVMS:
             if (ebLen < 4) {
-                Info(slide, 1,
-                     ((char *) slide, LoadFarString(TooSmallEBlength), ebLen,
-                      4));
+                Info(slide, 1, ((char *) slide, TooSmallEBlength, ebLen, 4));
             } else if (makelong(ef + EB_HEADSIZE) !=
                        crc32(CRCVAL_INITIAL, ef + (EB_HEADSIZE + 4),
                              (extent) (ebLen - 4))) {
-                Info(slide, 1, ((char *) slide, LoadFarString(BadCRC_EAs)));
+                Info(slide, 1, ((char *) slide, BadCRC_EAs));
             }
             break;
         case EF_PKW32:
@@ -1980,10 +1920,8 @@ ulg srcsize;
         if ((r = UZinflate((method == ENHDEFLATED))) != 0) {
             if (!uO.tflag)
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarStringSmall(ErrUnzipNoFile),
-                      r == 3 ? LoadFarString(NotEnoughMem)
-                             : LoadFarString(InvalidComprData),
-                      LoadFarStringSmall2(Inflate)));
+                     ((char *) slide, ErrUnzipNoFile,
+                      r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
             error = (r == 3) ? PK_MEM3 : PK_ERR;
         }
         if (G.outcnt == 0L) /* inflate's final FLUSH sets outcnt */
@@ -1993,9 +1931,7 @@ ulg srcsize;
         if (uO.tflag)
             error = PK_ERR | ((int) method << 8);
         else {
-            Info(
-                slide, 0x401,
-                ((char *) slide, LoadFarString(UnsupportedExtraField), method));
+            Info(slide, 0x401, ((char *) slide, UnsupportedExtraField, method));
             error = PK_ERR; /* GRR:  should be passed on up via SetEAs() */
         }
         break;
@@ -2014,8 +1950,8 @@ ulg srcsize;
                 error = PK_ERR | (DEFLATED << 8); /* kludge for now */
             else {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(BadExtraFieldCRC), G.zipfn,
-                      crcval, extra_field_crc));
+                     ((char *) slide, BadExtraFieldCRC, G.zipfn, crcval,
+                      extra_field_crc));
                 error = PK_ERR;
             }
         }
@@ -2049,8 +1985,7 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
 
     if (!linktarget) {
         Info(slide, 0x201,
-             ((char *) slide, LoadFarString(SymLnkWarnNoMem),
-              FnFilter1(linkfname)));
+             ((char *) slide, SymLnkWarnNoMem, FnFilter1(linkfname)));
         return;
     }
     linktarget[ucsize] = '\0';
@@ -2066,8 +2001,7 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
     if (!G.outfile || fread(linktarget, 1, ucsize + 1, G.outfile) != ucsize ||
         strcmp(slnk_entry->target, linktarget)) {
         Info(slide, 0x201,
-             ((char *) slide, LoadFarString(SymLnkWarnInvalid),
-              FnFilter1(linkfname)));
+             ((char *) slide, SymLnkWarnInvalid, FnFilter1(linkfname)));
         free(linktarget);
         if (G.outfile)
             fclose(G.outfile);
@@ -2077,7 +2011,7 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
     unlink(linkfname); /* ...and delete it */
     if (QCOND2)
         Info(slide, 0,
-             ((char *) slide, LoadFarString(SymLnkFinish), FnFilter1(linkfname),
+             ((char *) slide, SymLnkFinish, FnFilter1(linkfname),
               FnFilter2(linktarget)));
     if (symlink(linktarget, linkfname)) /* create the real link */
         perror("symlink error");

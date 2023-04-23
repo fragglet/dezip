@@ -111,8 +111,7 @@ int open_input_file() /* return 1 if open failed */
     /* if (G.zipfd < 0) */ /* no good for Windows CE port */
     if (G.zipfd == -1) {
         Info(slide, 0x401,
-             ((char *) slide, LoadFarString(CannotOpenZipfile), G.zipfn,
-              strerror(errno)));
+             ((char *) slide, CannotOpenZipfile, G.zipfn, strerror(errno)));
         return 1;
     }
     return 0;
@@ -128,7 +127,7 @@ int open_outfile() /* return 1 if fail */
         {
             if (unlink(G.filename) != 0) {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(CannotDeleteOldFile),
+                     ((char *) slide, CannotDeleteOldFile,
                       FnFilter1(G.filename), strerror(errno)));
                 return 1;
             }
@@ -165,8 +164,8 @@ int open_outfile() /* return 1 if fail */
     }
     if (G.outfile == (FILE *) NULL) {
         Info(slide, 0x401,
-             ((char *) slide, LoadFarString(CannotCreateFile),
-              FnFilter1(G.filename), strerror(errno)));
+             ((char *) slide, CannotCreateFile, FnFilter1(G.filename),
+              strerror(errno)));
         return 1;
     }
     Trace((stderr, "open_outfile:  fopen(%s) for writing succeeded\n",
@@ -239,9 +238,8 @@ register unsigned size;
                 return (n - size);
             else if (G.incnt < 0) {
                 /* another hack, but no real harm copying same thing twice */
-                (*G.message)(
-                    (uch *) LoadFarString(ReadError), /* CANNOT use slide */
-                    (ulg) strlen(LoadFarString(ReadError)), 0x401);
+                (*G.message)((uch *) ReadError, /* CANNOT use slide */
+                             (ulg) strlen(ReadError), 0x401);
                 return 0; /* discarding some data; better than lock-up */
             }
             /* buffer ALWAYS starts on a block boundary:  */
@@ -273,8 +271,7 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
             return EOF;
         } else if (G.incnt < 0) { /* "fail" (abort, retry, ...) returns this */
             /* another hack, but no real harm copying same thing twice */
-            (*G.message)((uch *) LoadFarString(ReadError),
-                         (ulg) strlen(LoadFarString(ReadError)), 0x401);
+            (*G.message)((uch *) ReadError, (ulg) strlen(ReadError), 0x401);
             echon();
             exit(PK_BADERR); /* totally bailing; better than lock-up */
         }
@@ -348,9 +345,7 @@ zoff_t abs_offset;
     zoff_t bufstart = request - inbuf_offset;
 
     if (request < 0) {
-        Info(slide, 1,
-             ((char *) slide, LoadFarStringSmall(SeekMsg), G.zipfn,
-              LoadFarString(ReportMsg)));
+        Info(slide, 1, ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
         return (PK_BADERR);
     } else if (bufstart != G.cur_zipfile_bufstart) {
         Trace((stderr, "fpos_zip: abs_offset = %s, G.extra_bytes = %s\n",
@@ -479,8 +474,7 @@ int unshrink;
 static int disk_error()
 {
     /* OK to use slide[] here because this file is finished regardless */
-    Info(slide, 0x4a1,
-         ((char *) slide, LoadFarString(DiskFullQuery), FnFilter1(G.filename)));
+    Info(slide, 0x4a1, ((char *) slide, DiskFullQuery, FnFilter1(G.filename)));
 
     fgets(G.answerbuf, sizeof(G.answerbuf), stdin);
     if (*G.answerbuf == 'y') /* stop writing to this file */
@@ -589,7 +583,7 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
         c = (uch) zgetch(0);
 
     /* newline was not echoed, so cover up prompt line */
-    fprintf(stderr, LoadFarString(HidePrompt));
+    fprintf(stderr, HidePrompt);
     fflush(stderr);
 
     if ((ToLower(c) == 'q')) {
@@ -626,15 +620,14 @@ const char *efn; /* name of archive entry being processed */
         }
         if ((isOverflow == FALSE) &&
             ((prompt = (char *) malloc(2 * FILNAMSIZ + 15)) != (char *) NULL)) {
-            sprintf(prompt, LoadFarString(PasswPrompt), FnFilter1(zfn),
-                    FnFilter2(efn));
+            sprintf(prompt, PasswPrompt, FnFilter1(zfn), FnFilter2(efn));
             m = prompt;
         } else
-            m = (char *) LoadFarString(PasswPrompt2);
+            m = (char *) PasswPrompt2;
     } else { /* Retry call, previous password was wrong */
         (*rcnt)--;
         prompt = NULL;
-        m = (char *) LoadFarString(PasswRetry);
+        m = (char *) PasswRetry;
     }
 
     m = getp(m, pwbuf, size);
@@ -661,8 +654,7 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
 
 #ifdef SIGBUS
     if (signal == SIGBUS) {
-        Info(slide, 0x421,
-             ((char *) slide, LoadFarString(ZipfileCorrupt), "bus error"));
+        Info(slide, 0x421, ((char *) slide, ZipfileCorrupt, "bus error"));
         exit(PK_BADERR);
     }
 #endif /* SIGBUS */
@@ -670,8 +662,7 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
 #ifdef SIGILL
     if (signal == SIGILL) {
         Info(slide, 0x421,
-             ((char *) slide, LoadFarString(ZipfileCorrupt),
-              "illegal instruction"));
+             ((char *) slide, ZipfileCorrupt, "illegal instruction"));
         exit(PK_BADERR);
     }
 #endif /* SIGILL */
@@ -679,8 +670,7 @@ void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
 #ifdef SIGSEGV
     if (signal == SIGSEGV) {
         Info(slide, 0x421,
-             ((char *) slide, LoadFarString(ZipfileCorrupt),
-              "segmentation violation"));
+             ((char *) slide, ZipfileCorrupt, "segmentation violation"));
         exit(PK_BADERR);
     }
 #endif /* SIGSEGV */
@@ -745,8 +735,8 @@ char *filename;               /*  exist yet */
                  FnFilter1(filename)));
             if (QCOND2 && !IS_OVERWRT_ALL)
                 Info(slide, 0,
-                     ((char *) slide, LoadFarString(FileIsSymLink),
-                      FnFilter1(filename), " with no real file"));
+                     ((char *) slide, FileIsSymLink, FnFilter1(filename),
+                      " with no real file"));
             return EXISTS_AND_OLDER; /* symlink dates are meaningless */
         }
         return DOES_NOT_EXIST;
@@ -760,8 +750,7 @@ char *filename;               /*  exist yet */
                FnFilter1(filename)));
         if (QCOND2 && !IS_OVERWRT_ALL)
             Info(slide, 0,
-                 ((char *) slide, LoadFarString(FileIsSymLink),
-                  FnFilter1(filename), ""));
+                 ((char *) slide, FileIsSymLink, FnFilter1(filename), ""));
         return EXISTS_AND_OLDER; /* symlink dates are meaningless */
     }
 
@@ -896,7 +885,7 @@ int option;
                     (*G.message)(slide, (ulg) (q - slide), 0);
                     q = slide;
                     if (pause && G.extract_flag) /* don't pause for list/test */
-                        (*G.mpause)(LoadFarString(QuitPrompt), 0);
+                        (*G.mpause)(QuitPrompt, 0);
                 }
             }
             (*G.message)(slide, (ulg) (q - slide), 0);
@@ -932,8 +921,7 @@ int option;
 
         /* if needed, chop off end so standard filename is a valid length */
         if (length >= FILNAMSIZ) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(FilenameTooLongTrunc)));
+            Info(slide, 0x401, ((char *) slide, FilenameTooLongTrunc));
             error = PK_WARN;
             length = FILNAMSIZ - 1;
         }
@@ -989,8 +977,7 @@ int option;
         if (G.extra_field != (uch *) NULL)
             free(G.extra_field);
         if ((G.extra_field = (uch *) malloc(length)) == (uch *) NULL) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(ExtraFieldTooLong), length));
+            Info(slide, 0x401, ((char *) slide, ExtraFieldTooLong, length));
             /* cur_zipfile_bufstart already takes account of extra_bytes,
              * so don't correct for it twice: */
             seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes +
@@ -1001,8 +988,7 @@ int option;
             /* Looks like here is where extra fields are read */
             if (getZip64Data(G.extra_field, length) != PK_COOL) {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(ExtraFieldCorrupt),
-                      EF_PKSZ64));
+                     ((char *) slide, ExtraFieldCorrupt, EF_PKSZ64));
                 error = PK_WARN;
             }
             G.unipath_filename = NULL;
@@ -1028,8 +1014,7 @@ int option;
                         if (strlen(G.unipath_filename) >= FILNAMSIZ) {
                             G.filename[FILNAMSIZ - 1] = '\0';
                             Info(slide, 0x401,
-                                 ((char *) slide,
-                                  LoadFarString(UFilenameTooLongTrunc)));
+                                 ((char *) slide, UFilenameTooLongTrunc));
                             error = PK_WARN;
                         }
                     } else {
@@ -1045,16 +1030,14 @@ int option;
                          */
                         if (fn == NULL) {
                             Info(slide, 0x401,
-                                 ((char *) slide,
-                                  LoadFarString(UFilenameCorrupt)));
+                                 ((char *) slide, UFilenameCorrupt));
                             error = PK_ERR;
                         } else {
                             /* make sure filename is short enough */
                             if (strlen(fn) >= FILNAMSIZ) {
                                 fn[FILNAMSIZ - 1] = '\0';
                                 Info(slide, 0x401,
-                                     ((char *) slide,
-                                      LoadFarString(UFilenameTooLongTrunc)));
+                                     ((char *) slide, UFilenameTooLongTrunc));
                                 error = PK_WARN;
                             }
                             /* replace filename with converted UTF-8 */

@@ -121,8 +121,7 @@ int process_zipfiles() /* return PK-type error code */
     G.outbuf = (uch *) malloc(OUTBUFSIZ + 1); /* 1 extra for string term. */
 
     if ((G.inbuf == (uch *) NULL) || (G.outbuf == (uch *) NULL)) {
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(CannotAllocateBuffers)));
+        Info(slide, 0x401, ((char *) slide, CannotAllocateBuffers));
         return (PK_MEM);
     }
     G.hold = G.inbuf + INBUFSIZ; /* to check for boundary-spanning sigs */
@@ -281,28 +280,27 @@ int process_zipfiles() /* return PK-type error code */
             (NumWinFiles == 1 &&
              NumMissDirs + NumMissFiles + NumLoseFiles + NumWarnFiles > 0))
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(FilesProcessOK), NumWinFiles,
+                 ((char *) slide, FilesProcessOK, NumWinFiles,
                   (NumWinFiles == 1) ? " was" : "s were"));
         if (NumWarnFiles > 0)
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(ArchiveWarning), NumWarnFiles,
+                 ((char *) slide, ArchiveWarning, NumWarnFiles,
                   (NumWarnFiles == 1) ? "" : "s"));
         if (NumLoseFiles > 0)
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(ArchiveFatalError),
-                  NumLoseFiles, (NumLoseFiles == 1) ? "" : "s"));
+                 ((char *) slide, ArchiveFatalError, NumLoseFiles,
+                  (NumLoseFiles == 1) ? "" : "s"));
         if (NumMissFiles > 0)
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(FileHadNoZipfileDir),
-                  NumMissFiles, (NumMissFiles == 1) ? "" : "s"));
+                 ((char *) slide, FileHadNoZipfileDir, NumMissFiles,
+                  (NumMissFiles == 1) ? "" : "s"));
         if (NumMissDirs == 1)
-            Info(slide, 0x401, ((char *) slide, LoadFarString(ZipfileWasDir)));
+            Info(slide, 0x401, ((char *) slide, ZipfileWasDir));
         else if (NumMissDirs > 0)
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(ManyZipfilesWereDir),
-                  NumMissDirs));
+                 ((char *) slide, ManyZipfilesWereDir, NumMissDirs));
         if (NumWinFiles + NumLoseFiles + NumWarnFiles == 0)
-            Info(slide, 0x401, ((char *) slide, LoadFarString(NoZipfileFound)));
+            Info(slide, 0x401, ((char *) slide, NoZipfileFound));
     }
 
     /* free allocated memory */
@@ -390,14 +388,12 @@ int lastchance;
         if (lastchance && (uO.qflag < 3)) {
             if (G.no_ecrec)
                 Info(slide, 1,
-                     ((char *) slide, LoadFarString(CannotFindZipfileDirMsg),
-                      LoadFarStringSmall(Unzip), G.wildzipfn, "", G.wildzipfn,
-                      G.zipfn));
+                     ((char *) slide, CannotFindZipfileDirMsg, Unzip,
+                      G.wildzipfn, "", G.wildzipfn, G.zipfn));
             else
                 Info(slide, 1,
-                     ((char *) slide, LoadFarString(CannotFindEitherZipfile),
-                      LoadFarStringSmall(Unzip), G.wildzipfn, G.wildzipfn,
-                      G.zipfn));
+                     ((char *) slide, CannotFindEitherZipfile, Unzip,
+                      G.wildzipfn, G.wildzipfn, G.zipfn));
         }
         return error ? IZ_DIR : PK_NOZIP;
     }
@@ -414,7 +410,7 @@ int lastchance;
     G.ziplen = file_size(G.zipfd);
 
     if (G.ziplen == EOF) {
-        Info(slide, 0x401, ((char *) slide, LoadFarString(ZipfileTooBig)));
+        Info(slide, 0x401, ((char *) slide, ZipfileTooBig));
         /*
         printf(
 " We need a better error message for: 64-bit file, 32-bit program.\n");
@@ -434,14 +430,13 @@ int lastchance;
     G.inptr = G.inbuf;
 
     if ((!uO.qflag && !uO.T_flag))
-        Info(slide, 0, ((char *) slide, LoadFarString(LogInitline), G.zipfn));
+        Info(slide, 0, ((char *) slide, LogInitline, G.zipfn));
 
     if ((error_in_archive = find_ecrec(MIN(G.ziplen, 66000L))) > PK_WARN) {
         CLOSE_INFILE();
 
         if (maybe_exe)
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(MaybeExe), G.zipfn));
+            Info(slide, 0x401, ((char *) slide, MaybeExe, G.zipfn));
         if (lastchance)
             return error_in_archive;
         else {
@@ -465,14 +460,14 @@ int lastchance;
     if (G.ecrec.number_this_disk != G.ecrec.num_disk_start_cdir) {
         if (G.ecrec.number_this_disk > G.ecrec.num_disk_start_cdir) {
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(CentDirNotInZipMsg), G.zipfn,
+                 ((char *) slide, CentDirNotInZipMsg, G.zipfn,
                   (ulg) G.ecrec.number_this_disk,
                   (ulg) G.ecrec.num_disk_start_cdir));
             error_in_archive = PK_FIND;
             too_weird_to_continue = TRUE;
         } else {
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(EndCentDirBogus), G.zipfn,
+                 ((char *) slide, EndCentDirBogus, G.zipfn,
                   (ulg) G.ecrec.number_this_disk,
                   (ulg) G.ecrec.num_disk_start_cdir));
             error_in_archive = PK_WARN;
@@ -481,14 +476,13 @@ int lastchance;
 
     if (!too_weird_to_continue) { /* (relatively) normal zipfile:  go for it */
         if (error) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(MaybePakBug), G.zipfn));
+            Info(slide, 0x401, ((char *) slide, MaybePakBug, G.zipfn));
             error_in_archive = PK_WARN;
         }
         if ((G.extra_bytes = G.real_ecrec_offset - G.expect_ecrec_offset) <
             (zoff_t) 0) {
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(MissingBytes), G.zipfn,
+                 ((char *) slide, MissingBytes, G.zipfn,
                   FmZofft((-G.extra_bytes), NULL, NULL)));
             error_in_archive = PK_ERR;
         } else if (G.extra_bytes > 0) {
@@ -496,14 +490,13 @@ int lastchance;
                 (G.ecrec.size_central_directory != 0)) /* zip 1.5 -go bug */
             {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(NullCentDirOffset),
-                      G.zipfn));
+                     ((char *) slide, NullCentDirOffset, G.zipfn));
                 G.ecrec.offset_start_central_directory = G.extra_bytes;
                 G.extra_bytes = 0;
                 error_in_archive = PK_ERR;
             } else {
                 Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(ExtraBytesAtStart), G.zipfn,
+                     ((char *) slide, ExtraBytesAtStart, G.zipfn,
                       FmZofft(G.extra_bytes, NULL, NULL),
                       (G.extra_bytes == 1) ? "" : "s"));
                 error_in_archive = PK_WARN;
@@ -516,8 +509,7 @@ int lastchance;
 
         if (G.expect_ecrec_offset == 0L &&
             G.ecrec.size_central_directory == 0) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(ZipfileEmpty), G.zipfn));
+            Info(slide, 0x401, ((char *) slide, ZipfileEmpty, G.zipfn));
             CLOSE_INFILE();
             return (error_in_archive > PK_WARN) ? error_in_archive : PK_WARN;
         }
@@ -545,13 +537,13 @@ int lastchance;
                 memcmp(G.sig, central_hdr_sig, 4)) {
                 if (error != PK_BADERR)
                     Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(CentDirStartNotFound),
-                          G.zipfn, LoadFarStringSmall(ReportMsg)));
+                         ((char *) slide, CentDirStartNotFound, G.zipfn,
+                          ReportMsg));
                 CLOSE_INFILE();
                 return (error != PK_OK ? error : PK_BADERR);
             }
             Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(CentDirTooLong), G.zipfn,
+                 ((char *) slide, CentDirTooLong, G.zipfn,
                   FmZofft((-tmp), NULL, NULL)));
             error_in_archive = PK_ERR;
         }
@@ -593,15 +585,12 @@ int lastchance;
         if (stamp_file(G.zipfn, uxstamp)) { /* TIME-STAMP 'EM */
             if (uO.qflag < 3)
                 Info(slide, 0x201,
-                     ((char *) slide, LoadFarString(ZipTimeStampFailed),
-                      G.zipfn));
+                     ((char *) slide, ZipTimeStampFailed, G.zipfn));
             if (error_in_archive < PK_WARN)
                 error_in_archive = PK_WARN;
         } else {
             if (!uO.qflag)
-                Info(slide, 0,
-                     ((char *) slide, LoadFarString(ZipTimeStampSuccess),
-                      G.zipfn));
+                Info(slide, 0, ((char *) slide, ZipTimeStampSuccess, G.zipfn));
         }
     }
     return error_in_archive;
@@ -752,8 +741,7 @@ zoff_t searchlen;
         (ECLOC64_SIZE + 4)) {
         if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
+        Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
         return PK_ERR;
     }
 
@@ -804,8 +792,7 @@ zoff_t searchlen;
         /* ecrec64 has to be before ecrec64 locator */
         if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
+        Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
         return PK_ERR;
     }
 
@@ -815,8 +802,7 @@ zoff_t searchlen;
         (ECREC64_SIZE + 4)) {
         if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
+        Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
         return PK_ERR;
     }
 
@@ -835,8 +821,7 @@ zoff_t searchlen;
             (ECREC64_SIZE + 4)) {
             if (uO.qflag)
                 Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
+            Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
             return PK_ERR;
         }
 
@@ -845,15 +830,13 @@ zoff_t searchlen;
             /* Probably something not so easy to handle so exit */
             if (uO.qflag)
                 Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(Cent64EndSigSearchErr)));
+            Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
             return PK_ERR;
         }
 
         if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(Cent64EndSigSearchOff)));
+        Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchOff));
     }
 
     /* Check consistency of found ecrec64 with ecloc64 (and ecrec): */
@@ -982,8 +965,7 @@ zoff_t searchlen;
     if (!found) {
         if (uO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
-        Info(slide, 0x401,
-             ((char *) slide, LoadFarString(CentDirEndSigNotFound)));
+        Info(slide, 0x401, ((char *) slide, CentDirEndSigNotFound));
         return PK_ERR; /* failed */
     }
 
@@ -1063,8 +1045,7 @@ static int process_zip_cmmnt() /* return PK-type error code */
     if (G.ecrec.zipfile_comment_length &&
         (uO.zflag > 0 || (uO.zflag == 0 && !uO.T_flag && !uO.qflag))) {
         if (do_string(G.ecrec.zipfile_comment_length, DISPLAY)) {
-            Info(slide, 0x401,
-                 ((char *) slide, LoadFarString(ZipfileCommTrunc1)));
+            Info(slide, 0x401, ((char *) slide, ZipfileCommTrunc1));
             error = PK_WARN;
         }
     }
@@ -1371,8 +1352,7 @@ unsigned ef_len;                       /* total length of extra field */
             offset += 1;
             if (G.unipath_version > 1) {
                 /* can do only version 1 */
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(UnicodeVersionError)));
+                Info(slide, 0x401, ((char *) slide, UnicodeVersionError));
                 return PK_ERR;
             }
 
@@ -1391,8 +1371,7 @@ unsigned ef_len;                       /* total length of extra field */
              * modified and the Unicode Path is no longer valid.
              */
             if (chksum != G.unipath_checksum) {
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(UnicodeMismatchError)));
+                Info(slide, 0x401, ((char *) slide, UnicodeMismatchError));
                 if (G.unicode_mismatch == 1) {
                     /* warn and continue */
                 } else if (G.unicode_mismatch == 2) {
@@ -1700,9 +1679,7 @@ int escape_all;
                 escape_string_len = buffer_size - buffer_len - 1;
                 if (err_msg == 0) {
                     err_msg = 1;
-                    Info(
-                        slide, 0x401,
-                        ((char *) slide, LoadFarString(UFilenameTooLongTrunc)));
+                    Info(slide, 0x401, ((char *) slide, UFilenameTooLongTrunc));
                 }
             }
             strncat(buffer, escape_string, escape_string_len);

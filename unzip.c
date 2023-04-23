@@ -342,9 +342,8 @@ char *argv[];
     G.noargs = (argc == 1); /* no options, no zipfile, no anything */
 
     {
-        if ((error = envargs(&argc, &argv, LoadFarStringSmall(EnvUnZip),
-                             LoadFarStringSmall2(EnvUnZip2))) != PK_OK)
-            perror(LoadFarString(NoMemEnvArguments));
+        if ((error = envargs(&argc, &argv, EnvUnZip, EnvUnZip2)) != PK_OK)
+            perror(NoMemEnvArguments);
     }
 
     if (!error) {
@@ -357,8 +356,7 @@ char *argv[];
          */
         for (i = 1; i < argc; i++) {
             if (strlen(argv[i]) > ((WSIZE >> 2) - 160)) {
-                Info(slide, 0x401,
-                     ((char *) slide, LoadFarString(CmdLineParamTooLong), i));
+                Info(slide, 0x401, ((char *) slide, CmdLineParamTooLong, i));
                 retcode = PK_PARAM;
                 goto cleanup_and_exit;
             }
@@ -407,8 +405,7 @@ char *argv[];
                     if (*++pp)
                         uO.exdir = *pp;
                     else {
-                        Info(slide, 0x401,
-                             ((char *) slide, LoadFarString(MustGiveExdir)));
+                        Info(slide, 0x401, ((char *) slide, MustGiveExdir));
                         /* don't extract here by accident */
                         retcode = PK_PARAM;
                         goto cleanup_and_exit;
@@ -449,7 +446,7 @@ char *argv[];
         G.process_all_files = TRUE; /* for speed */
 
     if (uO.exdir != (char *) NULL && !G.extract_flag) /* -d ignored */
-        Info(slide, 0x401, ((char *) slide, LoadFarString(NotExtracting)));
+        Info(slide, 0x401, ((char *) slide, NotExtracting));
 
     /* set Unicode-escape-all if option -U used */
     if (uO.U_flag == 1)
@@ -524,13 +521,11 @@ char ***pargv;
                 break;
             case ('d'):
                 if (negative) { /* negative not allowed with -d exdir */
-                    Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(MustGiveExdir)));
+                    Info(slide, 0x401, ((char *) slide, MustGiveExdir));
                     return (PK_PARAM); /* don't extract here by accident */
                 }
                 if (uO.exdir != (char *) NULL) {
-                    Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(OnlyOneExdir)));
+                    Info(slide, 0x401, ((char *) slide, OnlyOneExdir));
                     return (PK_PARAM); /* GRR:  stupid restriction? */
                 } else {
                     /* first check for "-dexdir", then for "-d exdir" */
@@ -541,15 +536,12 @@ char ***pargv;
                             uO.exdir = *++argv;
                             if (*uO.exdir == '-') {
                                 Info(slide, 0x401,
-                                     ((char *) slide,
-                                      LoadFarString(MustGiveExdir)));
+                                     ((char *) slide, MustGiveExdir));
                                 return (PK_PARAM);
                             }
                             /* else uO.exdir points at extraction dir */
                         } else {
-                            Info(
-                                slide, 0x401,
-                                ((char *) slide, LoadFarString(MustGiveExdir)));
+                            Info(slide, 0x401, ((char *) slide, MustGiveExdir));
                             return (PK_PARAM);
                         }
                     }
@@ -640,15 +632,14 @@ char ***pargv;
              * have pestered us for this, so here we go... */
             case ('P'):
                 if (negative) { /* negative not allowed with -P passwd */
-                    Info(slide, 0x401,
-                         ((char *) slide, LoadFarString(MustGivePasswd)));
+                    Info(slide, 0x401, ((char *) slide, MustGivePasswd));
                     return (PK_PARAM); /* don't extract here by accident */
                 }
                 if (uO.pwdarg != (char *) NULL) {
                     /*
                                             GRR:  eventually support multiple
                        passwords? Info(slide, 0x401, ((char *)slide,
-                                              LoadFarString(OnlyOnePasswd)));
+                                              OnlyOnePasswd));
                                             return(PK_PARAM);
                      */
                 } else {
@@ -660,15 +651,13 @@ char ***pargv;
                             uO.pwdarg = *++argv;
                             if (*uO.pwdarg == '-') {
                                 Info(slide, 0x401,
-                                     ((char *) slide,
-                                      LoadFarString(MustGivePasswd)));
+                                     ((char *) slide, MustGivePasswd));
                                 return (PK_PARAM);
                             }
                             /* else pwdarg points at decryption password */
                         } else {
                             Info(slide, 0x401,
-                                 ((char *) slide,
-                                  LoadFarString(MustGivePasswd)));
+                                 ((char *) slide, MustGivePasswd));
                             return (PK_PARAM);
                         }
                     }
@@ -782,13 +771,13 @@ char ***pargv;
 
     if ((uO.cflag && (uO.tflag || uO.uflag)) || (uO.tflag && uO.uflag) ||
         (uO.fflag && uO.overwrite_none)) {
-        Info(slide, 0x401, ((char *) slide, LoadFarString(InvalidOptionsMsg)));
+        Info(slide, 0x401, ((char *) slide, InvalidOptionsMsg));
         error = TRUE;
     }
     if (uO.aflag > 2)
         uO.aflag = 2;
     if (uO.overwrite_all && uO.overwrite_none) {
-        Info(slide, 0x401, ((char *) slide, LoadFarString(IgnoreOOptionMsg)));
+        Info(slide, 0x401, ((char *) slide, IgnoreOOptionMsg));
         uO.overwrite_all = FALSE;
     }
 
@@ -823,24 +812,14 @@ int error;
     int flag = (error ? 1 : 0);
 
     Info(slide, flag,
-         ((char *) slide, LoadFarString(UnzipUsageLine2), ZIPINFO_MODE_OPTION,
-          LoadFarStringSmall(ZipInfoMode)));
+         ((char *) slide, UnzipUsageLine2, ZIPINFO_MODE_OPTION, ZipInfoMode));
+
+    Info(slide, flag, ((char *) slide, UnzipUsageLine3, local1));
+
+    Info(slide, flag, ((char *) slide, UnzipUsageLine4, local2, local3));
 
     Info(slide, flag,
-         ((char *) slide, LoadFarString(UnzipUsageLine3),
-          LoadFarStringSmall(local1)));
-
-    Info(slide, flag,
-         ((char *) slide, LoadFarString(UnzipUsageLine4),
-          LoadFarStringSmall(local2), LoadFarStringSmall2(local3)));
-
-    /* This is extra work for SMALL_MEM, but it will work since
-     * LoadFarStringSmall2 uses the same buffer.  Remember, this
-     * is a hack. */
-    Info(slide, flag,
-         ((char *) slide, LoadFarString(UnzipUsageLine5),
-          LoadFarStringSmall(Example2), LoadFarStringSmall2(Example3),
-          LoadFarStringSmall2(Example3)));
+         ((char *) slide, UnzipUsageLine5, Example2, Example3, Example3));
 
     if (error)
         return PK_PARAM;
