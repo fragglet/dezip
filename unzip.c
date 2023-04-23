@@ -55,11 +55,11 @@
 
   ---------------------------------------------------------------------------*/
 
-#include <langinfo.h>
-
 #include "unzip.h" /* includes, typedefs, macros, prototypes, etc. */
 #include "crypt.h"
 #include "ttyio.h"
+
+#include <langinfo.h>
 
 /*************/
 /* Constants */
