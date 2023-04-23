@@ -61,12 +61,6 @@
 #include "crypt.h"
 #include "ttyio.h"
 
-/*******************/
-/* Local Functions */
-/*******************/
-
-static void help_extended(void);
-
 /*************/
 /* Constants */
 /*************/
@@ -143,7 +137,7 @@ modifiers:\n\
 lowercase\n %-42s  -V  retain VMS version numbers\n%s";
 
 static const char UnzipUsageLine5[] = "\
-See \"unzip -hh\" or unzip.txt for more help.  Examples:\n\
+Examples:\n\
   unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
 %s\
   unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
@@ -750,12 +744,7 @@ char ***pargv;
 
     if (showhelp > 0) { /* just print help message and quit */
         *pargc = -1;
-        if (showhelp == 2) {
-            help_extended();
-            return PK_OK;
-        } else {
-            return usage(PK_OK);
-        }
+        return usage(PK_OK);
     }
 
     if ((uO.cflag && (uO.tflag || uO.uflag)) || (uO.tflag && uO.uflag) ||
@@ -817,195 +806,3 @@ int error;
 
 } /* end function usage() */
 
-/* Print extended help to stdout. */
-static void help_extended()
-{
-    extent i; /* counter for help array */
-
-    /* help array */
-    static const char *text[] = {
-        "",
-        "Extended Help for UnZip",
-        "",
-        "See the UnZip Manual for more detailed help",
-        "",
-        "",
-        "UnZip lists and extracts files in zip archives.  The default action "
-        "is to",
-        "extract zipfile entries to the current directory, creating "
-        "directories as",
-        "needed.  With appropriate options, UnZip lists the contents of "
-        "archives",
-        "instead.",
-        "",
-        "Basic unzip command line:",
-        "  unzip [-Z] options archive[.zip] [file ...] [-x xfile ...] [-d "
-        "exdir]",
-        "",
-        "Some examples:",
-        "  unzip -l foo.zip        - list files in short format in archive "
-        "foo.zip",
-        "",
-        "  unzip -t foo            - test the files in archive foo",
-        "",
-        "  unzip -Z foo            - list files using more detailed zipinfo "
-        "format",
-        "",
-        "  unzip foo               - unzip the contents of foo in current dir",
-        "",
-        "  unzip -a foo            - unzip foo and convert text files to local "
-        "OS",
-        "",
-        "If unzip is run in zipinfo mode, a more detailed list of archive "
-        "contents",
-        "is provided.  The -Z option sets zipinfo mode and changes the "
-        "available",
-        "options.",
-        "",
-        "Basic zipinfo command line:",
-        "  unzip -Z options archive[.zip] [file ...] [-x xfile ...]",
-        "",
-        "",
-        "unzip options:",
-        "  -hh  Display extended help.",
-        "  -c   Extract files to stdout/screen.  As -p but include names.  "
-        "Also,",
-        "         -a allowed and EBCDIC conversions done if needed.",
-        "  -f   Freshen by extracting only if older file on disk.",
-        "  -l   List files using short form.",
-        "  -p   Extract files to pipe (stdout).  Only file data is output and "
-        "all",
-        "         files extracted in binary mode (as stored).",
-        "  -t   Test archive files.",
-        "  -T   Set timestamp on archive(s) to that of newest file.  Similar "
-        "to",
-        "       zip -o but faster.",
-        "  -u   Update existing older files on disk as -f and extract new "
-        "files.",
-        "  -v   Use verbose list format.  If given alone as unzip -v show "
-        "version",
-        "         information.  Also can be added to other list commands for "
-        "more",
-        "         verbose output.",
-        "  -z   Display only archive comment.",
-        "",
-        "unzip modifiers:",
-        "  -a   Convert text files to local OS format.  Convert line ends, EOF",
-        "         marker, and from or to EBCDIC character set as needed.",
-        "  -b   Treat all files as binary.",
-        "files.",
-        "  -B   Save a backup copy of each overwritten file in foo~ or "
-        "foo~99999 format.",
-        "  -C   Use case-insensitive matching.",
-        "  -D   Skip restoration of timestamps for extracted directories.",
-        "  -DD  Skip restoration of timestamps for all entries.",
-        "  -j   Junk paths and deposit all files in extraction directory.",
-        "  -K   Restore SUID/SGID/Tacky file attributes.",
-        "  -L   Convert to lowercase any names from uppercase only file "
-        "system.",
-        "  -LL  Convert all files to lowercase.",
-        "  -M   Pipe all output through internal pager similar to Unix "
-        "more(1).",
-        "  -n   Never overwrite existing files.  Skip extracting that file, no "
-        "prompt.",
-        "  -N   [Amiga] Extract file comments as Amiga filenotes.",
-        "  -o   Overwrite existing files without prompting.  Useful with -f.  "
-        "Use with",
-        "         care.",
-        "  -P p Use password p to decrypt files.  THIS IS INSECURE!  Some OS "
-        "show",
-        "         command line to other users.",
-        "  -q   Perform operations quietly.  The more q (as in -qq) the "
-        "quieter.",
-        "  -U   [UNICODE enabled] Show non-local characters as #Uxxxx or "
-        "#Lxxxxxx ASCII",
-        "         text escapes where x is hex digit.  [Old] -U used to leave "
-        "names",
-        "         uppercase if created on MS-DOS, VMS, etc.  See -L.",
-        "  -UU  [UNICODE enabled] Disable use of stored UTF-8 paths.  Note "
-        "that UTF-8",
-        "         paths stored as native local paths are still processed as "
-        "Unicode.",
-        "  -V   Retain VMS file version numbers.",
-        "  -W   Modify pattern matching so ? and * do not",
-        "         match directory separator /, but ** does.  Allows matching "
-        "at specific",
-        "         directory levels.",
-        "  -X   [VMS, Unix, OS/2, NT, Tandem] Restore UICs and ACL entries "
-        "under VMS,",
-        "         or UIDs/GIDs under Unix, or ACLs under certain "
-        "network-enabled",
-        "         versions of OS/2, or security ACLs under Windows NT.  Can "
-        "require",
-        "         user privileges.",
-        "  -:   Allow extract archive members into",
-        "         locations outside of current extraction root folder.  This "
-        "allows",
-        "         paths such as ../foo to be extracted above the current "
-        "extraction",
-        "         directory, which can be a security problem.",
-        "  -^   Allow control characters in names of extracted entries. "
-        " Usually",
-        "         this is not a good thing and should be avoided.",
-        "",
-        "",
-        "Wildcards:",
-        "  Internally unzip supports the following wildcards:",
-        "    ?       (or %% or #, depending on OS) matches any single "
-        "character",
-        "    *       matches any number of characters, including zero",
-        "    [list]  matches char in list (regex), can do range [ac-f], all "
-        "but [!bf]",
-        "  If port supports [], must escape [ as [[]",
-        "  For shells that expand wildcards, escape (\\* or \"*\") so unzip "
-        "can recurse.",
-        "",
-        "Include and Exclude:",
-        "  -i pattern pattern ...   include files that match a pattern",
-        "  -x pattern pattern ...   exclude files that match a pattern",
-        "  Patterns are paths with optional wildcards and match paths as "
-        "stored in",
-        "  archive.  Exclude and include lists end at next option or end of "
-        "line.",
-        "    unzip archive -x pattern pattern ...",
-        "",
-        "Multi-part (split) archives (archives created as a set of split "
-        "files):",
-        "  Currently split archives are not readable by unzip.  A workaround "
-        "is",
-        "  to use zip to convert the split archive to a single-file archive "
-        "and",
-        "  use unzip on that.  See the manual page for Zip 3.0 or later.",
-        "",
-        "Streaming (piping into unzip):",
-        "  Currently unzip does not support streaming.  The funzip utility can "
-        "be",
-        "  used to process the first entry in a stream.",
-        "    cat archive | funzip",
-        "",
-        "Testing archives:",
-        "  -t        test contents of archive",
-        "  This can be modified using -q for quieter operation, and -qq for "
-        "even",
-        "  quieter operation.",
-        "",
-        "Unicode:",
-        "  If compiled with Unicode support, unzip automatically handles "
-        "archives",
-        "  with Unicode entries.  Currently Unicode on Win32 systems is "
-        "limited.",
-        "  Characters not in the current character set are shown as ASCII "
-        "escapes",
-        "  in the form #Uxxxx where the Unicode character number fits in 16 "
-        "bits,",
-        "  or #Lxxxxxx where it doesn't, where x is the ASCII character for a "
-        "hex",
-        "  digit.",
-        "",
-        "",
-        ""};
-
-    for (i = 0; i < sizeof(text) / sizeof(char *); i++) {
-        Info(slide, 0, ((char *) slide, "%s\n", text[i]));
-    }
-} /* end function help_extended() */
