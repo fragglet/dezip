@@ -12,11 +12,7 @@
 
 #include "bzlib.h"
 
-/*************/
-/*  Globals  */
-/*************/
-
-typedef struct Globals {
+struct globals {
 
     /* command options of general use */
     UzpOpts UzO; /* command options of general use */
@@ -145,7 +141,7 @@ typedef struct Globals {
     char *dirname, matchname[FILNAMSIZ];
     int rootlen, have_dirname, dirnamelen, notfirstcall;
     void *wild_dir;
-} Uz_Globs; /* end of struct Globals */
+};
 
 /***************************************************************************/
 
@@ -162,7 +158,7 @@ extern char end_central64_sig[4];
 extern char end_centloc64_sig[4];
 /* extern char extd_local_sig[4];  NOT USED YET */
 
-extern Uz_Globs G;
+extern struct globals G;
 
 #define uO G.UzO
 

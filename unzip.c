@@ -157,13 +157,11 @@ char end_centloc64_sig[4] = {0, 0, 0x06, 0x07};
 static const char *default_fnames[2] = {"*",
                                         NULL}; /* default filenames vector */
 
-Uz_Globs G;
+struct globals G;
 
 static void init_globals()
 {
-    /* for REENTRANT version, G is defined as (*pG) */
-
-    memzero(&G, sizeof(Uz_Globs));
+    memzero(&G, sizeof(G));
 
     uO.lflag = (-1);
     G.wildzipfn = "";
