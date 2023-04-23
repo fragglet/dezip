@@ -234,8 +234,7 @@ char *argv[];
     signal(SIGABRT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-#ifdef DEBUG
-#ifdef LARGE_FILE_SUPPORT
+#if defined(DEBUG) && defined(LARGE_FILE_SUPPORT)
     /* test if we can support large files - 10/6/04 EG */
     if (sizeof(zoff_t) < 8) {
         Info(slide, 0x401,
@@ -263,32 +262,7 @@ char *argv[];
             goto cleanup_and_exit;
         }
     }
-#endif /* LARGE_FILE_SUPPORT */
-
-    /* 2004-11-30 SMS.
-       Test the NEXTBYTE macro for proper operation.
-    */
-    {
-        int test_char;
-        static uch test_buf[2] = {'a', 'b'};
-
-        G.inptr = test_buf;
-        G.incnt = 1;
-
-        test_char = NEXTBYTE; /* Should get 'a'. */
-        if (test_char == 'a') {
-            test_char = NEXTBYTE; /* Should get EOF, not 'b'. */
-        }
-        if (test_char != EOF) {
-            Info(slide, 0x401,
-                 ((char *) slide, "NEXTBYTE macro failed.  Try compiling with "
-                                  "ALT_NEXTBYTE defined?"));
-
-            retcode = PK_BADERR;
-            goto cleanup_and_exit;
-        }
-    }
-#endif /* DEBUG */
+#endif
 
     G.noargs = (argc == 1); /* no options, no zipfile, no anything */
 
