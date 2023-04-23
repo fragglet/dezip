@@ -18,17 +18,11 @@
 
 /* Function prototypes */
 
-/* For all other systems, ttyio.c supplies the two functions Echoff() and
- * Echon() for suppressing and (re)enabling console input echo.
- */
-#ifndef echoff
-#define echoff(f) Echoff(f)
-#define echon()   Echon()
-void Echoff(int f);
-void Echon(void);
-#endif
+/* ttyio.c supplies the two functions echoff() and echon() for suppressing and
+ * (re)enabling console input echo. */
+void echoff(int f);
+void echon(void);
 
-/* this stuff is used by MORE and also now by the ctrl-S code; fileio.c only */
 /* default for all systems where no getch()-like function is available */
 int zgetch(int f);
 

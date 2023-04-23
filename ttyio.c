@@ -39,7 +39,7 @@
 /*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.
  */
-void Echoff(f) int f; /* file descriptor for which to turn echo off */
+void echoff(f) int f; /* file descriptor for which to turn echo off */
 {
     struct sgttyb sg; /* tty device structure */
 
@@ -52,7 +52,7 @@ void Echoff(f) int f; /* file descriptor for which to turn echo off */
 /*
  * Turn echo back on for file descriptor echofd.
  */
-void Echon()
+void echon()
 {
     struct sgttyb sg; /* tty device structure */
 

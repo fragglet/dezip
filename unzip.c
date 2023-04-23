@@ -184,7 +184,7 @@ static void signal_handler(int signal)
 {
     /* newline if not start of line to stderr */
     (*G.message)(slide, 0L, 0x41);
-    Echon();
+    echon();
 
     exit(IZ_CTRLC);
 }
