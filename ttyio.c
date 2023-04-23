@@ -29,8 +29,6 @@
 #define PUTC putc
 #endif
 
-#define GLOBAL(g) G.g
-
 /* include system support for switching of console echo */
 #include <termios.h>
 #define sgttyb     termios
@@ -45,7 +43,7 @@ void Echoff(f) int f; /* file descriptor for which to turn echo off */
 {
     struct sgttyb sg; /* tty device structure */
 
-    GLOBAL(echofd) = f;
+    G.echofd = f;
     GTTY(f, &sg);         /* get settings */
     sg.sg_flags &= ~ECHO; /* turn echo off */
     STTY(f, &sg);
@@ -58,11 +56,11 @@ void Echon()
 {
     struct sgttyb sg; /* tty device structure */
 
-    if (GLOBAL(echofd) != -1) {
-        GTTY(GLOBAL(echofd), &sg); /* get settings */
-        sg.sg_flags |= ECHO;       /* turn echo on */
-        STTY(GLOBAL(echofd), &sg);
-        GLOBAL(echofd) = -1;
+    if (G.echofd != -1) {
+        GTTY(G.echofd, &sg); /* get settings */
+        sg.sg_flags |= ECHO; /* turn echo on */
+        STTY(G.echofd, &sg);
+        G.echofd = -1;
     }
 }
 
@@ -84,7 +82,7 @@ int f; /* file descriptor from which to read */
     sg.sg_flags &= ~ICANON; /* canonical mode off */
     sg.sg_flags &= ~ECHO;   /* turn echo off, too */
     STTY(f, &sg);           /* set cbreak mode */
-    GLOBAL(echofd) = f;     /* in case ^C hit (not perfect: still CBREAK) */
+    G.echofd = f;           /* in case ^C hit (not perfect: still CBREAK) */
 
     read(f, &c, 1); /* read our character */
 
@@ -93,7 +91,7 @@ int f; /* file descriptor from which to read */
     sg.sg_flags |= ICANON; /* canonical mode on */
     sg.sg_flags |= ECHO;   /* turn echo on */
     STTY(f, &sg);          /* restore canonical mode */
-    GLOBAL(echofd) = -1;
+    G.echofd = -1;
 
     return (int) (uch) c;
 }

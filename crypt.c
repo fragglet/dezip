@@ -37,8 +37,6 @@
 #define FALSE 0
 #endif
 
-#define GLOBAL(g) G.g
-
 /* char *key = (char *)NULL; moved to globals.h */
 static int testp(const uch *h);
 static int testkey(const uch *h, const char *key);
@@ -64,7 +62,7 @@ int decrypt_byte()
                     * unpredictable manner on 16-bit systems; not a problem
                     * with any known compiler so far, though */
 
-    temp = ((unsigned) GLOBAL(keys[2]) & 0xffff) | 2;
+    temp = ((unsigned) G.keys[2] & 0xffff) | 2;
     return (int) (((temp * (temp ^ 1)) >> 8) & 0xff);
 }
 
@@ -74,12 +72,11 @@ int decrypt_byte()
 int update_keys(c)
 int c; /* byte of plain text */
 {
-    GLOBAL(keys[0]) = CRC32(GLOBAL(keys[0]), c, CRY_CRC_TAB);
-    GLOBAL(keys[1]) =
-        (GLOBAL(keys[1]) + (GLOBAL(keys[0]) & 0xff)) * 134775813L + 1;
+    G.keys[0] = CRC32(G.keys[0], c, CRY_CRC_TAB);
+    G.keys[1] = (G.keys[1] + (G.keys[0] & 0xff)) * 134775813L + 1;
     {
-        register int keyshift = (int) (GLOBAL(keys[1]) >> 24);
-        GLOBAL(keys[2]) = CRC32(GLOBAL(keys[2]), keyshift, CRY_CRC_TAB);
+        register int keyshift = (int) (G.keys[1] >> 24);
+        G.keys[2] = CRC32(G.keys[2], keyshift, CRY_CRC_TAB);
     }
     return c;
 }
@@ -91,9 +88,9 @@ int c; /* byte of plain text */
 void init_keys(passwd) const
     char *passwd; /* password string with which to modify keys */
 {
-    GLOBAL(keys[0]) = 305419896L;
-    GLOBAL(keys[1]) = 591751049L;
-    GLOBAL(keys[2]) = 878082192L;
+    G.keys[0] = 305419896L;
+    G.keys[1] = 591751049L;
+    G.keys[2] = 878082192L;
     while (*passwd != '\0') {
         update_keys((int) *passwd);
         passwd++;
@@ -120,11 +117,11 @@ int decrypt(passwrd) const char *passwrd;
     int n, r;
     uch h[RAND_HEAD_LEN];
 
-    Trace((stdout, "\n[incnt = %d]: ", GLOBAL(incnt)));
+    Trace((stdout, "\n[incnt = %d]: ", G.incnt));
 
     /* get header once (turn off "encrypted" flag temporarily so we don't
      * try to decrypt the same data twice) */
-    GLOBAL(pInfo->encrypted) = FALSE;
+    G.pInfo->encrypted = FALSE;
     defer_leftover_input();
     for (n = 0; n < RAND_HEAD_LEN; n++) {
         /* 2012-11-23 SMS.  (OUSPG report.)
@@ -141,51 +138,50 @@ int decrypt(passwrd) const char *passwrd;
         Trace((stdout, " (%02x)", h[n]));
     }
     undefer_input();
-    GLOBAL(pInfo->encrypted) = TRUE;
+    G.pInfo->encrypted = TRUE;
 
-    if (GLOBAL(newzip)) { /* this is first encrypted member in this zipfile */
-        GLOBAL(newzip) = FALSE;
+    if (G.newzip) { /* this is first encrypted member in this zipfile */
+        G.newzip = FALSE;
         if (passwrd != (char *) NULL) { /* user gave password on command line */
-            if (!GLOBAL(key)) {
-                if ((GLOBAL(key) = (char *) malloc(strlen(passwrd) + 1)) ==
+            if (!G.key) {
+                if ((G.key = (char *) malloc(strlen(passwrd) + 1)) ==
                     (char *) NULL)
                     return PK_MEM2;
-                strcpy(GLOBAL(key), passwrd);
-                GLOBAL(nopwd) = TRUE; /* inhibit password prompting! */
+                strcpy(G.key, passwrd);
+                G.nopwd = TRUE; /* inhibit password prompting! */
             }
-        } else if (GLOBAL(key)) { /* get rid of previous zipfile's key */
-            free(GLOBAL(key));
-            GLOBAL(key) = (char *) NULL;
+        } else if (G.key) { /* get rid of previous zipfile's key */
+            free(G.key);
+            G.key = (char *) NULL;
         }
     }
 
     /* if have key already, test it; else allocate memory for it */
-    if (GLOBAL(key)) {
+    if (G.key) {
         if (!testp(h))
             return PK_COOL; /* existing password OK (else prompt for new) */
-        else if (GLOBAL(nopwd))
+        else if (G.nopwd)
             return PK_WARN; /* user indicated no more prompting */
-    } else if ((GLOBAL(key) = (char *) malloc(IZ_PWLEN + 1)) == (char *) NULL)
+    } else if ((G.key = (char *) malloc(IZ_PWLEN + 1)) == (char *) NULL)
         return PK_MEM2;
 
     /* try a few keys */
     n = 0;
     do {
-        r = (*G.decr_passwd)(&n, GLOBAL(key), IZ_PWLEN + 1, GLOBAL(zipfn),
-                             GLOBAL(filename));
+        r = (*G.decr_passwd)(&n, G.key, IZ_PWLEN + 1, G.zipfn, G.filename);
         if (r == IZ_PW_ERROR) { /* internal error in fetch of PW */
-            free(GLOBAL(key));
-            GLOBAL(key) = NULL;
+            free(G.key);
+            G.key = NULL;
             return PK_MEM2;
         }
         if (r != IZ_PW_ENTERED) { /* user replied "skip" or "skip all" */
-            *GLOBAL(key) = '\0';  /*   We try the NIL password, ... */
+            *G.key = '\0';        /*   We try the NIL password, ... */
             n = 0;                /*   and cancel fetch for this item. */
         }
         if (!testp(h))
             return PK_COOL;
         if (r == IZ_PW_CANCELALL) /* User replied "Skip all" */
-            GLOBAL(nopwd) = TRUE; /*   inhibit any further PW prompt! */
+            G.nopwd = TRUE;       /*   inhibit any further PW prompt! */
     } while (n > 0);
 
     return PK_WARN;
@@ -206,28 +202,28 @@ static int testp(h) const uch *h;
 
 #ifdef STR_TO_CP1
     /* allocate buffer for translated password */
-    if ((key_translated = malloc(strlen(GLOBAL(key)) + 1)) == (char *) NULL)
+    if ((key_translated = malloc(strlen(G.key) + 1)) == (char *) NULL)
         return -1;
     /* first try, test password translated "standard" charset */
-    r = testkey(h, STR_TO_CP1(key_translated, GLOBAL(key)));
+    r = testkey(h, STR_TO_CP1(key_translated, G.key));
 #else  /* !STR_TO_CP1 */
     /* first try, test password as supplied on the extractor's host */
-    r = testkey(h, GLOBAL(key));
+    r = testkey(h, G.key);
 #endif /* ?STR_TO_CP1 */
 
 #ifdef STR_TO_CP2
     if (r != 0) {
 #ifndef STR_TO_CP1
         /* now prepare for second (and maybe third) test with translated pwd */
-        if ((key_translated = malloc(strlen(GLOBAL(key)) + 1)) == (char *) NULL)
+        if ((key_translated = malloc(strlen(G.key) + 1)) == (char *) NULL)
             return -1;
 #endif
         /* second try, password translated to alternate ("standard") charset */
-        r = testkey(h, STR_TO_CP2(key_translated, GLOBAL(key)));
+        r = testkey(h, STR_TO_CP2(key_translated, G.key));
 #ifdef STR_TO_CP3
         if (r != 0)
             /* third try, password translated to another "standard" charset */
-            r = testkey(h, STR_TO_CP3(key_translated, GLOBAL(key)));
+            r = testkey(h, STR_TO_CP3(key_translated, G.key));
 #endif
 #ifndef STR_TO_CP1
         free(key_translated);
@@ -239,7 +235,7 @@ static int testp(h) const uch *h;
     free(key_translated);
     if (r != 0) {
         /* last resort, test password as supplied on the extractor's host */
-        r = testkey(h, GLOBAL(key));
+        r = testkey(h, G.key);
     }
 #endif /* STR_TO_CP1 */
 
@@ -270,11 +266,9 @@ const char *key;                         /* decryption password to test */
 
     Trace((stdout,
            "\n  lrec.crc= %08lx  crec.crc= %08lx  pInfo->ExtLocHdr= %s\n",
-           GLOBAL(lrec.crc32), GLOBAL(pInfo->crc),
-           GLOBAL(pInfo->ExtLocHdr) ? "true" : "false"));
-    Trace((stdout, "  incnt = %d  unzip offset into zipfile = %ld\n",
-           GLOBAL(incnt),
-           GLOBAL(cur_zipfile_bufstart) + (GLOBAL(inptr) - GLOBAL(inbuf))));
+           G.lrec.crc32, G.pInfo->crc, G.pInfo->ExtLocHdr ? "true" : "false"));
+    Trace((stdout, "  incnt = %d  unzip offset into zipfile = %ld\n", G.incnt,
+           G.cur_zipfile_bufstart + (G.inptr - G.inbuf)));
 
     /* same test as in zipbare(): */
 
@@ -282,27 +276,24 @@ const char *key;                         /* decryption password to test */
     c = hh[RAND_HEAD_LEN - 2], b = hh[RAND_HEAD_LEN - 1];
     Trace((stdout,
       "  (c | (b<<8)) = %04x  (crc >> 16) = %04x  lrec.time = %04x\n",
-      (ush)(c | (b<<8)), (ush)(GLOBAL(lrec.crc32) >> 16),
-      ((ush)GLOBAL(lrec.last_mod_dos_datetime) & 0xffff))));
+      (ush)(c | (b<<8)), (ush)(G.lrec.crc32 >> 16),
+      ((ush)G.lrec.last_mod_dos_datetime & 0xffff))));
     if ((ush) (c | (b << 8)) !=
-        (GLOBAL(pInfo->ExtLocHdr)
-             ? ((ush) GLOBAL(lrec.last_mod_dos_datetime) & 0xffff)
-             : (ush) (GLOBAL(lrec.crc32) >> 16)))
+        (G.pInfo->ExtLocHdr ? ((ush) G.lrec.last_mod_dos_datetime & 0xffff)
+                            : (ush) (G.lrec.crc32 >> 16)))
         return -1; /* bad */
 #else
     b = hh[RAND_HEAD_LEN - 1];
     Trace((stdout, "  b = %02x  (crc >> 24) = %02x  (lrec.time >> 8) = %02x\n",
-           b, (ush) (GLOBAL(lrec.crc32) >> 24),
-           ((ush) GLOBAL(lrec.last_mod_dos_datetime) >> 8) & 0xff));
-    if (b != (GLOBAL(pInfo->ExtLocHdr)
-                  ? ((ush) GLOBAL(lrec.last_mod_dos_datetime) >> 8) & 0xff
-                  : (ush) (GLOBAL(lrec.crc32) >> 24)))
+           b, (ush) (G.lrec.crc32 >> 24),
+           ((ush) G.lrec.last_mod_dos_datetime >> 8) & 0xff));
+    if (b != (G.pInfo->ExtLocHdr
+                  ? ((ush) G.lrec.last_mod_dos_datetime >> 8) & 0xff
+                  : (ush) (G.lrec.crc32 >> 24)))
         return -1; /* bad */
 #endif
     /* password OK:  decrypt current buffer contents before leaving */
-    for (n = (long) GLOBAL(incnt) > GLOBAL(csize) ? (int) GLOBAL(csize)
-                                                  : GLOBAL(incnt),
-        p = GLOBAL(inptr);
+    for (n = (long) G.incnt > G.csize ? (int) G.csize : G.incnt, p = G.inptr;
          n--; p++)
         zdecode(*p);
     return 0; /* OK */
