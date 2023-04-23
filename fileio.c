@@ -240,7 +240,6 @@ register unsigned size;
             else if (G.incnt < 0) {
                 /* another hack, but no real harm copying same thing twice */
                 (*G.message)(
-                    (void *) &G,
                     (uch *) LoadFarString(ReadError), /* CANNOT use slide */
                     (ulg) strlen(LoadFarString(ReadError)), 0x401);
                 return 0; /* discarding some data; better than lock-up */
@@ -274,7 +273,7 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
             return EOF;
         } else if (G.incnt < 0) { /* "fail" (abort, retry, ...) returns this */
             /* another hack, but no real harm copying same thing twice */
-            (*G.message)((void *) &G, (uch *) LoadFarString(ReadError),
+            (*G.message)((uch *) LoadFarString(ReadError),
                          (ulg) strlen(LoadFarString(ReadError)), 0x401);
             echon();
             exit(PK_BADERR); /* totally bailing; better than lock-up */
@@ -418,7 +417,7 @@ int unshrink;
          */
         if (!uO.cflag && WriteError(rawbuf, size, G.outfile))
             return disk_error();
-        else if (uO.cflag && (*G.message)((void *) &G, rawbuf, size, 0))
+        else if (uO.cflag && (*G.message)(rawbuf, size, 0))
             return PK_OK;
     } else { /* textmode:  aflag is true */
         if (unshrink) {
@@ -467,8 +466,8 @@ int unshrink;
             if (!uO.cflag &&
                 WriteError(transbuf, (extent) (q - transbuf), G.outfile))
                 return disk_error();
-            else if (uO.cflag && (*G.message)((void *) &G, transbuf,
-                                              (ulg) (q - transbuf), 0))
+            else if (uO.cflag &&
+                     (*G.message)(transbuf, (ulg) (q - transbuf), 0))
                 return PK_OK;
         }
     }
@@ -493,19 +492,11 @@ static int disk_error()
 
 } /* end function disk_error() */
 
-int UzpMessagePrnt(pG, buf, size,
-                   flag) void *pG; /* globals struct:  always passed */
-uch *buf;                          /* preformatted string to be printed */
-ulg size;                          /* length of string (may include nulls) */
-int flag;                          /* flag bits */
+int UzpMessagePrnt(buf, size, flag)
+uch *buf; /* preformatted string to be printed */
+ulg size; /* length of string (may include nulls) */
+int flag; /* flag bits */
 {
-    /* IMPORTANT NOTE:
-     *    The name of the first parameter of UzpMessagePrnt(), which passes
-     *    the "Uz_Globs" address, >>> MUST <<< be identical to the string
-     *    expansion of the macro in the REENTRANT case (see globals.h).
-     *    This name identity is mandatory for the LoadFarString() macro
-     *    (in the SMALL_MEM case) !!!
-     */
     int error;
     uch *q = buf, *endbuf = buf + (unsigned) size;
     FILE *outfp;
@@ -519,30 +510,28 @@ int flag;                          /* flag bits */
         of this one.
       ---------------------------------------------------------------------------*/
 
-    if (MSG_STDERR(flag) && !((Uz_Globs *) pG)->UzO.tflag)
+    if (MSG_STDERR(flag) && !G.UzO.tflag)
         outfp = (FILE *) stderr;
     else
         outfp = (FILE *) stdout;
 
     if (MSG_TNEWLN(flag)) { /* again assumes writable buffer:  fragile... */
-        if ((!size && !((Uz_Globs *) pG)->sol) ||
-            (size && (endbuf[-1] != '\n'))) {
+        if ((!size && !G.sol) || (size && (endbuf[-1] != '\n'))) {
             *endbuf++ = '\n';
             ++size;
         }
     }
 
-    if (MSG_LNEWLN(flag) && !((Uz_Globs *) pG)->sol) {
+    if (MSG_LNEWLN(flag) && !G.sol) {
         /* not at start of line:  want newline */
         putc('\n', outfp);
         fflush(outfp);
-        if (MSG_STDERR(flag) && ((Uz_Globs *) pG)->UzO.tflag && !isatty(1) &&
-            isatty(2)) {
+        if (MSG_STDERR(flag) && G.UzO.tflag && !isatty(1) && isatty(2)) {
             /* error output from testing redirected:  also send to stderr */
             putc('\n', stderr);
             fflush(stderr);
         }
-        ((Uz_Globs *) pG)->sol = TRUE;
+        G.sol = TRUE;
     }
 
     /* put zipfile name, filename and/or error/warning keywords here */
@@ -551,26 +540,24 @@ int flag;                          /* flag bits */
         if ((error = WriteTxtErr(q, size, outfp)) != 0)
             return error;
         fflush(outfp);
-        if (MSG_STDERR(flag) && ((Uz_Globs *) pG)->UzO.tflag && !isatty(1) &&
-            isatty(2)) {
+        if (MSG_STDERR(flag) && G.UzO.tflag && !isatty(1) && isatty(2)) {
             /* error output from testing redirected:  also send to stderr */
             if ((error = WriteTxtErr(q, size, stderr)) != 0)
                 return error;
             fflush(stderr);
         }
-        ((Uz_Globs *) pG)->sol = (endbuf[-1] == '\n');
+        G.sol = (endbuf[-1] == '\n');
     }
     return 0;
 
 } /* end function UzpMessagePrnt() */
 
-int UzpInput(pG, buf, size, flag) void *pG; /* globals struct:  always passed */
+int UzpInput(buf, size, flag)
 uch *buf;  /* preformatted string to be printed */
 int *size; /* (address of) size of buf and of returned string */
 int flag;  /* flag bits (bit 0: no echo) */
 {
     /* tell picky compilers to shut up about "unused variable" warnings */
-    pG = pG;
     buf = buf;
     flag = flag;
 
@@ -579,9 +566,7 @@ int flag;  /* flag bits (bit 0: no echo) */
 
 } /* end function UzpInput() */
 
-void UzpMorePause(pG, prompt,
-                  flag) void *pG; /* globals struct:  always passed */
-const char *prompt;               /* "--More--" prompt */
+void UzpMorePause(prompt, flag) const char *prompt; /* "--More--" prompt */
 int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 {
     uch c;
@@ -591,10 +576,10 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
         if possible.
       ---------------------------------------------------------------------------*/
 
-    if (!((Uz_Globs *) pG)->sol)
+    if (!G.sol)
         fprintf(stderr, "\n");
     /* numlines may or may not be used: */
-    fprintf(stderr, prompt, ((Uz_Globs *) pG)->numlines);
+    fprintf(stderr, prompt, G.numlines);
     fflush(stderr);
     if (flag & 1) {
         do {
@@ -611,17 +596,16 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
         exit(PK_COOL);
     }
 
-    ((Uz_Globs *) pG)->sol = TRUE;
+    G.sol = TRUE;
 
 } /* end function UzpMorePause() */
 
-int UzpPassword(pG, rcnt, pwbuf, size, zfn,
-                efn) void *pG; /* pointer to UnZip's internal global vars */
-int *rcnt;                     /* retry counter */
-char *pwbuf;                   /* buffer for password */
-int size;                      /* size of password buffer */
-const char *zfn;               /* name of zip archive */
-const char *efn;               /* name of archive entry being processed */
+int UzpPassword(rcnt, pwbuf, size, zfn, efn)
+int *rcnt;       /* retry counter */
+char *pwbuf;     /* buffer for password */
+int size;        /* size of password buffer */
+const char *zfn; /* name of zip archive */
+const char *efn; /* name of archive entry being processed */
 {
     int r = IZ_PW_ENTERED;
     char *m;
@@ -630,9 +614,6 @@ const char *efn;               /* name of archive entry being processed */
     char *efnf;
     size_t zfnfl;
     int isOverflow;
-
-    /* tell picky compilers to shut up about "unused variable" warnings */
-    pG = pG;
 
     if (*rcnt == 0) { /* First call for current entry */
         *rcnt = 2;
@@ -672,9 +653,9 @@ const char *efn;               /* name of archive entry being processed */
 void handler(signal) /* upon interrupt, turn on echo and exit cleanly */
     int signal;
 {
-#if !(defined(SIGBUS) || defined(SIGSEGV))      /* add a newline if not at */
-    (*G.message)((void *) &G, slide, 0L, 0x41); /*  start of line (to stderr; */
-#endif                                          /*  slide[] should be safe) */
+#if !(defined(SIGBUS) || defined(SIGSEGV)) /* add a newline if not at */
+    (*G.message)(slide, 0L, 0x41);         /*  start of line (to stderr; */
+#endif                                     /*  slide[] should be safe) */
 
     echon();
 
@@ -912,16 +893,16 @@ int option;
                 } else
                     *q++ = *p;
                 if ((unsigned) (q - slide) > WSIZE - 3 || pause) { /* flush */
-                    (*G.message)((void *) &G, slide, (ulg) (q - slide), 0);
+                    (*G.message)(slide, (ulg) (q - slide), 0);
                     q = slide;
                     if (pause && G.extract_flag) /* don't pause for list/test */
-                        (*G.mpause)((void *) &G, LoadFarString(QuitPrompt), 0);
+                        (*G.mpause)(LoadFarString(QuitPrompt), 0);
                 }
             }
-            (*G.message)((void *) &G, slide, (ulg) (q - slide), 0);
+            (*G.message)(slide, (ulg) (q - slide), 0);
         }
         /* add '\n' if not at start of line */
-        (*G.message)((void *) &G, slide, 0L, 0x40);
+        (*G.message)(slide, 0L, 0x40);
         break;
 
         /*

@@ -989,7 +989,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
  */
 #ifndef Info /* may already have been defined for redirection */
 #define Info(buf, flag, sprf_arg) \
-    (*G.message)((void *) &G, (uch *) (buf), (ulg) sprintf sprf_arg, (flag))
+    (*G.message)((uch *) (buf), (ulg) sprintf sprf_arg, (flag))
 #endif /* !Info */
 
 /*  This wrapper macro around fzofft() is just defined to "hide" the
@@ -1009,7 +1009,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
     fnfilter((fname), slide + (extent) ((WSIZE >> 1) + (WSIZE >> 2)), \
              (extent) (WSIZE >> 2))
 
-#define MESSAGE(str, len, flag) (*G.message)((void *) &G, (str), (len), (flag))
+#define MESSAGE(str, len, flag) (*G.message)((str), (len), (flag))
 
 #if 0 /* Optimization: use the (const) result of crc32(0L,NULL,0) */
 #define CRCVAL_INITIAL crc32(0L, NULL, 0)

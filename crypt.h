@@ -18,7 +18,7 @@
 #ifndef __crypt_h /* don't include more than once */
 #define __crypt_h
 
-#define IZ_PWLEN 80 /* input buffer size for reading encryption key */
+#define IZ_PWLEN      80 /* input buffer size for reading encryption key */
 #define RAND_HEAD_LEN 12 /* length of encryption random header */
 
 /* the crc_32_tab array has to be provided externally for the crypt calculus */
