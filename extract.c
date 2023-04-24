@@ -796,32 +796,12 @@ static int store_info() /* return 0 if skipping, 1 if OK */
 {
 #define UNKN_BZ2 (G.crec.compression_method != BZIPPED)
 
-#ifdef USE_LZMA
-#define UNKN_LZMA (G.crec.compression_method != LZMAED)
-#else
-#define UNKN_LZMA TRUE /* LZMA unknown */
-#endif
-
-#ifdef USE_WAVP
-#define UNKN_WAVP (G.crec.compression_method != WAVPACKED)
-#else
-#define UNKN_WAVP TRUE /* WavPack unknown */
-#endif
-
-#ifdef USE_PPMD
-#define UNKN_PPMD (G.crec.compression_method != PPMDED)
-#else
-#define UNKN_PPMD TRUE /* PPMd unknown */
-#endif
-
 #define UNKN_RED                              \
     (G.crec.compression_method >= REDUCED1 && \
      G.crec.compression_method <= REDUCED4)
-#define UNKN_SHR FALSE /* unshrinking not unknown */
-#define UNKN_COMPR                                                        \
-    (UNKN_RED || UNKN_SHR || G.crec.compression_method == TOKENIZED ||    \
-     (G.crec.compression_method > ENHDEFLATED && UNKN_BZ2 && UNKN_LZMA && \
-      UNKN_WAVP && UNKN_PPMD))
+#define UNKN_COMPR                                         \
+    (UNKN_RED || G.crec.compression_method == TOKENIZED || \
+     (G.crec.compression_method > ENHDEFLATED && UNKN_BZ2))
 
 #if (defined(USE_BZIP2) && (UNZIP_VERSION < UNZIP_BZ2VERS))
     int unzvers_support = (UNKN_BZ2 ? UNZIP_VERSION : UNZIP_BZ2VERS);
