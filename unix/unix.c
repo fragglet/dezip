@@ -51,10 +51,6 @@ static const char CannotSetItemTimestamps[] =
 static const char CannotSetTimestamps[] =
     " (warning) cannot set modif./access times\n          %s";
 
-/**********************/
-/* Function do_wild() */ /* for porting: dir separator; match(ignore_case) */
-/**********************/
-
 char *do_wild(wildspec) const
     char *wildspec; /* only used first time on a given dir */
 {
@@ -172,9 +168,6 @@ char *do_wild(wildspec) const
 #define S_ISVTX 0001000 /* save swapped text even after use */
 #endif
 
-/************************/
-/*  Function filtattr() */
-/************************/
 /* This is used to clear or keep the SUID and SGID bits on file permissions.
  * It's possible that a file in an archive could have one of these bits set
  * and, unknown to the person unzipping, could allow others to execute the
@@ -190,10 +183,6 @@ unsigned perms;
 
     return (0xffff & perms);
 } /* end function filtattr() */
-
-/**********************/
-/* Function mapattr() */
-/**********************/
 
 int mapattr()
 {
@@ -329,10 +318,6 @@ int mapattr()
     return 0;
 
 } /* end function mapattr() */
-
-/************************/
-/*  Function mapname()  */
-/************************/
 
 int mapname(renamed)
 int renamed;
@@ -522,10 +507,6 @@ int renamed;
         (d:/tmp/unzip/jj/temp/msg.outdir)  (disk:[tmp.unzip.jj.temp]msg.outdir)
     checkdir(name, GETPATH)     -->  copy path to name and free space
 */
-
-/***********************/
-/* Function checkdir() */
-/***********************/
 
 int checkdir(pathcomp, flag)
 char *pathcomp;
@@ -761,8 +742,6 @@ int flag;
 
 } /* end function checkdir() */
 
-static int get_extattribs(iztimes *pzt, ulg z_uidgid[2]);
-
 static int get_extattribs(pzt, z_uidgid)
 iztimes *pzt;
 ulg z_uidgid[2];
@@ -802,10 +781,6 @@ ulg z_uidgid[2];
     have_uidgid_flg = (uO.X_flag && (eb_izux_flg & EB_UX2_VALID));
     return have_uidgid_flg;
 }
-
-/****************************/
-/* Function close_outfile() */
-/****************************/
 
 void close_outfile() /* GRR: change to return PK-style warning level */
 {
@@ -1023,10 +998,6 @@ direntry *d;
     }
     return errval;
 } /* end function set_direc_attribs() */
-
-/***************************/
-/*  Function stamp_file()  */
-/***************************/
 
 int stamp_file(fname, modtime) const char *fname;
 time_t modtime;
