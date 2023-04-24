@@ -57,7 +57,6 @@ typedef struct stat z_stat;
 #endif                 /* !NO_PARAM_H */
 
 #include <time.h>
-struct tm *gmtime(), *localtime();
 
 #include <unistd.h> /* this includes utime.h on SGIs */
 #include <utime.h>
@@ -76,12 +75,5 @@ struct tm *gmtime(), *localtime();
 #endif
 #define lenEOL                     1
 #define PutNativeEOL               *q++ = native(LF);
-#define SCREENSIZE(ttrows, ttcols) screensize(ttrows, ttcols)
-#define SCREENWIDTH                80
-#define SCREENLWRAP                1
-#define USE_EF_UT_TIME
-#define SET_SYMLINK_ATTRIBS
-#define SET_DIR_ATTRIB
-#define RESTORE_UIDGID
 
 #endif /* !__unxcfg_h */
