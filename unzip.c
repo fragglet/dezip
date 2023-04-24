@@ -65,8 +65,21 @@
 /* Constants */
 /*************/
 
-#include "consts.h" /* all constant global variables are in here */
-                    /* (non-constant globals were moved to globals.c) */
+const unsigned mask_bits[17] = {0x0000, 0x0001, 0x0003, 0x0007, 0x000f, 0x001f,
+                                0x003f, 0x007f, 0x00ff, 0x01ff, 0x03ff, 0x07ff,
+                                0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff};
+
+const char EndSigMsg[] = "\nnote:  didn't find end-of-central-dir "
+                         "signature at end of central dir.\n";
+
+const char CentSigMsg[] =
+    "error:  expected central file header signature not found (file #%lu).\n";
+const char SeekMsg[] =
+    "error [%s]:  attempt to seek before beginning of zipfile\n%s";
+
+const char ReportMsg[] = "\
+  (please check that you have transferred or created the zipfile in the\n\
+  appropriate BINARY mode and that you have compiled UnZip properly)\n";
 
 static const char MustGiveExdir[] =
     "error:  must specify directory to which to extract with -d option\n";

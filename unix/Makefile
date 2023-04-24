@@ -278,7 +278,7 @@ process$O:	process.c $(UNZIP_H) crc32.h
 ttyio$O:	ttyio.c $(UNZIP_H) crypt.h ttyio.h
 ubz2err$O:	ubz2err.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
-unzip$O:	unzip.c $(UNZIP_H) crypt.h consts.h
+unzip$O:	unzip.c $(UNZIP_H) crypt.h
 
 # optional assembler replacements
 crc_i86$O:	msdos/crc_i86.asm				# 16bit only

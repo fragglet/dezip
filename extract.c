@@ -60,6 +60,10 @@
         }                                                   \
     }
 
+static const char FilenameNotMatched[] = "caution: filename not matched:  %s\n";
+static const char ExclFilenameNotMatched[] =
+    "caution: excluded filename not matched:  %s\n";
+
 static int store_info(void);
 static int extract_or_test_entrylist(unsigned numchunk, ulg *pfilnum,
                                      ulg *pnum_bad_pwd,
