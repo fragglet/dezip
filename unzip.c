@@ -87,12 +87,7 @@ static const char MustGiveExdir[] =
 static const char MustGivePasswd[] =
     "error:  must give decryption password with -P option\n";
 
-/* local2[] and local3[]:  modifier options */
-static const char local2[] = " -X  restore UID/GID info";
-static const char local3[] = "\
-  -K  keep setuid/setgid/tacky permissions\n";
-
-static const char UnzipUsageLine2[] = "\
+static const char UnzipUsage[] = "\
 Usage: unzip [-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n\
  Default action is to extract files in list, except those in xlist, to exdir;\n\
   file[.zip] may be a wildcard.\n\
@@ -100,30 +95,19 @@ Usage: unzip [-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n\
   -f  freshen existing files, create none    -t  test compressed archive data\n\
   -u  update files, create if necessary      -z  display archive comment only\n\
   -v  list verbosely/show version info       -T  timestamp archive to latest\n\
-  -x  exclude files that follow (in xlist)   -d  extract files into exdir\n";
-
-/* There is not enough space on a standard 80x25 Windows console screen for
- * the additional line advertising the UTF-8 debugging options. This may
- * eventually also be the case for other ports. Probably, the -U option need
- * not be shown on the introductory screen at all. [Chr. Spieler, 2008-02-09]
- *
- * Likely, other advanced options should be moved to an extended help page and
- * the option to list that page put here.  [E. Gordon, 2008-3-16]
- */
-static const char UnzipUsageLine4[] = "\
+  -x  exclude files that follow (in xlist)   -d  extract files into exdir\n\
 modifiers:\n\
   -n  never overwrite existing files         -q  quiet mode (-qq => quieter)\n\
   -o  overwrite files WITHOUT prompting      -a  auto-convert any text files\n\
   -j  junk paths (do not make directories)   -aa treat ALL files as text\n\
   -U  use escapes for all non-ASCII Unicode  -UU ignore any Unicode fields\n\
   -C  match filenames case-insensitively     -L  make (some) names lowercase\n\
- %-42s  -V  retain VMS version numbers\n%s";
-
-static const char UnzipUsageLine5[] = "\
+  -X  restore UID/GID info                   -V  retain VMS version numbers\n\
+  -K  keep setuid/setgid/tacky permissions\n\
 Examples:\n\
   unzip data1 -x joe   => extract all files except joe from zipfile data1.zip\n\
   unzip -p foo | more  => send contents of foo.zip via pipe into program more\n\
-  unzip -fo foo %-6s => quietly replace existing %s if archive file newer\n";
+  unzip -fo foo ReadMe => quietly replace existing ReadMe if archive file newer\n";
 
 /* initialization of sigs is completed at runtime */
 char central_hdr_sig[4] = {0, 0, 0x01, 0x02};
@@ -754,9 +738,7 @@ int error;
 {
     int flag = (error ? 1 : 0);
 
-    Info(slide, flag, ((char *) slide, UnzipUsageLine2));
-    Info(slide, flag, ((char *) slide, UnzipUsageLine4, local2, local3));
-    Info(slide, flag, ((char *) slide, UnzipUsageLine5, "ReadMe", "ReadMe"));
+    Info(slide, flag, ((char *) slide, UnzipUsage));
 
     if (error)
         return PK_PARAM;
