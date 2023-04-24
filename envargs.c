@@ -29,8 +29,6 @@
 
 #include "unzip.h"
 
-#define ISspace(c) isspace((unsigned) c)
-
 static int count_args(const char *);
 
 /* envargs() returns PK-style error code */
@@ -49,11 +47,11 @@ const char *envstr, *envstr2;
 
     /* see if anything in the environment */
     if ((envptr = getenv(envstr)) != (char *) NULL) /* usual var */
-        while (ISspace(*envptr)) /* must discard leading spaces */
+        while (isspace(*envptr)) /* must discard leading spaces */
             envptr++;
     if (envptr == (char *) NULL || *envptr == '\0')
         if ((envptr = getenv(envstr2)) != (char *) NULL) /* alternate var */
-            while (ISspace(*envptr))
+            while (isspace(*envptr))
                 envptr++;
     if (envptr == (char *) NULL || *envptr == '\0')
         return PK_OK;
@@ -97,12 +95,12 @@ const char *envstr, *envstr2;
             }
         } else {
             *(argv++) = bufptr;
-            while ((ch = *bufptr) != '\0' && !ISspace(ch))
+            while ((ch = *bufptr) != '\0' && !isspace(ch))
                 INCSTR(bufptr);
             if (ch != '\0')
                 *(bufptr++) = '\0';
         }
-        while ((ch = *bufptr) != '\0' && ISspace(ch))
+        while ((ch = *bufptr) != '\0' && isspace(ch))
             INCSTR(bufptr);
     } while (ch);
 
@@ -138,9 +136,9 @@ static int count_args(s) const char *s;
                 ++s; /* trailing quote */
         } else
             while ((ch = *s) != '\0' &&
-                   !ISspace(ch)) /* note else-clauses above */
+                   !isspace(ch)) /* note else-clauses above */
                 INCSTR(s);
-        while ((ch = *s) != '\0' && ISspace(ch))
+        while ((ch = *s) != '\0' && isspace(ch))
             INCSTR(s);
     } while (ch);
 
