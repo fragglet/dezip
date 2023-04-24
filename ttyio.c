@@ -25,28 +25,19 @@
 
 #include "ttyio.h"
 
-#ifndef PUTC
-#define PUTC putc
-#endif
-
-/* include system support for switching of console echo */
 #include <termios.h>
-#define sgttyb     termios
-#define sg_flags   c_lflag
-#define GTTY(f, s) tcgetattr(f, (void *) s)
-#define STTY(f, s) tcsetattr(f, TCSAFLUSH, (void *) s)
 
 /*
  * Turn echo off for file descriptor f.  Assumes that f is a tty device.
  */
 void echoff(f) int f; /* file descriptor for which to turn echo off */
 {
-    struct sgttyb sg; /* tty device structure */
+    struct termios sg; /* tty device structure */
 
     G.echofd = f;
-    GTTY(f, &sg);         /* get settings */
-    sg.sg_flags &= ~ECHO; /* turn echo off */
-    STTY(f, &sg);
+    tcgetattr(f, &sg);   /* get settings */
+    sg.c_lflag &= ~ECHO; /* turn echo off */
+    tcsetattr(f, TCSAFLUSH, &sg);
 }
 
 /*
@@ -54,12 +45,12 @@ void echoff(f) int f; /* file descriptor for which to turn echo off */
  */
 void echon()
 {
-    struct sgttyb sg; /* tty device structure */
+    struct termios sg; /* tty device structure */
 
     if (G.echofd != -1) {
-        GTTY(G.echofd, &sg); /* get settings */
-        sg.sg_flags |= ECHO; /* turn echo on */
-        STTY(G.echofd, &sg);
+        tcgetattr(G.echofd, &sg); /* get settings */
+        sg.c_lflag |= ECHO;       /* turn echo on */
+        tcsetattr(G.echofd, TCSAFLUSH, &sg);
         G.echofd = -1;
     }
 }
@@ -72,25 +63,25 @@ int f; /* file descriptor from which to read */
 {
     char oldmin, oldtim;
     char c;
-    struct sgttyb sg; /* tty device structure */
+    struct termios sg; /* tty device structure */
 
-    GTTY(f, &sg);           /* get settings */
+    tcgetattr(f, &sg);      /* get settings */
     oldmin = sg.c_cc[VMIN]; /* save old values */
     oldtim = sg.c_cc[VTIME];
-    sg.c_cc[VMIN] = 1;      /* need only one char to return read() */
-    sg.c_cc[VTIME] = 0;     /* no timeout */
-    sg.sg_flags &= ~ICANON; /* canonical mode off */
-    sg.sg_flags &= ~ECHO;   /* turn echo off, too */
-    STTY(f, &sg);           /* set cbreak mode */
-    G.echofd = f;           /* in case ^C hit (not perfect: still CBREAK) */
+    sg.c_cc[VMIN] = 1;            /* need only one char to return read() */
+    sg.c_cc[VTIME] = 0;           /* no timeout */
+    sg.c_lflag &= ~ICANON;        /* canonical mode off */
+    sg.c_lflag &= ~ECHO;          /* turn echo off, too */
+    tcsetattr(f, TCSAFLUSH, &sg); /* set cbreak mode */
+    G.echofd = f; /* in case ^C hit (not perfect: still CBREAK) */
 
     read(f, &c, 1); /* read our character */
 
     sg.c_cc[VMIN] = oldmin; /* restore old values */
     sg.c_cc[VTIME] = oldtim;
-    sg.sg_flags |= ICANON; /* canonical mode on */
-    sg.sg_flags |= ECHO;   /* turn echo on */
-    STTY(f, &sg);          /* restore canonical mode */
+    sg.c_lflag |= ICANON;         /* canonical mode on */
+    sg.c_lflag |= ECHO;           /* turn echo on */
+    tcsetattr(f, TCSAFLUSH, &sg); /* restore canonical mode */
     G.echofd = -1;
 
     return (int) (uch) c;
@@ -132,7 +123,7 @@ int n;                             /* bytes available in p[] */
                 p[i++] = c;
         } while (c != '\n');
         echon();
-        PUTC('\n', stderr);
+        putc('\n', stderr);
         fflush(stderr);
         w = "(line too long--try again)\n";
     } while (p[i - 1] != '\n');
