@@ -375,7 +375,6 @@ int unshrink;
     register uch *p;
     register uch *q;
     uch *transbuf;
-    /* static int didCRlast = FALSE;    moved to globals.h */
 
     /*---------------------------------------------------------------------------
         Compute the CRC first; if testing or if disk is full, that's it.
@@ -1067,10 +1066,6 @@ zoff_t val;
 const char *pre;
 const char *post;
 {
-    /* Storage cylinder. (now in globals.h) */
-    /*static char fzofft_buf[FZOFFT_NUM][FZOFFT_LEN];*/
-    /*static int fzofft_index = 0;*/
-
     /* Temporary format string storage. */
     char fmt[16];
 

@@ -303,8 +303,6 @@ static int inflate_block(int *e);
    "uch *slide;" and then malloc'ed in the latter case.  The definition
    must be in unzip.h, included above. */
 
-/* unsigned wp;  moved to globals.h */ /* current position in slide */
-
 /* Tables for deflate from PKZIP's appnote.txt. */
 /* - Order of the bit length code lengths */
 static const unsigned border[] = {16, 17, 18, 0, 8,  7, 9,  6, 10, 5,
@@ -375,16 +373,6 @@ static const uch cpdext32[] = {0,
 #define MAXLITLENS 288
 #define MAXDISTS   32
 
-/* moved to consts.h (included in unzip.c), resp. funzip.c */
-#if 0
-/* And'ing with mask_bits[n] masks the lower n bits */
-const unsigned mask_bits[17] = {
-    0x0000,
-    0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
-    0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
-};
-#endif /* 0 */
-
 /* Macros for inflate() bit peeking and grabbing.
    The usage is:
 
@@ -420,12 +408,6 @@ const unsigned mask_bits[17] = {
    plus the minimum length of a distance code. This alternate fix can be
    enabled by defining the preprocessor symbol FIX_PAST_EOB_BY_TABLEADJUST.
  */
-
-/* These have been moved to globals.h */
-#if 0
-ulg bb;                         /* bit buffer */
-unsigned bk;                    /* bits in bit buffer */
-#endif
 
 #define NEEDBITS(n)                    \
     {                                  \
@@ -646,14 +628,6 @@ static int inflate_stored()
 cleanup_and_exit:
     return retval;
 }
-
-/* Globals for literal tables (built once) */
-/* Moved to globals.h                      */
-#if 0
-struct huft *fixed_tl = (struct huft *)NULL;
-struct huft *fixed_td;
-int fixed_bl, fixed_bd;
-#endif
 
 static int inflate_fixed()
 /* decompress an inflated type 1 (fixed Huffman codes) block.  We should

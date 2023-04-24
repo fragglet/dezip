@@ -37,7 +37,6 @@
 #define FALSE 0
 #endif
 
-/* char *key = (char *)NULL; moved to globals.h */
 static int testp(const uch *h);
 static int testkey(const uch *h, const char *key);
 

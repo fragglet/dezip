@@ -357,7 +357,6 @@ void free_G_buffers() /* releases all memory allocated in global vars */
 static int do_seekable(lastchance) /* return PK-type error code */
 int lastchance;
 {
-    /* static int no_ecrec = FALSE;  SKM: moved to globals.h */
     int maybe_exe = FALSE;
     int too_weird_to_continue = FALSE;
     time_t uxstamp;
