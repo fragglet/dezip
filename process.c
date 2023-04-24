@@ -45,7 +45,6 @@ static const char CannotFindZipfileDirMsg[] =
         %s%s.zip, and cannot find %s, period.\n";
 static const char CannotFindEitherZipfile[] =
     "%s:  cannot find or open %s, %s.zip or %s.\n";
-extern const char Zipnfo[]; /* in unzip.c */
 static const char Unzip[] = "unzip";
 static const char ZipfileTooBig[] =
     "Trying to read large file (> 2 GiB) without large file support\n";

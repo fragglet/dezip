@@ -1291,15 +1291,10 @@ extern const uch *oem2iso;
 extern const uch oem2iso_850[];
 #endif
 
-extern const char VersionDate[];
 extern const char CentSigMsg[];
 extern const char EndSigMsg[];
 extern const char SeekMsg[];
-extern const char FilenameNotMatched[];
-extern const char ExclFilenameNotMatched[];
 extern const char ReportMsg[];
-
-extern const char Zipnfo[];
 extern const char CompiledWith[];
 
 /***********************************/
