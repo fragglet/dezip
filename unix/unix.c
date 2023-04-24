@@ -34,9 +34,6 @@ typedef struct uxdirattr {  /* struct for holding unix style directory */
 } uxdirattr;
 #define UxAtt(d) ((uxdirattr *) d) /* typecast shortcut */
 
-/* static int created_dir;      */ /* used in mapname(), checkdir() */
-/* static int renamed_fullpath; */ /* ditto */
-
 static unsigned filtattr(unsigned perms);
 
 /*****************************/

@@ -126,11 +126,6 @@ int process_zipfiles() /* return PK-type error code */
     }
     G.hold = G.inbuf + INBUFSIZ; /* to check for boundary-spanning sigs */
 
-#if 0  /* CRC_32_TAB has been NULLified by CONSTRUCTGLOBALS !!!! */
-    /* allocate the CRC table later when we know we can read zipfile data */
-    CRC_32_TAB = NULL;
-#endif /* 0 */
-
     /* finish up initialization of magic signature strings */
     local_hdr_sig[0] /* = extd_local_sig[0] */ =  /* ASCII 'P', */
         central_hdr_sig[0] = end_central_sig[0] = /* not EBCDIC */
@@ -1257,9 +1252,6 @@ unsigned ef_len;                            /* total length of extra field */
                 G.crec.disk_number_start = (zuvl_t) makelong(offset + ef_buf);
                 offset += 4;
             }
-#if 0
-          break;                /* Expect only one EF_PKSZ64 block. */
-#endif /* 0 */
         }
 
         /* Skip this extra field block. */

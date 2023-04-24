@@ -1006,11 +1006,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 
 #define MESSAGE(str, len, flag) (*G.message)((str), (len), (flag))
 
-#if 0 /* Optimization: use the (const) result of crc32(0L,NULL,0) */
-#define CRCVAL_INITIAL crc32(0L, NULL, 0)
-#else
 #define CRCVAL_INITIAL 0L
-#endif
 
 /* This macro defines the Zip "made by" hosts that are considered
    to support storing symbolic link entries. */

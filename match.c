@@ -71,9 +71,6 @@
  * isupper()); otherwise just use tolower() */
 #include "unzip.h"
 
-#if 0  /* this is not useful until it matches Amiga names insensitively */
-#endif /* 0 */
-
 #ifdef ANSI_CHARSET
 #ifdef ToLower
 #undef ToLower
