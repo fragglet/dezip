@@ -17,10 +17,10 @@
 #include "crc32.h"
 
 static int do_seekable(int lastchance);
-static zoff_t file_size(int fh);
-static int rec_find(zoff_t, char *, int);
-static int find_ecrec64(zoff_t searchlen);
-static int find_ecrec(zoff_t searchlen);
+static off_t file_size(int fh);
+static int rec_find(off_t, char *, int);
+static int find_ecrec64(off_t searchlen);
+static int find_ecrec(off_t searchlen);
 static int process_zip_cmmnt(void);
 static int get_cdir_ent(void);
 static int read_ux3_value(const uch *dbuf, unsigned uidgid_sz, ulg *p_uidgid);
@@ -455,10 +455,10 @@ int lastchance;
             error_in_archive = PK_WARN;
         }
         if ((G.extra_bytes = G.real_ecrec_offset - G.expect_ecrec_offset) <
-            (zoff_t) 0) {
+            (off_t) 0) {
             Info(slide, 0x401,
                  ((char *) slide, MissingBytes, G.zipfn,
-                  FmZofft((-G.extra_bytes), NULL, NULL)));
+                  format_off_t((-G.extra_bytes), NULL, NULL)));
             error_in_archive = PK_ERR;
         } else if (G.extra_bytes > 0) {
             if ((G.ecrec.offset_start_central_directory == 0) &&
@@ -472,7 +472,7 @@ int lastchance;
             } else {
                 Info(slide, 0x401,
                      ((char *) slide, ExtraBytesAtStart, G.zipfn,
-                      FmZofft(G.extra_bytes, NULL, NULL),
+                      format_off_t(G.extra_bytes, NULL, NULL),
                       (G.extra_bytes == 1) ? "" : "s"));
                 error_in_archive = PK_WARN;
             }
@@ -504,7 +504,7 @@ int lastchance;
         }
         if ((error != PK_OK) || (readbuf(G.sig, 4) == 0) ||
             memcmp(G.sig, central_hdr_sig, 4)) {
-            zoff_t tmp = G.extra_bytes;
+            off_t tmp = G.extra_bytes;
 
             G.extra_bytes = 0;
             error = seek_zipf(G.ecrec.offset_start_central_directory);
@@ -519,7 +519,7 @@ int lastchance;
             }
             Info(slide, 0x401,
                  ((char *) slide, CentDirTooLong, G.zipfn,
-                  FmZofft((-tmp), NULL, NULL)));
+                  format_off_t((-tmp), NULL, NULL)));
             error_in_archive = PK_ERR;
         }
 
@@ -573,16 +573,16 @@ int lastchance;
    small-file program.  Probably should be somewhere else.
    The file has to be opened previously
 */
-static zoff_t file_size(fh)
+static off_t file_size(fh)
 int fh;
 {
     int siz;
-    zoff_t ofs;
+    off_t ofs;
     char waste[4];
 
     /* Seek to actual EOF. */
     ofs = lseek(fh, 0, SEEK_END);
-    if (ofs == (zoff_t) -1) {
+    if (ofs == (off_t) -1) {
         /* lseek() failed.  (Unlikely.) */
         ofs = EOF;
     } else if (ofs < 0) {
@@ -593,7 +593,7 @@ int fh;
            Won't be at actual EOF if offset was truncated.
         */
         ofs = lseek(fh, ofs, SEEK_SET);
-        if (ofs == (zoff_t) -1) {
+        if (ofs == (off_t) -1) {
             /* lseek() failed.  (Unlikely.) */
             ofs = EOF;
         } else {
@@ -610,12 +610,12 @@ int fh;
 
 static int rec_find(searchlen, signature, rec_size)
 /* return 0 when rec found, 1 when not found, 2 in case of read error */
-zoff_t searchlen;
+off_t searchlen;
 char *signature;
 int rec_size;
 {
     int i, numblks, found = FALSE;
-    zoff_t tail_len;
+    off_t tail_len;
 
     /*---------------------------------------------------------------------------
         Zipfile is longer than INBUFSIZ:  may need to loop.  Start with short
@@ -672,11 +672,11 @@ int rec_size;
 } /* end function rec_find() */
 
 static int find_ecrec64(searchlen) /* return PK-class error */
-zoff_t searchlen;
+off_t searchlen;
 {
     ec_byte_rec64 byterec;       /* buf for ecrec64 */
     ec_byte_loc64 byterecL;      /* buf for ecrec64 locator */
-    zoff_t ecloc64_start_offset; /* start offset of ecrec64 locator */
+    off_t ecloc64_start_offset;  /* start offset of ecrec64 locator */
     zusz_t ecrec64_start_offset; /* start offset of ecrec64 */
     zuvl_t ecrec64_start_disk;   /* start disk of ecrec64 */
     zuvl_t ecloc64_total_disks;  /* total disks */
@@ -877,7 +877,7 @@ zoff_t searchlen;
 } /* end function find_ecrec64() */
 
 static int find_ecrec(searchlen) /* return PK-class error */
-zoff_t searchlen;
+off_t searchlen;
 {
     int found = FALSE;
     int error_in_archive;
@@ -939,8 +939,8 @@ zoff_t searchlen;
     G.real_ecrec_offset = G.cur_zipfile_bufstart + (G.inptr - G.inbuf);
 #ifdef TEST
     printf("\n  found end-of-central-dir signature at offset %s (%sh)\n",
-           FmZofft(G.real_ecrec_offset, NULL, NULL),
-           FmZofft(G.real_ecrec_offset, FZOFFT_HEX_DOT_WID, "X"));
+           format_off_t(G.real_ecrec_offset, NULL, NULL),
+           format_off_t(G.real_ecrec_offset, OFF_T_HEX_DOT_WID, "X"));
     printf("    from beginning of file; offset %d (%.4Xh) within block\n",
            G.inptr - G.inbuf, G.inptr - G.inbuf);
 #endif

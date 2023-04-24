@@ -45,8 +45,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-typedef off_t zoff_t;
-#define ZOFF_T_DEFINED
 typedef struct stat z_stat;
 #define Z_STAT_DEFINED
 
@@ -73,7 +71,7 @@ typedef struct stat z_stat;
 #ifndef DATE_FORMAT
 #define DATE_FORMAT DF_MDY /* GRR:  customize with locale.h somehow? */
 #endif
-#define lenEOL                     1
-#define PutNativeEOL               *q++ = native(LF);
+#define lenEOL       1
+#define PutNativeEOL *q++ = native(LF);
 
 #endif /* !__unxcfg_h */

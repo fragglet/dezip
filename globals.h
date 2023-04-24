@@ -28,10 +28,10 @@ struct globals {
     int create_dirs;    /* used by main(), mapname(), checkdir() */
     int extract_flag;
     int newzip; /* reset in extract.c; used in crypt.c */
-    zoff_t real_ecrec_offset;
-    zoff_t expect_ecrec_offset;
-    zoff_t csize;      /* used by decompr. (NEXTBYTE): must be signed */
-    zoff_t used_csize; /* used by extract_or_test_member(), explode() */
+    off_t real_ecrec_offset;
+    off_t expect_ecrec_offset;
+    off_t csize;      /* used by decompr. (NEXTBYTE): must be signed */
+    off_t used_csize; /* used by extract_or_test_member(), explode() */
 
     char **pfnames;
     char **pxnames;
@@ -54,10 +54,10 @@ struct globals {
     char *wildzipfn;
     char *zipfn; /* GRR:  WINDLL:  must nuke any malloc'd zipfn... */
     int zipfd;   /* zipfile file handle */
-    zoff_t ziplen;
-    zoff_t cur_zipfile_bufstart; /* extract_or_test, readbuf, ReadByte */
-    zoff_t extra_bytes;          /* used in unzip.c, misc.c */
-    uch *extra_field;            /* Unix, VMS, Mac, OS/2, Acorn, ... */
+    off_t ziplen;
+    off_t cur_zipfile_bufstart; /* extract_or_test, readbuf, ReadByte */
+    off_t extra_bytes;          /* used in unzip.c, misc.c */
+    uch *extra_field;           /* Unix, VMS, Mac, OS/2, Acorn, ... */
     uch *hold;
 
     local_file_hdr lrec; /* used in unzip.c, extract.c */
@@ -124,9 +124,9 @@ struct globals {
     ulg bb;      /* inflate static: bit buffer */
     unsigned bk; /* inflate static: bits count in bit buffer */
 
-    /* cylindric buffer space for formatting zoff_t values (fileio static) */
-    char fzofft_buf[FZOFFT_NUM][FZOFFT_LEN];
-    int fzofft_index;
+    /* cylindric buffer space for formatting off_t values (fileio static) */
+    char fofft_buf[OFF_T_NUM][OFF_T_LEN];
+    int fofft_index;
 
     MsgFn *message;
     PauseFn *mpause;

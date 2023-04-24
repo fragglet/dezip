@@ -66,8 +66,7 @@ static const char ExclFilenameNotMatched[] =
 
 static int store_info(void);
 static int extract_or_test_entrylist(unsigned numchunk, ulg *pfilnum,
-                                     ulg *pnum_bad_pwd,
-                                     zoff_t *pold_extra_bytes,
+                                     ulg *pnum_bad_pwd, off_t *pold_extra_bytes,
                                      unsigned *pnum_dirs, direntry **pdirlist,
                                      int error_in_archive);
 static int extract_or_test_member(void);
@@ -226,7 +225,7 @@ static const char OverlappedComponents[] =
     "error: invalid zip file with overlapped components (possible zip bomb)\n";
 
 /* A growable list of spans. */
-typedef zoff_t bound_t;
+typedef off_t bound_t;
 typedef struct {
     bound_t beg; /* start of the span */
     bound_t end; /* one past the end of the span */
@@ -338,7 +337,7 @@ bound_t end;
 int extract_or_test_files() /* return PK-type error code */
 {
     unsigned i, j;
-    zoff_t cd_bufstart;
+    off_t cd_bufstart;
     uch *cd_inptr;
     int cd_incnt;
     ulg filnum = 0L, blknum = 0L;
@@ -348,7 +347,7 @@ int extract_or_test_files() /* return PK-type error code */
     int *fn_matched = NULL, *xn_matched = NULL;
     zucn_t members_processed;
     ulg num_skipped = 0L, num_bad_pwd = 0L;
-    zoff_t old_extra_bytes = 0L;
+    off_t old_extra_bytes = 0L;
     unsigned num_dirs = 0;
     direntry *dirlist = (direntry *) NULL,
              **sorted_dirlist = (direntry **) NULL;
@@ -892,7 +891,7 @@ static int store_info() /* return 0 if skipping, 1 if OK */
     mapattr(); /* GRR:  worry about return value later */
 
     G.pInfo->diskstart = G.crec.disk_number_start;
-    G.pInfo->offset = (zoff_t) G.crec.relative_offset_local_header;
+    G.pInfo->offset = (off_t) G.crec.relative_offset_local_header;
     return 1;
 
 } /* end function store_info() */
@@ -916,7 +915,7 @@ extract_or_test_entrylist(numchunk, pfilnum, pnum_bad_pwd, pold_extra_bytes,
 unsigned numchunk;
 ulg *pfilnum;
 ulg *pnum_bad_pwd;
-zoff_t *pold_extra_bytes;
+off_t *pold_extra_bytes;
 unsigned *pnum_dirs;
 direntry **pdirlist;
 int error_in_archive;
@@ -924,7 +923,7 @@ int error_in_archive;
     unsigned i;
     int renamed, query;
     int skip_entry;
-    zoff_t bufstart, inbuf_offset, request;
+    off_t bufstart, inbuf_offset, request;
     int error, errcode;
 
 /* possible values for local skip_entry flag: */
@@ -1126,8 +1125,9 @@ int error_in_archive;
             if (G.lrec.ucsize != csiz_decrypted) {
                 Info(slide, 0x401,
                      ((char *) slide, WrnStorUCSizCSizDiff,
-                      FnFilter1(G.filename), FmZofft(G.lrec.ucsize, NULL, "u"),
-                      FmZofft(csiz_decrypted, NULL, "u")));
+                      FnFilter1(G.filename),
+                      format_off_t(G.lrec.ucsize, NULL, "u"),
+                      format_off_t(csiz_decrypted, NULL, "u")));
                 G.lrec.ucsize = csiz_decrypted;
                 if (error_in_archive < PK_WARN)
                     error_in_archive = PK_WARN;
@@ -1474,18 +1474,19 @@ static int extract_or_test_member() /* return PK-type error code */
                     Info(slide, 0x401,
                          ((char *) slide, LengthMsg, "",
                           warning ? "warning" : "error",
-                          FmZofft(G.used_csize, NULL, NULL),
-                          FmZofft(G.lrec.ucsize, NULL, "u"),
-                          warning ? "  " : "", FmZofft(G.lrec.csize, NULL, "u"),
-                          " [", FnFilter1(G.filename), "]"));
+                          format_off_t(G.used_csize, NULL, NULL),
+                          format_off_t(G.lrec.ucsize, NULL, "u"),
+                          warning ? "  " : "",
+                          format_off_t(G.lrec.csize, NULL, "u"), " [",
+                          FnFilter1(G.filename), "]"));
                 else
                     Info(slide, 0x401,
                          ((char *) slide, LengthMsg, "\n",
                           warning ? "warning" : "error",
-                          FmZofft(G.used_csize, NULL, NULL),
-                          FmZofft(G.lrec.ucsize, NULL, "u"),
-                          warning ? "  " : "", FmZofft(G.lrec.csize, NULL, "u"),
-                          "", "", "."));
+                          format_off_t(G.used_csize, NULL, NULL),
+                          format_off_t(G.lrec.ucsize, NULL, "u"),
+                          warning ? "  " : "",
+                          format_off_t(G.lrec.csize, NULL, "u"), "", "", "."));
                 error = warning ? PK_WARN : PK_ERR;
             } else if (r < PK_DISK) {
                 if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
@@ -1876,7 +1877,7 @@ ulg tgtsize;                               /*  level */
 const uch *src;
 ulg srcsize;
 {
-    zoff_t old_csize = G.csize;
+    off_t old_csize = G.csize;
     uch *old_inptr = G.inptr;
     int old_incnt = G.incnt;
     int r, error = PK_OK;

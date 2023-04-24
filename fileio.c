@@ -208,7 +208,7 @@ void undefer_input()
 
 void defer_leftover_input()
 {
-    if ((zoff_t) G.incnt > G.csize) {
+    if ((off_t) G.incnt > G.csize) {
         /* (G.csize < MAXINT), we can safely cast it to int !! */
         if (G.csize < 0L)
             G.csize = 0L;
@@ -315,7 +315,7 @@ int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
 } /* end function fillinbuf() */
 
 int seek_zipf(abs_offset)
-zoff_t abs_offset;
+off_t abs_offset;
 {
     /*
      *  Seek to the block boundary of the block which includes abs_offset,
@@ -336,26 +336,26 @@ zoff_t abs_offset;
      *  PK_EOF if seeking past end of zipfile
      *  PK_OK when seek was successful
      */
-    zoff_t request = abs_offset + G.extra_bytes;
-    zoff_t inbuf_offset = request % INBUFSIZ;
-    zoff_t bufstart = request - inbuf_offset;
+    off_t request = abs_offset + G.extra_bytes;
+    off_t inbuf_offset = request % INBUFSIZ;
+    off_t bufstart = request - inbuf_offset;
 
     if (request < 0) {
         Info(slide, 1, ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
         return (PK_BADERR);
     } else if (bufstart != G.cur_zipfile_bufstart) {
         Trace((stderr, "fpos_zip: abs_offset = %s, G.extra_bytes = %s\n",
-               FmZofft(abs_offset, NULL, NULL),
-               FmZofft(G.extra_bytes, NULL, NULL)));
+               format_off_t(abs_offset, NULL, NULL),
+               format_off_t(G.extra_bytes, NULL, NULL)));
         G.cur_zipfile_bufstart = lseek(G.zipfd, bufstart, SEEK_SET);
         Trace((stderr,
                "       request = %s, (abs+extra) = %s, inbuf_offset = %s\n",
-               FmZofft(request, NULL, NULL),
-               FmZofft((abs_offset + G.extra_bytes), NULL, NULL),
-               FmZofft(inbuf_offset, NULL, NULL)));
+               format_off_t(request, NULL, NULL),
+               format_off_t((abs_offset + G.extra_bytes), NULL, NULL),
+               format_off_t(inbuf_offset, NULL, NULL)));
         Trace((stderr, "       bufstart = %s, cur_zipfile_bufstart = %s\n",
-               FmZofft(bufstart, NULL, NULL),
-               FmZofft(G.cur_zipfile_bufstart, NULL, NULL)));
+               format_off_t(bufstart, NULL, NULL),
+               format_off_t(G.cur_zipfile_bufstart, NULL, NULL)));
         if ((G.incnt = read(G.zipfd, (char *) G.inbuf, INBUFSIZ)) <= 0)
             return (PK_EOF);
         G.incnt -= (int) inbuf_offset;
@@ -1060,9 +1060,9 @@ zusz_t makeint64(sig) const uch *sig;
 #endif /* ?LARGE_FILE_SUPPORT */
 }
 
-/* Format a zoff_t value in a cylindrical buffer set. */
-char *fzofft(val, pre, post)
-zoff_t val;
+/* Format a off_t value in a cylindrical buffer set. */
+char *format_off_t(val, pre, post)
+off_t val;
 const char *pre;
 const char *post;
 {
@@ -1072,19 +1072,19 @@ const char *post;
     /* Assemble the format string. */
     fmt[0] = '%';
     fmt[1] = '\0'; /* Start after initial "%". */
-    if (pre == FZOFFT_HEX_WID) {
+    if (pre == OFF_T_HEX_WID) {
         /* Special hex width. */
-        strcat(fmt, FZOFFT_HEX_WID_VALUE);
-    } else if (pre == FZOFFT_HEX_DOT_WID) {
+        strcat(fmt, OFF_T_HEX_WID_VALUE);
+    } else if (pre == OFF_T_HEX_DOT_WID) {
         /* Special hex ".width". */
         strcat(fmt, ".");
-        strcat(fmt, FZOFFT_HEX_WID_VALUE);
+        strcat(fmt, OFF_T_HEX_WID_VALUE);
     } else if (pre != NULL) {
         /* Caller's prefix (width). */
         strcat(fmt, pre);
     }
 
-    strcat(fmt, FZOFFT_FMT); /* Long or long-long or whatever. */
+    strcat(fmt, OFF_T_FMT); /* Long or long-long or whatever. */
 
     if (post == NULL)
         strcat(fmt, "d"); /* Default radix = decimal. */
@@ -1092,13 +1092,13 @@ const char *post;
         strcat(fmt, post); /* Caller's radix. */
 
     /* Advance the cylinder. */
-    G.fzofft_index = (G.fzofft_index + 1) % FZOFFT_NUM;
+    G.fofft_index = (G.fofft_index + 1) % OFF_T_NUM;
 
     /* Write into the current chamber. */
-    sprintf(G.fzofft_buf[G.fzofft_index], fmt, val);
+    sprintf(G.fofft_buf[G.fofft_index], fmt, val);
 
     /* Return a pointer to this chamber. */
-    return G.fzofft_buf[G.fzofft_index];
+    return G.fofft_buf[G.fofft_index];
 }
 
 #ifdef NEED_STR2ISO

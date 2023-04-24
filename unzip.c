@@ -231,9 +231,9 @@ char *argv[];
     signal(SIGABRT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-#if defined(DEBUG) && defined(LARGE_FILE_SUPPORT)
+#if defined(DEBUG)
     /* test if we can support large files - 10/6/04 EG */
-    if (sizeof(zoff_t) < 8) {
+    if (sizeof(off_t) < 8) {
         Info(slide, 0x401,
              ((char *) slide, "LARGE_FILE_SUPPORT set but not supported\n"));
         retcode = PK_BADERR;
@@ -241,17 +241,17 @@ char *argv[];
     }
     /* test if we can show 64-bit values */
     {
-        zoff_t z = ~(zoff_t) 0; /* z should be all 1s now */
+        off_t z = ~(off_t) 0; /* z should be all 1s now */
         char *sz;
 
-        sz = FmZofft(z, FZOFFT_HEX_DOT_WID, "X");
+        sz = format_off_t(z, OFF_T_HEX_DOT_WID, "X");
         if ((sz[0] != 'F') || (strlen(sz) != 16)) {
             z = 0;
         }
 
         /* shift z so only MSB is set */
         z <<= 63;
-        sz = FmZofft(z, FZOFFT_HEX_DOT_WID, "X");
+        sz = format_off_t(z, OFF_T_HEX_DOT_WID, "X");
         if ((sz[0] != '8') || (strlen(sz) != 16)) {
             Info(slide, 0x401,
                  ((char *) slide, "Can't show 64-bit values correctly\n"));

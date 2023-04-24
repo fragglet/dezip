@@ -24,16 +24,6 @@
 
 #include "unix/unxcfg.h"
 
-#if (defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 64))
-#define Z_OFF_T off_t /* 64bit offsets to support 2GB < zipfile size < 4GB */
-#else
-#define Z_OFF_T long
-#endif
-
-#ifndef ZOFF_T_DEFINED
-typedef Z_OFF_T zoff_t;
-#define ZOFF_T_DEFINED
-#endif
 #ifndef Z_STAT_DEFINED
 typedef struct stat z_stat;
 #define Z_STAT_DEFINED
@@ -245,25 +235,21 @@ char *plastchar(const char *ptr, extent len);
 #define SSTAT stat
 #endif
 
-/* Default fzofft() format selection. */
-
-#ifndef FZOFFT_FMT
+/* Default format_off_t() format selection. */
 
 #ifdef LARGE_FILE_SUPPORT
-#define FZOFFT_FMT           "ll"
-#define FZOFFT_HEX_WID_VALUE "16"
+#define OFF_T_FMT           "ll"
+#define OFF_T_HEX_WID_VALUE "16"
 #else /* def LARGE_FILE_SUPPORT */
-#define FZOFFT_FMT           "l"
-#define FZOFFT_HEX_WID_VALUE "8"
+#define OFF_T_FMT           "l"
+#define OFF_T_HEX_WID_VALUE "8"
 #endif /* def LARGE_FILE_SUPPORT */
 
-#endif /* ndef FZOFFT_FMT */
+#define OFF_T_HEX_WID     ((char *) -1)
+#define OFF_T_HEX_DOT_WID ((char *) -2)
 
-#define FZOFFT_HEX_WID     ((char *) -1)
-#define FZOFFT_HEX_DOT_WID ((char *) -2)
-
-#define FZOFFT_NUM 4  /* Number of chambers. */
-#define FZOFFT_LEN 24 /* Number of characters/chamber. */
+#define OFF_T_NUM 4  /* Number of chambers. */
+#define OFF_T_LEN 24 /* Number of characters/chamber. */
 
 #ifndef S_TIME_T_MAX /* max value of signed (>= 32-bit) time_t */
 #define S_TIME_T_MAX ((time_t) (ulg) 0x7fffffffL)
@@ -606,7 +592,7 @@ typedef struct slinkentry {  /* info for deferred symlink creation */
 } slinkentry;
 
 typedef struct min_info {
-    zoff_t offset;
+    off_t offset;
     zusz_t compr_size;   /* compressed size (needed if extended header) */
     zusz_t uncompr_size; /* uncompressed size (needed if extended header) */
     ulg crc;             /* crc (needed if extended header) */
@@ -856,7 +842,7 @@ void defer_leftover_input(void);
 unsigned readbuf(char *buf, register unsigned len);
 int readbyte(void);
 int fillinbuf(void);
-int seek_zipf(zoff_t abs_offset);
+int seek_zipf(off_t abs_offset);
 int flush(uch *buf, ulg size, int unshrink);
 /* static int  disk_error(void); */
 void handler(int signal);
@@ -866,7 +852,7 @@ int do_string(unsigned int length, int option);
 ush makeword(const uch *b);
 ulg makelong(const uch *sig);
 zusz_t makeint64(const uch *sig);
-char *fzofft(zoff_t val, const char *pre, const char *post);
+char *format_off_t(off_t val, const char *pre, const char *post);
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
 char *str2iso(char *dst, const char *src);
 #endif
@@ -986,11 +972,6 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 #define Info(buf, flag, sprf_arg) \
     (*G.message)((uch *) (buf), (ulg) sprintf sprf_arg, (flag))
 #endif /* !Info */
-
-/*  This wrapper macro around fzofft() is just defined to "hide" the
- *  argument needed to reference the global storage buffers.
- */
-#define FmZofft(val, pre, post) fzofft(val, pre, post)
 
 /*  The following macro wrappers around the fnfilter function are used many
  *  times to prepare archive entry names or name components for displaying

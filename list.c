@@ -260,14 +260,14 @@ int list_files() /* return PK-type error code */
             if (longhdr)
                 Info(slide, 0,
                      ((char *) slide, LongHdrStats,
-                      FmZofft(G.crec.ucsize, "8", "u"), methbuf,
-                      FmZofft(csiz, "8", "u"), cfactorstr, mo, dt_sepchar, dy,
-                      dt_sepchar, yr, hh, mm, G.crec.crc32,
+                      format_off_t(G.crec.ucsize, "8", "u"), methbuf,
+                      format_off_t(csiz, "8", "u"), cfactorstr, mo, dt_sepchar,
+                      dy, dt_sepchar, yr, hh, mm, G.crec.crc32,
                       (G.pInfo->lcflag ? '^' : ' ')));
             else
                 Info(slide, 0,
                      ((char *) slide, ShortHdrStats,
-                      FmZofft(G.crec.ucsize, "9", "u"), mo, dt_sepchar, dy,
+                      format_off_t(G.crec.ucsize, "9", "u"), mo, dt_sepchar, dy,
                       dt_sepchar, yr, hh, mm, (G.pInfo->lcflag ? '^' : ' ')));
             fnprint();
 
@@ -305,12 +305,13 @@ int list_files() /* return PK-type error code */
         if (longhdr) {
             Info(slide, 0,
                  ((char *) slide, LongFileTrailer,
-                  FmZofft(tot_ucsize, "8", "u"), FmZofft(tot_csize, "8", "u"),
-                  cfactorstr, members, members == 1 ? "" : "s"));
+                  format_off_t(tot_ucsize, "8", "u"),
+                  format_off_t(tot_csize, "8", "u"), cfactorstr, members,
+                  members == 1 ? "" : "s"));
         } else
             Info(slide, 0,
                  ((char *) slide, ShortFileTrailer,
-                  FmZofft(tot_ucsize, "9", "u"), members,
+                  format_off_t(tot_ucsize, "9", "u"), members,
                   members == 1 ? "" : "s"));
     }
 
