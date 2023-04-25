@@ -441,7 +441,7 @@ int renamed;
              */
             if (G.pInfo->hostnum != UNIX_ || !(uO.X_flag || uO.K_flag)) {
                 /* preserve SGID bit when inherited from parent dir */
-                if (!SSTAT(G.filename, &G.statbuf)) {
+                if (!stat(G.filename, &G.statbuf)) {
                     G.pInfo->file_attr |= G.statbuf.st_mode & S_ISGID;
                 } else {
                     perror("Could not read directory attributes");
@@ -551,7 +551,7 @@ int flag;
         /* next check: need to append '/', at least one-char name, '\0' */
         if ((G.end - G.buildpath) > FILNAMSIZ - 3)
             too_long = TRUE;                  /* check if extracting dir? */
-        if (SSTAT(G.buildpath, &G.statbuf)) { /* path doesn't exist */
+        if (stat(G.buildpath, &G.statbuf)) { /* path doesn't exist */
             if (!G.create_dirs) { /* told not to create (freshening) */
                 free(G.buildpath);
                 return MPN_INF_SKIP; /* path doesn't exist: nothing to do */
@@ -689,7 +689,7 @@ int flag;
                 tmproot[--G.rootlen] = '\0';
             }
             if (G.rootlen > 0 &&
-                (SSTAT(tmproot, &G.statbuf) ||
+                (stat(tmproot, &G.statbuf) ||
                  !S_ISDIR(G.statbuf.st_mode))) { /* path does not exist */
                 if (!G.create_dirs /* || iswild(tmproot) */) {
                     free(tmproot);

@@ -120,7 +120,7 @@ int open_input_file() /* return 1 if open failed */
 int open_outfile() /* return 1 if fail */
 {
     mode_t umask_sav;
-    if (SSTAT(G.filename, &G.statbuf) == 0 ||
+    if (stat(G.filename, &G.statbuf) == 0 ||
         lstat(G.filename, &G.statbuf) == 0) {
         Trace((stderr, "open_outfile:  stat(%s) returns 0:  file exists\n",
                FnFilter1(G.filename)));
@@ -683,10 +683,10 @@ char *filename;               /*  exist yet */
     iztimes z_utime;
 
     Trace((stderr, "check_for_newer:  doing stat(%s)\n", FnFilter1(filename)));
-    if (SSTAT(filename, &G.statbuf)) {
+    if (stat(filename, &G.statbuf)) {
         Trace((stderr,
                "check_for_newer:  stat(%s) returns %d:  file does not exist\n",
-               FnFilter1(filename), SSTAT(filename, &G.statbuf)));
+               FnFilter1(filename), stat(filename, &G.statbuf)));
         Trace((stderr, "check_for_newer:  doing lstat(%s)\n",
                FnFilter1(filename)));
         /* GRR OPTION:  could instead do this test ONLY if G.symlnk is true */

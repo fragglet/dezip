@@ -214,10 +214,6 @@ char *plastchar(const char *ptr, extent len);
  * Lifted and placed here 6/7/2004 - Myles Bennett
  */
 
-#ifndef SSTAT
-#define SSTAT stat
-#endif
-
 /* Default format_off_t() format selection. */
 
 #ifdef LARGE_FILE_SUPPORT
