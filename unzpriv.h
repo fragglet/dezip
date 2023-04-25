@@ -875,9 +875,9 @@ int explode(void);             /* explode.c */
 int huft_free(struct huft *t); /* inflate.c */
 int huft_build(const unsigned *b, unsigned n, unsigned s, const ush *d,
                const uch *e, struct huft **t, unsigned *m);
-int inflate(int is_defl64); /* inflate.c */
-int inflate_free(void);     /* inflate.c */
-int unshrink(void);         /* unshrink.c */
+int inflate(int is_defl64);            /* inflate.c */
+int inflate_free(void);                /* inflate.c */
+int unshrink(void);                    /* unshrink.c */
 int UZbunzip2(void);                   /* extract.c */
 void bz_internal_error(int bzerrcode); /* ubz2err.c */
 
@@ -1066,37 +1066,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
  *    macro.
  */
 
-#ifndef foreign
-#define foreign(c) (c)
-#endif
-
-#ifndef native
-#define native(c) (c)
 #define A_TO_N(str1)
-#else
-#ifndef NATIVE
-#define NATIVE "native chars"
-#endif
-#define A_TO_N(str1)                      \
-    {                                     \
-        register uch *p;                  \
-        for (p = (uch *) (str1); *p; p++) \
-            *p = native(*p);              \
-    }
-#endif
-/*
- *  Translate the zero-terminated string in str1 from ASCII to the native
- *  character set. The translation is performed in-place and uses the
- *  "native" macro to translate each character.
- *
- *  NOTE:  Using the "native" macro means that is it the only part of unzip
- *    which knows which translation table (if any) is actually in use to
- *    produce the native character set.  This makes adding new character set
- *    translation tables easy, insofar as all that is needed is an appropriate
- *    "native" macro definition and the translation table itself.  Currently,
- *    the only non-ASCII native character set implemented is EBCDIC, but this
- *    may not always be so.
- */
 
 /* default setup for internal codepage: assume ISO 8859-1 compatibility!! */
 #if (!defined(NATIVE) && !defined(CRTL_CP_IS_ISO) && !defined(CRTL_CP_IS_OEM))
@@ -1112,11 +1082,11 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 #ifndef IZ_ISO2OEM_ARRAY
 #define IZ_ISO2OEM_ARRAY
 #endif
-#define _ISO_INTERN(str1)                                       \
-    if (iso2oem) {                                              \
-        register uch *p;                                        \
-        for (p = (uch *) (str1); *p; p++)                       \
-            *p = native((*p & 0x80) ? iso2oem[*p & 0x7f] : *p); \
+#define _ISO_INTERN(str1)                               \
+    if (iso2oem) {                                      \
+        register uch *p;                                \
+        for (p = (uch *) (str1); *p; p++)               \
+            *p = (*p & 0x80) ? iso2oem[*p & 0x7f] : *p; \
     }
 #else
 #define _ISO_INTERN(str1) A_TO_N(str1)
@@ -1130,11 +1100,11 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 #ifndef IZ_OEM2ISO_ARRAY
 #define IZ_OEM2ISO_ARRAY
 #endif
-#define _OEM_INTERN(str1)                                       \
-    if (oem2iso) {                                              \
-        register uch *p;                                        \
-        for (p = (uch *) (str1); *p; p++)                       \
-            *p = native((*p & 0x80) ? oem2iso[*p & 0x7f] : *p); \
+#define _OEM_INTERN(str1)                               \
+    if (oem2iso) {                                      \
+        register uch *p;                                \
+        for (p = (uch *) (str1); *p; p++)               \
+            *p = (*p & 0x80) ? oem2iso[*p & 0x7f] : *p; \
     }
 #endif
 #endif

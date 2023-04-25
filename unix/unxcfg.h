@@ -68,7 +68,6 @@ typedef struct stat z_stat;
 #ifndef DATE_FORMAT
 #define DATE_FORMAT DF_MDY /* GRR:  customize with locale.h somehow? */
 #endif
-#define lenEOL       1
-#define PutNativeEOL *q++ = native(LF);
+#define lenEOL 1
 
 #endif /* !__unxcfg_h */

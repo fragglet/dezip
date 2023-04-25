@@ -435,14 +435,17 @@ int unshrink;
             G.didCRlast = FALSE;
             for (q = transbuf; (extent) (p - rawbuf) < (extent) size; ++p) {
                 if (*p == CR) { /* lone CR or CR/LF: treat as EOL  */
-                    PutNativeEOL if ((extent) (p - rawbuf) == (extent) size - 1)
+                    *q++ = LF;
+                    if ((extent) (p - rawbuf) == (extent) size - 1)
                         /* last char in buffer */
                         G.didCRlast = TRUE;
                     else if (p[1] == LF) /* get rid of accompanying LF */
-                        ++ p;
-                } else if (*p == LF)                   /* lone LF */
-                    PutNativeEOL else if (*p != CTRLZ) /* lose all ^Z's */
-                        *q++ = native(*p);
+                        ++p;
+                } else if (*p == LF) { /* lone LF */
+                    *q++ = LF;
+                } else if (*p != CTRLZ) { /* lose all ^Z's */
+                    *q++ = *p;
+                }
             }
         }
 
@@ -1100,7 +1103,7 @@ register const char *src; /* source string */
     register char *dstp = dst;
 
     do {
-        c = (uch) foreign(*src++);
+        c = (uch) *src++;
         *dstp++ = (char) ASCII2ISO(c);
     } while (c != '\0');
 #endif
@@ -1121,7 +1124,7 @@ register const char *src; /* source string */
     register char *dstp = dst;
 
     do {
-        c = (uch) foreign(*src++);
+        c = (uch) *src++;
         *dstp++ = (char) ASCII2OEM(c);
     } while (c != '\0');
 #endif
