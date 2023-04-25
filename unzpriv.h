@@ -42,8 +42,7 @@ typedef struct stat z_stat;
 #include <stdlib.h>
 typedef size_t extent;
 
-#define UNZIP_BZ2VERS     46
-#define UNZIP_VERSION     UNZIP_BZ2VERS
+#define UNZIP_VERSION     46
 #define VMS_UNZIP_VERSION 42 /* if OS-needed-to-extract is VMS:  can do */
 
 /* clean up with a few defaults */

@@ -797,21 +797,7 @@ int extract_or_test_files() /* return PK-type error code */
 
 static int store_info() /* return 0 if skipping, 1 if OK */
 {
-#define UNKN_BZ2 (G.crec.compression_method != BZIPPED)
-
-#define UNKN_RED                              \
-    (G.crec.compression_method >= REDUCED1 && \
-     G.crec.compression_method <= REDUCED4)
-#define UNKN_COMPR                                         \
-    (UNKN_RED || G.crec.compression_method == TOKENIZED || \
-     (G.crec.compression_method > ENHDEFLATED && UNKN_BZ2))
-
-#if (defined(USE_BZIP2) && (UNZIP_VERSION < UNZIP_BZ2VERS))
-    int unzvers_support = (UNKN_BZ2 ? UNZIP_VERSION : UNZIP_BZ2VERS);
-#define UNZVERS_SUPPORT unzvers_support
-#else
-#define UNZVERS_SUPPORT UNZIP_VERSION
-#endif
+    int unknown_method;
 
     /*---------------------------------------------------------------------------
         Check central directory info for version/compatibility requirements.
@@ -853,17 +839,23 @@ static int store_info() /* return 0 if skipping, 1 if OK */
                 return 0;
         }
         /* usual file type:  don't need VMS to extract */
-    } else if (G.crec.version_needed_to_extract[0] > UNZVERS_SUPPORT) {
+    } else if (G.crec.version_needed_to_extract[0] > UNZIP_VERSION) {
         if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
             Info(slide, 0x401,
                  ((char *) slide, VersionMsg, FnFilter1(G.filename), "PK",
                   G.crec.version_needed_to_extract[0] / 10,
-                  G.crec.version_needed_to_extract[0] % 10,
-                  UNZVERS_SUPPORT / 10, UNZVERS_SUPPORT % 10));
+                  G.crec.version_needed_to_extract[0] % 10, UNZIP_VERSION / 10,
+                  UNZIP_VERSION % 10));
         return 0;
     }
 
-    if (UNKN_COMPR) {
+    unknown_method = (G.crec.compression_method >= REDUCED1 &&
+                      G.crec.compression_method <= REDUCED4) ||
+                     G.crec.compression_method == TOKENIZED ||
+                     (G.crec.compression_method > ENHDEFLATED &&
+                      G.crec.compression_method != BZIPPED);
+
+    if (unknown_method) {
         if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))) {
             unsigned cmpridx;
 
