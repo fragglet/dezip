@@ -59,13 +59,6 @@ typedef size_t extent;
 #ifndef CLOSE_INFILE
 #define CLOSE_INFILE() close(G.zipfd)
 #endif
-#ifndef STRNICMP
-#ifdef NO_STRNICMP
-#define STRNICMP zstrnicmp
-#else
-#define STRNICMP strnicmp
-#endif
-#endif
 
 /* OS-specific exceptions to the "ANSI <--> INT_SPRINTF" rule */
 
@@ -857,10 +850,6 @@ char *str2iso(char *dst, const char *src);
 #endif
 #if (!defined(STR_TO_OEM) || defined(NEED_STR2OEM))
 char *str2oem(char *dst, const char *src);
-#endif
-#ifdef NO_STRNICMP
-int zstrnicmp(register const char *s1, register const char *s2,
-              register unsigned n);
 #endif
 #ifdef NEED_UZMBCLEN
 extent uzmbclen(const unsigned char *ptr);

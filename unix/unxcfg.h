@@ -65,9 +65,6 @@ typedef struct stat z_stat;
 #undef _MBCS
 #endif
 
-#if (!defined(HAVE_STRNICMP) & !defined(NO_STRNICMP))
-#define NO_STRNICMP
-#endif
 #ifndef DATE_FORMAT
 #define DATE_FORMAT DF_MDY /* GRR:  customize with locale.h somehow? */
 #endif
