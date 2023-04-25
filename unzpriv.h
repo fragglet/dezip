@@ -24,11 +24,6 @@
 
 #include "unix/unxcfg.h"
 
-#ifndef Z_STAT_DEFINED
-typedef struct stat z_stat;
-#define Z_STAT_DEFINED
-#endif
-
 #include <stdio.h>
 
 #include <ctype.h>
