@@ -60,8 +60,6 @@ typedef size_t extent;
 #define CLOSE_INFILE() close(G.zipfd)
 #endif
 
-/* OS-specific exceptions to the "ANSI <--> INT_SPRINTF" rule */
-
 /* defaults that we hope will take care of most machines in the future */
 
 #define MSG_STDERR(f) (f & 1)        /* bit 0:  0 = stdout, 1 = stderr */
@@ -102,8 +100,6 @@ typedef size_t extent;
 #define TRANSBUFSIZ (lenEOL * OUTBUFSIZ)
 typedef int shrint; /* for efficiency/speed, we hope... */
 #define RAWBUFSIZ OUTBUFSIZ
-
-/* user may have defined both by accident...  NOTIMESTAMP takes precedence */
 
 /* The LZW patent is expired worldwide since 2004-Jul-07, so USE_UNSHRINK
  * is now enabled by default.  See unshrink.c.
@@ -866,11 +862,6 @@ unsigned char *uzmbsrchr(const unsigned char *str, unsigned int c);
   ---------------------------------------------------------------------------*/
 
 int extract_or_test_files(void);
-/* static int   store_info(void); */
-/* static int   extract_or_test_member(void); */
-/* static int   TestExtraField(uch *ef, unsigned ef_len); */
-/* static int   test_OS2(uch *eb, unsigned eb_size); */
-/* static int   test_NT(uch *eb, unsigned eb_size); */
 unsigned find_compr_idx(unsigned compr_methodnum);
 int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize);
 int memflush(const uch *rawbuf, ulg size);
@@ -887,7 +878,6 @@ int huft_build(const unsigned *b, unsigned n, unsigned s, const ush *d,
 int inflate(int is_defl64); /* inflate.c */
 int inflate_free(void);     /* inflate.c */
 int unshrink(void);         /* unshrink.c */
-/* static void  partial_clear(void);                  * unshrink.c */
 int UZbunzip2(void);                   /* extract.c */
 void bz_internal_error(int bzerrcode); /* ubz2err.c */
 
@@ -901,9 +891,6 @@ void mksargs(int *argcp, char ***argvp); /* envargs.c */
 
 int match(const char *s, const char *p, int ic); /* match.c */
 int iswild(const char *p);                       /* match.c */
-
-/* declarations of public CRC-32 functions have been moved into crc32.h
-   (free_crc_table(), get_crc_table(), crc32())                      crc32.c */
 
 int dateformat(void);                              /* local */
 char dateseparator(void);                          /* local */
