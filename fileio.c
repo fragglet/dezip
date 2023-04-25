@@ -1069,33 +1069,20 @@ const char *post;
     /* Temporary format string storage. */
     char fmt[16];
 
-    /* Assemble the format string. */
-    fmt[0] = '%';
-    fmt[1] = '\0'; /* Start after initial "%". */
-    if (pre == OFF_T_HEX_WID) {
-        /* Special hex width. */
-        strcat(fmt, OFF_T_HEX_WID_VALUE);
-    } else if (pre == OFF_T_HEX_DOT_WID) {
-        /* Special hex ".width". */
-        strcat(fmt, ".");
-        strcat(fmt, OFF_T_HEX_WID_VALUE);
-    } else if (pre != NULL) {
-        /* Caller's prefix (width). */
-        strcat(fmt, pre);
+    if (pre == NULL) {
+        pre = "";
     }
-
-    strcat(fmt, OFF_T_FMT); /* Long or long-long or whatever. */
-
-    if (post == NULL)
-        strcat(fmt, "d"); /* Default radix = decimal. */
-    else
-        strcat(fmt, post); /* Caller's radix. */
+    if (post == NULL) {
+        post = "d";
+    }
+    /* Assemble the format string. */
+    snprintf(fmt, sizeof(fmt), "%%%s%s%s", pre, OFF_T_FMT, post);
 
     /* Advance the cylinder. */
     G.fofft_index = (G.fofft_index + 1) % OFF_T_NUM;
 
     /* Write into the current chamber. */
-    sprintf(G.fofft_buf[G.fofft_index], fmt, val);
+    snprintf(G.fofft_buf[G.fofft_index], OFF_T_LEN, fmt, val);
 
     /* Return a pointer to this chamber. */
     return G.fofft_buf[G.fofft_index];

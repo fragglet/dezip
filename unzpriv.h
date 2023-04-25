@@ -238,15 +238,14 @@ char *plastchar(const char *ptr, extent len);
 /* Default format_off_t() format selection. */
 
 #ifdef LARGE_FILE_SUPPORT
-#define OFF_T_FMT           "ll"
-#define OFF_T_HEX_WID_VALUE "16"
+#define OFF_T_FMT     "ll"
+#define OFF_T_HEX_WID "16"
 #else /* def LARGE_FILE_SUPPORT */
-#define OFF_T_FMT           "l"
-#define OFF_T_HEX_WID_VALUE "8"
+#define OFF_T_FMT     "l"
+#define OFF_T_HEX_WID "8"
 #endif /* def LARGE_FILE_SUPPORT */
 
-#define OFF_T_HEX_WID     ((char *) -1)
-#define OFF_T_HEX_DOT_WID ((char *) -2)
+#define OFF_T_HEX_DOT_WID ("." OFF_T_HEX_WID)
 
 #define OFF_T_NUM 4  /* Number of chambers. */
 #define OFF_T_LEN 24 /* Number of characters/chamber. */
