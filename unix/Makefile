@@ -94,12 +94,12 @@ CFLAGS_BZ = $(CFLAGS)
 # object files
 OBJS1 = unzip$O crc32$O $(CRCA_O) crypt$O envargs$O explode$O
 OBJS2 = extract$O fileio$O inflate$O list$O match$O
-OBJS3 = process$O ttyio$O ubz2err$O unshrink$O
+OBJS3 = process$O ttyio$O unshrink$O
 OBJS = $(OBJS1) $(OBJS2) $(OBJS3) $M$O
 LOBJS = $(OBJS)
 OBJSDLL = $(OBJS:.o=.pic.o) api.pic.o
 OBJX = crc32_$O $(CRCA_O) crypt_$O extract_$O fileio_$O \
-	inflate_$O match_$O process_$O ttyio_$O ubz2err_$O $M_$O
+	inflate_$O match_$O process_$O ttyio_$O $M_$O
 LOBJX = $(OBJX)
 OBJF = crc32$O $(CRCA_O) cryptf$O inflatef$O ttyiof$O
 #OBJS_OS2 = $(OBJS1:.o=.obj) $(OBJS2:.o=.obj) os2.obj
@@ -276,7 +276,6 @@ list$O:		list.c $(UNZIP_H)
 match$O:	match.c $(UNZIP_H)
 process$O:	process.c $(UNZIP_H) crc32.h
 ttyio$O:	ttyio.c $(UNZIP_H) crypt.h ttyio.h
-ubz2err$O:	ubz2err.c $(UNZIP_H)
 unshrink$O:	unshrink.c $(UNZIP_H)
 unzip$O:	unzip.c $(UNZIP_H) crypt.h
 
