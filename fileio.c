@@ -544,20 +544,6 @@ int flag; /* flag bits */
 
 } /* end function UzpMessagePrnt() */
 
-int UzpInput(buf, size, flag)
-uch *buf;  /* preformatted string to be printed */
-int *size; /* (address of) size of buf and of returned string */
-int flag;  /* flag bits (bit 0: no echo) */
-{
-    /* tell picky compilers to shut up about "unused variable" warnings */
-    buf = buf;
-    flag = flag;
-
-    *size = 0;
-    return 0;
-
-} /* end function UzpInput() */
-
 void UzpMorePause(prompt, flag) const char *prompt; /* "--More--" prompt */
 int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 {

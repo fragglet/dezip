@@ -172,7 +172,6 @@ typedef struct _UzpOpts {
 
 int UzpMessagePrnt(uch *buf, ulg size, int flag);
 int UzpMessageNull(uch *buf, ulg size, int flag);
-int UzpInput(uch *buf, int *size, int flag);
 void UzpMorePause(const char *prompt, int flag);
 int UzpPassword(int *rcnt, char *pwbuf, int size, const char *zfn,
                 const char *efn);
