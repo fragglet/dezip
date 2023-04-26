@@ -11,7 +11,6 @@ pride, at the expense of code readability.
 * Supporting every feature that Info-ZIP supported. Some more obscure
 command line arguments and features have been deleted.
 * Providing anything except the `unzip` binary. The Info-ZIP version of
-`unzip` provided other binaries named `funzip`, `zipcloak`, `zipgrep`,
-`zipinfo`, `zipnote` and `zipsplit`. Code for all of these has been
-deleted.
+`unzip` provided other binaries named `funzip`, `unzipsfx`, `zipgrep` and
+`zipinfo`. Code for all of these has been deleted.
 
