@@ -34,8 +34,6 @@ typedef struct uxdirattr {  /* struct for holding unix style directory */
 } uxdirattr;
 #define UxAtt(d) ((uxdirattr *) d) /* typecast shortcut */
 
-static unsigned filtattr(unsigned perms);
-
 /*****************************/
 /* Strings used multiple     */
 /* times in unix.c           */

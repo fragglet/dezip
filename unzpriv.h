@@ -195,8 +195,6 @@ char *plastchar(const char *ptr, extent len);
 #define FALSE 0
 #endif
 
-#define SYMLINKS
-
 #ifndef IS_VOLID
 #define IS_VOLID(m) ((m) &0x08)
 #endif

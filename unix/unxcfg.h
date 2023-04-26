@@ -20,11 +20,6 @@
 #undef LARGE_FILE_SUPPORT
 #endif
 
-/* NO_ZIP64_SUPPORT takes preceedence over ZIP64_SUPPORT */
-#if defined(NO_ZIP64_SUPPORT) && defined(ZIP64_SUPPORT)
-#undef ZIP64_SUPPORT
-#endif
-
 #ifdef LARGE_FILE_SUPPORT
 /* 64-bit Large File Support */
 
