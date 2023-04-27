@@ -75,7 +75,6 @@ freely, subject to the above disclaimer and the following restrictions:
 typedef unsigned char uch;  /* code assumes unsigned bytes; these type-  */
 typedef unsigned short ush; /*  defs replace byte/UWORD/ULONG (which are */
 typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
-#define _IZ_TYPES_DEFINED
 
 typedef int(MsgFn)(uch *buf, ulg size, int flag);
 typedef void(PauseFn)(const char *prompt, int flag);
@@ -140,15 +139,6 @@ typedef struct _UzpOpts {
 #define IZ_PW_CANCEL    -1 /* no password available (for this entry) */
 #define IZ_PW_CANCELALL -2 /* no password, skip any further pwd. request */
 #define IZ_PW_ERROR     5  /* = PK_MEM2 : failure (no mem, no tty, ...) */
-
-/* flag values for status callback function */
-#define UZ_ST_START_EXTRACT 1 /* no details */
-#define UZ_ST_IN_PROGRESS   2 /* no details */
-#define UZ_ST_FINISH_MEMBER 3 /* 'details': extracted size */
-
-/* return values of status callback function */
-#define UZ_ST_CONTINUE 0
-#define UZ_ST_BREAK    1
 
 int UzpMessagePrnt(uch *buf, ulg size, int flag);
 int UzpMessageNull(uch *buf, ulg size, int flag);
