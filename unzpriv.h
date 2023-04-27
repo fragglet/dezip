@@ -29,7 +29,6 @@
 
 #include <stddef.h>
 #include <stdlib.h>
-typedef size_t extent;
 
 #define UNZIP_VERSION     46
 #define VMS_UNZIP_VERSION 42 /* if OS-needed-to-extract is VMS:  can do */
@@ -119,7 +118,7 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 #ifndef PREINCSTR
 #define PREINCSTR(ptr) (ptr += CLEN(ptr))
 #endif
-char *plastchar(const char *ptr, extent len);
+char *plastchar(const char *ptr, size_t len);
 #define lastchar(ptr, len) ((int) (unsigned) *plastchar(ptr, len))
 #ifndef MBSCHR
 #define NEED_UZMBSCHR
@@ -480,8 +479,8 @@ typedef struct direntry {  /* head of system-specific struct holding */
 
 typedef struct slinkentry {  /* info for deferred symlink creation */
     struct slinkentry *next; /* pointer to next entry in chain */
-    extent targetlen;        /* length of target filespec */
-    extent attriblen;        /* length of system-specific attrib data */
+    size_t targetlen;        /* length of target filespec */
+    size_t attriblen;        /* length of system-specific attrib data */
     char *target;            /* pointer to target filespec */
     char *fname;             /* pointer to name of link */
     char buf[1];             /* data/name/link buffer */
@@ -745,7 +744,7 @@ char *str2iso(char *dst, const char *src);
 char *str2oem(char *dst, const char *src);
 #endif
 #ifdef NEED_UZMBCLEN
-extent uzmbclen(const unsigned char *ptr);
+size_t uzmbclen(const unsigned char *ptr);
 #endif
 #ifdef NEED_UZMBSCHR
 unsigned char *uzmbschr(const unsigned char *str, unsigned int c);
@@ -762,7 +761,7 @@ int extract_or_test_files(void);
 unsigned find_compr_idx(unsigned compr_methodnum);
 int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize);
 int memflush(const uch *rawbuf, ulg size);
-char *fnfilter(const char *raw, uch *space, extent size);
+char *fnfilter(const char *raw, uch *space, size_t size);
 
 /*---------------------------------------------------------------------------
     Decompression functions:
@@ -846,10 +845,10 @@ int stamp_file(const char *fname, time_t modtime); /* local */
  *  Info() macro with 'slide' (the start of this area) as message buffer.
  */
 #define FnFilter1(fname) \
-    fnfilter((fname), slide + (extent) (WSIZE >> 1), (extent) (WSIZE >> 2))
+    fnfilter((fname), slide + (size_t) (WSIZE >> 1), (size_t) (WSIZE >> 2))
 #define FnFilter2(fname)                                              \
-    fnfilter((fname), slide + (extent) ((WSIZE >> 1) + (WSIZE >> 2)), \
-             (extent) (WSIZE >> 2))
+    fnfilter((fname), slide + (size_t) ((WSIZE >> 1) + (WSIZE >> 2)), \
+             (size_t) (WSIZE >> 2))
 
 #define MESSAGE(str, len, flag) (*G.message)((str), (len), (flag))
 

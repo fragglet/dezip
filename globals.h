@@ -89,7 +89,7 @@ struct globals {
     ulg outcnt;               /* number of chars stored in outbuf */
     char filename[FILNAMSIZ]; /* also used by NT for temporary SFX path */
     char *filename_full;      /* the full path so Unicode checks work */
-    extent fnfull_bufsize;    /* size of allocated filename buffer */
+    size_t fnfull_bufsize;    /* size of allocated filename buffer */
     int unicode_escape_all;
     int unicode_mismatch;
     int native_is_utf8; /* bool, TRUE => native charset == UTF-8 */

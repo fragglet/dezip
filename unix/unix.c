@@ -281,7 +281,7 @@ int mapattr()
          * bit for directory entries.
          */
         if ((tmp & 0x10) == 0) {
-            extent fnlen = strlen(G.filename);
+            size_t fnlen = strlen(G.filename);
             if (fnlen > 0 && G.filename[fnlen - 1] == '/')
                 tmp |= 0x10;
         }
@@ -793,15 +793,15 @@ void close_outfile() /* GRR: change to return PK-style warning level */
       ---------------------------------------------------------------------------*/
 
     if (G.symlnk) {
-        extent ucsize = (extent) G.lrec.ucsize;
-        extent attribsize =
+        size_t ucsize = (size_t) G.lrec.ucsize;
+        size_t attribsize =
             sizeof(unsigned) + (have_uidgid_flg ? sizeof(z_uidgid) : 0);
         /* size of the symlink entry is the sum of
          *  (struct size (includes 1st '\0') + 1 additional trailing '\0'),
          *  system specific attribute data size (might be 0),
          *  and the lengths of name and link target.
          */
-        extent slnk_entrysize =
+        size_t slnk_entrysize =
             (sizeof(slinkentry) + 1) + attribsize + ucsize + strlen(G.filename);
         slinkentry *slnk_entry;
 

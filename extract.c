@@ -1209,7 +1209,7 @@ int error_in_archive;
                 break;
             }
             if (query) {
-                extent fnlen;
+                size_t fnlen;
             reprompt:
                 Info(slide, 0x81,
                      ((char *) slide, ReplaceQuery, FnFilter1(G.filename)));
@@ -1737,7 +1737,7 @@ unsigned ef_len;
                 Info(slide, 1, ((char *) slide, TooSmallEBlength, ebLen, 4));
             } else if (makelong(ef + EB_HEADSIZE) !=
                        crc32(CRCVAL_INITIAL, ef + (EB_HEADSIZE + 4),
-                             (extent) (ebLen - 4))) {
+                             (size_t) (ebLen - 4))) {
                 Info(slide, 1, ((char *) slide, BadCRC_EAs));
             }
             break;
@@ -1799,7 +1799,7 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
         (eb_size != compr_offset + EB_CMPRHEADLEN + eb_ucsize))
         return PK_ERR;
 
-    if ((eb_ucptr = (uch *) malloc((extent) eb_ucsize)) == (uch *) NULL)
+    if ((eb_ucptr = (uch *) malloc((size_t) eb_ucsize)) == (uch *) NULL)
         return PK_MEM4;
 
     r = memextract(eb_ucptr, eb_ucsize, eb + (EB_HEADSIZE + compr_offset),
@@ -1839,7 +1839,7 @@ ulg srcsize;
 
     switch (method) {
     case STORED:
-        memcpy((char *) tgt, (char *) G.inptr, (extent) G.incnt);
+        memcpy((char *) tgt, (char *) G.inptr, (size_t) G.incnt);
         G.outcnt = (ulg) G.csize; /* for CRC calculation */
         break;
     case DEFLATED:
@@ -1871,7 +1871,7 @@ ulg srcsize;
     G.mem_mode = FALSE;
 
     if (!error) {
-        register ulg crcval = crc32(CRCVAL_INITIAL, tgt, (extent) G.outcnt);
+        register ulg crcval = crc32(CRCVAL_INITIAL, tgt, (size_t) G.outcnt);
 
         if (crcval != extra_field_crc) {
             if (uO.tflag)
@@ -1896,7 +1896,7 @@ ulg size;
            "overflow of output space", its use may be tolerated. */
         return PK_DISK; /* more data than output buffer can hold */
 
-    memcpy((char *) G.outbufptr, (char *) rawbuf, (extent) size);
+    memcpy((char *) G.outbufptr, (char *) rawbuf, (size_t) size);
     G.outbufptr += (unsigned int) size;
     G.outsize -= size;
     G.outcnt += size;
@@ -1907,7 +1907,7 @@ ulg size;
 
 static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
 {
-    extent ucsize = slnk_entry->targetlen;
+    size_t ucsize = slnk_entry->targetlen;
     char *linkfname = slnk_entry->fname;
     char *linktarget = (char *) malloc(ucsize + 1);
 
@@ -1952,7 +1952,7 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
 char *fnfilter(raw, space, size) /* convert name to safely printable form */
     const char *raw;
 uch *space;
-extent size;
+size_t size;
 {
 #ifndef NATIVE /* ASCII:  filter ANSI escape codes, etc. */
     const uch *r = (const uch *) raw;

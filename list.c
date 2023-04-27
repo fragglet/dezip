@@ -336,7 +336,7 @@ int list_files() /* return PK-type error code */
 
 static int fn_is_dir() /* returns TRUE if G.filename is directory */
 {
-    extent fn_len = strlen(G.filename);
+    size_t fn_len = strlen(G.filename);
     register char endc;
 
     return fn_len > 0 && ((endc = lastchar(G.filename, fn_len)) == '/' ||
@@ -484,7 +484,7 @@ zusz_t uc, c;
 
 void fnprint() /* print filename (after filtering) and newline */
 {
-    char *name = fnfilter(G.filename, slide, (extent) (WSIZE >> 1));
+    char *name = fnfilter(G.filename, slide, (size_t) (WSIZE >> 1));
 
     (*G.message)((uch *) name, (ulg) strlen(name), 0);
     (*G.message)((uch *) "\n", 1L, 0);

@@ -132,7 +132,7 @@ const ulg *get_crc_table(void)
 ulg crc32(crc, buf, len)
 ulg crc;                 /* crc shift register */
 register const uch *buf; /* pointer to bytes to pump through */
-extent len;              /* number of bytes in buf[] */
+size_t len;              /* number of bytes in buf[] */
 /* Run a set of bytes through the crc shift register.  If buf is a NULL
    pointer, then initialize the crc shift register contents instead.
    Return the current crc in either case. */

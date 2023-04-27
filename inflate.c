@@ -266,7 +266,7 @@
 
 #ifndef FLUSH /* default is to simply write the buffer to stdout */
 #define FLUSH(n)                                                            \
-    (((extent) fwrite(redirSlide, 1, (extent) (n), stdout) == (extent) (n)) \
+    (((size_t) fwrite(redirSlide, 1, (size_t) (n), stdout) == (size_t) (n)) \
          ? 0                                                                \
          : PKDISK)
 #endif

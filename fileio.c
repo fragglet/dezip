@@ -27,8 +27,8 @@
 #include "ebcdic.h" /* definition/initialization of ebcdic[] */
 
 #define WriteError(buf, len, strm)                                   \
-    ((extent) write(fileno(strm), (char *) (buf), (extent) (len)) != \
-     (extent) (len))
+    ((size_t) write(fileno(strm), (char *) (buf), (size_t) (len)) != \
+     (size_t) (len))
 
 #define WriteTxtErr(buf, len, strm) WriteError(buf, len, strm)
 
@@ -345,7 +345,7 @@ int unshrink;
         Compute the CRC first; if testing or if disk is full, that's it.
       ---------------------------------------------------------------------------*/
 
-    G.crc32val = crc32(G.crc32val, rawbuf, (extent) size);
+    G.crc32val = crc32(G.crc32val, rawbuf, (size_t) size);
 
     if (uO.tflag || size == 0L) /* testing or nothing to write:  all done */
         return PK_OK;
@@ -398,10 +398,10 @@ int unshrink;
             if (*p == LF && G.didCRlast)
                 ++p;
             G.didCRlast = FALSE;
-            for (q = transbuf; (extent) (p - rawbuf) < (extent) size; ++p) {
+            for (q = transbuf; (size_t) (p - rawbuf) < (size_t) size; ++p) {
                 if (*p == CR) { /* lone CR or CR/LF: treat as EOL  */
                     *q++ = LF;
-                    if ((extent) (p - rawbuf) == (extent) size - 1)
+                    if ((size_t) (p - rawbuf) == (size_t) size - 1)
                         /* last char in buffer */
                         G.didCRlast = TRUE;
                     else if (p[1] == LF) /* get rid of accompanying LF */
@@ -422,7 +422,7 @@ int unshrink;
                (unsigned) (p - rawbuf), (unsigned) (q - transbuf), size));
         if (q > transbuf) {
             if (!uO.cflag &&
-                WriteError(transbuf, (extent) (q - transbuf), G.outfile))
+                WriteError(transbuf, (size_t) (q - transbuf), G.outfile))
                 return disk_error();
             else if (uO.cflag &&
                      (*G.message)(transbuf, (ulg) (q - transbuf), 0))
@@ -817,7 +817,7 @@ int option;
     case DS_FN_L:
         /* get the whole filename as need it for Unicode checksum */
         if (G.fnfull_bufsize <= length) {
-            extent fnbufsiz = FILNAMSIZ;
+            size_t fnbufsiz = FILNAMSIZ;
 
             if (fnbufsiz <= length)
                 fnbufsiz = length + 1;
@@ -1092,7 +1092,7 @@ register const char *src; /* source string */
  */
 
 char *plastchar(ptr, len) const char *ptr;
-extent len;
+size_t len;
 {
     unsigned clen;
     const char *oldptr = ptr;
@@ -1106,7 +1106,7 @@ extent len;
 }
 
 #ifdef NEED_UZMBCLEN
-extent uzmbclen(ptr) const unsigned char *ptr;
+size_t uzmbclen(ptr) const unsigned char *ptr;
 {
     int mbl;
 
@@ -1117,7 +1117,7 @@ extent uzmbclen(ptr) const unsigned char *ptr;
        char '\0' has a byte count of 1, but mblen() returns 0. So, we make
        sure that the uzmbclen() return value is not less than 1.
      */
-    return (extent) (mbl > 0 ? mbl : 1);
+    return (size_t) (mbl > 0 ? mbl : 1);
 }
 #endif /* NEED_UZMBCLEN */
 
