@@ -6,9 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  unshrink.c                     version 1.22                     19 Mar 2008
-
-
        NOTE:  This code may or may not infringe on the so-called "Welch
        patent" owned by Unisys.  (From reading the patent, it appears
        that a pure LZW decompressor is *not* covered, but this claim has
@@ -18,7 +15,6 @@
 
        THE INFO-ZIP GROUP DISCLAIMS ALL LIABILITY FOR USE OF THIS CODE
        IN VIOLATION OF APPLICABLE PATENT LAW.
-
 
   Shrinking is basically a dynamic LZW algorithm with allowed code sizes of
   up to 13 bits; in addition, there is provision for partial clearing of

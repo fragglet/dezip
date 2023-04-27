@@ -6,8 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  unzpriv.h
-
   This header file contains private (internal) macros, typedefs, prototypes
   and global-variable declarations used by all of the UnZip source files.
   In a prior life it was part of the main unzip.h header, but now it is only
@@ -63,13 +61,6 @@ typedef size_t extent;
 #define INBUFSIZ 8192 /* larger buffers for real OSes */
 #endif
 
-/* Logic for case of small memory, length of EOL > 1:  if OUTBUFSIZ == 2048,
- * OUTBUFSIZ>>1 == 1024 and OUTBUFSIZ>>7 == 16; therefore rawbuf is 1008 bytes
- * and transbuf 1040 bytes.  Have room for 32 extra EOL chars; 1008/32 == 31.5
- * chars/line, smaller than estimated 35-70 characters per line for C source
- * and normal text.  Hence difference is sufficient for most "average" files.
- * (Argument scales for larger OUTBUFSIZ.)
- */
 #define OUTBUFSIZ   (lenEOL * WSIZE) /* more efficient text conversion */
 #define TRANSBUFSIZ (lenEOL * OUTBUFSIZ)
 typedef int shrint; /* for efficiency/speed, we hope... */
@@ -685,17 +676,6 @@ struct huft {
     } v;
 };
 
-typedef struct _APIDocStruct {
-    char *compare;
-    char *function;
-    char *syntax;
-    char *purpose;
-} APIDocStruct;
-
-/*************/
-/*  Globals  */
-/*************/
-
 #include "globals.h"
 
 /*************************/
@@ -1133,10 +1113,6 @@ extern const char EndSigMsg[];
 extern const char SeekMsg[];
 extern const char ReportMsg[];
 extern const char CompiledWith[];
-
-/***********************************/
-/*  Global (shared?) RTL variables */
-/***********************************/
 
 /* Default character when a zwchar too big for wchar_t */
 #define zwchar_to_wchar_t_default_char '_'

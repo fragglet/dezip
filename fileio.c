@@ -6,8 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  fileio.c
-
   This file contains routines for doing direct but relatively generic input/
   output, file-related sorts of things, plus some miscellaneous stuff.  Most
   of the stuff has to do with opening, closing, reading and/or writing files.

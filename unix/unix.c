@@ -4,13 +4,8 @@
   See the accompanying file LICENSE, version 2009-Jan-02 or later
   (the contents of which are also included in unzip.h) for terms of use.
 */
-/*---------------------------------------------------------------------------
 
-  unix.c
-
-  Unix-specific routines for use with Info-ZIP's UnZip 5.41 and later.
-
-  ---------------------------------------------------------------------------*/
+/* Unix-specific routines for use with Info-ZIP's UnZip 5.41 and later. */
 
 #include "unzip.h"
 

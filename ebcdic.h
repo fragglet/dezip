@@ -6,8 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  ebcdic.h
-
   The CECP 1047 (Extended de-facto EBCDIC) <-> ISO 8859-1 conversion tables,
   from ftp://aix1.segi.ulg.ac.be/pub/docs/iso8859/iso8859.networking
 

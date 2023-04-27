@@ -1,15 +1,10 @@
-/*---------------------------------------------------------------------------
-
-  unzip.h (new)
-
+/*
   Copyright (c) 1990-2009 Info-ZIP.  All rights reserved.
 
-  This header file contains the public macros and typedefs required by
-  both the UnZip sources and by any application using the UnZip API.  If
-  UNZIP_INTERNAL is defined, it includes unzpriv.h (containing includes,
-  prototypes and extern variables used by the actual UnZip sources).
+  See the accompanying file LICENSE, version 2009-Jan-02 or later
+  (the contents of which are also included in unzip.h) for terms of use.
+*/
 
-  ---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------
 This is version 2009-Jan-02 of the Info-ZIP license.
 The definitive version of this document should be available at
@@ -77,10 +72,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #ifndef __unzip_h /* prevent multiple inclusions */
 #define __unzip_h
 
-/*---------------------------------------------------------------------------
-    Public typedefs.
-  ---------------------------------------------------------------------------*/
-
 typedef unsigned char uch;  /* code assumes unsigned bytes; these type-  */
 typedef unsigned short ush; /*  defs replace byte/UWORD/ULONG (which are */
 typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
@@ -121,10 +112,6 @@ typedef struct _UzpOpts {
     int cflxflag;       /* -^: allow control chars in extracted filenames */
 } UzpOpts;
 
-/*---------------------------------------------------------------------------
-    Return (and exit) values of the public UnZip API functions.
-  ---------------------------------------------------------------------------*/
-
 /* external return codes */
 #define PK_OK     0  /* no error */
 #define PK_COOL   0  /* no error */
@@ -163,21 +150,11 @@ typedef struct _UzpOpts {
 #define UZ_ST_CONTINUE 0
 #define UZ_ST_BREAK    1
 
-/*---------------------------------------------------------------------------
-    Prototypes for public UnZip API (DLL) functions.
-  ---------------------------------------------------------------------------*/
-
-/* default I/O functions (can be swapped out via UzpAltMain() entry point): */
-
 int UzpMessagePrnt(uch *buf, ulg size, int flag);
 int UzpMessageNull(uch *buf, ulg size, int flag);
 void UzpMorePause(const char *prompt, int flag);
 int UzpPassword(int *rcnt, char *pwbuf, int size, const char *zfn,
                 const char *efn);
-
-/*---------------------------------------------------------------------------
-    Remaining private stuff for UnZip compilation.
-  ---------------------------------------------------------------------------*/
 
 #include "unzpriv.h"
 

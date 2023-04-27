@@ -6,8 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  unzip.c
-
   UnZip - a zipfile extraction utility.  See below for make instructions, or
   read the comments in Makefile and the various Contents files for more de-
   tailed explanations.  To report a bug, submit a *complete* description via

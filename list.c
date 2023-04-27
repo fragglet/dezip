@@ -4,13 +4,8 @@
   See the accompanying file LICENSE, version 2009-Jan-02 or later
   (the contents of which are also included in unzip.h) for terms of use.
 */
-/*---------------------------------------------------------------------------
 
-  list.c
-
-  This file contains the listing routines for UnZip.
-
-  ---------------------------------------------------------------------------*/
+/* This file contains the listing routines for UnZip. */
 
 #include "unzip.h"
 

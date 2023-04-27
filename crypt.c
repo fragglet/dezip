@@ -5,8 +5,6 @@
   (the contents of which are also included in unzip.h) for terms of use.
 */
 /*
-  crypt.c (full version) by Info-ZIP.      Last revised:  [see crypt.h]
-
   The main encryption/decryption source code for Info-Zip software was
   originally written in Europe.  To the best of our knowledge, it can
   be freely distributed in both source and object forms from any country,

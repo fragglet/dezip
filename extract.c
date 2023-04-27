@@ -6,8 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  extract.c
-
   This file contains the high-level routines ("driver routines") for extrac-
   ting and testing zipfile members.  It calls the low-level routines in files
   explode.c, inflate.c, unreduce.c and unshrink.c.

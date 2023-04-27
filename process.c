@@ -4,13 +4,8 @@
   See the accompanying file LICENSE, version 2009-Jan-02 or later
   (the contents of which are also included in unzip.h) for terms of use.
 */
-/*---------------------------------------------------------------------------
 
-  process.c
-
-  This file contains the top-level routines for processing multiple zipfiles.
-
-  ---------------------------------------------------------------------------*/
+/* This file contains top-level routines for processing multiple zipfiles. */
 
 #include "unzip.h"
 #include "crc32.h"

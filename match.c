@@ -6,8 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  match.c
-
   The match() routine recursively compares a string to a "pattern" (regular
   expression), returning TRUE if a match is found or FALSE if not.  This
   version is specifically for use with unzip.c:  as did the previous match()

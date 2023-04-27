@@ -5,8 +5,6 @@
   (the contents of which are also included in unzip.h) for terms of use.
 */
 /*
-  crypt.h (full version) by Info-ZIP.   Last revised:  [see CR_VERSION_DATE]
-
   The main encryption/decryption source code for Info-Zip software was
   originally written in Europe.  To the best of our knowledge, it can
   be freely distributed in both source and object forms from any country,
@@ -19,8 +17,6 @@
 
 #define IZ_PWLEN      80 /* input buffer size for reading encryption key */
 #define RAND_HEAD_LEN 12 /* length of encryption random header */
-
-/* the crc_32_tab array has to be provided externally for the crypt calculus */
 
 /* encode byte c, using temp t.  Warning: c must not have side effects. */
 #define zencode(c, t) (t = decrypt_byte(), update_keys(c), t ^ (c))

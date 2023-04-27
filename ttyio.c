@@ -6,8 +6,6 @@
 */
 /*---------------------------------------------------------------------------
 
-  ttyio.c
-
   This file contains routines for doing console input/output, including code
   for non-echoing input.  It is used by the encryption/decryption code but
   does not contain any restricted code itself.  This file is shared between
