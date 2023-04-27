@@ -16,7 +16,6 @@ The definitive version of this document should be available at
 ftp://ftp.info-zip.org/pub/infozip/license.html indefinitely and
 a copy at http://www.info-zip.org/pub/infozip/license.html.
 
-
 Copyright (c) 1990-2009 Info-ZIP.  All rights reserved.
 
 For the purposes of this copyright and license, "Info-ZIP" is defined as

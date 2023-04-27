@@ -2,8 +2,7 @@
   Copyright (c) 1990-2008 Info-ZIP.  All rights reserved.
 
   See the accompanying file LICENSE, version 2000-Apr-09 or later
-  If, for some reason, all these files are missing, the Info-ZIP license
-  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
+  (the contents of which are also included in unzip.h) for terms of use.
 */
 /* crc32.h -- compute the CRC-32 of a data stream
  * Copyright (C) 1995 Mark Adler

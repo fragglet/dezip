@@ -3,8 +3,6 @@
 
   See the accompanying file LICENSE, version 2007-Mar-04 or later
   (the contents of which are also included in unzip.h) for terms of use.
-  If, for some reason, all these files are missing, the Info-ZIP license
-  also may be found at:  ftp://ftp.info-zip.org/pub/infozip/license.html
 */
 /* inflate.c -- by Mark Adler
    version c17e, 30 Mar 2007 */
