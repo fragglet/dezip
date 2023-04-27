@@ -16,46 +16,6 @@
 #include "crc32.h"
 #include "crypt.h"
 
-#define GRRDUMP(buf, len)                                   \
-    {                                                       \
-        int i, j;                                           \
-                                                            \
-        for (j = 0; j < (len) / 16; ++j) {                  \
-            printf("        ");                             \
-            for (i = 0; i < 16; ++i)                        \
-                printf("%02x ", (uch) (buf)[i + (j << 4)]); \
-            printf("\n        ");                           \
-            for (i = 0; i < 16; ++i) {                      \
-                char c = (char) (buf)[i + (j << 4)];        \
-                                                            \
-                if (c == '\n')                              \
-                    printf("\\n ");                         \
-                else if (c == '\r')                         \
-                    printf("\\r ");                         \
-                else                                        \
-                    printf(" %c ", c);                      \
-            }                                               \
-            printf("\n");                                   \
-        }                                                   \
-        if ((len) % 16) {                                   \
-            printf("        ");                             \
-            for (i = j << 4; i < (len); ++i)                \
-                printf("%02x ", (uch) (buf)[i]);            \
-            printf("\n        ");                           \
-            for (i = j << 4; i < (len); ++i) {              \
-                char c = (char) (buf)[i];                   \
-                                                            \
-                if (c == '\n')                              \
-                    printf("\\n ");                         \
-                else if (c == '\r')                         \
-                    printf("\\r ");                         \
-                else                                        \
-                    printf(" %c ", c);                      \
-            }                                               \
-            printf("\n");                                   \
-        }                                                   \
-    }
-
 static const char FilenameNotMatched[] = "caution: filename not matched:  %s\n";
 static const char ExclFilenameNotMatched[] =
     "caution: excluded filename not matched:  %s\n";
@@ -1002,10 +962,6 @@ int error_in_archive;
             Info(slide, 0x401,
                  ((char *) slide, OffsetMsg, *pfilnum, LocalHdrSig,
                   (long) request));
-            /*
-                GRRDUMP(G.sig, 4)
-                GRRDUMP(local_hdr_sig, 4)
-             */
             error_in_archive = PK_ERR;
             if ((*pfilnum == 1 && G.extra_bytes != 0L) ||
                 (G.extra_bytes == 0L && *pold_extra_bytes != 0L)) {
