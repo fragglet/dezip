@@ -387,24 +387,22 @@ int unshrink;
             stream-oriented files, not record-oriented).
           -----------------------------------------------------------------------*/
 
-        /* else not VMS text */ {
-            p = rawbuf;
-            if (*p == LF && G.didCRlast)
-                ++p;
-            G.didCRlast = FALSE;
-            for (q = transbuf; (size_t) (p - rawbuf) < (size_t) size; ++p) {
-                if (*p == CR) { /* lone CR or CR/LF: treat as EOL  */
-                    *q++ = LF;
-                    if ((size_t) (p - rawbuf) == (size_t) size - 1)
-                        /* last char in buffer */
-                        G.didCRlast = TRUE;
-                    else if (p[1] == LF) /* get rid of accompanying LF */
-                        ++p;
-                } else if (*p == LF) { /* lone LF */
-                    *q++ = LF;
-                } else if (*p != CTRLZ) { /* lose all ^Z's */
-                    *q++ = *p;
-                }
+        p = rawbuf;
+        if (*p == LF && G.didCRlast)
+            ++p;
+        G.didCRlast = FALSE;
+        for (q = transbuf; (size_t) (p - rawbuf) < (size_t) size; ++p) {
+            if (*p == CR) { /* lone CR or CR/LF: treat as EOL  */
+                *q++ = LF;
+                if ((size_t) (p - rawbuf) == (size_t) size - 1)
+                    /* last char in buffer */
+                    G.didCRlast = TRUE;
+                else if (p[1] == LF) /* get rid of accompanying LF */
+                    ++p;
+            } else if (*p == LF) { /* lone LF */
+                *q++ = LF;
+            } else if (*p != CTRLZ) { /* lose all ^Z's */
+                *q++ = *p;
             }
         }
 
