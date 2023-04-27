@@ -548,7 +548,7 @@ int flag;
 
         /* next check: need to append '/', at least one-char name, '\0' */
         if ((G.end - G.buildpath) > FILNAMSIZ - 3)
-            too_long = TRUE;                  /* check if extracting dir? */
+            too_long = TRUE;                 /* check if extracting dir? */
         if (stat(G.buildpath, &G.statbuf)) { /* path doesn't exist */
             if (!G.create_dirs) { /* told not to create (freshening) */
                 free(G.buildpath);

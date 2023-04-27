@@ -20,8 +20,6 @@
 #ifndef __unzpriv_h /* prevent multiple inclusions */
 #define __unzpriv_h
 
-#define DYNAMIC_CRC_TABLE
-
 #include "unix/unxcfg.h"
 
 #include <stdio.h>
@@ -41,9 +39,6 @@ typedef size_t extent;
 #define VMS_UNZIP_VERSION 42 /* if OS-needed-to-extract is VMS:  can do */
 
 /* clean up with a few defaults */
-#ifndef DIR_END
-#define DIR_END '/' /* last char before program name or filename */
-#endif
 #ifndef DATE_FORMAT
 #define DATE_FORMAT DF_YMD /* defaults to invariant ISO-style */
 #endif
@@ -56,22 +51,9 @@ typedef size_t extent;
 
 /* defaults that we hope will take care of most machines in the future */
 
-#define MSG_STDERR(f) (f & 1)        /* bit 0:  0 = stdout, 1 = stderr */
-#define MSG_INFO(f)   ((f & 6) == 0) /* bits 1 and 2:  0 = info */
-#define MSG_WARN(f)   ((f & 6) == 2) /* bits 1 and 2:  1 = warning */
-#define MSG_ERROR(f)  ((f & 6) == 4) /* bits 1 and 2:  2 = error */
-#define MSG_FATAL(f)  ((f & 6) == 6) /* bits 1 and 2:  (3 = fatal error) */
-#define MSG_ZFN(f)    (f & 0x0008)   /* bit 3:  1 = print zipfile name */
-#define MSG_FN(f)     (f & 0x0010)   /* bit 4:  1 = print filename */
-#define MSG_LNEWLN(f) (f & 0x0020)   /* bit 5:  1 = leading newline if !SOL */
-#define MSG_TNEWLN(f) (f & 0x0040)   /* bit 6:  1 = trailing newline if !SOL */
-#define MSG_MNEWLN(f) (f & 0x0080)   /* bit 7:  1 = trailing NL for prompts */
-/* the following are subject to change */
-#define MSG_NO_WGUI(f) (f & 0x0100) /* bit 8:  1 = skip if Windows GUI */
-#define MSG_NO_AGUI(f) (f & 0x0200) /* bit 9:  1 = skip if Acorn GUI */
-#define MSG_NO_DLL2(f) (f & 0x0400) /* bit 10:  1 = skip if OS/2 DLL */
-#define MSG_NO_NDLL(f) (f & 0x0800) /* bit 11:  1 = skip if WIN32 DLL */
-#define MSG_NO_WDLL(f) (f & 0x1000) /* bit 12:  1 = skip if Windows DLL */
+#define MSG_STDERR(f) (f & 1)      /* bit 0:  0 = stdout, 1 = stderr */
+#define MSG_LNEWLN(f) (f & 0x0020) /* bit 5:  1 = leading newline if !SOL */
+#define MSG_TNEWLN(f) (f & 0x0040) /* bit 6:  1 = trailing newline if !SOL */
 
 #define DIR_BLKSIZ 16384 /* use more memory, to reduce long-range seeks */
 
@@ -141,8 +123,6 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 #ifdef _MBCS
 #include <locale.h>
 /* Multi Byte Character Set */
-#define ___MBS_TMP_DEF char *___tmp_ptr;
-#define ___TMP_PTR     ___tmp_ptr
 #ifndef CLEN
 #define NEED_UZMBCLEN
 #define CLEN(ptr) (int) uzmbclen((const unsigned char *) (ptr))
@@ -150,8 +130,6 @@ typedef int shrint; /* for efficiency/speed, we hope... */
 #ifndef PREINCSTR
 #define PREINCSTR(ptr) (ptr += CLEN(ptr))
 #endif
-#define POSTINCSTR(ptr) \
-    (___TMP_PTR = (char *) (ptr), PREINCSTR(ptr), ___TMP_PTR)
 char *plastchar(const char *ptr, extent len);
 #define lastchar(ptr, len) ((int) (unsigned) *plastchar(ptr, len))
 #ifndef MBSCHR
@@ -163,11 +141,8 @@ char *plastchar(const char *ptr, extent len);
 #define MBSRCHR(str, c) (char *) uzmbsrchr((const unsigned char *) (str), c)
 #endif
 #else /* !_MBCS */
-#define ___MBS_TMP_DEF
-#define ___TMP_PTR
 #define CLEN(ptr)           1
 #define PREINCSTR(ptr)      (++(ptr))
-#define POSTINCSTR(ptr)     ((ptr)++)
 #define plastchar(ptr, len) (&ptr[(len) -1])
 #define lastchar(ptr, len)  (ptr[(len) -1])
 #define MBSCHR(str, c)      strchr(str, c)
@@ -180,9 +155,6 @@ char *plastchar(const char *ptr, extent len);
 #ifndef zcalloc
 #define zcalloc(items, size) \
     (void *) calloc((unsigned) (items), (unsigned) (size))
-#endif
-#ifndef zcfree
-#define zcfree free
 #endif
 #endif /* MALLOC_WORK && !MY_ZCALLOC */
 
@@ -245,11 +217,6 @@ char *plastchar(const char *ptr, extent len);
 #define ZSUFX     ".zip"
 #define ALT_ZSUFX ".ZIP" /* Unix-only so far (only case-sensitive fs) */
 
-#define CENTRAL_HDR_SIG "\001\002" /* the infamous "PK" signature bytes, */
-#define LOCAL_HDR_SIG   "\003\004" /*  w/o "PK" (so unzip executable not */
-#define END_CENTRAL_SIG "\005\006" /*  mistaken for zipfile itself) */
-#define EXTD_LOCAL_SIG  "\007\010" /* [ASCII "\113" == EBCDIC "\080" ??] */
-
 /** internal-only return codes **/
 #define IZ_DIR 76 /* potential zipfile is a directory */
 /* special return codes for mapname() */
@@ -274,10 +241,8 @@ char *plastchar(const char *ptr, extent len);
 #define DISPLAY     1 /* display archive comment (ASCII) */
 #define DISPL_8     5 /* display file comment (ext. ASCII) */
 #define DS_FN       2 /* read filename (ext. ASCII, chead) */
-#define DS_FN_C     2 /* read filename from central header */
 #define DS_FN_L     6 /* read filename from local header */
 #define EXTRA_FIELD 3 /* copy extra field into buffer */
-#define DS_EF       3
 
 #define DOES_NOT_EXIST   -1 /* return values for check_for_newer() */
 #define EXISTS_AND_OLDER 0
@@ -353,49 +318,29 @@ char *plastchar(const char *ptr, extent len);
     Extra-field block ID values and offset info.
   ---------------------------------------------------------------------------*/
 /* extra-field ID values, all little-endian: */
-#define EF_PKSZ64   0x0001 /* PKWARE's 64-bit filesize extensions */
-#define EF_AV       0x0007 /* PKWARE's authenticity verification */
-#define EF_EFS      0x0008 /* PKWARE's extended language encoding */
-#define EF_OS2      0x0009 /* OS/2 extended attributes */
-#define EF_PKW32    0x000a /* PKWARE's Win95/98/WinNT filetimes */
-#define EF_PKVMS    0x000c /* PKWARE's VMS */
-#define EF_PKUNIX   0x000d /* PKWARE's Unix */
-#define EF_PKFORK   0x000e /* PKWARE's future stream/fork descriptors */
-#define EF_PKPATCH  0x000f /* PKWARE's patch descriptor */
-#define EF_PKPKCS7  0x0014 /* PKWARE's PKCS#7 store for X.509 Certs */
-#define EF_PKFX509  0x0015 /* PKWARE's file X.509 Cert&Signature ID */
-#define EF_PKCX509  0x0016 /* PKWARE's central dir X.509 Cert ID */
-#define EF_PKENCRHD 0x0017 /* PKWARE's Strong Encryption header */
-#define EF_PKRMCTL  0x0018 /* PKWARE's Record Management Controls*/
-#define EF_PKLSTCS7 0x0019 /* PKWARE's PKCS#7 Encr. Recipient Cert List */
-#define EF_PKIBM    0x0065 /* PKWARE's IBM S/390 & AS/400 attributes */
-#define EF_PKIBM2   0x0066 /* PKWARE's IBM S/390 & AS/400 compr. attribs */
-#define EF_IZVMS    0x4d49 /* Info-ZIP's VMS ("IM") */
-#define EF_IZUNIX   0x5855 /* Info-ZIP's first Unix[1] ("UX") */
-#define EF_IZUNIX2  0x7855 /* Info-ZIP's second Unix[2] ("Ux") */
-#define EF_IZUNIX3  0x7875 /* Info-ZIP's newest Unix[3] ("ux") */
-#define EF_TIME     0x5455 /* universal timestamp ("UT") */
-#define EF_UNIPATH  0x7075 /* Info-ZIP Unicode Path ("up") */
-#define EF_UNICOMNT 0x6375 /* Info-ZIP Unicode Comment ("uc") */
-#define EF_MAC3     0x334d /* Info-ZIP's new Macintosh (= "M3") */
-#define EF_JLMAC    0x07c8 /* Johnny Lee's old Macintosh (= 1992) */
-#define EF_ZIPIT    0x2605 /* Thomas Brown's Macintosh (ZipIt) */
-#define EF_ZIPIT2   0x2705 /* T. Brown's Mac (ZipIt) v 1.3.8 and newer ? */
-#define EF_SMARTZIP 0x4d63 /* Mac SmartZip by Marco Bambini */
-#define EF_VMCMS    0x4704 /* Info-ZIP's VM/CMS ("\004G") */
-#define EF_MVS      0x470f /* Info-ZIP's MVS ("\017G") */
-#define EF_ACL      0x4c41 /* (OS/2) access control list ("AL") */
-#define EF_NTSD     0x4453 /* NT security descriptor ("SD") */
-#define EF_ATHEOS   0x7441 /* AtheOS ("At") */
-#define EF_BEOS     0x6542 /* BeOS ("Be") */
-#define EF_QDOS     0xfb4a /* SMS/QDOS ("J\373") */
-#define EF_AOSVS    0x5356 /* AOS/VS ("VS") */
-#define EF_SPARK    0x4341 /* David Pilling's Acorn/SparkFS ("AC") */
-#define EF_TANDEM   0x4154 /* Tandem NSK ("TA") */
-#define EF_THEOS    0x6854 /* Jean-Michel Dubois' Theos "Th" */
-#define EF_THEOSO   0x4854 /* old Theos port */
-#define EF_MD5      0x4b46 /* Fred Kantor's MD5 ("FK") */
-#define EF_ASIUNIX  0x756e /* ASi's Unix ("nu") */
+#define EF_PKSZ64  0x0001 /* PKWARE's 64-bit filesize extensions */
+#define EF_AV      0x0007 /* PKWARE's authenticity verification */
+#define EF_OS2     0x0009 /* OS/2 extended attributes */
+#define EF_PKW32   0x000a /* PKWARE's Win95/98/WinNT filetimes */
+#define EF_PKVMS   0x000c /* PKWARE's VMS */
+#define EF_PKUNIX  0x000d /* PKWARE's Unix */
+#define EF_IZVMS   0x4d49 /* Info-ZIP's VMS ("IM") */
+#define EF_IZUNIX  0x5855 /* Info-ZIP's first Unix[1] ("UX") */
+#define EF_IZUNIX2 0x7855 /* Info-ZIP's second Unix[2] ("Ux") */
+#define EF_IZUNIX3 0x7875 /* Info-ZIP's newest Unix[3] ("ux") */
+#define EF_TIME    0x5455 /* universal timestamp ("UT") */
+#define EF_UNIPATH 0x7075 /* Info-ZIP Unicode Path ("up") */
+#define EF_MAC3    0x334d /* Info-ZIP's new Macintosh (= "M3") */
+#define EF_VMCMS   0x4704 /* Info-ZIP's VM/CMS ("\004G") */
+#define EF_MVS     0x470f /* Info-ZIP's MVS ("\017G") */
+#define EF_ACL     0x4c41 /* (OS/2) access control list ("AL") */
+#define EF_NTSD    0x4453 /* NT security descriptor ("SD") */
+#define EF_ATHEOS  0x7441 /* AtheOS ("At") */
+#define EF_BEOS    0x6542 /* BeOS ("Be") */
+#define EF_SPARK   0x4341 /* David Pilling's Acorn/SparkFS ("AC") */
+#define EF_TANDEM  0x4154 /* Tandem NSK ("TA") */
+#define EF_THEOS   0x6854 /* Jean-Michel Dubois' Theos "Th" */
+#define EF_ASIUNIX 0x756e /* ASi's Unix ("nu") */
 
 #define EB_HEADSIZE    4 /* length of extra field block header */
 #define EB_ID          0 /* offset of block ID in header */
@@ -424,34 +369,20 @@ char *plastchar(const char *ptr, extent len);
 #define EB_UT_FL_ATIME (1 << 1) /* atime present */
 #define EB_UT_FL_CTIME (1 << 2) /* ctime present */
 
-#define EB_FLGS_OFFS                                                        \
-    4                         /* offset of flags area in generic compressed \
-                                 extra field blocks (BEOS, MAC, and others) */
-#define EB_OS2_HLEN      4    /* size of OS2/ACL compressed data header */
-#define EB_BEOS_HLEN     5    /* length of BeOS&AtheOS e.f attribute header */
-#define EB_BE_FL_UNCMPR  0x01 /* "BeOS&AtheOS attribs uncompr." bit flag */
-#define EB_MAC3_HLEN     14   /* length of Mac3 attribute block header */
-#define EB_SMARTZIP_HLEN 64   /* fixed length of the SmartZip extra field */
-#define EB_M3_FL_DATFRK  0x01 /* "this entry is data fork" flag */
-#define EB_M3_FL_UNCMPR  0x04 /* "Mac3 attributes uncompressed" bit flag */
-#define EB_M3_FL_TIME64  0x08 /* "Mac3 time fields are 64 bit wide" flag */
-#define EB_M3_FL_NOUTC   0x10 /* "Mac3 timezone offset fields missing" flag */
+#define EB_FLGS_OFFS                                                       \
+    4                        /* offset of flags area in generic compressed \
+                                extra field blocks (BEOS, MAC, and others) */
+#define EB_OS2_HLEN     4    /* size of OS2/ACL compressed data header */
+#define EB_BEOS_HLEN    5    /* length of BeOS&AtheOS e.f attribute header */
+#define EB_BE_FL_UNCMPR 0x01 /* "BeOS&AtheOS attribs uncompr." bit flag */
+#define EB_MAC3_HLEN    14   /* length of Mac3 attribute block header */
+#define EB_M3_FL_UNCMPR 0x04 /* "Mac3 attributes uncompressed" bit flag */
 
-#define EB_NTSD_C_LEN   4   /* length of central NT security data */
 #define EB_NTSD_L_LEN   5   /* length of minimal local NT security data */
 #define EB_NTSD_VERSION 4   /* offset of NTSD version byte */
 #define EB_NTSD_MAX_VER (0) /* maximum version # we know how to handle */
 
-#define EB_ASI_CRC32 0 /* offset of ASI Unix field's crc32 checksum */
-#define EB_ASI_MODE  4 /* offset of ASI Unix permission mode field */
-
-#define EB_IZVMS_HLEN   12 /* length of IZVMS attribute block header */
-#define EB_IZVMS_FLGS   4  /* offset of compression type flag */
-#define EB_IZVMS_UCSIZ  6  /* offset of ucsize field in IZVMS header */
-#define EB_IZVMS_BCMASK 07 /* 3 bits for compression type */
-#define EB_IZVMS_BCSTOR 0  /*  Stored */
-#define EB_IZVMS_BC00   1  /*  0byte -> 0bit compression */
-#define EB_IZVMS_BCDEFL 2  /*  Deflated */
+#define EB_ASI_MODE 4 /* offset of ASI Unix permission mode field */
 
 /*---------------------------------------------------------------------------
     True sizes of the various headers (excluding their 4-byte signatures),
@@ -916,12 +847,6 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 #define TTrace(x)
 #endif
 
-#ifdef NO_DEBUG_IN_MACROS
-#define MTrace(x)
-#else
-#define MTrace(x) Trace(x)
-#endif
-
 #define ToLower(x) ((char) (isupper((int) x) ? tolower((int) x) : x))
 
 /* The return value of the Info() "macro function" is never checked in
@@ -1217,9 +1142,6 @@ extern const char CompiledWith[];
 
 /* Default character when a zwchar too big for wchar_t */
 #define zwchar_to_wchar_t_default_char '_'
-
-/* Default character string when wchar_t does not convert to mb */
-#define wide_to_mb_default_string "_"
 
 /* wide character type */
 typedef unsigned long zwchar;
