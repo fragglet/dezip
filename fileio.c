@@ -26,44 +26,13 @@
 #endif
 #include "ebcdic.h" /* definition/initialization of ebcdic[] */
 
-/*
-   Note: Under Windows, the maximum size of the buffer that can be used
-   with any of the *printf calls is 16,384, so win_fprintf was used to
-   feed the fprintf clone no more than 16K chunks at a time. This should
-   be valid for anything up to 64K (and probably beyond, assuming your
-   buffers are that big).
-*/
 #define WriteError(buf, len, strm)                                   \
     ((extent) write(fileno(strm), (char *) (buf), (extent) (len)) != \
      (extent) (len))
 
-/*
-   2005-09-16 SMS.
-   On VMS, when output is redirected to a file, as in a command like
-   "PIPE UNZIP -v > X.OUT", the output file is created with VFC record
-   format, and multiple calls to write() or fwrite() will produce multiple
-   records, even when there's no newline terminator in the buffer.
-   The result is unsightly output with spurious newlines.  Using fprintf()
-   instead of write() here, and disabling a fflush(stdout) in UzpMessagePrnt()
-   below, together seem to solve the problem.
-
-   According to the C RTL manual, "The write and decc$record_write
-   functions always generate at least one record."  Also, "[T]he fwrite
-   function always generates at least <number_items> records."  So,
-   "fwrite(buf, len, 1, strm)" is much better ("1" record) than
-   "fwrite(buf, 1, len, strm)" ("len" (1-character) records, _really_
-   ugly), but neither is better than write().  Similarly, "The fflush
-   function always generates a record if there is unwritten data in the
-   buffer."  Apparently fprintf() buffers the stuff somewhere, and puts
-   out a record (only) when it sees a newline.
-*/
 #define WriteTxtErr(buf, len, strm) WriteError(buf, len, strm)
 
 static int disk_error(void);
-
-/****************************/
-/* Strings used in fileio.c */
-/****************************/
 
 static const char CannotOpenZipfile[] =
     "error:  cannot open zipfile [ %s ]\n        %s\n";

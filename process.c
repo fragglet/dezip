@@ -301,7 +301,6 @@ void free_G_buffers() /* releases all memory allocated in global vars */
         G.extra_field = (uch *) NULL;
     }
 
-    /* VMS uses its own buffer scheme for textmode flush() */
     if (G.outbuf2) {
         free(G.outbuf2); /* malloc'd ONLY if unshrink and -a */
         G.outbuf2 = (uch *) NULL;
@@ -1033,15 +1032,13 @@ int process_cdir_file_hdr() /* return PK-type error code */
         case MVS_:    /* all caps? */
         case TANDEM_:
         case TOPS20_:
-        case VMS_:               /* our Zip uses lowercase, but ASi's doesn't */
-                                 /*  case Z_SYSTEM_:   ? */
-                                 /*  case QDOS_:       ? */
+        case VMS_:
             G.pInfo->lcflag = 1; /* convert filename to lowercase */
             break;
 
-        default:   /* AMIGA_, FS_HPFS_, FS_NTFS_, MAC_, UNIX_, ATARI_, */
-            break; /*  FS_VFAT_, ATHEOS_, BEOS_ (Z_SYSTEM_), THEOS_: */
-                   /*  no conversion */
+        default:
+	   /*  no conversion */
+            break;
         }
     else if (uO.L_flag > 1) /* let -LL force lower case for all names */
         G.pInfo->lcflag = 1;

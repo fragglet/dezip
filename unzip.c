@@ -41,11 +41,6 @@
 
   ---------------------------------------------------------------------------
 
-  Version:  unzip5??.{tar.Z | tar.gz | zip} for Unix, VMS, OS/2, MS-DOS, Amiga,
-              Atari, Windows 3.x/95/NT/CE, Macintosh, Human68K, Acorn RISC OS,
-              AtheOS, BeOS, SMS/QDOS, VM/CMS, MVS, AOS/VS, Tandem NSK, Theos
-              and TOPS-20.
-
   Copyrights:  see accompanying file "LICENSE" in UnZip source distribution.
                (This software is free but NOT IN THE PUBLIC DOmain.)
 
@@ -139,7 +134,7 @@ static void init_globals()
 /*  main() / UzpMain() stub  */
 /*****************************/
 
-int main(argc, argv) /* return PK-type error code (except under VMS) */
+int main(argc, argv)
 int argc;
 char *argv[];
 {
@@ -559,14 +554,7 @@ char ***pargv;
                     Info(slide, 0x401, ((char *) slide, MustGivePasswd));
                     return (PK_PARAM); /* don't extract here by accident */
                 }
-                if (uO.pwdarg != (char *) NULL) {
-                    /*
-                                            GRR:  eventually support multiple
-                       passwords? Info(slide, 0x401, ((char *)slide,
-                                              OnlyOnePasswd));
-                                            return(PK_PARAM);
-                     */
-                } else {
+                if (uO.pwdarg == (char *) NULL) {
                     /* first check for "-Ppasswd", then for "-P passwd" */
                     uO.pwdarg = s;
                     if (*uO.pwdarg == '\0') {
