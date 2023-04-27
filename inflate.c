@@ -254,8 +254,6 @@
 /* some buffer counters must be capable of holding 64k for Deflate64 */
 #define UINT_D64 unsigned
 
-#define wsize WSIZE /* wsize is a constant */
-
 #ifndef NEXTBYTE /* default is to simply get a byte from stdin */
 #define NEXTBYTE getchar()
 #endif
@@ -499,7 +497,7 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
             if ((e = t->e) == 32) {
                 /* then it's a literal */
                 redirSlide[w++] = (uch) t->v.n;
-                if (w == wsize) {
+                if (w == WSIZE) {
                     if ((retval = FLUSH(w)) != 0)
                         goto cleanup_and_exit;
                     w = 0;
@@ -533,7 +531,7 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
 
                 /* do the copy */
                 do {
-                    e = (unsigned) (wsize - ((d &= (unsigned) (wsize - 1)) >
+                    e = (unsigned) (WSIZE - ((d &= (unsigned) (WSIZE - 1)) >
                                                      (unsigned) w
                                                  ? (UINT_D64) d
                                                  : w));
@@ -543,7 +541,7 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
                     do {
                         redirSlide[w++] = redirSlide[d++];
                     } while (--e);
-                    if (w == wsize) {
+                    if (w == WSIZE) {
                         if ((retval = FLUSH(w)) != 0)
                             goto cleanup_and_exit;
                         w = 0;
@@ -610,7 +608,7 @@ static int inflate_stored()
     while (n--) {
         NEEDBITS(8)
         redirSlide[w++] = (uch) b;
-        if (w == wsize) {
+        if (w == WSIZE) {
             if ((retval = FLUSH(w)) != 0)
                 goto cleanup_and_exit;
             w = 0;

@@ -1293,9 +1293,6 @@ int error_in_archive;
     return error_in_archive;
 }
 
-/* wsize is used in extract_or_test_member() and UZbunzip2() */
-#define wsize WSIZE /* wsize is a constant */
-
 static int extract_or_test_member(void) /* return PK-type error code */
 {
     char *nul = "[empty] ", *txt = "[text]  ", *bin = "[binary]";
@@ -1357,7 +1354,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
         G.outcnt = 0L;
         while ((b = NEXTBYTE) != EOF) {
             *G.outptr++ = (uch) b;
-            if (++G.outcnt == wsize) {
+            if (++G.outcnt == WSIZE) {
                 error = flush(redirSlide, G.outcnt, 0);
                 G.outptr = redirSlide;
                 G.outcnt = 0L;
@@ -2006,7 +2003,7 @@ int UZbunzip2(void)
     }
 
     bstrm.next_out = (char *) redirSlide;
-    bstrm.avail_out = wsize;
+    bstrm.avail_out = WSIZE;
 
     bstrm.next_in = (char *) G.inptr;
     bstrm.avail_in = G.incnt;
@@ -2056,13 +2053,13 @@ int UZbunzip2(void)
             Trace((stderr, "     avail_in = %u\n", bstrm.avail_in));
         }
         /* flush slide[] */
-        if ((retval = FLUSH(wsize - bstrm.avail_out)) != 0)
+        if ((retval = FLUSH(WSIZE - bstrm.avail_out)) != 0)
             goto uzbunzip_cleanup_exit;
         Trace((stderr, "inside loop:  flushing %ld bytes (ptr diff = %ld)\n",
-               (long) (wsize - bstrm.avail_out),
+               (long) (WSIZE - bstrm.avail_out),
                (long) (bstrm.next_out - (char *) redirSlide)));
         bstrm.next_out = (char *) redirSlide;
-        bstrm.avail_out = wsize;
+        bstrm.avail_out = WSIZE;
     }
 
     /* no more input, so loop until we have all output */
@@ -2080,13 +2077,13 @@ int UZbunzip2(void)
             exit(PK_MEM3);
         }
         /* final flush of slide[] */
-        if ((retval = FLUSH(wsize - bstrm.avail_out)) != 0)
+        if ((retval = FLUSH(WSIZE - bstrm.avail_out)) != 0)
             goto uzbunzip_cleanup_exit;
         Trace((stderr, "final loop:  flushing %ld bytes (ptr diff = %ld)\n",
-               (long) (wsize - bstrm.avail_out),
+               (long) (WSIZE - bstrm.avail_out),
                (long) (bstrm.next_out - (char *) redirSlide)));
         bstrm.next_out = (char *) redirSlide;
-        bstrm.avail_out = wsize;
+        bstrm.avail_out = WSIZE;
     }
 #ifdef LARGE_FILE_SUPPORT
     Trace((stderr, "total in = %llu, total out = %llu\n",
