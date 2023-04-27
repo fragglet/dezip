@@ -289,7 +289,7 @@ off_t end;
     return 0;
 }
 
-int extract_or_test_files() /* return PK-type error code */
+int extract_or_test_files(void) /* return PK-type error code */
 {
     unsigned i, j;
     off_t cd_bufstart;
@@ -749,7 +749,7 @@ int extract_or_test_files() /* return PK-type error code */
     return error_in_archive;
 }
 
-static int store_info() /* return 0 if skipping, 1 if OK */
+static int store_info(void) /* return 0 if skipping, 1 if OK */
 {
     int unknown_method;
 
@@ -1294,7 +1294,7 @@ int error_in_archive;
 /* wsize is used in extract_or_test_member() and UZbunzip2() */
 #define wsize WSIZE /* wsize is a constant */
 
-static int extract_or_test_member() /* return PK-type error code */
+static int extract_or_test_member(void) /* return PK-type error code */
 {
     char *nul = "[empty] ", *txt = "[text]  ", *bin = "[binary]";
     register int b;
@@ -1591,9 +1591,7 @@ static int extract_or_test_member() /* return PK-type error code */
     return error;
 }
 
-static int TestExtraField(ef, ef_len)
-uch *ef;
-unsigned ef_len;
+static int TestExtraField(uch *ef, unsigned ef_len)
 {
     ush ebID;
     unsigned ebLen;
@@ -1807,12 +1805,7 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
     return r;
 }
 
-int memextract(tgt, tgtsize, src, srcsize) /* extract compressed */
-                                           /*  extra field block; */
-uch *tgt;                                  /*  return PK-type error */
-ulg tgtsize;                               /*  level */
-const uch *src;
-ulg srcsize;
+int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize)
 {
     off_t old_csize = G.csize;
     uch *old_inptr = G.inptr;
@@ -1881,8 +1874,7 @@ ulg srcsize;
     return error;
 }
 
-int memflush(rawbuf, size) const uch *rawbuf;
-ulg size;
+int memflush(const uch *rawbuf, ulg size)
 {
     if (size > G.outsize)
         /* Here, PK_DISK is a bit off-topic, but in the sense of marking
@@ -1897,7 +1889,7 @@ ulg size;
     return 0;
 }
 
-static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
+static void set_deferred_symlink(slinkentry *slnk_entry)
 {
     size_t ucsize = slnk_entry->targetlen;
     char *linkfname = slnk_entry->fname;
@@ -1940,10 +1932,8 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
     return; /* can't set time on symlinks */
 }
 
-char *fnfilter(raw, space, size) /* convert name to safely printable form */
-    const char *raw;
-uch *space;
-size_t size;
+/* convert name to safely printable form */
+char *fnfilter(const char *raw, uch *space, size_t size)
 {
 #ifndef NATIVE /* ASCII:  filter ANSI escape codes, etc. */
     const uch *r = (const uch *) raw;
@@ -2003,13 +1993,10 @@ size_t size;
 
 /* must sort saved directories so can set perms from bottom up */
 
-static int dircomp(a, b) /* used by qsort(); swiped from Zip */
-    const void *a,
-    *b;
+static int dircomp(const void *a, const void *b)
 {
     /* order is significant:  this sorts in reverse order (deepest first) */
     return strcmp((*(direntry **) b)->fn, (*(direntry **) a)->fn);
-    /* return namecmp((*(direntry **)b)->fn, (*(direntry **)a)->fn); */
 }
 
 /* decompress a bzipped entry using the libbz2 routines */
