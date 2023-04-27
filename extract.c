@@ -181,10 +181,9 @@ static const char OverlappedComponents[] =
     "error: invalid zip file with overlapped components (possible zip bomb)\n";
 
 /* A growable list of spans. */
-typedef off_t bound_t;
 typedef struct {
-    bound_t beg; /* start of the span */
-    bound_t end; /* one past the end of the span */
+    off_t beg; /* start of the span */
+    off_t end; /* one past the end of the span */
 } span_t;
 typedef struct {
     span_t *span; /* allocated, distinct, and sorted list of spans */
@@ -198,7 +197,7 @@ typedef struct {
  */
 static size_t cover_find(cover, val)
 cover_t *cover;
-bound_t val;
+off_t val;
 {
     size_t lo = 0, hi = cover->num;
     while (lo < hi) {
@@ -214,7 +213,7 @@ bound_t val;
 /* Return true if val lies within any one of the spans in cover. */
 static int cover_within(cover, val)
 cover_t *cover;
-bound_t val;
+off_t val;
 {
     size_t pos = cover_find(cover, val);
     return pos > 0 && val < cover->span[pos - 1].end;
@@ -234,8 +233,8 @@ bound_t val;
  */
 static int cover_add(cover, beg, end)
 cover_t *cover;
-bound_t beg;
-bound_t end;
+off_t beg;
+off_t end;
 {
     size_t pos;
     int prec, foll;
