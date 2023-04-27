@@ -152,7 +152,6 @@ char *do_wild(wildspec) const
     if (G.have_dirname)
         free(G.dirname);
     return (char *) NULL;
-
 }
 
 #ifndef S_ISVTX
@@ -307,7 +306,6 @@ int mapattr()
     G.pInfo->file_attr &= ~tmp;
 
     return 0;
-
 }
 
 int mapname(renamed)
@@ -480,7 +478,6 @@ int renamed;
     checkdir(G.filename, GETPATH);
 
     return error;
-
 }
 
 /*
@@ -730,7 +727,6 @@ int flag;
     }
 
     return MPN_INVALID; /* should never reach */
-
 }
 
 static int get_extattribs(pzt, z_uidgid)
@@ -899,7 +895,6 @@ void close_outfile() /* GRR: change to return PK-style warning level */
                      ((char *) slide, CannotSetTimestamps, strerror(errno)));
         }
     }
-
 }
 
 int set_symlnk_attribs(slnk_entry)
@@ -997,5 +992,4 @@ time_t modtime;
 
     tp.modtime = tp.actime = modtime;
     return (utime(fname, &tp));
-
 }

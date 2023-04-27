@@ -93,14 +93,13 @@ int ignore_case;
     return recmatch((uch *) pattern, (uch *) string, ignore_case) == 1;
 }
 
-static int recmatch(p, s, ic) const uch *p; /* sh pattern to match */
-const uch *s;                               /* string to which to match it */
-int ic;                                     /* true for case insensitivity */
-/* directory sepchar for WildStopAtDir mode, or 0 */
 /* Recursively compare the sh pattern p with the string s and return 1 if
  * they match, and 0 or 2 if they don't or if there is a syntax error in the
  * pattern.  This routine recurses on itself no more deeply than the number
  * of characters in the pattern. */
+static int recmatch(p, s, ic) const uch *p; /* sh pattern to match */
+const uch *s;                               /* string to which to match it */
+int ic;                                     /* true for case insensitivity */
 {
     unsigned int c; /* pattern char or start of range in [-] loop */
 
@@ -218,12 +217,11 @@ int ic;                                     /* true for case insensitivity */
 
     /* just a character--compare it */
     return Case((uch) c) == Case(*s) ? recmatch(p, s + CLEN(s), ic) : 0;
-
 }
 
-static char *isshexp(p) const char *p;
 /* If p is a sh expression, a pointer to the first special character is
    returned.  Otherwise, NULL is returned. */
+static char *isshexp(p) const char *p;
 {
     for (; *p; INCSTR(p))
         if (*p == '\\' && *(p + 1))
@@ -248,9 +246,8 @@ static int namecmp(s1, s2) const char *s1, *s2;
     }
 }
 
-int iswild(p)      /* originally only used for stat()-bug workaround in */
-    const char *p; /*  VAX C, Turbo/Borland C, Watcom C, Atari MiNT libs; */
-{                  /*  now used in process_zipfiles() as well */
+int iswild(const char *p)
+{
     for (; *p; INCSTR(p))
         if (*p == '\\' && *(p + 1))
             ++p;
@@ -258,7 +255,6 @@ int iswild(p)      /* originally only used for stat()-bug workaround in */
             return TRUE;
 
     return FALSE;
-
 }
 
 #ifdef TEST_MATCH

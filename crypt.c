@@ -180,7 +180,6 @@ int decrypt(passwrd) const char *passwrd;
     } while (n > 0);
 
     return PK_WARN;
-
 }
 
 /***********************************************************************
@@ -235,7 +234,6 @@ static int testp(h) const uch *h;
 #endif /* STR_TO_CP1 */
 
     return r;
-
 }
 
 static int testkey(h, key) const uch *h; /* decrypted header */
@@ -292,5 +290,4 @@ const char *key;                         /* decryption password to test */
          n--; p++)
         zdecode(*p);
     return 0; /* OK */
-
 }

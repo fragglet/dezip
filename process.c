@@ -281,7 +281,6 @@ int process_zipfiles() /* return PK-type error code */
     free_G_buffers();
 
     return error_in_archive;
-
 }
 
 void free_G_buffers() /* releases all memory allocated in global vars */
@@ -338,7 +337,6 @@ void free_G_buffers() /* releases all memory allocated in global vars */
         free(G.cover);
         G.cover = NULL;
     }
-
 }
 
 static int do_seekable(lastchance) /* return PK-type error code */
@@ -559,7 +557,6 @@ int lastchance;
         }
     }
     return error_in_archive;
-
 }
 
 /* File size determination which does not mislead for large files in a
@@ -984,7 +981,6 @@ off_t searchlen;
         G.ecrec.offset_start_central_directory + G.ecrec.size_central_directory;
 
     return error_in_archive;
-
 }
 
 static int process_zip_cmmnt() /* return PK-type error code */
@@ -1003,7 +999,6 @@ static int process_zip_cmmnt() /* return PK-type error code */
         }
     }
     return error;
-
 }
 
 int process_cdir_file_hdr() /* return PK-type error code */
@@ -1074,7 +1069,6 @@ int process_cdir_file_hdr() /* return PK-type error code */
     G.pInfo->symlink = 0;
 
     return PK_COOL;
-
 }
 
 static int get_cdir_ent() /* return PK-type error code */
@@ -1117,7 +1111,6 @@ static int get_cdir_ent() /* return PK-type error code */
         makelong(&byterec[C_RELATIVE_OFFSET_LOCAL_HEADER]);
 
     return PK_COOL;
-
 }
 
 int process_local_file_hdr() /* return PK-type error code */
@@ -1159,7 +1152,6 @@ int process_local_file_hdr() /* return PK-type error code */
     G.csize = G.lrec.csize;
 
     return PK_COOL;
-
 }
 
 int getZip64Data(ef_buf,

@@ -15,8 +15,6 @@
  * of two increase in speed on a Power PC G4 (PPC7455) using gcc -O3.
  */
 
-/* $Id: crc32.c,v 2.0 2007/01/07 05:20:36 spc Exp $ */
-
 #include "unzip.h"
 
 #include "crc32.h"
@@ -128,14 +126,14 @@ const ulg *get_crc_table(void)
     DO4(crc, buf);    \
     DO4(crc, buf)
 
-/* ========================================================================= */
+/* Run a set of bytes through the crc shift register.  If buf is a NULL
+   pointer, then initialize the crc shift register contents instead.
+   Return the current crc in either case. */
+
 ulg crc32(crc, buf, len)
 ulg crc;                 /* crc shift register */
 register const uch *buf; /* pointer to bytes to pump through */
 size_t len;              /* number of bytes in buf[] */
-/* Run a set of bytes through the crc shift register.  If buf is a NULL
-   pointer, then initialize the crc shift register contents instead.
-   Return the current crc in either case. */
 {
     register z_uint4 c;
     register const ulg *crc_32_tab;

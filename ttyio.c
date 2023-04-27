@@ -129,5 +129,4 @@ int n;                             /* bytes available in p[] */
     close(f);
 
     return p; /* return pointer to password */
-
 }

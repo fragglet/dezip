@@ -79,7 +79,6 @@ int open_input_file() /* return 1 if open failed */
         return 1;
     }
     return 0;
-
 }
 
 int open_outfile() /* return 1 if fail */
@@ -133,7 +132,6 @@ int open_outfile() /* return 1 if fail */
            FnFilter1(G.filename)));
 
     return 0;
-
 }
 
 /*
@@ -146,10 +144,6 @@ int open_outfile() /* return 1 if fail */
  * If you need to check the number of bytes remaining in the current
  * file while using NEXTBYTE, check (G.csize + G.incnt), not G.csize.
  */
-
-/****************************/
-/* function undefer_input() */
-/****************************/
 
 void undefer_input()
 {
@@ -185,7 +179,8 @@ void defer_leftover_input()
     G.csize -= G.incnt;
 }
 
-unsigned readbuf(buf, size) /* return number of bytes read into buf */
+/* return number of bytes read into buf */
+unsigned readbuf(buf, size)
 char *buf;
 register unsigned size;
 {
@@ -215,10 +210,10 @@ register unsigned size;
         size -= count;
     }
     return n;
-
 }
 
-int readbyte() /* refill inbuf and return a byte if available, else EOF */
+/* refill inbuf and return a byte if available, else EOF */
+int readbyte()
 {
     if (G.mem_mode)
         return EOF;
@@ -255,10 +250,10 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
 
     --G.incnt;
     return *G.inptr++;
-
 }
 
-int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
+/* like readbyte() except returns number of bytes in inbuf */
+int fillinbuf()
 {
     if (G.mem_mode ||
         (G.incnt = read(G.zipfd, (char *) G.inbuf, INBUFSIZ)) <= 0)
@@ -276,7 +271,6 @@ int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
     }
 
     return G.incnt;
-
 }
 
 int seek_zipf(abs_offset)
@@ -431,10 +425,9 @@ int unshrink;
     }
 
     return PK_OK;
-
 }
 
-static int disk_error()
+static int disk_error(void)
 {
     /* OK to use slide[] here because this file is finished regardless */
     Info(slide, 0x4a1, ((char *) slide, DiskFullQuery, FnFilter1(G.filename)));
@@ -446,7 +439,6 @@ static int disk_error()
         G.disk_full = 2; /* no:  exit program */
 
     return PK_DISK;
-
 }
 
 int UzpMessagePrnt(buf, size, flag)
@@ -506,7 +498,6 @@ int flag; /* flag bits */
         G.sol = (endbuf[-1] == '\n');
     }
     return 0;
-
 }
 
 void UzpMorePause(prompt, flag) const char *prompt; /* "--More--" prompt */
@@ -540,7 +531,6 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
     }
 
     G.sol = TRUE;
-
 }
 
 int UzpPassword(rcnt, pwbuf, size, zfn, efn)
@@ -589,7 +579,6 @@ const char *efn; /* name of archive entry being processed */
         r = IZ_PW_CANCELALL;
     }
     return r;
-
 }
 
 time_t dos_to_unix_time(dosdatetime)
@@ -623,7 +612,6 @@ ulg dosdatetime;
         m_time = S_TIME_T_MAX; /*  -> saturate at max signed time_t value */
 
     return m_time;
-
 }
 
 int check_for_newer(filename) /* return 1 if existing file is newer */
@@ -693,7 +681,6 @@ char *filename;               /*  exist yet */
             (ulg) existing, (ulg) archive, (long) (existing - archive)));
 
     return (existing >= archive);
-
 }
 
 int do_string(length, option) /* return PK-type error code */
@@ -969,7 +956,6 @@ int option;
     } /* end switch (option) */
 
     return error;
-
 }
 
 ush makeword(b) const uch *b;

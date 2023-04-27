@@ -711,7 +711,6 @@ char ***pargv;
     *pargc = argc;
     *pargv = argv;
     return PK_OK;
-
 }
 
 #define QUOT  ' '
@@ -728,5 +727,4 @@ int error;
         return PK_PARAM;
     else
         return PK_COOL; /* just wanted usage screen: no error */
-
 }

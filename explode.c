@@ -212,12 +212,12 @@ static const ush cpdist8[] = {
         }                                                  \
     }
 
-static int get_tree(l, n)
-unsigned *l; /* bit lengths */
-unsigned n;  /* number expected */
 /* Get the bit lengths for a code representation from the compressed
    stream.  If get_tree() returns 4, then there is an error in the data.
    Otherwise zero is returned. */
+static int get_tree(l, n)
+unsigned *l; /* bit lengths */
+unsigned n;  /* number expected */
 {
     unsigned i; /* bytes remaining in list */
     unsigned k; /* lengths entered */
@@ -239,12 +239,12 @@ unsigned n;  /* number expected */
     return k != n ? 4 : 0; /* should have read n of them */
 }
 
+/* Decompress the imploded data using coded literals and a sliding
+   window (of size 2^(6+bdl) bytes). */
 static int explode_lit(tb, tl, td, bb, bl, bd, bdl)
 struct huft *tb, *tl, *td; /* literal, length, and distance tables */
 unsigned bb, bl, bd;       /* number of bits decoded by those */
 unsigned bdl;              /* number of distance low bits */
-/* Decompress the imploded data using coded literals and a sliding
-   window (of size 2^(6+bdl) bytes). */
 {
     zusz_t s;            /* bytes to decompress */
     register unsigned e; /* table entry flag/number of extra bits */
@@ -333,12 +333,12 @@ unsigned bdl;              /* number of distance low bits */
     return 0;
 }
 
+/* Decompress the imploded data using uncoded literals and a sliding
+   window (of size 2^(6+bdl) bytes). */
 static int explode_nolit(tl, td, bl, bd, bdl)
 struct huft *tl, *td; /* length and distance decoder tables */
 unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
 unsigned bdl;         /* number of distance low bits */
-/* Decompress the imploded data using uncoded literals and a sliding
-   window (of size 2^(6+bdl) bytes). */
 {
     zusz_t s;            /* bytes to decompress */
     register unsigned e; /* table entry flag/number of extra bits */
@@ -427,7 +427,6 @@ unsigned bdl;         /* number of distance low bits */
     return 0;
 }
 
-int explode()
 /* Explode an imploded compressed stream.  Based on the general purpose
    bit flag, decide on coded or uncoded literals, and an 8K or 4K sliding
    window.  Construct the literal (if any), length, and distance codes and
@@ -436,6 +435,7 @@ int explode()
    of the stream.  The four routines are nearly identical, differing only
    in whether the literal is decoded or simply read in, and in how many
    bits are read in, uncoded, for the low distance bits. */
+int explode()
 {
     unsigned r;      /* return codes */
     struct huft *tb; /* literal code table */

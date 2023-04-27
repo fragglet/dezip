@@ -331,7 +331,6 @@ int list_files() /* return PK-type error code */
     }
 
     return error_in_archive;
-
 }
 
 static int fn_is_dir() /* returns TRUE if G.filename is directory */
@@ -460,7 +459,6 @@ ulg *nmember;
         error_in_archive = PK_FIND;
 
     return error_in_archive;
-
 }
 
 int ratio(uc, c)
@@ -488,5 +486,4 @@ void fnprint() /* print filename (after filtering) and newline */
 
     (*G.message)((uch *) name, (ulg) strlen(name), 0);
     (*G.message)((uch *) "\n", 1L, 0);
-
 }

@@ -747,7 +747,6 @@ int extract_or_test_files() /* return PK-type error code */
         error_in_archive = PK_WARN;
 
     return error_in_archive;
-
 }
 
 static int store_info() /* return 0 if skipping, 1 if OK */
@@ -840,7 +839,6 @@ static int store_info() /* return 0 if skipping, 1 if OK */
     G.pInfo->diskstart = G.crec.disk_number_start;
     G.pInfo->offset = (off_t) G.crec.relative_offset_local_header;
     return 1;
-
 }
 
 unsigned find_compr_idx(compr_methodnum)
@@ -1291,7 +1289,6 @@ int error_in_archive;
     } /* end for-loop (i:  files in current block) */
 
     return error_in_archive;
-
 }
 
 /* wsize is used in extract_or_test_member() and UZbunzip2() */
@@ -1592,7 +1589,6 @@ static int extract_or_test_member() /* return PK-type error code */
     }
 
     return error;
-
 }
 
 static int TestExtraField(ef, ef_len)
@@ -1763,7 +1759,6 @@ unsigned ef_len;
         Info(slide, 0, ((char *) slide, " OK\n"));
 
     return PK_COOL;
-
 }
 
 static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
@@ -1810,7 +1805,6 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
 
     free(eb_ucptr);
     return r;
-
 }
 
 int memextract(tgt, tgtsize, src, srcsize) /* extract compressed */
@@ -1885,7 +1879,6 @@ ulg srcsize;
         }
     }
     return error;
-
 }
 
 int memflush(rawbuf, size) const uch *rawbuf;
@@ -1902,7 +1895,6 @@ ulg size;
     G.outcnt += size;
 
     return 0;
-
 }
 
 static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
@@ -1946,7 +1938,6 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
     free(linktarget);
     set_symlnk_attribs(slnk_entry);
     return; /* can't set time on symlinks */
-
 }
 
 char *fnfilter(raw, space, size) /* convert name to safely printable form */
@@ -2008,7 +1999,6 @@ size_t size;
 #else /* NATIVE:  EBCDIC or whatever */
     return (char *) raw;
 #endif
-
 }
 
 /* must sort saved directories so can set perms from bottom up */
@@ -2022,8 +2012,8 @@ static int dircomp(a, b) /* used by qsort(); swiped from Zip */
     /* return namecmp((*(direntry **)b)->fn, (*(direntry **)a)->fn); */
 }
 
-int UZbunzip2()
 /* decompress a bzipped entry using the libbz2 routines */
+int UZbunzip2(void)
 {
     int retval = 0; /* return code: 0 = "no error" */
     int err = BZ_OK;

@@ -250,7 +250,6 @@ int unshrink()
     }
 
     return PK_OK;
-
 }
 
 static void partial_clear(lastcodeused) int lastcodeused;

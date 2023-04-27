@@ -465,11 +465,11 @@ static const unsigned lbits = 9;
 /* bits in base distance lookup table */
 static const unsigned dbits = 6;
 
+/* inflate (decompress) the codes in a deflated (compressed) block.
+   Return an error code or zero if it all goes ok. */
 int inflate_codes(tl, td, bl, bd)
 struct huft *tl, *td; /* literal/length and distance decoder tables */
 unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
-/* inflate (decompress) the codes in a deflated (compressed) block.
-   Return an error code or zero if it all goes ok. */
 {
     register unsigned e; /* table entry flag/number of extra bits */
     unsigned d;          /* index for copy */
@@ -578,8 +578,8 @@ cleanup_and_exit:
     return retval;
 }
 
-static int inflate_stored()
 /* "decompress" an inflated type 0 (stored) block. */
+static int inflate_stored()
 {
     UINT_D64 w;          /* current window position (deflate64: up to 64k!) */
     unsigned n;          /* number of bytes in block */
@@ -627,10 +627,10 @@ cleanup_and_exit:
     return retval;
 }
 
-static int inflate_fixed()
 /* decompress an inflated type 1 (fixed Huffman codes) block.  We should
    either replace this with a custom decoder, or at least precompute the
    Huffman tables. */
+static int inflate_fixed(void)
 {
     /* if first time, set up tables for fixed blocks */
     Trace((stderr, "\nliteral block"));
@@ -670,8 +670,8 @@ static int inflate_fixed()
     return inflate_codes(G.fixed_tl, G.fixed_td, G.fixed_bl, G.fixed_bd);
 }
 
-static int inflate_dynamic()
 /* decompress an inflated type 2 (dynamic Huffman codes) block. */
+static int inflate_dynamic(void)
 {
     unsigned i; /* temporary variables */
     unsigned j;
@@ -827,9 +827,9 @@ cleanup_and_exit:
     return retval;
 }
 
+/* decompress an inflated block */
 static int inflate_block(e)
 int *e; /* last block flag */
-/* decompress an inflated block */
 {
     unsigned t;          /* block type */
     register ulg b;      /* bit buffer */
@@ -869,9 +869,9 @@ cleanup_and_exit:
     return retval;
 }
 
+/* decompress an inflated entry */
 int inflate(is_defl64)
 int is_defl64;
-/* decompress an inflated entry */
 {
     int e; /* last block flag */
     int r; /* result code */
@@ -944,23 +944,10 @@ int inflate_free()
     return 0;
 }
 
-/*
- * GRR:  moved huft_build() and huft_free() down here; used by explode()
- *       and fUnZip regardless of whether USE_ZLIB defined or not
- */
-
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
 #define BMAX  16  /* maximum bit length of any code (16 for explode) */
 #define N_MAX 288 /* maximum number of codes in any set */
 
-int huft_build(b, n, s, d, e, t, m) const
-    unsigned *b; /* code lengths in bits (all assumed <= BMAX) */
-unsigned n;      /* number of codes (assumed <= N_MAX) */
-unsigned s;      /* number of simple-valued codes (0..s-1) */
-const ush *d;    /* list of base values for non-simple codes */
-const uch *e;    /* list of extra bits for non-simple codes */
-struct huft **t; /* result: starting table */
-unsigned *m;     /* maximum lookup bits, returns actual */
 /* Given a list of code lengths and a maximum table size, make a set of
    tables to decode that set of codes.  Return zero on success, one if
    the given code set is incomplete (the tables are still built in this
@@ -969,6 +956,14 @@ unsigned *m;     /* maximum lookup bits, returns actual */
    The code with value 256 is special, and the tables are constructed
    so that no bits beyond that code are fetched when that code is
    decoded. */
+int huft_build(b, n, s, d, e, t, m) const
+    unsigned *b; /* code lengths in bits (all assumed <= BMAX) */
+unsigned n;      /* number of codes (assumed <= N_MAX) */
+unsigned s;      /* number of simple-valued codes (0..s-1) */
+const ush *d;    /* list of base values for non-simple codes */
+const uch *e;    /* list of extra bits for non-simple codes */
+struct huft **t; /* result: starting table */
+unsigned *m;     /* maximum lookup bits, returns actual */
 {
     unsigned a;              /* counter for codes of length k */
     unsigned c[BMAX + 1];    /* bit length count table */
@@ -1146,11 +1141,11 @@ unsigned *m;     /* maximum lookup bits, returns actual */
     return y != 0 && g != 1;
 }
 
-int huft_free(t)
-struct huft *t; /* table to free */
 /* Free the malloc'ed tables built by huft_build(), which makes a linked
    list of the tables it made, with the links in a dummy first entry of
    each table. */
+int huft_free(t)
+struct huft *t; /* table to free */
 {
     register struct huft *p, *q;
 
