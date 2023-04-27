@@ -41,15 +41,10 @@
 #include <unistd.h>
 #include <fcntl.h> /* O_BINARY for open() w/o CR/LF translation */
 
-#ifndef NO_PARAM_H
-#include <sys/param.h> /* conflict with <sys/types.h>, some systems? */
-#endif                 /* !NO_PARAM_H */
-
 #include <time.h>
 
 #include <unistd.h> /* this includes utime.h on SGIs */
 #include <utime.h>
-#define GOT_UTIMBUF
 
 #if (defined(_MBCS) && defined(NO_MBCS))
 /* disable MBCS support when requested */
