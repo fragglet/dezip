@@ -67,14 +67,6 @@
  * isupper()); otherwise just use tolower() */
 #include "unzip.h"
 
-#ifdef ANSI_CHARSET
-#ifdef ToLower
-#undef ToLower
-#endif
-/* uppercase letters are values 41 thru 5A, C0 thru D6, and D8 thru DE */
-#define IsUpper(c) (c >= 0xC0 ? c <= 0xDE && c != 0xD7 : c >= 0x41 && c <= 0x5A)
-#define ToLower(c) (IsUpper((uch) c) ? (unsigned) c | 0x20 : (unsigned) c)
-#endif
 #define Case(x) (ic ? ToLower(x) : (x))
 
 #define WILDCHAR  '?'
