@@ -282,7 +282,7 @@ int process_zipfiles() /* return PK-type error code */
 
     return error_in_archive;
 
-} /* end function process_zipfiles() */
+}
 
 void free_G_buffers() /* releases all memory allocated in global vars */
 {
@@ -339,7 +339,7 @@ void free_G_buffers() /* releases all memory allocated in global vars */
         G.cover = NULL;
     }
 
-} /* end function free_G_buffers() */
+}
 
 static int do_seekable(lastchance) /* return PK-type error code */
 int lastchance;
@@ -560,7 +560,7 @@ int lastchance;
     }
     return error_in_archive;
 
-} /* end function do_seekable() */
+}
 
 /* File size determination which does not mislead for large files in a
    small-file program.  Probably should be somewhere else.
@@ -599,7 +599,7 @@ int fh;
         }
     }
     return ofs;
-} /* end function file_size() */
+}
 
 static int rec_find(searchlen, signature, rec_size)
 /* return 0 when rec found, 1 when not found, 2 in case of read error */
@@ -662,7 +662,7 @@ int rec_size;
         memcpy((char *) G.hold, (char *) G.inbuf, 3);
     }
     return (found ? 0 : 1);
-} /* end function rec_find() */
+}
 
 static int find_ecrec64(searchlen) /* return PK-class error */
 off_t searchlen;
@@ -867,7 +867,7 @@ off_t searchlen;
     }
 
     return PK_COOL;
-} /* end function find_ecrec64() */
+}
 
 static int find_ecrec(searchlen) /* return PK-class error */
 off_t searchlen;
@@ -985,7 +985,7 @@ off_t searchlen;
 
     return error_in_archive;
 
-} /* end function find_ecrec() */
+}
 
 static int process_zip_cmmnt() /* return PK-type error code */
 {
@@ -1004,7 +1004,7 @@ static int process_zip_cmmnt() /* return PK-type error code */
     }
     return error;
 
-} /* end function process_zip_cmmnt() */
+}
 
 int process_cdir_file_hdr() /* return PK-type error code */
 {
@@ -1037,7 +1037,7 @@ int process_cdir_file_hdr() /* return PK-type error code */
             break;
 
         default:
-	   /*  no conversion */
+            /*  no conversion */
             break;
         }
     else if (uO.L_flag > 1) /* let -LL force lower case for all names */
@@ -1075,7 +1075,7 @@ int process_cdir_file_hdr() /* return PK-type error code */
 
     return PK_COOL;
 
-} /* end function process_cdir_file_hdr() */
+}
 
 static int get_cdir_ent() /* return PK-type error code */
 {
@@ -1118,7 +1118,7 @@ static int get_cdir_ent() /* return PK-type error code */
 
     return PK_COOL;
 
-} /* end function get_cdir_ent() */
+}
 
 int process_local_file_hdr() /* return PK-type error code */
 {
@@ -1160,7 +1160,7 @@ int process_local_file_hdr() /* return PK-type error code */
 
     return PK_COOL;
 
-} /* end function process_local_file_hdr() */
+}
 
 int getZip64Data(ef_buf,
                  ef_len) const uch *ef_buf; /* buffer containing extra field */
@@ -1250,7 +1250,7 @@ unsigned ef_len;                            /* total length of extra field */
     }
 
     return PK_COOL;
-} /* end function getZip64Data() */
+}
 
 int getUnicodeData(
     ef_buf, ef_len) const uch *ef_buf; /* buffer containing extra field */
@@ -1352,7 +1352,7 @@ unsigned ef_len;                       /* total length of extra field */
     }
 
     return PK_COOL;
-} /* end function getUnicodeData() */
+}
 
 /*---------------------------------------------
  * Unicode conversion functions

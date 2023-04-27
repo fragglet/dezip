@@ -80,7 +80,7 @@ int open_input_file() /* return 1 if open failed */
     }
     return 0;
 
-} /* end function open_input_file() */
+}
 
 int open_outfile() /* return 1 if fail */
 {
@@ -134,7 +134,7 @@ int open_outfile() /* return 1 if fail */
 
     return 0;
 
-} /* end function open_outfile() */
+}
 
 /*
  * These functions allow NEXTBYTE to function without needing two bounds
@@ -169,7 +169,7 @@ void undefer_input()
         G.incnt_leftover = 0;
     } else if (G.incnt < 0)
         G.incnt = 0;
-} /* end function undefer_input() */
+}
 
 void defer_leftover_input()
 {
@@ -183,7 +183,7 @@ void defer_leftover_input()
     } else
         G.incnt_leftover = 0;
     G.csize -= G.incnt;
-} /* end function defer_leftover_input() */
+}
 
 unsigned readbuf(buf, size) /* return number of bytes read into buf */
 char *buf;
@@ -216,7 +216,7 @@ register unsigned size;
     }
     return n;
 
-} /* end function readbuf() */
+}
 
 int readbyte() /* refill inbuf and return a byte if available, else EOF */
 {
@@ -256,7 +256,7 @@ int readbyte() /* refill inbuf and return a byte if available, else EOF */
     --G.incnt;
     return *G.inptr++;
 
-} /* end function readbyte() */
+}
 
 int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
 {
@@ -277,7 +277,7 @@ int fillinbuf() /* like readbyte() except returns number of bytes in inbuf */
 
     return G.incnt;
 
-} /* end function fillinbuf() */
+}
 
 int seek_zipf(abs_offset)
 off_t abs_offset;
@@ -330,7 +330,7 @@ off_t abs_offset;
         G.inptr = G.inbuf + (int) inbuf_offset;
     }
     return (PK_OK);
-} /* end function seek_zipf() */
+}
 
 int flush(rawbuf, size, unshrink)
 uch *rawbuf;
@@ -432,7 +432,7 @@ int unshrink;
 
     return PK_OK;
 
-} /* end function flush() [resp. partflush() for 16-bit Deflate64 support] */
+}
 
 static int disk_error()
 {
@@ -447,7 +447,7 @@ static int disk_error()
 
     return PK_DISK;
 
-} /* end function disk_error() */
+}
 
 int UzpMessagePrnt(buf, size, flag)
 uch *buf; /* preformatted string to be printed */
@@ -507,7 +507,7 @@ int flag; /* flag bits */
     }
     return 0;
 
-} /* end function UzpMessagePrnt() */
+}
 
 void UzpMorePause(prompt, flag) const char *prompt; /* "--More--" prompt */
 int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
@@ -541,7 +541,7 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 
     G.sol = TRUE;
 
-} /* end function UzpMorePause() */
+}
 
 int UzpPassword(rcnt, pwbuf, size, zfn, efn)
 int *rcnt;       /* retry counter */
@@ -590,7 +590,7 @@ const char *efn; /* name of archive entry being processed */
     }
     return r;
 
-} /* end function UzpPassword() */
+}
 
 time_t dos_to_unix_time(dosdatetime)
 ulg dosdatetime;
@@ -624,7 +624,7 @@ ulg dosdatetime;
 
     return m_time;
 
-} /* end function dos_to_unix_time() */
+}
 
 int check_for_newer(filename) /* return 1 if existing file is newer */
                               /*  or equal; 0 if older; -1 if doesn't */
@@ -694,7 +694,7 @@ char *filename;               /*  exist yet */
 
     return (existing >= archive);
 
-} /* end function check_for_newer() */
+}
 
 int do_string(length, option) /* return PK-type error code */
 unsigned int length;          /* without prototype, ush converted to this */
@@ -970,7 +970,7 @@ int option;
 
     return error;
 
-} /* end function do_string() */
+}
 
 ush makeword(b) const uch *b;
 {

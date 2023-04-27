@@ -251,7 +251,7 @@ int unshrink()
 
     return PK_OK;
 
-} /* end function unshrink() */
+}
 
 static void partial_clear(lastcodeused) int lastcodeused;
 {

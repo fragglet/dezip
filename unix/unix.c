@@ -153,7 +153,7 @@ char *do_wild(wildspec) const
         free(G.dirname);
     return (char *) NULL;
 
-} /* end function do_wild() */
+}
 
 #ifndef S_ISVTX
 #define S_ISVTX 0001000 /* save swapped text even after use */
@@ -173,7 +173,7 @@ unsigned perms;
         perms &= ~(S_ISUID | S_ISGID | S_ISVTX);
 
     return (0xffff & perms);
-} /* end function filtattr() */
+}
 
 int mapattr()
 {
@@ -308,7 +308,7 @@ int mapattr()
 
     return 0;
 
-} /* end function mapattr() */
+}
 
 int mapname(renamed)
 int renamed;
@@ -481,7 +481,7 @@ int renamed;
 
     return error;
 
-} /* end function mapname() */
+}
 
 /*
   extract-to dir:      a:path/
@@ -731,7 +731,7 @@ int flag;
 
     return MPN_INVALID; /* should never reach */
 
-} /* end function checkdir() */
+}
 
 static int get_extattribs(pzt, z_uidgid)
 iztimes *pzt;
@@ -900,7 +900,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         }
     }
 
-} /* end function close_outfile() */
+}
 
 int set_symlnk_attribs(slnk_entry)
 slinkentry *slnk_entry;
@@ -927,7 +927,7 @@ slinkentry *slnk_entry;
     }
     /* currently, no error propagation... */
     return PK_OK;
-} /* end function set_symlnk_attribs() */
+}
 
 /* messages of code for setting directory attributes */
 static const char DirlistChmodFailed[] =
@@ -950,7 +950,7 @@ direntry **pd;
 
     d_entry->have_uidgid = get_extattribs(&(d_entry->u.t3), d_entry->uidgid);
     return PK_OK;
-} /* end function defer_dir_attribs() */
+}
 
 int set_direc_attribs(d)
 direntry *d;
@@ -988,7 +988,7 @@ direntry *d;
             errval = PK_WARN;
     }
     return errval;
-} /* end function set_direc_attribs() */
+}
 
 int stamp_file(fname, modtime) const char *fname;
 time_t modtime;
@@ -998,4 +998,4 @@ time_t modtime;
     tp.modtime = tp.actime = modtime;
     return (utime(fname, &tp));
 
-} /* end function stamp_file() */
+}

@@ -219,7 +219,7 @@ int ic;                                     /* true for case insensitivity */
     /* just a character--compare it */
     return Case((uch) c) == Case(*s) ? recmatch(p, s + CLEN(s), ic) : 0;
 
-} /* end function recmatch() */
+}
 
 static char *isshexp(p) const char *p;
 /* If p is a sh expression, a pointer to the first special character is
@@ -231,7 +231,7 @@ static char *isshexp(p) const char *p;
         else if (*p == WILDCHAR || *p == '*' || *p == BEG_RANGE)
             return (char *) p;
     return NULL;
-} /* end function isshexp() */
+}
 
 static int namecmp(s1, s2) const char *s1, *s2;
 {
@@ -246,7 +246,7 @@ static int namecmp(s1, s2) const char *s1, *s2;
         s1++;
         s2++;
     }
-} /* end function namecmp() */
+}
 
 int iswild(p)      /* originally only used for stat()-bug workaround in */
     const char *p; /*  VAX C, Turbo/Borland C, Watcom C, Atari MiNT libs; */
@@ -259,7 +259,7 @@ int iswild(p)      /* originally only used for stat()-bug workaround in */
 
     return FALSE;
 
-} /* end function iswild() */
+}
 
 #ifdef TEST_MATCH
 

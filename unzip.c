@@ -712,7 +712,7 @@ char ***pargv;
     *pargv = argv;
     return PK_OK;
 
-} /* end function uz_opts() */
+}
 
 #define QUOT  ' '
 #define QUOTS ""
@@ -729,4 +729,4 @@ int error;
     else
         return PK_COOL; /* just wanted usage screen: no error */
 
-} /* end function usage() */
+}

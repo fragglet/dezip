@@ -130,4 +130,4 @@ int n;                             /* bytes available in p[] */
 
     return p; /* return pointer to password */
 
-} /* end function getp() */
+}

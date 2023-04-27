@@ -748,7 +748,7 @@ int extract_or_test_files() /* return PK-type error code */
 
     return error_in_archive;
 
-} /* end function extract_or_test_files() */
+}
 
 static int store_info() /* return 0 if skipping, 1 if OK */
 {
@@ -841,7 +841,7 @@ static int store_info() /* return 0 if skipping, 1 if OK */
     G.pInfo->offset = (off_t) G.crec.relative_offset_local_header;
     return 1;
 
-} /* end function store_info() */
+}
 
 unsigned find_compr_idx(compr_methodnum)
 unsigned compr_methodnum;
@@ -1292,7 +1292,7 @@ int error_in_archive;
 
     return error_in_archive;
 
-} /* end function extract_or_test_entrylist() */
+}
 
 /* wsize is used in extract_or_test_member() and UZbunzip2() */
 #define wsize WSIZE /* wsize is a constant */
@@ -1593,7 +1593,7 @@ static int extract_or_test_member() /* return PK-type error code */
 
     return error;
 
-} /* end function extract_or_test_member() */
+}
 
 static int TestExtraField(ef, ef_len)
 uch *ef;
@@ -1764,7 +1764,7 @@ unsigned ef_len;
 
     return PK_COOL;
 
-} /* end function TestExtraField() */
+}
 
 static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
                          int (*test_uc_ebdata)(uch *eb, unsigned eb_size,
@@ -1811,7 +1811,7 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
     free(eb_ucptr);
     return r;
 
-} /* end function test_compr_eb() */
+}
 
 int memextract(tgt, tgtsize, src, srcsize) /* extract compressed */
                                            /*  extra field block; */
@@ -1886,7 +1886,7 @@ ulg srcsize;
     }
     return error;
 
-} /* end function memextract() */
+}
 
 int memflush(rawbuf, size) const uch *rawbuf;
 ulg size;
@@ -1903,7 +1903,7 @@ ulg size;
 
     return 0;
 
-} /* end function memflush() */
+}
 
 static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
 {
@@ -1947,7 +1947,7 @@ static void set_deferred_symlink(slnk_entry) slinkentry *slnk_entry;
     set_symlnk_attribs(slnk_entry);
     return; /* can't set time on symlinks */
 
-} /* end function set_deferred_symlink() */
+}
 
 char *fnfilter(raw, space, size) /* convert name to safely printable form */
     const char *raw;
@@ -2009,7 +2009,7 @@ size_t size;
     return (char *) raw;
 #endif
 
-} /* end function fnfilter() */
+}
 
 /* must sort saved directories so can set perms from bottom up */
 
@@ -2138,4 +2138,4 @@ uzbunzip_cleanup_exit:
         Trace((stderr, "oops!  (BZ2_bzDecompressEnd() err = %d)\n", err));
 
     return retval;
-} /* end function UZbunzip2() */
+}

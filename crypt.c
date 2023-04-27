@@ -181,7 +181,7 @@ int decrypt(passwrd) const char *passwrd;
 
     return PK_WARN;
 
-} /* end function decrypt() */
+}
 
 /***********************************************************************
  * Test the password.  Return -1 if bad, 0 if OK.
@@ -236,7 +236,7 @@ static int testp(h) const uch *h;
 
     return r;
 
-} /* end function testp() */
+}
 
 static int testkey(h, key) const uch *h; /* decrypted header */
 const char *key;                         /* decryption password to test */
@@ -293,4 +293,4 @@ const char *key;                         /* decryption password to test */
         zdecode(*p);
     return 0; /* OK */
 
-} /* end function testkey() */
+}

@@ -332,7 +332,7 @@ int list_files() /* return PK-type error code */
 
     return error_in_archive;
 
-} /* end function list_files() */
+}
 
 static int fn_is_dir() /* returns TRUE if G.filename is directory */
 {
@@ -461,7 +461,7 @@ ulg *nmember;
 
     return error_in_archive;
 
-} /* end function get_time_stamp() */
+}
 
 int ratio(uc, c)
 zusz_t uc, c;
@@ -489,4 +489,4 @@ void fnprint() /* print filename (after filtering) and newline */
     (*G.message)((uch *) name, (ulg) strlen(name), 0);
     (*G.message)((uch *) "\n", 1L, 0);
 
-} /* end function fnprint() */
+}
