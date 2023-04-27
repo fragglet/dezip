@@ -168,7 +168,7 @@ static unsigned filtattr(perms)
 unsigned perms;
 {
     /* keep setuid/setgid/tacky perms? */
-    if (!uO.K_flag)
+    if (!G.UzO.K_flag)
         perms &= ~(S_ISUID | S_ISGID | S_ISVTX);
 
     return (0xffff & perms);
@@ -336,7 +336,7 @@ int renamed;
         return MPN_VOL_LABEL; /* can't set disk volume labels in Unix */
 
     /* can create path as long as not just freshening, or if user told us */
-    G.create_dirs = (!uO.fflag || renamed);
+    G.create_dirs = (!G.UzO.fflag || renamed);
 
     G.created_dir = FALSE; /* not yet */
 
@@ -348,7 +348,7 @@ int renamed;
 
     *pathcomp = '\0'; /* initialize translation buffer */
     pp = pathcomp;    /* point to translation buffer */
-    if (uO.jflag)     /* junking directories */
+    if (G.UzO.jflag)  /* junking directories */
         cp = (char *) strrchr(G.filename, '/');
     if (cp == (char *) NULL) /* no '/' or not junking dirs */
         cp = G.filename;     /* point to internal zipfile-member pathname */
@@ -367,7 +367,7 @@ int renamed;
             if (strcmp(pathcomp, ".") == 0) {
                 /* don't bother appending "./" to the path */
                 *pathcomp = '\0';
-            } else if (!uO.ddotflag && strcmp(pathcomp, "..") == 0) {
+            } else if (!G.UzO.ddotflag && strcmp(pathcomp, "..") == 0) {
                 /* "../" dir traversal detected, skip over it */
                 *pathcomp = '\0';
                 killed_ddot = TRUE; /* set "show message" flag */
@@ -389,7 +389,7 @@ int renamed;
             /* disable control character filter when requested,
              * else allow 8-bit characters (e.g. UTF-8) in filenames:
              */
-            if (uO.cflxflag ||
+            if (G.UzO.cflxflag ||
                 (isprint(workch) || (128 <= workch && workch <= 254)))
                 *pp++ = (char) workch;
         } /* end switch */
@@ -428,7 +428,7 @@ int renamed;
              * maintained to allow files extracted into this new folder
              * to inherit the GID setting from the parent directory.
              */
-            if (G.pInfo->hostnum != UNIX_ || !(uO.X_flag || uO.K_flag)) {
+            if (G.pInfo->hostnum != UNIX_ || !(G.UzO.X_flag || G.UzO.K_flag)) {
                 /* preserve SGID bit when inherited from parent dir */
                 if (!stat(G.filename, &G.statbuf)) {
                     G.pInfo->file_attr |= G.statbuf.st_mode & S_ISGID;
@@ -450,7 +450,7 @@ int renamed;
     *pp = '\0'; /* done with pathcomp:  terminate it */
 
     /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!uO.V_flag && lastsemi) {
+    if (!G.UzO.V_flag && lastsemi) {
         pp = lastsemi + 1;
         while (isdigit((uch) (*pp)))
             ++pp;
@@ -765,7 +765,7 @@ ulg z_uidgid[2];
     }
 
     /* if -X option was specified and we have UID/GID info, restore it */
-    have_uidgid_flg = (uO.X_flag && (eb_izux_flg & EB_UX2_VALID));
+    have_uidgid_flg = (G.UzO.X_flag && (eb_izux_flg & EB_UX2_VALID));
     return have_uidgid_flg;
 }
 
@@ -861,7 +861,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
         if (fchown(fileno(G.outfile), (uid_t) z_uidgid[0],
                    (gid_t) z_uidgid[1])) {
-            if (uO.qflag)
+            if (G.UzO.qflag)
                 Info(slide, 0x201,
                      ((char *) slide, CannotSetItemUidGid, z_uidgid[0],
                       z_uidgid[1], FnFilter1(G.filename), strerror(errno)));
@@ -883,10 +883,10 @@ void close_outfile() /* GRR: change to return PK-style warning level */
     fclose(G.outfile);
 
     /* skip restoring time stamps on user's request */
-    if (uO.D_flag <= 1) {
+    if (G.UzO.D_flag <= 1) {
         /* set the file's access and modification times */
         if (utime(G.filename, &(zt.t2))) {
-            if (uO.qflag)
+            if (G.UzO.qflag)
                 Info(slide, 0x201,
                      ((char *) slide, CannotSetItemTimestamps,
                       FnFilter1(G.filename), strerror(errno)));
@@ -965,7 +965,7 @@ direntry *d;
             errval = PK_WARN;
     }
     /* Skip restoring directory time stamps on user' request. */
-    if (uO.D_flag <= 0) {
+    if (G.UzO.D_flag <= 0) {
         /* restore directory timestamps */
         if (utime(d->fn, &UxAtt(d)->u.t2)) {
             Info(slide, 0x201,

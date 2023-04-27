@@ -146,18 +146,14 @@ struct globals {
 #define CRC_32_TAB G.crc_32_tab
 
 /* pseudo constant sigs; they are initialized at runtime so unzip executable
- * won't look like a zipfile
- */
+ * won't look like a zipfile */
 extern char local_hdr_sig[4];
 extern char central_hdr_sig[4];
 extern char end_central_sig[4];
 extern char end_central32_sig[4];
 extern char end_central64_sig[4];
 extern char end_centloc64_sig[4];
-/* extern char extd_local_sig[4];  NOT USED YET */
 
 extern struct globals G;
-
-#define uO G.UzO
 
 #endif /* __globals_h */

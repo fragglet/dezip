@@ -403,9 +403,9 @@ char *plastchar(const char *ptr, size_t len);
 #endif
 #define ENV_UNZIP2 "UNZIPOPT" /* alternate names, for zip compat. */
 
-#define QCOND (!uO.qflag) /*  comments with -vq or -vqq */
+#define QCOND (!G.UzO.qflag) /*  comments with -vq or -vqq */
 
-#define QCOND2 (!uO.qflag)
+#define QCOND2 (!G.UzO.qflag)
 
 /**************/
 /*  Typedefs  */

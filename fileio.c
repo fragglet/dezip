@@ -341,7 +341,7 @@ int unshrink;
 
     G.crc32val = crc32(G.crc32val, rawbuf, (size_t) size);
 
-    if (uO.tflag || size == 0L) /* testing or nothing to write:  all done */
+    if (G.UzO.tflag || size == 0L) /* testing or nothing to write:  all done */
         return PK_OK;
 
     if (G.disk_full)
@@ -364,9 +364,9 @@ int unshrink;
          * at least MSC 5.1 has a lousy implementation of fwrite() (as does
          * DEC Ultrix cc), write() is used anyway.
          */
-        if (!uO.cflag && WriteError(rawbuf, size, G.outfile))
+        if (!G.UzO.cflag && WriteError(rawbuf, size, G.outfile))
             return disk_error();
-        else if (uO.cflag && (*G.message)(rawbuf, size, 0))
+        else if (G.UzO.cflag && (*G.message)(rawbuf, size, 0))
             return PK_OK;
     } else { /* textmode:  aflag is true */
         if (unshrink) {
@@ -413,10 +413,10 @@ int unshrink;
         Trace((stderr, "p - rawbuf = %u   q-transbuf = %u   size = %lu\n",
                (unsigned) (p - rawbuf), (unsigned) (q - transbuf), size));
         if (q > transbuf) {
-            if (!uO.cflag &&
+            if (!G.UzO.cflag &&
                 WriteError(transbuf, (size_t) (q - transbuf), G.outfile))
                 return disk_error();
-            else if (uO.cflag &&
+            else if (G.UzO.cflag &&
                      (*G.message)(transbuf, (ulg) (q - transbuf), 0))
                 return PK_OK;
         }

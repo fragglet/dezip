@@ -39,7 +39,7 @@ int list_files() /* return PK-type error code */
 {
     int do_this_file = FALSE, cfactor, error, error_in_archive = PK_COOL;
     char sgn, cfactorstr[12];
-    int longhdr = (uO.vflag > 1);
+    int longhdr = (G.UzO.vflag > 1);
     int date_format;
     char dt_sepchar;
     ulg members = 0L;
@@ -79,8 +79,8 @@ int list_files() /* return PK-type error code */
     date_format = DATE_FORMAT;
     dt_sepchar = DATE_SEPCHAR;
 
-    if (uO.qflag < 2) {
-        if (uO.L_flag)
+    if (G.UzO.qflag < 2) {
+        if (G.UzO.L_flag)
             Info(slide, 0,
                  ((char *) slide, CaseConversion, Headers[longhdr][0],
                   Headers[longhdr][1]));
@@ -150,14 +150,14 @@ int list_files() /* return PK-type error code */
             else { /* check if this entry matches an `include' argument */
                 do_this_file = FALSE;
                 for (i = 0; i < G.filespecs; i++)
-                    if (match(G.filename, G.pfnames[i], uO.C_flag)) {
+                    if (match(G.filename, G.pfnames[i], G.UzO.C_flag)) {
                         do_this_file = TRUE;
                         break; /* found match, so stop looping */
                     }
             }
             if (do_this_file) { /* check if this is an excluded file */
                 for (i = 0; i < G.xfilespecs; i++)
-                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                    if (match(G.filename, G.pxnames[i], G.UzO.C_flag)) {
                         do_this_file = FALSE; /* ^-- ignore case in match */
                         break;
                     }
@@ -283,7 +283,7 @@ int list_files() /* return PK-type error code */
         of members in zipfile).
       ---------------------------------------------------------------------------*/
 
-    if (uO.qflag < 2) {
+    if (G.UzO.qflag < 2) {
         if ((cfactor = ratio(tot_ucsize, tot_csize)) < 0) {
             sgn = '-';
             cfactor = (-cfactor + 5) / 10;
@@ -407,14 +407,14 @@ ulg *nmember;
             else { /* check if this entry matches an `include' argument */
                 do_this_file = FALSE;
                 for (i = 0; i < G.filespecs; i++)
-                    if (match(G.filename, G.pfnames[i], uO.C_flag)) {
+                    if (match(G.filename, G.pfnames[i], G.UzO.C_flag)) {
                         do_this_file = TRUE;
                         break; /* found match, so stop looping */
                     }
             }
             if (do_this_file) { /* check if this is an excluded file */
                 for (i = 0; i < G.xfilespecs; i++)
-                    if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                    if (match(G.filename, G.pxnames[i], G.UzO.C_flag)) {
                         do_this_file = FALSE; /* ^-- ignore case in match */
                         break;
                     }

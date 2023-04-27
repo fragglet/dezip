@@ -321,9 +321,9 @@ int extract_or_test_files(void) /* return PK-type error code */
     }
 
     /* b) check out if specified extraction root directory exists */
-    if (uO.exdir != (char *) NULL && G.extract_flag) {
-        G.create_dirs = !uO.fflag;
-        if ((error = checkdir(uO.exdir, ROOT)) > MPN_INF_SKIP) {
+    if (G.UzO.exdir != (char *) NULL && G.extract_flag) {
+        G.create_dirs = !G.UzO.fflag;
+        if ((error = checkdir(G.UzO.exdir, ROOT)) > MPN_INF_SKIP) {
             /* out of memory, or file in way */
             return (error == MPN_NOMEM ? PK_MEM : PK_ERR);
         }
@@ -508,7 +508,7 @@ int extract_or_test_files(void) /* return PK-type error code */
                 else { /* check if this entry matches an `include' argument */
                     do_this_file = FALSE;
                     for (i = 0; i < G.filespecs; i++)
-                        if (match(G.filename, G.pfnames[i], uO.C_flag)) {
+                        if (match(G.filename, G.pfnames[i], G.UzO.C_flag)) {
                             do_this_file = TRUE; /* ^-- ignore case or not? */
                             if (fn_matched)
                                 fn_matched[i] = TRUE;
@@ -517,7 +517,7 @@ int extract_or_test_files(void) /* return PK-type error code */
                 }
                 if (do_this_file) { /* check if this is an excluded file */
                     for (i = 0; i < G.xfilespecs; i++)
-                        if (match(G.filename, G.pxnames[i], uO.C_flag)) {
+                        if (match(G.filename, G.pxnames[i], G.UzO.C_flag)) {
                             do_this_file = FALSE; /* ^-- ignore case or not? */
                             if (xn_matched)
                                 xn_matched[i] = TRUE;
@@ -645,7 +645,7 @@ int extract_or_test_files(void) /* return PK-type error code */
                 free(d);
             }
             free(sorted_dirlist);
-            if (!uO.tflag && QCOND2) {
+            if (!G.UzO.tflag && QCOND2) {
                 if (ndirs_fail > 0)
                     Info(slide, 0,
                          ((char *) slide, DirlistFailAttrSum, ndirs_fail));
@@ -703,10 +703,10 @@ int extract_or_test_files(void) /* return PK-type error code */
         if (!error_in_archive) /* don't overwrite stronger error */
             error_in_archive = PK_WARN;
     }
-    if (uO.tflag) {
+    if (G.UzO.tflag) {
         ulg num = filnum - num_bad_pwd;
 
-        if (uO.qflag < 2) { /* GRR 930710:  was (uO.qflag == 1) */
+        if (G.UzO.qflag < 2) { /* GRR 930710:  was (G.UzO.qflag == 1) */
             if (error_in_archive)
                 Info(slide, 0,
                      ((char *) slide, ErrorInArchive,
@@ -764,7 +764,7 @@ static int store_info(void) /* return 0 if skipping, 1 if OK */
     G.pInfo->compr_size = G.crec.csize;
     G.pInfo->uncompr_size = G.crec.ucsize;
 
-    switch (uO.aflag) {
+    switch (G.UzO.aflag) {
     case 0:
         G.pInfo->textmode = FALSE; /* bit field */
         break;
@@ -778,14 +778,15 @@ static int store_info(void) /* return 0 if skipping, 1 if OK */
 
     if (G.crec.version_needed_to_extract[1] == VMS_) {
         if (G.crec.version_needed_to_extract[0] > VMS_UNZIP_VERSION) {
-            if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
+            if (!((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2)))
                 Info(slide, 0x401,
                      ((char *) slide, VersionMsg, FnFilter1(G.filename), "VMS",
                       G.crec.version_needed_to_extract[0] / 10,
                       G.crec.version_needed_to_extract[0] % 10,
                       VMS_UNZIP_VERSION / 10, VMS_UNZIP_VERSION % 10));
             return 0;
-        } else if (!uO.tflag && !IS_OVERWRT_ALL) { /* if -o, extract anyway */
+        } else if (!G.UzO.tflag &&
+                   !IS_OVERWRT_ALL) { /* if -o, extract anyway */
             Info(slide, 0x481,
                  ((char *) slide, VMSFormatQuery, FnFilter1(G.filename)));
             fgets(G.answerbuf, sizeof(G.answerbuf), stdin);
@@ -794,7 +795,7 @@ static int store_info(void) /* return 0 if skipping, 1 if OK */
         }
         /* usual file type:  don't need VMS to extract */
     } else if (G.crec.version_needed_to_extract[0] > UNZIP_VERSION) {
-        if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
+        if (!((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2)))
             Info(slide, 0x401,
                  ((char *) slide, VersionMsg, FnFilter1(G.filename), "PK",
                   G.crec.version_needed_to_extract[0] / 10,
@@ -810,7 +811,7 @@ static int store_info(void) /* return 0 if skipping, 1 if OK */
                       G.crec.compression_method != BZIPPED);
 
     if (unknown_method) {
-        if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))) {
+        if (!((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))) {
             unsigned cmpridx;
 
             if ((cmpridx = find_compr_idx(G.crec.compression_method)) <
@@ -1075,9 +1076,10 @@ int error_in_archive;
             }
         }
 
-        if (G.pInfo->encrypted && (error = decrypt(uO.pwdarg)) != PK_COOL) {
+        if (G.pInfo->encrypted && (error = decrypt(G.UzO.pwdarg)) != PK_COOL) {
             if (error == PK_WARN) {
-                if (!((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2)))
+                if (!((G.UzO.tflag && G.UzO.qflag) ||
+                      (!G.UzO.tflag && !QCOND2)))
                     Info(slide, 0x401,
                          ((char *) slide, SkipIncorrectPasswd,
                           FnFilter1(G.filename)));
@@ -1099,7 +1101,7 @@ int error_in_archive;
          * loop because we don't store the possibly renamed filename[] in
          * info[])
          */
-        if (!uO.tflag && !uO.cflag) {
+        if (!G.UzO.tflag && !G.UzO.cflag) {
             renamed = FALSE; /* user hasn't renamed output file yet */
 
         startover:
@@ -1186,7 +1188,7 @@ int error_in_archive;
             switch (check_for_newer(G.filename)) {
             case DOES_NOT_EXIST:
                 /* freshen (no new files): skip unless just renamed */
-                if (uO.fflag && !renamed)
+                if (G.UzO.fflag && !renamed)
                     skip_entry = SKIP_Y_NONEXIST;
                 break;
             case EXISTS_AND_OLDER: {
@@ -1197,7 +1199,7 @@ int error_in_archive;
                     query = TRUE;
             } break;
             case EXISTS_AND_NEWER: /* (or equal) */
-                if (IS_OVERWRT_NONE || (uO.uflag && !renamed)) {
+                if (IS_OVERWRT_NONE || (G.UzO.uflag && !renamed)) {
                     /* skip if update/freshen & orig name */
                     skip_entry = SKIP_Y_EXISTING;
                 } else {
@@ -1312,16 +1314,16 @@ static int extract_or_test_member(void) /* return PK-type error code */
 
     /* If file is a (POSIX-compatible) symbolic link and we are extracting
      * to disk, prepare to restore the link. */
-    G.symlnk =
-        (G.pInfo->symlink && !uO.tflag && !uO.cflag && (G.lrec.ucsize > 0));
+    G.symlnk = (G.pInfo->symlink && !G.UzO.tflag && !G.UzO.cflag &&
+                (G.lrec.ucsize > 0));
 
-    if (uO.tflag) {
-        if (!uO.qflag)
+    if (G.UzO.tflag) {
+        if (!G.UzO.qflag)
             Info(slide, 0,
                  ((char *) slide, ExtractMsg, "test", FnFilter1(G.filename), "",
                   ""));
     } else {
-        if (uO.cflag) {
+        if (G.UzO.cflag) {
             G.outfile = stdout;
 #define NEWLINE "\n"
         } else if (open_outfile())
@@ -1335,7 +1337,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
     defer_leftover_input(); /* so NEXTBYTE bounds check will work */
     switch (G.lrec.compression_method) {
     case STORED:
-        if (!uO.tflag && QCOND2) {
+        if (!G.UzO.tflag && QCOND2) {
             if (G.symlnk) /* can also be deflated, but rarer... */
                 Info(slide, 0,
                      ((char *) slide, ExtractMsg, "link", FnFilter1(G.filename),
@@ -1344,13 +1346,12 @@ static int extract_or_test_member(void) /* return PK-type error code */
                 Info(slide, 0,
                      ((char *) slide, ExtractMsg, "extract",
                       FnFilter1(G.filename),
-                      (uO.aflag !=
-                       1 /* && G.pInfo->textfile==G.pInfo->textmode */)
+                      (G.UzO.aflag != 1)
                           ? ""
                           : (G.lrec.ucsize == 0L
                                  ? nul
                                  : (G.pInfo->textfile ? txt : bin)),
-                      uO.cflag ? NEWLINE : ""));
+                      G.UzO.cflag ? NEWLINE : ""));
         }
         G.outptr = redirSlide;
         G.outcnt = 0L;
@@ -1372,17 +1373,15 @@ static int extract_or_test_member(void) /* return PK-type error code */
         break;
 
     case SHRUNK:
-        if (!uO.tflag && QCOND2) {
+        if (!G.UzO.tflag && QCOND2) {
             Info(slide, 0,
                  ((char *) slide, ExtractMsg, Unshrink, FnFilter1(G.filename),
-                  (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
-                      ? ""
-                      : (G.pInfo->textfile ? txt : bin),
-                  uO.cflag ? NEWLINE : ""));
+                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
+                  G.UzO.cflag ? NEWLINE : ""));
         }
         if ((r = unshrink()) != PK_COOL) {
             if (r < PK_DISK) {
-                if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
+                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                     Info(slide, 0x401,
                          ((char *) slide, ErrUnzipFile,
                           r == PK_MEM3 ? NotEnoughMem : InvalidComprData,
@@ -1398,19 +1397,17 @@ static int extract_or_test_member(void) /* return PK-type error code */
         break;
 
     case IMPLODED:
-        if (!uO.tflag && QCOND2) {
+        if (!G.UzO.tflag && QCOND2) {
             Info(slide, 0,
                  ((char *) slide, ExtractMsg, "explod", FnFilter1(G.filename),
-                  (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
-                      ? ""
-                      : (G.pInfo->textfile ? txt : bin),
-                  uO.cflag ? NEWLINE : ""));
+                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
+                  G.UzO.cflag ? NEWLINE : ""));
         }
         if ((r = explode()) != 0) {
             if (r == 5) { /* treat 5 specially */
                 int warning = ((zusz_t) G.used_csize <= G.lrec.csize);
 
-                if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
+                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                     Info(slide, 0x401,
                          ((char *) slide, LengthMsg, "",
                           warning ? "warning" : "error",
@@ -1429,7 +1426,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
                           format_off_t(G.lrec.csize, NULL, "u"), "", "", "."));
                 error = warning ? PK_WARN : PK_ERR;
             } else if (r < PK_DISK) {
-                if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
+                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                     Info(slide, 0x401,
                          ((char *) slide, ErrUnzipFile,
                           r == 3 ? NotEnoughMem : InvalidComprData, Explode,
@@ -1447,18 +1444,16 @@ static int extract_or_test_member(void) /* return PK-type error code */
 
     case DEFLATED:
     case ENHDEFLATED:
-        if (!uO.tflag && QCOND2) {
+        if (!G.UzO.tflag && QCOND2) {
             Info(slide, 0,
                  ((char *) slide, ExtractMsg, "inflat", FnFilter1(G.filename),
-                  (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
-                      ? ""
-                      : (G.pInfo->textfile ? txt : bin),
-                  uO.cflag ? NEWLINE : ""));
+                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
+                  G.UzO.cflag ? NEWLINE : ""));
         }
 #define UZinflate inflate
         if ((r = UZinflate((G.lrec.compression_method == ENHDEFLATED))) != 0) {
             if (r < PK_DISK) {
-                if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
+                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                     Info(slide, 0x401,
                          ((char *) slide, ErrUnzipFile,
                           r == 3 ? NotEnoughMem : InvalidComprData, Inflate,
@@ -1475,17 +1470,15 @@ static int extract_or_test_member(void) /* return PK-type error code */
         break;
 
     case BZIPPED:
-        if (!uO.tflag && QCOND2) {
+        if (!G.UzO.tflag && QCOND2) {
             Info(slide, 0,
                  ((char *) slide, ExtractMsg, "bunzipp", FnFilter1(G.filename),
-                  (uO.aflag != 1 /* && G.pInfo->textfile==G.pInfo->textmode */)
-                      ? ""
-                      : (G.pInfo->textfile ? txt : bin),
-                  uO.cflag ? NEWLINE : ""));
+                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
+                  G.UzO.cflag ? NEWLINE : ""));
         }
         if ((r = UZbunzip2()) != 0) {
             if (r < PK_DISK) {
-                if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
+                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                     Info(slide, 0x401,
                          ((char *) slide, ErrUnzipFile,
                           r == 3 ? NotEnoughMem : InvalidComprData, BUnzip,
@@ -1516,7 +1509,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
       64-bit machines (redundant on 32-bit machines).
       ---------------------------------------------------------------------------*/
 
-    if (!uO.tflag && !uO.cflag) /* don't close NULL file or stdout */
+    if (!G.UzO.tflag && !G.UzO.cflag) /* don't close NULL file or stdout */
         close_outfile();
 
     /* GRR: CONVERT close_outfile() TO NON-VOID:  CHECK FOR ERRORS! */
@@ -1540,19 +1533,19 @@ static int extract_or_test_member(void) /* return PK-type error code */
     }
     if (G.crc32val != G.lrec.crc32) {
         /* if quiet enough, we haven't output the filename yet:  do it */
-        if ((uO.tflag && uO.qflag) || (!uO.tflag && !QCOND2))
+        if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
             Info(slide, 0x401,
                  ((char *) slide, "%-22s ", FnFilter1(G.filename)));
         Info(slide, 0x401, ((char *) slide, BadCRC, G.crc32val, G.lrec.crc32));
         if (G.pInfo->encrypted)
             Info(slide, 0x401, ((char *) slide, MaybeBadPasswd));
         error = PK_ERR;
-    } else if (uO.tflag) {
+    } else if (G.UzO.tflag) {
         if (G.extra_field) {
             if ((r = TestExtraField(G.extra_field, G.lrec.extra_field_length)) >
                 error)
                 error = r;
-        } else if (!uO.qflag)
+        } else if (!G.UzO.qflag)
             Info(slide, 0, ((char *) slide, " OK\n"));
     } else {
         if (QCOND2 && !error) /* GRR:  is stdout reset to text mode yet? */
@@ -1607,7 +1600,7 @@ static int TestExtraField(uch *ef, unsigned ef_len)
 
         if (ebLen > (ef_len - EB_HEADSIZE)) {
             /* Discovered some extra field inconsistency! */
-            if (uO.qflag)
+            if (G.UzO.qflag)
                 Info(slide, 1,
                      ((char *) slide, "%-22s ", FnFilter1(G.filename)));
             Info(slide, 1,
@@ -1647,7 +1640,7 @@ static int TestExtraField(uch *ef, unsigned ef_len)
                 break;
             }
             if ((r = test_compr_eb(ef, ebLen, eb_cmpr_offs, NULL)) != PK_OK) {
-                if (uO.qflag)
+                if (G.UzO.qflag)
                     Info(slide, 1,
                          ((char *) slide, "%-22s ", FnFilter1(G.filename)));
                 switch (r) {
@@ -1688,7 +1681,7 @@ static int TestExtraField(uch *ef, unsigned ef_len)
                            ? (PK_WARN | 0x4000)
                            : test_compr_eb(ef, ebLen, EB_NTSD_L_LEN, NULL));
             if (r != PK_OK) {
-                if (uO.qflag)
+                if (G.UzO.qflag)
                     Info(slide, 1,
                          ((char *) slide, "%-22s ", FnFilter1(G.filename)));
                 switch (r) {
@@ -1753,7 +1746,7 @@ static int TestExtraField(uch *ef, unsigned ef_len)
         ef += (ebLen + EB_HEADSIZE);
     }
 
-    if (!uO.qflag)
+    if (!G.UzO.qflag)
         Info(slide, 0, ((char *) slide, " OK\n"));
 
     return PK_COOL;
@@ -1833,7 +1826,7 @@ int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize)
     case ENHDEFLATED:
         G.outcnt = 0L;
         if ((r = UZinflate((method == ENHDEFLATED))) != 0) {
-            if (!uO.tflag)
+            if (!G.UzO.tflag)
                 Info(slide, 0x401,
                      ((char *) slide, ErrUnzipNoFile,
                       r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
@@ -1843,7 +1836,7 @@ int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize)
             break;
         break;
     default:
-        if (uO.tflag)
+        if (G.UzO.tflag)
             error = PK_ERR | ((int) method << 8);
         else {
             Info(slide, 0x401, ((char *) slide, UnsupportedExtraField, method));
@@ -1861,7 +1854,7 @@ int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize)
         register ulg crcval = crc32(CRCVAL_INITIAL, tgt, (size_t) G.outcnt);
 
         if (crcval != extra_field_crc) {
-            if (uO.tflag)
+            if (G.UzO.tflag)
                 error = PK_ERR | (DEFLATED << 8); /* kludge for now */
             else {
                 Info(slide, 0x401,

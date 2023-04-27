@@ -793,7 +793,7 @@ static int inflate_dynamic(void)
         retval = 1;
     if (retval) {
         if (retval == 1) {
-            if (!uO.qflag)
+            if (!G.UzO.qflag)
                 MESSAGE((uch *) "(incomplete l-tree)  ", 21L, 1);
             huft_free(tl);
         }
@@ -807,7 +807,7 @@ static int inflate_dynamic(void)
         retval = 1;
     if (retval) {
         if (retval == 1) {
-            if (!uO.qflag)
+            if (!G.UzO.qflag)
                 MESSAGE((uch *) "(incomplete d-tree)  ", 21L, 1);
             huft_free(td);
         }

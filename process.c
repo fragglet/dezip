@@ -152,11 +152,13 @@ int process_zipfiles() /* return PK-type error code */
       directly because the overwrite mode may be changed by user interaction
       while processing archive files.  Such a change should not affect the
       option settings as passed through the DLL calling interface. In case of
-      conflicting options, the 'safer' flag uO.overwrite_none takes precedence.
+      conflicting options, the 'safer' flag G.UzO.overwrite_none takes
+      precedence.
       ---------------------------------------------------------------------------*/
-    G.overwrite_mode = (uO.overwrite_none ? OVERWRT_NEVER
-                                          : (uO.overwrite_all ? OVERWRT_ALWAYS
-                                                              : OVERWRT_QUERY));
+    G.overwrite_mode =
+        (G.UzO.overwrite_none
+             ? OVERWRT_NEVER
+             : (G.UzO.overwrite_all ? OVERWRT_ALWAYS : OVERWRT_QUERY));
 
     /*---------------------------------------------------------------------------
         Match (possible) wildcard zipfile specification with existing files and
@@ -173,7 +175,8 @@ int process_zipfiles() /* return PK-type error code */
         lastzipfn = G.zipfn;
 
         /* print a blank line between the output of different zipfiles */
-        if (!uO.qflag && error != PK_NOZIP && error != IZ_DIR && !uO.T_flag &&
+        if (!G.UzO.qflag && error != PK_NOZIP && error != IZ_DIR &&
+            !G.UzO.T_flag &&
             (NumWinFiles + NumLoseFiles + NumWarnFiles + NumMissFiles) > 0)
             (*G.message)((uch *) "\n", 1L, 0);
 
@@ -245,10 +248,11 @@ int process_zipfiles() /* return PK-type error code */
         need for a summary if just one zipfile).
       ---------------------------------------------------------------------------*/
 
-    if (iswild(G.wildzipfn) && uO.qflag < 3 && !(uO.T_flag && uO.qflag > 1)) {
+    if (iswild(G.wildzipfn) && G.UzO.qflag < 3 &&
+        !(G.UzO.T_flag && G.UzO.qflag > 1)) {
         if ((NumMissFiles + NumLoseFiles + NumWarnFiles > 0 ||
              NumWinFiles != 1) &&
-            !(uO.T_flag && uO.qflag) && !(uO.tflag && uO.qflag > 1))
+            !(G.UzO.T_flag && G.UzO.qflag) && !(G.UzO.tflag && G.UzO.qflag > 1))
             (*G.message)((uch *) "\n", 1L, 0x401);
         if ((NumWinFiles > 1) ||
             (NumWinFiles == 1 &&
@@ -355,7 +359,7 @@ int lastchance;
 
     if (stat(G.zipfn, &G.statbuf) ||
         (error = S_ISDIR(G.statbuf.st_mode)) != 0) {
-        if (lastchance && (uO.qflag < 3)) {
+        if (lastchance && (G.UzO.qflag < 3)) {
             if (G.no_ecrec)
                 Info(slide, 1,
                      ((char *) slide, CannotFindZipfileDirMsg, Unzip,
@@ -395,7 +399,7 @@ int lastchance;
     G.cur_zipfile_bufstart = 0;
     G.inptr = G.inbuf;
 
-    if ((!uO.qflag && !uO.T_flag))
+    if ((!G.UzO.qflag && !G.UzO.T_flag))
         Info(slide, 0, ((char *) slide, LogInitline, G.zipfn));
 
     if ((error_in_archive = find_ecrec(MIN(G.ziplen, 66000L))) > PK_WARN) {
@@ -411,7 +415,7 @@ int lastchance;
         }
     }
 
-    if (uO.zflag > 0) { /* unzip: zflag = comment ONLY */
+    if (G.UzO.zflag > 0) { /* unzip: zflag = comment ONLY */
         CLOSE_INFILE();
         return error_in_archive;
     }
@@ -529,9 +533,9 @@ int lastchance;
         Trace((stderr, "about to extract/list files (error = %d)\n",
                error_in_archive));
 
-        if (uO.T_flag)
+        if (G.UzO.T_flag)
             error = get_time_stamp(&uxstamp, &nmember);
-        else if (uO.vflag && !uO.tflag && !uO.cflag)
+        else if (G.UzO.vflag && !G.UzO.tflag && !G.UzO.cflag)
             error = list_files(); /* LIST 'EM */
         else
             error = extract_or_test_files(); /* EXTRACT OR TEST 'EM */
@@ -544,15 +548,15 @@ int lastchance;
 
     CLOSE_INFILE();
 
-    if (uO.T_flag && (nmember > 0L)) {
+    if (G.UzO.T_flag && (nmember > 0L)) {
         if (stamp_file(G.zipfn, uxstamp)) { /* TIME-STAMP 'EM */
-            if (uO.qflag < 3)
+            if (G.UzO.qflag < 3)
                 Info(slide, 0x201,
                      ((char *) slide, ZipTimeStampFailed, G.zipfn));
             if (error_in_archive < PK_WARN)
                 error_in_archive = PK_WARN;
         } else {
-            if (!uO.qflag)
+            if (!G.UzO.qflag)
                 Info(slide, 0, ((char *) slide, ZipTimeStampSuccess, G.zipfn));
         }
     }
@@ -689,7 +693,7 @@ off_t searchlen;
 
     if ((G.incnt = read(G.zipfd, (char *) byterecL, ECLOC64_SIZE + 4)) !=
         (ECLOC64_SIZE + 4)) {
-        if (uO.qflag)
+        if (G.UzO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
         return PK_ERR;
@@ -740,7 +744,7 @@ off_t searchlen;
 
     if (ecrec64_start_offset > (zusz_t) ecloc64_start_offset) {
         /* ecrec64 has to be before ecrec64 locator */
-        if (uO.qflag)
+        if (G.UzO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
         return PK_ERR;
@@ -750,7 +754,7 @@ off_t searchlen;
 
     if ((G.incnt = read(G.zipfd, (char *) byterec, ECREC64_SIZE + 4)) !=
         (ECREC64_SIZE + 4)) {
-        if (uO.qflag)
+        if (G.UzO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
         return PK_ERR;
@@ -769,7 +773,7 @@ off_t searchlen;
 
         if ((G.incnt = read(G.zipfd, (char *) byterec, ECREC64_SIZE + 4)) !=
             (ECREC64_SIZE + 4)) {
-            if (uO.qflag)
+            if (G.UzO.qflag)
                 Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
             Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
             return PK_ERR;
@@ -778,13 +782,13 @@ off_t searchlen;
         if (memcmp((char *) byterec, end_central64_sig, 4)) {
             /* Zip64 EOCD Record not found */
             /* Probably something not so easy to handle so exit */
-            if (uO.qflag)
+            if (G.UzO.qflag)
                 Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
             Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
             return PK_ERR;
         }
 
-        if (uO.qflag)
+        if (G.UzO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchOff));
     }
@@ -913,7 +917,7 @@ off_t searchlen;
       ---------------------------------------------------------------------------*/
 
     if (!found) {
-        if (uO.qflag)
+        if (G.UzO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401, ((char *) slide, CentDirEndSigNotFound));
         return PK_ERR; /* failed */
@@ -992,7 +996,7 @@ static int process_zip_cmmnt() /* return PK-type error code */
       ---------------------------------------------------------------------------*/
 
     if (G.ecrec.zipfile_comment_length &&
-        (uO.zflag > 0 || (uO.zflag == 0 && !uO.T_flag && !uO.qflag))) {
+        (G.UzO.zflag > 0 || (G.UzO.zflag == 0 && !G.UzO.T_flag && !G.UzO.qflag))) {
         if (do_string(G.ecrec.zipfile_comment_length, DISPLAY)) {
             Info(slide, 0x401, ((char *) slide, ZipfileCommTrunc1));
             error = PK_WARN;
@@ -1019,7 +1023,7 @@ int process_cdir_file_hdr() /* return PK-type error code */
     /*  extnum = MIN(crec.version_needed_to_extract[1], NUM_HOSTS); */
 
     G.pInfo->lcflag = 0;
-    if (uO.L_flag == 1) /* name conversion for monocase systems */
+    if (G.UzO.L_flag == 1) /* name conversion for monocase systems */
         switch (G.pInfo->hostnum) {
         case FS_FAT_: /* PKZIP and zip -k store in uppercase */
         case CPM_:    /* like MS-DOS, right? */
@@ -1035,7 +1039,7 @@ int process_cdir_file_hdr() /* return PK-type error code */
             /*  no conversion */
             break;
         }
-    else if (uO.L_flag > 1) /* let -LL force lower case for all names */
+    else if (G.UzO.L_flag > 1) /* let -LL force lower case for all names */
         G.pInfo->lcflag = 1;
 
     /* Handle the PKWare verification bit, bit 2 (0x0004) of internal
