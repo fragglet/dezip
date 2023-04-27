@@ -18,7 +18,7 @@
 .in -4n
 ..
 .\" =========================================================================
-.TH UNZIP 1 "20 April 2009 (v6.0)" "Info-ZIP"
+.TH unzip 1
 .SH NAME
 unzip \- list, test and extract compressed files in a ZIP archive
 .PD
@@ -376,10 +376,6 @@ necessary to get timestamps of extracted files to be set correctly.
 .PD
 .\" =========================================================================
 .SH DECRYPTION
-Encrypted archives are fully supported by Info-ZIP software;
-since spring 2000, US export restrictions
-no longer apply.
-.PP
 The \fB\-P\fP option may be used to supply a password on the command line, but
 at a cost in security. The preferred decryption method is simply to extract
 normally; if a zipfile member is encrypted, \fIunzip\fP will prompt for the
