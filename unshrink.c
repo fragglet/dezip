@@ -256,8 +256,6 @@ static void partial_clear(lastcodeused) int lastcodeused;
 {
     register shrint code;
 
-    /* clear all nodes which have no children (i.e., leaf nodes only) */
-
     /* first loop:  mark each parent as such */
     for (code = BOGUSCODE + 1; code <= lastcodeused; ++code) {
         register shrint cparent = (shrint) (parent[code] & CODE_MASK);

@@ -7,17 +7,7 @@
 /* inflate.c -- by Mark Adler
    version c17e, 30 Mar 2007 */
 
-/* Copyright history:
-   - Starting with UnZip 5.41 of 16-April-2000, this source file
-     is covered by the Info-Zip LICENSE cited above.
-   - Prior versions of this source file, found in UnZip source packages
-     up to UnZip 5.40, were put in the public domain.
-     The original copyright note by Mark Adler was:
-         "You can do whatever you like with this source file,
-         though I would prefer that if you modify it and
-         redistribute it that you include comments to that effect
-         with your name and the date.  Thank you."
-
+/*
    History:
    vers    date          who           what
    ----  ---------  --------------  ------------------------------------
@@ -268,10 +258,6 @@
          ? 0                                                                \
          : PKDISK)
 #endif
-/* Warning: the fwrite above might not work on 16-bit compilers, since
-   0x8000 might be interpreted as -32,768 by the library function.  When
-   support for Deflate64 is enabled, the window size is 64K and the
-   simple fwrite statement is definitely broken for 16-bit compilers. */
 
 #ifndef Trace
 #ifdef DEBUG
@@ -333,38 +319,10 @@ static const ush cpdist[] = {
 static const uch cpdext64[] = {0,  0,  0,  0,  1,  1,  2,  2,  3,  3, 4,
                                4,  5,  5,  6,  6,  7,  7,  8,  8,  9, 9,
                                10, 10, 11, 11, 12, 12, 13, 13, 14, 14};
-static const uch cpdext32[] = {0,
-                               0,
-                               0,
-                               0,
-                               1,
-                               1,
-                               2,
-                               2,
-                               3,
-                               3,
-                               4,
-                               4,
-                               5,
-                               5,
-                               6,
-                               6,
-                               7,
-                               7,
-                               8,
-                               8,
-                               9,
-                               9,
-                               10,
-                               10,
-                               11,
-                               11,
-                               12,
-                               12,
-                               13,
-                               13,
-                               INVALID_CODE,
-                               INVALID_CODE};
+static const uch cpdext32[] = {0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+                               7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
+                               // this comment is here to appease clang-format
+                               INVALID_CODE, INVALID_CODE};
 
 #define MAXLITLENS 288
 #define MAXDISTS   32

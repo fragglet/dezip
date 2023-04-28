@@ -107,8 +107,8 @@ char end_central_sig[4] = {0, 0, 0x05, 0x06};
 char end_central64_sig[4] = {0, 0, 0x06, 0x06};
 char end_centloc64_sig[4] = {0, 0, 0x06, 0x07};
 
-static const char *default_fnames[2] = {"*",
-                                        NULL}; /* default filenames vector */
+/* default filenames vector */
+static const char *default_fnames[2] = {"*", NULL};
 
 struct globals G;
 
@@ -667,7 +667,8 @@ char ***pargv;
         return usage(error);
     }
 
-    if (G.UzO.cflag || G.UzO.tflag || G.UzO.vflag || G.UzO.zflag || G.UzO.T_flag)
+    if (G.UzO.cflag || G.UzO.tflag || G.UzO.vflag || G.UzO.zflag ||
+        G.UzO.T_flag)
         G.extract_flag = FALSE;
     else
         G.extract_flag = TRUE;

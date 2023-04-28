@@ -54,11 +54,7 @@ static int testkey(const uch *h, const char *key);
  */
 int decrypt_byte()
 {
-    unsigned temp; /* POTENTIAL BUG:  temp*(temp^1) may overflow in an
-                    * unpredictable manner on 16-bit systems; not a problem
-                    * with any known compiler so far, though */
-
-    temp = ((unsigned) G.keys[2] & 0xffff) | 2;
+    unsigned int temp = ((unsigned) G.keys[2] & 0xffff) | 2;
     return (int) (((temp * (temp ^ 1)) >> 8) & 0xff);
 }
 
