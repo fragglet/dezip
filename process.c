@@ -254,7 +254,7 @@ int process_zipfiles() /* return PK-type error code */
              NumWinFiles != 1) &&
             !(G.UzO.T_flag && G.UzO.qflag) && !(G.UzO.tflag && G.UzO.qflag > 1))
             (*G.message)((uch *) "\n", 1L, 0x401);
-        if ((NumWinFiles > 1) ||
+        if (NumWinFiles > 1 ||
             (NumWinFiles == 1 &&
              NumMissDirs + NumMissFiles + NumLoseFiles + NumWarnFiles > 0))
             Info(slide, 0x401,
@@ -380,7 +380,7 @@ int lastchance;
     G.cur_zipfile_bufstart = 0;
     G.inptr = G.inbuf;
 
-    if ((!G.UzO.qflag && !G.UzO.T_flag))
+    if (!G.UzO.qflag && !G.UzO.T_flag)
         Info(slide, 0, ((char *) slide, LogInitline, G.zipfn));
 
     if ((error_in_archive = find_ecrec(MIN(G.ziplen, 66000L))) > PK_WARN) {
@@ -435,8 +435,8 @@ int lastchance;
                   format_off_t((-G.extra_bytes), NULL, NULL)));
             error_in_archive = PK_ERR;
         } else if (G.extra_bytes > 0) {
-            if ((G.ecrec.offset_start_central_directory == 0) &&
-                (G.ecrec.size_central_directory != 0)) /* zip 1.5 -go bug */
+            if (G.ecrec.offset_start_central_directory == 0 &&
+                G.ecrec.size_central_directory != 0) /* zip 1.5 -go bug */
             {
                 Info(slide, 0x401,
                      ((char *) slide, NullCentDirOffset, G.zipfn));
@@ -476,13 +476,13 @@ int lastchance;
             CLOSE_INFILE();
             return PK_BADERR;
         }
-        if ((error != PK_OK) || (readbuf(G.sig, 4) == 0) ||
+        if (error != PK_OK || readbuf(G.sig, 4) == 0 ||
             memcmp(G.sig, central_hdr_sig, 4)) {
             off_t tmp = G.extra_bytes;
 
             G.extra_bytes = 0;
             error = seek_zipf(G.ecrec.offset_start_central_directory);
-            if ((error != PK_OK) || (readbuf(G.sig, 4) == 0) ||
+            if (error != PK_OK || readbuf(G.sig, 4) == 0 ||
                 memcmp(G.sig, central_hdr_sig, 4)) {
                 if (error != PK_BADERR)
                     Info(slide, 0x401,
@@ -604,7 +604,7 @@ int rec_size;
         /* 'P' must be at least (rec_size+4) bytes from end of zipfile */
         for (G.inptr = G.inbuf + (int) tail_len - (rec_size + 4);
              G.inptr >= G.inbuf; --G.inptr) {
-            if ((*G.inptr == (uch) 0x50) && /* ASCII 'P' */
+            if (*G.inptr == (uch) 0x50 && /* ASCII 'P' */
                 !memcmp((char *) G.inptr, signature, 4)) {
                 G.incnt -= (int) (G.inptr - G.inbuf);
                 found = TRUE;
@@ -632,7 +632,7 @@ int rec_size;
             return 2; /* read error is fatal failure */
 
         for (G.inptr = G.inbuf + INBUFSIZ - 1; G.inptr >= G.inbuf; --G.inptr)
-            if ((*G.inptr == (uch) 0x50) && /* ASCII 'P' */
+            if (*G.inptr == (uch) 0x50 && /* ASCII 'P' */
                 !memcmp((char *) G.inptr, signature, 4)) {
                 G.incnt -= (int) (G.inptr - G.inbuf);
                 found = TRUE;
@@ -694,8 +694,8 @@ off_t searchlen;
             G.ecrec.number_this_disk, ecloc64_total_disks);
     fflush(stdout);
 #endif
-    if ((G.ecrec.number_this_disk != 0xFFFF) &&
-        (G.ecrec.number_this_disk != ecloc64_total_disks - 1)) {
+    if (G.ecrec.number_this_disk != 0xFFFF &&
+        G.ecrec.number_this_disk != ecloc64_total_disks - 1) {
         /* Note: For some unknown reason, the developers at PKWARE decided to
            store the "zip64 total disks" value as a counter starting from 1,
            whereas all other "split/span volume" related fields use 0-based
@@ -732,7 +732,7 @@ off_t searchlen;
     G.cur_zipfile_bufstart = lseek(G.zipfd, ecrec64_start_offset, SEEK_SET);
 
     if ((G.incnt = read(G.zipfd, (char *) byterec, ECREC64_SIZE + 4)) !=
-        (ECREC64_SIZE + 4)) {
+        ECREC64_SIZE + 4) {
         if (G.UzO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
         Info(slide, 0x401, ((char *) slide, Cent64EndSigSearchErr));
@@ -782,24 +782,24 @@ off_t searchlen;
      */
     ecrec64_disk_cdstart =
         (zuvl_t) makelong(&byterec[NUM_DISK_START_CEN_DIR64]);
-    if ((G.ecrec.num_disk_start_cdir != 0xFFFF) &&
-        (G.ecrec.num_disk_start_cdir != ecrec64_disk_cdstart))
+    if (G.ecrec.num_disk_start_cdir != 0xFFFF &&
+        G.ecrec.num_disk_start_cdir != ecrec64_disk_cdstart)
         return PK_COOL;
     ecrec64_this_entries = makeint64(&byterec[NUM_ENTRIES_CEN_DIR_THS_DISK64]);
-    if ((G.ecrec.num_entries_centrl_dir_ths_disk != 0xFFFF) &&
-        (G.ecrec.num_entries_centrl_dir_ths_disk != ecrec64_this_entries))
+    if (G.ecrec.num_entries_centrl_dir_ths_disk != 0xFFFF &&
+        G.ecrec.num_entries_centrl_dir_ths_disk != ecrec64_this_entries)
         return PK_COOL;
     ecrec64_tot_entries = makeint64(&byterec[TOTAL_ENTRIES_CENTRAL_DIR64]);
-    if ((G.ecrec.total_entries_central_dir != 0xFFFF) &&
-        (G.ecrec.total_entries_central_dir != ecrec64_tot_entries))
+    if (G.ecrec.total_entries_central_dir != 0xFFFF &&
+        G.ecrec.total_entries_central_dir != ecrec64_tot_entries)
         return PK_COOL;
     ecrec64_cdirsize = makeint64(&byterec[SIZE_CENTRAL_DIRECTORY64]);
-    if ((G.ecrec.size_central_directory != 0xFFFFFFFFL) &&
-        (G.ecrec.size_central_directory != ecrec64_cdirsize))
+    if (G.ecrec.size_central_directory != 0xFFFFFFFFL &&
+        G.ecrec.size_central_directory != ecrec64_cdirsize)
         return PK_COOL;
     ecrec64_offs_cdstart = makeint64(&byterec[OFFSET_START_CENTRAL_DIRECT64]);
-    if ((G.ecrec.offset_start_central_directory != 0xFFFFFFFFL) &&
-        (G.ecrec.offset_start_central_directory != ecrec64_offs_cdstart))
+    if (G.ecrec.offset_start_central_directory != 0xFFFFFFFFL &&
+        G.ecrec.offset_start_central_directory != ecrec64_offs_cdstart)
         return PK_COOL;
 
     /* Now, we are (almost) sure that we have a Zip64 archive. */
@@ -869,7 +869,7 @@ off_t searchlen;
             /* 'P' must be at least (ECREC_SIZE+4) bytes from end of zipfile */
             for (G.inptr = G.inbuf + (int) G.ziplen - (ECREC_SIZE + 4);
                  G.inptr >= G.inbuf; --G.inptr) {
-                if ((*G.inptr == (uch) 0x50) && /* ASCII 'P' */
+                if (*G.inptr == (uch) 0x50 && /* ASCII 'P' */
                     !memcmp((char *) G.inptr, end_central_sig, 4)) {
                     G.incnt -= (int) (G.inptr - G.inbuf);
                     found = TRUE;
@@ -1185,7 +1185,7 @@ unsigned ef_len;                            /* total length of extra field */
         if (eb_id == EF_PKSZ64) {
             unsigned offset = EB_HEADSIZE;
 
-            if ((G.crec.ucsize == Z64FLGL) || (G.lrec.ucsize == Z64FLGL)) {
+            if (G.crec.ucsize == Z64FLGL || G.lrec.ucsize == Z64FLGL) {
                 if (offset + 8 > ef_len)
                     return PK_ERR;
 
@@ -1193,7 +1193,7 @@ unsigned ef_len;                            /* total length of extra field */
                 offset += 8;
             }
 
-            if ((G.crec.csize == Z64FLGL) || (G.lrec.csize == Z64FLGL)) {
+            if (G.crec.csize == Z64FLGL || G.lrec.csize == Z64FLGL) {
                 if (offset + 8 > ef_len)
                     return PK_ERR;
 
@@ -1733,10 +1733,9 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                 unsigned eb_idx = EB_UT_TIME1;
                 TTrace((stderr, "ef_scan_for_izux: found TIME extra field\n"));
                 flags |= (ef_buf[EB_HEADSIZE + EB_UT_FLAGS] & 0x0ff);
-                if ((flags & EB_UT_FL_MTIME)) {
+                if ((flags & EB_UT_FL_MTIME) != 0) {
                     if ((eb_idx + 4) <= eb_len) {
-                        i_time =
-                            (long) makelong((EB_HEADSIZE + eb_idx) + ef_buf);
+                        i_time = (long) makelong(EB_HEADSIZE + eb_idx + ef_buf);
                         eb_idx += 4;
                         TTrace((stderr, "  UT e.f. modification time = %ld\n",
                                 i_time));
@@ -1820,10 +1819,8 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
             if (have_new_type_eb > 1)
                 break; /* IZUNIX3 overrides IZUNIX2 e.f. block ! */
             if (eb_len == EB_UX2_MINLEN && z_uidgid != NULL) {
-                z_uidgid[0] =
-                    (ulg) makeword((EB_HEADSIZE + EB_UX2_UID) + ef_buf);
-                z_uidgid[1] =
-                    (ulg) makeword((EB_HEADSIZE + EB_UX2_GID) + ef_buf);
+                z_uidgid[0] = (ulg) makeword(EB_HEADSIZE + EB_UX2_UID + ef_buf);
+                z_uidgid[1] = (ulg) makeword(EB_HEADSIZE + EB_UX2_GID + ef_buf);
                 flags |= EB_UX2_VALID; /* signal success */
             }
             break;
@@ -1843,17 +1840,17 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
             */
 
             if (eb_len >= EB_UX3_MINLEN && z_uidgid != NULL &&
-                (*((EB_HEADSIZE + 0) + ef_buf) == 1)) {
+                *(EB_HEADSIZE + ef_buf) == 1) {
                 /* only know about version 1 */
                 uch uid_size;
                 uch gid_size;
 
-                uid_size = *((EB_HEADSIZE + 1) + ef_buf);
-                gid_size = *((EB_HEADSIZE + uid_size + 2) + ef_buf);
+                uid_size = *(EB_HEADSIZE + 1 + ef_buf);
+                gid_size = *(EB_HEADSIZE + uid_size + 2 + ef_buf);
 
-                if (read_ux3_value((EB_HEADSIZE + 2) + ef_buf, uid_size,
+                if (read_ux3_value(EB_HEADSIZE + 2 + ef_buf, uid_size,
                                    &z_uidgid[0]) &&
-                    read_ux3_value((EB_HEADSIZE + uid_size + 3) + ef_buf,
+                    read_ux3_value(EB_HEADSIZE + uid_size + 3 + ef_buf,
                                    gid_size, &z_uidgid[1])) {
                     flags |= EB_UX2_VALID; /* signal success */
                 }
@@ -1871,7 +1868,7 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                 if (z_utim != NULL) {
                     flags |= (EB_UT_FL_MTIME | EB_UT_FL_ATIME);
                     i_time =
-                        (long) makelong((EB_HEADSIZE + EB_UX_MTIME) + ef_buf);
+                        (long) makelong(EB_HEADSIZE + EB_UX_MTIME + ef_buf);
                     TTrace((stderr, "  Unix EF modtime = %ld\n", i_time));
                     if ((ulg) (i_time) & (ulg) (0x80000000L)) {
                         ut_zip_unzip_compatible =
@@ -1892,7 +1889,7 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                     }
                     z_utim->mtime = (time_t) i_time;
                     i_time =
-                        (long) makelong((EB_HEADSIZE + EB_UX_ATIME) + ef_buf);
+                        (long) makelong(EB_HEADSIZE + EB_UX_ATIME + ef_buf);
                     TTrace((stderr, "  Unix EF actime = %ld\n", i_time));
                     if (((ulg) (i_time) & (ulg) (0x80000000L)) &&
                         !ut_zip_unzip_compatible && (flags & 0x0ff)) {
@@ -1905,8 +1902,8 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
                     }
                 }
                 if (eb_len >= EB_UX_FULLSIZE && z_uidgid != NULL) {
-                    z_uidgid[0] = makeword((EB_HEADSIZE + EB_UX_UID) + ef_buf);
-                    z_uidgid[1] = makeword((EB_HEADSIZE + EB_UX_GID) + ef_buf);
+                    z_uidgid[0] = makeword(EB_HEADSIZE + EB_UX_UID + ef_buf);
+                    z_uidgid[1] = makeword(EB_HEADSIZE + EB_UX_GID + ef_buf);
                     flags |= EB_UX2_VALID;
                 }
             }

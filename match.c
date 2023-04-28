@@ -247,23 +247,17 @@ int iswild(const char *p)
 
 #ifdef TEST_MATCH
 
-#define put(s)            \
-    {                     \
-        fputs(s, stdout); \
-        fflush(stdout);   \
-    }
-
 int main(int argc, char **argv)
 {
     char pat[256], str[256];
 
     for (;;) {
-        put("Pattern (return to exit): ");
+        puts("Pattern (return to exit): ");
         gets(pat);
         if (!pat[0])
             break;
         for (;;) {
-            put("String (return for new pattern): ");
+            puts("String (return for new pattern): ");
             gets(str);
             if (!str[0])
                 break;

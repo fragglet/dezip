@@ -206,14 +206,14 @@ char *argv[];
         char *sz;
 
         sz = format_off_t(z, OFF_T_HEX_DOT_WID, "X");
-        if ((sz[0] != 'F') || (strlen(sz) != 16)) {
+        if (sz[0] != 'F' || strlen(sz) != 16) {
             z = 0;
         }
 
         /* shift z so only MSB is set */
         z <<= 63;
         sz = format_off_t(z, OFF_T_HEX_DOT_WID, "X");
-        if ((sz[0] != '8') || (strlen(sz) != 16)) {
+        if (sz[0] != '8' || strlen(sz) != 16) {
             Info(slide, 0x401,
                  ((char *) slide, "Can't show 64-bit values correctly\n"));
             retcode = PK_BADERR;

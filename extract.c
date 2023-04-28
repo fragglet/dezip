@@ -415,7 +415,7 @@ int extract_or_test_files(void) /* return PK-type error code */
          * size is reached.
          */
 
-        while ((j < DIR_BLKSIZ)) {
+        while (j < DIR_BLKSIZ) {
             G.pInfo = &G.info[j];
 
             if (readbuf(G.sig, 4) == 0) {
@@ -434,12 +434,12 @@ int extract_or_test_files(void) /* return PK-type error code */
                     /* yes, so look if we ARE back at the end_central record
                      */
                     no_endsig_found =
-                        ((memcmp(G.sig,
-                                 (G.ecrec.have_ecr64 ? end_central64_sig
-                                                     : end_central_sig),
-                                 4) != 0) &&
-                         (!G.ecrec.is_zip64_archive) &&
-                         (memcmp(G.sig, end_central_sig, 4) != 0));
+                        (memcmp(G.sig,
+                                (G.ecrec.have_ecr64 ? end_central64_sig
+                                                    : end_central_sig),
+                                4) != 0) &&
+                        !G.ecrec.is_zip64_archive &&
+                        memcmp(G.sig, end_central_sig, 4) != 0;
                 } else {
                     /* no; we have found an error in the central directory
                      * -> report it and stop searching for more Zip entries
@@ -730,16 +730,16 @@ int extract_or_test_files(void) /* return PK-type error code */
     /* give warning if files not tested or extracted (first condition can still
      * happen if zipfile is empty and no files specified on command line) */
 
-    if ((filnum == 0) && error_in_archive <= PK_WARN) {
+    if (filnum == 0 && error_in_archive <= PK_WARN) {
         if (num_skipped > 0L)
             error_in_archive = IZ_UNSUP; /* unsupport. compression/encryption */
         else
             error_in_archive = PK_FIND; /* no files found at all */
-    } else if ((filnum == num_bad_pwd) && error_in_archive <= PK_WARN)
+    } else if (filnum == num_bad_pwd && error_in_archive <= PK_WARN)
         error_in_archive = IZ_BADPWD; /* bad passwd => all files skipped */
-    else if ((num_skipped > 0L) && error_in_archive <= PK_WARN)
+    else if (num_skipped > 0L && error_in_archive <= PK_WARN)
         error_in_archive = IZ_UNSUP; /* was PK_WARN; Jean-loup complained */
-    else if ((num_bad_pwd > 0L) && !error_in_archive)
+    else if (num_bad_pwd > 0L && !error_in_archive)
         error_in_archive = PK_WARN;
 
     return error_in_archive;
@@ -786,7 +786,7 @@ static int store_info(void) /* return 0 if skipping, 1 if OK */
             Info(slide, 0x481,
                  ((char *) slide, VMSFormatQuery, FnFilter1(G.filename)));
             fgets(G.answerbuf, sizeof(G.answerbuf), stdin);
-            if ((*G.answerbuf != 'y') && (*G.answerbuf != 'Y'))
+            if (*G.answerbuf != 'y' && *G.answerbuf != 'Y')
                 return 0;
         }
         /* usual file type:  don't need VMS to extract */
@@ -1391,7 +1391,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
             break;
         }
         if (r == 5) { /* treat 5 specially */
-            int warning = ((zusz_t) G.used_csize <= G.lrec.csize);
+            int warning = (zusz_t) G.used_csize <= G.lrec.csize;
 
             if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                 Info(slide, 0x401,
@@ -1421,7 +1421,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
                 Info(slide, 0x401,
                      ((char *) slide, ErrUnzipNoFile,
                       r == 3 ? NotEnoughMem : InvalidComprData, Explode));
-            error = ((r == 3) ? PK_MEM3 : PK_ERR);
+            error = (r == 3) ? PK_MEM3 : PK_ERR;
         } else {
             error = r;
         }
@@ -1452,7 +1452,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
             Info(slide, 0x401,
                  ((char *) slide, ErrUnzipNoFile,
                   r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
-        error = ((r == 3) ? PK_MEM3 : PK_ERR);
+        error = (r == 3) ? PK_MEM3 : PK_ERR;
         break;
 
     case BZIPPED:
@@ -1478,7 +1478,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
             Info(slide, 0x401,
                  ((char *) slide, ErrUnzipNoFile,
                   r == 3 ? NotEnoughMem : InvalidComprData, BUnzip));
-        error = ((r == 3) ? PK_MEM3 : PK_ERR);
+        error = (r == 3) ? PK_MEM3 : PK_ERR;
         break;
 
     default: /* should never get to this point */
@@ -1755,9 +1755,9 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
      *    3. eb_ucsize is positive, but eb_size is too small to hold
      *       the compressed data header.
      */
-    if ((eb_size < (EB_UCSIZE_P + 4)) ||
-        ((eb_ucsize = makelong(eb + (EB_HEADSIZE + EB_UCSIZE_P))) == 0L) ||
-        ((eb_ucsize > 0L) && (eb_size <= (compr_offset + EB_CMPRHEADLEN))))
+    if (eb_size < (EB_UCSIZE_P + 4) ||
+        (eb_ucsize = makelong(eb + (EB_HEADSIZE + EB_UCSIZE_P))) == 0L ||
+        (eb_ucsize > 0L && eb_size <= (compr_offset + EB_CMPRHEADLEN)))
         return IZ_EF_TRUNC; /* no/bad compressed data! */
 
     /* 2015-02-10 Mancha(?), Michal Zalewski, Tomas Hoger, SMS.
@@ -1765,8 +1765,8 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
      * http://www.info-zip.org/phpBB3/viewtopic.php?f=7&t=450
      */
     eb_compr_method = makeword(eb + (EB_HEADSIZE + compr_offset));
-    if ((eb_compr_method == STORED) &&
-        (eb_size != compr_offset + EB_CMPRHEADLEN + eb_ucsize))
+    if (eb_compr_method == STORED &&
+        eb_size != compr_offset + EB_CMPRHEADLEN + eb_ucsize)
         return PK_ERR;
 
     if ((eb_ucptr = malloc((size_t) eb_ucsize)) == NULL)
@@ -1809,7 +1809,7 @@ int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize)
     case DEFLATED:
     case ENHDEFLATED:
         G.outcnt = 0L;
-        if ((r = UZinflate((method == ENHDEFLATED))) != 0) {
+        if ((r = UZinflate(method == ENHDEFLATED)) != 0) {
             if (!G.UzO.tflag)
                 Info(slide, 0x401,
                      ((char *) slide, ErrUnzipNoFile,

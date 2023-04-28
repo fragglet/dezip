@@ -634,7 +634,7 @@ int flag;
         Trace((stderr, "initializing buildpath to "));
         if ((G.buildpath = malloc(strlen(G.filename) + G.rootlen + 1)) == NULL)
             return MPN_NOMEM;
-        if ((G.rootlen > 0) && !G.renamed_fullpath) {
+        if (G.rootlen > 0 && !G.renamed_fullpath) {
             strcpy(G.buildpath, G.rootpath);
             G.end = G.buildpath + G.rootlen;
         } else {
@@ -851,8 +851,8 @@ void close_outfile() /* GRR: change to return PK-style warning level */
     /* if -X option was specified and we have UID/GID info, restore it */
     if (have_uidgid_flg
         /* check that both uid and gid values fit into their data sizes */
-        && ((ulg) (uid_t) (z_uidgid[0]) == z_uidgid[0]) &&
-        ((ulg) (gid_t) (z_uidgid[1]) == z_uidgid[1])) {
+        && (ulg) (uid_t) (z_uidgid[0]) == z_uidgid[0] &&
+        (ulg) (gid_t) (z_uidgid[1]) == z_uidgid[1]) {
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
         if (fchown(fileno(G.outfile), (uid_t) z_uidgid[0],
                    (gid_t) z_uidgid[1])) {
@@ -896,8 +896,8 @@ slinkentry *slnk_entry;
     if (slnk_entry->attriblen > 0 && slnk_entry->attriblen > sizeof(unsigned)) {
         ulg *z_uidgid_p = (void *) (slnk_entry->buf + sizeof(unsigned));
         /* check that both uid and gid values fit into their data sizes */
-        if (((ulg) (uid_t) (z_uidgid_p[0]) == z_uidgid_p[0]) &&
-            ((ulg) (gid_t) (z_uidgid_p[1]) == z_uidgid_p[1])) {
+        if ((ulg) (uid_t) (z_uidgid_p[0]) == z_uidgid_p[0] &&
+            (ulg) (gid_t) (z_uidgid_p[1]) == z_uidgid_p[1]) {
             TTrace((stderr,
                     "set_symlnk_attribs:  restoring Unix UID/GID info for\n\
         %s\n",
@@ -945,8 +945,8 @@ direntry *d;
 
     if (UxAtt(d)->have_uidgid &&
         /* check that both uid and gid values fit into their data sizes */
-        ((ulg) (uid_t) (UxAtt(d)->uidgid[0]) == UxAtt(d)->uidgid[0]) &&
-        ((ulg) (gid_t) (UxAtt(d)->uidgid[1]) == UxAtt(d)->uidgid[1]) &&
+        (ulg) (uid_t) (UxAtt(d)->uidgid[0]) == UxAtt(d)->uidgid[0] &&
+        (ulg) (gid_t) (UxAtt(d)->uidgid[1]) == UxAtt(d)->uidgid[1] &&
         chown(UxAtt(d)->fn, (uid_t) UxAtt(d)->uidgid[0],
               (gid_t) UxAtt(d)->uidgid[1])) {
         Info(slide, 0x201,
