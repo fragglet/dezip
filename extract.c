@@ -1129,21 +1129,19 @@ int error_in_archive;
                     } while (*PREINCSTR(p));
             }
 
-            if (!renamed) {
-                /* remove absolute path specs */
-                if (G.filename[0] == '/') {
-                    Info(slide, 0x401,
-                         ((char *) slide, AbsolutePathWarning,
-                          FnFilter1(G.filename)));
-                    if (!error_in_archive)
-                        error_in_archive = PK_WARN;
+            /* remove absolute path specs */
+            if (!renamed && G.filename[0] == '/') {
+                Info(slide, 0x401,
+                     ((char *) slide, AbsolutePathWarning,
+                      FnFilter1(G.filename)));
+                if (!error_in_archive)
+                    error_in_archive = PK_WARN;
+                do {
+                    char *p = G.filename + 1;
                     do {
-                        char *p = G.filename + 1;
-                        do {
-                            *(p - 1) = *p;
-                        } while (*p++ != '\0');
-                    } while (G.filename[0] == '/');
-                }
+                        *(p - 1) = *p;
+                    } while (*p++ != '\0');
+                } while (G.filename[0] == '/');
             }
 
             /* mapname can create dirs if not freshening or if renamed */
@@ -1190,20 +1188,19 @@ int error_in_archive;
                 if (G.UzO.fflag && !renamed)
                     skip_entry = SKIP_Y_NONEXIST;
                 break;
-            case EXISTS_AND_OLDER: {
+            case EXISTS_AND_OLDER:
                 if (IS_OVERWRT_NONE)
                     /* never overwrite:  skip file */
                     skip_entry = SKIP_Y_EXISTING;
                 else if (!IS_OVERWRT_ALL)
                     query = TRUE;
-            } break;
+                break;
             case EXISTS_AND_NEWER: /* (or equal) */
                 if (IS_OVERWRT_NONE || (G.UzO.uflag && !renamed)) {
                     /* skip if update/freshen & orig name */
                     skip_entry = SKIP_Y_EXISTING;
                 } else {
-                    if (!IS_OVERWRT_ALL)
-                        query = TRUE;
+                    query = TRUE;
                 }
                 break;
             }
@@ -1234,7 +1231,7 @@ int error_in_archive;
                     goto startover; /* sorry for a goto */
                 case 'A':           /* dangerous option:  force caps */
                     G.overwrite_mode = OVERWRT_ALWAYS;
-                    /* FALL THROUGH, extract */
+                    break;
                 case 'y':
                 case 'Y':
                     break;
@@ -1310,8 +1307,8 @@ static int extract_or_test_member(void) /* return PK-type error code */
 
     /* If file is a (POSIX-compatible) symbolic link and we are extracting
      * to disk, prepare to restore the link. */
-    G.symlnk = (G.pInfo->symlink && !G.UzO.tflag && !G.UzO.cflag &&
-                (G.lrec.ucsize > 0));
+    G.symlnk =
+        G.pInfo->symlink && !G.UzO.tflag && !G.UzO.cflag && G.lrec.ucsize > 0;
 
     if (G.UzO.tflag) {
         if (!G.UzO.qflag)
@@ -1397,42 +1394,43 @@ static int extract_or_test_member(void) /* return PK-type error code */
                   (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
                   G.UzO.cflag ? NEWLINE : ""));
         }
-        if ((r = explode()) != 0) {
-            if (r == 5) { /* treat 5 specially */
-                int warning = ((zusz_t) G.used_csize <= G.lrec.csize);
+        if ((r = explode()) == 0) {
+            break;
+        }
+        if (r == 5) { /* treat 5 specially */
+            int warning = ((zusz_t) G.used_csize <= G.lrec.csize);
 
-                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
-                    Info(slide, 0x401,
-                         ((char *) slide, LengthMsg, "",
-                          warning ? "warning" : "error",
-                          format_off_t(G.used_csize, NULL, NULL),
-                          format_off_t(G.lrec.ucsize, NULL, "u"),
-                          warning ? "  " : "",
-                          format_off_t(G.lrec.csize, NULL, "u"), " [",
-                          FnFilter1(G.filename), "]"));
-                else
-                    Info(slide, 0x401,
-                         ((char *) slide, LengthMsg, "\n",
-                          warning ? "warning" : "error",
-                          format_off_t(G.used_csize, NULL, NULL),
-                          format_off_t(G.lrec.ucsize, NULL, "u"),
-                          warning ? "  " : "",
-                          format_off_t(G.lrec.csize, NULL, "u"), "", "", "."));
-                error = warning ? PK_WARN : PK_ERR;
-            } else if (r < PK_DISK) {
-                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
-                    Info(slide, 0x401,
-                         ((char *) slide, ErrUnzipFile,
-                          r == 3 ? NotEnoughMem : InvalidComprData, Explode,
-                          FnFilter1(G.filename)));
-                else
-                    Info(slide, 0x401,
-                         ((char *) slide, ErrUnzipNoFile,
-                          r == 3 ? NotEnoughMem : InvalidComprData, Explode));
-                error = ((r == 3) ? PK_MEM3 : PK_ERR);
-            } else {
-                error = r;
-            }
+            if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
+                Info(slide, 0x401,
+                     ((char *) slide, LengthMsg, "",
+                      warning ? "warning" : "error",
+                      format_off_t(G.used_csize, NULL, NULL),
+                      format_off_t(G.lrec.ucsize, NULL, "u"),
+                      warning ? "  " : "",
+                      format_off_t(G.lrec.csize, NULL, "u"), " [",
+                      FnFilter1(G.filename), "]"));
+            else
+                Info(slide, 0x401,
+                     ((char *) slide, LengthMsg, "\n",
+                      warning ? "warning" : "error",
+                      format_off_t(G.used_csize, NULL, NULL),
+                      format_off_t(G.lrec.ucsize, NULL, "u"),
+                      warning ? "  " : "",
+                      format_off_t(G.lrec.csize, NULL, "u"), "", "", "."));
+            error = warning ? PK_WARN : PK_ERR;
+        } else if (r < PK_DISK) {
+            if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
+                Info(slide, 0x401,
+                     ((char *) slide, ErrUnzipFile,
+                      r == 3 ? NotEnoughMem : InvalidComprData, Explode,
+                      FnFilter1(G.filename)));
+            else
+                Info(slide, 0x401,
+                     ((char *) slide, ErrUnzipNoFile,
+                      r == 3 ? NotEnoughMem : InvalidComprData, Explode));
+            error = ((r == 3) ? PK_MEM3 : PK_ERR);
+        } else {
+            error = r;
         }
         break;
 
@@ -1445,22 +1443,23 @@ static int extract_or_test_member(void) /* return PK-type error code */
                   G.UzO.cflag ? NEWLINE : ""));
         }
 #define UZinflate inflate
-        if ((r = UZinflate((G.lrec.compression_method == ENHDEFLATED))) != 0) {
-            if (r < PK_DISK) {
-                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
-                    Info(slide, 0x401,
-                         ((char *) slide, ErrUnzipFile,
-                          r == 3 ? NotEnoughMem : InvalidComprData, Inflate,
-                          FnFilter1(G.filename)));
-                else
-                    Info(slide, 0x401,
-                         ((char *) slide, ErrUnzipNoFile,
-                          r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
-                error = ((r == 3) ? PK_MEM3 : PK_ERR);
-            } else {
-                error = r;
-            }
+        if ((r = UZinflate((G.lrec.compression_method == ENHDEFLATED))) == 0) {
+            break;
         }
+        if (r >= PK_DISK) {
+            error = r;
+            break;
+        }
+        if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
+            Info(slide, 0x401,
+                 ((char *) slide, ErrUnzipFile,
+                  r == 3 ? NotEnoughMem : InvalidComprData, Inflate,
+                  FnFilter1(G.filename)));
+        else
+            Info(slide, 0x401,
+                 ((char *) slide, ErrUnzipNoFile,
+                  r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
+        error = ((r == 3) ? PK_MEM3 : PK_ERR);
         break;
 
     case BZIPPED:
@@ -1470,22 +1469,23 @@ static int extract_or_test_member(void) /* return PK-type error code */
                   (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
                   G.UzO.cflag ? NEWLINE : ""));
         }
-        if ((r = UZbunzip2()) != 0) {
-            if (r < PK_DISK) {
-                if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
-                    Info(slide, 0x401,
-                         ((char *) slide, ErrUnzipFile,
-                          r == 3 ? NotEnoughMem : InvalidComprData, BUnzip,
-                          FnFilter1(G.filename)));
-                else
-                    Info(slide, 0x401,
-                         ((char *) slide, ErrUnzipNoFile,
-                          r == 3 ? NotEnoughMem : InvalidComprData, BUnzip));
-                error = ((r == 3) ? PK_MEM3 : PK_ERR);
-            } else {
-                error = r;
-            }
+        if ((r = UZbunzip2()) == 0) {
+            break;
         }
+        if (r >= PK_DISK) {
+            error = r;
+            break;
+        }
+        if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
+            Info(slide, 0x401,
+                 ((char *) slide, ErrUnzipFile,
+                  r == 3 ? NotEnoughMem : InvalidComprData, BUnzip,
+                  FnFilter1(G.filename)));
+        else
+            Info(slide, 0x401,
+                 ((char *) slide, ErrUnzipNoFile,
+                  r == 3 ? NotEnoughMem : InvalidComprData, BUnzip));
+        error = ((r == 3) ? PK_MEM3 : PK_ERR);
         break;
 
     default: /* should never get to this point */
@@ -1520,8 +1520,8 @@ static int extract_or_test_member(void) /* return PK-type error code */
         }
     }
 
-    if (error >
-        PK_WARN) { /* don't print redundant CRC error if error already */
+    if (error > PK_WARN) {
+        /* don't print redundant CRC error if error already */
         undefer_input();
         return error;
     }
@@ -1650,16 +1650,15 @@ static int TestExtraField(uch *ef, unsigned ef_len)
                     Info(slide, 1, ((char *) slide, NotEnoughMemEAs));
                     break;
                 default:
-                    if ((r & 0xff) != PK_ERR)
+                    if ((r & 0xff) != PK_ERR) {
                         Info(slide, 1, ((char *) slide, UnknErrorEAs));
-                    else {
-                        ush m = (ush) (r >> 8);
-                        if (m == DEFLATED) /* GRR KLUDGE! */
-                            Info(slide, 1, ((char *) slide, BadCRC_EAs));
-                        else
-                            Info(slide, 1,
-                                 ((char *) slide, UnknComprMethodEAs, m));
+                        break;
                     }
+                    ush m = (ush) (r >> 8);
+                    if (m == DEFLATED) /* GRR KLUDGE! */
+                        Info(slide, 1, ((char *) slide, BadCRC_EAs));
+                    else
+                        Info(slide, 1, ((char *) slide, UnknComprMethodEAs, m));
                     break;
                 }
                 return r;
@@ -1673,45 +1672,44 @@ static int TestExtraField(uch *ef, unsigned ef_len)
                     : ((ef[EB_HEADSIZE + EB_NTSD_VERSION] > EB_NTSD_MAX_VER)
                            ? (PK_WARN | 0x4000)
                            : test_compr_eb(ef, ebLen, EB_NTSD_L_LEN, NULL));
-            if (r != PK_OK) {
-                if (G.UzO.qflag)
-                    Info(slide, 1,
-                         ((char *) slide, "%-22s ", FnFilter1(G.filename)));
-                switch (r) {
-                case IZ_EF_TRUNC:
-                    Info(slide, 1,
-                         ((char *) slide, TruncNTSD,
-                          ebLen - (EB_NTSD_L_LEN + EB_CMPRHEADLEN), "\n"));
-                    break;
-                case PK_ERR:
-                    Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
-                    break;
-                case PK_MEM3:
-                case PK_MEM4:
-                    Info(slide, 1, ((char *) slide, NotEnoughMemEAs));
-                    break;
-                case (PK_WARN | 0x4000):
-                    Info(slide, 1,
-                         ((char *) slide, UnsuppNTSDVersEAs,
-                          (int) ef[EB_HEADSIZE + EB_NTSD_VERSION]));
-                    r = PK_WARN;
-                    break;
-                default:
-                    if ((r & 0xff) != PK_ERR)
-                        Info(slide, 1, ((char *) slide, UnknErrorEAs));
-                    else {
-                        ush m = (ush) (r >> 8);
-                        if (m == DEFLATED) /* GRR KLUDGE! */
-                            Info(slide, 1, ((char *) slide, BadCRC_EAs));
-                        else
-                            Info(slide, 1,
-                                 ((char *) slide, UnknComprMethodEAs, m));
-                    }
+            if (r == PK_OK) {
+                break;
+            }
+            if (G.UzO.qflag)
+                Info(slide, 1,
+                     ((char *) slide, "%-22s ", FnFilter1(G.filename)));
+            switch (r) {
+            case IZ_EF_TRUNC:
+                Info(slide, 1,
+                     ((char *) slide, TruncNTSD,
+                      ebLen - (EB_NTSD_L_LEN + EB_CMPRHEADLEN), "\n"));
+                break;
+            case PK_ERR:
+                Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
+                break;
+            case PK_MEM3:
+            case PK_MEM4:
+                Info(slide, 1, ((char *) slide, NotEnoughMemEAs));
+                break;
+            case (PK_WARN | 0x4000):
+                Info(slide, 1,
+                     ((char *) slide, UnsuppNTSDVersEAs,
+                      (int) ef[EB_HEADSIZE + EB_NTSD_VERSION]));
+                r = PK_WARN;
+                break;
+            default:
+                if ((r & 0xff) != PK_ERR) {
+                    Info(slide, 1, ((char *) slide, UnknErrorEAs));
                     break;
                 }
-                return r;
+                ush m = (ush) (r >> 8);
+                if (m == DEFLATED) /* GRR KLUDGE! */
+                    Info(slide, 1, ((char *) slide, BadCRC_EAs));
+                else
+                    Info(slide, 1, ((char *) slide, UnknComprMethodEAs, m));
+                break;
             }
-            break;
+            return r;
         case EF_PKVMS:
             if (ebLen < 4) {
                 Info(slide, 1, ((char *) slide, TooSmallEBlength, ebLen, 4));

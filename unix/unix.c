@@ -495,9 +495,6 @@ int renamed;
     checkdir(name, GETPATH)     -->  copy path to name and free space
 */
 
-int checkdir(pathcomp, flag)
-char *pathcomp;
-int flag;
 /*
  * returns:
  *  MPN_OK          - no problem detected
@@ -508,6 +505,9 @@ int flag;
  *  MPN_ERR_TOOLONG - path is too long
  *  MPN_NOMEM       - can't allocate memory for filename buffers
  */
+int checkdir(pathcomp, flag)
+char *pathcomp;
+int flag;
 {
     /* static int rootlen = 0; */ /* length of rootpath */
     /* static char *rootpath;  */ /* user's "extract-to" directory */
@@ -656,6 +656,8 @@ int flag;
       ---------------------------------------------------------------------------*/
 
     if (FUNCTION == ROOT) {
+        char *tmproot;
+
         Trace(
             (stderr, "initializing root path to [%s]\n", FnFilter1(pathcomp)));
         if (pathcomp == (char *) NULL) {
@@ -664,51 +666,49 @@ int flag;
         }
         if (G.rootlen > 0) /* rootpath was already set, nothing to do */
             return MPN_OK;
-        if ((G.rootlen = strlen(pathcomp)) > 0) {
-            char *tmproot;
-
-            if ((tmproot = (char *) malloc(G.rootlen + 2)) == (char *) NULL) {
-                G.rootlen = 0;
-                return MPN_NOMEM;
-            }
-            strcpy(tmproot, pathcomp);
-            if (tmproot[G.rootlen - 1] == '/') {
-                tmproot[--G.rootlen] = '\0';
-            }
-            if (G.rootlen > 0 &&
-                (stat(tmproot, &G.statbuf) ||
-                 !S_ISDIR(G.statbuf.st_mode))) { /* path does not exist */
-                if (!G.create_dirs /* || iswild(tmproot) */) {
-                    free(tmproot);
-                    G.rootlen = 0;
-                    /* skip (or treat as stored file) */
-                    return MPN_INF_SKIP;
-                }
-                /* create the directory (could add loop here scanning tmproot
-                 * to create more than one level, but why really necessary?) */
-                if (mkdir(tmproot, 0777) == -1) {
-                    Info(slide, 1,
-                         ((char *) slide,
-                          "checkdir:  cannot create extraction directory: %s\n\
-           %s\n",
-                          FnFilter1(tmproot), strerror(errno)));
-                    free(tmproot);
-                    G.rootlen = 0;
-                    /* path didn't exist, tried to create, and failed: */
-                    /* file exists, or 2+ subdir levels required */
-                    return MPN_ERR_SKIP;
-                }
-            }
-            tmproot[G.rootlen++] = '/';
-            tmproot[G.rootlen] = '\0';
-            if ((G.rootpath = (char *) realloc(tmproot, G.rootlen + 1)) ==
-                NULL) {
+        if ((G.rootlen = strlen(pathcomp)) <= 0) {
+            return MPN_OK;
+        }
+        if ((tmproot = (char *) malloc(G.rootlen + 2)) == (char *) NULL) {
+            G.rootlen = 0;
+            return MPN_NOMEM;
+        }
+        strcpy(tmproot, pathcomp);
+        if (tmproot[G.rootlen - 1] == '/') {
+            tmproot[--G.rootlen] = '\0';
+        }
+        if (G.rootlen > 0 &&
+            (stat(tmproot, &G.statbuf) ||
+             !S_ISDIR(G.statbuf.st_mode))) { /* path does not exist */
+            if (!G.create_dirs /* || iswild(tmproot) */) {
                 free(tmproot);
                 G.rootlen = 0;
-                return MPN_NOMEM;
+                /* skip (or treat as stored file) */
+                return MPN_INF_SKIP;
             }
-            Trace((stderr, "rootpath now = [%s]\n", FnFilter1(G.rootpath)));
+            /* create the directory (could add loop here scanning tmproot
+             * to create more than one level, but why really necessary?) */
+            if (mkdir(tmproot, 0777) == -1) {
+                Info(slide, 1,
+                     ((char *) slide,
+                      "checkdir:  cannot create extraction directory: %s\n\
+           %s\n",
+                      FnFilter1(tmproot), strerror(errno)));
+                free(tmproot);
+                G.rootlen = 0;
+                /* path didn't exist, tried to create, and failed: */
+                /* file exists, or 2+ subdir levels required */
+                return MPN_ERR_SKIP;
+            }
         }
+        tmproot[G.rootlen++] = '/';
+        tmproot[G.rootlen] = '\0';
+        if ((G.rootpath = (char *) realloc(tmproot, G.rootlen + 1)) == NULL) {
+            free(tmproot);
+            G.rootlen = 0;
+            return MPN_NOMEM;
+        }
+        Trace((stderr, "rootpath now = [%s]\n", FnFilter1(G.rootpath)));
         return MPN_OK;
     }
 
@@ -881,17 +881,15 @@ void close_outfile() /* GRR: change to return PK-style warning level */
     fclose(G.outfile);
 
     /* skip restoring time stamps on user's request */
-    if (G.UzO.D_flag <= 1) {
-        /* set the file's access and modification times */
-        if (utime(G.filename, &(zt.t2))) {
-            if (G.UzO.qflag)
-                Info(slide, 0x201,
-                     ((char *) slide, CannotSetItemTimestamps,
-                      FnFilter1(G.filename), strerror(errno)));
-            else
-                Info(slide, 0x201,
-                     ((char *) slide, CannotSetTimestamps, strerror(errno)));
-        }
+    /* set the file's access and modification times */
+    if (G.UzO.D_flag <= 1 && utime(G.filename, &(zt.t2))) {
+        if (G.UzO.qflag)
+            Info(slide, 0x201,
+                 ((char *) slide, CannotSetItemTimestamps,
+                  FnFilter1(G.filename), strerror(errno)));
+        else
+            Info(slide, 0x201,
+                 ((char *) slide, CannotSetTimestamps, strerror(errno)));
     }
 }
 
@@ -961,15 +959,13 @@ direntry *d;
             errval = PK_WARN;
     }
     /* Skip restoring directory time stamps on user' request. */
-    if (G.UzO.D_flag <= 0) {
-        /* restore directory timestamps */
-        if (utime(d->fn, &UxAtt(d)->u.t2)) {
-            Info(slide, 0x201,
-                 ((char *) slide, CannotSetItemTimestamps, FnFilter1(d->fn),
-                  strerror(errno)));
-            if (!errval)
-                errval = PK_WARN;
-        }
+    /* restore directory timestamps */
+    if (G.UzO.D_flag <= 0 && utime(d->fn, &UxAtt(d)->u.t2)) {
+        Info(slide, 0x201,
+             ((char *) slide, CannotSetItemTimestamps, FnFilter1(d->fn),
+              strerror(errno)));
+        if (!errval)
+            errval = PK_WARN;
     }
     if (chmod(d->fn, UxAtt(d)->perms)) {
         Info(slide, 0x201,

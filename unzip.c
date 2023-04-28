@@ -249,7 +249,7 @@ char *argv[];
         error = uz_opts(&argc, &argv);
     }
 
-    if ((argc < 0) || error) {
+    if (argc < 0 || error) {
         retcode = error;
         goto cleanup_and_exit;
     }
@@ -360,7 +360,7 @@ char ***pargv;
 
     while (++argv, (--argc > 0 && *argv != NULL && **argv == '-')) {
         s = *argv + 1;
-        while ((c = *s++) != 0) { /* "!= 0":  prevent Turbo C warning */
+        while ((c = *s++) != 0) {
             switch (c) {
             case ('-'):
                 ++negative;
@@ -515,32 +515,33 @@ char ***pargv;
                     Info(slide, 0x401, ((char *) slide, MustGivePasswd));
                     return (PK_PARAM); /* don't extract here by accident */
                 }
-                if (G.UzO.pwdarg == (char *) NULL) {
-                    /* first check for "-Ppasswd", then for "-P passwd" */
-                    G.UzO.pwdarg = s;
-                    if (*G.UzO.pwdarg == '\0') {
-                        if (argc <= 1) {
-                            /* pwdarg points at decryption password */
-                            Info(slide, 0x401,
-                                 ((char *) slide, MustGivePasswd));
-                            return (PK_PARAM);
-                        }
-                        --argc;
-                        G.UzO.pwdarg = *++argv;
-                        if (*G.UzO.pwdarg == '-') {
-                            Info(slide, 0x401,
-                                 ((char *) slide, MustGivePasswd));
-                            return (PK_PARAM);
-                        }
-                    }
-                    /* pwdarg now points at decryption password (-Ppasswd or
-                     *  -P passwd); point s at end of passwd to avoid mis-
-                     *  interpretation of passwd characters as more options
-                     */
-                    if (*s != 0)
-                        while (*++s != 0)
-                            ;
+                if (G.UzO.pwdarg != NULL) {
+                    break;
                 }
+                /* first check for "-Ppasswd", then for "-P passwd" */
+                G.UzO.pwdarg = s;
+                if (*G.UzO.pwdarg == '\0') {
+                    if (argc <= 1) {
+                        /* pwdarg points at decryption password */
+                        Info(slide, 0x401,
+                             ((char *) slide, MustGivePasswd));
+                        return (PK_PARAM);
+                    }
+                    --argc;
+                    G.UzO.pwdarg = *++argv;
+                    if (*G.UzO.pwdarg == '-') {
+                        Info(slide, 0x401,
+                             ((char *) slide, MustGivePasswd));
+                        return (PK_PARAM);
+                    }
+                }
+                /* pwdarg now points at decryption password (-Ppasswd or
+                 *  -P passwd); point s at end of passwd to avoid mis-
+                 *  interpretation of passwd characters as more options
+                 */
+                if (*s != 0)
+                    while (*++s != 0)
+                        ;
                 break;
             case ('q'): /* quiet:  fewer comments/messages */
                 if (negative) {
