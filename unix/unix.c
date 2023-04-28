@@ -414,37 +414,36 @@ int renamed;
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
         checkdir(G.filename, GETPATH);
-        if (G.created_dir) {
-            if (QCOND2) {
-                Info(slide, 0,
-                     ((char *) slide, "   creating: %s\n",
-                      FnFilter1(G.filename)));
-            }
-            /* Filter out security-relevant attributes bits. */
-            G.pInfo->file_attr = filtattr(G.pInfo->file_attr);
-            /* When extracting non-UNIX directories or when extracting
-             * without UID/GID restoration or SGID preservation, any
-             * SGID flag inherited from the parent directory should be
-             * maintained to allow files extracted into this new folder
-             * to inherit the GID setting from the parent directory.
-             */
-            if (G.pInfo->hostnum != UNIX_ || !(G.UzO.X_flag || G.UzO.K_flag)) {
-                /* preserve SGID bit when inherited from parent dir */
-                if (!stat(G.filename, &G.statbuf)) {
-                    G.pInfo->file_attr |= G.statbuf.st_mode & S_ISGID;
-                } else {
-                    perror("Could not read directory attributes");
-                }
-            }
-
-            /* set approx. dir perms (make sure can still read/write in dir) */
-            if (chmod(G.filename, G.pInfo->file_attr | 0700))
-                perror("chmod (directory attributes) error");
-            /* set dir time (note trailing '/') */
-            return (error & ~MPN_MASK) | MPN_CREATED_DIR;
+        if (!G.created_dir) {
+            /* dir existed already; don't look for data to extract */
+            return (error & ~MPN_MASK) | MPN_INF_SKIP;
         }
-        /* dir existed already; don't look for data to extract */
-        return (error & ~MPN_MASK) | MPN_INF_SKIP;
+        if (QCOND2) {
+            Info(slide, 0,
+                 ((char *) slide, "   creating: %s\n", FnFilter1(G.filename)));
+        }
+        /* Filter out security-relevant attributes bits. */
+        G.pInfo->file_attr = filtattr(G.pInfo->file_attr);
+        /* When extracting non-UNIX directories or when extracting
+         * without UID/GID restoration or SGID preservation, any
+         * SGID flag inherited from the parent directory should be
+         * maintained to allow files extracted into this new folder
+         * to inherit the GID setting from the parent directory.
+         */
+        if (G.pInfo->hostnum != UNIX_ || !(G.UzO.X_flag || G.UzO.K_flag)) {
+            /* preserve SGID bit when inherited from parent dir */
+            if (!stat(G.filename, &G.statbuf)) {
+                G.pInfo->file_attr |= G.statbuf.st_mode & S_ISGID;
+            } else {
+                perror("Could not read directory attributes");
+            }
+        }
+
+        /* set approx. dir perms (make sure can still read/write in dir) */
+        if (chmod(G.filename, G.pInfo->file_attr | 0700))
+            perror("chmod (directory attributes) error");
+        /* set dir time (note trailing '/') */
+        return (error & ~MPN_MASK) | MPN_CREATED_DIR;
     }
 
     *pp = '\0'; /* done with pathcomp:  terminate it */
@@ -717,16 +716,15 @@ int flag;
         END:  free rootpath, immediately prior to program exit.
       ---------------------------------------------------------------------------*/
 
-    if (FUNCTION == END) {
-        Trace((stderr, "freeing rootpath\n"));
-        if (G.rootlen > 0) {
-            free(G.rootpath);
-            G.rootlen = 0;
-        }
-        return MPN_OK;
+    if (FUNCTION != END) {
+        return MPN_INVALID; /* should never reach */
     }
-
-    return MPN_INVALID; /* should never reach */
+    Trace((stderr, "freeing rootpath\n"));
+    if (G.rootlen > 0) {
+        free(G.rootpath);
+        G.rootlen = 0;
+    }
+    return MPN_OK;
 }
 
 static int get_extattribs(pzt, z_uidgid)
@@ -900,23 +898,21 @@ void close_outfile() /* GRR: change to return PK-style warning level */
 int set_symlnk_attribs(slnk_entry)
 slinkentry *slnk_entry;
 {
-    if (slnk_entry->attriblen > 0) {
-        if (slnk_entry->attriblen > sizeof(unsigned)) {
-            ulg *z_uidgid_p = (void *) (slnk_entry->buf + sizeof(unsigned));
-            /* check that both uid and gid values fit into their data sizes */
-            if (((ulg) (uid_t) (z_uidgid_p[0]) == z_uidgid_p[0]) &&
-                ((ulg) (gid_t) (z_uidgid_p[1]) == z_uidgid_p[1])) {
-                TTrace((stderr,
-                        "set_symlnk_attribs:  restoring Unix UID/GID info for\n\
+    if (slnk_entry->attriblen > 0 && slnk_entry->attriblen > sizeof(unsigned)) {
+        ulg *z_uidgid_p = (void *) (slnk_entry->buf + sizeof(unsigned));
+        /* check that both uid and gid values fit into their data sizes */
+        if (((ulg) (uid_t) (z_uidgid_p[0]) == z_uidgid_p[0]) &&
+            ((ulg) (gid_t) (z_uidgid_p[1]) == z_uidgid_p[1])) {
+            TTrace((stderr,
+                    "set_symlnk_attribs:  restoring Unix UID/GID info for\n\
         %s\n",
-                        FnFilter1(slnk_entry->fname)));
-                if (lchown(slnk_entry->fname, (uid_t) z_uidgid_p[0],
-                           (gid_t) z_uidgid_p[1])) {
-                    Info(slide, 0x201,
-                         ((char *) slide, CannotSetItemUidGid, z_uidgid_p[0],
-                          z_uidgid_p[1], FnFilter1(slnk_entry->fname),
-                          strerror(errno)));
-                }
+                    FnFilter1(slnk_entry->fname)));
+            if (lchown(slnk_entry->fname, (uid_t) z_uidgid_p[0],
+                       (gid_t) z_uidgid_p[1])) {
+                Info(slide, 0x201,
+                     ((char *) slide, CannotSetItemUidGid, z_uidgid_p[0],
+                      z_uidgid_p[1], FnFilter1(slnk_entry->fname),
+                      strerror(errno)));
             }
         }
     }

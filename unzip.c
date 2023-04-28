@@ -409,32 +409,29 @@ char ***pargv;
                           "error:  -d option "
                           "used more than once (only one exdir allowed)\n"));
                     return (PK_PARAM); /* GRR:  stupid restriction? */
-                } else {
-                    /* first check for "-dexdir", then for "-d exdir" */
-                    G.UzO.exdir = s;
-                    if (*G.UzO.exdir == '\0') {
-                        if (argc > 1) {
-                            --argc;
-                            G.UzO.exdir = *++argv;
-                            if (*G.UzO.exdir == '-') {
-                                Info(slide, 0x401,
-                                     ((char *) slide, MustGiveExdir));
-                                return (PK_PARAM);
-                            }
-                            /* else G.UzO.exdir points at extraction dir */
-                        } else {
-                            Info(slide, 0x401, ((char *) slide, MustGiveExdir));
-                            return (PK_PARAM);
-                        }
-                    }
-                    /* G.UzO.exdir now points at extraction dir (-dexdir or
-                     *  -d exdir); point s at end of exdir to avoid mis-
-                     *  interpretation of exdir characters as more options
-                     */
-                    if (*s != 0)
-                        while (*++s != 0)
-                            ;
                 }
+                /* first check for "-dexdir", then for "-d exdir" */
+                G.UzO.exdir = s;
+                if (*G.UzO.exdir == '\0') {
+                    if (argc <= 1) {
+                        /* else G.UzO.exdir points at extraction dir */
+                        Info(slide, 0x401, ((char *) slide, MustGiveExdir));
+                        return (PK_PARAM);
+                    }
+                    --argc;
+                    G.UzO.exdir = *++argv;
+                    if (*G.UzO.exdir == '-') {
+                        Info(slide, 0x401, ((char *) slide, MustGiveExdir));
+                        return (PK_PARAM);
+                    }
+                }
+                /* G.UzO.exdir now points at extraction dir (-dexdir or
+                 *  -d exdir); point s at end of exdir to avoid mis-
+                 *  interpretation of exdir characters as more options
+                 */
+                if (*s != 0)
+                    while (*++s != 0)
+                        ;
                 break;
             case ('D'): /* -D: Skip restoring dir (or any) timestamp. */
                 if (negative) {
@@ -522,16 +519,15 @@ char ***pargv;
                     /* first check for "-Ppasswd", then for "-P passwd" */
                     G.UzO.pwdarg = s;
                     if (*G.UzO.pwdarg == '\0') {
-                        if (argc > 1) {
-                            --argc;
-                            G.UzO.pwdarg = *++argv;
-                            if (*G.UzO.pwdarg == '-') {
-                                Info(slide, 0x401,
-                                     ((char *) slide, MustGivePasswd));
-                                return (PK_PARAM);
-                            }
-                            /* else pwdarg points at decryption password */
-                        } else {
+                        if (argc <= 1) {
+                            /* pwdarg points at decryption password */
+                            Info(slide, 0x401,
+                                 ((char *) slide, MustGivePasswd));
+                            return (PK_PARAM);
+                        }
+                        --argc;
+                        G.UzO.pwdarg = *++argv;
+                        if (*G.UzO.pwdarg == '-') {
                             Info(slide, 0x401,
                                  ((char *) slide, MustGivePasswd));
                             return (PK_PARAM);

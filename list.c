@@ -107,11 +107,10 @@ int list_files() /* return PK-type error code */
                  * end of the central directory has been reached
                  */
                 break;
-            } else {
-                Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
-                Info(slide, 0x401, ((char *) slide, ReportMsg));
-                return PK_BADERR; /* sig not found */
             }
+            Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
+            Info(slide, 0x401, ((char *) slide, ReportMsg));
+            return PK_BADERR; /* sig not found */
         }
         /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag, ...: */
         if ((error = process_cdir_file_hdr()) != PK_COOL)
@@ -375,11 +374,10 @@ ulg *nmember;
                  * end of the central directory has been reached
                  */
                 break;
-            } else {
-                Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
-                Info(slide, 0x401, ((char *) slide, ReportMsg));
-                return PK_BADERR; /* sig not found */
             }
+            Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
+            Info(slide, 0x401, ((char *) slide, ReportMsg));
+            return PK_BADERR; /* sig not found */
         }
         /* process_cdir_file_hdr() sets pInfo->lcflag: */
         if ((error = process_cdir_file_hdr()) != PK_COOL)

@@ -366,60 +366,57 @@ int unshrink;
          */
         if (!G.UzO.cflag && WriteError(rawbuf, size, G.outfile))
             return disk_error();
-        else if (G.UzO.cflag && (*G.message)(rawbuf, size, 0))
+        return PK_OK;
+    }
+    if (unshrink) {
+        /* rawbuf = outbuf */
+        transbuf = G.outbuf2;
+    } else {
+        /* rawbuf = slide */
+        transbuf = G.outbuf;
+    }
+    if (G.newfile) {
+        G.didCRlast = FALSE; /* no previous buffers written */
+        G.newfile = FALSE;
+    }
+
+    /*-----------------------------------------------------------------------
+        Algorithm:  CR/LF => native; lone CR => native; lone LF => native.
+        This routine is only for non-raw-VMS, non-raw-VM/CMS files (i.e.,
+        stream-oriented files, not record-oriented).
+      -----------------------------------------------------------------------*/
+
+    p = rawbuf;
+    if (*p == LF && G.didCRlast)
+        ++p;
+    G.didCRlast = FALSE;
+    for (q = transbuf; (size_t) (p - rawbuf) < (size_t) size; ++p) {
+        if (*p == CR) { /* lone CR or CR/LF: treat as EOL  */
+            *q++ = LF;
+            if ((size_t) (p - rawbuf) == (size_t) size - 1)
+                /* last char in buffer */
+                G.didCRlast = TRUE;
+            else if (p[1] == LF) /* get rid of accompanying LF */
+                ++p;
+        } else if (*p == LF) { /* lone LF */
+            *q++ = LF;
+        } else if (*p != CTRLZ) { /* lose all ^Z's */
+            *q++ = *p;
+        }
+    }
+
+    /*-----------------------------------------------------------------------
+        Done translating:  write whatever we've got to file (or screen).
+      -----------------------------------------------------------------------*/
+
+    Trace((stderr, "p - rawbuf = %u   q-transbuf = %u   size = %lu\n",
+           (unsigned) (p - rawbuf), (unsigned) (q - transbuf), size));
+    if (q > transbuf) {
+        if (!G.UzO.cflag &&
+            WriteError(transbuf, (size_t) (q - transbuf), G.outfile))
+            return disk_error();
+        else if (G.UzO.cflag && (*G.message)(transbuf, (ulg) (q - transbuf), 0))
             return PK_OK;
-    } else { /* textmode:  aflag is true */
-        if (unshrink) {
-            /* rawbuf = outbuf */
-            transbuf = G.outbuf2;
-        } else {
-            /* rawbuf = slide */
-            transbuf = G.outbuf;
-        }
-        if (G.newfile) {
-            G.didCRlast = FALSE; /* no previous buffers written */
-            G.newfile = FALSE;
-        }
-
-        /*-----------------------------------------------------------------------
-            Algorithm:  CR/LF => native; lone CR => native; lone LF => native.
-            This routine is only for non-raw-VMS, non-raw-VM/CMS files (i.e.,
-            stream-oriented files, not record-oriented).
-          -----------------------------------------------------------------------*/
-
-        p = rawbuf;
-        if (*p == LF && G.didCRlast)
-            ++p;
-        G.didCRlast = FALSE;
-        for (q = transbuf; (size_t) (p - rawbuf) < (size_t) size; ++p) {
-            if (*p == CR) { /* lone CR or CR/LF: treat as EOL  */
-                *q++ = LF;
-                if ((size_t) (p - rawbuf) == (size_t) size - 1)
-                    /* last char in buffer */
-                    G.didCRlast = TRUE;
-                else if (p[1] == LF) /* get rid of accompanying LF */
-                    ++p;
-            } else if (*p == LF) { /* lone LF */
-                *q++ = LF;
-            } else if (*p != CTRLZ) { /* lose all ^Z's */
-                *q++ = *p;
-            }
-        }
-
-        /*-----------------------------------------------------------------------
-            Done translating:  write whatever we've got to file (or screen).
-          -----------------------------------------------------------------------*/
-
-        Trace((stderr, "p - rawbuf = %u   q-transbuf = %u   size = %lu\n",
-               (unsigned) (p - rawbuf), (unsigned) (q - transbuf), size));
-        if (q > transbuf) {
-            if (!G.UzO.cflag &&
-                WriteError(transbuf, (size_t) (q - transbuf), G.outfile))
-                return disk_error();
-            else if (G.UzO.cflag &&
-                     (*G.message)(transbuf, (ulg) (q - transbuf), 0))
-                return PK_OK;
-        }
     }
 
     return PK_OK;
@@ -627,18 +624,17 @@ char *filename;               /*  exist yet */
         Trace((stderr, "check_for_newer:  doing lstat(%s)\n",
                FnFilter1(filename)));
         /* GRR OPTION:  could instead do this test ONLY if G.symlnk is true */
-        if (lstat(filename, &G.statbuf) == 0) {
-            Trace(
-                (stderr,
-                 "check_for_newer:  lstat(%s) returns 0:  symlink does exist\n",
-                 FnFilter1(filename)));
-            if (QCOND2 && !IS_OVERWRT_ALL)
-                Info(slide, 0,
-                     ((char *) slide, FileIsSymLink, FnFilter1(filename),
-                      " with no real file"));
-            return EXISTS_AND_OLDER; /* symlink dates are meaningless */
+        if (lstat(filename, &G.statbuf) != 0) {
+            return DOES_NOT_EXIST;
         }
-        return DOES_NOT_EXIST;
+        Trace((stderr,
+               "check_for_newer:  lstat(%s) returns 0:  symlink does exist\n",
+               FnFilter1(filename)));
+        if (QCOND2 && !IS_OVERWRT_ALL)
+            Info(slide, 0,
+                 ((char *) slide, FileIsSymLink, FnFilter1(filename),
+                  " with no real file"));
+        return EXISTS_AND_OLDER; /* symlink dates are meaningless */
     }
     Trace((stderr, "check_for_newer:  stat(%s) returns 0:  file exists\n",
            FnFilter1(filename)));
@@ -880,9 +876,9 @@ int option;
              * so don't correct for it twice: */
             seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes +
                       (G.inptr - G.inbuf) + length);
+        } else if (readbuf((char *) G.extra_field, length) == 0) {
+            return PK_EOF;
         } else {
-            if (readbuf((char *) G.extra_field, length) == 0)
-                return PK_EOF;
             /* Looks like here is where extra fields are read */
             if (getZip64Data(G.extra_field, length) != PK_COOL) {
                 Info(slide, 0x401,
@@ -950,7 +946,6 @@ int option;
             }
         }
         break;
-
     } /* end switch (option) */
 
     return error;

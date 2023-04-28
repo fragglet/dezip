@@ -111,58 +111,54 @@ int ic;                                     /* true for case insensitivity */
     if (c == '*') {
         if (*p == 0)
             return 1;
-        if (isshexp((const char *) p) == NULL) {
-            /* Optimization for rest of pattern being a literal string:
-             * If there are no other shell expression chars in the rest
-             * of the pattern behind the multi-char wildcard, then just
-             * compare the literal string tail.
-             */
-            const uch *srest;
-
-            srest = s + (strlen((const char *) s) - strlen((const char *) p));
-            if (srest - s < 0)
-                /* remaining literal string from pattern is longer than rest
-                 * of test string, there can't be a match
-                 */
-                return 0;
-            else
-            /* compare the remaining literal pattern string with the last
-             * bytes of the test string to check for a match
-             */
-#ifdef _MBCS
-            {
-                const uch *q = s;
-
-                /* MBCS-aware code must not scan backwards into a string from
-                 * the end.
-                 * So, we have to move forward by character from our well-known
-                 * character position s in the test string until we have
-                 * advanced to the srest position.
-                 */
-                while (q < srest)
-                    INCSTR(q);
-                /* In case the byte *srest is a trailing byte of a multibyte
-                 * character in the test string s, we have actually advanced
-                 * past the position (srest).
-                 * For this case, the match has failed!
-                 */
-                if (q != srest)
-                    return 0;
-                return ((ic ? namecmp((const char *) p, (const char *) q)
-                            : strcmp((const char *) p, (const char *) q)) == 0);
-            }
-#else  /* !_MBCS */
-                return ((ic ? namecmp((const char *) p, (const char *) srest)
-                            : strcmp((const char *) p, (const char *) srest)) ==
-                        0);
-#endif /* ?_MBCS */
-        } else {
+        if (isshexp((const char *) p) != NULL) {
             /* pattern contains more wildcards, continue with recursion... */
             for (; *s; INCSTR(s))
                 if ((c = recmatch(p, s, ic)) != 0)
                     return (int) c;
             return 2; /* 2 means give up--match will return false */
         }
+        /* Optimization for rest of pattern being a literal string:
+         * If there are no other shell expression chars in the rest
+         * of the pattern behind the multi-char wildcard, then just
+         * compare the literal string tail.
+         */
+        const uch *srest;
+
+        srest = s + (strlen((const char *) s) - strlen((const char *) p));
+        if (srest - s < 0)
+            /* remaining literal string from pattern is longer than rest
+             * of test string, there can't be a match
+             */
+            return 0;
+
+            /* compare the remaining literal pattern string with the last
+             * bytes of the test string to check for a match
+             */
+#ifdef _MBCS
+        const uch *q = s;
+
+        /* MBCS-aware code must not scan backwards into a string from
+         * the end.
+         * So, we have to move forward by character from our well-known
+         * character position s in the test string until we have
+         * advanced to the srest position.
+         */
+        while (q < srest)
+            INCSTR(q);
+        /* In case the byte *srest is a trailing byte of a multibyte
+         * character in the test string s, we have actually advanced
+         * past the position (srest).
+         * For this case, the match has failed!
+         */
+        if (q != srest)
+            return 0;
+        return ((ic ? namecmp((const char *) p, (const char *) q)
+                    : strcmp((const char *) p, (const char *) q)) == 0);
+#else  /* !_MBCS */
+        return ((ic ? namecmp((const char *) p, (const char *) srest)
+                    : strcmp((const char *) p, (const char *) srest)) == 0);
+#endif /* ?_MBCS */
     }
 
     /* Parse and process the list of characters and ranges in brackets */

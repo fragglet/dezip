@@ -402,10 +402,8 @@ int lastchance;
             Info(slide, 0x401, ((char *) slide, MaybeExe, G.zipfn));
         if (lastchance)
             return error_in_archive;
-        else {
-            G.no_ecrec = TRUE; /* assume we found wrong file:  e.g., */
-            return PK_NOZIP;   /*  unzip instead of unzip.zip */
-        }
+        G.no_ecrec = TRUE; /* assume we found wrong file:  e.g., */
+        return PK_NOZIP;   /*  unzip instead of unzip.zip */
     }
 
     if (G.UzO.zflag > 0) { /* unzip: zflag = comment ONLY */

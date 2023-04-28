@@ -906,29 +906,28 @@ int error_in_archive;
         if (request < 0) {
             Info(slide, 0x401, ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
             error_in_archive = PK_ERR;
-            if (*pfilnum == 1 && G.extra_bytes != 0L) {
-                Info(slide, 0x401, ((char *) slide, AttemptRecompensate));
-                *pold_extra_bytes = G.extra_bytes;
-                G.extra_bytes = 0L;
-                request = G.pInfo->offset; /* could also check if != 0 */
-                inbuf_offset = request % INBUFSIZ;
-                bufstart = request - inbuf_offset;
-                Trace((stderr, "debug: request = %ld, inbuf_offset = %ld\n",
-                       (long) request, (long) inbuf_offset));
-                Trace((stderr,
-                       "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
-                       (long) bufstart, (long) G.cur_zipfile_bufstart));
-                /* try again */
-                if (request < 0) {
-                    Trace((stderr, "debug: recompensated request still < 0\n"));
-                    Info(slide, 0x401,
-                         ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
-                    error_in_archive = PK_BADERR;
-                    continue;
-                }
-            } else {
+            if (*pfilnum != 1 || G.extra_bytes == 0L) {
                 error_in_archive = PK_BADERR;
                 continue; /* this one hosed; try next */
+            }
+            Info(slide, 0x401, ((char *) slide, AttemptRecompensate));
+            *pold_extra_bytes = G.extra_bytes;
+            G.extra_bytes = 0L;
+            request = G.pInfo->offset; /* could also check if != 0 */
+            inbuf_offset = request % INBUFSIZ;
+            bufstart = request - inbuf_offset;
+            Trace((stderr, "debug: request = %ld, inbuf_offset = %ld\n",
+                   (long) request, (long) inbuf_offset));
+            Trace((stderr,
+                   "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
+                   (long) bufstart, (long) G.cur_zipfile_bufstart));
+            /* try again */
+            if (request < 0) {
+                Trace((stderr, "debug: recompensated request still < 0\n"));
+                Info(slide, 0x401,
+                     ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
+                error_in_archive = PK_BADERR;
+                continue;
             }
         }
 
@@ -1319,13 +1318,11 @@ static int extract_or_test_member(void) /* return PK-type error code */
             Info(slide, 0,
                  ((char *) slide, ExtractMsg, "test", FnFilter1(G.filename), "",
                   ""));
-    } else {
-        if (G.UzO.cflag) {
-            G.outfile = stdout;
+    } else if (G.UzO.cflag) {
+        G.outfile = stdout;
 #define NEWLINE "\n"
-        } else if (open_outfile())
-            return PK_DISK;
-    }
+    } else if (open_outfile())
+        return PK_DISK;
 
     /*---------------------------------------------------------------------------
         Unpack the file.
@@ -1544,9 +1541,8 @@ static int extract_or_test_member(void) /* return PK-type error code */
                 error = r;
         } else if (!G.UzO.qflag)
             Info(slide, 0, ((char *) slide, " OK\n"));
-    } else {
-        if (QCOND2 && !error) /* GRR:  is stdout reset to text mode yet? */
-            Info(slide, 0, ((char *) slide, "\n"));
+    } else if (QCOND2 && !error) { /* GRR:  is stdout reset to text mode yet? */
+        Info(slide, 0, ((char *) slide, "\n"));
     }
 
     undefer_input();
