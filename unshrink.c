@@ -273,6 +273,4 @@ static void partial_clear(lastcodeused) int lastcodeused;
             parent[code] = FREE_CODE;
         }
     }
-
-    return;
 }

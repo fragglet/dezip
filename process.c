@@ -1309,12 +1309,6 @@ unsigned ef_len;                       /* total length of extra field */
              */
             if (chksum != G.unipath_checksum) {
                 Info(slide, 0x401, ((char *) slide, UnicodeMismatchError));
-                if (G.unicode_mismatch == 1) {
-                    /* warn and continue */
-                } else if (G.unicode_mismatch == 2) {
-                    /* ignore and continue */
-                } else if (G.unicode_mismatch == 0) {
-                }
                 return PK_ERR;
             }
 

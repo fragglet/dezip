@@ -1919,7 +1919,6 @@ static void set_deferred_symlink(slinkentry *slnk_entry)
         perror("symlink error");
     free(linktarget);
     set_symlnk_attribs(slnk_entry);
-    return; /* can't set time on symlinks */
 }
 
 /* convert name to safely printable form */
