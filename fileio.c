@@ -101,7 +101,7 @@ int open_outfile() /* return 1 if fail */
     Info(slide, 1,
          ((char *) slide, "open_outfile:  doing fopen(%s) for reading\n",
           FnFilter1(G.filename)));
-    if ((G.outfile = fopen(G.filename, "rb")) == (FILE *) NULL)
+    if ((G.outfile = fopen(G.filename, "rb")) == NULL)
         Info(slide, 1,
              ((char *) slide,
               "open_outfile:  fopen(%s) for reading failed:  does not exist\n",
@@ -122,7 +122,7 @@ int open_outfile() /* return 1 if fail */
      */
     G.outfile = fopen(G.filename, "w+b");
     umask(umask_sav);
-    if (G.outfile == (FILE *) NULL) {
+    if (G.outfile == NULL) {
         Info(slide, 0x401,
              ((char *) slide, CannotCreateFile, FnFilter1(G.filename),
               strerror(errno)));
@@ -553,7 +553,7 @@ const char *efn; /* name of archive entry being processed */
             isOverflow = FALSE;
         }
         if ((isOverflow == FALSE) &&
-            ((prompt = (char *) malloc(2 * FILNAMSIZ + 15)) != (char *) NULL)) {
+            ((prompt = malloc(2 * FILNAMSIZ + 15)) != NULL)) {
             sprintf(prompt, PasswPrompt, FnFilter1(zfn), FnFilter2(efn));
             m = prompt;
         } else
@@ -566,7 +566,7 @@ const char *efn; /* name of archive entry being processed */
 
     m = getp(m, pwbuf, size);
     free(prompt);
-    if (m == (char *) NULL) {
+    if (m == NULL) {
         r = IZ_PW_ERROR;
     } else if (*pwbuf == '\0') {
         r = IZ_PW_CANCELALL;
@@ -866,7 +866,7 @@ int option;
 
     case EXTRA_FIELD:
         free(G.extra_field);
-        if ((G.extra_field = (uch *) malloc(length)) == (uch *) NULL) {
+        if ((G.extra_field = malloc(length)) == NULL) {
             Info(slide, 0x401, ((char *) slide, ExtraFieldTooLong, length));
             /* cur_zipfile_bufstart already takes account of extra_bytes,
              * so don't correct for it twice: */

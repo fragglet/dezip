@@ -133,7 +133,7 @@ int list_files() /* return PK-type error code */
                 return error;
         }
         free(G.extra_field);
-        G.extra_field = (uch *) NULL;
+        G.extra_field = NULL;
 
         if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
             error_in_archive = error;
@@ -176,8 +176,8 @@ int list_files() /* return PK-type error code */
                  EB_UT_FL_MTIME)) {
                 t = localtime(&(z_utime.mtime));
             } else
-                t = (struct tm *) NULL;
-            if (t != (struct tm *) NULL) {
+                t = NULL;
+            if (t != NULL) {
                 mo = (unsigned) (t->tm_mon + 1);
                 dy = (unsigned) (t->tm_mday);
                 yr = (unsigned) (t->tm_year + 1900);
@@ -388,7 +388,7 @@ ulg *nmember;
                 return error;
         }
         free(G.extra_field);
-        G.extra_field = (uch *) NULL;
+        G.extra_field = NULL;
 
         if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
             error_in_archive = error;

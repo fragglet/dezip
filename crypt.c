@@ -133,10 +133,9 @@ int decrypt(passwrd) const char *passwrd;
 
     if (G.newzip) { /* this is first encrypted member in this zipfile */
         G.newzip = FALSE;
-        if (passwrd != (char *) NULL) { /* user gave password on command line */
+        if (passwrd != NULL) { /* user gave password on command line */
             if (!G.key) {
-                if ((G.key = (char *) malloc(strlen(passwrd) + 1)) ==
-                    (char *) NULL)
+                if ((G.key = malloc(strlen(passwrd) + 1)) == NULL)
                     return PK_MEM2;
                 strcpy(G.key, passwrd);
                 G.nopwd = TRUE; /* inhibit password prompting! */
@@ -153,7 +152,7 @@ int decrypt(passwrd) const char *passwrd;
             return PK_COOL; /* existing password OK (else prompt for new) */
         else if (G.nopwd)
             return PK_WARN; /* user indicated no more prompting */
-    } else if ((G.key = (char *) malloc(IZ_PWLEN + 1)) == (char *) NULL)
+    } else if ((G.key = malloc(IZ_PWLEN + 1)) == NULL)
         return PK_MEM2;
 
     /* try a few keys */
@@ -192,7 +191,7 @@ static int testp(h) const uch *h;
 
 #ifdef STR_TO_CP1
     /* allocate buffer for translated password */
-    if ((key_translated = malloc(strlen(G.key) + 1)) == (char *) NULL)
+    if ((key_translated = malloc(strlen(G.key) + 1)) == NULL)
         return -1;
     /* first try, test password translated "standard" charset */
     r = testkey(h, STR_TO_CP1(key_translated, G.key));
@@ -205,7 +204,7 @@ static int testp(h) const uch *h;
     if (r != 0) {
 #ifndef STR_TO_CP1
         /* now prepare for second (and maybe third) test with translated pwd */
-        if ((key_translated = malloc(strlen(G.key) + 1)) == (char *) NULL)
+        if ((key_translated = malloc(strlen(G.key) + 1)) == NULL)
             return -1;
 #endif
         /* second try, password translated to alternate ("standard") charset */

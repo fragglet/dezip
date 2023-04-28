@@ -71,8 +71,7 @@ char *do_wild(wildspec) const
         } else {
             ++G.wildname; /* point at character after '/' */
             G.dirnamelen = G.wildname - wildspec;
-            if ((G.dirname = (char *) malloc(G.dirnamelen + 1)) ==
-                (char *) NULL) {
+            if ((G.dirname = malloc(G.dirnamelen + 1)) == NULL) {
                 Info(slide, 0x201,
                      ((char *) slide,
                       "warning:  cannot allocate wildcard buffers\n"));
@@ -85,9 +84,8 @@ char *do_wild(wildspec) const
             G.have_dirname = TRUE;
         }
 
-        if ((G.wild_dir = (void *) opendir(G.dirname)) != (void *) NULL) {
-            while ((file = readdir((DIR *) G.wild_dir)) !=
-                   (struct dirent *) NULL) {
+        if ((G.wild_dir = (void *) opendir(G.dirname)) != NULL) {
+            while ((file = readdir((DIR *) G.wild_dir)) != NULL) {
                 Trace((stderr, "do_wild:  readdir returns %s\n",
                        FnFilter1(file->d_name)));
                 if (file->d_name[0] == '.' && G.wildname[0] != '.')
@@ -106,7 +104,7 @@ char *do_wild(wildspec) const
             }
             /* if we get to here directory is exhausted, so close it */
             closedir((DIR *) G.wild_dir);
-            G.wild_dir = (void *) NULL;
+            G.wild_dir = NULL;
         }
         Trace((stderr, "do_wild:  opendir(%s) returns NULL\n",
                FnFilter1(G.dirname)));
@@ -119,18 +117,18 @@ char *do_wild(wildspec) const
     }
 
     /* last time through, might have failed opendir but returned raw wildspec */
-    if ((DIR *) G.wild_dir == (DIR *) NULL) {
+    if (G.wild_dir == NULL) {
         G.notfirstcall = FALSE; /* nothing left--reset for new wildspec */
         if (G.have_dirname)
             free(G.dirname);
-        return (char *) NULL;
+        return NULL;
     }
 
     /* If we've gotten this far, we've read and matched at least one entry
      * successfully (in a previous call), so dirname has been copied into
      * matchname already.
      */
-    while ((file = readdir((DIR *) G.wild_dir)) != (struct dirent *) NULL) {
+    while ((file = readdir((DIR *) G.wild_dir)) != NULL) {
         Trace((stderr, "do_wild:  readdir returns %s\n",
                FnFilter1(file->d_name)));
         if (file->d_name[0] == '.' && G.wildname[0] != '.')
@@ -147,11 +145,11 @@ char *do_wild(wildspec) const
     }
 
     closedir((DIR *) G.wild_dir); /* at least one entry read; nothing left */
-    G.wild_dir = (void *) NULL;
+    G.wild_dir = NULL;
     G.notfirstcall = FALSE; /* reset for new wildspec */
     if (G.have_dirname)
         free(G.dirname);
-    return (char *) NULL;
+    return NULL;
 }
 
 #ifndef S_ISVTX
@@ -321,10 +319,10 @@ int renamed;
  *  [also MPN_VOL_LABEL, MPN_CREATED_DIR]
  */
 {
-    char pathcomp[FILNAMSIZ];       /* path-component buffer */
-    char *pp, *cp = (char *) NULL;  /* character pointers */
-    char *lastsemi = (char *) NULL; /* pointer to last semi-colon in pathcomp */
-    int killed_ddot = FALSE;        /* is set when skipping "../" pathcomp */
+    char pathcomp[FILNAMSIZ]; /* path-component buffer */
+    char *pp, *cp = NULL;     /* character pointers */
+    char *lastsemi = NULL;    /* pointer to last semi-colon in pathcomp */
+    int killed_ddot = FALSE;  /* is set when skipping "../" pathcomp */
     int error = MPN_OK;
     register unsigned workch; /* hold the character being tested */
 
@@ -350,8 +348,8 @@ int renamed;
     pp = pathcomp;    /* point to translation buffer */
     if (G.UzO.jflag)  /* junking directories */
         cp = (char *) strrchr(G.filename, '/');
-    if (cp == (char *) NULL) /* no '/' or not junking dirs */
-        cp = G.filename;     /* point to internal zipfile-member pathname */
+    if (cp == NULL)      /* no '/' or not junking dirs */
+        cp = G.filename; /* point to internal zipfile-member pathname */
     else
         ++cp; /* point to start of last component of path */
 
@@ -376,8 +374,8 @@ int renamed;
             if (*pathcomp != '\0' && ((error = checkdir(pathcomp, APPEND_DIR)) &
                                       MPN_MASK) > MPN_INF_TRUNC)
                 return error;
-            pp = pathcomp; /* reset conversion buffer for next piece */
-            lastsemi = (char *) NULL; /* leave direct. semi-colons alone */
+            pp = pathcomp;   /* reset conversion buffer for next piece */
+            lastsemi = NULL; /* leave direct. semi-colons alone */
             break;
 
         case ';': /* VMS version (or DEC-20 attrib?) */
@@ -597,7 +595,7 @@ int flag;
         strcpy(pathcomp, G.buildpath);
         Trace((stderr, "getting and freeing path [%s]\n", FnFilter1(pathcomp)));
         free(G.buildpath);
-        G.buildpath = G.end = (char *) NULL;
+        G.buildpath = G.end = NULL;
         return MPN_OK;
     }
 
@@ -634,8 +632,7 @@ int flag;
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((G.buildpath = (char *) malloc(strlen(G.filename) + G.rootlen +
-                                           1)) == (char *) NULL)
+        if ((G.buildpath = malloc(strlen(G.filename) + G.rootlen + 1)) == NULL)
             return MPN_NOMEM;
         if ((G.rootlen > 0) && !G.renamed_fullpath) {
             strcpy(G.buildpath, G.rootpath);
@@ -660,7 +657,7 @@ int flag;
 
         Trace(
             (stderr, "initializing root path to [%s]\n", FnFilter1(pathcomp)));
-        if (pathcomp == (char *) NULL) {
+        if (pathcomp == NULL) {
             G.rootlen = 0;
             return MPN_OK;
         }
@@ -669,7 +666,7 @@ int flag;
         if ((G.rootlen = strlen(pathcomp)) <= 0) {
             return MPN_OK;
         }
-        if ((tmproot = (char *) malloc(G.rootlen + 2)) == (char *) NULL) {
+        if ((tmproot = malloc(G.rootlen + 2)) == NULL) {
             G.rootlen = 0;
             return MPN_NOMEM;
         }
@@ -703,7 +700,7 @@ int flag;
         }
         tmproot[G.rootlen++] = '/';
         tmproot[G.rootlen] = '\0';
-        if ((G.rootpath = (char *) realloc(tmproot, G.rootlen + 1)) == NULL) {
+        if ((G.rootpath = realloc(tmproot, G.rootlen + 1)) == NULL) {
             free(tmproot);
             G.rootlen = 0;
             return MPN_NOMEM;
@@ -808,7 +805,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
             return;
         }
 
-        if ((slnk_entry = (slinkentry *) malloc(slnk_entrysize)) == NULL) {
+        if ((slnk_entry = malloc(slnk_entrysize)) == NULL) {
             Info(slide, 0x201,
                  ((char *) slide,
                   "warning:  symbolic link (%s) failed: no mem\n",
@@ -927,9 +924,9 @@ direntry **pd;
 {
     uxdirattr *d_entry;
 
-    d_entry = (uxdirattr *) malloc(sizeof(uxdirattr) + strlen(G.filename));
+    d_entry = malloc(sizeof(uxdirattr) + strlen(G.filename));
     *pd = (direntry *) d_entry;
-    if (d_entry == (uxdirattr *) NULL) {
+    if (d_entry == NULL) {
         return PK_MEM;
     }
     d_entry->fn = d_entry->fnbuf;

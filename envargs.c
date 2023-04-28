@@ -44,26 +44,26 @@ const char *envstr, *envstr2;
     char **argvect;  /* copy of vector address */
 
     /* see if anything in the environment */
-    if ((envptr = getenv(envstr)) != (char *) NULL) /* usual var */
-        while (isspace(*envptr)) /* must discard leading spaces */
+    if ((envptr = getenv(envstr)) != NULL) /* usual var */
+        while (isspace(*envptr))           /* must discard leading spaces */
             envptr++;
-    if (envptr == (char *) NULL || *envptr == '\0')
-        if ((envptr = getenv(envstr2)) != (char *) NULL) /* alternate var */
+    if (envptr == NULL || *envptr == '\0')
+        if ((envptr = getenv(envstr2)) != NULL) /* alternate var */
             while (isspace(*envptr))
                 envptr++;
-    if (envptr == (char *) NULL || *envptr == '\0')
+    if (envptr == NULL || *envptr == '\0')
         return PK_OK;
 
     bufptr = malloc(1 + strlen(envptr));
-    if (bufptr == (char *) NULL)
+    if (bufptr == NULL)
         return PK_MEM;
     strcpy(bufptr, envptr);
 
     /* count the args so we can allocate room for them */
     argc = count_args(bufptr);
     /* allocate a vector large enough for all args */
-    argv = (char **) malloc((argc + *Pargc + 1) * sizeof(char *));
-    if (argv == (char **) NULL) {
+    argv = malloc((argc + *Pargc + 1) * sizeof(char *));
+    if (argv == NULL) {
         free(bufptr);
         return PK_MEM;
     }
@@ -86,7 +86,7 @@ const char *envstr, *envstr2;
                 *(bufptr++) = '\0'; /* overwrite trailing " */
 
             /* remove escape characters */
-            while ((argstart = MBSCHR(argstart, '\\')) != (char *) NULL) {
+            while ((argstart = MBSCHR(argstart, '\\')) != NULL) {
                 strcpy(argstart, argstart + 1);
                 if (*argstart)
                     ++argstart;
@@ -108,7 +108,7 @@ const char *envstr, *envstr2;
         *(argv++) = *((*Pargv)++);
 
     /* finally, add a NULL after the last arg, like Unix */
-    *argv = (char *) NULL;
+    *argv = NULL;
 
     /* save the values and return, indicating succes */
     *Pargv = argvect;

@@ -590,7 +590,7 @@ static int inflate_fixed(void)
 {
     /* if first time, set up tables for fixed blocks */
     Trace((stderr, "\nliteral block"));
-    if (G.fixed_tl == (struct huft *) NULL) {
+    if (G.fixed_tl == NULL) {
         int i;           /* temporary variable */
         unsigned l[288]; /* length list for huft_build */
 
@@ -606,7 +606,7 @@ static int inflate_fixed(void)
         G.fixed_bl = 7;
         if ((i = huft_build(l, 288, 257, G.cplens, G.cplext, &G.fixed_tl,
                             &G.fixed_bl)) != 0) {
-            G.fixed_tl = (struct huft *) NULL;
+            G.fixed_tl = NULL;
             return i;
         }
 
@@ -617,7 +617,7 @@ static int inflate_fixed(void)
         if ((i = huft_build(l, MAXDISTS, 0, cpdist, G.cpdext, &G.fixed_td,
                             &G.fixed_bd)) > 1) {
             huft_free(G.fixed_tl);
-            G.fixed_td = G.fixed_tl = (struct huft *) NULL;
+            G.fixed_td = G.fixed_tl = NULL;
             return i;
         }
     }
@@ -631,11 +631,11 @@ static int inflate_dynamic(void)
 {
     unsigned i; /* temporary variables */
     unsigned j;
-    unsigned l;                             /* last length */
-    unsigned m;                             /* mask for bit lengths table */
-    unsigned n;                             /* number of lengths to get */
-    struct huft *tl = (struct huft *) NULL; /* literal/length code table */
-    struct huft *td = (struct huft *) NULL; /* distance code table */
+    unsigned l;             /* last length */
+    unsigned m;             /* mask for bit lengths table */
+    unsigned n;             /* number of lengths to get */
+    struct huft *tl = NULL; /* literal/length code table */
+    struct huft *td = NULL; /* distance code table */
     struct huft *th; /* temp huft table pointer used in tables decoding */
     unsigned bl;     /* lookup bits for tl */
     unsigned bd;     /* lookup bits for td */
@@ -776,9 +776,9 @@ static int inflate_dynamic(void)
 
 cleanup_and_exit:
     /* free the decoding tables, return */
-    if (tl != (struct huft *) NULL)
+    if (tl != NULL)
         huft_free(tl);
-    if (td != (struct huft *) NULL)
+    if (td != NULL)
         huft_free(td);
     return retval;
 }
@@ -892,10 +892,10 @@ int is_defl64;
 
 int inflate_free()
 {
-    if (G.fixed_tl != (struct huft *) NULL) {
+    if (G.fixed_tl != NULL) {
         huft_free(G.fixed_td);
         huft_free(G.fixed_tl);
-        G.fixed_td = G.fixed_tl = (struct huft *) NULL;
+        G.fixed_td = G.fixed_tl = NULL;
     }
     return 0;
 }
@@ -954,7 +954,7 @@ unsigned *m;     /* maximum lookup bits, returns actual */
     } while (--i);
     if (c[0] == n) {
         /* null input--all zero length codes */
-        *t = (struct huft *) NULL;
+        *t = NULL;
         *m = 0;
         return 0;
     }
@@ -1000,13 +1000,13 @@ unsigned *m;     /* maximum lookup bits, returns actual */
     n = x[g]; /* set n to length of v */
 
     /* Generate the Huffman codes and for each, make the table entries */
-    x[0] = i = 0;                /* first Huffman code is zero */
-    p = v;                       /* grab values in bit order */
-    h = -1;                      /* no tables yet--level -1 */
-    w = l[-1] = 0;               /* no bits decoded yet */
-    u[0] = (struct huft *) NULL; /* just to keep compilers happy */
-    q = (struct huft *) NULL;    /* ditto */
-    z = 0;                       /* ditto */
+    x[0] = i = 0;  /* first Huffman code is zero */
+    p = v;         /* grab values in bit order */
+    h = -1;        /* no tables yet--level -1 */
+    w = l[-1] = 0; /* no bits decoded yet */
+    u[0] = NULL;   /* just to keep compilers happy */
+    q = NULL;      /* ditto */
+    z = 0;         /* ditto */
 
     /* go through the bit lengths (k already is bits in shortest code) */
     for (; k <= g; k++) {
@@ -1037,9 +1037,7 @@ unsigned *m;     /* maximum lookup bits, returns actual */
                 l[h] = j;       /* set table size in stack */
 
                 /* allocate and link in new table */
-                if ((q = (struct huft *) malloc((z + 1) *
-                                                sizeof(struct huft))) ==
-                    (struct huft *) NULL) {
+                if ((q = malloc((z + 1) * sizeof(struct huft))) == NULL) {
                     if (h)
                         huft_free(u[0]);
                     return 3; /* not enough memory */
@@ -1048,7 +1046,7 @@ unsigned *m;     /* maximum lookup bits, returns actual */
                 G.hufts += z + 1; /* track memory usage */
 #endif
                 *t = q + 1; /* link to list for huft_free() */
-                *(t = &(q->v.t)) = (struct huft *) NULL;
+                *(t = &(q->v.t)) = NULL;
                 u[h] = ++q; /* table starts after link */
 
                 /* connect to last table, if there is one */
@@ -1107,7 +1105,7 @@ struct huft *t; /* table to free */
 
     /* Go through linked list, freeing from the malloced (t[-1]) address. */
     p = t;
-    while (p != (struct huft *) NULL) {
+    while (p != NULL) {
         q = (--p)->v.t;
         free((void *) p);
         p = q;

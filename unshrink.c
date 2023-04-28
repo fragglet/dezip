@@ -103,7 +103,7 @@ int unshrink()
     /* non-memory-limited machines:  allocate second (large) buffer for
      * textmode conversion in flush(), but only if needed */
     if (G.pInfo->textmode && !G.outbuf2 &&
-        (G.outbuf2 = (uch *) malloc(TRANSBUFSIZ)) == (uch *) NULL)
+        (G.outbuf2 = malloc(TRANSBUFSIZ)) == NULL)
         return PK_MEM3;
 
     for (code = 0; code < BOGUSCODE; ++code) {

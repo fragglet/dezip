@@ -304,8 +304,7 @@ int extract_or_test_files(void) /* return PK-type error code */
     ulg num_skipped = 0L, num_bad_pwd = 0L;
     off_t old_extra_bytes = 0L;
     unsigned num_dirs = 0;
-    direntry *dirlist = (direntry *) NULL,
-             **sorted_dirlist = (direntry **) NULL;
+    direntry *dirlist = NULL, **sorted_dirlist = NULL;
 
     /*
      * First, two general initializations are applied. These have been moved
@@ -321,11 +320,11 @@ int extract_or_test_files(void) /* return PK-type error code */
     }
 
     /* b) check out if specified extraction root directory exists */
-    if (G.UzO.exdir != (char *) NULL && G.extract_flag) {
+    if (G.UzO.exdir != NULL && G.extract_flag) {
         G.create_dirs = !G.UzO.fflag;
         if ((error = checkdir(G.UzO.exdir, ROOT)) > MPN_INF_SKIP) {
             /* out of memory, or file in way */
-            return (error == MPN_NOMEM ? PK_MEM : PK_ERR);
+            return error == MPN_NOMEM ? PK_MEM : PK_ERR;
         }
     }
 
@@ -386,12 +385,12 @@ int extract_or_test_files(void) /* return PK-type error code */
     G.reported_backslash = FALSE;
 
     /* malloc space for check on unmatched filespecs (OK if one or both NULL) */
-    if (G.filespecs > 0 && (fn_matched = (int *) malloc(
-                                G.filespecs * sizeof(int))) != (int *) NULL)
+    if (G.filespecs > 0 &&
+        (fn_matched = malloc(G.filespecs * sizeof(int))) != NULL)
         for (i = 0; i < G.filespecs; ++i)
             fn_matched[i] = FALSE;
-    if (G.xfilespecs > 0 && (xn_matched = (int *) malloc(
-                                 G.xfilespecs * sizeof(int))) != (int *) NULL)
+    if (G.xfilespecs > 0 &&
+        (xn_matched = malloc(G.xfilespecs * sizeof(int))) != NULL)
         for (i = 0; i < G.xfilespecs; ++i)
             xn_matched[i] = FALSE;
 
@@ -607,10 +606,10 @@ int extract_or_test_files(void) /* return PK-type error code */
       ---------------------------------------------------------------------------*/
 
     if (num_dirs > 0) {
-        sorted_dirlist = (direntry **) malloc(num_dirs * sizeof(direntry *));
-        if (sorted_dirlist == (direntry **) NULL) {
+        sorted_dirlist = malloc(num_dirs * sizeof(direntry *));
+        if (sorted_dirlist == NULL) {
             Info(slide, 0x401, ((char *) slide, DirlistSortNoMem));
-            while (dirlist != (direntry *) NULL) {
+            while (dirlist != NULL) {
                 direntry *d = dirlist;
 
                 dirlist = dirlist->next;
@@ -1028,7 +1027,7 @@ int error_in_archive;
          * extra field, so that a UTF-8 entry name e.f. block has already
          * been processed.
          */
-        if (G.pInfo->cfilname != (char *) NULL &&
+        if (G.pInfo->cfilname != NULL &&
             strcmp(G.pInfo->cfilname, G.filename) != 0) {
 #define cFile_PrintBuf G.pInfo->cfilname
             Info(slide, 0x401,
@@ -1149,7 +1148,7 @@ int error_in_archive;
                     direntry *d_entry;
 
                     error = defer_dir_attribs(&d_entry);
-                    if (d_entry == (direntry *) NULL) {
+                    if (d_entry == NULL) {
                         /* There may be no dir_attribs info available, or
                          * we have encountered a mem allocation error.
                          * In case of an error, report it and set program
@@ -1204,8 +1203,7 @@ int error_in_archive;
             reprompt:
                 Info(slide, 0x81,
                      ((char *) slide, ReplaceQuery, FnFilter1(G.filename)));
-                if (fgets(G.answerbuf, sizeof(G.answerbuf), stdin) ==
-                    (char *) NULL) {
+                if (fgets(G.answerbuf, sizeof(G.answerbuf), stdin) == NULL) {
                     Info(slide, 1, ((char *) slide, AssumeNone));
                     *G.answerbuf = 'N';
                     if (!error_in_archive)
@@ -1771,7 +1769,7 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
         (eb_size != compr_offset + EB_CMPRHEADLEN + eb_ucsize))
         return PK_ERR;
 
-    if ((eb_ucptr = (uch *) malloc((size_t) eb_ucsize)) == (uch *) NULL)
+    if ((eb_ucptr = malloc((size_t) eb_ucsize)) == NULL)
         return PK_MEM4;
 
     r = memextract(eb_ucptr, eb_ucsize, eb + (EB_HEADSIZE + compr_offset),
@@ -1872,7 +1870,7 @@ static void set_deferred_symlink(slinkentry *slnk_entry)
 {
     size_t ucsize = slnk_entry->targetlen;
     char *linkfname = slnk_entry->fname;
-    char *linktarget = (char *) malloc(ucsize + 1);
+    char *linktarget = malloc(ucsize + 1);
 
     if (!linktarget) {
         Info(slide, 0x201,

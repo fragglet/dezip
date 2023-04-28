@@ -471,7 +471,7 @@ int explode()
         }
     } else {
         /* No literal tree--minimum match length is 2 */
-        tb = (struct huft *) NULL;
+        tb = NULL;
         if ((r = get_tree(l, 64)) != 0)
             return (int) r;
         if ((r = huft_build(l, 64, 0, cplen2, extra, &tl, &bl)) != 0) {
@@ -483,7 +483,7 @@ int explode()
 
     if ((r = get_tree(l, 64)) != 0) {
         huft_free(tl);
-        if (tb != (struct huft *) NULL)
+        if (tb != NULL)
             huft_free(tb);
         return (int) r;
     }
@@ -500,7 +500,7 @@ int explode()
         if (r == 1)
             huft_free(td);
         huft_free(tl);
-        if (tb != (struct huft *) NULL)
+        if (tb != NULL)
             huft_free(tb);
         return (int) r;
     }

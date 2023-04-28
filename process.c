@@ -100,7 +100,7 @@ static const char UFilenameTooLongTrunc[] =
 
 int process_zipfiles() /* return PK-type error code */
 {
-    char *lastzipfn = (char *) NULL;
+    char *lastzipfn = NULL;
     int NumWinFiles, NumLoseFiles, NumWarnFiles;
     int NumMissDirs, NumMissFiles;
     int error = 0, error_in_archive = 0;
@@ -110,10 +110,10 @@ int process_zipfiles() /* return PK-type error code */
       signature strings.
       ---------------------------------------------------------------------------*/
 
-    G.inbuf = (uch *) malloc(INBUFSIZ + 4);   /* 4 extra for hold[] (below) */
-    G.outbuf = (uch *) malloc(OUTBUFSIZ + 1); /* 1 extra for string term. */
+    G.inbuf = malloc(INBUFSIZ + 4);   /* 4 extra for hold[] (below) */
+    G.outbuf = malloc(OUTBUFSIZ + 1); /* 1 extra for string term. */
 
-    if ((G.inbuf == (uch *) NULL) || (G.outbuf == (uch *) NULL)) {
+    if (G.inbuf == NULL || G.outbuf == NULL) {
         Info(slide, 0x401, ((char *) slide, CannotAllocateBuffers));
         return (PK_MEM);
     }
@@ -169,7 +169,7 @@ int process_zipfiles() /* return PK-type error code */
     NumWinFiles = NumLoseFiles = NumWarnFiles = 0;
     NumMissDirs = NumMissFiles = 0;
 
-    while ((G.zipfn = do_wild(G.wildzipfn)) != (char *) NULL) {
+    while ((G.zipfn = do_wild(G.wildzipfn)) != NULL) {
         Trace((stderr, "do_wild( %s ) returns %s\n", G.wildzipfn, G.zipfn));
 
         lastzipfn = G.zipfn;
@@ -198,7 +198,7 @@ int process_zipfiles() /* return PK-type error code */
     } /* end while-loop (wildcard zipfiles) */
 
     if ((NumWinFiles + NumWarnFiles + NumLoseFiles) == 0 &&
-        (NumMissDirs + NumMissFiles) == 1 && lastzipfn != (char *) NULL) {
+        (NumMissDirs + NumMissFiles) == 1 && lastzipfn != NULL) {
         /* 2005-08-14 Chr. Spieler
          * Although we already "know" the failure result, we call
          * do_seekable() again with the same zipfile name (and the
@@ -292,28 +292,28 @@ void free_G_buffers() /* releases all memory allocated in global vars */
     unsigned i;
 
     inflate_free();
-    checkdir((char *) NULL, END);
+    checkdir(NULL, END);
 
     free(G.key);
-    G.key = (char *) NULL;
+    G.key = NULL;
 
     free(G.extra_field);
-    G.extra_field = (uch *) NULL;
+    G.extra_field = NULL;
 
     free(G.outbuf2); /* malloc'd ONLY if unshrink and -a */
-    G.outbuf2 = (uch *) NULL;
+    G.outbuf2 = NULL;
 
     free(G.outbuf);
     free(G.inbuf);
-    G.inbuf = G.outbuf = (uch *) NULL;
+    G.inbuf = G.outbuf = NULL;
 
     free(G.filename_full);
-    G.filename_full = (char *) NULL;
+    G.filename_full = NULL;
     G.fnfull_bufsize = 0;
 
     for (i = 0; i < DIR_BLKSIZ; i++) {
         free(G.info[i].cfilname);
-        G.info[i].cfilname = (char *) NULL;
+        G.info[i].cfilname = NULL;
     }
 
     /* Free the cover span list and the cover structure. */
@@ -1549,7 +1549,7 @@ int escape_all;
     if (max_bytes < MAX_ESCAPE_BYTES)
         max_bytes = MAX_ESCAPE_BYTES;
     buffer_size = wsize * max_bytes + 1; /* Reused below. */
-    if ((buffer = (char *) malloc(buffer_size)) == NULL) {
+    if ((buffer = malloc(buffer_size)) == NULL) {
         return NULL;
     }
 
@@ -1604,7 +1604,7 @@ int escape_all;
             free(escape_string);
         }
     }
-    if ((local_string = (char *) malloc(strlen(buffer) + 1)) != NULL) {
+    if ((local_string = malloc(strlen(buffer) + 1)) != NULL) {
         strcpy(local_string, buffer);
     }
     free(buffer);
@@ -1639,8 +1639,7 @@ zwchar *utf8_to_wide_string(utf8_string) const char *utf8_string;
     wcount = utf8_to_ucs4_string(utf8_string, NULL, 0);
     if (wcount == -1)
         return NULL;
-    if ((wide_string = (zwchar *) malloc((wcount + 1) * sizeof(zwchar))) ==
-        NULL) {
+    if ((wide_string = malloc((wcount + 1) * sizeof(zwchar))) == NULL) {
         return NULL;
     }
     wcount = utf8_to_ucs4_string(utf8_string, wide_string, wcount + 1);

@@ -166,7 +166,7 @@ char *argv[];
 
     codeset = nl_langinfo(CODESET);
     /* is the current codeset UTF-8 ? */
-    if ((codeset != NULL) && (strcmp(codeset, "UTF-8") == 0)) {
+    if (codeset != NULL && strcmp(codeset, "UTF-8") == 0) {
         /* successfully found UTF-8 char coding */
         G.native_is_utf8 = TRUE;
     } else {
@@ -276,12 +276,12 @@ char *argv[];
                 int firstarg = (pp == argv);
 
                 G.UzO.exdir = (*pp) + 2;
-                if (in_files) {          /* ... zipfile ... -d exdir ... */
-                    *pp = (char *) NULL; /* terminate G.pfnames */
+                if (in_files) { /* ... zipfile ... -d exdir ... */
+                    *pp = NULL; /* terminate G.pfnames */
                     G.filespecs = pp - G.pfnames;
                     in_files = FALSE;
                 } else if (in_xfiles) {
-                    *pp = (char *) NULL; /* terminate G.pxnames */
+                    *pp = NULL; /* terminate G.pxnames */
                     G.xfilespecs = pp - G.pxnames;
                     /* "... -x xlist -d exdir":  nothing left */
                 }
@@ -330,7 +330,7 @@ char *argv[];
     } else
         G.process_all_files = TRUE; /* for speed */
 
-    if (G.UzO.exdir != (char *) NULL && !G.extract_flag) /* -d ignored */
+    if (G.UzO.exdir != NULL && !G.extract_flag) /* -d ignored */
         Info(slide, 0x401,
              ((char *) slide, "caution:  not extracting; -d ignored\n"));
 
@@ -403,7 +403,7 @@ char ***pargv;
                     Info(slide, 0x401, ((char *) slide, MustGiveExdir));
                     return (PK_PARAM); /* don't extract here by accident */
                 }
-                if (G.UzO.exdir != (char *) NULL) {
+                if (G.UzO.exdir != NULL) {
                     Info(slide, 0x401,
                          ((char *) slide,
                           "error:  -d option "
