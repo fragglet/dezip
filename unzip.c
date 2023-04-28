@@ -187,30 +187,6 @@ char *argv[];
     G.unipath_checksum = 0;
     G.unipath_filename = NULL;
 
-#ifdef MALLOC_WORK
-    /* The following (rather complex) expression determines the allocation
-       size of the decompression work area.  It simulates what the
-       combined "union" and "struct" declaration of the "static" work
-       area reservation achieves automatically at compile time.
-       Any decent compiler should evaluate this expression completely at
-       compile time and provide constants to the zcalloc() call.
-       (For better readability, some subexpressions are encapsulated
-       in temporarly defined macros.)
-     */
-#define UZ_SLIDE_CHUNK (sizeof(shrint) + sizeof(uch) + sizeof(uch))
-#define UZ_NUMOF_CHUNKS                                                 \
-    (unsigned) (((WSIZE + UZ_SLIDE_CHUNK - 1) / UZ_SLIDE_CHUNK > HSIZE) \
-                    ? (WSIZE + UZ_SLIDE_CHUNK - 1) / UZ_SLIDE_CHUNK     \
-                    : HSIZE)
-    G.area.Slide = (uch *) zcalloc(UZ_NUMOF_CHUNKS, UZ_SLIDE_CHUNK);
-#undef UZ_SLIDE_CHUNK
-#undef UZ_NUMOF_CHUNKS
-    G.area.shrink.Parent = (shrint *) G.area.Slide;
-    G.area.shrink.value = G.area.Slide + (sizeof(shrint) * (HSIZE));
-    G.area.shrink.Stack =
-        G.area.Slide + (sizeof(shrint) + sizeof(uch)) * (HSIZE);
-#endif
-
     /* Set signal handler for restoring echo */
     signal(SIGINT, signal_handler);
     signal(SIGABRT, signal_handler);
@@ -369,12 +345,6 @@ char *argv[];
     retcode = process_zipfiles();
 
 cleanup_and_exit:
-#if (defined(MALLOC_WORK) && !defined(REENTRANT))
-    if (G.area.Slide != (uch *) NULL) {
-        free(G.area.Slide);
-        G.area.Slide = (uch *) NULL;
-    }
-#endif
     return (retcode);
 }
 

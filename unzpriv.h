@@ -138,14 +138,6 @@ char *plastchar(const char *ptr, size_t len);
 #endif /* ?_MBCS */
 #define INCSTR(ptr) PREINCSTR(ptr)
 
-#if (defined(MALLOC_WORK) && !defined(MY_ZCALLOC))
-/* Any system without a special calloc function */
-#ifndef zcalloc
-#define zcalloc(items, size) \
-    (void *) calloc((unsigned) (items), (unsigned) (size))
-#endif
-#endif /* MALLOC_WORK && !MY_ZCALLOC */
-
 #define memzero(dest, len) memset(dest, 0, len)
 
 #ifndef TRUE
@@ -511,16 +503,6 @@ typedef struct min_info {
     Zipfile work area declarations.
   ---------------------------------------------------------------------------*/
 
-#ifdef MALLOC_WORK
-union work {
-    struct {            /* unshrink(): */
-        shrint *Parent; /* pointer to (8192 * sizeof(shrint)) */
-        uch *value;     /* pointer to 8KB char buffer */
-        uch *Stack;     /* pointer to another 8KB char buffer */
-    } shrink;
-    uch *Slide; /* explode(), inflate(), unreduce() */
-};
-#else  /* !MALLOC_WORK */
 union work {
     struct {                  /* unshrink(): */
         shrint Parent[HSIZE]; /* (8192 * sizeof(shrint)) == 16KB minimum */
@@ -529,7 +511,6 @@ union work {
     } shrink;                 /* total = 32KB minimum; 80KB on Cray/Alpha */
     uch Slide[WSIZE];         /* explode(), inflate(), unreduce() */
 };
-#endif /* ?MALLOC_WORK */
 
 #define slide G.area.Slide
 

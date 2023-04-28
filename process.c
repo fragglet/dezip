@@ -328,13 +328,6 @@ void free_G_buffers() /* releases all memory allocated in global vars */
         }
     }
 
-#ifdef MALLOC_WORK
-    if (G.area.Slide) {
-        free(G.area.Slide);
-        G.area.Slide = (uch *) NULL;
-    }
-#endif
-
     /* Free the cover span list and the cover structure. */
     if (G.cover != NULL) {
         free(*(G.cover));
