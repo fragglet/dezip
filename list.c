@@ -132,10 +132,9 @@ int list_files() /* return PK-type error code */
             if (error > PK_WARN) /* fatal:  can't continue */
                 return error;
         }
-        if (G.extra_field != (uch *) NULL) {
-            free(G.extra_field);
-            G.extra_field = (uch *) NULL;
-        }
+        free(G.extra_field);
+        G.extra_field = (uch *) NULL;
+
         if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal */
@@ -388,10 +387,9 @@ ulg *nmember;
             if (error > PK_WARN) /* fatal:  can't continue */
                 return error;
         }
-        if (G.extra_field != (uch *) NULL) {
-            free(G.extra_field);
-            G.extra_field = (uch *) NULL;
-        }
+        free(G.extra_field);
+        G.extra_field = (uch *) NULL;
+
         if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal */

@@ -294,46 +294,34 @@ void free_G_buffers() /* releases all memory allocated in global vars */
     inflate_free();
     checkdir((char *) NULL, END);
 
-    if (G.key != (char *) NULL) {
-        free(G.key);
-        G.key = (char *) NULL;
-    }
+    free(G.key);
+    G.key = (char *) NULL;
 
-    if (G.extra_field != (uch *) NULL) {
-        free(G.extra_field);
-        G.extra_field = (uch *) NULL;
-    }
+    free(G.extra_field);
+    G.extra_field = (uch *) NULL;
 
-    if (G.outbuf2) {
-        free(G.outbuf2); /* malloc'd ONLY if unshrink and -a */
-        G.outbuf2 = (uch *) NULL;
-    }
+    free(G.outbuf2); /* malloc'd ONLY if unshrink and -a */
+    G.outbuf2 = (uch *) NULL;
 
-    if (G.outbuf)
-        free(G.outbuf);
-    if (G.inbuf)
-        free(G.inbuf);
+    free(G.outbuf);
+    free(G.inbuf);
     G.inbuf = G.outbuf = (uch *) NULL;
 
-    if (G.filename_full) {
-        free(G.filename_full);
-        G.filename_full = (char *) NULL;
-        G.fnfull_bufsize = 0;
-    }
+    free(G.filename_full);
+    G.filename_full = (char *) NULL;
+    G.fnfull_bufsize = 0;
 
     for (i = 0; i < DIR_BLKSIZ; i++) {
-        if (G.info[i].cfilname != (char *) NULL) {
-            free(G.info[i].cfilname);
-            G.info[i].cfilname = (char *) NULL;
-        }
+        free(G.info[i].cfilname);
+        G.info[i].cfilname = (char *) NULL;
     }
 
     /* Free the cover span list and the cover structure. */
     if (G.cover != NULL) {
-        free(*(G.cover));
-        free(G.cover);
-        G.cover = NULL;
+        free(*G.cover);
     }
+    free(G.cover);
+    G.cover = NULL;
 }
 
 static int do_seekable(lastchance) /* return PK-type error code */

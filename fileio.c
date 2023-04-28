@@ -565,9 +565,7 @@ const char *efn; /* name of archive entry being processed */
     }
 
     m = getp(m, pwbuf, size);
-    if (prompt != (char *) NULL) {
-        free(prompt);
-    }
+    free(prompt);
     if (m == (char *) NULL) {
         r = IZ_PW_ERROR;
     } else if (*pwbuf == '\0') {
@@ -802,8 +800,7 @@ int option;
 
             if (fnbufsiz <= length)
                 fnbufsiz = length + 1;
-            if (G.filename_full)
-                free(G.filename_full);
+            free(G.filename_full);
             G.filename_full = malloc(fnbufsiz);
             if (G.filename_full == NULL)
                 return PK_MEM;
@@ -868,8 +865,7 @@ int option;
          */
 
     case EXTRA_FIELD:
-        if (G.extra_field != (uch *) NULL)
-            free(G.extra_field);
+        free(G.extra_field);
         if ((G.extra_field = (uch *) malloc(length)) == (uch *) NULL) {
             Info(slide, 0x401, ((char *) slide, ExtraFieldTooLong, length));
             /* cur_zipfile_bufstart already takes account of extra_bytes,

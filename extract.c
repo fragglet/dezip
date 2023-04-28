@@ -659,26 +659,23 @@ int extract_or_test_files(void) /* return PK-type error code */
         scan was interrupted prematurely.)
       ---------------------------------------------------------------------------*/
 
-    if (fn_matched) {
-        if (reached_end)
-            for (i = 0; i < G.filespecs; ++i)
-                if (!fn_matched[i]) {
-                    Info(slide, 1,
-                         ((char *) slide, FilenameNotMatched, G.pfnames[i]));
-                    if (error_in_archive <= PK_WARN)
-                        error_in_archive = PK_FIND; /* some files not found */
-                }
-        free((void *) fn_matched);
+    if (fn_matched && reached_end) {
+        for (i = 0; i < G.filespecs; ++i)
+            if (!fn_matched[i]) {
+                Info(slide, 1,
+                     ((char *) slide, FilenameNotMatched, G.pfnames[i]));
+                if (error_in_archive <= PK_WARN)
+                    error_in_archive = PK_FIND; /* some files not found */
+            }
     }
-    if (xn_matched) {
-        if (reached_end)
-            for (i = 0; i < G.xfilespecs; ++i)
-                if (!xn_matched[i])
-                    Info(
-                        slide, 0x401,
-                        ((char *) slide, ExclFilenameNotMatched, G.pxnames[i]));
-        free((void *) xn_matched);
+    free(fn_matched);
+    if (xn_matched && reached_end) {
+        for (i = 0; i < G.xfilespecs; ++i)
+            if (!xn_matched[i])
+                Info(slide, 0x401,
+                     ((char *) slide, ExclFilenameNotMatched, G.pxnames[i]));
     }
+    free(xn_matched);
 
     /*---------------------------------------------------------------------------
         Now, all locally allocated memory has been released.  When the central
@@ -1014,10 +1011,9 @@ int error_in_archive;
                 continue; /* go on to next one */
             }
         }
-        if (G.extra_field != (uch *) NULL) {
-            free(G.extra_field);
-            G.extra_field = (uch *) NULL;
-        }
+        free(G.extra_field);
+        G.extra_field = NULL;
+
         if ((error = do_string(G.lrec.extra_field_length, EXTRA_FIELD)) != 0) {
             if (error > error_in_archive)
                 error_in_archive = error;
@@ -1032,20 +1028,19 @@ int error_in_archive;
          * extra field, so that a UTF-8 entry name e.f. block has already
          * been processed.
          */
-        if (G.pInfo->cfilname != (char *) NULL) {
-            if (strcmp(G.pInfo->cfilname, G.filename) != 0) {
+        if (G.pInfo->cfilname != (char *) NULL &&
+            strcmp(G.pInfo->cfilname, G.filename) != 0) {
 #define cFile_PrintBuf G.pInfo->cfilname
-                Info(slide, 0x401,
-                     ((char *) slide, LvsCFNamMsg, FnFilter2(cFile_PrintBuf),
-                      FnFilter1(G.filename)));
+            Info(slide, 0x401,
+                 ((char *) slide, LvsCFNamMsg, FnFilter2(cFile_PrintBuf),
+                  FnFilter1(G.filename)));
 #undef cFile_PrintBuf
-                strcpy(G.filename, G.pInfo->cfilname);
-                if (error_in_archive < PK_WARN)
-                    error_in_archive = PK_WARN;
-            }
-            free(G.pInfo->cfilname);
-            G.pInfo->cfilname = (char *) NULL;
+            strcpy(G.filename, G.pInfo->cfilname);
+            if (error_in_archive < PK_WARN)
+                error_in_archive = PK_WARN;
         }
+        free(G.pInfo->cfilname);
+        G.pInfo->cfilname = NULL;
         /* Size consistency checks must come after reading in the local extra
          * field, so that any Zip64 extension local e.f. block has already
          * been processed.

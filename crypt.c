@@ -141,9 +141,9 @@ int decrypt(passwrd) const char *passwrd;
                 strcpy(G.key, passwrd);
                 G.nopwd = TRUE; /* inhibit password prompting! */
             }
-        } else if (G.key) { /* get rid of previous zipfile's key */
+        } else { /* get rid of previous zipfile's key */
             free(G.key);
-            G.key = (char *) NULL;
+            G.key = NULL;
         }
     }
 

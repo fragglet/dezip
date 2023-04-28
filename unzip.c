@@ -523,15 +523,13 @@ char ***pargv;
                 if (*G.UzO.pwdarg == '\0') {
                     if (argc <= 1) {
                         /* pwdarg points at decryption password */
-                        Info(slide, 0x401,
-                             ((char *) slide, MustGivePasswd));
+                        Info(slide, 0x401, ((char *) slide, MustGivePasswd));
                         return (PK_PARAM);
                     }
                     --argc;
                     G.UzO.pwdarg = *++argv;
                     if (*G.UzO.pwdarg == '-') {
-                        Info(slide, 0x401,
-                             ((char *) slide, MustGivePasswd));
+                        Info(slide, 0x401, ((char *) slide, MustGivePasswd));
                         return (PK_PARAM);
                     }
                 }
