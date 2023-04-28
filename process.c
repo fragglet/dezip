@@ -989,7 +989,8 @@ static int process_zip_cmmnt() /* return PK-type error code */
       ---------------------------------------------------------------------------*/
 
     if (G.ecrec.zipfile_comment_length &&
-        (G.UzO.zflag > 0 || (G.UzO.zflag == 0 && !G.UzO.T_flag && !G.UzO.qflag))) {
+        (G.UzO.zflag > 0 ||
+         (G.UzO.zflag == 0 && !G.UzO.T_flag && !G.UzO.qflag))) {
         if (do_string(G.ecrec.zipfile_comment_length, DISPLAY)) {
             Info(slide, 0x401, ((char *) slide, ZipfileCommTrunc1));
             error = PK_WARN;

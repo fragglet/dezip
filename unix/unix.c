@@ -745,10 +745,10 @@ ulg z_uidgid[2];
     unsigned eb_izux_flg;
 
     eb_izux_flg =
-        (G.extra_field
-             ? ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
-                                G.lrec.last_mod_dos_datetime, pzt, z_uidgid)
-             : 0);
+        G.extra_field
+            ? ef_scan_for_izux(G.extra_field, G.lrec.extra_field_length, 0,
+                               G.lrec.last_mod_dos_datetime, pzt, z_uidgid)
+            : 0;
     if (eb_izux_flg & EB_UT_FL_MTIME) {
         TTrace((stderr, "\nget_extattribs:  Unix e.f. modif. time = %ld\n",
                 pzt->mtime));
@@ -765,7 +765,7 @@ ulg z_uidgid[2];
     }
 
     /* if -X option was specified and we have UID/GID info, restore it */
-    have_uidgid_flg = (G.UzO.X_flag && (eb_izux_flg & EB_UX2_VALID));
+    have_uidgid_flg = G.UzO.X_flag && (eb_izux_flg & EB_UX2_VALID);
     return have_uidgid_flg;
 }
 
