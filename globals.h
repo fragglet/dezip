@@ -98,9 +98,9 @@ struct globals {
     ulg unipath_checksum;   /* Unicode field checksum */
     char *unipath_filename; /* UTF-8 path */
 
-    char *key;       /* crypt static: decryption password or NULL */
-    int nopwd;       /* crypt static */
-    z_uint4 keys[3]; /* crypt static: keys defining pseudo-random sequence */
+    char *key;        /* crypt static: decryption password or NULL */
+    int nopwd;        /* crypt static */
+    uint32_t keys[3]; /* crypt static: keys defining pseudo-random sequence */
 
     int echofd; /* ttyio static: file descriptor whose echo is off */
 

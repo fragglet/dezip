@@ -403,35 +403,6 @@ char *plastchar(const char *ptr, size_t len);
 /*  Typedefs  */
 /**************/
 
-#ifndef Z_UINT8_DEFINED
-#ifdef __GNUC__
-typedef unsigned long long z_uint8;
-#else
-typedef unsigned __int64 z_uint8;
-#endif
-#define Z_UINT8_DEFINED
-#endif
-#ifndef Z_UINT4_DEFINED
-#if (defined(UINT_MAX) && (UINT_MAX == 0xffffffffUL))
-typedef unsigned int z_uint4;
-#define Z_UINT4_DEFINED
-#else
-#if (defined(ULONG_MAX) && (ULONG_MAX == 0xffffffffUL))
-typedef unsigned long z_uint4;
-#define Z_UINT4_DEFINED
-#else
-#if (defined(USHRT_MAX) && (USHRT_MAX == 0xffffffffUL))
-typedef unsigned short z_uint4;
-#define Z_UINT4_DEFINED
-#endif
-#endif
-#endif
-#endif /* !Z_UINT4_DEFINED */
-#ifndef Z_UINT4_DEFINED
-typedef ulg z_uint4;
-#define Z_UINT4_DEFINED
-#endif
-
 /* The following three user-defined unsigned integer types are used for
    holding zipfile entities (required widths without / with Zip64 support):
    a) sizes and offset of zipfile entries
@@ -444,11 +415,11 @@ typedef ulg z_uint4;
    c) enumeration and counts of zipfile volumes of multivolume archives
       (2 bytes / 4 bytes)
  */
-typedef z_uint8 zusz_t; /* zipentry sizes & offsets */
-typedef z_uint8 zucn_t; /* archive entry counts */
-typedef z_uint4 zuvl_t; /* multivolume numbers */
+typedef uint64_t zusz_t; /* zipentry sizes & offsets */
+typedef uint64_t zucn_t; /* archive entry counts */
+typedef uint32_t zuvl_t; /* multivolume numbers */
 #define MASK_ZUCN64 (~(zucn_t) 0)
-/* In case we ever get to support an environment where z_uint8 may be WIDER
+/* In case we ever get to support an environment where uint64_t may be WIDER
    than 64 bit wide, we will have to apply a construct similar to
      #define MASK_ZUCN64        (~(zucn_t)0 & (zucn_t)0xffffffffffffffffULL)
    for the 64-bit mask.

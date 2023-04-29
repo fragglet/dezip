@@ -135,7 +135,7 @@ ulg crc;                     /* crc shift register */
 register const uint8_t *buf; /* pointer to bytes to pump through */
 size_t len;                  /* number of bytes in buf[] */
 {
-    register z_uint4 c;
+    register uint32_t c;
     register const ulg *crc_32_tab;
 
     if (buf == NULL)
@@ -143,7 +143,7 @@ size_t len;                  /* number of bytes in buf[] */
 
     crc_32_tab = get_crc_table();
 
-    c = (REV_BE((z_uint4) crc) ^ 0xffffffffL);
+    c = (REV_BE((uint32_t) crc) ^ 0xffffffffL);
 
     if (len)
         do {
