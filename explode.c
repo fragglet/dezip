@@ -237,7 +237,7 @@ struct huft *tb, *tl, *td; /* literal, length, and distance tables */
 unsigned bb, bl, bd;       /* number of bits decoded by those */
 unsigned bdl;              /* number of distance low bits */
 {
-    zusz_t s;            /* bytes to decompress */
+    uint64_t s;          /* bytes to decompress */
     register unsigned e; /* table entry flag/number of extra bits */
     unsigned n, d;       /* length and index for copy */
     unsigned w;          /* current window position */
@@ -289,7 +289,7 @@ unsigned bdl;              /* number of distance low bits */
             }
 
             /* do the copy */
-            s = (s > (zusz_t) n ? s - (zusz_t) n : 0);
+            s = (s > (uint64_t) n ? s - (uint64_t) n : 0);
             do {
                 e = wszimpl - ((d &= wszimpl - 1) > w ? d : w);
                 if (e > n)
@@ -331,7 +331,7 @@ struct huft *tl, *td; /* length and distance decoder tables */
 unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
 unsigned bdl;         /* number of distance low bits */
 {
-    zusz_t s;            /* bytes to decompress */
+    uint64_t s;          /* bytes to decompress */
     register unsigned e; /* table entry flag/number of extra bits */
     unsigned n, d;       /* length and index for copy */
     unsigned w;          /* current window position */
@@ -383,7 +383,7 @@ unsigned bdl;         /* number of distance low bits */
             }
 
             /* do the copy */
-            s = (s > (zusz_t) n ? s - (zusz_t) n : 0);
+            s = (s > (uint64_t) n ? s - (uint64_t) n : 0);
             do {
                 e = wszimpl - ((d &= wszimpl - 1) > w ? d : w);
                 if (e > n)

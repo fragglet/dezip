@@ -301,7 +301,7 @@ int extract_or_test_files(void) /* return PK-type error code */
     int no_endsig_found;
     int error, error_in_archive = PK_COOL;
     int *fn_matched = NULL, *xn_matched = NULL;
-    zucn_t members_processed;
+    uint64_t members_processed;
     ulg num_skipped = 0L, num_bad_pwd = 0L;
     off_t old_extra_bytes = 0L;
     unsigned num_dirs = 0;
@@ -1046,7 +1046,7 @@ int error_in_archive;
          * been processed.
          */
         if (G.lrec.compression_method == STORED) {
-            zusz_t csiz_decrypted = G.lrec.csize;
+            uint64_t csiz_decrypted = G.lrec.csize;
 
             if (G.pInfo->encrypted) {
                 if (csiz_decrypted < 12) {
@@ -1392,7 +1392,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
             break;
         }
         if (r == 5) { /* treat 5 specially */
-            int warning = (zusz_t) G.used_csize <= G.lrec.csize;
+            int warning = (uint64_t) G.used_csize <= G.lrec.csize;
 
             if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                 Info(slide, 0x401,
@@ -2074,11 +2074,12 @@ int UZbunzip2(void)
         bstrm.avail_out = WSIZE;
     }
 #ifdef LARGE_FILE_SUPPORT
-    Trace((stderr, "total in = %llu, total out = %llu\n",
-           (zusz_t) (bstrm.total_in_lo32) + ((zusz_t) (bstrm.total_in_hi32))
-               << 32,
-           (zusz_t) (bstrm.total_out_lo32) + ((zusz_t) (bstrm.total_out_hi32))
-               << 32));
+    Trace(
+        (stderr, "total in = %llu, total out = %llu\n",
+         (uint64_t) (bstrm.total_in_lo32) + ((uint64_t) (bstrm.total_in_hi32))
+             << 32,
+         (uint64_t) (bstrm.total_out_lo32) + ((uint64_t) (bstrm.total_out_hi32))
+             << 32));
 #else
     Trace((stderr, "total in = %lu, total out = %lu\n", bstrm.total_in_lo32,
            bstrm.total_out_lo32));

@@ -43,12 +43,12 @@ int list_files() /* return PK-type error code */
     int date_format;
     char dt_sepchar;
     ulg members = 0L;
-    zusz_t j;
+    uint64_t j;
     unsigned methnum;
     iztimes z_utime;
     struct tm *t;
     unsigned yr, mo, dy, hh, mm;
-    zusz_t csiz, tot_csize = 0L, tot_ucsize = 0L;
+    uint64_t csiz, tot_csize = 0L, tot_ucsize = 0L;
     min_info info;
     char methbuf[8];
     static const char dtype[] = "NXFS"; /* see zi_short() */
@@ -458,9 +458,9 @@ ulg *nmember;
 }
 
 int ratio(uc, c)
-zusz_t uc, c;
+uint64_t uc, c;
 {
-    zusz_t denom;
+    uint64_t denom;
 
     if (uc == 0)
         return 0;

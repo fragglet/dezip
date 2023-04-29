@@ -399,32 +399,8 @@ char *plastchar(const char *ptr, size_t len);
 
 #define QCOND2 (!G.UzO.qflag)
 
-/**************/
-/*  Typedefs  */
-/**************/
-
-/* The following three user-defined unsigned integer types are used for
-   holding zipfile entities (required widths without / with Zip64 support):
-   a) sizes and offset of zipfile entries
-      (4 bytes / 8 bytes)
-   b) enumeration and counts of zipfile entries
-      (2 bytes / 8 bytes)
-      Remark: internally, we use 4 bytes for archive member counting in the
-              No-Zip64 case, because UnZip supports more than 64k entries for
-              classic Zip archives without Zip64 extensions.
-   c) enumeration and counts of zipfile volumes of multivolume archives
-      (2 bytes / 4 bytes)
- */
-typedef uint64_t zusz_t; /* zipentry sizes & offsets */
-typedef uint64_t zucn_t; /* archive entry counts */
-typedef uint32_t zuvl_t; /* multivolume numbers */
-#define MASK_ZUCN64 (~(zucn_t) 0)
-/* In case we ever get to support an environment where uint64_t may be WIDER
-   than 64 bit wide, we will have to apply a construct similar to
-     #define MASK_ZUCN64        (~(zucn_t)0 & (zucn_t)0xffffffffffffffffULL)
-   for the 64-bit mask.
- */
-#define MASK_ZUCN16 ((zucn_t) 0xFFFF)
+#define MASK_ZUCN64 (~(uint64_t) 0)
+#define MASK_ZUCN16 ((uint64_t) 0xFFFF)
 
 typedef struct utimbuf ztimbuf;
 
@@ -451,10 +427,10 @@ typedef struct slinkentry {  /* info for deferred symlink creation */
 
 typedef struct min_info {
     off_t offset;
-    zusz_t compr_size;   /* compressed size (needed if extended header) */
-    zusz_t uncompr_size; /* uncompressed size (needed if extended header) */
-    ulg crc;             /* crc (needed if extended header) */
-    zuvl_t diskstart;    /* no of volume where this entry starts */
+    uint64_t compr_size;   /* compressed size (needed if extended header) */
+    uint64_t uncompr_size; /* uncompressed size (needed if extended header) */
+    ulg crc;               /* crc (needed if extended header) */
+    uint32_t diskstart;    /* no of volume where this entry starts */
     uint8_t hostver;
     uint8_t hostnum;
     unsigned file_attr;     /* local flavor, as used by creat(), chmod()... */
@@ -559,8 +535,8 @@ typedef uint8_t ec_byte_rec64[ECREC64_SIZE + 4];
    (top-down), to prevent internal padding and optimize memory usage!
  */
 typedef struct local_file_header { /* LOCAL */
-    zusz_t csize;
-    zusz_t ucsize;
+    uint64_t csize;
+    uint64_t ucsize;
     ulg last_mod_dos_datetime;
     ulg crc32;
     uint8_t version_needed_to_extract[2];
@@ -571,13 +547,13 @@ typedef struct local_file_header { /* LOCAL */
 } local_file_hdr;
 
 typedef struct central_directory_file_header { /* CENTRAL */
-    zusz_t csize;
-    zusz_t ucsize;
-    zusz_t relative_offset_local_header;
+    uint64_t csize;
+    uint64_t ucsize;
+    uint64_t relative_offset_local_header;
     ulg last_mod_dos_datetime;
     ulg crc32;
     ulg external_file_attributes;
-    zuvl_t disk_number_start;
+    uint32_t disk_number_start;
     uint16_t internal_file_attributes;
     uint8_t version_made_by[2];
     uint8_t version_needed_to_extract[2];
@@ -589,22 +565,22 @@ typedef struct central_directory_file_header { /* CENTRAL */
 } cdir_file_hdr;
 
 typedef struct end_central_dir_record { /* END CENTRAL */
-    zusz_t size_central_directory;
-    zusz_t offset_start_central_directory;
-    zucn_t num_entries_centrl_dir_ths_disk;
-    zucn_t total_entries_central_dir;
-    zuvl_t number_this_disk;
-    zuvl_t num_disk_start_cdir;
+    uint64_t size_central_directory;
+    uint64_t offset_start_central_directory;
+    uint64_t num_entries_centrl_dir_ths_disk;
+    uint64_t total_entries_central_dir;
+    uint32_t number_this_disk;
+    uint32_t num_disk_start_cdir;
     int have_ecr64;       /* valid Zip64 ecdir-record exists */
     int is_zip64_archive; /* Zip64 ecdir-record is mandatory */
     uint16_t zipfile_comment_length;
-    zusz_t ec_start, ec_end;     /* offsets of start and end of the
+    uint64_t ec_start, ec_end;     /* offsets of start and end of the
                                     end of central directory record,
                                     including if present the Zip64
                                     end of central directory locator,
                                     which immediately precedes the
                                     end of central directory record */
-    zusz_t ec64_start, ec64_end; /* if have_ecr64 is true, then these
+    uint64_t ec64_start, ec64_end; /* if have_ecr64 is true, then these
                                     are the offsets of the start and
                                     end of the Zip64 end of central
                                     directory record */
@@ -664,7 +640,7 @@ unsigned ef_scan_for_izux(const uint8_t *ef_buf, unsigned ef_len, int ef_is_c,
 
 int list_files(void);
 int get_time_stamp(time_t *last_modtime, ulg *nmember);
-int ratio(zusz_t uc, zusz_t c);
+int ratio(uint64_t uc, uint64_t c);
 void fnprint(void);
 
 /*---------------------------------------------------------------------------
@@ -687,7 +663,7 @@ int check_for_newer(char *filename); /* os2,vmcms,vms */
 int do_string(unsigned int length, int option);
 uint16_t makeword(const uint8_t *b);
 ulg makelong(const uint8_t *sig);
-zusz_t makeint64(const uint8_t *sig);
+uint64_t makeint64(const uint8_t *sig);
 char *format_off_t(off_t val, const char *pre, const char *post);
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
 char *str2iso(char *dst, const char *src);

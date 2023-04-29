@@ -648,17 +648,17 @@ int rec_size;
 static int find_ecrec64(searchlen) /* return PK-class error */
 off_t searchlen;
 {
-    ec_byte_rec64 byterec;       /* buf for ecrec64 */
-    ec_byte_loc64 byterecL;      /* buf for ecrec64 locator */
-    off_t ecloc64_start_offset;  /* start offset of ecrec64 locator */
-    zusz_t ecrec64_start_offset; /* start offset of ecrec64 */
-    zuvl_t ecrec64_start_disk;   /* start disk of ecrec64 */
-    zuvl_t ecloc64_total_disks;  /* total disks */
-    zuvl_t ecrec64_disk_cdstart; /* disk number of central dir start */
-    zucn_t ecrec64_this_entries; /* entries on disk with ecrec64 */
-    zucn_t ecrec64_tot_entries;  /* total number of entries */
-    zusz_t ecrec64_cdirsize;     /* length of central dir */
-    zusz_t ecrec64_offs_cdstart; /* offset of central dir start */
+    ec_byte_rec64 byterec;         /* buf for ecrec64 */
+    ec_byte_loc64 byterecL;        /* buf for ecrec64 locator */
+    off_t ecloc64_start_offset;    /* start offset of ecrec64 locator */
+    uint64_t ecrec64_start_offset; /* start offset of ecrec64 */
+    uint32_t ecrec64_start_disk;   /* start disk of ecrec64 */
+    uint32_t ecloc64_total_disks;  /* total disks */
+    uint32_t ecrec64_disk_cdstart; /* disk number of central dir start */
+    uint64_t ecrec64_this_entries; /* entries on disk with ecrec64 */
+    uint64_t ecrec64_tot_entries;  /* total number of entries */
+    uint64_t ecrec64_cdirsize;     /* length of central dir */
+    uint64_t ecrec64_offs_cdstart; /* offset of central dir start */
 
     /* First, find the ecrec64 locator.  By definition, this must be before
        ecrec with nothing in between.  We back up the size of the ecrec64
@@ -685,9 +685,10 @@ off_t searchlen;
     }
 
     /* Read the locator. */
-    ecrec64_start_disk = (zuvl_t) makelong(&byterecL[NUM_DISK_START_EOCDR64]);
-    ecrec64_start_offset = (zusz_t) makeint64(&byterecL[OFFSET_START_EOCDR64]);
-    ecloc64_total_disks = (zuvl_t) makelong(&byterecL[NUM_THIS_DISK_LOC64]);
+    ecrec64_start_disk = (uint32_t) makelong(&byterecL[NUM_DISK_START_EOCDR64]);
+    ecrec64_start_offset =
+        (uint64_t) makeint64(&byterecL[OFFSET_START_EOCDR64]);
+    ecloc64_total_disks = (uint32_t) makelong(&byterecL[NUM_THIS_DISK_LOC64]);
 
     /* Check for consistency */
 #ifdef TEST
@@ -722,7 +723,7 @@ off_t searchlen;
 
     /* FIX BELOW IF ADD SUPPORT FOR MULTIPLE DISKS */
 
-    if (ecrec64_start_offset > (zusz_t) ecloc64_start_offset) {
+    if (ecrec64_start_offset > (uint64_t) ecloc64_start_offset) {
         /* ecrec64 has to be before ecrec64 locator */
         if (G.UzO.qflag)
             Info(slide, 0x401, ((char *) slide, "[%s]\n", G.zipfn));
@@ -774,7 +775,7 @@ off_t searchlen;
     }
 
     /* Check consistency of found ecrec64 with ecloc64 (and ecrec): */
-    if ((zuvl_t) makelong(&byterec[NUMBER_THIS_DSK_REC64]) !=
+    if ((uint32_t) makelong(&byterec[NUMBER_THIS_DSK_REC64]) !=
         ecrec64_start_disk)
         /* found ecrec64 does not match ecloc64 info -> no Zip64 archive */
         return PK_COOL;
@@ -782,7 +783,7 @@ off_t searchlen;
        ecrec fields unless those are set to "all-ones".
      */
     ecrec64_disk_cdstart =
-        (zuvl_t) makelong(&byterec[NUM_DISK_START_CEN_DIR64]);
+        (uint32_t) makelong(&byterec[NUM_DISK_START_CEN_DIR64]);
     if (G.ecrec.num_disk_start_cdir != 0xFFFF &&
         G.ecrec.num_disk_start_cdir != ecrec64_disk_cdstart)
         return PK_COOL;
@@ -1216,7 +1217,7 @@ unsigned ef_len;                           /* total length of extra field */
                 if (offset + 4 > ef_len)
                     return PK_ERR;
 
-                G.crec.disk_number_start = (zuvl_t) makelong(offset + ef_buf);
+                G.crec.disk_number_start = (uint32_t) makelong(offset + ef_buf);
                 offset += 4;
             }
         }
@@ -1653,7 +1654,7 @@ static int read_ux3_value(dbuf, uidgid_sz, p_uidgid)
 unsigned uidgid_sz;      /* size of uid/gid value */
 ulg *p_uidgid;           /* return storage: uid or gid value */
 {
-    zusz_t uidgid64;
+    uint64_t uidgid64;
 
     switch (uidgid_sz) {
     case 2:
@@ -1665,11 +1666,11 @@ ulg *p_uidgid;           /* return storage: uid or gid value */
     case 8:
         uidgid64 = makeint64(dbuf);
 #ifndef LARGE_FILE_SUPPORT
-        if (uidgid64 == (zusz_t) 0xffffffffL)
+        if (uidgid64 == (uint64_t) 0xffffffffL)
             return FALSE;
 #endif
         *p_uidgid = (ulg) uidgid64;
-        if ((zusz_t) (*p_uidgid) != uidgid64)
+        if ((uint64_t) (*p_uidgid) != uidgid64)
             return FALSE;
         break;
     }
