@@ -22,7 +22,7 @@ typedef struct uxdirattr {  /* struct for holding unix style directory */
     } u;
     unsigned perms;  /* same as min_info.file_attr */
     int have_uidgid; /* flag */
-    ulg uidgid[2];
+    uint32_t uidgid[2];
     char fnbuf[1]; /* buffer stub for directory name */
 } uxdirattr;
 #define UxAtt(d) ((uxdirattr *) d) /* typecast shortcut */
@@ -34,9 +34,9 @@ typedef struct uxdirattr {  /* struct for holding unix style directory */
 
 /* messages of code for setting file/directory attributes */
 static const char CannotSetItemUidGid[] =
-    "warning:  cannot set UID %lu and/or GID %lu for %s\n          %s\n";
+    "warning:  cannot set UID %u and/or GID %u for %s\n          %s\n";
 static const char CannotSetUidGid[] =
-    " (warning) cannot set UID %lu and/or GID %lu\n          %s";
+    " (warning) cannot set UID %u and/or GID %u\n          %s";
 static const char CannotSetItemTimestamps[] =
     "warning:  cannot set modif./access times for %s\n          %s\n";
 static const char CannotSetTimestamps[] =
@@ -175,7 +175,7 @@ unsigned perms;
 int mapattr()
 {
     int r;
-    ulg tmp = G.crec.external_file_attributes;
+    uint32_t tmp = G.crec.external_file_attributes;
 
     G.pInfo->file_attr = 0;
     /* initialized to 0 for check in "default" branch below... */
@@ -726,7 +726,7 @@ int flag;
 
 static int get_extattribs(pzt, z_uidgid)
 iztimes *pzt;
-ulg z_uidgid[2];
+uint32_t z_uidgid[2];
 {
     /*---------------------------------------------------------------------------
         Convert from MSDOS-format local time and date to Unix-format 32-bit GMT
@@ -770,7 +770,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         iztimes t3; /* mtime, atime, ctime */
         ztimbuf t2; /* modtime, actime */
     } zt;
-    ulg z_uidgid[2];
+    uint32_t z_uidgid[2];
     int have_uidgid_flg;
 
     have_uidgid_flg = get_extattribs(&(zt.t3), z_uidgid);
@@ -851,8 +851,8 @@ void close_outfile() /* GRR: change to return PK-style warning level */
     /* if -X option was specified and we have UID/GID info, restore it */
     if (have_uidgid_flg
         /* check that both uid and gid values fit into their data sizes */
-        && (ulg) (uid_t) (z_uidgid[0]) == z_uidgid[0] &&
-        (ulg) (gid_t) (z_uidgid[1]) == z_uidgid[1]) {
+        && (uint32_t) (uid_t) (z_uidgid[0]) == z_uidgid[0] &&
+        (uint32_t) (gid_t) (z_uidgid[1]) == z_uidgid[1]) {
         TTrace((stderr, "close_outfile:  restoring Unix UID/GID info\n"));
         if (fchown(fileno(G.outfile), (uid_t) z_uidgid[0],
                    (gid_t) z_uidgid[1])) {
@@ -894,10 +894,10 @@ int set_symlnk_attribs(slnk_entry)
 slinkentry *slnk_entry;
 {
     if (slnk_entry->attriblen > 0 && slnk_entry->attriblen > sizeof(unsigned)) {
-        ulg *z_uidgid_p = (void *) (slnk_entry->buf + sizeof(unsigned));
+        uint32_t *z_uidgid_p = (void *) (slnk_entry->buf + sizeof(unsigned));
         /* check that both uid and gid values fit into their data sizes */
-        if ((ulg) (uid_t) (z_uidgid_p[0]) == z_uidgid_p[0] &&
-            (ulg) (gid_t) (z_uidgid_p[1]) == z_uidgid_p[1]) {
+        if ((uint32_t) (uid_t) (z_uidgid_p[0]) == z_uidgid_p[0] &&
+            (uint32_t) (gid_t) (z_uidgid_p[1]) == z_uidgid_p[1]) {
             TTrace((stderr,
                     "set_symlnk_attribs:  restoring Unix UID/GID info for\n\
         %s\n",
@@ -945,8 +945,8 @@ direntry *d;
 
     if (UxAtt(d)->have_uidgid &&
         /* check that both uid and gid values fit into their data sizes */
-        (ulg) (uid_t) (UxAtt(d)->uidgid[0]) == UxAtt(d)->uidgid[0] &&
-        (ulg) (gid_t) (UxAtt(d)->uidgid[1]) == UxAtt(d)->uidgid[1] &&
+        (uint32_t) (uid_t) (UxAtt(d)->uidgid[0]) == UxAtt(d)->uidgid[0] &&
+        (uint32_t) (gid_t) (UxAtt(d)->uidgid[1]) == UxAtt(d)->uidgid[1] &&
         chown(UxAtt(d)->fn, (uid_t) UxAtt(d)->uidgid[0],
               (gid_t) UxAtt(d)->uidgid[1])) {
         Info(slide, 0x201,

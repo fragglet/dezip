@@ -26,14 +26,14 @@ static const char *Headers[][2] = {{HeadersS, HeadersS1},
 
 static const char CaseConversion[] = "%s (\"^\" ==> case\n%s   conversion)\n";
 static const char LongHdrStats[] =
-    "%s  %-7s%s %4s %02u%c%02u%c%02u %02u:%02u %08lx %c";
+    "%s  %-7s%s %4s %02u%c%02u%c%02u %02u:%02u %08x %c";
 static const char LongFileTrailer[] =
     "--------          -------  ---                       \
-     -------\n%s         %s %4s                            %lu file%s\n";
+     -------\n%s         %s %4s                            %u file%s\n";
 static const char ShortHdrStats[] = "%s  %02u%c%02u%c%02u %02u:%02u  %c";
 static const char ShortFileTrailer[] =
     "---------                     -------\n%s\
-                     %lu file%s\n";
+                     %u file%s\n";
 
 int list_files() /* return PK-type error code */
 {
@@ -42,7 +42,7 @@ int list_files() /* return PK-type error code */
     int longhdr = (G.UzO.vflag > 1);
     int date_format;
     char dt_sepchar;
-    ulg members = 0L;
+    uint32_t members = 0L;
     uint64_t j;
     unsigned methnum;
     iztimes z_utime;
@@ -100,8 +100,8 @@ int list_files() /* return PK-type error code */
              *    number of entries as stored in the end_central record?
              */
             if (((j - 1) &
-                 (ulg) (G.ecrec.have_ecr64 ? MASK_ZUCN64 : MASK_ZUCN16)) ==
-                (ulg) G.ecrec.total_entries_central_dir) {
+                 (uint32_t) (G.ecrec.have_ecr64 ? MASK_ZUCN64 : MASK_ZUCN16)) ==
+                (uint32_t) G.ecrec.total_entries_central_dir) {
                 /* "j modulus 4T/64k" matches the reported 64/16-bit-unsigned
                  * number of directory entries -> probably, the regular
                  * end of the central directory has been reached
@@ -343,10 +343,10 @@ static int fn_is_dir() /* returns TRUE if G.filename is directory */
 
 int get_time_stamp(last_modtime, nmember) /* return PK-type error code */
 time_t *last_modtime;
-ulg *nmember;
+uint32_t *nmember;
 {
     int do_this_file = FALSE, error, error_in_archive = PK_COOL;
-    ulg j;
+    uint32_t j;
     iztimes z_utime;
     min_info info;
 
@@ -480,6 +480,6 @@ void fnprint() /* print filename (after filtering) and newline */
 {
     char *name = fnfilter(G.filename, slide, (size_t) (WSIZE >> 1));
 
-    (*G.message)((uint8_t *) name, (ulg) strlen(name), 0);
+    (*G.message)((uint8_t *) name, (uint32_t) strlen(name), 0);
     (*G.message)((uint8_t *) "\n", 1L, 0);
 }

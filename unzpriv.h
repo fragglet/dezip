@@ -180,19 +180,19 @@ char *plastchar(const char *ptr, size_t len);
 #define OFF_T_LEN 24 /* Number of characters/chamber. */
 
 #ifndef S_TIME_T_MAX /* max value of signed (>= 32-bit) time_t */
-#define S_TIME_T_MAX ((time_t) (ulg) 0x7fffffffL)
+#define S_TIME_T_MAX ((time_t) (uint32_t) 0x7fffffffL)
 #endif
 #ifndef U_TIME_T_MAX /* max value of unsigned (>= 32-bit) time_t */
-#define U_TIME_T_MAX ((time_t) (ulg) 0xffffffffL)
+#define U_TIME_T_MAX ((time_t) (uint32_t) 0xffffffffL)
 #endif
 #ifdef DOSTIME_MINIMUM /* min DOSTIME value (1980-01-01) */
 #undef DOSTIME_MINIMUM
 #endif
-#define DOSTIME_MINIMUM ((ulg) 0x00210000L)
+#define DOSTIME_MINIMUM ((uint32_t) 0x00210000L)
 #ifdef DOSTIME_2038_01_18 /* approximate DOSTIME equivalent of */
 #undef DOSTIME_2038_01_18 /*  the signed-32-bit time_t limit */
 #endif
-#define DOSTIME_2038_01_18 ((ulg) 0x74320000L)
+#define DOSTIME_2038_01_18 ((uint32_t) 0x74320000L)
 
 #define ZSUFX     ".zip"
 #define ALT_ZSUFX ".ZIP" /* Unix-only so far (only case-sensitive fs) */
@@ -429,7 +429,7 @@ typedef struct min_info {
     off_t offset;
     uint64_t compr_size;   /* compressed size (needed if extended header) */
     uint64_t uncompr_size; /* uncompressed size (needed if extended header) */
-    ulg crc;               /* crc (needed if extended header) */
+    uint32_t crc;          /* crc (needed if extended header) */
     uint32_t diskstart;    /* no of volume where this entry starts */
     uint8_t hostver;
     uint8_t hostnum;
@@ -537,8 +537,8 @@ typedef uint8_t ec_byte_rec64[ECREC64_SIZE + 4];
 typedef struct local_file_header { /* LOCAL */
     uint64_t csize;
     uint64_t ucsize;
-    ulg last_mod_dos_datetime;
-    ulg crc32;
+    uint32_t last_mod_dos_datetime;
+    uint32_t crc32;
     uint8_t version_needed_to_extract[2];
     uint16_t general_purpose_bit_flag;
     uint16_t compression_method;
@@ -550,9 +550,9 @@ typedef struct central_directory_file_header { /* CENTRAL */
     uint64_t csize;
     uint64_t ucsize;
     uint64_t relative_offset_local_header;
-    ulg last_mod_dos_datetime;
-    ulg crc32;
-    ulg external_file_attributes;
+    uint32_t last_mod_dos_datetime;
+    uint32_t crc32;
+    uint32_t external_file_attributes;
     uint32_t disk_number_start;
     uint16_t internal_file_attributes;
     uint8_t version_made_by[2];
@@ -632,14 +632,15 @@ int process_local_file_hdr(void);
 int getZip64Data(const uint8_t *ef_buf, unsigned ef_len);
 int getUnicodeData(const uint8_t *ef_buf, unsigned ef_len);
 unsigned ef_scan_for_izux(const uint8_t *ef_buf, unsigned ef_len, int ef_is_c,
-                          ulg dos_mdatetime, iztimes *z_utim, ulg *z_uidgid);
+                          uint32_t dos_mdatetime, iztimes *z_utim,
+                          uint32_t *z_uidgid);
 
 /*---------------------------------------------------------------------------
     Functions in list.c (generic zipfile-listing routines):
   ---------------------------------------------------------------------------*/
 
 int list_files(void);
-int get_time_stamp(time_t *last_modtime, ulg *nmember);
+int get_time_stamp(time_t *last_modtime, uint32_t *nmember);
 int ratio(uint64_t uc, uint64_t c);
 void fnprint(void);
 
@@ -655,14 +656,14 @@ unsigned readbuf(char *buf, register unsigned len);
 int readbyte(void);
 int fillinbuf(void);
 int seek_zipf(off_t abs_offset);
-int flush(uint8_t *buf, ulg size, int unshrink);
+int flush(uint8_t *buf, uint32_t size, int unshrink);
 /* static int  disk_error(void); */
 void handler(int signal);
-time_t dos_to_unix_time(ulg dos_datetime);
+time_t dos_to_unix_time(uint32_t dos_datetime);
 int check_for_newer(char *filename); /* os2,vmcms,vms */
 int do_string(unsigned int length, int option);
 uint16_t makeword(const uint8_t *b);
-ulg makelong(const uint8_t *sig);
+uint32_t makelong(const uint8_t *sig);
 uint64_t makeint64(const uint8_t *sig);
 char *format_off_t(off_t val, const char *pre, const char *post);
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
@@ -687,8 +688,9 @@ unsigned char *uzmbsrchr(const unsigned char *str, unsigned int c);
 
 int extract_or_test_files(void);
 unsigned find_compr_idx(unsigned compr_methodnum);
-int memextract(uint8_t *tgt, ulg tgtsize, const uint8_t *src, ulg srcsize);
-int memflush(const uint8_t *rawbuf, ulg size);
+int memextract(uint8_t *tgt, uint32_t tgtsize, const uint8_t *src,
+               uint32_t srcsize);
+int memflush(const uint8_t *rawbuf, uint32_t size);
 char *fnfilter(const char *raw, uint8_t *space, size_t size);
 
 /*---------------------------------------------------------------------------
@@ -763,7 +765,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
  */
 #ifndef Info /* may already have been defined for redirection */
 #define Info(buf, flag, sprf_arg) \
-    (*G.message)((uint8_t *) (buf), (ulg) sprintf sprf_arg, (flag))
+    (*G.message)((uint8_t *) (buf), (uint32_t) sprintf sprf_arg, (flag))
 #endif /* !Info */
 
 /*  The following macro wrappers around the fnfilter function are used many
@@ -795,9 +797,9 @@ int stamp_file(const char *fname, time_t modtime); /* local */
             return error;                                     \
     }
 
-#define FLUSH(w)                                    \
-    ((G.mem_mode) ? memflush(redirSlide, (ulg) (w)) \
-                  : flush(redirSlide, (ulg) (w), 0))
+#define FLUSH(w)                                         \
+    ((G.mem_mode) ? memflush(redirSlide, (uint32_t) (w)) \
+                  : flush(redirSlide, (uint32_t) (w), 0))
 #define NEXTBYTE (G.incnt-- > 0 ? (int) (*G.inptr++) : readbyte())
 
 #define READBITS(nbits, zdest)                                        \
@@ -807,7 +809,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
             G.zipeof = 1;                                             \
             while (G.bits_left <= 8 * (int) (sizeof(G.bitbuf) - 1) && \
                    (temp = NEXTBYTE) != EOF) {                        \
-                G.bitbuf |= (ulg) temp << G.bits_left;                \
+                G.bitbuf |= (uint32_t) temp << G.bits_left;           \
                 G.bits_left += 8;                                     \
                 G.zipeof = 0;                                         \
             }                                                         \
@@ -820,13 +822,13 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 /*
  * macro READBITS(nbits,zdest)    * only used by unreduce and unshrink *
  *  {
- *      if (nbits > G.bits_left) {  * fill G.bitbuf, 8*sizeof(ulg) bits *
+ *      if (nbits > G.bits_left) {  * fill G.bitbuf, 8*sizeof(uint32_t) bits *
  *          int temp;
  *
  *          G.zipeof = 1;
  *          while (G.bits_left <= 8*(int)(sizeof(G.bitbuf)-1) &&
  *                 (temp = NEXTBYTE) != EOF) {
- *              G.bitbuf |= (ulg)temp << G.bits_left;
+ *              G.bitbuf |= (uint32_t)temp << G.bits_left;
  *              G.bits_left += 8;
  *              G.zipeof = 0;
  *          }

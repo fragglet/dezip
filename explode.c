@@ -174,12 +174,12 @@ static const uint16_t cpdist8[] = {
    variables for speed.
  */
 
-#define NEEDBITS(n)                     \
-    {                                   \
-        while (k < (n)) {               \
-            b |= ((ulg) NEXTBYTE) << k; \
-            k += 8;                     \
-        }                               \
+#define NEEDBITS(n)                          \
+    {                                        \
+        while (k < (n)) {                    \
+            b |= ((uint32_t) NEXTBYTE) << k; \
+            k += 8;                          \
+        }                                    \
     }
 #define DUMPBITS(n) \
     {               \
@@ -244,7 +244,7 @@ unsigned bdl;              /* number of distance low bits */
     struct huft *t;      /* pointer to table entry */
     unsigned mb, ml, md; /* masks for bb, bl, and bd bits */
     unsigned mdl;        /* mask for bdl (distance lower) bits */
-    register ulg b;      /* bit buffer */
+    register uint32_t b; /* bit buffer */
     register unsigned k; /* number of bits in bit buffer */
     unsigned u;          /* true if unflushed */
     int retval = 0;      /* error code returned: initialized to "no error" */
@@ -267,7 +267,7 @@ unsigned bdl;              /* number of distance low bits */
             DECODEHUFT(tb, bb, mb) /* get coded literal */
             redirSlide[w++] = (uint8_t) t->v.n;
             if (w == wszimpl) {
-                if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
+                if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
                     return retval;
                 w = u = 0;
             }
@@ -304,7 +304,7 @@ unsigned bdl;              /* number of distance low bits */
                         redirSlide[w++] = redirSlide[d++];
                     } while (--e);
                 if (w == wszimpl) {
-                    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
+                    if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
                         return retval;
                     w = u = 0;
                 }
@@ -313,7 +313,7 @@ unsigned bdl;              /* number of distance low bits */
     }
 
     /* flush out redirSlide */
-    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
+    if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
         return retval;
     if (G.csize + G.incnt + (k >> 3)) {
         /* should have read csize bytes, but sometimes read one too
@@ -338,7 +338,7 @@ unsigned bdl;         /* number of distance low bits */
     struct huft *t;      /* pointer to table entry */
     unsigned ml, md;     /* masks for bl and bd bits */
     unsigned mdl;        /* mask for bdl (distance lower) bits */
-    register ulg b;      /* bit buffer */
+    register uint32_t b; /* bit buffer */
     register unsigned k; /* number of bits in bit buffer */
     unsigned u;          /* true if unflushed */
     int retval = 0;      /* error code returned: initialized to "no error" */
@@ -360,7 +360,7 @@ unsigned bdl;         /* number of distance low bits */
             NEEDBITS(8)
             redirSlide[w++] = (uint8_t) b;
             if (w == wszimpl) {
-                if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
+                if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
                     return retval;
                 w = u = 0;
             }
@@ -398,7 +398,7 @@ unsigned bdl;         /* number of distance low bits */
                         redirSlide[w++] = redirSlide[d++];
                     } while (--e);
                 if (w == wszimpl) {
-                    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
+                    if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
                         return retval;
                     w = u = 0;
                 }
@@ -407,7 +407,7 @@ unsigned bdl;         /* number of distance low bits */
     }
 
     /* flush out redirSlide */
-    if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
+    if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
         return retval;
     if (G.csize + G.incnt + (k >> 3)) {
         /* should have read csize bytes, but

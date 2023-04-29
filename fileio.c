@@ -195,7 +195,7 @@ register unsigned size;
             else if (G.incnt < 0) {
                 /* another hack, but no real harm copying same thing twice */
                 (*G.message)((uint8_t *) ReadError, /* CANNOT use slide */
-                             (ulg) strlen(ReadError), 0x401);
+                             (uint32_t) strlen(ReadError), 0x401);
                 return 0; /* discarding some data; better than lock-up */
             }
             /* buffer ALWAYS starts on a block boundary:  */
@@ -227,7 +227,8 @@ int readbyte()
             return EOF;
         } else if (G.incnt < 0) { /* "fail" (abort, retry, ...) returns this */
             /* another hack, but no real harm copying same thing twice */
-            (*G.message)((uint8_t *) ReadError, (ulg) strlen(ReadError), 0x401);
+            (*G.message)((uint8_t *) ReadError, (uint32_t) strlen(ReadError),
+                         0x401);
             echon();
             exit(PK_BADERR); /* totally bailing; better than lock-up */
         }
@@ -328,7 +329,7 @@ off_t abs_offset;
 
 int flush(rawbuf, size, unshrink)
 uint8_t *rawbuf;
-ulg size;
+uint32_t size;
 int unshrink;
 {
     register uint8_t *p;
@@ -409,13 +410,14 @@ int unshrink;
         Done translating:  write whatever we've got to file (or screen).
       -----------------------------------------------------------------------*/
 
-    Trace((stderr, "p - rawbuf = %u   q-transbuf = %u   size = %lu\n",
+    Trace((stderr, "p - rawbuf = %u   q-transbuf = %u   size = %u\n",
            (unsigned) (p - rawbuf), (unsigned) (q - transbuf), size));
     if (q > transbuf) {
         if (!G.UzO.cflag &&
             WriteError(transbuf, (size_t) (q - transbuf), G.outfile))
             return disk_error();
-        else if (G.UzO.cflag && (*G.message)(transbuf, (ulg) (q - transbuf), 0))
+        else if (G.UzO.cflag &&
+                 (*G.message)(transbuf, (uint32_t) (q - transbuf), 0))
             return PK_OK;
     }
 
@@ -437,9 +439,9 @@ static int disk_error(void)
 }
 
 int UzpMessagePrnt(buf, size, flag)
-uint8_t *buf; /* preformatted string to be printed */
-ulg size;     /* length of string (may include nulls) */
-int flag;     /* flag bits */
+uint8_t *buf;  /* preformatted string to be printed */
+uint32_t size; /* length of string (may include nulls) */
+int flag;      /* flag bits */
 {
     int error;
     uint8_t *q = buf, *endbuf = buf + (unsigned) size;
@@ -575,7 +577,7 @@ const char *efn; /* name of archive entry being processed */
 }
 
 time_t dos_to_unix_time(dosdatetime)
-ulg dosdatetime;
+uint32_t dosdatetime;
 {
     time_t m_time;
 
@@ -597,7 +599,7 @@ ulg dosdatetime;
     tm->tm_sec = (int) ((unsigned) dosdatetime << 1) & 0x3e;
 
     m_time = mktime(tm);
-    TTrace((stderr, "  final m_time  =       %lu\n", (ulg) m_time));
+    TTrace((stderr, "  final m_time  =       %u\n", (uint32_t) m_time));
 
     if ((dosdatetime >= DOSTIME_2038_01_18) && (m_time < (time_t) 0x70000000L))
         m_time = U_TIME_T_MAX; /* saturate in case of (unsigned) overflow */
@@ -669,8 +671,9 @@ char *filename;               /*  exist yet */
         archive = dos_to_unix_time(G.lrec.last_mod_dos_datetime);
     }
 
-    TTrace((stderr, "check_for_newer:  existing %lu, archive %lu, e-a %ld\n",
-            (ulg) existing, (ulg) archive, (long) (existing - archive)));
+    TTrace((stderr, "check_for_newer:  existing %u, archive %u, e-a %d\n",
+            (uint32_t) existing, (uint32_t) archive,
+            (long) (existing - archive)));
 
     return (existing >= archive);
 }
@@ -774,13 +777,13 @@ int option;
                 } else
                     *q++ = *p;
                 if ((unsigned) (q - slide) > WSIZE - 3 || pause) { /* flush */
-                    (*G.message)(slide, (ulg) (q - slide), 0);
+                    (*G.message)(slide, (uint32_t) (q - slide), 0);
                     q = slide;
                     if (pause && G.extract_flag) /* don't pause for list/test */
                         (*G.mpause)(QuitPrompt, 0);
                 }
             }
-            (*G.message)(slide, (ulg) (q - slide), 0);
+            (*G.message)(slide, (uint32_t) (q - slide), 0);
         }
         /* add '\n' if not at start of line */
         (*G.message)(slide, 0L, 0x40);
@@ -956,14 +959,14 @@ uint16_t makeword(b) const uint8_t *b;
     return (uint16_t) ((b[1] << 8) | b[0]);
 }
 
-ulg makelong(sig) const uint8_t *sig;
+uint32_t makelong(sig) const uint8_t *sig;
 {
     /*
      * Convert intel style 'long' variable to non-Intel non-16-bit
      * host format.  This routine also takes care of byte-ordering.
      */
-    return (((ulg) sig[3]) << 24) + (((ulg) sig[2]) << 16) +
-           (ulg) ((((unsigned) sig[1]) << 8) + ((unsigned) sig[0]));
+    return (((uint32_t) sig[3]) << 24) + (((uint32_t) sig[2]) << 16) +
+           (uint32_t) ((((unsigned) sig[1]) << 8) + ((unsigned) sig[0]));
 }
 
 uint64_t makeint64(sig) const uint8_t *sig;
@@ -975,7 +978,8 @@ uint64_t makeint64(sig) const uint8_t *sig;
      */
     return (((uint64_t) sig[7]) << 56) + (((uint64_t) sig[6]) << 48) +
            (((uint64_t) sig[5]) << 40) + (((uint64_t) sig[4]) << 32) +
-           (uint64_t) ((((ulg) sig[3]) << 24) + (((ulg) sig[2]) << 16) +
+           (uint64_t) ((((uint32_t) sig[3]) << 24) +
+                       (((uint32_t) sig[2]) << 16) +
                        (((unsigned) sig[1]) << 8) + (sig[0]));
 
 #else /* !LARGE_FILE_SUPPORT */
@@ -983,7 +987,8 @@ uint64_t makeint64(sig) const uint8_t *sig;
     if ((sig[7] | sig[6] | sig[5] | sig[4]) != 0)
         return (uint64_t) 0xffffffffL;
     else
-        return (uint64_t) ((((ulg) sig[3]) << 24) + (((ulg) sig[2]) << 16) +
+        return (uint64_t) ((((uint32_t) sig[3]) << 24) +
+                           (((uint32_t) sig[2]) << 16) +
                            (((unsigned) sig[1]) << 8) + (sig[0]));
 
 #endif /* ?LARGE_FILE_SUPPORT */

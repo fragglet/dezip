@@ -374,7 +374,7 @@ static const uint8_t cpdext32[] = {
                 retval = 1;            \
                 goto cleanup_and_exit; \
             }                          \
-            b |= ((ulg) c) << k;       \
+            b |= ((uint32_t) c) << k;  \
             k += 8;                    \
         }                              \
     }
@@ -434,7 +434,7 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
     UINT_D64 w;          /* current window position (deflate64: up to 64k) */
     struct huft *t;      /* pointer to table entry */
     unsigned ml, md;     /* masks for bl and bd bits */
-    register ulg b;      /* bit buffer */
+    register uint32_t b; /* bit buffer */
     register unsigned k; /* number of bits in bit buffer */
     int retval = 0;      /* error code returned: initialized to "no error" */
 
@@ -540,7 +540,7 @@ static int inflate_stored()
 {
     UINT_D64 w;          /* current window position (deflate64: up to 64k!) */
     unsigned n;          /* number of bytes in block */
-    register ulg b;      /* bit buffer */
+    register uint32_t b; /* bit buffer */
     register unsigned k; /* number of bits in bit buffer */
     int retval = 0;      /* error code returned: initialized to "no error" */
 
@@ -645,7 +645,7 @@ static int inflate_dynamic(void)
     unsigned nd;     /* number of distance codes */
     unsigned
         ll[MAXLITLENS + MAXDISTS]; /* lit./length and distance code lengths */
-    register ulg b;                /* bit buffer */
+    register uint32_t b;           /* bit buffer */
     register unsigned k;           /* number of bits in bit buffer */
     int retval = 0; /* error code returned: initialized to "no error" */
 
@@ -789,7 +789,7 @@ static int inflate_block(e)
 int *e; /* last block flag */
 {
     unsigned t;          /* block type */
-    register ulg b;      /* bit buffer */
+    register uint32_t b; /* bit buffer */
     register unsigned k; /* number of bits in bit buffer */
     int retval = 0;      /* error code returned: initialized to "no error" */
 
@@ -901,7 +901,7 @@ int inflate_free()
     return 0;
 }
 
-/* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
+/* If BMAX needs to be larger than 16, then h and x[] should be uint32_t. */
 #define BMAX  16  /* maximum bit length of any code (16 for explode) */
 #define N_MAX 288 /* maximum number of codes in any set */
 

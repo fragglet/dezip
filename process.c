@@ -18,7 +18,7 @@ static int find_ecrec(off_t searchlen);
 static int process_zip_cmmnt(void);
 static int get_cdir_ent(void);
 static int read_ux3_value(const uint8_t *dbuf, unsigned uidgid_sz,
-                          ulg *p_uidgid);
+                          uint32_t *p_uidgid);
 
 static const char CannotAllocateBuffers[] =
     "error:  cannot allocate unzip buffers\n";
@@ -47,11 +47,11 @@ static const char MaybeExe[] =
     "note:  %s may be a plain executable, not an archive\n";
 static const char CentDirNotInZipMsg[] = "\n\
    [%s]:\n\
-     Zipfile is disk %lu of a multi-disk archive, and this is not the disk on\n\
-     which the central zipfile directory begins (disk %lu).\n";
+     Zipfile is disk %u of a multi-disk archive, and this is not the disk on\n\
+     which the central zipfile directory begins (disk %u).\n";
 static const char EndCentDirBogus[] =
     "\nwarning [%s]:  end-of-central-directory record claims this\n\
-  is disk %lu but that the central directory starts on disk %lu; this is a\n\
+  is disk %u but that the central directory starts on disk %u; this is a\n\
   contradiction.  Attempting to process anyway.\n";
 static const char MaybePakBug[] = "warning [%s]:\
   zipfile claims to be last disk of a multi-part archive;\n\
@@ -331,7 +331,7 @@ int lastchance;
     int maybe_exe = FALSE;
     int too_weird_to_continue = FALSE;
     time_t uxstamp;
-    ulg nmember = 0L;
+    uint32_t nmember = 0L;
     int error = 0, error_in_archive;
 
     /*---------------------------------------------------------------------------
@@ -411,15 +411,15 @@ int lastchance;
         if (G.ecrec.number_this_disk > G.ecrec.num_disk_start_cdir) {
             Info(slide, 0x401,
                  ((char *) slide, CentDirNotInZipMsg, G.zipfn,
-                  (ulg) G.ecrec.number_this_disk,
-                  (ulg) G.ecrec.num_disk_start_cdir));
+                  (uint32_t) G.ecrec.number_this_disk,
+                  (uint32_t) G.ecrec.num_disk_start_cdir));
             error_in_archive = PK_FIND;
             too_weird_to_continue = TRUE;
         } else {
             Info(slide, 0x401,
                  ((char *) slide, EndCentDirBogus, G.zipfn,
-                  (ulg) G.ecrec.number_this_disk,
-                  (ulg) G.ecrec.num_disk_start_cdir));
+                  (uint32_t) G.ecrec.number_this_disk,
+                  (uint32_t) G.ecrec.num_disk_start_cdir));
             error_in_archive = PK_WARN;
         }
     }
@@ -692,7 +692,7 @@ off_t searchlen;
 
     /* Check for consistency */
 #ifdef TEST
-    fprintf(stdout, "\nnumber of disks (ECR) %u, (ECLOC64) %lu\n",
+    fprintf(stdout, "\nnumber of disks (ECR) %u, (ECLOC64) %u\n",
             G.ecrec.number_this_disk, ecloc64_total_disks);
     fflush(stdout);
 #endif
@@ -708,7 +708,7 @@ off_t searchlen;
            -> This is not a Zip64 archive.
          */
         Trace((stderr,
-               "\ninvalid ECLOC64, differing disk# (ECR %u, ECL64 %lu)\n",
+               "\ninvalid ECLOC64, differing disk# (ECR %u, ECL64 %u)\n",
                G.ecrec.number_this_disk, ecloc64_total_disks - 1));
         return PK_COOL;
     }
@@ -1029,7 +1029,7 @@ int process_cdir_file_hdr() /* return PK-type error code */
        first 3 bytes of the external attributes.  In this case all we can use
        for setting file attributes is the last external attributes byte. */
     if (G.crec.internal_file_attributes & 0x0004)
-        G.crec.external_file_attributes &= (ulg) 0xff;
+        G.crec.external_file_attributes &= (uint32_t) 0xff;
 
     /* do Amigas (AMIGA_) also have volume labels? */
     if (IS_VOLID(G.crec.external_file_attributes) &&
@@ -1271,7 +1271,7 @@ unsigned ef_len;                           /* total length of extra field */
 
             unsigned offset = EB_HEADSIZE;
             uint16_t ULen = eb_len - 5;
-            ulg chksum = CRCVAL_INITIAL;
+            uint32_t chksum = CRCVAL_INITIAL;
 
             /* version */
             G.unipath_version = (uint8_t) * (offset + ef_buf);
@@ -1353,8 +1353,8 @@ unsigned ef_len;                           /* total length of extra field */
 */
 
 static int utf8_char_bytes(const char *utf8);
-static ulg ucs4_char_from_utf8(const char **utf8);
-static int utf8_to_ucs4_string(const char *utf8, ulg *ucs4buf, int buflen);
+static uint32_t ucs4_char_from_utf8(const char **utf8);
+static int utf8_to_ucs4_string(const char *utf8, zwchar *ucs4buf, int buflen);
 
 /* utility functions for managing UTF-8 and UCS-4 strings */
 
@@ -1400,9 +1400,9 @@ static int utf8_char_bytes(utf8) const char *utf8;
  * Returns ~0 (= -1 in twos-complement notation) and does not advance the
  * pointer when input is ill-formed.
  */
-static ulg ucs4_char_from_utf8(utf8) const char **utf8;
+static uint32_t ucs4_char_from_utf8(utf8) const char **utf8;
 {
-    ulg ret;
+    uint32_t ret;
     int t, bytes;
 
     if (!utf8)
@@ -1427,13 +1427,13 @@ static ulg ucs4_char_from_utf8(utf8) const char **utf8;
  * Return UCS count.  Now returns int so can return -1.
  */
 static int utf8_to_ucs4_string(utf8, ucs4buf, buflen) const char *utf8;
-ulg *ucs4buf;
+zwchar *ucs4buf;
 int buflen;
 {
     int count = 0;
 
     for (;;) {
-        ulg ch = ucs4_char_from_utf8(&utf8);
+        uint32_t ch = ucs4_char_from_utf8(&utf8);
         if (ch == ~0L)
             return -1;
         else {
@@ -1652,16 +1652,16 @@ zwchar *utf8_to_wide_string(utf8_string) const char *utf8_string;
 static int read_ux3_value(dbuf, uidgid_sz, p_uidgid)
     const uint8_t *dbuf; /* buffer a uid or gid value */
 unsigned uidgid_sz;      /* size of uid/gid value */
-ulg *p_uidgid;           /* return storage: uid or gid value */
+uint32_t *p_uidgid;      /* return storage: uid or gid value */
 {
     uint64_t uidgid64;
 
     switch (uidgid_sz) {
     case 2:
-        *p_uidgid = (ulg) makeword(dbuf);
+        *p_uidgid = (uint32_t) makeword(dbuf);
         break;
     case 4:
-        *p_uidgid = (ulg) makelong(dbuf);
+        *p_uidgid = (uint32_t) makelong(dbuf);
         break;
     case 8:
         uidgid64 = makeint64(dbuf);
@@ -1669,7 +1669,7 @@ ulg *p_uidgid;           /* return storage: uid or gid value */
         if (uidgid64 == (uint64_t) 0xffffffffL)
             return FALSE;
 #endif
-        *p_uidgid = (ulg) uidgid64;
+        *p_uidgid = (uint32_t) uidgid64;
         if ((uint64_t) (*p_uidgid) != uidgid64)
             return FALSE;
         break;
@@ -1681,10 +1681,10 @@ unsigned ef_scan_for_izux(
     ef_buf, ef_len, ef_is_c, dos_mdatetime, z_utim,
     z_uidgid) const uint8_t *ef_buf; /* buffer containing extra field */
 unsigned ef_len;                     /* total length of extra field */
-int ef_is_c;       /* flag indicating "is central extra field" */
-ulg dos_mdatetime; /* last_mod_file_date_time in DOS format */
-iztimes *z_utim;   /* return storage: atime, mtime, ctime */
-ulg *z_uidgid;     /* return storage: uid and gid */
+int ef_is_c;            /* flag indicating "is central extra field" */
+uint32_t dos_mdatetime; /* last_mod_file_date_time in DOS format */
+iztimes *z_utim;        /* return storage: atime, mtime, ctime */
+uint32_t *z_uidgid;     /* return storage: uid and gid */
 {
     unsigned flags = 0;
     unsigned eb_id;
@@ -1741,7 +1741,7 @@ ulg *z_uidgid;     /* return storage: uid and gid */
                         TTrace((stderr, "  UT e.f. modification time = %ld\n",
                                 i_time));
 
-                        if ((ulg) (i_time) & (ulg) (0x80000000L)) {
+                        if ((uint32_t) (i_time) & (uint32_t) (0x80000000L)) {
                             ut_zip_unzip_compatible =
                                 ((time_t) 0x80000000L < (time_t) 0L)
                                     ? (dos_mdatetime == DOSTIME_MINIMUM)
@@ -1775,7 +1775,7 @@ ulg *z_uidgid;     /* return storage: uid and gid */
                         eb_idx += 4;
                         TTrace(
                             (stderr, "  UT e.f. access time = %ld\n", i_time));
-                        if (((ulg) (i_time) & (ulg) (0x80000000L)) &&
+                        if (((uint32_t) (i_time) & (uint32_t) (0x80000000L)) &&
                             !ut_zip_unzip_compatible) {
                             flags &= ~EB_UT_FL_ATIME;
                             TTrace(
@@ -1794,7 +1794,7 @@ ulg *z_uidgid;     /* return storage: uid and gid */
                             (long) makelong((EB_HEADSIZE + eb_idx) + ef_buf);
                         TTrace((stderr, "  UT e.f. creation time = %ld\n",
                                 i_time));
-                        if (((ulg) (i_time) & (ulg) (0x80000000L)) &&
+                        if (((uint32_t) (i_time) & (uint32_t) (0x80000000L)) &&
                             !ut_zip_unzip_compatible) {
                             flags &= ~EB_UT_FL_CTIME;
                             TTrace((stderr, "  UT creation time range error: "
@@ -1820,8 +1820,10 @@ ulg *z_uidgid;     /* return storage: uid and gid */
             if (have_new_type_eb > 1)
                 break; /* IZUNIX3 overrides IZUNIX2 e.f. block ! */
             if (eb_len == EB_UX2_MINLEN && z_uidgid != NULL) {
-                z_uidgid[0] = (ulg) makeword(EB_HEADSIZE + EB_UX2_UID + ef_buf);
-                z_uidgid[1] = (ulg) makeword(EB_HEADSIZE + EB_UX2_GID + ef_buf);
+                z_uidgid[0] =
+                    (uint32_t) makeword(EB_HEADSIZE + EB_UX2_UID + ef_buf);
+                z_uidgid[1] =
+                    (uint32_t) makeword(EB_HEADSIZE + EB_UX2_GID + ef_buf);
                 flags |= EB_UX2_VALID; /* signal success */
             }
             break;
@@ -1871,7 +1873,7 @@ ulg *z_uidgid;     /* return storage: uid and gid */
                     i_time =
                         (long) makelong(EB_HEADSIZE + EB_UX_MTIME + ef_buf);
                     TTrace((stderr, "  Unix EF modtime = %ld\n", i_time));
-                    if ((ulg) (i_time) & (ulg) (0x80000000L)) {
+                    if ((uint32_t) (i_time) & (uint32_t) (0x80000000L)) {
                         ut_zip_unzip_compatible =
                             ((time_t) 0x80000000L < (time_t) 0L)
                                 ? (dos_mdatetime == DOSTIME_MINIMUM)
@@ -1892,7 +1894,7 @@ ulg *z_uidgid;     /* return storage: uid and gid */
                     i_time =
                         (long) makelong(EB_HEADSIZE + EB_UX_ATIME + ef_buf);
                     TTrace((stderr, "  Unix EF actime = %ld\n", i_time));
-                    if (((ulg) (i_time) & (ulg) (0x80000000L)) &&
+                    if (((uint32_t) (i_time) & (uint32_t) (0x80000000L)) &&
                         !ut_zip_unzip_compatible && (flags & 0x0ff)) {
                         /* atime not in range of UnZip's time_t */
                         flags &= ~EB_UT_FL_ATIME;

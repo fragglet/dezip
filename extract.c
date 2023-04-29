@@ -21,8 +21,9 @@ static const char ExclFilenameNotMatched[] =
     "caution: excluded filename not matched:  %s\n";
 
 static int store_info(void);
-static int extract_or_test_entrylist(unsigned numchunk, ulg *pfilnum,
-                                     ulg *pnum_bad_pwd, off_t *pold_extra_bytes,
+static int extract_or_test_entrylist(unsigned numchunk, uint32_t *pfilnum,
+                                     uint32_t *pnum_bad_pwd,
+                                     off_t *pold_extra_bytes,
                                      unsigned *pnum_dirs, direntry **pdirlist,
                                      int error_in_archive);
 static int extract_or_test_member(void);
@@ -30,7 +31,7 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len);
 static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
                          int (*test_uc_ebdata)(uint8_t *eb, unsigned eb_size,
                                                uint8_t *eb_ucptr,
-                                               ulg eb_ucsize));
+                                               uint32_t eb_ucsize));
 static void set_deferred_symlink(slinkentry *slnk_entry);
 static int dircomp(const void *a, const void *b);
 
@@ -72,14 +73,14 @@ static const char WarnNoMemCFName[] =
     "%s:  warning, no memory for comparison with local header\n";
 static const char LvsCFNamMsg[] = "%s:  mismatching \"local\" filename (%s),\n\
          continuing with \"central\" filename version\n";
-static const char GP11FlagsDiffer[] = "file #%lu (%s):\n\
+static const char GP11FlagsDiffer[] = "file #%u (%s):\n\
          mismatch between local and central GPF bit 11 (\"UTF-8\"),\n\
          continuing with central flag (IsUTF8 = %d)\n";
 static const char WrnStorUCSizCSizDiff[] =
     "%s:  ucsize %s <> csize %s for STORED entry\n\
          continuing with \"compressed\" size value\n";
 static const char ExtFieldMsg[] = "%s:  bad extra field length (%s)\n";
-static const char OffsetMsg[] = "file #%lu:  bad zipfile offset (%s):  %ld\n";
+static const char OffsetMsg[] = "file #%u:  bad zipfile offset (%s):  %ld\n";
 static const char ExtractMsg[] = "%8sing: %-22s  %s%s";
 static const char LengthMsg[] =
     "%s  %s:  %s bytes required to uncompress to %s bytes;\n    %s\
@@ -87,7 +88,7 @@ static const char LengthMsg[] =
 
 static const char BadFileCommLength[] = "%s:  bad file comment length\n";
 static const char LocalHdrSig[] = "local header sig";
-static const char BadLocalHdr[] = "file #%lu:  bad local header\n";
+static const char BadLocalHdr[] = "file #%u:  bad local header\n";
 static const char AttemptRecompensate[] = "  (attempting to re-compensate)\n";
 static const char BackslashPathSep[] =
     "warning:  %s appears to use backslashes as path separators\n";
@@ -102,7 +103,7 @@ static const char DirlistSortNoMem[] =
 static const char DirlistSetAttrFailed[] =
     "warning:  set times/attribs failed for %s\n";
 static const char DirlistFailAttrSum[] =
-    "     failed setting times/attribs for %lu dir entries";
+    "     failed setting times/attribs for %u dir entries";
 
 static const char SymLnkWarnNoMem[] =
     "warning:  deferred symlink (%s) failed:\n\
@@ -132,16 +133,16 @@ static const char SkipCannotGetPasswd[] =
 static const char SkipIncorrectPasswd[] =
     "   skipping: %-22s  incorrect password\n";
 static const char FilesSkipBadPasswd[] =
-    "%lu file%s skipped because of incorrect password.\n";
+    "%u file%s skipped because of incorrect password.\n";
 static const char MaybeBadPasswd[] =
     "    (may instead be incorrect password)\n";
 
 static const char NoErrInCompData[] =
     "No errors detected in compressed data of %s.\n";
 static const char NoErrInTestedFiles[] =
-    "No errors detected in %s for the %lu file%s tested.\n";
+    "No errors detected in %s for the %u file%s tested.\n";
 static const char FilesSkipped[] =
-    "%lu file%s skipped because of unsupported compression or encoding.\n";
+    "%u file%s skipped because of unsupported compression or encoding.\n";
 
 static const char ErrUnzipFile[] = "  error:  %s%s %s\n";
 static const char ErrUnzipNoFile[] = "\n  error:  %s%s\n";
@@ -154,7 +155,7 @@ static const char Explode[] = "explode";
 static const char Unshrink[] = "unshrink";
 
 static const char FileUnknownCompMethod[] = "%s:  unknown compression method\n";
-static const char BadCRC[] = " bad CRC %08lx  (should be %08lx)\n";
+static const char BadCRC[] = " bad CRC %08x  (should be %08x)\n";
 
 /* TruncEAs[] also used in OS/2 mapname(), close_outfile() */
 char const TruncEAs[] = " compressed EA data missing (%d bytes)%s";
@@ -175,7 +176,7 @@ static const char UnknErrorEAs[] = " unknown error on extended attributes\n";
 static const char UnsupportedExtraField[] =
     "\nerror:  unsupported extra-field compression type (%u)--skipping\n";
 static const char BadExtraFieldCRC[] =
-    "error [%s]:  bad extra-field CRC %08lx (should be %08lx)\n";
+    "error [%s]:  bad extra-field CRC %08x (should be %08x)\n";
 static const char NotEnoughMemCover[] =
     "error: not enough memory for bomb detection\n";
 static const char OverlappedComponents[] =
@@ -296,13 +297,13 @@ int extract_or_test_files(void) /* return PK-type error code */
     off_t cd_bufstart;
     uint8_t *cd_inptr;
     int cd_incnt;
-    ulg filnum = 0L, blknum = 0L;
+    uint32_t filnum = 0L, blknum = 0L;
     int reached_end;
     int no_endsig_found;
     int error, error_in_archive = PK_COOL;
     int *fn_matched = NULL, *xn_matched = NULL;
     uint64_t members_processed;
-    ulg num_skipped = 0L, num_bad_pwd = 0L;
+    uint32_t num_skipped = 0L, num_bad_pwd = 0L;
     off_t old_extra_bytes = 0L;
     unsigned num_dirs = 0;
     direntry *dirlist = NULL, **sorted_dirlist = NULL;
@@ -617,7 +618,7 @@ int extract_or_test_files(void) /* return PK-type error code */
                 free(d);
             }
         } else {
-            ulg ndirs_fail = 0;
+            uint32_t ndirs_fail = 0;
 
             if (num_dirs == 1)
                 sorted_dirlist[0] = dirlist;
@@ -701,7 +702,7 @@ int extract_or_test_files(void) /* return PK-type error code */
             error_in_archive = PK_WARN;
     }
     if (G.UzO.tflag) {
-        ulg num = filnum - num_bad_pwd;
+        uint32_t num = filnum - num_bad_pwd;
 
         if (G.UzO.qflag < 2) { /* GRR 930710:  was (G.UzO.qflag == 1) */
             if (error_in_archive)
@@ -856,8 +857,8 @@ extract_or_test_entrylist(numchunk, pfilnum, pnum_bad_pwd, pold_extra_bytes,
                           pnum_dirs, pdirlist,
                           error_in_archive) /* return PK-type error code */
 unsigned numchunk;
-ulg *pfilnum;
-ulg *pnum_bad_pwd;
+uint32_t *pfilnum;
+uint32_t *pnum_bad_pwd;
 off_t *pold_extra_bytes;
 unsigned *pnum_dirs;
 direntry **pdirlist;
@@ -1549,14 +1550,14 @@ static int extract_or_test_member(void) /* return PK-type error code */
 #define LOW 0xffffffff
         uint8_t buf[12];
         unsigned shy = 12 - readbuf((char *) buf, 12);
-        ulg crc = shy ? 0 : makelong(buf);
-        ulg clen = shy ? 0 : makelong(buf + 4);
-        ulg ulen = shy ? 0 : makelong(buf + 8); /* or high clen if ZIP64 */
-        if (crc == SIG &&                       /* if not SIG, no signature */
-            (G.lrec.crc32 != SIG ||             /* if not SIG, have signature */
-             (clen == SIG &&                    /* if not SIG, no signature */
-              ((G.lrec.csize & LOW) != SIG ||   /* if not SIG, have signature */
-               (ulen == SIG &&                  /* if not SIG, no signature */
+        uint32_t crc = shy ? 0 : makelong(buf);
+        uint32_t clen = shy ? 0 : makelong(buf + 4);
+        uint32_t ulen = shy ? 0 : makelong(buf + 8); /* or high clen if ZIP64 */
+        if (crc == SIG &&                     /* if not SIG, no signature */
+            (G.lrec.crc32 != SIG ||           /* if not SIG, have signature */
+             (clen == SIG &&                  /* if not SIG, no signature */
+              ((G.lrec.csize & LOW) != SIG || /* if not SIG, have signature */
+               (ulen == SIG &&                /* if not SIG, no signature */
                 (G.zip64 ? G.lrec.csize >> 32 : G.lrec.ucsize) != SIG
                 /* if not SIG, have signature */
                 )))))
@@ -1740,9 +1741,9 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
 static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
                          int (*test_uc_ebdata)(uint8_t *eb, unsigned eb_size,
                                                uint8_t *eb_ucptr,
-                                               ulg eb_ucsize))
+                                               uint32_t eb_ucsize))
 {
-    ulg eb_ucsize;
+    uint32_t eb_ucsize;
     uint8_t *eb_ucptr;
     int r;
     uint16_t eb_compr_method;
@@ -1775,7 +1776,7 @@ static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
         return PK_MEM4;
 
     r = memextract(eb_ucptr, eb_ucsize, eb + (EB_HEADSIZE + compr_offset),
-                   (ulg) (eb_size - compr_offset));
+                   (uint32_t) (eb_size - compr_offset));
 
     if (r == PK_OK && test_uc_ebdata != NULL)
         r = (*test_uc_ebdata)(eb, eb_size, eb_ucptr, eb_ucsize);
@@ -1784,14 +1785,15 @@ static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
     return r;
 }
 
-int memextract(uint8_t *tgt, ulg tgtsize, const uint8_t *src, ulg srcsize)
+int memextract(uint8_t *tgt, uint32_t tgtsize, const uint8_t *src,
+               uint32_t srcsize)
 {
     off_t old_csize = G.csize;
     uint8_t *old_inptr = G.inptr;
     int old_incnt = G.incnt;
     int r, error = PK_OK;
     uint16_t method;
-    ulg extra_field_crc;
+    uint32_t extra_field_crc;
 
     method = makeword(src);
     extra_field_crc = makelong(src + 2);
@@ -1806,7 +1808,7 @@ int memextract(uint8_t *tgt, ulg tgtsize, const uint8_t *src, ulg srcsize)
     switch (method) {
     case STORED:
         memcpy((char *) tgt, (char *) G.inptr, (size_t) G.incnt);
-        G.outcnt = (ulg) G.csize; /* for CRC calculation */
+        G.outcnt = (uint32_t) G.csize; /* for CRC calculation */
         break;
     case DEFLATED:
     case ENHDEFLATED:
@@ -1837,7 +1839,8 @@ int memextract(uint8_t *tgt, ulg tgtsize, const uint8_t *src, ulg srcsize)
     G.mem_mode = FALSE;
 
     if (!error) {
-        register ulg crcval = crc32(CRCVAL_INITIAL, tgt, (size_t) G.outcnt);
+        register uint32_t crcval =
+            crc32(CRCVAL_INITIAL, tgt, (size_t) G.outcnt);
 
         if (crcval != extra_field_crc) {
             if (G.UzO.tflag)
@@ -1853,7 +1856,7 @@ int memextract(uint8_t *tgt, ulg tgtsize, const uint8_t *src, ulg srcsize)
     return error;
 }
 
-int memflush(const uint8_t *rawbuf, ulg size)
+int memflush(const uint8_t *rawbuf, uint32_t size)
 {
     if (size > G.outsize)
         /* Here, PK_DISK is a bit off-topic, but in the sense of marking
@@ -2081,7 +2084,7 @@ int UZbunzip2(void)
          (uint64_t) (bstrm.total_out_lo32) + ((uint64_t) (bstrm.total_out_hi32))
              << 32));
 #else
-    Trace((stderr, "total in = %lu, total out = %lu\n", bstrm.total_in_lo32,
+    Trace((stderr, "total in = %u, total out = %u\n", bstrm.total_in_lo32,
            bstrm.total_out_lo32));
 #endif
 

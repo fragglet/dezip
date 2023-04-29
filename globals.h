@@ -39,14 +39,14 @@ struct globals {
     min_info *pInfo;
     union work area; /* see unzpriv.h for definition of work */
 
-    const ulg *crc_32_tab;
-    ulg crc32val; /* CRC shift reg. (was static in funzip) */
+    const uint32_t *crc_32_tab;
+    uint32_t crc32val; /* CRC shift reg. (was static in funzip) */
 
     uint8_t *inbuf; /* input buffer (any size is OK) */
     uint8_t *inptr; /* pointer into input buffer */
     int incnt;
 
-    ulg bitbuf;
+    uint32_t bitbuf;
     int bits_left; /* unreduce and unshrink only */
     int zipeof;
     char *wildzipfn;
@@ -67,16 +67,16 @@ struct globals {
 
     int mem_mode;
     uint8_t *outbufptr;     /* extract.c static */
-    ulg outsize;            /* extract.c static */
+    uint32_t outsize;       /* extract.c static */
     int reported_backslash; /* extract.c static */
     int disk_full;
     int newfile;
     void **cover; /* used in extract.c for bomb detection */
 
-    int didCRlast; /* fileio static */
-    ulg numlines;  /* fileio static: number of lines printed */
-    int sol;       /* fileio static: at start of line */
-    int no_ecrec;  /* process static */
+    int didCRlast;     /* fileio static */
+    uint32_t numlines; /* fileio static: number of lines printed */
+    int sol;           /* fileio static: at start of line */
+    int no_ecrec;      /* process static */
     int symlnk;
     slinkentry *slink_head; /* pointer to head of symlinks list */
     slinkentry *slink_last; /* pointer to last entry in symlinks list */
@@ -86,7 +86,7 @@ struct globals {
 
     uint8_t *outbuf2; /*  process_zipfiles() (never changes); */
     uint8_t *outptr;
-    ulg outcnt;               /* number of chars stored in outbuf */
+    uint32_t outcnt;          /* number of chars stored in outbuf */
     char filename[FILNAMSIZ]; /* also used by NT for temporary SFX path */
     char *filename_full;      /* the full path so Unicode checks work */
     size_t fnfull_bufsize;    /* size of allocated filename buffer */
@@ -94,9 +94,9 @@ struct globals {
     int unicode_mismatch;
     int native_is_utf8; /* bool, TRUE => native charset == UTF-8 */
 
-    int unipath_version;    /* version of Unicode field */
-    ulg unipath_checksum;   /* Unicode field checksum */
-    char *unipath_filename; /* UTF-8 path */
+    int unipath_version;       /* version of Unicode field */
+    uint32_t unipath_checksum; /* Unicode field checksum */
+    char *unipath_filename;    /* UTF-8 path */
 
     char *key;        /* crypt static: decryption password or NULL */
     int nopwd;        /* crypt static */
@@ -119,7 +119,7 @@ struct globals {
     const uint8_t *cplext;           /* inflate static */
     const uint8_t *cpdext;           /* inflate static */
     unsigned wp; /* inflate static: current position in slide */
-    ulg bb;      /* inflate static: bit buffer */
+    uint32_t bb; /* inflate static: bit buffer */
     unsigned bk; /* inflate static: bits count in bit buffer */
 
     /* cylindric buffer space for formatting off_t values (fileio static) */
