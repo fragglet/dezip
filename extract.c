@@ -1550,9 +1550,10 @@ static int extract_or_test_member(void) /* return PK-type error code */
 #define LOW 0xffffffff
         uint8_t buf[12];
         unsigned shy = 12 - readbuf((char *) buf, 12);
-        uint32_t crc = shy ? 0 : makelong(buf);
-        uint32_t clen = shy ? 0 : makelong(buf + 4);
-        uint32_t ulen = shy ? 0 : makelong(buf + 8); /* or high clen if ZIP64 */
+        uint32_t crc = shy ? 0 : makeint32(buf);
+        uint32_t clen = shy ? 0 : makeint32(buf + 4);
+        uint32_t ulen =
+            shy ? 0 : makeint32(buf + 8);     /* or high clen if ZIP64 */
         if (crc == SIG &&                     /* if not SIG, no signature */
             (G.lrec.crc32 != SIG ||           /* if not SIG, have signature */
              (clen == SIG &&                  /* if not SIG, no signature */
@@ -1583,8 +1584,8 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
      * wouldn't be here ==> print filename if any extra-field errors found
      */
     while (ef_len >= EB_HEADSIZE) {
-        ebID = makeword(ef);
-        ebLen = (unsigned) makeword(ef + EB_LEN);
+        ebID = makeint16(ef);
+        ebLen = (unsigned) makeint16(ef + EB_LEN);
 
         if (ebLen > (ef_len - EB_HEADSIZE)) {
             /* Discovered some extra field inconsistency! */
@@ -1610,9 +1611,9 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
                 break;
             case EF_MAC3:
                 if (ebLen >= EB_MAC3_HLEN &&
-                    (makeword(ef + (EB_HEADSIZE + EB_FLGS_OFFS)) &
+                    (makeint16(ef + (EB_HEADSIZE + EB_FLGS_OFFS)) &
                      EB_M3_FL_UNCMPR) &&
-                    (makelong(ef + EB_HEADSIZE) == ebLen - EB_MAC3_HLEN))
+                    (makeint32(ef + EB_HEADSIZE) == ebLen - EB_MAC3_HLEN))
                     eb_cmpr_offs = 0;
                 else
                     eb_cmpr_offs = EB_MAC3_HLEN;
@@ -1621,7 +1622,7 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
             case EF_ATHEOS:
                 if (ebLen >= EB_BEOS_HLEN &&
                     (*(ef + (EB_HEADSIZE + EB_FLGS_OFFS)) & EB_BE_FL_UNCMPR) &&
-                    (makelong(ef + EB_HEADSIZE) == ebLen - EB_BEOS_HLEN))
+                    (makeint32(ef + EB_HEADSIZE) == ebLen - EB_BEOS_HLEN))
                     eb_cmpr_offs = 0;
                 else
                     eb_cmpr_offs = EB_BEOS_HLEN;
@@ -1708,7 +1709,7 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
         case EF_PKVMS:
             if (ebLen < 4) {
                 Info(slide, 1, ((char *) slide, TooSmallEBlength, ebLen, 4));
-            } else if (makelong(ef + EB_HEADSIZE) !=
+            } else if (makeint32(ef + EB_HEADSIZE) !=
                        crc32(CRCVAL_INITIAL, ef + (EB_HEADSIZE + 4),
                              (size_t) (ebLen - 4))) {
                 Info(slide, 1, ((char *) slide, BadCRC_EAs));
@@ -1759,7 +1760,7 @@ static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
      *       the compressed data header.
      */
     if (eb_size < (EB_UCSIZE_P + 4) ||
-        (eb_ucsize = makelong(eb + (EB_HEADSIZE + EB_UCSIZE_P))) == 0L ||
+        (eb_ucsize = makeint32(eb + (EB_HEADSIZE + EB_UCSIZE_P))) == 0L ||
         (eb_ucsize > 0L && eb_size <= (compr_offset + EB_CMPRHEADLEN)))
         return IZ_EF_TRUNC; /* no/bad compressed data! */
 
@@ -1767,7 +1768,7 @@ static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
      * For STORE method, compressed and uncompressed sizes must agree.
      * http://www.info-zip.org/phpBB3/viewtopic.php?f=7&t=450
      */
-    eb_compr_method = makeword(eb + (EB_HEADSIZE + compr_offset));
+    eb_compr_method = makeint16(eb + (EB_HEADSIZE + compr_offset));
     if (eb_compr_method == STORED &&
         eb_size != compr_offset + EB_CMPRHEADLEN + eb_ucsize)
         return PK_ERR;
@@ -1795,8 +1796,8 @@ int memextract(uint8_t *tgt, uint32_t tgtsize, const uint8_t *src,
     uint16_t method;
     uint32_t extra_field_crc;
 
-    method = makeword(src);
-    extra_field_crc = makelong(src + 2);
+    method = makeint16(src);
+    extra_field_crc = makeint32(src + 2);
 
     /* compressed extra field exists completely in memory at this location: */
     G.inptr = (uint8_t *) src + (2 + 4); /* method and extra_field_crc */

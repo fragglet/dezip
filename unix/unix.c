@@ -223,15 +223,15 @@ int mapattr()
             unsigned ef_len = G.crec.extra_field_length;
 
             while (!r && ef_len >= EB_HEADSIZE) {
-                ebID = makeword(ef);
-                ebLen = (unsigned) makeword(ef + EB_LEN);
+                ebID = makeint16(ef);
+                ebLen = (unsigned) makeint16(ef + EB_LEN);
                 if (ebLen > (ef_len - EB_HEADSIZE))
                     /* discoverd some e.f. inconsistency! */
                     break;
                 switch (ebID) {
                 case EF_ASIUNIX:
                     if (ebLen >= (EB_ASI_MODE + 2)) {
-                        G.pInfo->file_attr = (unsigned) makeword(
+                        G.pInfo->file_attr = (unsigned) makeint16(
                             ef + (EB_HEADSIZE + EB_ASI_MODE));
                         /* force stop of loop: */
                         ef_len = (ebLen + EB_HEADSIZE);

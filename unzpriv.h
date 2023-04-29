@@ -662,8 +662,8 @@ void handler(int signal);
 time_t dos_to_unix_time(uint32_t dos_datetime);
 int check_for_newer(char *filename); /* os2,vmcms,vms */
 int do_string(unsigned int length, int option);
-uint16_t makeword(const uint8_t *b);
-uint32_t makelong(const uint8_t *sig);
+uint16_t makeint16(const uint8_t *b);
+uint32_t makeint32(const uint8_t *sig);
 uint64_t makeint64(const uint8_t *sig);
 char *format_off_t(off_t val, const char *pre, const char *post);
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))

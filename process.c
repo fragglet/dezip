@@ -685,10 +685,11 @@ off_t searchlen;
     }
 
     /* Read the locator. */
-    ecrec64_start_disk = (uint32_t) makelong(&byterecL[NUM_DISK_START_EOCDR64]);
+    ecrec64_start_disk =
+        (uint32_t) makeint32(&byterecL[NUM_DISK_START_EOCDR64]);
     ecrec64_start_offset =
         (uint64_t) makeint64(&byterecL[OFFSET_START_EOCDR64]);
-    ecloc64_total_disks = (uint32_t) makelong(&byterecL[NUM_THIS_DISK_LOC64]);
+    ecloc64_total_disks = (uint32_t) makeint32(&byterecL[NUM_THIS_DISK_LOC64]);
 
     /* Check for consistency */
 #ifdef TEST
@@ -775,7 +776,7 @@ off_t searchlen;
     }
 
     /* Check consistency of found ecrec64 with ecloc64 (and ecrec): */
-    if ((uint32_t) makelong(&byterec[NUMBER_THIS_DSK_REC64]) !=
+    if ((uint32_t) makeint32(&byterec[NUMBER_THIS_DSK_REC64]) !=
         ecrec64_start_disk)
         /* found ecrec64 does not match ecloc64 info -> no Zip64 archive */
         return PK_COOL;
@@ -783,7 +784,7 @@ off_t searchlen;
        ecrec fields unless those are set to "all-ones".
      */
     ecrec64_disk_cdstart =
-        (uint32_t) makelong(&byterec[NUM_DISK_START_CEN_DIR64]);
+        (uint32_t) makeint32(&byterec[NUM_DISK_START_CEN_DIR64]);
     if (G.ecrec.num_disk_start_cdir != 0xFFFF &&
         G.ecrec.num_disk_start_cdir != ecrec64_disk_cdstart)
         return PK_COOL;
@@ -923,17 +924,19 @@ off_t searchlen;
     if (readbuf((char *) byterec, ECREC_SIZE + 4) == 0)
         return PK_EOF;
 
-    G.ecrec.number_this_disk = makeword(&byterec[NUMBER_THIS_DISK]);
+    G.ecrec.number_this_disk = makeint16(&byterec[NUMBER_THIS_DISK]);
     G.ecrec.num_disk_start_cdir =
-        makeword(&byterec[NUM_DISK_WITH_START_CEN_DIR]);
+        makeint16(&byterec[NUM_DISK_WITH_START_CEN_DIR]);
     G.ecrec.num_entries_centrl_dir_ths_disk =
-        makeword(&byterec[NUM_ENTRIES_CEN_DIR_THS_DISK]);
+        makeint16(&byterec[NUM_ENTRIES_CEN_DIR_THS_DISK]);
     G.ecrec.total_entries_central_dir =
-        makeword(&byterec[TOTAL_ENTRIES_CENTRAL_DIR]);
-    G.ecrec.size_central_directory = makelong(&byterec[SIZE_CENTRAL_DIRECTORY]);
+        makeint16(&byterec[TOTAL_ENTRIES_CENTRAL_DIR]);
+    G.ecrec.size_central_directory =
+        makeint32(&byterec[SIZE_CENTRAL_DIRECTORY]);
     G.ecrec.offset_start_central_directory =
-        makelong(&byterec[OFFSET_START_CENTRAL_DIRECTORY]);
-    G.ecrec.zipfile_comment_length = makeword(&byterec[ZIPFILE_COMMENT_LENGTH]);
+        makeint32(&byterec[OFFSET_START_CENTRAL_DIRECTORY]);
+    G.ecrec.zipfile_comment_length =
+        makeint16(&byterec[ZIPFILE_COMMENT_LENGTH]);
     G.ecrec.ec_start = G.real_ecrec_offset;
     G.ecrec.ec_end = G.ecrec.ec_start + 22 + G.ecrec.zipfile_comment_length;
 
@@ -1079,22 +1082,22 @@ static int get_cdir_ent() /* return PK-type error code */
         byterec[C_VERSION_NEEDED_TO_EXTRACT_1];
 
     G.crec.general_purpose_bit_flag =
-        makeword(&byterec[C_GENERAL_PURPOSE_BIT_FLAG]);
-    G.crec.compression_method = makeword(&byterec[C_COMPRESSION_METHOD]);
-    G.crec.last_mod_dos_datetime = makelong(&byterec[C_LAST_MOD_DOS_DATETIME]);
-    G.crec.crc32 = makelong(&byterec[C_CRC32]);
-    G.crec.csize = makelong(&byterec[C_COMPRESSED_SIZE]);
-    G.crec.ucsize = makelong(&byterec[C_UNCOMPRESSED_SIZE]);
-    G.crec.filename_length = makeword(&byterec[C_FILENAME_LENGTH]);
-    G.crec.extra_field_length = makeword(&byterec[C_EXTRA_FIELD_LENGTH]);
-    G.crec.file_comment_length = makeword(&byterec[C_FILE_COMMENT_LENGTH]);
-    G.crec.disk_number_start = makeword(&byterec[C_DISK_NUMBER_START]);
+        makeint16(&byterec[C_GENERAL_PURPOSE_BIT_FLAG]);
+    G.crec.compression_method = makeint16(&byterec[C_COMPRESSION_METHOD]);
+    G.crec.last_mod_dos_datetime = makeint32(&byterec[C_LAST_MOD_DOS_DATETIME]);
+    G.crec.crc32 = makeint32(&byterec[C_CRC32]);
+    G.crec.csize = makeint32(&byterec[C_COMPRESSED_SIZE]);
+    G.crec.ucsize = makeint32(&byterec[C_UNCOMPRESSED_SIZE]);
+    G.crec.filename_length = makeint16(&byterec[C_FILENAME_LENGTH]);
+    G.crec.extra_field_length = makeint16(&byterec[C_EXTRA_FIELD_LENGTH]);
+    G.crec.file_comment_length = makeint16(&byterec[C_FILE_COMMENT_LENGTH]);
+    G.crec.disk_number_start = makeint16(&byterec[C_DISK_NUMBER_START]);
     G.crec.internal_file_attributes =
-        makeword(&byterec[C_INTERNAL_FILE_ATTRIBUTES]);
+        makeint16(&byterec[C_INTERNAL_FILE_ATTRIBUTES]);
     G.crec.external_file_attributes =
-        makelong(&byterec[C_EXTERNAL_FILE_ATTRIBUTES]); /* LONG, not word! */
+        makeint32(&byterec[C_EXTERNAL_FILE_ATTRIBUTES]); /* LONG, not word! */
     G.crec.relative_offset_local_header =
-        makelong(&byterec[C_RELATIVE_OFFSET_LOCAL_HEADER]);
+        makeint32(&byterec[C_RELATIVE_OFFSET_LOCAL_HEADER]);
 
     return PK_COOL;
 }
@@ -1119,14 +1122,14 @@ int process_local_file_hdr() /* return PK-type error code */
         byterec[L_VERSION_NEEDED_TO_EXTRACT_1];
 
     G.lrec.general_purpose_bit_flag =
-        makeword(&byterec[L_GENERAL_PURPOSE_BIT_FLAG]);
-    G.lrec.compression_method = makeword(&byterec[L_COMPRESSION_METHOD]);
-    G.lrec.last_mod_dos_datetime = makelong(&byterec[L_LAST_MOD_DOS_DATETIME]);
-    G.lrec.crc32 = makelong(&byterec[L_CRC32]);
-    G.lrec.csize = makelong(&byterec[L_COMPRESSED_SIZE]);
-    G.lrec.ucsize = makelong(&byterec[L_UNCOMPRESSED_SIZE]);
-    G.lrec.filename_length = makeword(&byterec[L_FILENAME_LENGTH]);
-    G.lrec.extra_field_length = makeword(&byterec[L_EXTRA_FIELD_LENGTH]);
+        makeint16(&byterec[L_GENERAL_PURPOSE_BIT_FLAG]);
+    G.lrec.compression_method = makeint16(&byterec[L_COMPRESSION_METHOD]);
+    G.lrec.last_mod_dos_datetime = makeint32(&byterec[L_LAST_MOD_DOS_DATETIME]);
+    G.lrec.crc32 = makeint32(&byterec[L_CRC32]);
+    G.lrec.csize = makeint32(&byterec[L_COMPRESSED_SIZE]);
+    G.lrec.ucsize = makeint32(&byterec[L_UNCOMPRESSED_SIZE]);
+    G.lrec.filename_length = makeint16(&byterec[L_FILENAME_LENGTH]);
+    G.lrec.extra_field_length = makeint16(&byterec[L_EXTRA_FIELD_LENGTH]);
 
     if ((G.lrec.general_purpose_bit_flag & 8) != 0) {
         /* can't trust local header, use central directory: */
@@ -1156,7 +1159,7 @@ unsigned ef_len;                           /* total length of extra field */
 
         2014-12-05 SMS.  (oCERT.org report.)  CVE-2014-8141.
         Added checks to ensure that enough data are available before calling
-        makeint64() or makelong().  Replaced various sizeof() values with
+        makeint64() or makeint32().  Replaced various sizeof() values with
         simple ("4" or "8") constants.  (The Zip64 structures do not depend
         on our variable sizes.)  Error handling is crude, but we should now
         stay within the buffer.
@@ -1174,8 +1177,8 @@ unsigned ef_len;                           /* total length of extra field */
            ef_len));
 
     while (ef_len >= EB_HEADSIZE) {
-        eb_id = makeword(EB_ID + ef_buf);
-        eb_len = makeword(EB_LEN + ef_buf);
+        eb_id = makeint16(EB_ID + ef_buf);
+        eb_len = makeint16(EB_LEN + ef_buf);
 
         if (eb_len > (ef_len - EB_HEADSIZE)) {
             /* Extra block length exceeds remaining extra field length. */
@@ -1217,7 +1220,8 @@ unsigned ef_len;                           /* total length of extra field */
                 if (offset + 4 > ef_len)
                     return PK_ERR;
 
-                G.crec.disk_number_start = (uint32_t) makelong(offset + ef_buf);
+                G.crec.disk_number_start =
+                    (uint32_t) makeint32(offset + ef_buf);
                 offset += 4;
             }
         }
@@ -1257,8 +1261,8 @@ unsigned ef_len;                           /* total length of extra field */
            ef_len));
 
     while (ef_len >= EB_HEADSIZE) {
-        eb_id = makeword(EB_ID + ef_buf);
-        eb_len = makeword(EB_LEN + ef_buf);
+        eb_id = makeint16(EB_ID + ef_buf);
+        eb_len = makeint16(EB_LEN + ef_buf);
 
         if (eb_len > (ef_len - EB_HEADSIZE)) {
             /* discovered some extra field inconsistency! */
@@ -1283,7 +1287,7 @@ unsigned ef_len;                           /* total length of extra field */
             }
 
             /* filename CRC */
-            G.unipath_checksum = makelong(offset + ef_buf);
+            G.unipath_checksum = makeint32(offset + ef_buf);
             offset += 4;
 
             /*
@@ -1658,10 +1662,10 @@ uint32_t *p_uidgid;      /* return storage: uid or gid value */
 
     switch (uidgid_sz) {
     case 2:
-        *p_uidgid = (uint32_t) makeword(dbuf);
+        *p_uidgid = (uint32_t) makeint16(dbuf);
         break;
     case 4:
-        *p_uidgid = (uint32_t) makelong(dbuf);
+        *p_uidgid = (uint32_t) makeint32(dbuf);
         break;
     case 8:
         uidgid64 = makeint64(dbuf);
@@ -1715,8 +1719,8 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
             ef_len));
 
     while (ef_len >= EB_HEADSIZE) {
-        eb_id = makeword(EB_ID + ef_buf);
-        eb_len = makeword(EB_LEN + ef_buf);
+        eb_id = makeint16(EB_ID + ef_buf);
+        eb_len = makeint16(EB_LEN + ef_buf);
 
         if (eb_len > (ef_len - EB_HEADSIZE)) {
             /* discovered some extra field inconsistency! */
@@ -1736,7 +1740,8 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
                 flags |= (ef_buf[EB_HEADSIZE + EB_UT_FLAGS] & 0x0ff);
                 if ((flags & EB_UT_FL_MTIME) != 0) {
                     if ((eb_idx + 4) <= eb_len) {
-                        i_time = (long) makelong(EB_HEADSIZE + eb_idx + ef_buf);
+                        i_time =
+                            (long) makeint32(EB_HEADSIZE + eb_idx + ef_buf);
                         eb_idx += 4;
                         TTrace((stderr, "  UT e.f. modification time = %ld\n",
                                 i_time));
@@ -1771,7 +1776,7 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
                 if (flags & EB_UT_FL_ATIME) {
                     if ((eb_idx + 4) <= eb_len) {
                         i_time =
-                            (long) makelong((EB_HEADSIZE + eb_idx) + ef_buf);
+                            (long) makeint32((EB_HEADSIZE + eb_idx) + ef_buf);
                         eb_idx += 4;
                         TTrace(
                             (stderr, "  UT e.f. access time = %ld\n", i_time));
@@ -1791,7 +1796,7 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
                 if (flags & EB_UT_FL_CTIME) {
                     if ((eb_idx + 4) <= eb_len) {
                         i_time =
-                            (long) makelong((EB_HEADSIZE + eb_idx) + ef_buf);
+                            (long) makeint32((EB_HEADSIZE + eb_idx) + ef_buf);
                         TTrace((stderr, "  UT e.f. creation time = %ld\n",
                                 i_time));
                         if (((uint32_t) (i_time) & (uint32_t) (0x80000000L)) &&
@@ -1821,9 +1826,9 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
                 break; /* IZUNIX3 overrides IZUNIX2 e.f. block ! */
             if (eb_len == EB_UX2_MINLEN && z_uidgid != NULL) {
                 z_uidgid[0] =
-                    (uint32_t) makeword(EB_HEADSIZE + EB_UX2_UID + ef_buf);
+                    (uint32_t) makeint16(EB_HEADSIZE + EB_UX2_UID + ef_buf);
                 z_uidgid[1] =
-                    (uint32_t) makeword(EB_HEADSIZE + EB_UX2_GID + ef_buf);
+                    (uint32_t) makeint16(EB_HEADSIZE + EB_UX2_GID + ef_buf);
                 flags |= EB_UX2_VALID; /* signal success */
             }
             break;
@@ -1871,7 +1876,7 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
                 if (z_utim != NULL) {
                     flags |= (EB_UT_FL_MTIME | EB_UT_FL_ATIME);
                     i_time =
-                        (long) makelong(EB_HEADSIZE + EB_UX_MTIME + ef_buf);
+                        (long) makeint32(EB_HEADSIZE + EB_UX_MTIME + ef_buf);
                     TTrace((stderr, "  Unix EF modtime = %ld\n", i_time));
                     if ((uint32_t) (i_time) & (uint32_t) (0x80000000L)) {
                         ut_zip_unzip_compatible =
@@ -1892,7 +1897,7 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
                     }
                     z_utim->mtime = (time_t) i_time;
                     i_time =
-                        (long) makelong(EB_HEADSIZE + EB_UX_ATIME + ef_buf);
+                        (long) makeint32(EB_HEADSIZE + EB_UX_ATIME + ef_buf);
                     TTrace((stderr, "  Unix EF actime = %ld\n", i_time));
                     if (((uint32_t) (i_time) & (uint32_t) (0x80000000L)) &&
                         !ut_zip_unzip_compatible && (flags & 0x0ff)) {
@@ -1905,8 +1910,8 @@ uint32_t *z_uidgid;     /* return storage: uid and gid */
                     }
                 }
                 if (eb_len >= EB_UX_FULLSIZE && z_uidgid != NULL) {
-                    z_uidgid[0] = makeword(EB_HEADSIZE + EB_UX_UID + ef_buf);
-                    z_uidgid[1] = makeword(EB_HEADSIZE + EB_UX_GID + ef_buf);
+                    z_uidgid[0] = makeint16(EB_HEADSIZE + EB_UX_UID + ef_buf);
+                    z_uidgid[1] = makeint16(EB_HEADSIZE + EB_UX_GID + ef_buf);
                     flags |= EB_UX2_VALID;
                 }
             }

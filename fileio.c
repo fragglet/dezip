@@ -950,7 +950,7 @@ int option;
     return error;
 }
 
-uint16_t makeword(b) const uint8_t *b;
+uint16_t makeint16(b) const uint8_t *b;
 {
     /*
      * Convert Intel style 'short' integer to non-Intel non-16-bit
@@ -959,7 +959,7 @@ uint16_t makeword(b) const uint8_t *b;
     return (uint16_t) ((b[1] << 8) | b[0]);
 }
 
-uint32_t makelong(sig) const uint8_t *sig;
+uint32_t makeint32(sig) const uint8_t *sig;
 {
     /*
      * Convert intel style 'long' variable to non-Intel non-16-bit
