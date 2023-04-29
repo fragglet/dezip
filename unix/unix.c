@@ -217,9 +217,9 @@ int mapattr()
              * (For ASI Unix e.f., an experimental remap of the e.f.
              * mode value IS already provided!)
              */
-            ush ebID;
+            uint16_t ebID;
             unsigned ebLen;
-            uch *ef = G.extra_field;
+            uint8_t *ef = G.extra_field;
             unsigned ef_len = G.crec.extra_field_length;
 
             while (!r && ef_len >= EB_HEADSIZE) {
@@ -357,7 +357,7 @@ int renamed;
         Begin main loop through characters in filename.
       ---------------------------------------------------------------------------*/
 
-    while ((workch = (uch) *cp++) != 0) {
+    while ((workch = (uint8_t) *cp++) != 0) {
 
         switch (workch) {
         case '/': /* can assume -j flag not given */
@@ -449,7 +449,7 @@ int renamed;
     /* if not saving them, remove VMS version numbers (appended ";###") */
     if (!G.UzO.V_flag && lastsemi) {
         pp = lastsemi + 1;
-        while (isdigit((uch) (*pp)))
+        while (isdigit((uint8_t) (*pp)))
             ++pp;
         if (*pp == '\0') /* only digits between ';' and end:  nuke */
             *lastsemi = '\0';

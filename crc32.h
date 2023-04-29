@@ -13,7 +13,7 @@
 #define __crc32_h /* identifies this source module */
 
 const ulg *get_crc_table(void);
-ulg crc32(ulg crc, const uch *buf, size_t len);
+ulg crc32(ulg crc, const uint8_t *buf, size_t len);
 
 #ifndef CRC_32_TAB
 #define CRC_32_TAB crc_32_tab

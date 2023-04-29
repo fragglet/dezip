@@ -72,11 +72,11 @@ freely, subject to the above disclaimer and the following restrictions:
 #ifndef __unzip_h /* prevent multiple inclusions */
 #define __unzip_h
 
-typedef unsigned char uch;  /* code assumes unsigned bytes; these type-  */
-typedef unsigned short ush; /*  defs replace byte/UWORD/ULONG (which are */
-typedef unsigned long ulg;  /*  predefined on some systems) & match zip  */
+#include <inttypes.h>
 
-typedef int(MsgFn)(uch *buf, ulg size, int flag);
+typedef unsigned long ulg; /*  predefined on some systems) & match zip  */
+
+typedef int(MsgFn)(uint8_t *buf, ulg size, int flag);
 typedef void(PauseFn)(const char *prompt, int flag);
 typedef int(PasswdFn)(int *rcnt, char *pwbuf, int size, const char *zfn,
                       const char *efn);
@@ -140,8 +140,8 @@ typedef struct _UzpOpts {
 #define IZ_PW_CANCELALL -2 /* no password, skip any further pwd. request */
 #define IZ_PW_ERROR     5  /* = PK_MEM2 : failure (no mem, no tty, ...) */
 
-int UzpMessagePrnt(uch *buf, ulg size, int flag);
-int UzpMessageNull(uch *buf, ulg size, int flag);
+int UzpMessagePrnt(uint8_t *buf, ulg size, int flag);
+int UzpMessageNull(uint8_t *buf, ulg size, int flag);
 void UzpMorePause(const char *prompt, int flag);
 int UzpPassword(int *rcnt, char *pwbuf, int size, const char *zfn,
                 const char *efn);

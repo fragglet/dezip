@@ -26,10 +26,11 @@ static int extract_or_test_entrylist(unsigned numchunk, ulg *pfilnum,
                                      unsigned *pnum_dirs, direntry **pdirlist,
                                      int error_in_archive);
 static int extract_or_test_member(void);
-static int TestExtraField(uch *ef, unsigned ef_len);
-static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
-                         int (*test_uc_ebdata)(uch *eb, unsigned eb_size,
-                                               uch *eb_ucptr, ulg eb_ucsize));
+static int TestExtraField(uint8_t *ef, unsigned ef_len);
+static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
+                         int (*test_uc_ebdata)(uint8_t *eb, unsigned eb_size,
+                                               uint8_t *eb_ucptr,
+                                               ulg eb_ucsize));
 static void set_deferred_symlink(slinkentry *slnk_entry);
 static int dircomp(const void *a, const void *b);
 
@@ -293,7 +294,7 @@ int extract_or_test_files(void) /* return PK-type error code */
 {
     unsigned i, j;
     off_t cd_bufstart;
-    uch *cd_inptr;
+    uint8_t *cd_inptr;
     int cd_incnt;
     ulg filnum = 0L, blknum = 0L;
     int reached_end;
@@ -1340,7 +1341,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
         G.outptr = redirSlide;
         G.outcnt = 0L;
         while ((b = NEXTBYTE) != EOF) {
-            *G.outptr++ = (uch) b;
+            *G.outptr++ = (uint8_t) b;
             if (++G.outcnt == WSIZE) {
                 error = flush(redirSlide, G.outcnt, 0);
                 G.outptr = redirSlide;
@@ -1546,7 +1547,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
          */
 #define SIG 0x08074b50
 #define LOW 0xffffffff
-        uch buf[12];
+        uint8_t buf[12];
         unsigned shy = 12 - readbuf((char *) buf, 12);
         ulg crc = shy ? 0 : makelong(buf);
         ulg clen = shy ? 0 : makelong(buf + 4);
@@ -1570,9 +1571,9 @@ static int extract_or_test_member(void) /* return PK-type error code */
     return error;
 }
 
-static int TestExtraField(uch *ef, unsigned ef_len)
+static int TestExtraField(uint8_t *ef, unsigned ef_len)
 {
-    ush ebID;
+    uint16_t ebID;
     unsigned ebLen;
     unsigned eb_cmpr_offs = 0;
     int r;
@@ -1647,7 +1648,7 @@ static int TestExtraField(uch *ef, unsigned ef_len)
                         Info(slide, 1, ((char *) slide, UnknErrorEAs));
                         break;
                     }
-                    ush m = (ush) (r >> 8);
+                    uint16_t m = (uint16_t) (r >> 8);
                     if (m == DEFLATED) /* GRR KLUDGE! */
                         Info(slide, 1, ((char *) slide, BadCRC_EAs));
                     else
@@ -1695,7 +1696,7 @@ static int TestExtraField(uch *ef, unsigned ef_len)
                     Info(slide, 1, ((char *) slide, UnknErrorEAs));
                     break;
                 }
-                ush m = (ush) (r >> 8);
+                uint16_t m = (uint16_t) (r >> 8);
                 if (m == DEFLATED) /* GRR KLUDGE! */
                     Info(slide, 1, ((char *) slide, BadCRC_EAs));
                 else
@@ -1736,14 +1737,15 @@ static int TestExtraField(uch *ef, unsigned ef_len)
     return PK_COOL;
 }
 
-static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
-                         int (*test_uc_ebdata)(uch *eb, unsigned eb_size,
-                                               uch *eb_ucptr, ulg eb_ucsize))
+static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
+                         int (*test_uc_ebdata)(uint8_t *eb, unsigned eb_size,
+                                               uint8_t *eb_ucptr,
+                                               ulg eb_ucsize))
 {
     ulg eb_ucsize;
-    uch *eb_ucptr;
+    uint8_t *eb_ucptr;
     int r;
-    ush eb_compr_method;
+    uint16_t eb_compr_method;
 
     if (compr_offset < 4) /* field is not compressed: */
         return PK_OK;     /* do nothing and signal OK */
@@ -1782,20 +1784,20 @@ static int test_compr_eb(uch *eb, unsigned eb_size, unsigned compr_offset,
     return r;
 }
 
-int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize)
+int memextract(uint8_t *tgt, ulg tgtsize, const uint8_t *src, ulg srcsize)
 {
     off_t old_csize = G.csize;
-    uch *old_inptr = G.inptr;
+    uint8_t *old_inptr = G.inptr;
     int old_incnt = G.incnt;
     int r, error = PK_OK;
-    ush method;
+    uint16_t method;
     ulg extra_field_crc;
 
     method = makeword(src);
     extra_field_crc = makelong(src + 2);
 
     /* compressed extra field exists completely in memory at this location: */
-    G.inptr = (uch *) src + (2 + 4); /* method and extra_field_crc */
+    G.inptr = (uint8_t *) src + (2 + 4); /* method and extra_field_crc */
     G.incnt = (int) (G.csize = (long) (srcsize - (2 + 4)));
     G.mem_mode = TRUE;
     G.outbufptr = tgt;
@@ -1851,7 +1853,7 @@ int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize)
     return error;
 }
 
-int memflush(const uch *rawbuf, ulg size)
+int memflush(const uint8_t *rawbuf, ulg size)
 {
     if (size > G.outsize)
         /* Here, PK_DISK is a bit off-topic, but in the sense of marking
@@ -1909,13 +1911,13 @@ static void set_deferred_symlink(slinkentry *slnk_entry)
 }
 
 /* convert name to safely printable form */
-char *fnfilter(const char *raw, uch *space, size_t size)
+char *fnfilter(const char *raw, uint8_t *space, size_t size)
 {
 #ifndef NATIVE /* ASCII:  filter ANSI escape codes, etc. */
-    const uch *r = (const uch *) raw;
-    uch *s = space;
-    uch *slim = NULL;
-    uch *se = NULL;
+    const uint8_t *r = (const uint8_t *) raw;
+    uint8_t *s = space;
+    uint8_t *slim = NULL;
+    uint8_t *se = NULL;
     int have_overflow = FALSE;
 
     if (size > 0) {
@@ -1935,7 +1937,7 @@ char *fnfilter(const char *raw, uch *space, size_t size)
                 have_overflow = TRUE;
                 break;
             }
-            *s++ = '^', *s++ = (uch) (64 + *r++);
+            *s++ = '^', *s++ = (uint8_t) (64 + *r++);
         } else {
 #ifdef _MBCS
             unsigned i = CLEN(r);
@@ -2082,7 +2084,7 @@ int UZbunzip2(void)
            bstrm.total_out_lo32));
 #endif
 
-    G.inptr = (uch *) bstrm.next_in;
+    G.inptr = (uint8_t *) bstrm.next_in;
     G.incnt -= G.inptr - G.inbuf; /* reset for other routines */
 
 uzbunzip_cleanup_exit:

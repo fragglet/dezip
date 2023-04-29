@@ -73,7 +73,8 @@
 #define BEG_RANGE '['
 #define END_RANGE ']'
 
-static int recmatch(const uch *pattern, const uch *string, int ignore_case);
+static int recmatch(const uint8_t *pattern, const uint8_t *string,
+                    int ignore_case);
 static char *isshexp(const char *p);
 static int namecmp(const char *s1, const char *s2);
 
@@ -82,16 +83,16 @@ static int namecmp(const char *s1, const char *s2);
 int match(string, pattern, ignore_case) const char *string, *pattern;
 int ignore_case;
 {
-    return recmatch((uch *) pattern, (uch *) string, ignore_case) == 1;
+    return recmatch((uint8_t *) pattern, (uint8_t *) string, ignore_case) == 1;
 }
 
 /* Recursively compare the sh pattern p with the string s and return 1 if
  * they match, and 0 or 2 if they don't or if there is a syntax error in the
  * pattern.  This routine recurses on itself no more deeply than the number
  * of characters in the pattern. */
-static int recmatch(p, s, ic) const uch *p; /* sh pattern to match */
-const uch *s;                               /* string to which to match it */
-int ic;                                     /* true for case insensitivity */
+static int recmatch(p, s, ic) const uint8_t *p; /* sh pattern to match */
+const uint8_t *s; /* string to which to match it */
+int ic;           /* true for case insensitivity */
 {
     unsigned int c; /* pattern char or start of range in [-] loop */
 
@@ -123,7 +124,7 @@ int ic;                                     /* true for case insensitivity */
          * of the pattern behind the multi-char wildcard, then just
          * compare the literal string tail.
          */
-        const uch *srest;
+        const uint8_t *srest;
 
         srest = s + (strlen((const char *) s) - strlen((const char *) p));
         if (srest - s < 0)
@@ -136,7 +137,7 @@ int ic;                                     /* true for case insensitivity */
              * bytes of the test string to check for a match
              */
 #ifdef _MBCS
-        const uch *q = s;
+        const uint8_t *q = s;
 
         /* MBCS-aware code must not scan backwards into a string from
          * the end.
@@ -163,9 +164,9 @@ int ic;                                     /* true for case insensitivity */
 
     /* Parse and process the list of characters and ranges in brackets */
     if (c == BEG_RANGE) {
-        int e;        /* flag true if next char to be taken literally */
-        const uch *q; /* pointer to end of [-] group */
-        int r;        /* flag true to match anything but the range */
+        int e;            /* flag true if next char to be taken literally */
+        const uint8_t *q; /* pointer to end of [-] group */
+        int r;            /* flag true to match anything but the range */
 
         if (*s == 0) /* need a character to match */
             return 0;
@@ -204,7 +205,7 @@ int ic;                                     /* true for case insensitivity */
         return 0;
 
     /* just a character--compare it */
-    return Case((uch) c) == Case(*s) ? recmatch(p, s + CLEN(s), ic) : 0;
+    return Case((uint8_t) c) == Case(*s) ? recmatch(p, s + CLEN(s), ic) : 0;
 }
 
 /* If p is a sh expression, a pointer to the first special character is
@@ -224,7 +225,7 @@ static int namecmp(s1, s2) const char *s1, *s2;
     int d;
 
     for (;;) {
-        d = (int) ToLower((uch) *s1) - (int) ToLower((uch) *s2);
+        d = (int) ToLower((uint8_t) *s1) - (int) ToLower((uint8_t) *s2);
 
         if (d || *s1 == 0 || *s2 == 0)
             return d;

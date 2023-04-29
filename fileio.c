@@ -194,7 +194,7 @@ register unsigned size;
                 return (n - size);
             else if (G.incnt < 0) {
                 /* another hack, but no real harm copying same thing twice */
-                (*G.message)((uch *) ReadError, /* CANNOT use slide */
+                (*G.message)((uint8_t *) ReadError, /* CANNOT use slide */
                              (ulg) strlen(ReadError), 0x401);
                 return 0; /* discarding some data; better than lock-up */
             }
@@ -227,7 +227,7 @@ int readbyte()
             return EOF;
         } else if (G.incnt < 0) { /* "fail" (abort, retry, ...) returns this */
             /* another hack, but no real harm copying same thing twice */
-            (*G.message)((uch *) ReadError, (ulg) strlen(ReadError), 0x401);
+            (*G.message)((uint8_t *) ReadError, (ulg) strlen(ReadError), 0x401);
             echon();
             exit(PK_BADERR); /* totally bailing; better than lock-up */
         }
@@ -237,7 +237,7 @@ int readbyte()
     }
 
     if (G.pInfo->encrypted) {
-        uch *p;
+        uint8_t *p;
         int n;
 
         /* This was previously set to decrypt one byte beyond G.csize, when
@@ -263,7 +263,7 @@ int fillinbuf()
     defer_leftover_input(); /* decrements G.csize */
 
     if (G.pInfo->encrypted) {
-        uch *p;
+        uint8_t *p;
         int n;
 
         for (n = G.incnt, p = G.inptr; n--; p++)
@@ -327,13 +327,13 @@ off_t abs_offset;
 }
 
 int flush(rawbuf, size, unshrink)
-uch *rawbuf;
+uint8_t *rawbuf;
 ulg size;
 int unshrink;
 {
-    register uch *p;
-    register uch *q;
-    uch *transbuf;
+    register uint8_t *p;
+    register uint8_t *q;
+    uint8_t *transbuf;
 
     /*---------------------------------------------------------------------------
         Compute the CRC first; if testing or if disk is full, that's it.
@@ -437,12 +437,12 @@ static int disk_error(void)
 }
 
 int UzpMessagePrnt(buf, size, flag)
-uch *buf; /* preformatted string to be printed */
-ulg size; /* length of string (may include nulls) */
-int flag; /* flag bits */
+uint8_t *buf; /* preformatted string to be printed */
+ulg size;     /* length of string (may include nulls) */
+int flag;     /* flag bits */
 {
     int error;
-    uch *q = buf, *endbuf = buf + (unsigned) size;
+    uint8_t *q = buf, *endbuf = buf + (unsigned) size;
     FILE *outfp;
 
     /*---------------------------------------------------------------------------
@@ -498,7 +498,7 @@ int flag; /* flag bits */
 void UzpMorePause(prompt, flag) const char *prompt; /* "--More--" prompt */
 int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
 {
-    uch c;
+    uint8_t c;
 
     /*---------------------------------------------------------------------------
         Print a prompt and wait for the user to press a key, then erase prompt
@@ -512,10 +512,10 @@ int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
     fflush(stderr);
     if (flag & 1) {
         do {
-            c = (uch) zgetch(0);
+            c = (uint8_t) zgetch(0);
         } while (c != '\r' && c != '\n' && c != ' ' && c != 'q' && c != 'Q');
     } else
-        c = (uch) zgetch(0);
+        c = (uint8_t) zgetch(0);
 
     /* newline was not echoed, so cover up prompt line */
     fprintf(stderr, HidePrompt);
@@ -676,7 +676,7 @@ char *filename;               /*  exist yet */
 }
 
 int do_string(length, option) /* return PK-type error code */
-unsigned int length;          /* without prototype, ush converted to this */
+unsigned int length; /* without prototype, uint16_t converted to this */
 int option;
 {
     unsigned comment_bytes_left;
@@ -721,8 +721,8 @@ int option;
         comment_bytes_left = length;
         block_len = OUTBUFSIZ; /* for the while statement, first time */
         while (comment_bytes_left > 0 && block_len > 0) {
-            register uch *p = G.outbuf;
-            register uch *q = G.outbuf;
+            register uint8_t *p = G.outbuf;
+            register uint8_t *q = G.outbuf;
 
             if ((block_len =
                      readbuf((char *) G.outbuf, MIN((unsigned) OUTBUFSIZ,
@@ -947,16 +947,16 @@ int option;
     return error;
 }
 
-ush makeword(b) const uch *b;
+uint16_t makeword(b) const uint8_t *b;
 {
     /*
      * Convert Intel style 'short' integer to non-Intel non-16-bit
      * host format.  This routine also takes care of byte-ordering.
      */
-    return (ush) ((b[1] << 8) | b[0]);
+    return (uint16_t) ((b[1] << 8) | b[0]);
 }
 
-ulg makelong(sig) const uch *sig;
+ulg makelong(sig) const uint8_t *sig;
 {
     /*
      * Convert intel style 'long' variable to non-Intel non-16-bit
@@ -966,7 +966,7 @@ ulg makelong(sig) const uch *sig;
            (ulg) ((((unsigned) sig[1]) << 8) + ((unsigned) sig[0]));
 }
 
-zusz_t makeint64(sig) const uch *sig;
+zusz_t makeint64(sig) const uint8_t *sig;
 {
 #ifdef LARGE_FILE_SUPPORT
     /*
@@ -1025,11 +1025,11 @@ register const char *src; /* source string */
 #ifdef INTERN_TO_ISO
     INTERN_TO_ISO(src, dst);
 #else
-    register uch c;
+    register uint8_t c;
     register char *dstp = dst;
 
     do {
-        c = (uch) *src++;
+        c = (uint8_t) *src++;
         *dstp++ = (char) ASCII2ISO(c);
     } while (c != '\0');
 #endif
@@ -1046,11 +1046,11 @@ register const char *src; /* source string */
 #ifdef INTERN_TO_OEM
     INTERN_TO_OEM(src, dst);
 #else
-    register uch c;
+    register uint8_t c;
     register char *dstp = dst;
 
     do {
-        c = (uch) *src++;
+        c = (uint8_t) *src++;
         *dstp++ = (char) ASCII2OEM(c);
     } while (c != '\0');
 #endif

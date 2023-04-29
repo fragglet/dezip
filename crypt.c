@@ -34,8 +34,8 @@
 #define FALSE 0
 #endif
 
-static int testp(const uch *h);
-static int testkey(const uch *h, const char *key);
+static int testp(const uint8_t *h);
+static int testkey(const uint8_t *h, const char *key);
 
 #ifndef Trace
 #ifdef CRYPT_DEBUG
@@ -104,9 +104,9 @@ void init_keys(passwd) const
  */
 int decrypt(passwrd) const char *passwrd;
 {
-    ush b;
+    uint16_t b;
     int n, r;
-    uch h[RAND_HEAD_LEN];
+    uint8_t h[RAND_HEAD_LEN];
 
     Trace((stdout, "\n[incnt = %d]: ", G.incnt));
 
@@ -122,10 +122,10 @@ int decrypt(passwrd) const char *passwrd;
          * then continuing with a negative G.csize.  (See
          * fileio.c:readbyte()).
          */
-        if ((b = NEXTBYTE) == (ush) EOF) {
+        if ((b = NEXTBYTE) == (uint16_t) EOF) {
             return PK_ERR;
         }
-        h[n] = (uch) b;
+        h[n] = (uint8_t) b;
         Trace((stdout, " (%02x)", h[n]));
     }
     undefer_input();
@@ -180,7 +180,7 @@ int decrypt(passwrd) const char *passwrd;
 /***********************************************************************
  * Test the password.  Return -1 if bad, 0 if OK.
  */
-static int testp(h) const uch *h;
+static int testp(h) const uint8_t *h;
 {
     int r;
     char *key_translated;
@@ -231,16 +231,16 @@ static int testp(h) const uch *h;
     return r;
 }
 
-static int testkey(h, key) const uch *h; /* decrypted header */
-const char *key;                         /* decryption password to test */
+static int testkey(h, key) const uint8_t *h; /* decrypted header */
+const char *key;                             /* decryption password to test */
 {
-    ush b;
+    uint16_t b;
 #ifdef ZIP10
-    ush c;
+    uint16_t c;
 #endif
     int n;
-    uch *p;
-    uch hh[RAND_HEAD_LEN]; /* decrypted header */
+    uint8_t *p;
+    uint8_t hh[RAND_HEAD_LEN]; /* decrypted header */
 
     /* set keys and save the encrypted header */
     init_keys(key);
@@ -264,20 +264,20 @@ const char *key;                         /* decryption password to test */
     c = hh[RAND_HEAD_LEN - 2], b = hh[RAND_HEAD_LEN - 1];
     Trace((stdout,
       "  (c | (b<<8)) = %04x  (crc >> 16) = %04x  lrec.time = %04x\n",
-      (ush)(c | (b<<8)), (ush)(G.lrec.crc32 >> 16),
-      ((ush)G.lrec.last_mod_dos_datetime & 0xffff))));
-    if ((ush) (c | (b << 8)) !=
-        (G.pInfo->ExtLocHdr ? ((ush) G.lrec.last_mod_dos_datetime & 0xffff)
-                            : (ush) (G.lrec.crc32 >> 16)))
+      (uint16_t)(c | (b<<8)), (uint16_t)(G.lrec.crc32 >> 16),
+      ((uint16_t)G.lrec.last_mod_dos_datetime & 0xffff))));
+    if ((uint16_t) (c | (b << 8)) !=
+        (G.pInfo->ExtLocHdr ? ((uint16_t) G.lrec.last_mod_dos_datetime & 0xffff)
+                            : (uint16_t) (G.lrec.crc32 >> 16)))
         return -1; /* bad */
 #else
     b = hh[RAND_HEAD_LEN - 1];
     Trace((stdout, "  b = %02x  (crc >> 24) = %02x  (lrec.time >> 8) = %02x\n",
-           b, (ush) (G.lrec.crc32 >> 24),
-           ((ush) G.lrec.last_mod_dos_datetime >> 8) & 0xff));
+           b, (uint16_t) (G.lrec.crc32 >> 24),
+           ((uint16_t) G.lrec.last_mod_dos_datetime >> 8) & 0xff));
     if (b != (G.pInfo->ExtLocHdr
-                  ? ((ush) G.lrec.last_mod_dos_datetime >> 8) & 0xff
-                  : (ush) (G.lrec.crc32 >> 24)))
+                  ? ((uint16_t) G.lrec.last_mod_dos_datetime >> 8) & 0xff
+                  : (uint16_t) (G.lrec.crc32 >> 24)))
         return -1; /* bad */
 #endif
     /* password OK:  decrypt current buffer contents before leaving */

@@ -281,8 +281,8 @@ static int inflate_block(int *e);
    circular buffer.  The index is updated simply by incrementing and then
    and'ing with 0x7fff (32K-1). */
 /* It is left to other modules to supply the 32K area.  It is assumed
-   to be usable as if it were declared "uch slide[32768];" or as just
-   "uch *slide;" and then malloc'ed in the latter case.  The definition
+   to be usable as if it were declared "uint8_t slide[32768];" or as just
+   "uint8_t *slide;" and then malloc'ed in the latter case.  The definition
    must be in unzip.h, included above. */
 
 /* Tables for deflate from PKZIP's appnote.txt. */
@@ -291,38 +291,39 @@ static const unsigned border[] = {16, 17, 18, 0, 8,  7, 9,  6, 10, 5,
                                   11, 4,  12, 3, 13, 2, 14, 1, 15};
 
 /* - Copy lengths for literal codes 257..285 */
-static const ush cplens64[] = {3,  4,   5,   6,   7,   8,   9,  10, 11, 13, 15,
-                               17, 19,  23,  27,  31,  35,  43, 51, 59, 67, 83,
-                               99, 115, 131, 163, 195, 227, 3,  0,  0};
+static const uint16_t cplens64[] = {
+    3,  4,  5,  6,  7,  8,  9,  10,  11,  13,  15,  17,  19, 23, 27, 31,
+    35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 3,  0,  0};
 /* For Deflate64, the code 285 is defined differently. */
-static const ush cplens32[] = {3,  4,   5,   6,   7,   8,   9,   10, 11, 13, 15,
-                               17, 19,  23,  27,  31,  35,  43,  51, 59, 67, 83,
-                               99, 115, 131, 163, 195, 227, 258, 0,  0};
+static const uint16_t cplens32[] = {
+    3,  4,  5,  6,  7,  8,  9,  10,  11,  13,  15,  17,  19,  23, 27, 31,
+    35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0,  0};
 /* note: see note #13 above about the 258 in this list. */
 /* - Extra bits for literal codes 257..285 */
-static const uch cplext64[] = {
+static const uint8_t cplext64[] = {
     0,           0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2,  2,
     2,           3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 16, INVALID_CODE,
     INVALID_CODE};
-static const uch cplext32[] = {
+static const uint8_t cplext32[] = {
     0,           0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2,
     2,           3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, INVALID_CODE,
     INVALID_CODE};
 
 /* - Copy offsets for distance codes 0..29 (0..31 for Deflate64) */
-static const ush cpdist[] = {
+static const uint16_t cpdist[] = {
     1,    2,    3,    4,    5,    7,     9,     13,    17,    25,   33,
     49,   65,   97,   129,  193,  257,   385,   513,   769,   1025, 1537,
     2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577, 32769, 49153};
 
 /* - Extra bits for distance codes 0..29 (0..31 for Deflate64) */
-static const uch cpdext64[] = {0,  0,  0,  0,  1,  1,  2,  2,  3,  3, 4,
-                               4,  5,  5,  6,  6,  7,  7,  8,  8,  9, 9,
-                               10, 10, 11, 11, 12, 12, 13, 13, 14, 14};
-static const uch cpdext32[] = {0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
-                               7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
-                               // this comment is here to appease clang-format
-                               INVALID_CODE, INVALID_CODE};
+static const uint8_t cpdext64[] = {0,  0,  0,  0,  1,  1,  2,  2,  3,  3, 4,
+                                   4,  5,  5,  6,  6,  7,  7,  8,  8,  9, 9,
+                                   10, 10, 11, 11, 12, 12, 13, 13, 14, 14};
+static const uint8_t cpdext32[] = {
+    0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10,
+    11, 11, 12, 12, 13, 13,
+    // this comment is here to appease clang-format
+    INVALID_CODE, INVALID_CODE};
 
 #define MAXLITLENS 288
 #define MAXDISTS   32
@@ -454,7 +455,7 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
 
             if ((e = t->e) == 32) {
                 /* then it's a literal */
-                redirSlide[w++] = (uch) t->v.n;
+                redirSlide[w++] = (uint8_t) t->v.n;
                 if (w == WSIZE) {
                     if ((retval = FLUSH(w)) != 0)
                         goto cleanup_and_exit;
@@ -565,7 +566,7 @@ static int inflate_stored()
     /* read and output the compressed data */
     while (n--) {
         NEEDBITS(8)
-        redirSlide[w++] = (uch) b;
+        redirSlide[w++] = (uint8_t) b;
         if (w == WSIZE) {
             if ((retval = FLUSH(w)) != 0)
                 goto cleanup_and_exit;
@@ -750,7 +751,7 @@ static int inflate_dynamic(void)
     if (retval) {
         if (retval == 1) {
             if (!G.UzO.qflag)
-                MESSAGE((uch *) "(incomplete l-tree)  ", 21L, 1);
+                MESSAGE((uint8_t *) "(incomplete l-tree)  ", 21L, 1);
             huft_free(tl);
         }
         return retval; /* incomplete code set */
@@ -764,7 +765,7 @@ static int inflate_dynamic(void)
     if (retval) {
         if (retval == 1) {
             if (!G.UzO.qflag)
-                MESSAGE((uch *) "(incomplete d-tree)  ", 21L, 1);
+                MESSAGE((uint8_t *) "(incomplete d-tree)  ", 21L, 1);
             huft_free(td);
         }
         huft_free(tl);
@@ -913,13 +914,13 @@ int inflate_free()
    so that no bits beyond that code are fetched when that code is
    decoded. */
 int huft_build(b, n, s, d, e, t, m) const
-    unsigned *b; /* code lengths in bits (all assumed <= BMAX) */
-unsigned n;      /* number of codes (assumed <= N_MAX) */
-unsigned s;      /* number of simple-valued codes (0..s-1) */
-const ush *d;    /* list of base values for non-simple codes */
-const uch *e;    /* list of extra bits for non-simple codes */
-struct huft **t; /* result: starting table */
-unsigned *m;     /* maximum lookup bits, returns actual */
+    unsigned *b;   /* code lengths in bits (all assumed <= BMAX) */
+unsigned n;        /* number of codes (assumed <= N_MAX) */
+unsigned s;        /* number of simple-valued codes (0..s-1) */
+const uint16_t *d; /* list of base values for non-simple codes */
+const uint8_t *e;  /* list of extra bits for non-simple codes */
+struct huft **t;   /* result: starting table */
+unsigned *m;       /* maximum lookup bits, returns actual */
 {
     unsigned a;              /* counter for codes of length k */
     unsigned c[BMAX + 1];    /* bit length count table */
@@ -1051,22 +1052,24 @@ unsigned *m;     /* maximum lookup bits, returns actual */
 
                 /* connect to last table, if there is one */
                 if (h) {
-                    x[h] = i;             /* save pattern for backing up */
-                    r.b = (uch) l[h - 1]; /* bits to dump before this table */
-                    r.e = (uch) (32 + j); /* bits in this table */
-                    r.v.t = q;            /* pointer to this table */
+                    x[h] = i; /* save pattern for backing up */
+                    r.b =
+                        (uint8_t) l[h - 1]; /* bits to dump before this table */
+                    r.e = (uint8_t) (32 + j); /* bits in this table */
+                    r.v.t = q;                /* pointer to this table */
                     j = (i & ((1 << w) - 1)) >> (w - l[h - 1]);
                     u[h - 1][j] = r; /* connect to last table */
                 }
             }
 
             /* set up table entry in r */
-            r.b = (uch) (k - w);
+            r.b = (uint8_t) (k - w);
             if (p >= v + n)
                 r.e = INVALID_CODE; /* out of values--invalid code */
             else if (*p < s) {
-                r.e = (uch) (*p < 256 ? 32 : 31); /* 256 is end-of-block code */
-                r.v.n = (ush) *p++; /* simple code is just the value */
+                r.e = (uint8_t) (*p < 256 ? 32
+                                          : 31); /* 256 is end-of-block code */
+                r.v.n = (uint16_t) *p++; /* simple code is just the value */
             } else {
                 r.e = e[*p - s]; /* non-simple--look up in lists */
                 r.v.n = d[*p++ - s];

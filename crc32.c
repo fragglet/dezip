@@ -131,9 +131,9 @@ const ulg *get_crc_table(void)
    Return the current crc in either case. */
 
 ulg crc32(crc, buf, len)
-ulg crc;                 /* crc shift register */
-register const uch *buf; /* pointer to bytes to pump through */
-size_t len;              /* number of bytes in buf[] */
+ulg crc;                     /* crc shift register */
+register const uint8_t *buf; /* pointer to bytes to pump through */
+size_t len;                  /* number of bytes in buf[] */
 {
     register z_uint4 c;
     register const ulg *crc_32_tab;

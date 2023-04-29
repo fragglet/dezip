@@ -17,7 +17,8 @@ static int find_ecrec64(off_t searchlen);
 static int find_ecrec(off_t searchlen);
 static int process_zip_cmmnt(void);
 static int get_cdir_ent(void);
-static int read_ux3_value(const uch *dbuf, unsigned uidgid_sz, ulg *p_uidgid);
+static int read_ux3_value(const uint8_t *dbuf, unsigned uidgid_sz,
+                          ulg *p_uidgid);
 
 static const char CannotAllocateBuffers[] =
     "error:  cannot allocate unzip buffers\n";
@@ -178,7 +179,7 @@ int process_zipfiles() /* return PK-type error code */
         if (!G.UzO.qflag && error != PK_NOZIP && error != IZ_DIR &&
             !G.UzO.T_flag &&
             (NumWinFiles + NumLoseFiles + NumWarnFiles + NumMissFiles) > 0)
-            (*G.message)((uch *) "\n", 1L, 0);
+            (*G.message)((uint8_t *) "\n", 1L, 0);
 
         if ((error = do_seekable(0)) == PK_WARN)
             ++NumWarnFiles;
@@ -253,7 +254,7 @@ int process_zipfiles() /* return PK-type error code */
         if ((NumMissFiles + NumLoseFiles + NumWarnFiles > 0 ||
              NumWinFiles != 1) &&
             !(G.UzO.T_flag && G.UzO.qflag) && !(G.UzO.tflag && G.UzO.qflag > 1))
-            (*G.message)((uch *) "\n", 1L, 0x401);
+            (*G.message)((uint8_t *) "\n", 1L, 0x401);
         if (NumWinFiles > 1 ||
             (NumWinFiles == 1 &&
              NumMissDirs + NumMissFiles + NumLoseFiles + NumWarnFiles > 0))
@@ -604,7 +605,7 @@ int rec_size;
         /* 'P' must be at least (rec_size+4) bytes from end of zipfile */
         for (G.inptr = G.inbuf + (int) tail_len - (rec_size + 4);
              G.inptr >= G.inbuf; --G.inptr) {
-            if (*G.inptr == (uch) 0x50 && /* ASCII 'P' */
+            if (*G.inptr == (uint8_t) 0x50 && /* ASCII 'P' */
                 !memcmp((char *) G.inptr, signature, 4)) {
                 G.incnt -= (int) (G.inptr - G.inbuf);
                 found = TRUE;
@@ -632,7 +633,7 @@ int rec_size;
             return 2; /* read error is fatal failure */
 
         for (G.inptr = G.inbuf + INBUFSIZ - 1; G.inptr >= G.inbuf; --G.inptr)
-            if (*G.inptr == (uch) 0x50 && /* ASCII 'P' */
+            if (*G.inptr == (uint8_t) 0x50 && /* ASCII 'P' */
                 !memcmp((char *) G.inptr, signature, 4)) {
                 G.incnt -= (int) (G.inptr - G.inbuf);
                 found = TRUE;
@@ -869,7 +870,7 @@ off_t searchlen;
             /* 'P' must be at least (ECREC_SIZE+4) bytes from end of zipfile */
             for (G.inptr = G.inbuf + (int) G.ziplen - (ECREC_SIZE + 4);
                  G.inptr >= G.inbuf; --G.inptr) {
-                if (*G.inptr == (uch) 0x50 && /* ASCII 'P' */
+                if (*G.inptr == (uint8_t) 0x50 && /* ASCII 'P' */
                     !memcmp((char *) G.inptr, end_central_sig, 4)) {
                     G.incnt -= (int) (G.inptr - G.inbuf);
                     found = TRUE;
@@ -1138,9 +1139,9 @@ int process_local_file_hdr() /* return PK-type error code */
     return PK_COOL;
 }
 
-int getZip64Data(ef_buf,
-                 ef_len) const uch *ef_buf; /* buffer containing extra field */
-unsigned ef_len;                            /* total length of extra field */
+int getZip64Data(
+    ef_buf, ef_len) const uint8_t *ef_buf; /* buffer containing extra field */
+unsigned ef_len;                           /* total length of extra field */
 {
     unsigned eb_id;
     unsigned eb_len;
@@ -1229,8 +1230,8 @@ unsigned ef_len;                            /* total length of extra field */
 }
 
 int getUnicodeData(
-    ef_buf, ef_len) const uch *ef_buf; /* buffer containing extra field */
-unsigned ef_len;                       /* total length of extra field */
+    ef_buf, ef_len) const uint8_t *ef_buf; /* buffer containing extra field */
+unsigned ef_len;                           /* total length of extra field */
 {
     unsigned eb_id;
     unsigned eb_len;
@@ -1268,11 +1269,11 @@ unsigned ef_len;                       /* total length of extra field */
         if (eb_id == EF_UNIPATH) {
 
             unsigned offset = EB_HEADSIZE;
-            ush ULen = eb_len - 5;
+            uint16_t ULen = eb_len - 5;
             ulg chksum = CRCVAL_INITIAL;
 
             /* version */
-            G.unipath_version = (uch) * (offset + ef_buf);
+            G.unipath_version = (uint8_t) * (offset + ef_buf);
             offset += 1;
             if (G.unipath_version > 1) {
                 /* can do only version 1 */
@@ -1288,7 +1289,7 @@ unsigned ef_len;                       /* total length of extra field */
              * Compute 32-bit crc
              */
 
-            chksum = crc32(chksum, (uch *) (G.filename_full),
+            chksum = crc32(chksum, (uint8_t *) (G.filename_full),
                            strlen(G.filename_full));
 
             /* If the checksums's don't match then likely filename has been
@@ -1497,7 +1498,7 @@ zwchar wide_char;
 {
     int i;
     zwchar w = wide_char;
-    uch b[sizeof(zwchar)];
+    uint8_t b[sizeof(zwchar)];
     char d[3];
     char e[11];
     int len;
@@ -1567,7 +1568,7 @@ int escape_all;
         }
         b = wctomb(buf, wc);
         if (escape_all) {
-            if (b == 1 && (uch) buf[0] <= 0x7f) {
+            if (b == 1 && (uint8_t) buf[0] <= 0x7f) {
                 /* ASCII */
                 strncat(buffer, buf, b);
             } else {
@@ -1647,11 +1648,10 @@ zwchar *utf8_to_wide_string(utf8_string) const char *utf8_string;
     return wide_string;
 }
 
-static int
-    read_ux3_value(dbuf, uidgid_sz,
-                   p_uidgid) const uch *dbuf; /* buffer a uid or gid value */
-unsigned uidgid_sz;                           /* size of uid/gid value */
-ulg *p_uidgid; /* return storage: uid or gid value */
+static int read_ux3_value(dbuf, uidgid_sz, p_uidgid)
+    const uint8_t *dbuf; /* buffer a uid or gid value */
+unsigned uidgid_sz;      /* size of uid/gid value */
+ulg *p_uidgid;           /* return storage: uid or gid value */
 {
     zusz_t uidgid64;
 
@@ -1678,12 +1678,12 @@ ulg *p_uidgid; /* return storage: uid or gid value */
 
 unsigned ef_scan_for_izux(
     ef_buf, ef_len, ef_is_c, dos_mdatetime, z_utim,
-    z_uidgid) const uch *ef_buf; /* buffer containing extra field */
-unsigned ef_len;                 /* total length of extra field */
-int ef_is_c;                     /* flag indicating "is central extra field" */
-ulg dos_mdatetime;               /* last_mod_file_date_time in DOS format */
-iztimes *z_utim;                 /* return storage: atime, mtime, ctime */
-ulg *z_uidgid;                   /* return storage: uid and gid */
+    z_uidgid) const uint8_t *ef_buf; /* buffer containing extra field */
+unsigned ef_len;                     /* total length of extra field */
+int ef_is_c;       /* flag indicating "is central extra field" */
+ulg dos_mdatetime; /* last_mod_file_date_time in DOS format */
+iztimes *z_utim;   /* return storage: atime, mtime, ctime */
+ulg *z_uidgid;     /* return storage: uid and gid */
 {
     unsigned flags = 0;
     unsigned eb_id;
@@ -1842,8 +1842,8 @@ ulg *z_uidgid;                   /* return storage: uid and gid */
             if (eb_len >= EB_UX3_MINLEN && z_uidgid != NULL &&
                 *(EB_HEADSIZE + ef_buf) == 1) {
                 /* only know about version 1 */
-                uch uid_size;
-                uch gid_size;
+                uint8_t uid_size;
+                uint8_t gid_size;
 
                 uid_size = *(EB_HEADSIZE + 1 + ef_buf);
                 gid_size = *(EB_HEADSIZE + uid_size + 2 + ef_buf);

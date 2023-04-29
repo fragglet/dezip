@@ -99,7 +99,7 @@
    module.
  */
 
-#include "unzip.h" /* must supply slide[] (uch) array and NEXTBYTE macro */
+#include "unzip.h" /* must supply slide[] (uint8_t) array and NEXTBYTE macro */
 
 #ifndef WSIZE
 #define WSIZE 0x8000 /* window size--must be a power of two, and */
@@ -122,37 +122,38 @@ int explode(void);
    buffer of inflate is used, and it works just as well to always have
    a 32K circular buffer, so the index is anded with 0x7fff.  This is
    done to allow the window to also be used as the output buffer. */
-/* This must be supplied in an external module useable like "uch slide[8192];"
-   or "uch *slide;", where the latter would be malloc'ed.  In unzip, slide[]
-   is actually a 32K area for use by inflate, which uses a 32K sliding window.
+/* This must be supplied in an external module useable like "uint8_t
+   slide[8192];" or "uint8_t *slide;", where the latter would be malloc'ed.  In
+   unzip, slide[] is actually a 32K area for use by inflate, which uses a 32K
+   sliding window.
  */
 
 #define INVALID_CODE       99
 #define IS_INVALID_CODE(c) ((c) == INVALID_CODE)
 
 /* Tables for length and distance */
-static const ush cplen2[] = {2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14,
-                             15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
-                             28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-                             41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
-                             54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65};
-static const ush cplen3[] = {3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
-                             16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-                             29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
-                             42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
-                             55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66};
-static const uch extra[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8};
-static const ush cpdist4[] = {
+static const uint16_t cplen2[] = {
+    2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+    18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+    34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+    50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65};
+static const uint16_t cplen3[] = {
+    3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18,
+    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+    35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+    51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66};
+static const uint8_t extra[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8};
+static const uint16_t cpdist4[] = {
     1,    65,   129,  193,  257,  321,  385,  449,  513,  577,  641,
     705,  769,  833,  897,  961,  1025, 1089, 1153, 1217, 1281, 1345,
     1409, 1473, 1537, 1601, 1665, 1729, 1793, 1857, 1921, 1985, 2049,
     2113, 2177, 2241, 2305, 2369, 2433, 2497, 2561, 2625, 2689, 2753,
     2817, 2881, 2945, 3009, 3073, 3137, 3201, 3265, 3329, 3393, 3457,
     3521, 3585, 3649, 3713, 3777, 3841, 3905, 3969, 4033};
-static const ush cpdist8[] = {
+static const uint16_t cpdist8[] = {
     1,    129,  257,  385,  513,  641,  769,  897,  1025, 1153, 1281,
     1409, 1537, 1665, 1793, 1921, 2049, 2177, 2305, 2433, 2561, 2689,
     2817, 2945, 3073, 3201, 3329, 3457, 3585, 3713, 3841, 3969, 4097,
@@ -264,7 +265,7 @@ unsigned bdl;              /* number of distance low bits */
             DUMPBITS(1)
             s--;
             DECODEHUFT(tb, bb, mb) /* get coded literal */
-            redirSlide[w++] = (uch) t->v.n;
+            redirSlide[w++] = (uint8_t) t->v.n;
             if (w == wszimpl) {
                 if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
                     return retval;
@@ -357,7 +358,7 @@ unsigned bdl;         /* number of distance low bits */
             DUMPBITS(1)
             s--;
             NEEDBITS(8)
-            redirSlide[w++] = (uch) b;
+            redirSlide[w++] = (uint8_t) b;
             if (w == wszimpl) {
                 if ((retval = flush(redirSlide, (ulg) w, 0)) != 0)
                     return retval;

@@ -85,14 +85,14 @@ static void partial_clear(int lastcodeused);
 
 int unshrink()
 {
-    uch *stacktop = stack + (HSIZE - 1);
-    register uch *newstr;
-    uch finalval;
+    uint8_t *stacktop = stack + (HSIZE - 1);
+    register uint8_t *newstr;
+    uint8_t finalval;
     int codesize = 9, len, error;
     shrint code, oldcode, curcode;
     shrint lastfreecode;
     unsigned int outbufsiz;
-    register uch *p;
+    register uint8_t *p;
 
     /*---------------------------------------------------------------------------
         Initialize various variables.
@@ -107,7 +107,7 @@ int unshrink()
         return PK_MEM3;
 
     for (code = 0; code < BOGUSCODE; ++code) {
-        Value[code] = (uch) code;
+        Value[code] = (uint8_t) code;
         parent[code] = BOGUSCODE;
     }
     for (code = BOGUSCODE + 1; code < HSIZE; ++code)
@@ -128,7 +128,7 @@ int unshrink()
     if (G.zipeof)
         return PK_OK;
 
-    finalval = (uch) oldcode;
+    finalval = (uint8_t) oldcode;
     OUTDBG(finalval)
     *G.outptr++ = finalval;
     ++G.outcnt;

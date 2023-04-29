@@ -42,8 +42,8 @@ struct globals {
     const ulg *crc_32_tab;
     ulg crc32val; /* CRC shift reg. (was static in funzip) */
 
-    uch *inbuf; /* input buffer (any size is OK) */
-    uch *inptr; /* pointer into input buffer */
+    uint8_t *inbuf; /* input buffer (any size is OK) */
+    uint8_t *inptr; /* pointer into input buffer */
     int incnt;
 
     ulg bitbuf;
@@ -55,8 +55,8 @@ struct globals {
     off_t ziplen;
     off_t cur_zipfile_bufstart; /* extract_or_test, readbuf, ReadByte */
     off_t extra_bytes;          /* used in unzip.c, misc.c */
-    uch *extra_field;           /* Unix, VMS, Mac, OS/2, Acorn, ... */
-    uch *hold;
+    uint8_t *extra_field;       /* Unix, VMS, Mac, OS/2, Acorn, ... */
+    uint8_t *hold;
 
     local_file_hdr lrec; /* used in unzip.c, extract.c */
     cdir_file_hdr crec;  /* used in unzip.c, extract.c, misc.c */
@@ -66,7 +66,7 @@ struct globals {
     int zip64; /* true if Zip64 info in extra field */
 
     int mem_mode;
-    uch *outbufptr;         /* extract.c static */
+    uint8_t *outbufptr;     /* extract.c static */
     ulg outsize;            /* extract.c static */
     int reported_backslash; /* extract.c static */
     int disk_full;
@@ -82,10 +82,10 @@ struct globals {
     slinkentry *slink_last; /* pointer to last entry in symlinks list */
 
     FILE *outfile;
-    uch *outbuf;
+    uint8_t *outbuf;
 
-    uch *outbuf2; /*  process_zipfiles() (never changes); */
-    uch *outptr;
+    uint8_t *outbuf2; /*  process_zipfiles() (never changes); */
+    uint8_t *outptr;
     ulg outcnt;               /* number of chars stored in outbuf */
     char filename[FILNAMSIZ]; /* also used by NT for temporary SFX path */
     char *filename_full;      /* the full path so Unicode checks work */
@@ -115,9 +115,9 @@ struct globals {
     struct huft *fixed_tl32;         /* inflate static */
     struct huft *fixed_td32;         /* inflate static */
     unsigned fixed_bl32, fixed_bd32; /* inflate static */
-    const ush *cplens;               /* inflate static */
-    const uch *cplext;               /* inflate static */
-    const uch *cpdext;               /* inflate static */
+    const uint16_t *cplens;          /* inflate static */
+    const uint8_t *cplext;           /* inflate static */
+    const uint8_t *cpdext;           /* inflate static */
     unsigned wp; /* inflate static: current position in slide */
     ulg bb;      /* inflate static: bit buffer */
     unsigned bk; /* inflate static: bits count in bit buffer */
@@ -131,7 +131,7 @@ struct globals {
     PasswdFn *decr_passwd;
 
     int incnt_leftover; /* so improved NEXTBYTE does not waste input */
-    uch *inptr_leftover;
+    uint8_t *inptr_leftover;
 
     int created_dir, renamed_fullpath;
     char *rootpath, *buildpath, *end;

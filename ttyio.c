@@ -81,7 +81,7 @@ int f; /* file descriptor from which to read */
     tcsetattr(f, TCSAFLUSH, &sg); /* restore canonical mode */
     G.echofd = -1;
 
-    return (int) (uch) c;
+    return (int) (uint8_t) c;
 }
 
 /*

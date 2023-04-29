@@ -480,6 +480,6 @@ void fnprint() /* print filename (after filtering) and newline */
 {
     char *name = fnfilter(G.filename, slide, (size_t) (WSIZE >> 1));
 
-    (*G.message)((uch *) name, (ulg) strlen(name), 0);
-    (*G.message)((uch *) "\n", 1L, 0);
+    (*G.message)((uint8_t *) name, (ulg) strlen(name), 0);
+    (*G.message)((uint8_t *) "\n", 1L, 0);
 }

@@ -484,8 +484,8 @@ typedef struct min_info {
     zusz_t uncompr_size; /* uncompressed size (needed if extended header) */
     ulg crc;             /* crc (needed if extended header) */
     zuvl_t diskstart;    /* no of volume where this entry starts */
-    uch hostver;
-    uch hostnum;
+    uint8_t hostver;
+    uint8_t hostnum;
     unsigned file_attr;     /* local flavor, as used by creat(), chmod()... */
     unsigned encrypted : 1; /* file encrypted: decrypt before uncompressing */
     unsigned ExtLocHdr : 1; /* use time instead of CRC for decrypt check */
@@ -506,10 +506,10 @@ typedef struct min_info {
 union work {
     struct {                  /* unshrink(): */
         shrint Parent[HSIZE]; /* (8192 * sizeof(shrint)) == 16KB minimum */
-        uch value[HSIZE];     /* 8KB */
-        uch Stack[HSIZE];     /* 8KB */
+        uint8_t value[HSIZE]; /* 8KB */
+        uint8_t Stack[HSIZE]; /* 8KB */
     } shrink;                 /* total = 32KB minimum; 80KB on Cray/Alpha */
-    uch Slide[WSIZE];         /* explode(), inflate(), unreduce() */
+    uint8_t Slide[WSIZE];     /* explode(), inflate(), unreduce() */
 };
 
 #define slide G.area.Slide
@@ -521,7 +521,7 @@ union work {
     xxREC_SIZE defines (above) change with them!
   ---------------------------------------------------------------------------*/
 
-typedef uch local_byte_hdr[LREC_SIZE];
+typedef uint8_t local_byte_hdr[LREC_SIZE];
 #define L_VERSION_NEEDED_TO_EXTRACT_0 0
 #define L_VERSION_NEEDED_TO_EXTRACT_1 1
 #define L_GENERAL_PURPOSE_BIT_FLAG    2
@@ -533,7 +533,7 @@ typedef uch local_byte_hdr[LREC_SIZE];
 #define L_FILENAME_LENGTH             22
 #define L_EXTRA_FIELD_LENGTH          24
 
-typedef uch cdir_byte_hdr[CREC_SIZE];
+typedef uint8_t cdir_byte_hdr[CREC_SIZE];
 #define C_VERSION_MADE_BY_0            0
 #define C_VERSION_MADE_BY_1            1
 #define C_VERSION_NEEDED_TO_EXTRACT_0  2
@@ -552,7 +552,7 @@ typedef uch cdir_byte_hdr[CREC_SIZE];
 #define C_EXTERNAL_FILE_ATTRIBUTES     34
 #define C_RELATIVE_OFFSET_LOCAL_HEADER 38
 
-typedef uch ec_byte_rec[ECREC_SIZE + 4];
+typedef uint8_t ec_byte_rec[ECREC_SIZE + 4];
 /*     define SIGNATURE                         0   space-holder only */
 #define NUMBER_THIS_DISK               4
 #define NUM_DISK_WITH_START_CEN_DIR    6
@@ -562,12 +562,12 @@ typedef uch ec_byte_rec[ECREC_SIZE + 4];
 #define OFFSET_START_CENTRAL_DIRECTORY 16
 #define ZIPFILE_COMMENT_LENGTH         20
 
-typedef uch ec_byte_loc64[ECLOC64_SIZE + 4];
+typedef uint8_t ec_byte_loc64[ECLOC64_SIZE + 4];
 #define NUM_DISK_START_EOCDR64 4
 #define OFFSET_START_EOCDR64   8
 #define NUM_THIS_DISK_LOC64    16
 
-typedef uch ec_byte_rec64[ECREC64_SIZE + 4];
+typedef uint8_t ec_byte_rec64[ECREC64_SIZE + 4];
 #define ECREC64_LENGTH                 4
 #define EC_VERSION_MADE_BY_0           12
 #define EC_VERSION_NEEDED_0            14
@@ -592,11 +592,11 @@ typedef struct local_file_header { /* LOCAL */
     zusz_t ucsize;
     ulg last_mod_dos_datetime;
     ulg crc32;
-    uch version_needed_to_extract[2];
-    ush general_purpose_bit_flag;
-    ush compression_method;
-    ush filename_length;
-    ush extra_field_length;
+    uint8_t version_needed_to_extract[2];
+    uint16_t general_purpose_bit_flag;
+    uint16_t compression_method;
+    uint16_t filename_length;
+    uint16_t extra_field_length;
 } local_file_hdr;
 
 typedef struct central_directory_file_header { /* CENTRAL */
@@ -607,14 +607,14 @@ typedef struct central_directory_file_header { /* CENTRAL */
     ulg crc32;
     ulg external_file_attributes;
     zuvl_t disk_number_start;
-    ush internal_file_attributes;
-    uch version_made_by[2];
-    uch version_needed_to_extract[2];
-    ush general_purpose_bit_flag;
-    ush compression_method;
-    ush filename_length;
-    ush extra_field_length;
-    ush file_comment_length;
+    uint16_t internal_file_attributes;
+    uint8_t version_made_by[2];
+    uint8_t version_needed_to_extract[2];
+    uint16_t general_purpose_bit_flag;
+    uint16_t compression_method;
+    uint16_t filename_length;
+    uint16_t extra_field_length;
+    uint16_t file_comment_length;
 } cdir_file_hdr;
 
 typedef struct end_central_dir_record { /* END CENTRAL */
@@ -626,7 +626,7 @@ typedef struct end_central_dir_record { /* END CENTRAL */
     zuvl_t num_disk_start_cdir;
     int have_ecr64;       /* valid Zip64 ecdir-record exists */
     int is_zip64_archive; /* Zip64 ecdir-record is mandatory */
-    ush zipfile_comment_length;
+    uint16_t zipfile_comment_length;
     zusz_t ec_start, ec_end;     /* offsets of start and end of the
                                     end of central directory record,
                                     including if present the Zip64
@@ -648,10 +648,10 @@ typedef struct end_central_dir_record { /* END CENTRAL */
    error in the data. */
 
 struct huft {
-    uch e; /* number of extra bits or operation */
-    uch b; /* number of bits in this code or subcode */
+    uint8_t e; /* number of extra bits or operation */
+    uint8_t b; /* number of bits in this code or subcode */
     union {
-        ush n;          /* literal, length base, or distance base */
+        uint16_t n;     /* literal, length base, or distance base */
         struct huft *t; /* pointer to next level of table */
     } v;
 };
@@ -682,9 +682,9 @@ void free_G_buffers(void);
 /* static int    process_central_comment(void); */
 int process_cdir_file_hdr(void);
 int process_local_file_hdr(void);
-int getZip64Data(const uch *ef_buf, unsigned ef_len);
-int getUnicodeData(const uch *ef_buf, unsigned ef_len);
-unsigned ef_scan_for_izux(const uch *ef_buf, unsigned ef_len, int ef_is_c,
+int getZip64Data(const uint8_t *ef_buf, unsigned ef_len);
+int getUnicodeData(const uint8_t *ef_buf, unsigned ef_len);
+unsigned ef_scan_for_izux(const uint8_t *ef_buf, unsigned ef_len, int ef_is_c,
                           ulg dos_mdatetime, iztimes *z_utim, ulg *z_uidgid);
 
 /*---------------------------------------------------------------------------
@@ -708,15 +708,15 @@ unsigned readbuf(char *buf, register unsigned len);
 int readbyte(void);
 int fillinbuf(void);
 int seek_zipf(off_t abs_offset);
-int flush(uch *buf, ulg size, int unshrink);
+int flush(uint8_t *buf, ulg size, int unshrink);
 /* static int  disk_error(void); */
 void handler(int signal);
 time_t dos_to_unix_time(ulg dos_datetime);
 int check_for_newer(char *filename); /* os2,vmcms,vms */
 int do_string(unsigned int length, int option);
-ush makeword(const uch *b);
-ulg makelong(const uch *sig);
-zusz_t makeint64(const uch *sig);
+uint16_t makeword(const uint8_t *b);
+ulg makelong(const uint8_t *sig);
+zusz_t makeint64(const uint8_t *sig);
 char *format_off_t(off_t val, const char *pre, const char *post);
 #if (!defined(STR_TO_ISO) || defined(NEED_STR2ISO))
 char *str2iso(char *dst, const char *src);
@@ -740,9 +740,9 @@ unsigned char *uzmbsrchr(const unsigned char *str, unsigned int c);
 
 int extract_or_test_files(void);
 unsigned find_compr_idx(unsigned compr_methodnum);
-int memextract(uch *tgt, ulg tgtsize, const uch *src, ulg srcsize);
-int memflush(const uch *rawbuf, ulg size);
-char *fnfilter(const char *raw, uch *space, size_t size);
+int memextract(uint8_t *tgt, ulg tgtsize, const uint8_t *src, ulg srcsize);
+int memflush(const uint8_t *rawbuf, ulg size);
+char *fnfilter(const char *raw, uint8_t *space, size_t size);
 
 /*---------------------------------------------------------------------------
     Decompression functions:
@@ -750,8 +750,8 @@ char *fnfilter(const char *raw, uch *space, size_t size);
 
 int explode(void);             /* explode.c */
 int huft_free(struct huft *t); /* inflate.c */
-int huft_build(const unsigned *b, unsigned n, unsigned s, const ush *d,
-               const uch *e, struct huft **t, unsigned *m);
+int huft_build(const unsigned *b, unsigned n, unsigned s, const uint16_t *d,
+               const uint8_t *e, struct huft **t, unsigned *m);
 int inflate(int is_defl64);            /* inflate.c */
 int inflate_free(void);                /* inflate.c */
 int unshrink(void);                    /* unshrink.c */
@@ -816,7 +816,7 @@ int stamp_file(const char *fname, time_t modtime); /* local */
  */
 #ifndef Info /* may already have been defined for redirection */
 #define Info(buf, flag, sprf_arg) \
-    (*G.message)((uch *) (buf), (ulg) sprintf sprf_arg, (flag))
+    (*G.message)((uint8_t *) (buf), (ulg) sprintf sprf_arg, (flag))
 #endif /* !Info */
 
 /*  The following macro wrappers around the fnfilter function are used many
@@ -955,8 +955,8 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 #endif
 #define _ISO_INTERN(str1)                               \
     if (iso2oem) {                                      \
-        register uch *p;                                \
-        for (p = (uch *) (str1); *p; p++)               \
+        register uint8_t *p;                            \
+        for (p = (uint8_t *) (str1); *p; p++)           \
             *p = (*p & 0x80) ? iso2oem[*p & 0x7f] : *p; \
     }
 #else
@@ -973,8 +973,8 @@ int stamp_file(const char *fname, time_t modtime); /* local */
 #endif
 #define _OEM_INTERN(str1)                               \
     if (oem2iso) {                                      \
-        register uch *p;                                \
-        for (p = (uch *) (str1); *p; p++)               \
+        register uint8_t *p;                            \
+        for (p = (uint8_t *) (str1); *p; p++)           \
             *p = (*p & 0x80) ? oem2iso[*p & 0x7f] : *p; \
     }
 #endif
@@ -1080,12 +1080,12 @@ extern const unsigned mask_bits[17];
 extern const char *fnames[2];
 
 #ifdef IZ_ISO2OEM_ARRAY
-extern const uch *iso2oem;
-extern const uch iso2oem_850[];
+extern const uint8_t *iso2oem;
+extern const uint8_t iso2oem_850[];
 #endif
 #ifdef IZ_OEM2ISO_ARRAY
-extern const uch *oem2iso;
-extern const uch oem2iso_850[];
+extern const uint8_t *oem2iso;
+extern const uint8_t oem2iso_850[];
 #endif
 
 extern const char CentSigMsg[];
