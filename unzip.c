@@ -393,11 +393,8 @@ char ***pargv;
                 }
                 break;
             case ('C'): /* -C:  match filenames case-insensitively */
-                if (negative)
-                    G.UzO.C_flag = FALSE, negative = 0;
-                else
-                    G.UzO.C_flag = TRUE;
-                break;
+                G.UzO.C_flag = !negative;
+                negative = 0;
             case ('d'):
                 if (negative) { /* negative not allowed with -d exdir */
                     Info(slide, 1, ((char *) slide, MustGiveExdir));
@@ -443,10 +440,9 @@ char ***pargv;
             case ('e'): /* just ignore -e, -x options (extract) */
                 break;
             case ('f'): /* "freshen" (extract only newer files) */
-                if (negative)
-                    G.UzO.fflag = G.UzO.uflag = FALSE, negative = 0;
-                else
-                    G.UzO.fflag = G.UzO.uflag = TRUE;
+                G.UzO.fflag = !negative;
+                G.UzO.uflag = !negative;
+                negative = 0;
                 break;
             case ('h'): /* just print help message and quit */
                 if (showhelp == 0) {
@@ -458,17 +454,12 @@ char ***pargv;
                 }
                 break;
             case ('j'): /* junk pathnames/directory structure */
-                if (negative)
-                    G.UzO.jflag = FALSE, negative = 0;
-                else
-                    G.UzO.jflag = TRUE;
+                G.UzO.jflag = !negative;
+                negative = 0;
                 break;
             case ('K'):
-                if (negative) {
-                    G.UzO.K_flag = FALSE, negative = 0;
-                } else {
-                    G.UzO.K_flag = TRUE;
-                }
+                G.UzO.K_flag = !negative;
+                negative = 0;
                 break;
             case ('l'):
                 if (negative) {
@@ -485,10 +476,8 @@ char ***pargv;
                     ++G.UzO.L_flag;
                 break;
             case ('n'): /* don't overwrite any files */
-                if (negative)
-                    G.UzO.overwrite_none = FALSE, negative = 0;
-                else
-                    G.UzO.overwrite_none = TRUE;
+                G.UzO.overwrite_none = !negative;
+                negative = 0;
                 break;
             case ('o'): /* OK to overwrite files without prompting */
                 if (negative) {
@@ -500,7 +489,6 @@ char ***pargv;
                 break;
             case ('p'): /* pipes:  extract to stdout, no messages */
                 if (negative) {
-                    G.UzO.cflag = FALSE;
                     G.UzO.qflag = MAX(G.UzO.qflag - 999, 0);
                     negative = 0;
                 } else {
@@ -549,22 +537,16 @@ char ***pargv;
                     ++G.UzO.qflag;
                 break;
             case ('t'):
-                if (negative)
-                    G.UzO.tflag = FALSE, negative = 0;
-                else
-                    G.UzO.tflag = TRUE;
+                G.UzO.tflag = !negative;
+                negative = 0;
                 break;
             case ('T'):
-                if (negative)
-                    G.UzO.T_flag = FALSE, negative = 0;
-                else
-                    G.UzO.T_flag = TRUE;
+                G.UzO.T_flag = !negative;
+                negative = 0;
                 break;
             case ('u'): /* update (extract only new and newer files) */
-                if (negative)
-                    G.UzO.uflag = FALSE, negative = 0;
-                else
-                    G.UzO.uflag = TRUE;
+                G.UzO.uflag = !negative;
+                negative = 0;
                 break;
             case ('U'): /* escape UTF-8, or disable UTF-8 support */
                 if (negative) {
@@ -583,10 +565,8 @@ char ***pargv;
                     G.UzO.vflag = 2;
                 break;
             case ('V'): /* Version (retain VMS/DEC-20 file versions) */
-                if (negative)
-                    G.UzO.V_flag = FALSE, negative = 0;
-                else
-                    G.UzO.V_flag = TRUE;
+                G.UzO.V_flag = !negative;
+                negative = 0;
                 break;
             case ('x'): /* extract:  default */
                 break;
