@@ -74,7 +74,7 @@ int open_input_file() /* return 1 if open failed */
 
     /* if (G.zipfd < 0) */ /* no good for Windows CE port */
     if (G.zipfd == -1) {
-        Info(slide, 0x401,
+        Info(slide, 1,
              ((char *) slide, CannotOpenZipfile, G.zipfn, strerror(errno)));
         return 1;
     }
@@ -89,7 +89,7 @@ int open_outfile() /* return 1 if fail */
         Trace((stderr, "open_outfile:  stat(%s) returns 0:  file exists\n",
                FnFilter1(G.filename)));
         if (unlink(G.filename) != 0) {
-            Info(slide, 0x401,
+            Info(slide, 1,
                  ((char *) slide, CannotDeleteOldFile, FnFilter1(G.filename),
                   strerror(errno)));
             return 1;
@@ -123,7 +123,7 @@ int open_outfile() /* return 1 if fail */
     G.outfile = fopen(G.filename, "w+b");
     umask(umask_sav);
     if (G.outfile == NULL) {
-        Info(slide, 0x401,
+        Info(slide, 1,
              ((char *) slide, CannotCreateFile, FnFilter1(G.filename),
               strerror(errno)));
         return 1;
@@ -195,7 +195,7 @@ register unsigned size;
             else if (G.incnt < 0) {
                 /* another hack, but no real harm copying same thing twice */
                 (*G.message)((uint8_t *) ReadError, /* CANNOT use slide */
-                             (uint32_t) strlen(ReadError), 0x401);
+                             (uint32_t) strlen(ReadError), 1);
                 return 0; /* discarding some data; better than lock-up */
             }
             /* buffer ALWAYS starts on a block boundary:  */
@@ -228,7 +228,7 @@ int readbyte()
         } else if (G.incnt < 0) { /* "fail" (abort, retry, ...) returns this */
             /* another hack, but no real harm copying same thing twice */
             (*G.message)((uint8_t *) ReadError, (uint32_t) strlen(ReadError),
-                         0x401);
+                         1);
             echon();
             exit(PK_BADERR); /* totally bailing; better than lock-up */
         }
@@ -427,7 +427,7 @@ int unshrink;
 static int disk_error(void)
 {
     /* OK to use slide[] here because this file is finished regardless */
-    Info(slide, 0x4a1, ((char *) slide, DiskFullQuery, FnFilter1(G.filename)));
+    Info(slide, 0x21, ((char *) slide, DiskFullQuery, FnFilter1(G.filename)));
 
     fgets(G.answerbuf, sizeof(G.answerbuf), stdin);
     if (*G.answerbuf == 'y') /* stop writing to this file */
@@ -815,7 +815,7 @@ int option;
 
         /* if needed, chop off end so standard filename is a valid length */
         if (length >= FILNAMSIZ) {
-            Info(slide, 0x401, ((char *) slide, FilenameTooLongTrunc));
+            Info(slide, 1, ((char *) slide, FilenameTooLongTrunc));
             error = PK_WARN;
             length = FILNAMSIZ - 1;
         }
@@ -845,7 +845,7 @@ int option;
          * We truncated the filename, so print what's left and then fall
          * through to the SKIP routine.
          */
-        Info(slide, 0x401, ((char *) slide, "[ %s ]\n", FnFilter1(G.filename)));
+        Info(slide, 1, ((char *) slide, "[ %s ]\n", FnFilter1(G.filename)));
         length = block_len; /* SKIP the excess bytes... */
         /*  FALL THROUGH...  */
 
@@ -870,7 +870,7 @@ int option;
     case EXTRA_FIELD:
         free(G.extra_field);
         if ((G.extra_field = malloc(length)) == NULL) {
-            Info(slide, 0x401, ((char *) slide, ExtraFieldTooLong, length));
+            Info(slide, 1, ((char *) slide, ExtraFieldTooLong, length));
             /* cur_zipfile_bufstart already takes account of extra_bytes,
              * so don't correct for it twice: */
             seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes +
@@ -880,8 +880,7 @@ int option;
         } else {
             /* Looks like here is where extra fields are read */
             if (getZip64Data(G.extra_field, length) != PK_COOL) {
-                Info(slide, 0x401,
-                     ((char *) slide, ExtraFieldCorrupt, EF_PKSZ64));
+                Info(slide, 1, ((char *) slide, ExtraFieldCorrupt, EF_PKSZ64));
                 error = PK_WARN;
             }
             G.unipath_filename = NULL;
@@ -906,7 +905,7 @@ int option;
                         /* make sure filename is short enough */
                         if (strlen(G.unipath_filename) >= FILNAMSIZ) {
                             G.filename[FILNAMSIZ - 1] = '\0';
-                            Info(slide, 0x401,
+                            Info(slide, 1,
                                  ((char *) slide, UFilenameTooLongTrunc));
                             error = PK_WARN;
                         }
@@ -922,14 +921,13 @@ int option;
                          * Continue with unconverted name.
                          */
                         if (fn == NULL) {
-                            Info(slide, 0x401,
-                                 ((char *) slide, UFilenameCorrupt));
+                            Info(slide, 1, ((char *) slide, UFilenameCorrupt));
                             error = PK_ERR;
                         } else {
                             /* make sure filename is short enough */
                             if (strlen(fn) >= FILNAMSIZ) {
                                 fn[FILNAMSIZ - 1] = '\0';
-                                Info(slide, 0x401,
+                                Info(slide, 1,
                                      ((char *) slide, UFilenameTooLongTrunc));
                                 error = PK_WARN;
                             }

@@ -195,7 +195,7 @@ char *argv[];
 #if defined(DEBUG)
     /* test if we can support large files - 10/6/04 EG */
     if (sizeof(off_t) < 8) {
-        Info(slide, 0x401,
+        Info(slide, 1,
              ((char *) slide, "LARGE_FILE_SUPPORT set but not supported\n"));
         retcode = PK_BADERR;
         goto cleanup_and_exit;
@@ -214,7 +214,7 @@ char *argv[];
         z <<= 63;
         sz = format_off_t(z, OFF_T_HEX_DOT_WID, "X");
         if (sz[0] != '8' || strlen(sz) != 16) {
-            Info(slide, 0x401,
+            Info(slide, 1,
                  ((char *) slide, "Can't show 64-bit values correctly\n"));
             retcode = PK_BADERR;
             goto cleanup_and_exit;
@@ -237,7 +237,7 @@ char *argv[];
          */
         for (i = 1; i < argc; i++) {
             if (strlen(argv[i]) > ((WSIZE >> 2) - 160)) {
-                Info(slide, 0x401,
+                Info(slide, 1,
                      ((char *) slide,
                       "error:  command line "
                       "parameter #%d exceeds internal size limit\n",
@@ -290,7 +290,7 @@ char *argv[];
                     if (*++pp)
                         G.UzO.exdir = *pp;
                     else {
-                        Info(slide, 0x401, ((char *) slide, MustGiveExdir));
+                        Info(slide, 1, ((char *) slide, MustGiveExdir));
                         /* don't extract here by accident */
                         retcode = PK_PARAM;
                         goto cleanup_and_exit;
@@ -331,7 +331,7 @@ char *argv[];
         G.process_all_files = TRUE; /* for speed */
 
     if (G.UzO.exdir != NULL && !G.extract_flag) /* -d ignored */
-        Info(slide, 0x401,
+        Info(slide, 1,
              ((char *) slide, "caution:  not extracting; -d ignored\n"));
 
     /* set Unicode-escape-all if option -U used */
@@ -400,11 +400,11 @@ char ***pargv;
                 break;
             case ('d'):
                 if (negative) { /* negative not allowed with -d exdir */
-                    Info(slide, 0x401, ((char *) slide, MustGiveExdir));
+                    Info(slide, 1, ((char *) slide, MustGiveExdir));
                     return (PK_PARAM); /* don't extract here by accident */
                 }
                 if (G.UzO.exdir != NULL) {
-                    Info(slide, 0x401,
+                    Info(slide, 1,
                          ((char *) slide,
                           "error:  -d option "
                           "used more than once (only one exdir allowed)\n"));
@@ -415,13 +415,13 @@ char ***pargv;
                 if (*G.UzO.exdir == '\0') {
                     if (argc <= 1) {
                         /* else G.UzO.exdir points at extraction dir */
-                        Info(slide, 0x401, ((char *) slide, MustGiveExdir));
+                        Info(slide, 1, ((char *) slide, MustGiveExdir));
                         return (PK_PARAM);
                     }
                     --argc;
                     G.UzO.exdir = *++argv;
                     if (*G.UzO.exdir == '-') {
-                        Info(slide, 0x401, ((char *) slide, MustGiveExdir));
+                        Info(slide, 1, ((char *) slide, MustGiveExdir));
                         return (PK_PARAM);
                     }
                 }
@@ -512,7 +512,7 @@ char ***pargv;
              * have pestered us for this, so here we go... */
             case ('P'):
                 if (negative) { /* negative not allowed with -P passwd */
-                    Info(slide, 0x401, ((char *) slide, MustGivePasswd));
+                    Info(slide, 1, ((char *) slide, MustGivePasswd));
                     return (PK_PARAM); /* don't extract here by accident */
                 }
                 if (G.UzO.pwdarg != NULL) {
@@ -523,13 +523,13 @@ char ***pargv;
                 if (*G.UzO.pwdarg == '\0') {
                     if (argc <= 1) {
                         /* pwdarg points at decryption password */
-                        Info(slide, 0x401, ((char *) slide, MustGivePasswd));
+                        Info(slide, 1, ((char *) slide, MustGivePasswd));
                         return (PK_PARAM);
                     }
                     --argc;
                     G.UzO.pwdarg = *++argv;
                     if (*G.UzO.pwdarg == '-') {
-                        Info(slide, 0x401, ((char *) slide, MustGivePasswd));
+                        Info(slide, 1, ((char *) slide, MustGivePasswd));
                         return (PK_PARAM);
                     }
                 }
@@ -637,7 +637,7 @@ char ***pargv;
 
     if ((G.UzO.cflag && (G.UzO.tflag || G.UzO.uflag)) ||
         (G.UzO.tflag && G.UzO.uflag) || (G.UzO.fflag && G.UzO.overwrite_none)) {
-        Info(slide, 0x401,
+        Info(slide, 1,
              ((char *) slide, "error: -fn or any combination of "
                               "-c, -l, -p, -t, -u and -v options invalid\n"));
         error = TRUE;
@@ -645,7 +645,7 @@ char ***pargv;
     if (G.UzO.aflag > 2)
         G.UzO.aflag = 2;
     if (G.UzO.overwrite_all && G.UzO.overwrite_none) {
-        Info(slide, 0x401,
+        Info(slide, 1,
              ((char *) slide,
               "caution:  both -n and -o specified; ignoring -o\n"));
         G.UzO.overwrite_all = FALSE;

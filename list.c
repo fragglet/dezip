@@ -108,8 +108,8 @@ int list_files() /* return PK-type error code */
                  */
                 break;
             }
-            Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
-            Info(slide, 0x401, ((char *) slide, ReportMsg));
+            Info(slide, 1, ((char *) slide, CentSigMsg, j));
+            Info(slide, 1, ((char *) slide, ReportMsg));
             return PK_BADERR; /* sig not found */
         }
         /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag, ...: */
@@ -319,7 +319,7 @@ int list_files() /* return PK-type error code */
             (!G.ecrec.is_zip64_archive) &&
             (memcmp(G.sig, end_central_sig, 4) !=
              0)) { /* just to make sure again */
-            Info(slide, 0x401, ((char *) slide, EndSigMsg));
+            Info(slide, 1, ((char *) slide, EndSigMsg));
             error_in_archive = PK_WARN; /* didn't find sig */
         }
 
@@ -374,8 +374,8 @@ uint32_t *nmember;
                  */
                 break;
             }
-            Info(slide, 0x401, ((char *) slide, CentSigMsg, j));
-            Info(slide, 0x401, ((char *) slide, ReportMsg));
+            Info(slide, 1, ((char *) slide, CentSigMsg, j));
+            Info(slide, 1, ((char *) slide, ReportMsg));
             return PK_BADERR; /* sig not found */
         }
         /* process_cdir_file_hdr() sets pInfo->lcflag: */
@@ -448,7 +448,7 @@ uint32_t *nmember;
       ---------------------------------------------------------------------------*/
 
     if (memcmp(G.sig, end_central_sig, 4)) { /* just to make sure again */
-        Info(slide, 0x401, ((char *) slide, EndSigMsg));
+        Info(slide, 1, ((char *) slide, EndSigMsg));
         error_in_archive = PK_WARN;
     }
     if (*nmember == 0L && error_in_archive <= PK_WARN)

@@ -72,7 +72,7 @@ char *do_wild(wildspec) const
             ++G.wildname; /* point at character after '/' */
             G.dirnamelen = G.wildname - wildspec;
             if ((G.dirname = malloc(G.dirnamelen + 1)) == NULL) {
-                Info(slide, 0x201,
+                Info(slide, 1,
                      ((char *) slide,
                       "warning:  cannot allocate wildcard buffers\n"));
                 strncpy(G.matchname, wildspec, FILNAMSIZ);
@@ -611,7 +611,7 @@ int flag;
             ++G.end;
             if ((G.end - G.buildpath) >= FILNAMSIZ) {
                 *--G.end = '\0';
-                Info(slide, 0x201,
+                Info(slide, 1,
                      ((char *) slide,
                       "checkdir warning:  path too long; truncating\n\
                    %s\n                -> %s\n",
@@ -797,7 +797,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         slinkentry *slnk_entry;
 
         if (slnk_entrysize < ucsize) {
-            Info(slide, 0x201,
+            Info(slide, 1,
                  ((char *) slide,
                   "warning:  symbolic link (%s) failed: mem alloc overflow\n",
                   FnFilter1(G.filename)));
@@ -806,7 +806,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         }
 
         if ((slnk_entry = malloc(slnk_entrysize)) == NULL) {
-            Info(slide, 0x201,
+            Info(slide, 1,
                  ((char *) slide,
                   "warning:  symbolic link (%s) failed: no mem\n",
                   FnFilter1(G.filename)));
@@ -827,7 +827,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         rewind(G.outfile);
 
         if (fread(slnk_entry->target, 1, ucsize, G.outfile) != ucsize) {
-            Info(slide, 0x201,
+            Info(slide, 1,
                  ((char *) slide, "warning:  symbolic link (%s) failed\n",
                   FnFilter1(G.filename)));
             free(slnk_entry);
@@ -857,11 +857,11 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         if (fchown(fileno(G.outfile), (uid_t) z_uidgid[0],
                    (gid_t) z_uidgid[1])) {
             if (G.UzO.qflag)
-                Info(slide, 0x201,
+                Info(slide, 1,
                      ((char *) slide, CannotSetItemUidGid, z_uidgid[0],
                       z_uidgid[1], FnFilter1(G.filename), strerror(errno)));
             else
-                Info(slide, 0x201,
+                Info(slide, 1,
                      ((char *) slide, CannotSetUidGid, z_uidgid[0], z_uidgid[1],
                       strerror(errno)));
         }
@@ -881,11 +881,11 @@ void close_outfile() /* GRR: change to return PK-style warning level */
     /* set the file's access and modification times */
     if (G.UzO.D_flag <= 1 && utime(G.filename, &(zt.t2))) {
         if (G.UzO.qflag)
-            Info(slide, 0x201,
+            Info(slide, 1,
                  ((char *) slide, CannotSetItemTimestamps,
                   FnFilter1(G.filename), strerror(errno)));
         else
-            Info(slide, 0x201,
+            Info(slide, 1,
                  ((char *) slide, CannotSetTimestamps, strerror(errno)));
     }
 }
@@ -904,7 +904,7 @@ slinkentry *slnk_entry;
                     FnFilter1(slnk_entry->fname)));
             if (lchown(slnk_entry->fname, (uid_t) z_uidgid_p[0],
                        (gid_t) z_uidgid_p[1])) {
-                Info(slide, 0x201,
+                Info(slide, 1,
                      ((char *) slide, CannotSetItemUidGid, z_uidgid_p[0],
                       z_uidgid_p[1], FnFilter1(slnk_entry->fname),
                       strerror(errno)));
@@ -949,7 +949,7 @@ direntry *d;
         (uint32_t) (gid_t) (UxAtt(d)->uidgid[1]) == UxAtt(d)->uidgid[1] &&
         chown(UxAtt(d)->fn, (uid_t) UxAtt(d)->uidgid[0],
               (gid_t) UxAtt(d)->uidgid[1])) {
-        Info(slide, 0x201,
+        Info(slide, 1,
              ((char *) slide, CannotSetItemUidGid, UxAtt(d)->uidgid[0],
               UxAtt(d)->uidgid[1], FnFilter1(d->fn), strerror(errno)));
         if (!errval)
@@ -958,14 +958,14 @@ direntry *d;
     /* Skip restoring directory time stamps on user' request. */
     /* restore directory timestamps */
     if (G.UzO.D_flag <= 0 && utime(d->fn, &UxAtt(d)->u.t2)) {
-        Info(slide, 0x201,
+        Info(slide, 1,
              ((char *) slide, CannotSetItemTimestamps, FnFilter1(d->fn),
               strerror(errno)));
         if (!errval)
             errval = PK_WARN;
     }
     if (chmod(d->fn, UxAtt(d)->perms)) {
-        Info(slide, 0x201,
+        Info(slide, 1,
              ((char *) slide, DirlistChmodFailed, FnFilter1(d->fn),
               strerror(errno)));
         if (!errval)
