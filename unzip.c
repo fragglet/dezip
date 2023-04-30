@@ -362,24 +362,24 @@ char ***pargv;
         s = *argv + 1;
         while ((c = *s++) != 0) {
             switch (c) {
-            case ('-'):
+            case '-':
                 ++negative;
                 break;
-            case ('a'):
+            case 'a':
                 if (negative) {
                     G.UzO.aflag = MAX(G.UzO.aflag - negative, 0);
                     negative = 0;
                 } else
                     ++G.UzO.aflag;
                 break;
-            case ('b'):
+            case 'b':
                 if (negative) {
                     negative = 0; /* do nothing:  "-b" is default */
                 } else {
                     G.UzO.aflag = 0;
                 }
                 break;
-            case ('c'):
+            case 'c':
                 if (negative) {
                     G.UzO.cflag = FALSE, negative = 0;
 #ifdef NATIVE
@@ -392,10 +392,10 @@ char ***pargv;
 #endif
                 }
                 break;
-            case ('C'): /* -C:  match filenames case-insensitively */
+            case 'C': /* -C:  match filenames case-insensitively */
                 G.UzO.C_flag = !negative;
                 negative = 0;
-            case ('d'):
+            case 'd':
                 if (negative) { /* negative not allowed with -d exdir */
                     Info(slide, 1, ((char *) slide, MustGiveExdir));
                     return (PK_PARAM); /* don't extract here by accident */
@@ -430,21 +430,21 @@ char ***pargv;
                     while (*++s != 0)
                         ;
                 break;
-            case ('D'): /* -D: Skip restoring dir (or any) timestamp. */
+            case 'D': /* -D: Skip restoring dir (or any) timestamp. */
                 if (negative) {
                     G.UzO.D_flag = MAX(G.UzO.D_flag - negative, 0);
                     negative = 0;
                 } else
                     G.UzO.D_flag++;
                 break;
-            case ('e'): /* just ignore -e, -x options (extract) */
+            case 'e': /* just ignore -e, -x options (extract) */
                 break;
-            case ('f'): /* "freshen" (extract only newer files) */
+            case 'f': /* "freshen" (extract only newer files) */
                 G.UzO.fflag = !negative;
                 G.UzO.uflag = !negative;
                 negative = 0;
                 break;
-            case ('h'): /* just print help message and quit */
+            case 'h': /* just print help message and quit */
                 if (showhelp == 0) {
                     if (*s == 'h')
                         showhelp = 2;
@@ -453,33 +453,33 @@ char ***pargv;
                     }
                 }
                 break;
-            case ('j'): /* junk pathnames/directory structure */
+            case 'j': /* junk pathnames/directory structure */
                 G.UzO.jflag = !negative;
                 negative = 0;
                 break;
-            case ('K'):
+            case 'K':
                 G.UzO.K_flag = !negative;
                 negative = 0;
                 break;
-            case ('l'):
+            case 'l':
                 if (negative) {
                     G.UzO.vflag = MAX(G.UzO.vflag - negative, 0);
                     negative = 0;
                 } else
                     ++G.UzO.vflag;
                 break;
-            case ('L'): /* convert (some) filenames to lowercase */
+            case 'L': /* convert (some) filenames to lowercase */
                 if (negative) {
                     G.UzO.L_flag = MAX(G.UzO.L_flag - negative, 0);
                     negative = 0;
                 } else
                     ++G.UzO.L_flag;
                 break;
-            case ('n'): /* don't overwrite any files */
+            case 'n': /* don't overwrite any files */
                 G.UzO.overwrite_none = !negative;
                 negative = 0;
                 break;
-            case ('o'): /* OK to overwrite files without prompting */
+            case 'o': /* OK to overwrite files without prompting */
                 if (negative) {
                     G.UzO.overwrite_all =
                         MAX(G.UzO.overwrite_all - negative, 0);
@@ -487,7 +487,7 @@ char ***pargv;
                 } else
                     ++G.UzO.overwrite_all;
                 break;
-            case ('p'): /* pipes:  extract to stdout, no messages */
+            case 'p': /* pipes:  extract to stdout, no messages */
                 if (negative) {
                     G.UzO.qflag = MAX(G.UzO.qflag - 999, 0);
                     negative = 0;
@@ -498,7 +498,7 @@ char ***pargv;
                 break;
             /* GRR:  yes, this is highly insecure, but dozens of people
              * have pestered us for this, so here we go... */
-            case ('P'):
+            case 'P':
                 if (negative) { /* negative not allowed with -P passwd */
                     Info(slide, 1, ((char *) slide, MustGivePasswd));
                     return (PK_PARAM); /* don't extract here by accident */
@@ -529,33 +529,33 @@ char ***pargv;
                     while (*++s != 0)
                         ;
                 break;
-            case ('q'): /* quiet:  fewer comments/messages */
+            case 'q': /* quiet:  fewer comments/messages */
                 if (negative) {
                     G.UzO.qflag = MAX(G.UzO.qflag - negative, 0);
                     negative = 0;
                 } else
                     ++G.UzO.qflag;
                 break;
-            case ('t'):
+            case 't':
                 G.UzO.tflag = !negative;
                 negative = 0;
                 break;
-            case ('T'):
+            case 'T':
                 G.UzO.T_flag = !negative;
                 negative = 0;
                 break;
-            case ('u'): /* update (extract only new and newer files) */
+            case 'u': /* update (extract only new and newer files) */
                 G.UzO.uflag = !negative;
                 negative = 0;
                 break;
-            case ('U'): /* escape UTF-8, or disable UTF-8 support */
+            case 'U': /* escape UTF-8, or disable UTF-8 support */
                 if (negative) {
                     G.UzO.U_flag = MAX(G.UzO.U_flag - negative, 0);
                     negative = 0;
                 } else
                     G.UzO.U_flag++;
                 break;
-            case ('v'): /* verbose */
+            case 'v': /* verbose */
                 if (negative) {
                     G.UzO.vflag = MAX(G.UzO.vflag - negative, 0);
                     negative = 0;
@@ -564,34 +564,34 @@ char ***pargv;
                 else
                     G.UzO.vflag = 2;
                 break;
-            case ('V'): /* Version (retain VMS/DEC-20 file versions) */
+            case 'V': /* Version (retain VMS/DEC-20 file versions) */
                 G.UzO.V_flag = !negative;
                 negative = 0;
                 break;
-            case ('x'): /* extract:  default */
+            case 'x': /* extract:  default */
                 break;
-            case ('X'): /* restore owner/protection info (need privs?) */
+            case 'X': /* restore owner/protection info (need privs?) */
                 if (negative) {
                     G.UzO.X_flag = MAX(G.UzO.X_flag - negative, 0);
                     negative = 0;
                 } else
                     ++G.UzO.X_flag;
                 break;
-            case ('z'): /* display only the archive comment */
+            case 'z': /* display only the archive comment */
                 if (negative) {
                     G.UzO.zflag = MAX(G.UzO.zflag - negative, 0);
                     negative = 0;
                 } else
                     ++G.UzO.zflag;
                 break;
-            case (':'): /* allow "parent dir" path components */
+            case ':': /* allow "parent dir" path components */
                 if (negative) {
                     G.UzO.ddotflag = MAX(G.UzO.ddotflag - negative, 0);
                     negative = 0;
                 } else
                     ++G.UzO.ddotflag;
                 break;
-            case ('^'): /* allow control chars in filenames */
+            case '^': /* allow control chars in filenames */
                 if (negative) {
                     G.UzO.cflxflag = MAX(G.UzO.cflxflag - negative, 0);
                     negative = 0;
