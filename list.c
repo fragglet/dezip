@@ -109,7 +109,7 @@ int list_files() /* return PK-type error code */
                 break;
             }
             Info(slide, 1, ((char *) slide, CentSigMsg, j));
-            Info(slide, 1, ((char *) slide, ReportMsg));
+            Info(slide, 1, ((char *) slide, REPORT_MSG));
             return PK_BADERR; /* sig not found */
         }
         /* process_cdir_file_hdr() sets pInfo->hostnum, pInfo->lcflag, ...: */
@@ -375,7 +375,7 @@ uint32_t *nmember;
                 break;
             }
             Info(slide, 1, ((char *) slide, CentSigMsg, j));
-            Info(slide, 1, ((char *) slide, ReportMsg));
+            Info(slide, 1, ((char *) slide, REPORT_MSG));
             return PK_BADERR; /* sig not found */
         }
         /* process_cdir_file_hdr() sets pInfo->lcflag: */

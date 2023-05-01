@@ -768,6 +768,12 @@ int stamp_file(const char *fname, time_t modtime); /* local */
     (*G.message)((uint8_t *) (buf), (uint32_t) sprintf sprf_arg, (flag))
 #endif /* !Info */
 
+#define REPORT_MSG "\
+  (please check that you have transferred or created the zipfile in the\n\
+  appropriate BINARY mode and that you have compiled UnZip properly)\n"
+#define SEEK_MSG \
+    "error [%s]:  attempt to seek before beginning of zipfile\n" REPORT_MSG
+
 /*  The following macro wrappers around the fnfilter function are used many
  *  times to prepare archive entry names or name components for displaying
  *  listings and (warning/error) messages. They use sections in the upper half
@@ -1039,8 +1045,6 @@ extern const uint8_t oem2iso_850[];
 
 extern const char CentSigMsg[];
 extern const char EndSigMsg[];
-extern const char SeekMsg[];
-extern const char ReportMsg[];
 extern const char CompiledWith[];
 
 /* Default character when a zwchar too big for wchar_t */

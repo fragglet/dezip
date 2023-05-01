@@ -301,7 +301,7 @@ off_t abs_offset;
     off_t bufstart = request - inbuf_offset;
 
     if (request < 0) {
-        Info(slide, 1, ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
+        Info(slide, 1, ((char *) slide, SEEK_MSG, G.zipfn));
         return (PK_BADERR);
     } else if (bufstart != G.cur_zipfile_bufstart) {
         Trace((stderr, "fpos_zip: abs_offset = %s, G.extra_bytes = %s\n",

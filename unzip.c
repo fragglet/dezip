@@ -65,12 +65,6 @@ const char EndSigMsg[] = "\nnote:  didn't find end-of-central-dir "
 
 const char CentSigMsg[] =
     "error:  expected central file header signature not found (file #%lu).\n";
-const char SeekMsg[] =
-    "error [%s]:  attempt to seek before beginning of zipfile\n%s";
-
-const char ReportMsg[] = "\
-  (please check that you have transferred or created the zipfile in the\n\
-  appropriate BINARY mode and that you have compiled UnZip properly)\n";
 
 static const char MustGiveExdir[] =
     "error:  must specify directory to which to extract with -d option\n";

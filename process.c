@@ -72,7 +72,7 @@ static const char NullCentDirOffset[] =
 static const char ZipfileEmpty[] = "warning [%s]:  zipfile is empty\n";
 static const char CentDirStartNotFound[] =
     "error [%s]:  start of central directory not found;\n\
-  zipfile corrupt.\n%s";
+  zipfile corrupt.\n" REPORT_MSG;
 static const char Cent64EndSigSearchErr[] =
     "fatal error: read failure while seeking for End-of-centdir-64 signature.\n\
   This zipfile is corrupt.\n";
@@ -485,8 +485,7 @@ int lastchance;
                 memcmp(G.sig, central_hdr_sig, 4)) {
                 if (error != PK_BADERR)
                     Info(slide, 1,
-                         ((char *) slide, CentDirStartNotFound, G.zipfn,
-                          ReportMsg));
+                         ((char *) slide, CentDirStartNotFound, G.zipfn));
                 CLOSE_INFILE();
                 return (error != PK_OK ? error : PK_BADERR);
             }

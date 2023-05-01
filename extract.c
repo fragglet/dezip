@@ -449,7 +449,7 @@ int extract_or_test_files(void) /* return PK-type error code */
                     Info(slide, 1,
                          ((char *) slide, CentSigMsg,
                           j + blknum * DIR_BLKSIZ + 1));
-                    Info(slide, 1, ((char *) slide, ReportMsg));
+                    Info(slide, 1, ((char *) slide, REPORT_MSG));
                     error_in_archive = PK_BADERR;
                 }
                 reached_end = TRUE; /* ...so no more left to do */
@@ -697,7 +697,7 @@ int extract_or_test_files(void) /* return PK-type error code */
 
     if (no_endsig_found) { /* just to make sure */
         Info(slide, 1, ((char *) slide, EndSigMsg));
-        Info(slide, 1, ((char *) slide, ReportMsg));
+        Info(slide, 1, ((char *) slide, REPORT_MSG));
         if (!error_in_archive) /* don't overwrite stronger error */
             error_in_archive = PK_WARN;
     }
@@ -902,7 +902,7 @@ int error_in_archive;
         Trace((stderr, "debug: bufstart = %ld, cur_zipfile_bufstart = %ld\n",
                (long) bufstart, (long) G.cur_zipfile_bufstart));
         if (request < 0) {
-            Info(slide, 1, ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
+            Info(slide, 1, ((char *) slide, SEEK_MSG, G.zipfn));
             error_in_archive = PK_ERR;
             if (*pfilnum != 1 || G.extra_bytes == 0L) {
                 error_in_archive = PK_BADERR;
@@ -922,7 +922,7 @@ int error_in_archive;
             /* try again */
             if (request < 0) {
                 Trace((stderr, "debug: recompensated request still < 0\n"));
-                Info(slide, 1, ((char *) slide, SeekMsg, G.zipfn, ReportMsg));
+                Info(slide, 1, ((char *) slide, SEEK_MSG, G.zipfn));
                 error_in_archive = PK_BADERR;
                 continue;
             }
