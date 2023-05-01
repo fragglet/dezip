@@ -81,7 +81,7 @@ static const char WrnStorUCSizCSizDiff[] =
          continuing with \"compressed\" size value\n";
 static const char ExtFieldMsg[] = "%s:  bad extra field length (%s)\n";
 static const char OffsetMsg[] = "file #%u:  bad zipfile offset (%s):  %ld\n";
-static const char ExtractMsg[] = "%8sing: %-22s  %s%s";
+static const char ExtractMsg[] = "%8sing: %-22s  ";
 static const char LengthMsg[] =
     "%s  %s:  %s bytes required to uncompress to %s bytes;\n    %s\
       supposed to require %s bytes%s%s%s\n";
@@ -1306,8 +1306,7 @@ static int extract_or_test_member(void) /* return PK-type error code */
     if (G.UzO.tflag) {
         if (!G.UzO.qflag)
             Info(slide, 0,
-                 ((char *) slide, ExtractMsg, "test", FnFilter1(G.filename), "",
-                  ""));
+                 ((char *) slide, ExtractMsg, "test", FnFilter1(G.filename)));
     } else if (G.UzO.cflag) {
         G.outfile = stdout;
 #define NEWLINE "\n"
@@ -1324,18 +1323,23 @@ static int extract_or_test_member(void) /* return PK-type error code */
         if (!G.UzO.tflag && QCOND2) {
             if (G.symlnk) /* can also be deflated, but rarer... */
                 Info(slide, 0,
-                     ((char *) slide, ExtractMsg, "link", FnFilter1(G.filename),
-                      "", ""));
-            else
+                     ((char *) slide, ExtractMsg, "link",
+                      FnFilter1(G.filename)));
+            else {
                 Info(slide, 0,
                      ((char *) slide, ExtractMsg, "extract",
-                      FnFilter1(G.filename),
-                      (G.UzO.aflag != 1)
-                          ? ""
-                          : (G.lrec.ucsize == 0L
-                                 ? nul
-                                 : (G.pInfo->textfile ? txt : bin)),
-                      G.UzO.cflag ? NEWLINE : ""));
+                      FnFilter1(G.filename)));
+                if (G.UzO.aflag == 1) {
+                    Info(slide, 0,
+                         ((char *) slide,
+                          G.lrec.ucsize == 0L
+                              ? nul
+                              : (G.pInfo->textfile ? txt : bin)));
+                }
+                if (G.UzO.cflag) {
+                    Info(slide, 0, ((char *) slide, "\n"));
+                }
+            }
         }
         G.outptr = redirSlide;
         G.outcnt = 0L;
@@ -1359,9 +1363,13 @@ static int extract_or_test_member(void) /* return PK-type error code */
     case SHRUNK:
         if (!G.UzO.tflag && QCOND2) {
             Info(slide, 0,
-                 ((char *) slide, ExtractMsg, Unshrink, FnFilter1(G.filename),
-                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
-                  G.UzO.cflag ? NEWLINE : ""));
+                 ((char *) slide, ExtractMsg, Unshrink, FnFilter1(G.filename)));
+            if (G.UzO.aflag == 1) {
+                Info(slide, 0, ((char *) slide, G.pInfo->textfile ? txt : bin));
+            }
+            if (G.UzO.cflag) {
+                Info(slide, 0, ((char *) slide, "\n"));
+            }
         }
         if ((r = unshrink()) != PK_COOL) {
             if (r < PK_DISK) {
@@ -1383,9 +1391,13 @@ static int extract_or_test_member(void) /* return PK-type error code */
     case IMPLODED:
         if (!G.UzO.tflag && QCOND2) {
             Info(slide, 0,
-                 ((char *) slide, ExtractMsg, "explod", FnFilter1(G.filename),
-                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
-                  G.UzO.cflag ? NEWLINE : ""));
+                 ((char *) slide, ExtractMsg, "explod", FnFilter1(G.filename)));
+            if (G.UzO.aflag == 1) {
+                Info(slide, 0, ((char *) slide, G.pInfo->textfile ? txt : bin));
+            }
+            if (G.UzO.cflag) {
+                Info(slide, 0, ((char *) slide, "\n"));
+            }
         }
         if ((r = explode()) == 0) {
             break;
@@ -1431,9 +1443,14 @@ static int extract_or_test_member(void) /* return PK-type error code */
     case ENHDEFLATED:
         if (!G.UzO.tflag && QCOND2) {
             Info(slide, 0,
-                 ((char *) slide, ExtractMsg, "inflat", FnFilter1(G.filename),
-                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
-                  G.UzO.cflag ? NEWLINE : ""));
+                 ((char *) slide, ExtractMsg, "inflat", FnFilter1(G.filename)));
+            if (G.UzO.aflag == 1) {
+                Info(slide, 0,
+                     ((char *) slide, (G.pInfo->textfile ? txt : bin)));
+            }
+            if (G.UzO.cflag) {
+                Info(slide, 0, ((char *) slide, "\n"));
+            }
         }
 #define UZinflate inflate
         if ((r = UZinflate((G.lrec.compression_method == ENHDEFLATED))) == 0) {
@@ -1457,10 +1474,15 @@ static int extract_or_test_member(void) /* return PK-type error code */
 
     case BZIPPED:
         if (!G.UzO.tflag && QCOND2) {
-            Info(slide, 0,
-                 ((char *) slide, ExtractMsg, "bunzipp", FnFilter1(G.filename),
-                  (G.UzO.aflag != 1) ? "" : (G.pInfo->textfile ? txt : bin),
-                  G.UzO.cflag ? NEWLINE : ""));
+            Info(
+                slide, 0,
+                ((char *) slide, ExtractMsg, "bunzipp", FnFilter1(G.filename)));
+            if (G.UzO.aflag == 1) {
+                Info(slide, 0, ((char *) slide, G.pInfo->textfile ? txt : bin));
+            }
+            if (G.UzO.cflag) {
+                Info(slide, 0, ((char *) slide, "\n"));
+            }
         }
         if ((r = UZbunzip2()) == 0) {
             break;
