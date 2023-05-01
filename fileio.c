@@ -875,73 +875,72 @@ int option;
              * so don't correct for it twice: */
             seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes +
                       (G.inptr - G.inbuf) + length);
+            break;
         } else if (readbuf((char *) G.extra_field, length) == 0) {
             return PK_EOF;
+        }
+        /* Looks like here is where extra fields are read */
+        if (getZip64Data(G.extra_field, length) != PK_COOL) {
+            Info(slide, 1, ((char *) slide, ExtraFieldCorrupt, EF_PKSZ64));
+            error = PK_WARN;
+        }
+        G.unipath_filename = NULL;
+        if (G.UzO.U_flag >= 2) {
+            break;
+        }
+        /* check if GPB11 (General Purpuse Bit 11) is set indicating
+           the standard path and comment are UTF-8 */
+        if (G.pInfo->GPFIsUTF8) {
+            /* if GPB11 set then filename_full is untruncated UTF-8 */
+            G.unipath_filename = G.filename_full;
         } else {
-            /* Looks like here is where extra fields are read */
-            if (getZip64Data(G.extra_field, length) != PK_COOL) {
-                Info(slide, 1, ((char *) slide, ExtraFieldCorrupt, EF_PKSZ64));
-                error = PK_WARN;
-            }
-            G.unipath_filename = NULL;
-            if (G.UzO.U_flag < 2) {
-                /* check if GPB11 (General Purpuse Bit 11) is set indicating
-                   the standard path and comment are UTF-8 */
-                if (G.pInfo->GPFIsUTF8) {
-                    /* if GPB11 set then filename_full is untruncated UTF-8 */
-                    G.unipath_filename = G.filename_full;
-                } else {
-                    /* Get the Unicode fields if exist */
-                    getUnicodeData(G.extra_field, length);
-                    if (G.unipath_filename && strlen(G.unipath_filename) == 0) {
-                        /* the standard filename field is UTF-8 */
-                        free(G.unipath_filename);
-                        G.unipath_filename = G.filename_full;
-                    }
-                }
-                if (G.unipath_filename) {
-                    if (G.native_is_utf8 && (!G.unicode_escape_all)) {
-                        strncpy(G.filename, G.unipath_filename, FILNAMSIZ - 1);
-                        /* make sure filename is short enough */
-                        if (strlen(G.unipath_filename) >= FILNAMSIZ) {
-                            G.filename[FILNAMSIZ - 1] = '\0';
-                            Info(slide, 1,
-                                 ((char *) slide, UFilenameTooLongTrunc));
-                            error = PK_WARN;
-                        }
-                    } else {
-                        char *fn;
-
-                        /* convert UTF-8 to local character set */
-                        fn = utf8_to_local_string(G.unipath_filename,
-                                                  G.unicode_escape_all);
-
-                        /* 2022-07-22 SMS, et al.  CVE-2022-0530
-                         * Detect conversion failure, emit message.
-                         * Continue with unconverted name.
-                         */
-                        if (fn == NULL) {
-                            Info(slide, 1, ((char *) slide, UFilenameCorrupt));
-                            error = PK_ERR;
-                        } else {
-                            /* make sure filename is short enough */
-                            if (strlen(fn) >= FILNAMSIZ) {
-                                fn[FILNAMSIZ - 1] = '\0';
-                                Info(slide, 1,
-                                     ((char *) slide, UFilenameTooLongTrunc));
-                                error = PK_WARN;
-                            }
-                            /* replace filename with converted UTF-8 */
-                            strcpy(G.filename, fn);
-                            free(fn);
-                        }
-                    }
-                    if (G.unipath_filename != G.filename_full)
-                        free(G.unipath_filename);
-                    G.unipath_filename = NULL;
-                }
+            /* Get the Unicode fields if exist */
+            getUnicodeData(G.extra_field, length);
+            if (G.unipath_filename && strlen(G.unipath_filename) == 0) {
+                /* the standard filename field is UTF-8 */
+                free(G.unipath_filename);
+                G.unipath_filename = G.filename_full;
             }
         }
+        if (!G.unipath_filename) {
+            break;
+        }
+        if (G.native_is_utf8 && (!G.unicode_escape_all)) {
+            strncpy(G.filename, G.unipath_filename, FILNAMSIZ - 1);
+            /* make sure filename is short enough */
+            if (strlen(G.unipath_filename) >= FILNAMSIZ) {
+                G.filename[FILNAMSIZ - 1] = '\0';
+                Info(slide, 1, ((char *) slide, UFilenameTooLongTrunc));
+                error = PK_WARN;
+            }
+        } else {
+            char *fn;
+
+            /* convert UTF-8 to local character set */
+            fn = utf8_to_local_string(G.unipath_filename, G.unicode_escape_all);
+
+            /* 2022-07-22 SMS, et al.  CVE-2022-0530
+             * Detect conversion failure, emit message.
+             * Continue with unconverted name.
+             */
+            if (fn == NULL) {
+                Info(slide, 1, ((char *) slide, UFilenameCorrupt));
+                error = PK_ERR;
+            } else {
+                /* make sure filename is short enough */
+                if (strlen(fn) >= FILNAMSIZ) {
+                    fn[FILNAMSIZ - 1] = '\0';
+                    Info(slide, 1, ((char *) slide, UFilenameTooLongTrunc));
+                    error = PK_WARN;
+                }
+                /* replace filename with converted UTF-8 */
+                strcpy(G.filename, fn);
+                free(fn);
+            }
+        }
+        if (G.unipath_filename != G.filename_full)
+            free(G.unipath_filename);
+        G.unipath_filename = NULL;
         break;
     } /* end switch (option) */
 
