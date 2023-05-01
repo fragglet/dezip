@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 static void signal_handler(int signal)
 {
     /* newline if not start of line to stderr */
-    (*G.message)(slide, 0L, 0x41);
+    (*G.message)(slide, 0L, 0x21);
     echon();
 
     exit(IZ_CTRLC);

@@ -461,13 +461,6 @@ int flag;      /* flag bits */
     else
         outfp = (FILE *) stdout;
 
-    if (MSG_TNEWLN(flag)) { /* again assumes writable buffer:  fragile... */
-        if ((!size && !G.sol) || (size && (endbuf[-1] != '\n'))) {
-            *endbuf++ = '\n';
-            ++size;
-        }
-    }
-
     if (MSG_LNEWLN(flag) && !G.sol) {
         /* not at start of line:  want newline */
         putc('\n', outfp);
@@ -786,7 +779,7 @@ int option;
             (*G.message)(slide, (uint32_t) (q - slide), 0);
         }
         /* add '\n' if not at start of line */
-        (*G.message)(slide, 0L, 0x40);
+        (*G.message)(slide, 0L, 0x20);
         break;
 
         /*

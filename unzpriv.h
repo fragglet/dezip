@@ -48,7 +48,6 @@
 
 #define MSG_STDERR(f) (f & 1)      /* bit 0:  0 = stdout, 1 = stderr */
 #define MSG_LNEWLN(f) (f & 0x0020) /* bit 5:  1 = leading newline if !SOL */
-#define MSG_TNEWLN(f) (f & 0x0040) /* bit 6:  1 = trailing newline if !SOL */
 
 #define DIR_BLKSIZ 16384 /* use more memory, to reduce long-range seeks */
 
@@ -768,7 +767,8 @@ int stamp_file(const char *fname, time_t modtime); /* local */
     (*G.message)((uint8_t *) (buf), (uint32_t) sprintf sprf_arg, (flag))
 #endif /* !Info */
 
-#define REPORT_MSG "\
+#define REPORT_MSG \
+    "\
   (please check that you have transferred or created the zipfile in the\n\
   appropriate BINARY mode and that you have compiled UnZip properly)\n"
 #define SEEK_MSG \
