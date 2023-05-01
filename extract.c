@@ -158,8 +158,8 @@ static const char FileUnknownCompMethod[] = "%s:  unknown compression method\n";
 static const char BadCRC[] = " bad CRC %08x  (should be %08x)\n";
 
 /* TruncEAs[] also used in OS/2 mapname(), close_outfile() */
-char const TruncEAs[] = " compressed EA data missing (%d bytes)%s";
-char const TruncNTSD[] = " compressed WinNT security data missing (%d bytes)%s";
+char const TruncEAs[] = " compressed EA data missing (%d bytes)\n";
+char const TruncNTSD[] = " compressed WinNT security data missing (%d bytes)\n";
 
 static const char InconsistEFlength[] = "bad extra-field entry:\n \
      EF block length (%u bytes) exceeds remaining EF data (%u bytes)\n";
@@ -1633,7 +1633,7 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
                 case IZ_EF_TRUNC:
                     Info(slide, 1,
                          ((char *) slide, TruncEAs,
-                          ebLen - (eb_cmpr_offs + EB_CMPRHEADLEN), "\n"));
+                          ebLen - (eb_cmpr_offs + EB_CMPRHEADLEN)));
                     break;
                 case PK_ERR:
                     Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
@@ -1675,7 +1675,7 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
             case IZ_EF_TRUNC:
                 Info(slide, 1,
                      ((char *) slide, TruncNTSD,
-                      ebLen - (EB_NTSD_L_LEN + EB_CMPRHEADLEN), "\n"));
+                      ebLen - (EB_NTSD_L_LEN + EB_CMPRHEADLEN)));
                 break;
             case PK_ERR:
                 Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
