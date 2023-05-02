@@ -24,17 +24,6 @@ static const char HeadersL1[] =
 static const char *Headers[][2] = {{HeadersS, HeadersS1},
                                    {HeadersL, HeadersL1}};
 
-static const char CaseConversion[] = "%s (\"^\" ==> case\n%s   conversion)\n";
-static const char LongHdrStats[] =
-    "%s  %-7s%s %4s %02u%c%02u%c%02u %02u:%02u %08x %c";
-static const char LongFileTrailer[] =
-    "--------          -------  ---                       \
-     -------\n%s         %s %4s                            %u file%s\n";
-static const char ShortHdrStats[] = "%s  %02u%c%02u%c%02u %02u:%02u  %c";
-static const char ShortFileTrailer[] =
-    "---------                     -------\n%s\
-                     %u file%s\n";
-
 int list_files() /* return PK-type error code */
 {
     int do_this_file = FALSE, cfactor, error, error_in_archive = PK_COOL;
@@ -80,14 +69,12 @@ int list_files() /* return PK-type error code */
     dt_sepchar = DATE_SEPCHAR;
 
     if (G.UzO.qflag < 2) {
-        if (G.UzO.L_flag)
-            Info(slide, 0,
-                 ((char *) slide, CaseConversion, Headers[longhdr][0],
-                  Headers[longhdr][1]));
-        else
-            Info(slide, 0,
-                 ((char *) slide, "%s\n%s\n", Headers[longhdr][0],
-                  Headers[longhdr][1]));
+        if (G.UzO.L_flag) {
+            printf("%s (\"^\" ==> case\n%s   conversion)\n",
+                   Headers[longhdr][0], Headers[longhdr][1]);
+        } else {
+            printf("%s\n%s\n", Headers[longhdr][0], Headers[longhdr][1]);
+        }
     }
 
     for (j = 1L;; j++) {
@@ -248,18 +235,17 @@ int list_files() /* return PK-type error code */
                 sprintf(cfactorstr, CompFactor100);
             else
                 sprintf(cfactorstr, CompFactorStr, sgn, cfactor);
-            if (longhdr)
-                Info(slide, 0,
-                     ((char *) slide, LongHdrStats,
-                      format_off_t(G.crec.ucsize, "8", "u"), methbuf,
-                      format_off_t(csiz, "8", "u"), cfactorstr, mo, dt_sepchar,
-                      dy, dt_sepchar, yr, hh, mm, G.crec.crc32,
-                      (G.pInfo->lcflag ? '^' : ' ')));
-            else
-                Info(slide, 0,
-                     ((char *) slide, ShortHdrStats,
-                      format_off_t(G.crec.ucsize, "9", "u"), mo, dt_sepchar, dy,
-                      dt_sepchar, yr, hh, mm, (G.pInfo->lcflag ? '^' : ' ')));
+            if (longhdr) {
+                printf("%s  %-7s%s %4s %02u%c%02u%c%02u %02u:%02u %08x %c",
+                       format_off_t(G.crec.ucsize, "8", "u"), methbuf,
+                       format_off_t(csiz, "8", "u"), cfactorstr, mo, dt_sepchar,
+                       dy, dt_sepchar, yr, hh, mm, G.crec.crc32,
+                       G.pInfo->lcflag ? '^' : ' ');
+            } else {
+                printf("%s  %02u%c%02u%c%02u %02u:%02u  %c",
+                       format_off_t(G.crec.ucsize, "9", "u"), mo, dt_sepchar,
+                       dy, dt_sepchar, yr, hh, mm, G.pInfo->lcflag ? '^' : ' ');
+            }
             fnprint();
 
             if ((error = do_string(G.crec.file_comment_length,
@@ -294,16 +280,18 @@ int list_files() /* return PK-type error code */
         else
             sprintf(cfactorstr, CompFactorStr, sgn, cfactor);
         if (longhdr) {
-            Info(slide, 0,
-                 ((char *) slide, LongFileTrailer,
-                  format_off_t(tot_ucsize, "8", "u"),
-                  format_off_t(tot_csize, "8", "u"), cfactorstr, members,
-                  members == 1 ? "" : "s"));
-        } else
-            Info(slide, 0,
-                 ((char *) slide, ShortFileTrailer,
-                  format_off_t(tot_ucsize, "9", "u"), members,
-                  members == 1 ? "" : "s"));
+            printf("--------          -------  ---                       "
+                   "     -------\n"
+                   "%s         %s %4s                            %u file%s\n",
+                   format_off_t(tot_ucsize, "8", "u"),
+                   format_off_t(tot_csize, "8", "u"), cfactorstr, members,
+                   members == 1 ? "" : "s");
+        } else {
+            printf("---------                     -------\n"
+                   "%s                     %u file%s\n",
+                   format_off_t(tot_ucsize, "9", "u"), members,
+                   members == 1 ? "" : "s");
+        }
     }
 
     /* Skip the following checks in case of a premature listing break. */

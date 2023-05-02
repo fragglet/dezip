@@ -396,10 +396,8 @@ int renamed;
 
     /* Show warning when stripping insecure "parent dir" path components */
     if (killed_ddot && QCOND2) {
-        Info(slide, 0,
-             ((char *) slide,
-              "warning:  skipped \"../\" path component(s) in %s\n",
-              FnFilter1(G.filename)));
+        printf("warning:  skipped \"../\" path component(s) in %s\n",
+               FnFilter1(G.filename));
         if (!(error & ~MPN_MASK))
             error = (error & MPN_MASK) | PK_WARN;
     }
@@ -417,8 +415,7 @@ int renamed;
             return (error & ~MPN_MASK) | MPN_INF_SKIP;
         }
         if (QCOND2) {
-            Info(slide, 0,
-                 ((char *) slide, "   creating: %s\n", FnFilter1(G.filename)));
+            printf("   creating: %s\n", FnFilter1(G.filename));
         }
         /* Filter out security-relevant attributes bits. */
         G.pInfo->file_attr = filtattr(G.pInfo->file_attr);
@@ -836,9 +833,9 @@ void close_outfile() /* GRR: change to return PK-style warning level */
         }
         fclose(G.outfile); /* close "link" file for good... */
         slnk_entry->target[ucsize] = '\0';
-        if (QCOND2)
-            Info(slide, 0,
-                 ((char *) slide, "-> %s ", FnFilter1(slnk_entry->target)));
+        if (QCOND2) {
+            printf("-> %s ", FnFilter1(slnk_entry->target));
+        }
         /* add this symlink record to the list of deferred symlinks */
         if (G.slink_last != NULL)
             G.slink_last->next = slnk_entry;

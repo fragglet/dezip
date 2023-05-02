@@ -62,8 +62,6 @@ static const char ExtraBytesAtStart[] =
     "warning [%s]:  %s extra byte%s at beginning or within zipfile\n\
   (attempting to process anyway)\n";
 
-static const char LogInitline[] = "Archive:  %s\n";
-
 static const char MissingBytes[] = "error [%s]:  missing %s bytes in zipfile\n\
   (attempting to process anyway)\n";
 static const char NullCentDirOffset[] =
@@ -89,7 +87,6 @@ static const char CentDirEndSigNotFound[] = "\
   latter case the central directory and zipfile comment will be found on\n\
   the last disk(s) of this archive.\n";
 static const char ZipTimeStampFailed[] = "warning:  cannot set time for %s\n";
-static const char ZipTimeStampSuccess[] = "Updated time stamp for %s.\n";
 static const char ZipfileCommTrunc1[] =
     "\ncaution:  zipfile comment truncated\n";
 static const char UnicodeVersionError[] =
@@ -380,8 +377,9 @@ int lastchance;
     G.cur_zipfile_bufstart = 0;
     G.inptr = G.inbuf;
 
-    if (!G.UzO.qflag && !G.UzO.T_flag)
-        Info(slide, 0, ((char *) slide, LogInitline, G.zipfn));
+    if (!G.UzO.qflag && !G.UzO.T_flag) {
+        printf("Archive:  %s\n", G.zipfn);
+    }
 
     if ((error_in_archive = find_ecrec(MIN(G.ziplen, 66000L))) > PK_WARN) {
         CLOSE_INFILE();
@@ -531,9 +529,8 @@ int lastchance;
                 Info(slide, 1, ((char *) slide, ZipTimeStampFailed, G.zipfn));
             if (error_in_archive < PK_WARN)
                 error_in_archive = PK_WARN;
-        } else {
-            if (!G.UzO.qflag)
-                Info(slide, 0, ((char *) slide, ZipTimeStampSuccess, G.zipfn));
+        } else if (!G.UzO.qflag) {
+            printf("Updated time stamp for %s.\n", G.zipfn);
         }
     }
     return error_in_archive;

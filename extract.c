@@ -111,8 +111,6 @@ static const char SymLnkWarnNoMem[] =
 static const char SymLnkWarnInvalid[] =
     "warning:  deferred symlink (%s) failed:\n\
           invalid placeholder file\n";
-static const char SymLnkDeferred[] = "finishing deferred symbolic links:\n";
-static const char SymLnkFinish[] = "  %-22s -> %s\n";
 
 static const char ReplaceQuery[] =
     "replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ";
@@ -121,10 +119,6 @@ static const char AssumeNone[] =
 static const char NewNameQuery[] = "new name: ";
 static const char InvalidResponse[] = "error:  invalid response [%s]\n";
 
-static const char ErrorInArchive[] =
-    "At least one %serror was detected in %s.\n";
-static const char ZeroFilesTested[] = "Caution:  zero files tested in %s.\n";
-
 static const char VMSFormatQuery[] =
     "\n%s:  stored in VMS format.  Extract anyway? (y/n) ";
 
@@ -132,17 +126,8 @@ static const char SkipCannotGetPasswd[] =
     "   skipping: %-22s  unable to get password\n";
 static const char SkipIncorrectPasswd[] =
     "   skipping: %-22s  incorrect password\n";
-static const char FilesSkipBadPasswd[] =
-    "%u file%s skipped because of incorrect password.\n";
 static const char MaybeBadPasswd[] =
     "    (may instead be incorrect password)\n";
-
-static const char NoErrInCompData[] =
-    "No errors detected in compressed data of %s.\n";
-static const char NoErrInTestedFiles[] =
-    "No errors detected in %s for the %u file%s tested.\n";
-static const char FilesSkipped[] =
-    "%u file%s skipped because of unsupported compression or encoding.\n";
 
 static const char ErrUnzipFile[] = "  error:  %s%s %s\n";
 static const char ErrUnzipNoFile[] = "\n  error:  %s%s\n";
@@ -591,7 +576,7 @@ int extract_or_test_files(void) /* return PK-type error code */
 
     if (G.slink_last != NULL) {
         if (QCOND2)
-            Info(slide, 0, ((char *) slide, SymLnkDeferred));
+            printf("finishing deferred symbolic links:\n");
         while (G.slink_head != NULL) {
             set_deferred_symlink(G.slink_head);
             /* remove the processed entry from the chain and free its memory */
@@ -705,27 +690,29 @@ int extract_or_test_files(void) /* return PK-type error code */
         uint32_t num = filnum - num_bad_pwd;
 
         if (G.UzO.qflag < 2) { /* GRR 930710:  was (G.UzO.qflag == 1) */
-            if (error_in_archive)
-                Info(slide, 0,
-                     ((char *) slide, ErrorInArchive,
-                      (error_in_archive == PK_WARN) ? "warning-" : "",
-                      G.zipfn));
-            else if (num == 0L)
-                Info(slide, 0, ((char *) slide, ZeroFilesTested, G.zipfn));
-            else if (G.process_all_files && (num_skipped + num_bad_pwd == 0L))
-                Info(slide, 0, ((char *) slide, NoErrInCompData, G.zipfn));
-            else
-                Info(slide, 0,
-                     ((char *) slide, NoErrInTestedFiles, G.zipfn, num,
-                      (num == 1L) ? "" : "s"));
-            if (num_skipped > 0L)
-                Info(slide, 0,
-                     ((char *) slide, FilesSkipped, num_skipped,
-                      (num_skipped == 1L) ? "" : "s"));
-            if (num_bad_pwd > 0L)
-                Info(slide, 0,
-                     ((char *) slide, FilesSkipBadPasswd, num_bad_pwd,
-                      (num_bad_pwd == 1L) ? "" : "s"));
+            if (error_in_archive) {
+                printf("At least one %serror was detected in %s.\n",
+                       (error_in_archive == PK_WARN) ? "warning-" : "",
+                       G.zipfn);
+            } else if (num == 0L) {
+                printf("Caution:  zero files tested in %s.\n", G.zipfn);
+            } else if (G.process_all_files &&
+                       (num_skipped + num_bad_pwd == 0L)) {
+                printf("No errors detected in compressed data of %s.\n",
+                       G.zipfn);
+            } else {
+                printf("No errors detected in %s for the %u file%s tested.\n",
+                       G.zipfn, num, (num == 1L) ? "" : "s");
+            }
+            if (num_skipped > 0L) {
+                printf("%u file%s skipped because of unsupported "
+                       "compression or encoding.\n",
+                       num_skipped, (num_skipped == 1L) ? "" : "s");
+            }
+            if (num_bad_pwd > 0L) {
+                printf("%u file%s skipped because of incorrect password.\n",
+                       num_bad_pwd, (num_bad_pwd == 1L) ? "" : "s");
+            }
         }
     }
 
@@ -1304,9 +1291,9 @@ static int extract_or_test_member(void) /* return PK-type error code */
         G.pInfo->symlink && !G.UzO.tflag && !G.UzO.cflag && G.lrec.ucsize > 0;
 
     if (G.UzO.tflag) {
-        if (!G.UzO.qflag)
-            Info(slide, 0,
-                 ((char *) slide, ExtractMsg, "test", FnFilter1(G.filename)));
+        if (!G.UzO.qflag) {
+            printf(ExtractMsg, "test", FnFilter1(G.filename));
+        }
     } else if (G.UzO.cflag) {
         G.outfile = stdout;
 #define NEWLINE "\n"
@@ -1321,23 +1308,17 @@ static int extract_or_test_member(void) /* return PK-type error code */
     switch (G.lrec.compression_method) {
     case STORED:
         if (!G.UzO.tflag && QCOND2) {
-            if (G.symlnk) /* can also be deflated, but rarer... */
-                Info(slide, 0,
-                     ((char *) slide, ExtractMsg, "link",
-                      FnFilter1(G.filename)));
-            else {
-                Info(slide, 0,
-                     ((char *) slide, ExtractMsg, "extract",
-                      FnFilter1(G.filename)));
+            if (G.symlnk) { /* can also be deflated, but rarer... */
+                printf(ExtractMsg, "link", FnFilter1(G.filename));
+            } else {
+                printf(ExtractMsg, "extract", FnFilter1(G.filename));
                 if (G.UzO.aflag == 1) {
-                    Info(slide, 0,
-                         ((char *) slide,
-                          G.lrec.ucsize == 0L
-                              ? nul
-                              : (G.pInfo->textfile ? txt : bin)));
+                    printf("%s", G.lrec.ucsize == 0L
+                                     ? nul
+                                     : (G.pInfo->textfile ? txt : bin));
                 }
                 if (G.UzO.cflag) {
-                    Info(slide, 0, ((char *) slide, "\n"));
+                    printf("\n");
                 }
             }
         }
@@ -1362,13 +1343,14 @@ static int extract_or_test_member(void) /* return PK-type error code */
 
     case SHRUNK:
         if (!G.UzO.tflag && QCOND2) {
-            Info(slide, 0,
-                 ((char *) slide, ExtractMsg, Unshrink, FnFilter1(G.filename)));
+            printf(ExtractMsg, Unshrink, FnFilter1(G.filename));
             if (G.UzO.aflag == 1) {
-                Info(slide, 0, ((char *) slide, G.pInfo->textfile ? txt : bin));
+                printf("%s", G.lrec.ucsize == 0L
+                                 ? nul
+                                 : (G.pInfo->textfile ? txt : bin));
             }
             if (G.UzO.cflag) {
-                Info(slide, 0, ((char *) slide, "\n"));
+                printf("\n");
             }
         }
         if ((r = unshrink()) != PK_COOL) {
@@ -1390,13 +1372,14 @@ static int extract_or_test_member(void) /* return PK-type error code */
 
     case IMPLODED:
         if (!G.UzO.tflag && QCOND2) {
-            Info(slide, 0,
-                 ((char *) slide, ExtractMsg, "explod", FnFilter1(G.filename)));
+            printf(ExtractMsg, "explod", FnFilter1(G.filename));
             if (G.UzO.aflag == 1) {
-                Info(slide, 0, ((char *) slide, G.pInfo->textfile ? txt : bin));
+                printf("%s", G.lrec.ucsize == 0L
+                                 ? nul
+                                 : (G.pInfo->textfile ? txt : bin));
             }
             if (G.UzO.cflag) {
-                Info(slide, 0, ((char *) slide, "\n"));
+                printf("\n");
             }
         }
         if ((r = explode()) == 0) {
@@ -1442,14 +1425,14 @@ static int extract_or_test_member(void) /* return PK-type error code */
     case DEFLATED:
     case ENHDEFLATED:
         if (!G.UzO.tflag && QCOND2) {
-            Info(slide, 0,
-                 ((char *) slide, ExtractMsg, "inflat", FnFilter1(G.filename)));
+            printf(ExtractMsg, "inflat", FnFilter1(G.filename));
             if (G.UzO.aflag == 1) {
-                Info(slide, 0,
-                     ((char *) slide, (G.pInfo->textfile ? txt : bin)));
+                printf("%s", G.lrec.ucsize == 0L
+                                 ? nul
+                                 : (G.pInfo->textfile ? txt : bin));
             }
             if (G.UzO.cflag) {
-                Info(slide, 0, ((char *) slide, "\n"));
+                printf("\n");
             }
         }
 #define UZinflate inflate
@@ -1474,14 +1457,14 @@ static int extract_or_test_member(void) /* return PK-type error code */
 
     case BZIPPED:
         if (!G.UzO.tflag && QCOND2) {
-            Info(
-                slide, 0,
-                ((char *) slide, ExtractMsg, "bunzipp", FnFilter1(G.filename)));
+            printf(ExtractMsg, "bunzipp", FnFilter1(G.filename));
             if (G.UzO.aflag == 1) {
-                Info(slide, 0, ((char *) slide, G.pInfo->textfile ? txt : bin));
+                printf("%s", G.lrec.ucsize == 0L
+                                 ? nul
+                                 : (G.pInfo->textfile ? txt : bin));
             }
             if (G.UzO.cflag) {
-                Info(slide, 0, ((char *) slide, "\n"));
+                printf("\n");
             }
         }
         if ((r = UZbunzip2()) == 0) {
@@ -1553,10 +1536,11 @@ static int extract_or_test_member(void) /* return PK-type error code */
             if ((r = TestExtraField(G.extra_field, G.lrec.extra_field_length)) >
                 error)
                 error = r;
-        } else if (!G.UzO.qflag)
-            Info(slide, 0, ((char *) slide, " OK\n"));
+        } else if (!G.UzO.qflag) {
+            printf(" OK\n");
+        }
     } else if (QCOND2 && !error) { /* GRR:  is stdout reset to text mode yet? */
-        Info(slide, 0, ((char *) slide, "\n"));
+        printf("\n");
     }
 
     undefer_input();
@@ -1752,8 +1736,9 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
         ef += (ebLen + EB_HEADSIZE);
     }
 
-    if (!G.UzO.qflag)
-        Info(slide, 0, ((char *) slide, " OK\n"));
+    if (!G.UzO.qflag) {
+        printf(" OK\n");
+    }
 
     return PK_COOL;
 }
@@ -1922,10 +1907,9 @@ static void set_deferred_symlink(slinkentry *slnk_entry)
     }
     fclose(G.outfile); /* close "data" file for good... */
     unlink(linkfname); /* ...and delete it */
-    if (QCOND2)
-        Info(slide, 0,
-             ((char *) slide, SymLnkFinish, FnFilter1(linkfname),
-              FnFilter2(linktarget)));
+    if (QCOND2) {
+        printf("  %-22s -> %s\n", FnFilter1(linkfname), FnFilter2(linktarget));
+    }
     if (symlink(linktarget, linkfname)) /* create the real link */
         perror("symlink error");
     free(linktarget);
