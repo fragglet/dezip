@@ -617,9 +617,6 @@ void *checked_realloc(void *old, size_t sz);
 
 int process_zipfiles(void);
 void free_G_buffers(void);
-/* static int    do_seekable(int lastchance); */
-/* static int    find_ecrec(long searchlen); */
-/* static int    process_central_comment(void); */
 int process_cdir_file_hdr(void);
 int process_local_file_hdr(void);
 int getZip64Data(const uint8_t *ef_buf, unsigned ef_len);
