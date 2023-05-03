@@ -124,12 +124,6 @@ static void init_globals()
     G.echofd = -1;
 }
 
-int main(int argc, char *argv[])
-{
-    init_globals();
-    return unzip(argc, argv);
-}
-
 /* upon interrupt, turn on echo and exit cleanly */
 static void signal_handler(int signal)
 {
@@ -144,13 +138,13 @@ static void signal_handler(int signal)
 /*  Primary UnZip entry point  */
 /*******************************/
 
-int unzip(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
     int i;
     int retcode, error = FALSE;
     char *codeset;
+
+    init_globals();
 
     /* initialize international char support to the current environment */
     setlocale(LC_CTYPE, "");
