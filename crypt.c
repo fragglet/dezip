@@ -159,11 +159,6 @@ int decrypt(passwrd) const char *passwrd;
     n = 0;
     do {
         r = (*G.decr_passwd)(&n, G.key, IZ_PWLEN + 1, G.zipfn, G.filename);
-        if (r == IZ_PW_ERROR) { /* internal error in fetch of PW */
-            free(G.key);
-            G.key = NULL;
-            return PK_MEM2;
-        }
         if (r != IZ_PW_ENTERED) { /* user replied "skip" or "skip all" */
             *G.key = '\0';        /*   We try the NIL password, ... */
             n = 0;                /*   and cancel fetch for this item. */

@@ -308,7 +308,6 @@ int renamed;
  *  MPN_INF_SKIP    - info "skip entry" (dir doesn't exist)
  *  MPN_ERR_SKIP    - error -> skip entry
  *  MPN_ERR_TOOLONG - error -> path is too long
- *  MPN_NOMEM       - error (memory allocation failed) -> skip entry
  *  [also MPN_VOL_LABEL, MPN_CREATED_DIR]
  */
 {
@@ -334,8 +333,7 @@ int renamed;
     /* user gave full pathname:  don't prepend rootpath */
     G.renamed_fullpath = (renamed && (*G.filename == '/'));
 
-    if (checkdir((char *) NULL, INIT) == MPN_NOMEM)
-        return MPN_NOMEM; /* initialize path buffer, unless no memory */
+    checkdir((char *) NULL, INIT);
 
     *pathcomp = '\0'; /* initialize translation buffer */
     pp = pathcomp;    /* point to translation buffer */
@@ -491,7 +489,6 @@ int renamed;
  *  MPN_ERR_SKIP    - path doesn't exist, tried to create and failed; or path
  *                    exists and is not a directory, but is supposed to be
  *  MPN_ERR_TOOLONG - path is too long
- *  MPN_NOMEM       - can't allocate memory for filename buffers
  */
 int checkdir(pathcomp, flag)
 char *pathcomp;

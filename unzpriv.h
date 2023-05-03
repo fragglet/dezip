@@ -204,7 +204,6 @@ char *plastchar(const char *ptr, size_t len);
 #define MPN_INF_SKIP    (2 << 8)  /* info  - skipped because nothing to do */
 #define MPN_ERR_SKIP    (3 << 8)  /* error - entry skipped */
 #define MPN_ERR_TOOLONG (4 << 8)  /* error - path too long */
-#define MPN_NOMEM       (10 << 8) /* error - out of memory, file skipped */
 #define MPN_CREATED_DIR                                                     \
     (16 << 8)                   /* directory created: set time & permission \
                                  */

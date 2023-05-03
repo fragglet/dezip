@@ -94,8 +94,6 @@ static const char AbsolutePathWarning[] =
     "warning:  stripped absolute path spec from %s\n";
 static const char SkipVolumeLabel[] = "   skipping: %-22s  %svolume label\n";
 
-static const char DirlistEntryNoMem[] =
-    "warning:  cannot alloc memory for dir times/permissions/UID/GID\n";
 static const char DirlistSetAttrFailed[] =
     "warning:  set times/attribs failed for %s\n";
 
@@ -122,7 +120,6 @@ static const char MaybeBadPasswd[] =
 
 static const char ErrUnzipFile[] = "  error:  %s%s %s\n";
 static const char ErrUnzipNoFile[] = "\n  error:  %s%s\n";
-static const char NotEnoughMem[] = "not enough memory to ";
 static const char InvalidComprData[] = "invalid compressed data to ";
 static const char Inflate[] = "inflate";
 static const char BUnzip[] = "bunzip";
@@ -146,15 +143,12 @@ static const char UnsuppNTSDVersEAs[] = " unsupported NTSD EAs version %d\n";
 static const char BadCRC_EAs[] = " bad CRC for extended attributes\n";
 static const char UnknComprMethodEAs[] =
     " unknown compression method for EAs (%u)\n";
-static const char NotEnoughMemEAs[] = " out of memory while inflating EAs\n";
 static const char UnknErrorEAs[] = " unknown error on extended attributes\n";
 
 static const char UnsupportedExtraField[] =
     "\nerror:  unsupported extra-field compression type (%u)--skipping\n";
 static const char BadExtraFieldCRC[] =
     "error [%s]:  bad extra-field CRC %08x (should be %08x)\n";
-static const char NotEnoughMemCover[] =
-    "error: not enough memory for bomb detection\n";
 static const char OverlappedComponents[] =
     "error: invalid zip file with overlapped components (possible zip bomb)\n";
 
@@ -252,8 +246,7 @@ off_t end;
            spans. Assure that there is room and insert the span.  */
         if (cover->num == cover->max) {
             size_t max = cover->max == 0 ? 16 : cover->max << 1;
-            span_t *span = checked_realloc(cover->span, max * sizeof(span_t));
-            cover->span = span;
+            cover->span = checked_realloc(cover->span, max * sizeof(span_t));
             cover->max = max;
         }
         memmove(cover->span + pos + 1, cover->span + pos,
@@ -290,17 +283,14 @@ int extract_or_test_files(void) /* return PK-type error code */
 
     /* a) initialize the CRC table pointer (once) */
     if (CRC_32_TAB == NULL) {
-        if ((CRC_32_TAB = get_crc_table()) == NULL) {
-            return PK_MEM;
-        }
+        CRC_32_TAB = get_crc_table();
     }
 
     /* b) check out if specified extraction root directory exists */
     if (G.UzO.exdir != NULL && G.extract_flag) {
         G.create_dirs = !G.UzO.fflag;
         if ((error = checkdir(G.UzO.exdir, ROOT)) > MPN_INF_SKIP) {
-            /* out of memory, or file in way */
-            return error == MPN_NOMEM ? PK_MEM : PK_ERR;
+            return PK_ERR;
         }
     }
 
@@ -315,13 +305,10 @@ int extract_or_test_files(void) /* return PK-type error code */
         ((cover_t *) G.cover)->max = 0;
     }
     ((cover_t *) G.cover)->num = 0;
-    if (cover_add((cover_t *) G.cover,
+    cover_add((cover_t *) G.cover,
                   G.extra_bytes + G.ecrec.offset_start_central_directory,
                   G.extra_bytes + G.ecrec.offset_start_central_directory +
-                      G.ecrec.size_central_directory) != 0) {
-        Info(slide, 1, ((char *) slide, NotEnoughMemCover));
-        return PK_MEM;
-    }
+                      G.ecrec.size_central_directory);
     if ((G.extra_bytes != 0 &&
          cover_add((cover_t *) G.cover, 0, G.extra_bytes) != 0) ||
         (G.ecrec.have_ecr64 &&
@@ -1112,24 +1099,10 @@ int error_in_archive;
             if ((errcode = error & MPN_MASK) > MPN_INF_TRUNC) {
                 if (errcode == MPN_CREATED_DIR) {
                     direntry *d_entry;
-
                     error = defer_dir_attribs(&d_entry);
-                    if (d_entry == NULL) {
-                        /* There may be no dir_attribs info available, or
-                         * we have encountered a mem allocation error.
-                         * In case of an error, report it and set program
-                         * error state to warning level.
-                         */
-                        if (error) {
-                            Info(slide, 1, ((char *) slide, DirlistEntryNoMem));
-                            if (!error_in_archive)
-                                error_in_archive = PK_WARN;
-                        }
-                    } else {
-                        d_entry->next = (*pdirlist);
-                        (*pdirlist) = d_entry;
-                        ++(*pnum_dirs);
-                    }
+                    d_entry->next = (*pdirlist);
+                    (*pdirlist) = d_entry;
+                    ++(*pnum_dirs);
                 } else if (errcode == MPN_VOL_LABEL) {
                     Info(slide, 1,
                          ((char *) slide, SkipVolumeLabel,
@@ -1234,10 +1207,6 @@ int error_in_archive;
         }
         error = cover_add((cover_t *) G.cover, request,
                           G.cur_zipfile_bufstart + (G.inptr - G.inbuf));
-        if (error < 0) {
-            Info(slide, 1, ((char *) slide, NotEnoughMemCover));
-            return PK_MEM;
-        }
         if (error != 0) {
             Info(slide, 1, ((char *) slide, OverlappedComponents));
             return PK_BOMB;
@@ -1336,12 +1305,12 @@ static int extract_or_test_member(void) /* return PK-type error code */
                 if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                     Info(slide, 1,
                          ((char *) slide, ErrUnzipFile,
-                          r == PK_MEM3 ? NotEnoughMem : InvalidComprData,
+                          InvalidComprData,
                           Unshrink, FnFilter1(G.filename)));
                 else
                     Info(slide, 1,
                          ((char *) slide, ErrUnzipNoFile,
-                          r == PK_MEM3 ? NotEnoughMem : InvalidComprData,
+                          InvalidComprData,
                           Unshrink));
             }
             error = r;
@@ -1388,13 +1357,13 @@ static int extract_or_test_member(void) /* return PK-type error code */
             if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                 Info(slide, 1,
                      ((char *) slide, ErrUnzipFile,
-                      r == 3 ? NotEnoughMem : InvalidComprData, Explode,
+                      InvalidComprData, Explode,
                       FnFilter1(G.filename)));
             else
                 Info(slide, 1,
                      ((char *) slide, ErrUnzipNoFile,
-                      r == 3 ? NotEnoughMem : InvalidComprData, Explode));
-            error = (r == 3) ? PK_MEM3 : PK_ERR;
+                      InvalidComprData, Explode));
+            error = PK_ERR;
         } else {
             error = r;
         }
@@ -1424,13 +1393,13 @@ static int extract_or_test_member(void) /* return PK-type error code */
         if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
             Info(slide, 1,
                  ((char *) slide, ErrUnzipFile,
-                  r == 3 ? NotEnoughMem : InvalidComprData, Inflate,
+                  InvalidComprData, Inflate,
                   FnFilter1(G.filename)));
         else
             Info(slide, 1,
                  ((char *) slide, ErrUnzipNoFile,
-                  r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
-        error = (r == 3) ? PK_MEM3 : PK_ERR;
+                  InvalidComprData, Inflate));
+        error = PK_ERR;
         break;
 
     case BZIPPED:
@@ -1455,13 +1424,13 @@ static int extract_or_test_member(void) /* return PK-type error code */
         if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
             Info(slide, 1,
                  ((char *) slide, ErrUnzipFile,
-                  r == 3 ? NotEnoughMem : InvalidComprData, BUnzip,
+                  InvalidComprData, BUnzip,
                   FnFilter1(G.filename)));
         else
             Info(slide, 1,
                  ((char *) slide, ErrUnzipNoFile,
-                  r == 3 ? NotEnoughMem : InvalidComprData, BUnzip));
-        error = (r == 3) ? PK_MEM3 : PK_ERR;
+                  InvalidComprData, BUnzip));
+        error = PK_ERR;
         break;
 
     default: /* should never get to this point */
@@ -1622,10 +1591,6 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
                 case PK_ERR:
                     Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
                     break;
-                case PK_MEM3:
-                case PK_MEM4:
-                    Info(slide, 1, ((char *) slide, NotEnoughMemEAs));
-                    break;
                 default:
                     if ((r & 0xff) != PK_ERR) {
                         Info(slide, 1, ((char *) slide, UnknErrorEAs));
@@ -1663,10 +1628,6 @@ static int TestExtraField(uint8_t *ef, unsigned ef_len)
                 break;
             case PK_ERR:
                 Info(slide, 1, ((char *) slide, InvalidComprDataEAs));
-                break;
-            case PK_MEM3:
-            case PK_MEM4:
-                Info(slide, 1, ((char *) slide, NotEnoughMemEAs));
                 break;
             case (PK_WARN | 0x4000):
                 Info(slide, 1,
@@ -1799,8 +1760,8 @@ int memextract(uint8_t *tgt, uint32_t tgtsize, const uint8_t *src,
             if (!G.UzO.tflag)
                 Info(slide, 1,
                      ((char *) slide, ErrUnzipNoFile,
-                      r == 3 ? NotEnoughMem : InvalidComprData, Inflate));
-            error = (r == 3) ? PK_MEM3 : PK_ERR;
+                      InvalidComprData, Inflate));
+            error = PK_ERR;
         }
         if (G.outcnt == 0L) /* inflate's final FLUSH sets outcnt */
             break;
@@ -2041,7 +2002,7 @@ int UZbunzip2(void)
             goto uzbunzip_cleanup_exit;
         } else if (err != BZ_OK && err != BZ_STREAM_END) {
             Trace((stderr, "oops!  (bzip(final loop) err = %d)\n", err));
-            exit(PK_MEM3);
+            exit(PK_MEM);
         }
         /* final flush of slide[] */
         if ((retval = FLUSH(WSIZE - bstrm.avail_out)) != 0)
