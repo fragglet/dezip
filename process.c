@@ -1291,16 +1291,9 @@ unsigned ef_len;                           /* total length of extra field */
             }
 
             /* UTF-8 Path */
-            G.unipath_filename = checked_malloc(ULen + 1); //->strdup
-            if (ULen == 0) {
-                /* standard path is UTF-8 so use that */
-                G.unipath_filename[0] = '\0';
-            } else {
-                /* UTF-8 path */
-                strncpy(G.unipath_filename, (const char *) (offset + ef_buf),
-                        ULen);
-                G.unipath_filename[ULen] = '\0';
-            }
+            G.unipath_filename = checked_malloc(ULen + 1);
+            strncpy(G.unipath_filename, (const char *) (offset + ef_buf), ULen);
+            G.unipath_filename[ULen] = '\0';
 
             G.zip64 = TRUE;
         }
@@ -1511,8 +1504,7 @@ zwchar wide_char;
         sprintf(d, "%02x", b[i]);
         strcat(e, d);
     }
-    r = checked_malloc(strlen(e) + 1); //->strdup
-    strcpy(r, e);
+    r = checked_strdup(e);
     return r;
 }
 
@@ -1589,8 +1581,7 @@ int escape_all;
             free(escape_string);
         }
     }
-    local_string = checked_malloc(strlen(buffer) + 1); //->strdup
-    strcpy(local_string, buffer);
+    local_string = checked_strdup(buffer);
     free(buffer);
 
     return local_string;

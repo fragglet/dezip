@@ -54,8 +54,7 @@ const char *envstr, *envstr2;
     if (envptr == NULL || *envptr == '\0')
         return PK_OK;
 
-    bufptr = checked_malloc(1 + strlen(envptr)); //->strdup
-    strcpy(bufptr, envptr);
+    bufptr = checked_strdup(envptr);
 
     /* count the args so we can allocate room for them */
     argc = count_args(bufptr);

@@ -609,6 +609,7 @@ int uz_opts(int *pargc, char ***pargv);
 int usage(int error);
 #define checked_malloc(sz) checked_realloc(NULL, sz)
 void *checked_realloc(void *old, size_t sz);
+char *checked_strdup(const char *s);
 
 /*---------------------------------------------------------------------------
     Functions in process.c (main driver routines):

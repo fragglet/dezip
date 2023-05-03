@@ -666,3 +666,16 @@ void *checked_realloc(void *old, size_t sz)
     }
     return result;
 }
+
+char *checked_strdup(const char *s)
+{
+    char *result = strdup(s);
+    if (result == NULL) {
+        Info(slide, 1,
+             ((char *) slide,
+              "failed to allocate %d bytes for string allocation\n",
+              strlen(s) + 1));
+        exit(PK_MEM);
+    }
+    return result;
+}

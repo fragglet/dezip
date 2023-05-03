@@ -779,8 +779,7 @@ static int store_info(void) /* return 0 if skipping, 1 if OK */
     }
 
     /* store a copy of the central header filename for later comparison */
-    G.pInfo->cfilname = checked_malloc(strlen(G.filename) + 1); //->strdup
-    strcpy(G.pInfo->cfilname, G.filename);
+    G.pInfo->cfilname = checked_strdup(G.filename);
 
     /* map whatever file attributes we have into the local format */
     mapattr(); /* GRR:  worry about return value later */

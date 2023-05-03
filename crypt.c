@@ -135,8 +135,7 @@ int decrypt(passwrd) const char *passwrd;
         G.newzip = FALSE;
         if (passwrd != NULL) { /* user gave password on command line */
             if (!G.key) {
-                G.key = checked_malloc(strlen(passwrd) + 1); //->strdup
-                strcpy(G.key, passwrd);
+                G.key = checked_strdup(passwrd);
                 G.nopwd = TRUE; /* inhibit password prompting! */
             }
         } else { /* get rid of previous zipfile's key */

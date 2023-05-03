@@ -619,7 +619,7 @@ int flag;
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        G.buildpath = checked_malloc(strlen(G.filename) + G.rootlen + 1); //->strdup
+        G.buildpath = checked_malloc(strlen(G.filename) + G.rootlen + 1);
         if (G.rootlen > 0 && !G.renamed_fullpath) {
             strcpy(G.buildpath, G.rootpath);
             G.end = G.buildpath + G.rootlen;
@@ -652,7 +652,7 @@ int flag;
         if ((G.rootlen = strlen(pathcomp)) <= 0) {
             return MPN_OK;
         }
-        tmproot = checked_malloc(G.rootlen + 2); //->strdup
+        tmproot = checked_malloc(G.rootlen + 2);
         strcpy(tmproot, pathcomp);
         if (tmproot[G.rootlen - 1] == '/') {
             tmproot[--G.rootlen] = '\0';
