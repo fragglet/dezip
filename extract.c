@@ -306,9 +306,9 @@ int extract_or_test_files(void) /* return PK-type error code */
     }
     ((cover_t *) G.cover)->num = 0;
     cover_add((cover_t *) G.cover,
-                  G.extra_bytes + G.ecrec.offset_start_central_directory,
-                  G.extra_bytes + G.ecrec.offset_start_central_directory +
-                      G.ecrec.size_central_directory);
+              G.extra_bytes + G.ecrec.offset_start_central_directory,
+              G.extra_bytes + G.ecrec.offset_start_central_directory +
+                  G.ecrec.size_central_directory);
     if ((G.extra_bytes != 0 &&
          cover_add((cover_t *) G.cover, 0, G.extra_bytes) != 0) ||
         (G.ecrec.have_ecr64 &&
@@ -589,8 +589,7 @@ int extract_or_test_files(void) /* return PK-type error code */
             Trace((stderr, "dir = %s\n", d->fn));
             if ((error = set_direc_attribs(d)) != PK_OK) {
                 ndirs_fail++;
-                Info(slide, 1,
-                     ((char *) slide, DirlistSetAttrFailed, d->fn));
+                Info(slide, 1, ((char *) slide, DirlistSetAttrFailed, d->fn));
                 if (!error_in_archive)
                     error_in_archive = error;
             }
@@ -1304,13 +1303,11 @@ static int extract_or_test_member(void) /* return PK-type error code */
             if (r < PK_DISK) {
                 if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                     Info(slide, 1,
-                         ((char *) slide, ErrUnzipFile,
-                          InvalidComprData,
+                         ((char *) slide, ErrUnzipFile, InvalidComprData,
                           Unshrink, FnFilter1(G.filename)));
                 else
                     Info(slide, 1,
-                         ((char *) slide, ErrUnzipNoFile,
-                          InvalidComprData,
+                         ((char *) slide, ErrUnzipNoFile, InvalidComprData,
                           Unshrink));
             }
             error = r;
@@ -1356,13 +1353,12 @@ static int extract_or_test_member(void) /* return PK-type error code */
         } else if (r < PK_DISK) {
             if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
                 Info(slide, 1,
-                     ((char *) slide, ErrUnzipFile,
-                      InvalidComprData, Explode,
+                     ((char *) slide, ErrUnzipFile, InvalidComprData, Explode,
                       FnFilter1(G.filename)));
             else
                 Info(slide, 1,
-                     ((char *) slide, ErrUnzipNoFile,
-                      InvalidComprData, Explode));
+                     ((char *) slide, ErrUnzipNoFile, InvalidComprData,
+                      Explode));
             error = PK_ERR;
         } else {
             error = r;
@@ -1392,13 +1388,11 @@ static int extract_or_test_member(void) /* return PK-type error code */
         }
         if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
             Info(slide, 1,
-                 ((char *) slide, ErrUnzipFile,
-                  InvalidComprData, Inflate,
+                 ((char *) slide, ErrUnzipFile, InvalidComprData, Inflate,
                   FnFilter1(G.filename)));
         else
             Info(slide, 1,
-                 ((char *) slide, ErrUnzipNoFile,
-                  InvalidComprData, Inflate));
+                 ((char *) slide, ErrUnzipNoFile, InvalidComprData, Inflate));
         error = PK_ERR;
         break;
 
@@ -1423,13 +1417,11 @@ static int extract_or_test_member(void) /* return PK-type error code */
         }
         if ((G.UzO.tflag && G.UzO.qflag) || (!G.UzO.tflag && !QCOND2))
             Info(slide, 1,
-                 ((char *) slide, ErrUnzipFile,
-                  InvalidComprData, BUnzip,
+                 ((char *) slide, ErrUnzipFile, InvalidComprData, BUnzip,
                   FnFilter1(G.filename)));
         else
             Info(slide, 1,
-                 ((char *) slide, ErrUnzipNoFile,
-                  InvalidComprData, BUnzip));
+                 ((char *) slide, ErrUnzipNoFile, InvalidComprData, BUnzip));
         error = PK_ERR;
         break;
 
@@ -1759,8 +1751,8 @@ int memextract(uint8_t *tgt, uint32_t tgtsize, const uint8_t *src,
         if ((r = UZinflate(method == ENHDEFLATED)) != 0) {
             if (!G.UzO.tflag)
                 Info(slide, 1,
-                     ((char *) slide, ErrUnzipNoFile,
-                      InvalidComprData, Inflate));
+                     ((char *) slide, ErrUnzipNoFile, InvalidComprData,
+                      Inflate));
             error = PK_ERR;
         }
         if (G.outcnt == 0L) /* inflate's final FLUSH sets outcnt */

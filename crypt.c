@@ -199,7 +199,7 @@ static int testp(h) const uint8_t *h;
 #ifndef STR_TO_CP1
         /* now prepare for second (and maybe third) test with translated pwd */
         key_translated = checked_malloc(strlen(G.key) + 1);
-            return -1;
+        return -1;
 #endif
         /* second try, password translated to alternate ("standard") charset */
         r = testkey(h, STR_TO_CP2(key_translated, G.key));
