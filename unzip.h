@@ -75,7 +75,6 @@ freely, subject to the above disclaimer and the following restrictions:
 #include <inttypes.h>
 
 typedef int(MsgFn)(uint8_t *buf, uint32_t size, int flag);
-typedef void(PauseFn)(const char *prompt, int flag);
 typedef int(PasswdFn)(int *rcnt, char *pwbuf, int size, const char *zfn,
                       const char *efn);
 
@@ -136,7 +135,6 @@ typedef struct _UzpOpts {
 
 int UzpMessagePrnt(uint8_t *buf, uint32_t size, int flag);
 int UzpMessageNull(uint8_t *buf, uint32_t size, int flag);
-void UzpMorePause(const char *prompt, int flag);
 int UzpPassword(int *rcnt, char *pwbuf, int size, const char *zfn,
                 const char *efn);
 

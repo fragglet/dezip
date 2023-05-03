@@ -127,7 +127,6 @@ struct globals {
     int fofft_index;
 
     MsgFn *message;
-    PauseFn *mpause;
     PasswdFn *decr_passwd;
 
     int incnt_leftover; /* so improved NEXTBYTE does not waste input */

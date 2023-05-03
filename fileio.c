@@ -53,10 +53,6 @@ static const char ExtraFieldCorrupt[] =
 static const char DiskFullQuery[] =
     "%s:  write error (disk full?).  Continue? (y/n/^C) ";
 static const char FileIsSymLink[] = "%s exists and is a symbolic link%s.\n";
-static const char QuitPrompt[] =
-    "--- Press `Q' to quit, or any other key to continue ---";
-static const char HidePrompt[] = /* "\r                       \r"; */
-    "\r                                                         \r";
 static const char PasswPrompt[] = "[%s] %s password: ";
 static const char PasswPrompt2[] = "Enter password: ";
 static const char PasswRetry[] = "password incorrect--reenter: ";
@@ -488,39 +484,6 @@ int flag;      /* flag bits */
     return 0;
 }
 
-void UzpMorePause(prompt, flag) const char *prompt; /* "--More--" prompt */
-int flag; /* 0 = any char OK; 1 = accept only '\n', ' ', q */
-{
-    uint8_t c;
-
-    /*---------------------------------------------------------------------------
-        Print a prompt and wait for the user to press a key, then erase prompt
-        if possible.
-      ---------------------------------------------------------------------------*/
-
-    if (!G.sol)
-        fprintf(stderr, "\n");
-    /* numlines may or may not be used: */
-    fprintf(stderr, prompt, G.numlines);
-    fflush(stderr);
-    if (flag & 1) {
-        do {
-            c = (uint8_t) zgetch(0);
-        } while (c != '\r' && c != '\n' && c != ' ' && c != 'q' && c != 'Q');
-    } else
-        c = (uint8_t) zgetch(0);
-
-    /* newline was not echoed, so cover up prompt line */
-    fprintf(stderr, HidePrompt);
-    fflush(stderr);
-
-    if ((ToLower(c) == 'q')) {
-        exit(PK_COOL);
-    }
-
-    G.sol = TRUE;
-}
-
 int UzpPassword(rcnt, pwbuf, size, zfn, efn)
 int *rcnt;       /* retry counter */
 char *pwbuf;     /* buffer for password */
@@ -747,14 +710,11 @@ int do_string_display(unsigned int length, unsigned int display_8)
         p = G.outbuf - 1;
         q = slide;
         while (*++p) {
-            int pause = FALSE;
-
             if (*p == 0x1B) { /* ASCII escape char */
                 *q++ = '^';
                 *q++ = '[';
             } else if (*p == 0x13) { /* ASCII ^S (pause) */
-                pause = TRUE;
-                if (p[1] == LF) /* ASCII LF */
+                if (p[1] == LF)      /* ASCII LF */
                     *q++ = *++p;
                 else if (p[1] == CR && p[2] == LF) { /* ASCII CR LF */
                     *q++ = *++p;
@@ -762,11 +722,9 @@ int do_string_display(unsigned int length, unsigned int display_8)
                 }
             } else
                 *q++ = *p;
-            if ((unsigned) (q - slide) > WSIZE - 3 || pause) { /* flush */
+            if ((unsigned) (q - slide) > WSIZE - 3) { /* flush */
                 (*G.message)(slide, (uint32_t) (q - slide), 0);
                 q = slide;
-                if (pause && G.extract_flag) /* don't pause for list/test */
-                    (*G.mpause)(QuitPrompt, 0);
             }
         }
         (*G.message)(slide, (uint32_t) (q - slide), 0);
