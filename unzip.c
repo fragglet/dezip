@@ -625,11 +625,8 @@ char ***pargv;
         return usage(error);
     }
 
-    if (G.UzO.cflag || G.UzO.tflag || G.UzO.vflag || G.UzO.zflag ||
-        G.UzO.T_flag)
-        G.extract_flag = FALSE;
-    else
-        G.extract_flag = TRUE;
+    G.extract_flag = !G.UzO.cflag && !G.UzO.tflag && !G.UzO.vflag &&
+                     !G.UzO.zflag && !G.UzO.T_flag;
 
     *pargc = argc;
     *pargv = argv;

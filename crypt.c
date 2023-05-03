@@ -145,13 +145,12 @@ int decrypt(passwrd) const char *passwrd;
     }
 
     /* if have key already, test it; else allocate memory for it */
-    if (G.key) {
-        if (!testp(h))
-            return PK_COOL; /* existing password OK (else prompt for new) */
-        else if (G.nopwd)
-            return PK_WARN; /* user indicated no more prompting */
-    } else {
+    if (!G.key) {
         G.key = checked_malloc(IZ_PWLEN + 1);
+    } else if (!testp(h)) {
+        return PK_COOL; /* existing password OK (else prompt for new) */
+    } else if (G.nopwd) {
+        return PK_WARN; /* user indicated no more prompting */
     }
 
     /* try a few keys */
