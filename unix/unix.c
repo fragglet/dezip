@@ -333,7 +333,7 @@ int renamed;
     /* user gave full pathname:  don't prepend rootpath */
     G.renamed_fullpath = (renamed && (*G.filename == '/'));
 
-    checkdir((char *) NULL, INIT);
+    checkdir_init(NULL);
 
     *pathcomp = '\0'; /* initialize translation buffer */
     pp = pathcomp;    /* point to translation buffer */
@@ -362,7 +362,7 @@ int renamed;
                 killed_ddot = TRUE; /* set "show message" flag */
             }
             /* when path component is not empty, append it now */
-            if (*pathcomp != '\0' && ((error = checkdir(pathcomp, APPEND_DIR)) &
+            if (*pathcomp != '\0' && ((error = checkdir_append_dir(pathcomp)) &
                                       MPN_MASK) > MPN_INF_TRUNC)
                 return error;
             pp = pathcomp;   /* reset conversion buffer for next piece */
@@ -400,7 +400,7 @@ int renamed;
       ---------------------------------------------------------------------------*/
 
     if (G.filename[strlen(G.filename) - 1] == '/') {
-        checkdir(G.filename, GETPATH);
+        checkdir_get_path(G.filename);
         if (!G.created_dir) {
             /* dir existed already; don't look for data to extract */
             return (error & ~MPN_MASK) | MPN_INF_SKIP;
@@ -450,8 +450,8 @@ int renamed;
         return (error & ~MPN_MASK) | MPN_ERR_SKIP;
     }
 
-    checkdir(pathcomp, APPEND_NAME); /* returns 1 if truncated: care? */
-    checkdir(G.filename, GETPATH);
+    checkdir_append_name(pathcomp); /* returns 1 if truncated: care? */
+    checkdir_get_path(G.filename);
 
     return error;
 }
@@ -481,73 +481,31 @@ int renamed;
  *                    exists and is not a directory, but is supposed to be
  *  MPN_ERR_TOOLONG - path is too long
  */
-int checkdir(pathcomp, flag)
-char *pathcomp;
-int flag;
+
+/* Append the path component to the path being built and check for its
+ * existence.  If doesn't exist and we are creating directories, do so
+ * for this one; else signal success or error as appropriate.
+ */
+int checkdir_append_dir(char *pathcomp)
 {
-    /* static int rootlen = 0; */ /* length of rootpath */
-    /* static char *rootpath;  */ /* user's "extract-to" directory */
-    /* static char *buildpath; */ /* full path (so far) to extracted file */
-    /* static char *end;       */ /* pointer to end of buildpath ('\0') */
+    int too_long = FALSE;
 
-#define FN_MASK  7
-#define FUNCTION (flag & FN_MASK)
+    Trace((stderr, "appending dir segment [%s]\n", FnFilter1(pathcomp)));
+    while ((*G.end = *pathcomp++) != '\0')
+        ++G.end;
 
-    /*---------------------------------------------------------------------------
-        APPEND_DIR:  append the path component to the path being built and check
-        for its existence.  If doesn't exist and we are creating directories, do
-        so for this one; else signal success or error as appropriate.
-      ---------------------------------------------------------------------------*/
+    /* GRR:  could do better check, see if overrunning buffer as we go:
+     * check end-buildpath after each append, set warning variable if
+     * within 20 of FILNAMSIZ; then if var set, do careful check when
+     * appending.  Clear variable when begin new path. */
 
-    if (FUNCTION == APPEND_DIR) {
-        int too_long = FALSE;
-
-        Trace((stderr, "appending dir segment [%s]\n", FnFilter1(pathcomp)));
-        while ((*G.end = *pathcomp++) != '\0')
-            ++G.end;
-
-        /* GRR:  could do better check, see if overrunning buffer as we go:
-         * check end-buildpath after each append, set warning variable if
-         * within 20 of FILNAMSIZ; then if var set, do careful check when
-         * appending.  Clear variable when begin new path. */
-
-        /* next check: need to append '/', at least one-char name, '\0' */
-        if ((G.end - G.buildpath) > FILNAMSIZ - 3)
-            too_long = TRUE;                 /* check if extracting dir? */
-        if (stat(G.buildpath, &G.statbuf)) { /* path doesn't exist */
-            if (!G.create_dirs) { /* told not to create (freshening) */
-                free(G.buildpath);
-                return MPN_INF_SKIP; /* path doesn't exist: nothing to do */
-            }
-            if (too_long) {
-                Info(slide, 1,
-                     ((char *) slide, "checkdir error:  path too long: %s\n",
-                      FnFilter1(G.buildpath)));
-                free(G.buildpath);
-                /* no room for filenames:  fatal */
-                return MPN_ERR_TOOLONG;
-            }
-            if (mkdir(G.buildpath, 0777) == -1) { /* create the directory */
-                Info(slide, 1,
-                     ((char *) slide, "checkdir error:  cannot create %s\n\
-                 %s\n\
-                 unable to process %s.\n",
-                      FnFilter2(G.buildpath), strerror(errno),
-                      FnFilter1(G.filename)));
-                free(G.buildpath);
-                /* path didn't exist, tried to create, failed */
-                return MPN_ERR_SKIP;
-            }
-            G.created_dir = TRUE;
-        } else if (!S_ISDIR(G.statbuf.st_mode)) {
-            Info(slide, 1,
-                 ((char *) slide,
-                  "checkdir error:  %s exists but is not directory\n\
-                 unable to process %s.\n",
-                  FnFilter2(G.buildpath), FnFilter1(G.filename)));
+    /* next check: need to append '/', at least one-char name, '\0' */
+    if ((G.end - G.buildpath) > FILNAMSIZ - 3)
+        too_long = TRUE;                 /* check if extracting dir? */
+    if (stat(G.buildpath, &G.statbuf)) { /* path doesn't exist */
+        if (!G.create_dirs) {            /* told not to create (freshening) */
             free(G.buildpath);
-            /* path existed but wasn't dir */
-            return MPN_ERR_SKIP;
+            return MPN_INF_SKIP; /* path doesn't exist: nothing to do */
         }
         if (too_long) {
             Info(slide, 1,
@@ -557,141 +515,152 @@ int flag;
             /* no room for filenames:  fatal */
             return MPN_ERR_TOOLONG;
         }
-        *G.end++ = '/';
-        *G.end = '\0';
-        Trace((stderr, "buildpath now = [%s]\n", FnFilter1(G.buildpath)));
-        return MPN_OK;
-
-    } /* end if (FUNCTION == APPEND_DIR) */
-
-    /*---------------------------------------------------------------------------
-        GETPATH:  copy full path to the string pointed at by pathcomp, and free
-        G.buildpath.
-      ---------------------------------------------------------------------------*/
-
-    if (FUNCTION == GETPATH) {
-        strcpy(pathcomp, G.buildpath);
-        Trace((stderr, "getting and freeing path [%s]\n", FnFilter1(pathcomp)));
+        if (mkdir(G.buildpath, 0777) == -1) { /* create the directory */
+            Info(slide, 1,
+                 ((char *) slide, "checkdir error:  cannot create %s\n\
+                 %s\n\
+                 unable to process %s.\n",
+                  FnFilter2(G.buildpath), strerror(errno),
+                  FnFilter1(G.filename)));
+            free(G.buildpath);
+            /* path didn't exist, tried to create, failed */
+            return MPN_ERR_SKIP;
+        }
+        G.created_dir = TRUE;
+    } else if (!S_ISDIR(G.statbuf.st_mode)) {
+        Info(slide, 1,
+             ((char *) slide,
+              "checkdir error:  %s exists but is not directory\n\
+                 unable to process %s.\n",
+              FnFilter2(G.buildpath), FnFilter1(G.filename)));
         free(G.buildpath);
-        G.buildpath = G.end = NULL;
-        return MPN_OK;
+        /* path existed but wasn't dir */
+        return MPN_ERR_SKIP;
     }
+    if (too_long) {
+        Info(slide, 1,
+             ((char *) slide, "checkdir error:  path too long: %s\n",
+              FnFilter1(G.buildpath)));
+        free(G.buildpath);
+        /* no room for filenames:  fatal */
+        return MPN_ERR_TOOLONG;
+    }
+    *G.end++ = '/';
+    *G.end = '\0';
+    Trace((stderr, "buildpath now = [%s]\n", FnFilter1(G.buildpath)));
+    return MPN_OK;
+}
 
-    /*---------------------------------------------------------------------------
-        APPEND_NAME:  assume the path component is the filename; append it and
-        return without checking for existence.
-      ---------------------------------------------------------------------------*/
+/* Copy full path to the string pointed at by pathcomp, and free
+ * G.buildpath. */
+void checkdir_get_path(char *pathcomp)
+{
+    strcpy(pathcomp, G.buildpath);
+    Trace((stderr, "getting and freeing path [%s]\n", FnFilter1(pathcomp)));
+    free(G.buildpath);
+    G.buildpath = G.end = NULL;
+}
 
-    if (FUNCTION == APPEND_NAME) {
-
-        Trace((stderr, "appending filename [%s]\n", FnFilter1(pathcomp)));
-        while ((*G.end = *pathcomp++) != '\0') {
-            ++G.end;
-            if ((G.end - G.buildpath) >= FILNAMSIZ) {
-                *--G.end = '\0';
-                Info(slide, 1,
-                     ((char *) slide,
-                      "checkdir warning:  path too long; truncating\n\
+/* Assume the path component is the filename; append it and return
+ * without checking for existence. */
+int checkdir_append_name(char *pathcomp)
+{
+    Trace((stderr, "appending filename [%s]\n", FnFilter1(pathcomp)));
+    while ((*G.end = *pathcomp++) != '\0') {
+        ++G.end;
+        if ((G.end - G.buildpath) >= FILNAMSIZ) {
+            *--G.end = '\0';
+            Info(slide, 1,
+                 ((char *) slide,
+                  "checkdir warning:  path too long; truncating\n\
                    %s\n                -> %s\n",
-                      FnFilter1(G.filename), FnFilter2(G.buildpath)));
-                return MPN_INF_TRUNC; /* filename truncated */
-            }
+                  FnFilter1(G.filename), FnFilter2(G.buildpath)));
+            return MPN_INF_TRUNC; /* filename truncated */
         }
-        Trace((stderr, "buildpath now = [%s]\n", FnFilter1(G.buildpath)));
-        /* could check for existence here, prompt for new name... */
+    }
+    Trace((stderr, "buildpath now = [%s]\n", FnFilter1(G.buildpath)));
+    /* could check for existence here, prompt for new name... */
+    return MPN_OK;
+}
+
+/* Allocate and initialize buffer space for the file currently being
+ * extracted.  If file was renamed with an absolute path, don't prepend
+ * the extract-to path. */
+void checkdir_init(char *pathcomp)
+{
+    Trace((stderr, "initializing buildpath to "));
+    G.buildpath = checked_malloc(strlen(G.filename) + G.rootlen + 1);
+    if (G.rootlen > 0 && !G.renamed_fullpath) {
+        strcpy(G.buildpath, G.rootpath);
+        G.end = G.buildpath + G.rootlen;
+    } else {
+        *G.buildpath = '\0';
+        G.end = G.buildpath;
+    }
+    Trace((stderr, "[%s]\n", FnFilter1(G.buildpath)));
+}
+
+/* If appropriate, store the path in rootpath and create it if
+ * necessary; else assume it's a zipfile member and return.  This path
+ * segment gets used in extracting all members from every zipfile
+ * specified on the command line. */
+int checkdir_root(char *pathcomp)
+{
+    char *tmproot;
+
+    Trace((stderr, "initializing root path to [%s]\n", FnFilter1(pathcomp)));
+    if (pathcomp == NULL) {
+        G.rootlen = 0;
         return MPN_OK;
     }
-
-    /*---------------------------------------------------------------------------
-        INIT:  allocate and initialize buffer space for the file currently being
-        extracted.  If file was renamed with an absolute path, don't prepend the
-        extract-to path.
-      ---------------------------------------------------------------------------*/
-
-    if (FUNCTION == INIT) {
-        Trace((stderr, "initializing buildpath to "));
-        G.buildpath = checked_malloc(strlen(G.filename) + G.rootlen + 1);
-        if (G.rootlen > 0 && !G.renamed_fullpath) {
-            strcpy(G.buildpath, G.rootpath);
-            G.end = G.buildpath + G.rootlen;
-        } else {
-            *G.buildpath = '\0';
-            G.end = G.buildpath;
-        }
-        Trace((stderr, "[%s]\n", FnFilter1(G.buildpath)));
+    if (G.rootlen > 0) /* rootpath was already set, nothing to do */
+        return MPN_OK;
+    if ((G.rootlen = strlen(pathcomp)) <= 0) {
         return MPN_OK;
     }
-
-    /*---------------------------------------------------------------------------
-        ROOT:  if appropriate, store the path in rootpath and create it if
-        necessary; else assume it's a zipfile member and return.  This path
-        segment gets used in extracting all members from every zipfile specified
-        on the command line.
-      ---------------------------------------------------------------------------*/
-
-    if (FUNCTION == ROOT) {
-        char *tmproot;
-
-        Trace(
-            (stderr, "initializing root path to [%s]\n", FnFilter1(pathcomp)));
-        if (pathcomp == NULL) {
+    tmproot = checked_malloc(G.rootlen + 2);
+    strcpy(tmproot, pathcomp);
+    if (tmproot[G.rootlen - 1] == '/') {
+        tmproot[--G.rootlen] = '\0';
+    }
+    if (G.rootlen > 0 &&
+        (stat(tmproot, &G.statbuf) ||
+         !S_ISDIR(G.statbuf.st_mode))) { /* path does not exist */
+        if (!G.create_dirs /* || iswild(tmproot) */) {
+            free(tmproot);
             G.rootlen = 0;
-            return MPN_OK;
+            /* skip (or treat as stored file) */
+            return MPN_INF_SKIP;
         }
-        if (G.rootlen > 0) /* rootpath was already set, nothing to do */
-            return MPN_OK;
-        if ((G.rootlen = strlen(pathcomp)) <= 0) {
-            return MPN_OK;
-        }
-        tmproot = checked_malloc(G.rootlen + 2);
-        strcpy(tmproot, pathcomp);
-        if (tmproot[G.rootlen - 1] == '/') {
-            tmproot[--G.rootlen] = '\0';
-        }
-        if (G.rootlen > 0 &&
-            (stat(tmproot, &G.statbuf) ||
-             !S_ISDIR(G.statbuf.st_mode))) { /* path does not exist */
-            if (!G.create_dirs /* || iswild(tmproot) */) {
-                free(tmproot);
-                G.rootlen = 0;
-                /* skip (or treat as stored file) */
-                return MPN_INF_SKIP;
-            }
-            /* create the directory (could add loop here scanning tmproot
-             * to create more than one level, but why really necessary?) */
-            if (mkdir(tmproot, 0777) == -1) {
-                Info(slide, 1,
-                     ((char *) slide,
-                      "checkdir:  cannot create extraction directory: %s\n\
+        /* create the directory (could add loop here scanning tmproot
+         * to create more than one level, but why really necessary?) */
+        if (mkdir(tmproot, 0777) == -1) {
+            Info(slide, 1,
+                 ((char *) slide,
+                  "checkdir:  cannot create extraction directory: %s\n\
            %s\n",
-                      FnFilter1(tmproot), strerror(errno)));
-                free(tmproot);
-                G.rootlen = 0;
-                /* path didn't exist, tried to create, and failed: */
-                /* file exists, or 2+ subdir levels required */
-                return MPN_ERR_SKIP;
-            }
+                  FnFilter1(tmproot), strerror(errno)));
+            free(tmproot);
+            G.rootlen = 0;
+            /* path didn't exist, tried to create, and failed: */
+            /* file exists, or 2+ subdir levels required */
+            return MPN_ERR_SKIP;
         }
-        tmproot[G.rootlen++] = '/';
-        tmproot[G.rootlen] = '\0';
-        G.rootpath = checked_realloc(tmproot, G.rootlen + 1);
-        Trace((stderr, "rootpath now = [%s]\n", FnFilter1(G.rootpath)));
-        return MPN_OK;
     }
+    tmproot[G.rootlen++] = '/';
+    tmproot[G.rootlen] = '\0';
+    G.rootpath = checked_realloc(tmproot, G.rootlen + 1);
+    Trace((stderr, "rootpath now = [%s]\n", FnFilter1(G.rootpath)));
+    return MPN_OK;
+}
 
-    /*---------------------------------------------------------------------------
-        END:  free rootpath, immediately prior to program exit.
-      ---------------------------------------------------------------------------*/
-
-    if (FUNCTION != END) {
-        return MPN_INVALID; /* should never reach */
-    }
+void checkdir_end(char *pathcomp)
+{
     Trace((stderr, "freeing rootpath\n"));
     if (G.rootlen > 0) {
         free(G.rootpath);
         G.rootlen = 0;
     }
-    return MPN_OK;
 }
 
 static int get_extattribs(pzt, z_uidgid)

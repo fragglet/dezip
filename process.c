@@ -281,7 +281,7 @@ void free_G_buffers() /* releases all memory allocated in global vars */
     unsigned i;
 
     inflate_free();
-    checkdir(NULL, END);
+    checkdir_end(NULL);
 
     free(G.key);
     G.key = NULL;

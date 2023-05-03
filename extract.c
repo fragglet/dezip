@@ -289,7 +289,7 @@ int extract_or_test_files(void) /* return PK-type error code */
     /* b) check out if specified extraction root directory exists */
     if (G.UzO.exdir != NULL && G.extract_flag) {
         G.create_dirs = !G.UzO.fflag;
-        if ((error = checkdir(G.UzO.exdir, ROOT)) > MPN_INF_SKIP) {
+        if ((error = checkdir_root(G.UzO.exdir)) > MPN_INF_SKIP) {
             return PK_ERR;
         }
     }

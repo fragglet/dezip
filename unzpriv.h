@@ -225,13 +225,6 @@ char *plastchar(const char *ptr, size_t len);
 #define IS_OVERWRT_ALL  (G.overwrite_mode == OVERWRT_ALWAYS)
 #define IS_OVERWRT_NONE (G.overwrite_mode == OVERWRT_NEVER)
 
-#define ROOT        0 /* checkdir() extract-to path:  called once */
-#define INIT        1 /* allocate buildpath:  called once per member */
-#define APPEND_DIR  2 /* append a dir comp.:  many times per member */
-#define APPEND_NAME 3 /* append actual filename:  once per member */
-#define GETPATH     4 /* retrieve the complete path and free it */
-#define END         5 /* free root path prior to exiting program */
-
 /* version_made_by codes (central dir):  make sure these */
 /*  are not defined on their respective systems!! */
 #define FS_FAT_   0 /* filesystem used by MS-DOS, OS/2, Win32 */
@@ -711,11 +704,16 @@ void mksargs(int *argcp, char ***argvp); /* envargs.c */
 int match(const char *s, const char *p, int ic); /* match.c */
 int iswild(const char *p);                       /* match.c */
 
-int dateformat(void);                              /* local */
-char dateseparator(void);                          /* local */
-int mapattr(void);                                 /* local */
-int mapname(int renamed);                          /* local */
-int checkdir(char *pathcomp, int flag);            /* local */
+int dateformat(void);     /* local */
+char dateseparator(void); /* local */
+int mapattr(void);        /* local */
+int mapname(int renamed); /* local */
+int checkdir_append_dir(char *pathcomp);
+void checkdir_get_path(char *pathcomp);
+int checkdir_append_name(char *pathcomp);
+void checkdir_init(char *pathcomp);
+int checkdir_root(char *pathcomp);
+void checkdir_end(char *pathcomp);
 char *do_wild(const char *wildzipfn);              /* local */
 char *GetLoadPath(void);                           /* local */
 void close_outfile(void);                          /* local */
