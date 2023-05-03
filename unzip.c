@@ -662,3 +662,13 @@ int error;
     else
         return PK_COOL; /* just wanted usage screen: no error */
 }
+
+void *checked_realloc(void *old, size_t sz)
+{
+    void *result = realloc(old, sz);
+    if (result == NULL && sz > 0) {
+        Info(slide, 1, ((char *) slide, "failed to allocate %d bytes\n", sz));
+        exit(PK_MEM);
+    }
+    return result;
+}

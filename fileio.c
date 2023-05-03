@@ -547,8 +547,8 @@ const char *efn; /* name of archive entry being processed */
         if (2 * FILNAMSIZ >= zfnfl && (2 * FILNAMSIZ - zfnfl) >= strlen(efnf)) {
             isOverflow = FALSE;
         }
-        if ((isOverflow == FALSE) &&
-            ((prompt = malloc(2 * FILNAMSIZ + 15)) != NULL)) {
+        if (!isOverflow) {
+            prompt = checked_malloc(2 * FILNAMSIZ + 15);
             sprintf(prompt, PasswPrompt, FnFilter1(zfn), FnFilter2(efn));
             m = prompt;
         } else

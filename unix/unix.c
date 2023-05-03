@@ -71,14 +71,7 @@ char *do_wild(wildspec) const
         } else {
             ++G.wildname; /* point at character after '/' */
             G.dirnamelen = G.wildname - wildspec;
-            if ((G.dirname = malloc(G.dirnamelen + 1)) == NULL) {
-                Info(slide, 1,
-                     ((char *) slide,
-                      "warning:  cannot allocate wildcard buffers\n"));
-                strncpy(G.matchname, wildspec, FILNAMSIZ);
-                G.matchname[FILNAMSIZ - 1] = '\0';
-                return G.matchname; /* but maybe filespec was not a wildcard */
-            }
+            G.dirname = checked_malloc(G.dirnamelen + 1);
             strncpy(G.dirname, wildspec, G.dirnamelen);
             G.dirname[G.dirnamelen] = '\0'; /* terminate for strcpy below */
             G.have_dirname = TRUE;
@@ -629,8 +622,7 @@ int flag;
 
     if (FUNCTION == INIT) {
         Trace((stderr, "initializing buildpath to "));
-        if ((G.buildpath = malloc(strlen(G.filename) + G.rootlen + 1)) == NULL)
-            return MPN_NOMEM;
+        G.buildpath = checked_malloc(strlen(G.filename) + G.rootlen + 1); //->strdup
         if (G.rootlen > 0 && !G.renamed_fullpath) {
             strcpy(G.buildpath, G.rootpath);
             G.end = G.buildpath + G.rootlen;
@@ -663,10 +655,7 @@ int flag;
         if ((G.rootlen = strlen(pathcomp)) <= 0) {
             return MPN_OK;
         }
-        if ((tmproot = malloc(G.rootlen + 2)) == NULL) {
-            G.rootlen = 0;
-            return MPN_NOMEM;
-        }
+        tmproot = checked_malloc(G.rootlen + 2); //->strdup
         strcpy(tmproot, pathcomp);
         if (tmproot[G.rootlen - 1] == '/') {
             tmproot[--G.rootlen] = '\0';
@@ -697,11 +686,7 @@ int flag;
         }
         tmproot[G.rootlen++] = '/';
         tmproot[G.rootlen] = '\0';
-        if ((G.rootpath = realloc(tmproot, G.rootlen + 1)) == NULL) {
-            free(tmproot);
-            G.rootlen = 0;
-            return MPN_NOMEM;
-        }
+        G.rootpath = checked_realloc(tmproot, G.rootlen + 1);
         Trace((stderr, "rootpath now = [%s]\n", FnFilter1(G.rootpath)));
         return MPN_OK;
     }
@@ -802,14 +787,7 @@ void close_outfile() /* GRR: change to return PK-style warning level */
             return;
         }
 
-        if ((slnk_entry = malloc(slnk_entrysize)) == NULL) {
-            Info(slide, 1,
-                 ((char *) slide,
-                  "warning:  symbolic link (%s) failed: no mem\n",
-                  FnFilter1(G.filename)));
-            fclose(G.outfile);
-            return;
-        }
+        slnk_entry = checked_malloc(slnk_entrysize);
         slnk_entry->next = NULL;
         slnk_entry->targetlen = ucsize;
         slnk_entry->attriblen = attribsize;
@@ -921,11 +899,8 @@ direntry **pd;
 {
     uxdirattr *d_entry;
 
-    d_entry = malloc(sizeof(uxdirattr) + strlen(G.filename));
+    d_entry = checked_malloc(sizeof(uxdirattr) + strlen(G.filename));
     *pd = (direntry *) d_entry;
-    if (d_entry == NULL) {
-        return PK_MEM;
-    }
     d_entry->fn = d_entry->fnbuf;
     strcpy(d_entry->fn, G.filename);
 

@@ -1038,11 +1038,7 @@ unsigned *m;       /* maximum lookup bits, returns actual */
                 l[h] = j;       /* set table size in stack */
 
                 /* allocate and link in new table */
-                if ((q = malloc((z + 1) * sizeof(struct huft))) == NULL) {
-                    if (h)
-                        huft_free(u[0]);
-                    return 3; /* not enough memory */
-                }
+                q = checked_malloc((z + 1) * sizeof(struct huft));
 #ifdef DEBUG
                 G.hufts += z + 1; /* track memory usage */
 #endif

@@ -54,19 +54,13 @@ const char *envstr, *envstr2;
     if (envptr == NULL || *envptr == '\0')
         return PK_OK;
 
-    bufptr = malloc(1 + strlen(envptr));
-    if (bufptr == NULL)
-        return PK_MEM;
+    bufptr = checked_malloc(1 + strlen(envptr)); //->strdup
     strcpy(bufptr, envptr);
 
     /* count the args so we can allocate room for them */
     argc = count_args(bufptr);
     /* allocate a vector large enough for all args */
-    argv = malloc((argc + *Pargc + 1) * sizeof(char *));
-    if (argv == NULL) {
-        free(bufptr);
-        return PK_MEM;
-    }
+    argv = checked_malloc((argc + *Pargc + 1) * sizeof(char *));
     argvect = argv;
 
     /* copy the program name first, that's always true */

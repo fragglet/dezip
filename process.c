@@ -20,9 +20,6 @@ static int get_cdir_ent(void);
 static int read_ux3_value(const uint8_t *dbuf, unsigned uidgid_sz,
                           uint32_t *p_uidgid);
 
-static const char CannotAllocateBuffers[] =
-    "error:  cannot allocate unzip buffers\n";
-
 /* process_zipfiles() strings */
 static const char FilesProcessOK[] = "%d archive%s successfully processed.\n";
 static const char ArchiveWarning[] =
@@ -108,13 +105,8 @@ int process_zipfiles() /* return PK-type error code */
       signature strings.
       ---------------------------------------------------------------------------*/
 
-    G.inbuf = malloc(INBUFSIZ + 4);   /* 4 extra for hold[] (below) */
-    G.outbuf = malloc(OUTBUFSIZ + 1); /* 1 extra for string term. */
-
-    if (G.inbuf == NULL || G.outbuf == NULL) {
-        Info(slide, 1, ((char *) slide, CannotAllocateBuffers));
-        return (PK_MEM);
-    }
+    G.inbuf = checked_malloc(INBUFSIZ + 4);   /* 4 extra for hold[] (below) */
+    G.outbuf = checked_malloc(OUTBUFSIZ + 1); /* 1 extra for string term. */
     G.hold = G.inbuf + INBUFSIZ; /* to check for boundary-spanning sigs */
 
     /* finish up initialization of magic signature strings */
@@ -1299,9 +1291,7 @@ unsigned ef_len;                           /* total length of extra field */
             }
 
             /* UTF-8 Path */
-            if ((G.unipath_filename = malloc(ULen + 1)) == NULL) {
-                return PK_ERR;
-            }
+            G.unipath_filename = checked_malloc(ULen + 1); //->strdup
             if (ULen == 0) {
                 /* standard path is UTF-8 so use that */
                 G.unipath_filename[0] = '\0';
@@ -1521,9 +1511,7 @@ zwchar wide_char;
         sprintf(d, "%02x", b[i]);
         strcat(e, d);
     }
-    if ((r = malloc(strlen(e) + 1)) == NULL) {
-        return NULL;
-    }
+    r = checked_malloc(strlen(e) + 1); //->strdup
     strcpy(r, e);
     return r;
 }
@@ -1548,9 +1536,7 @@ int escape_all;
     if (max_bytes < MAX_ESCAPE_BYTES)
         max_bytes = MAX_ESCAPE_BYTES;
     buffer_size = wsize * max_bytes + 1; /* Reused below. */
-    if ((buffer = malloc(buffer_size)) == NULL) {
-        return NULL;
-    }
+    buffer = checked_malloc(buffer_size);
 
     /* convert it */
     buffer[0] = '\0';
@@ -1603,9 +1589,8 @@ int escape_all;
             free(escape_string);
         }
     }
-    if ((local_string = malloc(strlen(buffer) + 1)) != NULL) {
-        strcpy(local_string, buffer);
-    }
+    local_string = checked_malloc(strlen(buffer) + 1); //->strdup
+    strcpy(local_string, buffer);
     free(buffer);
 
     return local_string;
@@ -1638,9 +1623,7 @@ zwchar *utf8_to_wide_string(utf8_string) const char *utf8_string;
     wcount = utf8_to_ucs4_string(utf8_string, NULL, 0);
     if (wcount == -1)
         return NULL;
-    if ((wide_string = malloc((wcount + 1) * sizeof(zwchar))) == NULL) {
-        return NULL;
-    }
+    wide_string = checked_malloc((wcount + 1) * sizeof(zwchar));
     wcount = utf8_to_ucs4_string(utf8_string, wide_string, wcount + 1);
 
     return wide_string;

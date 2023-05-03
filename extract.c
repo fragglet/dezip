@@ -69,8 +69,6 @@ static const unsigned ComprIDs[NUM_METHODS] = {
     IMPLODED, TOKENIZED, DEFLATED,  ENHDEFLATED, DCLIMPLODED, BZIPPED,
     LZMAED,   IBMTERSED, IBMLZ77ED, WAVPACKED,   PPMDED};
 static const char FilNamMsg[] = "%s:  bad filename length (%s)\n";
-static const char WarnNoMemCFName[] =
-    "%s:  warning, no memory for comparison with local header\n";
 static const char LvsCFNamMsg[] = "%s:  mismatching \"local\" filename (%s),\n\
          continuing with \"central\" filename version\n";
 static const char GP11FlagsDiffer[] = "file #%u (%s):\n\
@@ -98,16 +96,9 @@ static const char SkipVolumeLabel[] = "   skipping: %-22s  %svolume label\n";
 
 static const char DirlistEntryNoMem[] =
     "warning:  cannot alloc memory for dir times/permissions/UID/GID\n";
-static const char DirlistSortNoMem[] =
-    "warning:  cannot alloc memory to sort dir times/perms/etc.\n";
 static const char DirlistSetAttrFailed[] =
     "warning:  set times/attribs failed for %s\n";
-static const char DirlistFailAttrSum[] =
-    "     failed setting times/attribs for %u dir entries";
 
-static const char SymLnkWarnNoMem[] =
-    "warning:  deferred symlink (%s) failed:\n\
-          out of memory\n";
 static const char SymLnkWarnInvalid[] =
     "warning:  deferred symlink (%s) failed:\n\
           invalid placeholder file\n";
@@ -261,9 +252,7 @@ off_t end;
            spans. Assure that there is room and insert the span.  */
         if (cover->num == cover->max) {
             size_t max = cover->max == 0 ? 16 : cover->max << 1;
-            span_t *span = realloc(cover->span, max * sizeof(span_t));
-            if (span == NULL)
-                return -2;
+            span_t *span = checked_realloc(cover->span, max * sizeof(span_t));
             cover->span = span;
             cover->max = max;
         }
@@ -321,11 +310,7 @@ int extract_or_test_files(void) /* return PK-type error code */
        directory locator, if present), and the Zip64 end of central directory
        record, if present. */
     if (G.cover == NULL) {
-        G.cover = malloc(sizeof(cover_t));
-        if (G.cover == NULL) {
-            Info(slide, 1, ((char *) slide, NotEnoughMemCover));
-            return PK_MEM;
-        }
+        G.cover = checked_malloc(sizeof(cover_t));
         ((cover_t *) G.cover)->span = NULL;
         ((cover_t *) G.cover)->max = 0;
     }
@@ -372,14 +357,16 @@ int extract_or_test_files(void) /* return PK-type error code */
     G.reported_backslash = FALSE;
 
     /* malloc space for check on unmatched filespecs (OK if one or both NULL) */
-    if (G.filespecs > 0 &&
-        (fn_matched = malloc(G.filespecs * sizeof(int))) != NULL)
+    if (G.filespecs > 0) {
+        fn_matched = checked_malloc(G.filespecs * sizeof(int));
         for (i = 0; i < G.filespecs; ++i)
             fn_matched[i] = FALSE;
-    if (G.xfilespecs > 0 &&
-        (xn_matched = malloc(G.xfilespecs * sizeof(int))) != NULL)
+    }
+    if (G.xfilespecs > 0) {
+        xn_matched = checked_malloc(G.xfilespecs * sizeof(int));
         for (i = 0; i < G.xfilespecs; ++i)
             xn_matched[i] = FALSE;
+    }
 
     /*---------------------------------------------------------------------------
         Begin main loop over blocks of member files.  We know the entire central
@@ -593,48 +580,40 @@ int extract_or_test_files(void) /* return PK-type error code */
       ---------------------------------------------------------------------------*/
 
     if (num_dirs > 0) {
-        sorted_dirlist = malloc(num_dirs * sizeof(direntry *));
-        if (sorted_dirlist == NULL) {
-            Info(slide, 1, ((char *) slide, DirlistSortNoMem));
-            while (dirlist != NULL) {
-                direntry *d = dirlist;
+        uint32_t ndirs_fail = 0;
+        sorted_dirlist = checked_malloc(num_dirs * sizeof(direntry *));
 
-                dirlist = dirlist->next;
-                free(d);
-            }
-        } else {
-            uint32_t ndirs_fail = 0;
-
-            if (num_dirs == 1)
-                sorted_dirlist[0] = dirlist;
-            else {
-                for (i = 0; i < num_dirs; ++i) {
-                    sorted_dirlist[i] = dirlist;
-                    dirlist = dirlist->next;
-                }
-                qsort((char *) sorted_dirlist, num_dirs, sizeof(direntry *),
-                      dircomp);
-            }
-
-            Trace((stderr, "setting directory times/perms/attributes\n"));
+        if (num_dirs == 1)
+            sorted_dirlist[0] = dirlist;
+        else {
             for (i = 0; i < num_dirs; ++i) {
-                direntry *d = sorted_dirlist[i];
-
-                Trace((stderr, "dir = %s\n", d->fn));
-                if ((error = set_direc_attribs(d)) != PK_OK) {
-                    ndirs_fail++;
-                    Info(slide, 1,
-                         ((char *) slide, DirlistSetAttrFailed, d->fn));
-                    if (!error_in_archive)
-                        error_in_archive = error;
-                }
-                free(d);
+                sorted_dirlist[i] = dirlist;
+                dirlist = dirlist->next;
             }
-            free(sorted_dirlist);
-            if (!G.UzO.tflag && QCOND2) {
-                if (ndirs_fail > 0)
-                    Info(slide, 0,
-                         ((char *) slide, DirlistFailAttrSum, ndirs_fail));
+            qsort((char *) sorted_dirlist, num_dirs, sizeof(direntry *),
+                  dircomp);
+        }
+
+        Trace((stderr, "setting directory times/perms/attributes\n"));
+        for (i = 0; i < num_dirs; ++i) {
+            direntry *d = sorted_dirlist[i];
+
+            Trace((stderr, "dir = %s\n", d->fn));
+            if ((error = set_direc_attribs(d)) != PK_OK) {
+                ndirs_fail++;
+                Info(slide, 1,
+                     ((char *) slide, DirlistSetAttrFailed, d->fn));
+                if (!error_in_archive)
+                    error_in_archive = error;
+            }
+            free(d);
+        }
+        free(sorted_dirlist);
+        if (!G.UzO.tflag && QCOND2) {
+            if (ndirs_fail > 0) {
+                printf("     failed setting times/attribs "
+                       "for %u dir entries",
+                       ndirs_fail);
             }
         }
     }
@@ -813,11 +792,8 @@ static int store_info(void) /* return 0 if skipping, 1 if OK */
     }
 
     /* store a copy of the central header filename for later comparison */
-    if ((G.pInfo->cfilname = malloc(strlen(G.filename) + 1)) == NULL) {
-        Info(slide, 1,
-             ((char *) slide, WarnNoMemCFName, FnFilter1(G.filename)));
-    } else
-        strcpy(G.pInfo->cfilname, G.filename);
+    G.pInfo->cfilname = checked_malloc(strlen(G.filename) + 1); //->strdup
+    strcpy(G.pInfo->cfilname, G.filename);
 
     /* map whatever file attributes we have into the local format */
     mapattr(); /* GRR:  worry about return value later */
@@ -1777,8 +1753,7 @@ static int test_compr_eb(uint8_t *eb, unsigned eb_size, unsigned compr_offset,
         eb_size != compr_offset + EB_CMPRHEADLEN + eb_ucsize)
         return PK_ERR;
 
-    if ((eb_ucptr = malloc((size_t) eb_ucsize)) == NULL)
-        return PK_MEM4;
+    eb_ucptr = checked_malloc((size_t) eb_ucsize);
 
     r = memextract(eb_ucptr, eb_ucsize, eb + (EB_HEADSIZE + compr_offset),
                    (uint32_t) (eb_size - compr_offset));
@@ -1880,12 +1855,8 @@ static void set_deferred_symlink(slinkentry *slnk_entry)
 {
     size_t ucsize = slnk_entry->targetlen;
     char *linkfname = slnk_entry->fname;
-    char *linktarget = malloc(ucsize + 1);
+    char *linktarget = checked_malloc(ucsize + 1);
 
-    if (!linktarget) {
-        Info(slide, 1, ((char *) slide, SymLnkWarnNoMem, FnFilter1(linkfname)));
-        return;
-    }
     linktarget[ucsize] = '\0';
     G.outfile = fopen(linkfname, "rb"); /* open link placeholder for reading */
     /* Check that the following conditions are all fulfilled:

@@ -135,8 +135,7 @@ int decrypt(passwrd) const char *passwrd;
         G.newzip = FALSE;
         if (passwrd != NULL) { /* user gave password on command line */
             if (!G.key) {
-                if ((G.key = malloc(strlen(passwrd) + 1)) == NULL)
-                    return PK_MEM2;
+                G.key = checked_malloc(strlen(passwrd) + 1); //->strdup
                 strcpy(G.key, passwrd);
                 G.nopwd = TRUE; /* inhibit password prompting! */
             }
@@ -152,8 +151,9 @@ int decrypt(passwrd) const char *passwrd;
             return PK_COOL; /* existing password OK (else prompt for new) */
         else if (G.nopwd)
             return PK_WARN; /* user indicated no more prompting */
-    } else if ((G.key = malloc(IZ_PWLEN + 1)) == NULL)
-        return PK_MEM2;
+    } else {
+        G.key = checked_malloc(IZ_PWLEN + 1);
+    }
 
     /* try a few keys */
     n = 0;
@@ -191,8 +191,7 @@ static int testp(h) const uint8_t *h;
 
 #ifdef STR_TO_CP1
     /* allocate buffer for translated password */
-    if ((key_translated = malloc(strlen(G.key) + 1)) == NULL)
-        return -1;
+    key_translated = checked_malloc(strlen(G.key) + 1);
     /* first try, test password translated "standard" charset */
     r = testkey(h, STR_TO_CP1(key_translated, G.key));
 #else  /* !STR_TO_CP1 */
@@ -204,7 +203,7 @@ static int testp(h) const uint8_t *h;
     if (r != 0) {
 #ifndef STR_TO_CP1
         /* now prepare for second (and maybe third) test with translated pwd */
-        if ((key_translated = malloc(strlen(G.key) + 1)) == NULL)
+        key_translated = checked_malloc(strlen(G.key) + 1);
             return -1;
 #endif
         /* second try, password translated to alternate ("standard") charset */
