@@ -114,7 +114,8 @@ int list_files() /* return PK-type error code */
          * note of it if it is.
          */
 
-        if ((error = do_string(G.crec.filename_length, DS_FN)) != PK_COOL) {
+        if ((error = do_string_read_filename(G.crec.filename_length, 0)) !=
+            PK_COOL) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal:  can't continue */
                 return error;
@@ -122,7 +123,7 @@ int list_files() /* return PK-type error code */
         free(G.extra_field);
         G.extra_field = NULL;
 
-        if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
+        if ((error = do_string_extra_field(G.crec.extra_field_length)) != 0) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal */
                 return error;
@@ -248,8 +249,12 @@ int list_files() /* return PK-type error code */
             }
             fnprint();
 
-            if ((error = do_string(G.crec.file_comment_length,
-                                   QCOND ? DISPL_8 : SKIP)) != 0) {
+            if (QCOND) {
+                error = do_string_display(G.crec.file_comment_length, 1);
+            } else {
+                error = do_string_skip(G.crec.file_comment_length);
+            }
+            if (error != 0) {
                 error_in_archive = error; /* might be just warning */
                 if (error > PK_WARN)      /* fatal */
                     return error;
@@ -369,7 +374,7 @@ uint32_t *nmember;
         /* process_cdir_file_hdr() sets pInfo->lcflag: */
         if ((error = process_cdir_file_hdr()) != PK_COOL)
             return error; /* only PK_EOF defined */
-        if ((error = do_string(G.crec.filename_length, DS_FN)) !=
+        if ((error = do_string_read_filename(G.crec.filename_length, 0)) !=
             PK_OK) { /*  ^-- (uses pInfo->lcflag) */
             error_in_archive = error;
             if (error > PK_WARN) /* fatal:  can't continue */
@@ -378,7 +383,7 @@ uint32_t *nmember;
         free(G.extra_field);
         G.extra_field = NULL;
 
-        if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) != 0) {
+        if ((error = do_string_extra_field(G.crec.extra_field_length)) != 0) {
             error_in_archive = error;
             if (error > PK_WARN) /* fatal */
                 return error;

@@ -215,14 +215,6 @@ char *plastchar(const char *ptr, size_t len);
 /* error code for extracting/testing extra field blocks */
 #define IZ_EF_TRUNC 79 /* local extra field truncated (PKZIP'd) */
 
-/* choice of activities for do_string() */
-#define SKIP        0 /* skip header block */
-#define DISPLAY     1 /* display archive comment (ASCII) */
-#define DISPL_8     5 /* display file comment (ext. ASCII) */
-#define DS_FN       2 /* read filename (ext. ASCII, chead) */
-#define DS_FN_L     6 /* read filename from local header */
-#define EXTRA_FIELD 3 /* copy extra field into buffer */
-
 #define DOES_NOT_EXIST   -1 /* return values for check_for_newer() */
 #define EXISTS_AND_OLDER 0
 #define EXISTS_AND_NEWER 1
@@ -662,7 +654,10 @@ int flush(uint8_t *buf, uint32_t size, int unshrink);
 void handler(int signal);
 time_t dos_to_unix_time(uint32_t dos_datetime);
 int check_for_newer(char *filename); /* os2,vmcms,vms */
-int do_string(unsigned int length, int option);
+int do_string_display(unsigned int length, unsigned int display_8);
+int do_string_read_filename(unsigned int length, int l);
+int do_string_skip(unsigned int length);
+int do_string_extra_field(unsigned int length);
 uint16_t makeint16(const uint8_t *b);
 uint32_t makeint32(const uint8_t *sig);
 uint64_t makeint64(const uint8_t *sig);
@@ -798,11 +793,11 @@ int stamp_file(const char *fname, time_t modtime); /* local */
     ((hn) == UNIX_ || (hn) == ATARI_ || (hn) == ATHEOS_ || (hn) == BEOS_ || \
      (hn) == VMS_)
 
-#define SKIP_(length)                                         \
-    if (length && ((error = do_string(length, SKIP)) != 0)) { \
-        error_in_archive = error;                             \
-        if (error > 1)                                        \
-            return error;                                     \
+#define SKIP_(length)                                        \
+    if (length && ((error = do_string_skip(length)) != 0)) { \
+        error_in_archive = error;                            \
+        if (error > 1)                                       \
+            return error;                                    \
     }
 
 #define FLUSH(w)                                         \

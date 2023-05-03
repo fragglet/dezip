@@ -47,8 +47,6 @@ static const char FilenameTooLongTrunc[] =
 static const char UFilenameCorrupt[] = "error: Unicode filename corrupt.\n";
 static const char UFilenameTooLongTrunc[] =
     "warning:  Converted Unicode filename too long--truncating.\n";
-static const char ExtraFieldTooLong[] =
-    "warning:  extra field too long (%d).  Ignoring...\n";
 static const char ExtraFieldCorrupt[] =
     "warning:  extra field (type: 0x%04x) corrupt.  Continuing...\n";
 
@@ -670,271 +668,274 @@ char *filename;               /*  exist yet */
     return (existing >= archive);
 }
 
-int do_string(length, option) /* return PK-type error code */
-unsigned int length; /* without prototype, uint16_t converted to this */
-int option;
+/*---------------------------------------------------------------------------
+    These function process arbitrary-length (well, usually) strings.  Four
+    major options are allowed:  SKIP, wherein the string is skipped (pretty
+    logical, eh?); DISPLAY, wherein the string is printed to standard output
+    after undergoing any necessary or unnecessary character conversions;
+    DS_FN, wherein the string is put into the filename[] array after under-
+    going appropriate conversions (including case-conversion, if that is
+    indicated: see the global variable pInfo->lcflag); and EXTRA_FIELD,
+    wherein the `string' is assumed to be an extra field and is copied to
+    the (freshly malloced) buffer G.extra_field.  The third option should
+    be OK since filename is dimensioned at 1025, but we check anyway.
+
+    The string, by the way, is assumed to start at the current file-pointer
+    position; its length is given by 'length'.  So start off by checking the
+    length of the string:  if zero, we're already done.
+
+    TODO: "do_string_..." is a terrible naming convention and should be changed
+    to something better. The name is an artifact of the previous do_string()
+    function that was split up.
+  ---------------------------------------------------------------------------*/
+
+/*
+ * First normal case:  print string on standard output.  First set loop
+ * variables, then loop through the comment in chunks of OUTBUFSIZ bytes,
+ * converting formats and printing as we go.  The second half of the loop
+ * conditional was added because the file might be truncated, in which case
+ * comment_bytes_left will remain at some non-zero value for all time.  outbuf
+ * and slide are used as scratch buffers because they are available (we should
+ * be either before or in between any file processing).
+ */
+
+int do_string_display(unsigned int length, unsigned int display_8)
 {
     unsigned comment_bytes_left;
     unsigned int block_len;
-    int error = PK_OK;
-
-    /*---------------------------------------------------------------------------
-        This function processes arbitrary-length (well, usually) strings.  Four
-        major options are allowed:  SKIP, wherein the string is skipped (pretty
-        logical, eh?); DISPLAY, wherein the string is printed to standard output
-        after undergoing any necessary or unnecessary character conversions;
-        DS_FN, wherein the string is put into the filename[] array after under-
-        going appropriate conversions (including case-conversion, if that is
-        indicated: see the global variable pInfo->lcflag); and EXTRA_FIELD,
-        wherein the `string' is assumed to be an extra field and is copied to
-        the (freshly malloced) buffer G.extra_field.  The third option should
-        be OK since filename is dimensioned at 1025, but we check anyway.
-
-        The string, by the way, is assumed to start at the current file-pointer
-        position; its length is given by 'length'.  So start off by checking the
-        length of the string:  if zero, we're already done.
-      ---------------------------------------------------------------------------*/
 
     if (!length)
         return PK_COOL;
 
-    switch (option) {
+    comment_bytes_left = length;
+    block_len = OUTBUFSIZ; /* for the while statement, first time */
+    while (comment_bytes_left > 0 && block_len > 0) {
+        register uint8_t *p = G.outbuf;
+        register uint8_t *q = G.outbuf;
 
-        /*
-         * First normal case:  print string on standard output.  First set loop
-         * variables, then loop through the comment in chunks of OUTBUFSIZ
-         * bytes, converting formats and printing as we go.  The second half of
-         * the loop conditional was added because the file might be truncated,
-         * in which case comment_bytes_left will remain at some non-zero value
-         * for all time.  outbuf and slide are used as scratch buffers because
-         * they are available (we should be either before or in between any file
-         * pro- cessing).
-         */
-
-    case DISPLAY:
-    case DISPL_8:
-        comment_bytes_left = length;
-        block_len = OUTBUFSIZ; /* for the while statement, first time */
-        while (comment_bytes_left > 0 && block_len > 0) {
-            register uint8_t *p = G.outbuf;
-            register uint8_t *q = G.outbuf;
-
-            if ((block_len =
-                     readbuf((char *) G.outbuf, MIN((unsigned) OUTBUFSIZ,
-                                                    comment_bytes_left))) == 0)
-                return PK_EOF;
-            comment_bytes_left -= block_len;
-
-            /* this is why we allocated an extra byte for outbuf:  terminate
-             *  with zero (ASCIIZ) */
-            G.outbuf[block_len] = '\0';
-
-            /* remove all ASCII carriage returns from comment before printing
-             * (since used before A_TO_N(), check for CR instead of '\r')
-             */
-            while (*p) {
-                while (*p == CR)
-                    ++p;
-                *q++ = *p++;
-            }
-            /* could check whether (p - outbuf) == block_len here */
-            *q = '\0';
-
-            if (option == DISPL_8) {
-                /* translate the text coded in the entry's host-dependent
-                   "extended ASCII" charset into the compiler's (system's)
-                   internal text code page */
-                Ext_ASCII_TO_Native((char *) G.outbuf, G.pInfo->hostnum,
-                                    G.pInfo->hostver, G.pInfo->HasUxAtt, FALSE);
-            } else {
-                A_TO_N(G.outbuf); /* translate string to native */
-            }
-
-            p = G.outbuf - 1;
-            q = slide;
-            while (*++p) {
-                int pause = FALSE;
-
-                if (*p == 0x1B) { /* ASCII escape char */
-                    *q++ = '^';
-                    *q++ = '[';
-                } else if (*p == 0x13) { /* ASCII ^S (pause) */
-                    pause = TRUE;
-                    if (p[1] == LF) /* ASCII LF */
-                        *q++ = *++p;
-                    else if (p[1] == CR && p[2] == LF) { /* ASCII CR LF */
-                        *q++ = *++p;
-                        *q++ = *++p;
-                    }
-                } else
-                    *q++ = *p;
-                if ((unsigned) (q - slide) > WSIZE - 3 || pause) { /* flush */
-                    (*G.message)(slide, (uint32_t) (q - slide), 0);
-                    q = slide;
-                    if (pause && G.extract_flag) /* don't pause for list/test */
-                        (*G.mpause)(QuitPrompt, 0);
-                }
-            }
-            (*G.message)(slide, (uint32_t) (q - slide), 0);
-        }
-        /* add '\n' if not at start of line */
-        (*G.message)(slide, 0L, 0x20);
-        break;
-
-        /*
-         * Second case:  read string into filename[] array.  The filename should
-         * never ever be longer than FILNAMSIZ-1 (1024), but for now we'll
-         * check, just to be sure.
-         */
-
-    case DS_FN:
-    case DS_FN_L:
-        /* get the whole filename as need it for Unicode checksum */
-        if (G.fnfull_bufsize <= length) {
-            size_t fnbufsiz = FILNAMSIZ;
-
-            if (fnbufsiz <= length)
-                fnbufsiz = length + 1;
-            free(G.filename_full);
-            G.filename_full = malloc(fnbufsiz);
-            if (G.filename_full == NULL)
-                return PK_MEM;
-            G.fnfull_bufsize = fnbufsiz;
-        }
-        if (readbuf(G.filename_full, length) == 0)
+        if ((block_len =
+                 readbuf((char *) G.outbuf,
+                         MIN((unsigned) OUTBUFSIZ, comment_bytes_left))) == 0)
             return PK_EOF;
-        G.filename_full[length] = '\0'; /* terminate w/zero:  ASCIIZ */
+        comment_bytes_left -= block_len;
 
-        /* if needed, chop off end so standard filename is a valid length */
-        if (length >= FILNAMSIZ) {
-            Info(slide, 1, ((char *) slide, FilenameTooLongTrunc));
-            error = PK_WARN;
-            length = FILNAMSIZ - 1;
-        }
-        /* no excess size */
-        block_len = 0;
-        strncpy(G.filename, G.filename_full, length);
-        G.filename[length] = '\0'; /* terminate w/zero:  ASCIIZ */
+        /* this is why we allocated an extra byte for outbuf:  terminate
+         *  with zero (ASCIIZ) */
+        G.outbuf[block_len] = '\0';
 
-        /* translate the Zip entry filename coded in host-dependent "extended
-           ASCII" into the compiler's (system's) internal text code page */
-        Ext_ASCII_TO_Native(G.filename, G.pInfo->hostnum, G.pInfo->hostver,
-                            G.pInfo->HasUxAtt, (option == DS_FN_L));
-
-        if (G.pInfo->lcflag) /* replace with lowercase filename */
-            STRLOWER(G.filename, G.filename);
-
-        if (G.pInfo->vollabel && length > 8 && G.filename[8] == '.') {
-            char *p = G.filename + 8;
-            while (*p++)
-                p[-1] = *p; /* disk label, and 8th char is dot:  remove dot */
-        }
-
-        if (!block_len) /* no overflow, we're done here */
-            break;
-
-        /*
-         * We truncated the filename, so print what's left and then fall
-         * through to the SKIP routine.
+        /* remove all ASCII carriage returns from comment before printing
+         * (since used before A_TO_N(), check for CR instead of '\r')
          */
-        Info(slide, 1, ((char *) slide, "[ %s ]\n", FnFilter1(G.filename)));
-        length = block_len; /* SKIP the excess bytes... */
-        /*  FALL THROUGH...  */
-
-        /*
-         * Third case:  skip string, adjusting readbuf's internal variables
-         * as necessary (and possibly skipping to and reading a new block of
-         * data).
-         */
-
-    case SKIP:
-        /* cur_zipfile_bufstart already takes account of extra_bytes, so don't
-         * correct for it twice: */
-        seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes + (G.inptr - G.inbuf) +
-                  length);
-        break;
-
-        /*
-         * Fourth case:  assume we're at the start of an "extra field"; malloc
-         * storage for it and read data into the allocated space.
-         */
-
-    case EXTRA_FIELD:
-        free(G.extra_field);
-        if ((G.extra_field = malloc(length)) == NULL) {
-            Info(slide, 1, ((char *) slide, ExtraFieldTooLong, length));
-            /* cur_zipfile_bufstart already takes account of extra_bytes,
-             * so don't correct for it twice: */
-            seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes +
-                      (G.inptr - G.inbuf) + length);
-            break;
-        } else if (readbuf((char *) G.extra_field, length) == 0) {
-            return PK_EOF;
+        while (*p) {
+            while (*p == CR)
+                ++p;
+            *q++ = *p++;
         }
-        /* Looks like here is where extra fields are read */
-        if (getZip64Data(G.extra_field, length) != PK_COOL) {
-            Info(slide, 1, ((char *) slide, ExtraFieldCorrupt, EF_PKSZ64));
-            error = PK_WARN;
-        }
-        G.unipath_filename = NULL;
-        if (G.UzO.U_flag >= 2) {
-            break;
-        }
-        /* check if GPB11 (General Purpuse Bit 11) is set indicating
-           the standard path and comment are UTF-8 */
-        if (G.pInfo->GPFIsUTF8) {
-            /* if GPB11 set then filename_full is untruncated UTF-8 */
-            G.unipath_filename = G.filename_full;
+        /* could check whether (p - outbuf) == block_len here */
+        *q = '\0';
+
+        if (display_8) {
+            /* translate the text coded in the entry's host-dependent
+               "extended ASCII" charset into the compiler's (system's)
+               internal text code page */
+            Ext_ASCII_TO_Native((char *) G.outbuf, G.pInfo->hostnum,
+                                G.pInfo->hostver, G.pInfo->HasUxAtt, FALSE);
         } else {
-            /* Get the Unicode fields if exist */
-            getUnicodeData(G.extra_field, length);
-            if (G.unipath_filename && strlen(G.unipath_filename) == 0) {
-                /* the standard filename field is UTF-8 */
-                free(G.unipath_filename);
-                G.unipath_filename = G.filename_full;
+            A_TO_N(G.outbuf); /* translate string to native */
+        }
+
+        p = G.outbuf - 1;
+        q = slide;
+        while (*++p) {
+            int pause = FALSE;
+
+            if (*p == 0x1B) { /* ASCII escape char */
+                *q++ = '^';
+                *q++ = '[';
+            } else if (*p == 0x13) { /* ASCII ^S (pause) */
+                pause = TRUE;
+                if (p[1] == LF) /* ASCII LF */
+                    *q++ = *++p;
+                else if (p[1] == CR && p[2] == LF) { /* ASCII CR LF */
+                    *q++ = *++p;
+                    *q++ = *++p;
+                }
+            } else
+                *q++ = *p;
+            if ((unsigned) (q - slide) > WSIZE - 3 || pause) { /* flush */
+                (*G.message)(slide, (uint32_t) (q - slide), 0);
+                q = slide;
+                if (pause && G.extract_flag) /* don't pause for list/test */
+                    (*G.mpause)(QuitPrompt, 0);
             }
         }
-        if (!G.unipath_filename) {
-            break;
+        (*G.message)(slide, (uint32_t) (q - slide), 0);
+    }
+    /* add '\n' if not at start of line */
+    (*G.message)(slide, 0L, 0x20);
+    return PK_OK;
+}
+
+/*
+ * Second case: read string into filename[] array. The filename should never
+ * be longer than FILNAMSIZ-1 (1024), but for now we'll check, just to be sure.
+ */
+int do_string_read_filename(unsigned int length, int l)
+{
+    unsigned int block_len;
+    int error = PK_OK;
+
+    if (!length)
+        return PK_COOL;
+
+    /* get the whole filename as need it for Unicode checksum */
+    if (G.fnfull_bufsize <= length) {
+        size_t fnbufsiz = FILNAMSIZ;
+
+        if (fnbufsiz <= length)
+            fnbufsiz = length + 1;
+        free(G.filename_full);
+        G.filename_full = checked_malloc(fnbufsiz);
+        G.fnfull_bufsize = fnbufsiz;
+    }
+    if (readbuf(G.filename_full, length) == 0)
+        return PK_EOF;
+    G.filename_full[length] = '\0'; /* terminate w/zero:  ASCIIZ */
+
+    /* if needed, chop off end so standard filename is a valid length */
+    if (length >= FILNAMSIZ) {
+        Info(slide, 1, ((char *) slide, FilenameTooLongTrunc));
+        error = PK_WARN;
+        length = FILNAMSIZ - 1;
+    }
+    /* no excess size */
+    block_len = 0;
+    strncpy(G.filename, G.filename_full, length);
+    G.filename[length] = '\0'; /* terminate w/zero:  ASCIIZ */
+
+    /* translate the Zip entry filename coded in host-dependent "extended
+       ASCII" into the compiler's (system's) internal text code page */
+    Ext_ASCII_TO_Native(G.filename, G.pInfo->hostnum, G.pInfo->hostver,
+                        G.pInfo->HasUxAtt, l);
+
+    if (G.pInfo->lcflag) /* replace with lowercase filename */
+        STRLOWER(G.filename, G.filename);
+
+    if (G.pInfo->vollabel && length > 8 && G.filename[8] == '.') {
+        char *p = G.filename + 8;
+        while (*p++)
+            p[-1] = *p; /* disk label, and 8th char is dot:  remove dot */
+    }
+
+    if (!block_len) { /* no overflow, we're done here */
+        return error;
+    }
+
+    /*
+     * We truncated the filename, so print what's left and then fall
+     * through to the SKIP routine.
+     */
+    Info(slide, 1, ((char *) slide, "[ %s ]\n", FnFilter1(G.filename)));
+
+    do_string_skip(block_len);
+    return error;
+}
+
+/*
+ * Third case:  skip string, adjusting readbuf's internal variables as
+ * necessary (and possibly skipping to and reading a new block of data).
+ */
+
+int do_string_skip(unsigned int length)
+{
+    if (!length)
+        return PK_COOL;
+
+    /* cur_zipfile_bufstart already takes account of extra_bytes, so don't
+     * correct for it twice: */
+    seek_zipf(G.cur_zipfile_bufstart - G.extra_bytes + (G.inptr - G.inbuf) +
+              length);
+    return PK_OK;
+}
+
+/*
+ * Fourth case: assume we're at the start of an "extra field"; malloc
+ * storage for it and read data into the allocated space.
+ */
+int do_string_extra_field(unsigned int length)
+{
+    int error = PK_OK;
+
+    if (!length)
+        return PK_COOL;
+
+    free(G.extra_field);
+    G.extra_field = checked_malloc(length);
+    if (readbuf((char *) G.extra_field, length) == 0) {
+        return PK_EOF;
+    }
+    /* Looks like here is where extra fields are read */
+    if (getZip64Data(G.extra_field, length) != PK_COOL) {
+        Info(slide, 1, ((char *) slide, ExtraFieldCorrupt, EF_PKSZ64));
+        error = PK_WARN;
+    }
+    G.unipath_filename = NULL;
+    if (G.UzO.U_flag >= 2) {
+        return PK_OK;
+    }
+    /* check if GPB11 (General Purpuse Bit 11) is set indicating
+       the standard path and comment are UTF-8 */
+    if (G.pInfo->GPFIsUTF8) {
+        /* if GPB11 set then filename_full is untruncated UTF-8 */
+        G.unipath_filename = G.filename_full;
+    } else {
+        /* Get the Unicode fields if exist */
+        getUnicodeData(G.extra_field, length);
+        if (G.unipath_filename && strlen(G.unipath_filename) == 0) {
+            /* the standard filename field is UTF-8 */
+            free(G.unipath_filename);
+            G.unipath_filename = G.filename_full;
         }
-        if (G.native_is_utf8 && (!G.unicode_escape_all)) {
-            strncpy(G.filename, G.unipath_filename, FILNAMSIZ - 1);
+    }
+    if (!G.unipath_filename) {
+        return PK_OK;
+    }
+    if (G.native_is_utf8 && (!G.unicode_escape_all)) {
+        strncpy(G.filename, G.unipath_filename, FILNAMSIZ - 1);
+        /* make sure filename is short enough */
+        if (strlen(G.unipath_filename) >= FILNAMSIZ) {
+            G.filename[FILNAMSIZ - 1] = '\0';
+            Info(slide, 1, ((char *) slide, UFilenameTooLongTrunc));
+            error = PK_WARN;
+        }
+    } else {
+        char *fn;
+
+        /* convert UTF-8 to local character set */
+        fn = utf8_to_local_string(G.unipath_filename, G.unicode_escape_all);
+
+        /* 2022-07-22 SMS, et al.  CVE-2022-0530
+         * Detect conversion failure, emit message.
+         * Continue with unconverted name.
+         */
+        if (fn == NULL) {
+            Info(slide, 1, ((char *) slide, UFilenameCorrupt));
+            error = PK_ERR;
+        } else {
             /* make sure filename is short enough */
-            if (strlen(G.unipath_filename) >= FILNAMSIZ) {
-                G.filename[FILNAMSIZ - 1] = '\0';
+            if (strlen(fn) >= FILNAMSIZ) {
+                fn[FILNAMSIZ - 1] = '\0';
                 Info(slide, 1, ((char *) slide, UFilenameTooLongTrunc));
                 error = PK_WARN;
             }
-        } else {
-            char *fn;
-
-            /* convert UTF-8 to local character set */
-            fn = utf8_to_local_string(G.unipath_filename, G.unicode_escape_all);
-
-            /* 2022-07-22 SMS, et al.  CVE-2022-0530
-             * Detect conversion failure, emit message.
-             * Continue with unconverted name.
-             */
-            if (fn == NULL) {
-                Info(slide, 1, ((char *) slide, UFilenameCorrupt));
-                error = PK_ERR;
-            } else {
-                /* make sure filename is short enough */
-                if (strlen(fn) >= FILNAMSIZ) {
-                    fn[FILNAMSIZ - 1] = '\0';
-                    Info(slide, 1, ((char *) slide, UFilenameTooLongTrunc));
-                    error = PK_WARN;
-                }
-                /* replace filename with converted UTF-8 */
-                strcpy(G.filename, fn);
-                free(fn);
-            }
+            /* replace filename with converted UTF-8 */
+            strcpy(G.filename, fn);
+            free(fn);
         }
-        if (G.unipath_filename != G.filename_full)
-            free(G.unipath_filename);
-        G.unipath_filename = NULL;
-        break;
-    } /* end switch (option) */
+    }
+    if (G.unipath_filename != G.filename_full)
+        free(G.unipath_filename);
+    G.unipath_filename = NULL;
 
     return error;
 }

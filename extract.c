@@ -433,7 +433,8 @@ int extract_or_test_files(void) /* return PK-type error code */
                 reached_end = TRUE;       /* ...so no more left to do */
                 break;
             }
-            if ((error = do_string(G.crec.filename_length, DS_FN)) != PK_COOL) {
+            if ((error = do_string_read_filename(G.crec.filename_length, 0)) !=
+                PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;
                 if (error > PK_WARN) { /* fatal:  no more left to do */
@@ -444,7 +445,7 @@ int extract_or_test_files(void) /* return PK-type error code */
                     break;
                 }
             }
-            if ((error = do_string(G.crec.extra_field_length, EXTRA_FIELD)) !=
+            if ((error = do_string_extra_field(G.crec.extra_field_length)) !=
                 0) {
                 if (error > error_in_archive)
                     error_in_archive = error;
@@ -456,7 +457,7 @@ int extract_or_test_files(void) /* return PK-type error code */
                     break;
                 }
             }
-            if ((error = do_string(G.crec.file_comment_length, SKIP)) !=
+            if ((error = do_string_skip(G.crec.file_comment_length)) !=
                 PK_COOL) {
                 if (error > error_in_archive)
                     error_in_archive = error;
@@ -964,7 +965,8 @@ int error_in_archive;
             if (error_in_archive < PK_WARN)
                 error_in_archive = PK_WARN;
         }
-        if ((error = do_string(G.lrec.filename_length, DS_FN_L)) != PK_COOL) {
+        if ((error = do_string_read_filename(G.lrec.filename_length, 1)) !=
+            PK_COOL) {
             if (error > error_in_archive)
                 error_in_archive = error;
             if (error > PK_WARN) {
@@ -977,7 +979,7 @@ int error_in_archive;
         free(G.extra_field);
         G.extra_field = NULL;
 
-        if ((error = do_string(G.lrec.extra_field_length, EXTRA_FIELD)) != 0) {
+        if ((error = do_string_extra_field(G.lrec.extra_field_length)) != 0) {
             if (error > error_in_archive)
                 error_in_archive = error;
             if (error > PK_WARN) {
