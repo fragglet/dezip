@@ -17,8 +17,8 @@ typedef struct uxdirattr {  /* struct for holding unix style directory */
     struct uxdirattr *next; /*  info until can be sorted and set at end */
     char *fn;               /* filename of directory */
     union {
-        iztimes t3; /* mtime, atime, ctime */
-        ztimbuf t2; /* modtime, actime */
+        iztimes t3;        /* mtime, atime, ctime */
+        struct utimbuf t2; /* modtime, actime */
     } u;
     unsigned perms;  /* same as min_info.file_attr */
     int have_uidgid; /* flag */
@@ -706,8 +706,8 @@ uint32_t z_uidgid[2];
 void close_outfile() /* GRR: change to return PK-style warning level */
 {
     union {
-        iztimes t3; /* mtime, atime, ctime */
-        ztimbuf t2; /* modtime, actime */
+        iztimes t3;        /* mtime, atime, ctime */
+        struct utimbuf t2; /* modtime, actime */
     } zt;
     uint32_t z_uidgid[2];
     int have_uidgid_flg;
@@ -906,7 +906,7 @@ direntry *d;
 int stamp_file(fname, modtime) const char *fname;
 time_t modtime;
 {
-    ztimbuf tp;
+    struct utimbuf tp;
 
     tp.modtime = tp.actime = modtime;
     return (utime(fname, &tp));

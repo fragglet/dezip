@@ -385,8 +385,6 @@ char *plastchar(const char *ptr, size_t len);
 #define MASK_ZUCN64 (~(uint64_t) 0)
 #define MASK_ZUCN16 ((uint64_t) 0xFFFF)
 
-typedef struct utimbuf ztimbuf;
-
 typedef struct iztimes {
     time_t atime; /* new access time */
     time_t mtime; /* new modification time */
