@@ -270,13 +270,6 @@ characters from UTF-8 encoded filenames as ``#Uxxxx'' (for UCS-2 characters, or
 .B \-UU
 disables recognition of UTF-8 encoded filenames.
 .TP
-.B \-V
-retain (VMS) file version numbers. VMS files can be stored with a version
-number, in the format \fCfile.ext;##\fR. By default the ``\fC;##\fR'' version
-numbers are stripped, but this option allows them to be retained. (On file
-systems that limit filenames to particularly short lengths, the version numbers
-may be truncated or stripped regardless of this option.)
-.TP
 .B \-W
 modifies the pattern matching routine so that both `?' (single-char wildcard)
 and `*' (multi-char wildcard) do not match the directory separator character

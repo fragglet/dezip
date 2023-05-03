@@ -551,10 +551,6 @@ char ***pargv;
                 else
                     G.UzO.vflag = 2;
                 break;
-            case 'V': /* Version (retain VMS/DEC-20 file versions) */
-                G.UzO.V_flag = !negative;
-                negative = 0;
-                break;
             case 'x': /* extract:  default */
                 break;
             case 'X': /* restore owner/protection info (need privs?) */

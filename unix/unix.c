@@ -434,15 +434,6 @@ int renamed;
 
     *pp = '\0'; /* done with pathcomp:  terminate it */
 
-    /* if not saving them, remove VMS version numbers (appended ";###") */
-    if (!G.UzO.V_flag && lastsemi) {
-        pp = lastsemi + 1;
-        while (isdigit((uint8_t) (*pp)))
-            ++pp;
-        if (*pp == '\0') /* only digits between ';' and end:  nuke */
-            *lastsemi = '\0';
-    }
-
     /* On UNIX (and compatible systems), "." and ".." are reserved for
      * directory navigation and cannot be used as regular file names.
      * These reserved one-dot and two-dot names are mapped to "_" and "__".
