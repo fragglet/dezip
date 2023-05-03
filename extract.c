@@ -1241,7 +1241,6 @@ static int extract_or_test_member(void) /* return PK-type error code */
         }
     } else if (G.UzO.cflag) {
         G.outfile = stdout;
-#define NEWLINE "\n"
     } else if (open_outfile())
         return PK_DISK;
 
