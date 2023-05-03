@@ -802,44 +802,6 @@ int stamp_file(const char *fname, time_t modtime); /* local */
                   : flush(redirSlide, (uint32_t) (w), 0))
 #define NEXTBYTE (G.incnt-- > 0 ? (int) (*G.inptr++) : readbyte())
 
-#define READBITS(nbits, zdest)                                        \
-    {                                                                 \
-        if (nbits > G.bits_left) {                                    \
-            int temp;                                                 \
-            G.zipeof = 1;                                             \
-            while (G.bits_left <= 8 * (int) (sizeof(G.bitbuf) - 1) && \
-                   (temp = NEXTBYTE) != EOF) {                        \
-                G.bitbuf |= (uint32_t) temp << G.bits_left;           \
-                G.bits_left += 8;                                     \
-                G.zipeof = 0;                                         \
-            }                                                         \
-        }                                                             \
-        zdest = (shrint) ((unsigned) G.bitbuf & mask_bits[nbits]);    \
-        G.bitbuf >>= nbits;                                           \
-        G.bits_left -= nbits;                                         \
-    }
-
-/*
- * macro READBITS(nbits,zdest)    * only used by unreduce and unshrink *
- *  {
- *      if (nbits > G.bits_left) {  * fill G.bitbuf, 8*sizeof(uint32_t) bits *
- *          int temp;
- *
- *          G.zipeof = 1;
- *          while (G.bits_left <= 8*(int)(sizeof(G.bitbuf)-1) &&
- *                 (temp = NEXTBYTE) != EOF) {
- *              G.bitbuf |= (uint32_t)temp << G.bits_left;
- *              G.bits_left += 8;
- *              G.zipeof = 0;
- *          }
- *      }
- *      zdest = (shrint)((unsigned)G.bitbuf & mask_bits[nbits]);
- *      G.bitbuf >>= nbits;
- *      G.bits_left -= nbits;
- *  }
- *
- */
-
 /* GRR:  should use StringLower for STRLOWER macro if possible */
 
 /*

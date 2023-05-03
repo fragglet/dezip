@@ -164,9 +164,9 @@ static const uint16_t cpdist8[] = {
 /* Macros for inflate() bit peeking and grabbing.
    The usage is:
 
-        NEEDBITS(j)
+        NEEDBITS(j);
         x = b & mask_bits[j];
-        DUMPBITS(j)
+        DUMPBITS(j);
 
    where NEEDBITS makes sure that b has at least j bits in it, and
    DUMPBITS removes the bits from b.  The macros use the variable k
@@ -175,33 +175,33 @@ static const uint16_t cpdist8[] = {
  */
 
 #define NEEDBITS(n)                          \
-    {                                        \
+    do {                                     \
         while (k < (n)) {                    \
             b |= ((uint32_t) NEXTBYTE) << k; \
             k += 8;                          \
         }                                    \
-    }
+    } while (0)
 #define DUMPBITS(n) \
-    {               \
+    do {            \
         b >>= (n);  \
         k -= (n);   \
-    }
+    } while (0)
 
 #define DECODEHUFT(htab, bits, mask)                       \
-    {                                                      \
-        NEEDBITS((unsigned) (bits))                        \
+    do {                                                   \
+        NEEDBITS((unsigned) (bits));                       \
         t = (htab) + ((~(unsigned) b) & (mask));           \
         while (1) {                                        \
-            DUMPBITS(t->b)                                 \
+            DUMPBITS(t->b);                                \
             if ((e = t->e) <= 32)                          \
                 break;                                     \
             if (IS_INVALID_CODE(e))                        \
                 return 1;                                  \
             e &= 31;                                       \
-            NEEDBITS(e)                                    \
+            NEEDBITS(e);                                   \
             t = t->v.t + ((~(unsigned) b) & mask_bits[e]); \
         }                                                  \
-    }
+    } while (0)
 
 /* Get the bit lengths for a code representation from the compressed
    stream.  If get_tree() returns 4, then there is an error in the data.
@@ -259,12 +259,12 @@ unsigned bdl;              /* number of distance low bits */
     s = G.lrec.ucsize;
     while (s > 0) /* do until ucsize bytes uncompressed */
     {
-        NEEDBITS(1)
+        NEEDBITS(1);
         if (b & 1) {
             /* literal--decode it */
-            DUMPBITS(1)
+            DUMPBITS(1);
             s--;
-            DECODEHUFT(tb, bb, mb) /* get coded literal */
+            DECODEHUFT(tb, bb, mb); /* get coded literal */
             redirSlide[w++] = (uint8_t) t->v.n;
             if (w == wszimpl) {
                 if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
@@ -273,19 +273,19 @@ unsigned bdl;              /* number of distance low bits */
             }
         } else {
             /* else distance/length */
-            DUMPBITS(1)
-            NEEDBITS(bdl) /* get distance low bits */
+            DUMPBITS(1);
+            NEEDBITS(bdl); /* get distance low bits */
             d = (unsigned) b & mdl;
-            DUMPBITS(bdl)
-            DECODEHUFT(td, bd, md) /* get coded distance high bits */
-            d = w - d - t->v.n;    /* construct offset */
-            DECODEHUFT(tl, bl, ml) /* get coded length */
+            DUMPBITS(bdl);
+            DECODEHUFT(td, bd, md); /* get coded distance high bits */
+            d = w - d - t->v.n;     /* construct offset */
+            DECODEHUFT(tl, bl, ml); /* get coded length */
             n = t->v.n;
             if (e) {
                 /* get length extra bits */
-                NEEDBITS(8)
+                NEEDBITS(8);
                 n += (unsigned) b & 0xff;
-                DUMPBITS(8)
+                DUMPBITS(8);
             }
 
             /* do the copy */
@@ -352,34 +352,34 @@ unsigned bdl;         /* number of distance low bits */
     s = G.lrec.ucsize;
     while (s > 0) {
         /* do until ucsize bytes uncompressed */
-        NEEDBITS(1)
+        NEEDBITS(1);
         if (b & 1) {
             /* then literal--get eight bits */
-            DUMPBITS(1)
+            DUMPBITS(1);
             s--;
-            NEEDBITS(8)
+            NEEDBITS(8);
             redirSlide[w++] = (uint8_t) b;
             if (w == wszimpl) {
                 if ((retval = flush(redirSlide, (uint32_t) w, 0)) != 0)
                     return retval;
                 w = u = 0;
             }
-            DUMPBITS(8)
+            DUMPBITS(8);
         } else {
             /* else distance/length */
-            DUMPBITS(1)
-            NEEDBITS(bdl) /* get distance low bits */
+            DUMPBITS(1);
+            NEEDBITS(bdl); /* get distance low bits */
             d = (unsigned) b & mdl;
-            DUMPBITS(bdl)
-            DECODEHUFT(td, bd, md) /* get coded distance high bits */
-            d = w - d - t->v.n;    /* construct offset */
-            DECODEHUFT(tl, bl, ml) /* get coded length */
+            DUMPBITS(bdl);
+            DECODEHUFT(td, bd, md); /* get coded distance high bits */
+            d = w - d - t->v.n;     /* construct offset */
+            DECODEHUFT(tl, bl, ml); /* get coded length */
             n = t->v.n;
             if (e) {
                 /* get length extra bits */
-                NEEDBITS(8)
+                NEEDBITS(8);
                 n += (unsigned) b & 0xff;
-                DUMPBITS(8)
+                DUMPBITS(8);
             }
 
             /* do the copy */

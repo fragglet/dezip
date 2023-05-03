@@ -63,14 +63,35 @@
 static void partial_clear(int lastcodeused);
 
 #ifdef DEBUG
-#define OUTDBG(c)                        \
-    if ((c) < 32 || (c) >= 127)          \
-        fprintf(stderr, "\\x%02x", (c)); \
-    else                                 \
-        putc((c), stderr);
+#define OUTDBG(c)                            \
+    do {                                     \
+        if ((c) < 32 || (c) >= 127)          \
+            fprintf(stderr, "\\x%02x", (c)); \
+        else                                 \
+            putc((c), stderr);               \
+    } while (0)
 #else
-#define OUTDBG(c)
+#define OUTDBG(c) \
+    do {          \
+    } while (0)
 #endif
+
+#define READBITS(nbits, zdest)                                        \
+    do {                                                              \
+        if (nbits > G.bits_left) {                                    \
+            int temp;                                                 \
+            G.zipeof = 1;                                             \
+            while (G.bits_left <= 8 * (int) (sizeof(G.bitbuf) - 1) && \
+                   (temp = NEXTBYTE) != EOF) {                        \
+                G.bitbuf |= (uint32_t) temp << G.bits_left;           \
+                G.bits_left += 8;                                     \
+                G.zipeof = 0;                                         \
+            }                                                         \
+        }                                                             \
+        zdest = (shrint) ((unsigned) G.bitbuf & mask_bits[nbits]);    \
+        G.bitbuf >>= nbits;                                           \
+        G.bits_left -= nbits;                                         \
+    } while (0)
 
 /* HSIZE is defined as 2^13 (8192) in unzip.h (resp. unzpriv.h */
 #define BOGUSCODE 256
@@ -124,21 +145,21 @@ int unshrink()
         Get and output first code, then loop over remaining ones.
       ---------------------------------------------------------------------------*/
 
-    READBITS(codesize, oldcode)
+    READBITS(codesize, oldcode);
     if (G.zipeof)
         return PK_OK;
 
     finalval = (uint8_t) oldcode;
-    OUTDBG(finalval)
+    OUTDBG(finalval);
     *G.outptr++ = finalval;
     ++G.outcnt;
 
     while (TRUE) {
-        READBITS(codesize, code)
+        READBITS(codesize, code);
         if (G.zipeof)
             break;
         if (code == BOGUSCODE) { /* possible to have consecutive escapes? */
-            READBITS(codesize, code)
+            READBITS(codesize, code);
             if (G.zipeof)
                 break;
             if (code == 1) {
@@ -202,7 +223,7 @@ int unshrink()
 
         for (p = newstr; p < newstr + len; ++p) {
             *G.outptr++ = *p;
-            OUTDBG(*p)
+            OUTDBG(*p);
             if (++G.outcnt == outbufsiz) {
                 Trace((stderr, "doing flush(), outcnt = %lu\n", G.outcnt));
                 if ((error = flush(G.outbuf, G.outcnt, TRUE)) != 0) {

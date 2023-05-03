@@ -331,9 +331,9 @@ static const uint8_t cpdext32[] = {
 /* Macros for inflate() bit peeking and grabbing.
    The usage is:
 
-        NEEDBITS(j)
+        NEEDBITS(j);
         x = b & mask_bits[j];
-        DUMPBITS(j)
+        DUMPBITS(j);
 
    where NEEDBITS makes sure that b has at least j bits in it, and
    DUMPBITS removes the bits from b.  The macros use the variable k
@@ -365,7 +365,7 @@ static const uint8_t cpdext32[] = {
  */
 
 #define NEEDBITS(n)                    \
-    {                                  \
+    do {                               \
         while ((int) k < (int) (n)) {  \
             int c = NEXTBYTE;          \
             if (c == EOF) {            \
@@ -377,13 +377,13 @@ static const uint8_t cpdext32[] = {
             b |= ((uint32_t) c) << k;  \
             k += 8;                    \
         }                              \
-    }
+    } while (0)
 
 #define DUMPBITS(n) \
-    {               \
+    do {            \
         b >>= (n);  \
         k -= (n);   \
-    }
+    } while (0)
 
 /*
    Huffman code decoding is performed using a multi-level table lookup.
@@ -448,10 +448,10 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
     md = mask_bits[bd];
     while (1) {
         /* do until end of block */
-        NEEDBITS(bl)
+        NEEDBITS(bl);
         t = tl + ((unsigned) b & ml);
         while (1) {
-            DUMPBITS(t->b)
+            DUMPBITS(t->b);
 
             if ((e = t->e) == 32) {
                 /* then it's a literal */
@@ -467,26 +467,26 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
             if (e < 31) {
                 /* then it's a length */
                 /* get length of block to copy */
-                NEEDBITS(e)
+                NEEDBITS(e);
                 n = t->v.n + ((unsigned) b & mask_bits[e]);
-                DUMPBITS(e)
+                DUMPBITS(e);
 
                 /* decode distance of block to copy */
-                NEEDBITS(bd)
+                NEEDBITS(bd);
                 t = td + ((unsigned) b & md);
                 while (1) {
-                    DUMPBITS(t->b)
+                    DUMPBITS(t->b);
                     if ((e = t->e) < 32)
                         break;
                     if (IS_INVALID_CODE(e))
                         return 1;
                     e &= 31;
-                    NEEDBITS(e)
+                    NEEDBITS(e);
                     t = t->v.t + ((unsigned) b & mask_bits[e]);
                 }
-                NEEDBITS(e)
+                NEEDBITS(e);
                 d = (unsigned) w - t->v.n - ((unsigned) b & mask_bits[e]);
-                DUMPBITS(e)
+                DUMPBITS(e);
 
                 /* do the copy */
                 do {
@@ -519,7 +519,7 @@ unsigned bl, bd;      /* number of bits decoded by tl[] and td[] */
                 return 1;
 
             e &= 31;
-            NEEDBITS(e)
+            NEEDBITS(e);
             t = t->v.t + ((unsigned) b & mask_bits[e]);
         }
     }
@@ -555,24 +555,24 @@ static int inflate_stored()
     DUMPBITS(n);
 
     /* get the length and its complement */
-    NEEDBITS(16)
+    NEEDBITS(16);
     n = ((unsigned) b & 0xffff);
-    DUMPBITS(16)
-    NEEDBITS(16)
+    DUMPBITS(16);
+    NEEDBITS(16);
     if (n != (unsigned) ((~b) & 0xffff))
         return 1; /* error in compressed data */
-    DUMPBITS(16)
+    DUMPBITS(16);
 
     /* read and output the compressed data */
     while (n--) {
-        NEEDBITS(8)
+        NEEDBITS(8);
         redirSlide[w++] = (uint8_t) b;
         if (w == WSIZE) {
             if ((retval = FLUSH(w)) != 0)
                 goto cleanup_and_exit;
             w = 0;
         }
-        DUMPBITS(8)
+        DUMPBITS(8);
     }
 
     /* restore the globals from the locals */
@@ -655,23 +655,23 @@ static int inflate_dynamic(void)
     k = G.bk;
 
     /* read in table lengths */
-    NEEDBITS(5)
+    NEEDBITS(5);
     nl = 257 + ((unsigned) b & 0x1f); /* number of literal/length codes */
-    DUMPBITS(5)
-    NEEDBITS(5)
+    DUMPBITS(5);
+    NEEDBITS(5);
     nd = 1 + ((unsigned) b & 0x1f); /* number of distance codes */
-    DUMPBITS(5)
-    NEEDBITS(4)
+    DUMPBITS(5);
+    NEEDBITS(4);
     nb = 4 + ((unsigned) b & 0xf); /* number of bit length codes */
-    DUMPBITS(4)
+    DUMPBITS(4);
     if (nl > MAXLITLENS || nd > MAXDISTS)
         return 1; /* bad lengths */
 
     /* read in bit-length-code lengths */
     for (j = 0; j < nb; j++) {
-        NEEDBITS(3)
+        NEEDBITS(3);
         ll[border[j]] = (unsigned) b & 7;
-        DUMPBITS(3)
+        DUMPBITS(3);
     }
     for (; j < 19; j++)
         ll[border[j]] = 0;
@@ -692,17 +692,17 @@ static int inflate_dynamic(void)
     m = mask_bits[bl];
     i = l = 0;
     while (i < n) {
-        NEEDBITS(bl)
+        NEEDBITS(bl);
         j = (th = tl + ((unsigned) b & m))->b;
-        DUMPBITS(j)
+        DUMPBITS(j);
         j = th->v.n;
         if (j < 16)          /* length of code in bits (0..15) */
             ll[i++] = l = j; /* save last length in l */
         else if (j == 16) {
             /* repeat last length 3 to 6 times */
-            NEEDBITS(2)
+            NEEDBITS(2);
             j = 3 + ((unsigned) b & 3);
-            DUMPBITS(2)
+            DUMPBITS(2);
             if ((unsigned) i + j > n) {
                 huft_free(tl);
                 return 1;
@@ -711,9 +711,9 @@ static int inflate_dynamic(void)
                 ll[i++] = l;
         } else if (j == 17) {
             /* 3 to 10 zero length codes */
-            NEEDBITS(3)
+            NEEDBITS(3);
             j = 3 + ((unsigned) b & 7);
-            DUMPBITS(3)
+            DUMPBITS(3);
             if ((unsigned) i + j > n) {
                 huft_free(tl);
                 return 1;
@@ -723,9 +723,9 @@ static int inflate_dynamic(void)
             l = 0;
         } else {
             /* j == 18: 11 to 138 zero length codes */
-            NEEDBITS(7)
+            NEEDBITS(7);
             j = 11 + ((unsigned) b & 0x7f);
-            DUMPBITS(7)
+            DUMPBITS(7);
             if ((unsigned) i + j > n) {
                 huft_free(tl);
                 return 1;
@@ -798,14 +798,14 @@ int *e; /* last block flag */
     k = G.bk;
 
     /* read in last block bit */
-    NEEDBITS(1)
+    NEEDBITS(1);
     *e = (int) b & 1;
-    DUMPBITS(1)
+    DUMPBITS(1);
 
     /* read in block type */
-    NEEDBITS(2)
+    NEEDBITS(2);
     t = (unsigned) b & 3;
-    DUMPBITS(2)
+    DUMPBITS(2);
 
     /* restore the global bit buffer */
     G.bb = b;
