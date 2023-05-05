@@ -193,64 +193,15 @@ int mapattr()
     case BEOS_:
     case QDOS_:
     case TANDEM_:
-        r = FALSE;
         G.pInfo->file_attr = (unsigned) (tmp >> 16);
-        if (G.pInfo->file_attr == 0 && G.extra_field) {
-            /* Some (non-Info-ZIP) implementations of Zip for Unix and
-             * VMS (and probably others ??) leave 0 in the upper 16-bit
-             * part of the external_file_attributes field. Instead, they
-             * store file permission attributes in some extra field.
-             * As a work-around, we search for the presence of one of
-             * these extra fields and fall back to the MSDOS compatible
-             * part of external_file_attributes if one of the known
-             * e.f. types has been detected.
-             * Later, we might implement extraction of the permission
-             * bits from the VMS extra field. But for now, the work-around
-             * should be sufficient to provide "readable" extracted files.
-             * (For ASI Unix e.f., an experimental remap of the e.f.
-             * mode value IS already provided!)
-             */
-            uint16_t ebID;
-            unsigned ebLen;
-            uint8_t *ef = G.extra_field;
-            unsigned ef_len = G.crec.extra_field_length;
+        /* Check if the file is a (POSIX-compatible) symbolic link.
+         * We restrict symlink support to those "made-by" hosts that
+         * are known to support symbolic links.
+         */
+        G.pInfo->symlink =
+            S_ISLNK(G.pInfo->file_attr) && SYMLINK_HOST(G.pInfo->hostnum);
+        return 0;
 
-            while (!r && ef_len >= EB_HEADSIZE) {
-                ebID = makeint16(ef);
-                ebLen = (unsigned) makeint16(ef + EB_LEN);
-                if (ebLen > (ef_len - EB_HEADSIZE))
-                    /* discoverd some e.f. inconsistency! */
-                    break;
-                switch (ebID) {
-                case EF_ASIUNIX:
-                    if (ebLen >= (EB_ASI_MODE + 2)) {
-                        G.pInfo->file_attr = (unsigned) makeint16(
-                            ef + (EB_HEADSIZE + EB_ASI_MODE));
-                        /* force stop of loop: */
-                        ef_len = (ebLen + EB_HEADSIZE);
-                        break;
-                    }
-                    /* else: fall through! */
-                case EF_PKVMS:
-                    /* "found nondecypherable e.f. with perm. attr" */
-                    r = TRUE;
-                default:
-                    break;
-                }
-                ef_len -= (ebLen + EB_HEADSIZE);
-                ef += (ebLen + EB_HEADSIZE);
-            }
-        }
-        if (!r) {
-            /* Check if the file is a (POSIX-compatible) symbolic link.
-             * We restrict symlink support to those "made-by" hosts that
-             * are known to support symbolic links.
-             */
-            G.pInfo->symlink =
-                S_ISLNK(G.pInfo->file_attr) && SYMLINK_HOST(G.pInfo->hostnum);
-            return 0;
-        }
-        /* fall through! */
     /* all remaining cases:  expand MSDOS read-only bit into write perms */
     case FS_FAT_:
         /* PKWARE's PKZip for Unix marks entries as FS_FAT_, but stores the
@@ -261,10 +212,7 @@ int mapattr()
          */
         G.pInfo->file_attr = (unsigned) (tmp >> 16);
         /* fall through! */
-    case FS_HPFS_:
-    case FS_NTFS_:
-    case MAC_:
-    case TOPS20_:
+
     default:
         /* Ensure that DOS subdir bit is set when the entry's name ends
          * in a '/'.  Some third-party Zip programs fail to set the subdir
